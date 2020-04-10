@@ -18,7 +18,6 @@ import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import Runtime
 from qiskit.test import QiskitTestCase
 
@@ -30,11 +29,11 @@ class TestRuntimePass(QiskitTestCase):
         """ Empty DAG has 0 runtime"""
         circuit = QuantumCircuit()
 
-        passmanager = PassManager()
-        passmanager.append(Runtime())
-        _ = transpile(circuit, pass_manager=passmanager)
+        pass_manager = PassManager()
+        pass_manager.append(Runtime())
+        pass_manager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['runtime'], 0)
+        self.assertEqual(pass_manager.property_set['runtime'], 0)
 
     def test_only_measure(self):
         """ A dag with only measurements"""
@@ -47,11 +46,11 @@ class TestRuntimePass(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.measure_all()
 
-        passmanager = PassManager()
-        passmanager.append(Runtime(op_times))
-        _ = transpile(circuit, pass_manager=passmanager)
+        pass_manager = PassManager()
+        pass_manager.append(Runtime(op_times))
+        pass_manager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['runtime'], 1)
+        self.assertEqual(pass_manager.property_set['runtime'], 1)
 
     def test_no_optimes(self):
         """ A dag with 2 parallel operations and no classic bits"""
@@ -60,11 +59,11 @@ class TestRuntimePass(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
 
-        passmanager = PassManager()
-        passmanager.append(Runtime())
-        _ = transpile(circuit, pass_manager=passmanager)
+        pass_manager = PassManager()
+        pass_manager.append(Runtime())
+        pass_manager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['runtime'], 1)
+        self.assertEqual(pass_manager.property_set['runtime'], 1)
 
     def test_key_error(self):
         """ KeyError test, if operation is not in op_times dictionary"""
@@ -76,10 +75,10 @@ class TestRuntimePass(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.x(qr[0])
 
-        passmanager = PassManager()
-        passmanager.append(Runtime(op_times))
+        pass_manager = PassManager()
+        pass_manager.append(Runtime(op_times))
 
-        self.assertRaises(KeyError, transpile, circuit, pass_manager=passmanager)
+        self.assertRaises(KeyError, pass_manager.run, circuit)
 
     def test_parallel_ops(self):
         """ A dag with 2 parallel operations and no classic bits"""
@@ -92,11 +91,11 @@ class TestRuntimePass(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[1])
 
-        passmanager = PassManager()
-        passmanager.append(Runtime(op_times))
-        _ = transpile(circuit, pass_manager=passmanager)
+        pass_manager = PassManager()
+        pass_manager.append(Runtime(op_times))
+        pass_manager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['runtime'], 1)
+        self.assertEqual(pass_manager.property_set['runtime'], 1)
 
     def test_longest_path(self):
         """ A dag with operations on alternating qubits, to test finding
@@ -118,11 +117,11 @@ class TestRuntimePass(QiskitTestCase):
         circuit.h(qr[1])
         circuit.cx(qr[0], qr[1])
 
-        passmanager = PassManager()
-        passmanager.append(Runtime(op_times))
-        _ = transpile(circuit, pass_manager=passmanager)
+        pass_manager = PassManager()
+        pass_manager.append(Runtime(op_times))
+        pass_manager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['runtime'], 9)
+        self.assertEqual(pass_manager.property_set['runtime'], 9)
 
     def test_op_times(self):
         """ A dag with different length operations, where longest path is
@@ -149,11 +148,11 @@ class TestRuntimePass(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[2], qr[3])
 
-        passmanager = PassManager()
-        passmanager.append(Runtime(op_times))
-        _ = transpile(circuit, pass_manager=passmanager)
+        pass_manager = PassManager()
+        pass_manager.append(Runtime(op_times))
+        pass_manager.run(circuit)
 
-        self.assertEqual(passmanager.property_set['runtime'], 20)
+        self.assertEqual(pass_manager.property_set['runtime'], 20)
 
 
 if __name__ == '__main__':
