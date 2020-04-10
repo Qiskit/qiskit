@@ -110,7 +110,7 @@ class XGate(Gate):
             return CXGate(label=label, ctrl_state=ctrl_state)
         elif num_ctrl_qubits == 2:
             return CCXGate(label=label, ctrl_state=ctrl_state)
-        elif not ctrl_state:
+        elif ctrl_state is None:
             if num_ctrl_qubits == 3:
                 return C3XGate()
             if num_ctrl_qubits == 4:

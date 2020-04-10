@@ -108,6 +108,7 @@ class TestControlledGate(QiskitTestCase):
         circ.append(inst.control(), qargs=[0, 2, 1])
         circ.append(inst.control(2), qargs=[0, 3, 1, 2])
         circ.append(inst.control().control(), qargs=[0, 3, 1, 2])  # should be same as above
+        import ipdb;ipdb.set_trace()
         self.assertEqual(circ[1][0], circ[2][0])
         self.assertEqual(circ.depth(), 3)
         self.assertEqual(circ[0][0].num_ctrl_qubits, 2)
@@ -674,8 +675,11 @@ class TestControlledGate(QiskitTestCase):
         """
         num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
         free_params = [0.1 * i for i in range(num_free_params)]
-        if gate_class in [allGates.MCU1Gate]:
+        if gate_class in [MCU1Gate]:
             free_params[1] = 3
+        elif gate_class in [MCXGate]:
+            free_params[0] = 3
+
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
         self.assertEqual(base_gate.base_gate, cgate.base_gate)
@@ -753,6 +757,7 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state = 0
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        np.set_printoptions(linewidth=200,)
         self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = 7
@@ -870,7 +875,7 @@ class TestControlledStandardGates(QiskitTestCase):
             args[0] = 2
         elif gate_class in [MCU1Gate]:
             args[1] = 2
-        elif issubclass(cls, MCXGate):
+        elif issubclass(gate_class, MCXGate):
             args = [5]
 
         gate = gate_class(*args)
