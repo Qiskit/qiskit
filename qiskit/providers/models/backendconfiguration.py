@@ -17,7 +17,7 @@ import re
 import copy
 import warnings
 from types import SimpleNamespace
-from typing import Dict, List, Any, Iterable, Tuple, Union
+from typing import Dict, List, Any, Iterable, Union
 from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
