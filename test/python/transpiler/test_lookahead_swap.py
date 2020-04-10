@@ -15,11 +15,13 @@
 """Test the LookaheadSwap pass"""
 
 import unittest
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeMelbourne
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -187,6 +189,50 @@ class TestLookaheadSwap(QiskitTestCase):
         num_swaps_2 = mapped_dag_2.count_ops().get('swap', 0)
 
         self.assertLessEqual(num_swaps_2, num_swaps_1)
+
+    def test_lookahead_swap_hang_in_min_case(self):
+        """Verify LookaheadSwap does not stall in minimal case."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2171
+
+        qr = QuantumRegister(14, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[13])
+        qc.cx(qr[1], qr[13])
+        qc.cx(qr[1], qr[0])
+        qc.cx(qr[13], qr[1])
+        dag = circuit_to_dag(qc)
+
+        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
+
+        out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
+
+        self.assertIsInstance(out, DAGCircuit)
+
+    def test_lookahead_swap_hang_full_case(self):
+        """Verify LookaheadSwap does not stall in reported case."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2171
+
+        qr = QuantumRegister(14, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[13])
+        qc.cx(qr[1], qr[13])
+        qc.cx(qr[1], qr[0])
+        qc.cx(qr[13], qr[1])
+        qc.cx(qr[6], qr[7])
+        qc.cx(qr[8], qr[7])
+        qc.cx(qr[8], qr[6])
+        qc.cx(qr[7], qr[8])
+        qc.cx(qr[0], qr[13])
+        qc.cx(qr[1], qr[0])
+        qc.cx(qr[13], qr[1])
+        qc.cx(qr[0], qr[1])
+        dag = circuit_to_dag(qc)
+
+        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
+
+        out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
+
+        self.assertIsInstance(out, DAGCircuit)
 
 
 if __name__ == '__main__':

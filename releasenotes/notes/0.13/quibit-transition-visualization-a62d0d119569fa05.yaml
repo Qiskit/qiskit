@@ -1,0 +1,44 @@
+---
+features:
+  - |
+    A new visualization function
+    :func:`qiskit.visualization.visualize_transition` for visualizing
+    single qubit gate transitions has been added. It takes in a single qubit
+    circuit and returns an animation of qubit state transitions on a Bloch
+    sphere. To use this function you must have installed
+    the dependencies for and configured globally a matplotlib animtion
+    writer. You can refer to the `matplotlib documentation
+    <https://matplotlib.org/api/animation_api.html#writer-classes>`_ for
+    more details on this. However, in the default case simply ensuring
+    that `FFmpeg <https://www.ffmpeg.org/>`_ is installed is sufficient to
+    use this function.
+
+    It supports circuits with the following gates:
+
+    * :class:`~qiskit.extensions.HGate`
+    * :class:`~qiskit.extensions.XGate`
+    * :class:`~qiskit.extensions.YGate`
+    * :class:`~qiskit.extensions.ZGate`
+    * :class:`~qiskit.extensions.RXGate`
+    * :class:`~qiskit.extensions.RYGate`
+    * :class:`~qiskit.extensions.RZGate`
+    * :class:`~qiskit.extensions.SGate`
+    * :class:`~qiskit.extensions.SdgGate`
+    * :class:`~qiskit.extensions.TGate`
+    * :class:`~qiskit.extensions.TdgGate`
+    * :class:`~qiskit.extensions.U1Gate`
+
+    For example:
+
+    .. jupyter-execute::
+
+      from qiskit.visualization import visualize_transition
+      from qiskit import *
+
+      qc = QuantumCircuit(1)
+      qc.h(0)
+      qc.ry(70,0)
+      qc.rx(90,0)
+      qc.rz(120,0)
+
+      visualize_transition(qc, fpg=20, spg=1, trace=True)
