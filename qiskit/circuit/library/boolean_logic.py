@@ -212,7 +212,7 @@ class AND(QuantumCircuit):
         qr_variable = QuantumRegister(num_variable_qubits, name='variable')
         qr_result = QuantumRegister(1, name='result')
 
-        super().__init__(qr_variable, qr_result, name='or')
+        super().__init__(qr_variable, qr_result, name='and')
 
         # determine the control qubits: all that have a nonzero flag
         flags = flags or [1] * num_variable_qubits
