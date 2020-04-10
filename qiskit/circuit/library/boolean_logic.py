@@ -168,6 +168,11 @@ class OR(QuantumCircuit):
             flags: A list of +1/0/-1 marking negations or omisiions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
         """
+        # store num_variables_qubits and flags
+        self.num_variable_qubits = num_variable_qubits
+        self.flags = flags
+
+        # add registers
         qr_variable = QuantumRegister(num_variable_qubits, name='variable')
         qr_result = QuantumRegister(1, name='result')
 
@@ -181,9 +186,9 @@ class OR(QuantumCircuit):
         flip_qubits = [q for q, flag in zip(qr_variable, flags) if flag > 0]
 
         # determine the number of ancillas
-        num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
-        if num_ancillas > 0:
-            qr_ancilla = QuantumRegister(num_ancillas, 'ancilla')
+        self.num_ancilla_qubits = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
+        if self.num_ancilla_qubits > 0:
+            qr_ancilla = QuantumRegister(self.num_ancilla_qubits, 'ancilla')
             self.add_register(qr_ancilla)
         else:
             qr_ancilla = []
@@ -209,6 +214,11 @@ class AND(QuantumCircuit):
             flags: A list of +1/0/-1 marking negations or omisiions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
         """
+        # store num_variables_qubits and flags
+        self.num_variable_qubits = num_variable_qubits
+        self.flags = flags
+
+        # add registers
         qr_variable = QuantumRegister(num_variable_qubits, name='variable')
         qr_result = QuantumRegister(1, name='result')
 
@@ -222,9 +232,9 @@ class AND(QuantumCircuit):
         flip_qubits = [q for q, flag in zip(qr_variable, flags) if flag < 0]
 
         # determine the number of ancillas
-        num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
-        if num_ancillas > 0:
-            qr_ancilla = QuantumRegister(num_ancillas, 'ancilla')
+        self.num_ancilla_qubits = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
+        if self.num_ancilla_qubits > 0:
+            qr_ancilla = QuantumRegister(self.num_ancilla_qubits, 'ancilla')
             self.add_register(qr_ancilla)
         else:
             qr_ancilla = []

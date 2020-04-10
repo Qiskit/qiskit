@@ -25,7 +25,9 @@ Boolean Logic Circuits
 .. autosummary::
    :toctree: ../stubs/
 
+   AND
    InnerProduct
+   OR
    Permutation
    XOR
 
@@ -77,14 +79,20 @@ Quantum Complexity Advantage Circuits
 """
 
 
-from .boolean_logic import Permutation, XOR, InnerProduct
+from .boolean_logic import (
+    Permutation,
+    XOR,
+    InnerProduct,
+    OR,
+    AND,
+)
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
-    WeightedAdder
+    WeightedAdder,
 )
 from .fourier_checking import FourierChecking
 from .quantum_volume import QuantumVolume

@@ -22,14 +22,45 @@ from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import Permutation, XOR, InnerProduct
+from qiskit.circuit.library import Permutation, XOR, InnerProduct, OR, AND
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
 
 
+@ddt
 class TestBooleanLogicLibrary(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
+
+    def assertBooleanFunctionIsCorrect(self, boolean_circuit, reference):
+        """Assert that ``boolean_circuit`` implements the reference boolean function correctly."""
+        circuit = QuantumCircuit(boolean_circuit.num_qubits)
+        circuit.h(list(range(boolean_circuit.num_variable_qubits)))
+        circuit.append(boolean_circuit.to_instruction(), list(range(boolean_circuit.num_qubits)))
+
+        backend = BasicAer.get_backend('statevector_simulator')
+        statevector = execute(circuit, backend).result().get_statevector()
+
+        if hasattr(boolean_circuit, 'num_ancilla_qubits'):
+            num_ancillas = boolean_circuit.num_ancilla_qubits
+        else:
+            num_ancillas = 0
+
+        probabilities = defaultdict(float)
+        for i, statevector_amplitude in enumerate(statevector):
+            i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancillas:]
+            probabilities[i] += np.real(np.abs(statevector_amplitude) ** 2)
+
+        expectations = defaultdict(float)
+        for x in range(2 ** boolean_circuit.num_variable_qubits):
+            bits = np.array(list(bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)), dtype=int)
+            result = reference(bits[::-1])
+
+            entry = str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)
+            expectations[entry] = 1 / 2 ** boolean_circuit.num_variable_qubits
+
+        for state, probability in probabilities.items():
+            self.assertAlmostEqual(probability, expectations[state])
 
     def test_permutation(self):
         """Test permutation circuit."""
@@ -58,6 +89,54 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         expected.cz(1, 4)
         expected.cz(2, 5)
         self.assertEqual(circuit, expected)
+
+    @data(
+        (2, None, 'noancilla'),
+        (5, None, 'noancilla'),
+        (2, [-1, 1], 'v-chain'),
+        (2, [-1, 1], 'noancilla'),
+        (5, [0, 0, -1, 1, -1], 'noancilla'),
+        (5, [-1, 0, 0, 1, 1], 'v-chain'),
+    )
+    @unpack
+    def test_or(self, num_variables, flags, mcx_mode):
+        """Test the or circuit."""
+        or_circuit = OR(num_variables, flags, mcx_mode=mcx_mode)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.any(flagged)
+
+        self.assertBooleanFunctionIsCorrect(or_circuit, reference)
+
+    @data(
+        (2, None, 'noancilla'),
+        (2, [-1, 1], 'v-chain'),
+        (5, [0, 0, -1, 1, -1], 'noancilla'),
+        (5, [-1, 0, 0, 1, 1], 'v-chain'),
+    )
+    @unpack
+    def test_and(self, num_variables, flags, mcx_mode):
+        """Test the and circuit."""
+        and_circuit = AND(num_variables, flags, mcx_mode=mcx_mode)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.all(flagged)
+
+        self.assertBooleanFunctionIsCorrect(and_circuit, reference)
 
 
 @ddt
