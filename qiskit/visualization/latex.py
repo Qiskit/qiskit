@@ -413,12 +413,21 @@ class QCircuitImage:
                         for index, ctrl_item in enumerate(zip(ctrl_pos, ctrl_state)):
                             pos = ctrl_item[0]
                             cond = ctrl_item[1]
+                            nxt = pos_array[index]
+                            if pos_array[index] > pos_array[-1]:
+                                nxt -= 1
+                                while nxt not in pos_array:
+                                    nxt -= 1
+                            else:
+                                nxt += 1
+                                while nxt not in pos_array:
+                                    nxt += 1
                             if cond == '0':
                                 self._latex[pos][column] = "\\ctrlo{" + str(
-                                    pos_array[index + 1] - pos_array[index]) + "}"
+                                    nxt - pos_array[index]) + "}"
                             elif cond == '1':
                                 self._latex[pos][column] = "\\ctrl{" + str(
-                                    pos_array[index + 1] - pos_array[index]) + "}"
+                                    nxt - pos_array[index]) + "}"
                         if name == 'Z':
                             self._latex[pos_array[-1]][column] = "\\control\\qw"
                         else:
@@ -784,9 +793,10 @@ class QCircuitImage:
                                                                      nm)
 
                     elif len(qarglist) == 3:
-                        ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
-                        cond_1 = ctrl_state[0]
-                        cond_2 = ctrl_state[1]
+                        if op.name in ['ccx', 'cswap']:
+                            ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
+                            cond_1 = ctrl_state[0]
+                            cond_2 = ctrl_state[1]
                         pos_1 = self.img_regs[qarglist[0]]
                         pos_2 = self.img_regs[qarglist[1]]
                         pos_3 = self.img_regs[qarglist[2]]
