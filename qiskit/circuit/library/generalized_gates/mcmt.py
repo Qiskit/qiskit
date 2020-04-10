@@ -207,17 +207,18 @@ def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='n
          *, single_control_gate_fun=None, q_controls=None, q_ancillae=None, q_targets=None):
     """Apply a multi-control, multi-target using a generic gate.
 
-    This can also be used to implement a generic multi-Control gate, as the target could also be of
+    This can also be used to implement a generic multi-control gate, as the target could also be of
     length 1.
     """
+    warnings.warn('The multi-control multi-target gate has moved to the circuit library as of '
+                  '0.14.0 and will not be useable as circuit method anymore. This method will be '
+                  'removed no earlier than 3 months after the release date. '
+                  'You should create the qiskit.circuit.library.MCMT or MCMTVChain circuits and '
+                  'add then to your circuit using append, extend, or compose.',
+                  DeprecationWarning, stacklevel=3)
     # for backward compatibility; the previous signature was
     # `def mcmt(self, q_controls, q_ancillae, single_control_gate_fun, q_targets, mode="basic")`
     if callable(target_qubits):
-        warnings.warn('It seems you are using the old signature of the MCMT gate, which is '
-                      'deprecated as of 0.13.0 and will be removed no earlier than 3 months '
-                      'after the release date. The signature has been updated to '
-                      'mcmct(gate, control_qubits, target_qubits, ancilla_qubits).',
-                      DeprecationWarning, stacklevel=3)
         # swap arguments in the right order
         tmp = gate
         gate = target_qubits
