@@ -112,10 +112,10 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
         with self.assertWarns(DeprecationWarning):
-            sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.config.control(0)))
+            sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.config.control([0, 1])[0]))
         sched = sched.insert(60, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(30, Play(gp1, self.config.drive(0)))
-        sched = sched.insert(60, Play(gp0, self.config.control(0)))
+        sched = sched.insert(60, Play(gp0, self.config.control([0, 1])[0]))
         sched = sched.insert(80, Snapshot("label", "snap_type"))
         sched = sched.insert(90, ShiftPhase(1.57, self.config.drive(0)))
         sched = sched.insert(90, Acquire(10,
@@ -145,10 +145,10 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
         with self.assertWarns(DeprecationWarning):
-            sched |= PersistentValue(value=0.2 + 0.4j)(self.config.control(0))
+            sched |= PersistentValue(value=0.2 + 0.4j)(self.config.control([0, 1])[0])
         sched |= ShiftPhase(-1.57, self.config.drive(0)) << 60
         sched |= Play(gp1, self.config.drive(0)) << 30
-        sched |= Play(gp0, self.config.control(0)) << 60
+        sched |= Play(gp0, self.config.control(qubits=[0, 1])[0]) << 60
         sched |= Snapshot("label", "snap_type") << 60
         sched |= ShiftPhase(1.57, self.config.drive(0)) << 90
         sched |= Acquire(10,
@@ -457,7 +457,7 @@ class TestDelay(BaseTestSchedule):
     def test_delay_control_channel(self):
         """Test Delay on ControlChannel"""
 
-        control_ch = self.config.control(0)
+        control_ch = self.config.control([0, 1])[0]
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, control_ch) + Play(pulse, control_ch)
