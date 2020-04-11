@@ -31,7 +31,7 @@ class DAGLongestPath(AnalysisPass):
                 e.g.::
 
                 {'h': 1,
-                'cx': 4}
+                 'cx': 4}
         """
         super().__init__()
         self.op_times = op_times

@@ -33,7 +33,7 @@ class CountOpsLongestPath(AnalysisPass):
                 e.g.::
 
                 {'h': 1,
-                'cx': 4}
+                 'cx': 4}
         """
         super().__init__()
         self.requires.append(DAGLongestPath(op_times))
