@@ -29,7 +29,7 @@ class FakeArmonk(FakeBackend):
 
     def __init__(self):
         """
-         0 
+         0
         """
         dirname = os.path.dirname(__file__)
         filename = "conf_armonk.json"
