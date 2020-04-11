@@ -764,13 +764,11 @@ class TestControlledGate(QiskitTestCase):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
             with self.subTest(i=cls):
-                if issubclass(cls, ControlledGate) or issubclass(cls, (allGates.IGate)):
+                if issubclass(cls, ControlledGate) or issubclass(cls, allGates.IGate):
                     continue
                 try:
                     numargs = len(_get_free_params(cls))
                     args = [2]*numargs
-                    if issubclass(cls, allGates.MCMTGate):
-                        args[0] = 'ch'
 
                     gate = cls(*args)
                     self.assertEqual(gate.inverse().control(2),
