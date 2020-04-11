@@ -202,11 +202,41 @@ class OR(QuantumCircuit):
 
 
 class AND(QuantumCircuit):
-    """A circuit implementing the logical OR operation on a number of qubits."""
+    r"""A circuit implementing the logical AND operation on a number of qubits.
+
+    For the AND operation the state :math:`|1\rangle` is interpreted as ``True``. The result
+    qubit is flipped, if the state of all variable qubits is ``True``. In this format, the AND
+    operation equals a multi-controlled X gate, which is controlled on all variable qubits.
+    Using a list of flags however, qubits can be skipped or negated. Practically, the flags
+    allow to skip controls or to apply pre- and post-X gates to the negated qubits.
+
+    The AND gate without special flags equals the multi-controlled-X gate:
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import AND
+        import qiskit.tools.jupyter
+        circuit = AND(5)
+        %circuit_library_info circuit
+
+    Using flags we can negate qubits or skip them. For instance, if we have 5 qubits and want to
+    return ``True`` if the first qubit is ``False`` and the last two are ``True`` we use the flags
+    ``[-1, 0, 0, 1, 1]``.
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import AND
+        import qiskit.tools.jupyter
+        circuit = AND(5, flags=[-1, 0, 0, 1, 1])
+        %circuit_library_info circuit
+
+    """
 
     def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
                  mcx_mode: str = 'noancilla') -> None:
-        """Create a new logical OR circuit.
+        """Create a new logical AND circuit.
 
         Args:
             num_variable_qubits: The qubits of which the OR is computed. The result will be written
