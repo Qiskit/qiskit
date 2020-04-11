@@ -14,6 +14,7 @@
 
 """The Boolean Logical AND and OR Gates."""
 
+import warnings
 from qiskit.circuit import QuantumCircuit
 
 
@@ -29,6 +30,12 @@ def logical_and(self, qr_variables, qb_target, qr_ancillae, flags=None, mct_mode
         mct_mode (str): The mct building mode.
     """
     from qiskit.circuit.library import AND
+
+    warnings.warn('The QuantumCircuit.AND method is deprecated as of Terra 0.13.1 / Aqua 0.7.0 and '
+                  'will be removed no earlier than 3 months after the release date. '
+                  'The logic AND has moved to qiskit.circuit.library.AND and has become a circuit '
+                  'object which can be appended to your existing circuit.',
+                  DeprecationWarning, stacklevel=2)
     and_circuit = AND(num_variable_qubits=len(qr_variables), flags=flags, mcx_mode=mct_mode)
     qubits = qr_variables[:] + [qb_target]
     if qr_ancillae:
@@ -49,6 +56,12 @@ def logical_or(self, qr_variables, qb_target, qr_ancillae, flags=None, mct_mode=
         mct_mode (str): The mct building mode.
     """
     from qiskit.circuit.library import OR
+
+    warnings.warn('The QuantumCircuit.OR method is deprecated as of Terra 0.13.1 / Aqua 0.7.0 and '
+                  'will be removed no earlier than 3 months after the release date. '
+                  'The logic OR has moved to qiskit.circuit.library.OR and has become a circuit '
+                  'object which can be appended to your existing circuit.',
+                  DeprecationWarning, stacklevel=2)
     or_circuit = OR(num_variable_qubits=len(qr_variables), flags=flags, mcx_mode=mct_mode)
     qubits = qr_variables[:] + [qb_target]
     if qr_ancillae:
