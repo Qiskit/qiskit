@@ -671,7 +671,7 @@ class MatplotlibDrawer:
             layer_width = 1
 
             for op in layer:
-
+                # If one of the standard wide gates
                 if op.name in _wide_gate:
                     if layer_width < 2:
                         layer_width = 2
@@ -694,6 +694,22 @@ class MatplotlibDrawer:
                                     layer_width = box_width
                                 else:
                                     layer_width = 2
+                            continue
+
+                # If custom ControlledGate
+                elif isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'cy', 'cz', 'ch', 'cu1',
+                        'cu3', 'crz', 'cswap']:
+                    if op.type == 'op' and hasattr(op.op, 'params'):
+                        param = self.param_parse(op.op.params)
+                        if '$\\pi$' in param:
+                            pi_count = param.count('pi')
+                            len_param = len(param) - (4 * pi_count)
+                        else:
+                            len_param = len(param)
+                        if len_param > len(op.name):
+                            box_width = math.floor(len_param / 5.5)
+                            layer_width = box_width
                             continue
 
                 # if custom gate with a longer than standard name determine
@@ -846,9 +862,14 @@ class MatplotlibDrawer:
                     disp = op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
-
+                    # convert op.ctrl_state to bit string and reverse
+                    ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(
+                        num_ctrl_qubits, '0')[::-1]
+                    # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
                     for i in range(num_ctrl_qubits):
-                        self._ctrl_qubit(q_xy[i], fc=self._style.dispcol['multi'],
+                        fc_open_close = (self._style.dispcol['multi'] if ctrl_state[i] == '1'
+                                         else self._style.bg)
+                        self._ctrl_qubit(q_xy[i], fc=fc_open_close,
                                          ec=self._style.dispcol['multi'])
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
@@ -856,8 +877,14 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[i+1], fc=self._style.dispcol['multi'],
                                          ec=self._style.dispcol['multi'])
                     elif num_qargs == 1:
-                        self._gate(q_xy[-1], wide=_iswide, fc=self._style.dispcol['multi'],
-                                   text=disp)
+                        if param:
+                            self._gate(q_xy[num_ctrl_qubits], wide=_iswide,
+                                       text=disp,
+                                       fc=self._style.dispcol['multi'],
+                                       subtext='{}'.format(param))
+                        else:
+                            self._gate(q_xy[num_ctrl_qubits], wide=_iswide, text=disp,
+                                       fc=color)
                     else:
                         self._custom_multiqubit_gate(
                             q_xy[num_ctrl_qubits:], wide=_iswide, fc=self._style.dispcol['multi'],
