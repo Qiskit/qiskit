@@ -156,7 +156,37 @@ class InnerProduct(QuantumCircuit):
 
 
 class OR(QuantumCircuit):
-    """A circuit implementing the logical OR operation on a number of qubits."""
+    r"""A circuit implementing the logical OR operation on a number of qubits.
+
+    For the OR operation the state :math:`|1\rangle` is interpreted as ``True``. The result
+    qubit is flipped, if the state of any variable qubit is ``True``. The OR is implemented using
+    a multi-open-controlled X gate (i.e. flips if the state is :math:`|0\rangle`) and
+    applying an X gate on the result qubit.
+    Using a list of flags, qubits can be skipped or negated.
+
+    The OR gate without special flags:
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import OR
+        import qiskit.tools.jupyter
+        circuit = OR(5)
+        %circuit_library_info circuit
+
+    Using flags we can negate qubits or skip them. For instance, if we have 5 qubits and want to
+    return ``True`` if the first qubit is ``False`` or one of the last two are ``True`` we use the
+    flags ``[-1, 0, 0, 1, 1]``.
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import OR
+        import qiskit.tools.jupyter
+        circuit = OR(5, flags=[-1, 0, 0, 1, 1])
+        %circuit_library_info circuit
+
+    """
 
     def __init__(self, num_variable_qubits: int, flags: Optional[List[int]] = None,
                  mcx_mode: str = 'noancilla') -> None:
