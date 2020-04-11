@@ -19,7 +19,7 @@ Fake Armonk device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, PulseBackendConfiguration,
+from qiskit.providers.models import (PulseDefaults, PulseBackendConfiguration,
                                      BackendProperties)
 from qiskit.test.mock.fake_backend import FakeBackend
 

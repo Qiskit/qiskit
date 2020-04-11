@@ -19,8 +19,7 @@ Fake Cambridge device (20 qubit).
 import os
 import json
 
-from qiskit.providers.models import (QasmBackendConfiguration,
-                                     BackendProperties, PulseDefaults)
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 

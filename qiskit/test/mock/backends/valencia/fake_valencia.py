@@ -19,8 +19,7 @@ Fake Valencia device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
-                                     BackendProperties)
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
