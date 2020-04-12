@@ -340,7 +340,7 @@ Supplementary Information
       plt.figure(figsize=(8, 6))
       plt.hist(depths, bins=list(range(14,36)), align='left', color='#AC557C')
       plt.xlabel('Depth', fontsize=14)
-      plt.ylabel('Counts', fontsize=14)
+      plt.ylabel('Counts', fontsize=14);
 
 
    This distribution is quite wide, signaling the difficultly the SWAP mapper is having
@@ -362,6 +362,44 @@ Supplementary Information
    .. container:: header
 
       **Gate Optimization**
+
+   Decomposing quantum circuits into the basis gate set of the IBM Quantum devices,
+   and the addition of SWAP gates needed to match hardware topology, conspire to
+   increase the depth and gate count of quantum circuits.  Fortunately many routines
+   for optimizing circuits by combining or eliminating gates exist.  In some cases
+   these methods are so effective the output circuits have lower depth than the inputs.
+   In other cases, not much can be done, and the computation may be difficult to
+   perform on noisy devices.  Different gate optimizations are turned on with
+   different `optimization_level` values.  Below we show the benefits gained from
+   setting the optimization level higher:
+
+   .. important::
+
+      The output from :func:`transpile` varies due to the stochastic swap mapper.
+      So the numbers below will likely change each time you run the code.
+
+
+   .. jupyter-execute::
+
+      import matplotlib.pyplot as plt
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.test.mock import FakeBoeblingen
+      backend = FakeBoeblingen()
+
+      ghz = QuantumCircuit(5)
+      ghz.h(0)
+      ghz.cx(0,range(1,5))
+      ghz.draw(output='mpl')
+
+
+   .. jupyter-execute::
+
+      for kk in range(4):
+         circ = transpile(ghz, backend, optimization_level=kk)
+         print('Optimization Level {}'.format(kk))
+         print('Depth:', circ.depth())
+         print('Gate counts:', circ.count_ops())
+         print()
 
 
    .. raw:: html
