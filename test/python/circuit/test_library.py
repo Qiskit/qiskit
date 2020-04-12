@@ -19,9 +19,13 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit import BasicAer, execute, transpile
+from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, ParameterExpression,
+                            ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.random.utils import random_circuit
+from qiskit.extensions.standard import XGate, RXGate, CRXGate
+
 from qiskit.circuit.library import Permutation, XOR, InnerProduct
 from qiskit.circuit.library.n_local import NLocal
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
@@ -508,7 +512,7 @@ class TestWeightedAdder(QiskitTestCase):
 
 
 @ddt
-class TestNLocalCircuit(QiskitTestCase):
+class TestNLocal(QiskitTestCase):
     """Test the n-local circuit class."""
 
     def setUp(self):
@@ -564,7 +568,7 @@ class TestNLocalCircuit(QiskitTestCase):
     @data(
         [(XGate(), [0])],
         [(XGate(), [0]), (XGate(), [2])],
-        [(RXGate(0.2), [2]), (CrxGate(-0.2), [1, 3])],
+        [(RXGate(0.2), [2]), (CRXGate(-0.2), [1, 3])],
     )
     def test_append_gates_to_empty_nlocal(self, gate_data):
         """Test appending gates to an empty nlocal."""
