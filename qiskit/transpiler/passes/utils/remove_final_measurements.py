@@ -85,10 +85,6 @@ class RemoveFinalMeasurements(TransformationPass):
 
         for node in dag.topological_op_nodes():
             # copy the condition over too
-            if node.condition:
-                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs,
-                                             condition=node.condition)
-            else:
-                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
+            new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
 
         return new_dag

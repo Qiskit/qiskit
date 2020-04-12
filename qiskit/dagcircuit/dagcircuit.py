@@ -289,14 +289,13 @@ class DAGCircuit:
         self._add_multi_graph_node(new_node)
         return new_node
 
-    def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
+    def apply_operation_back(self, op, qargs=None, cargs=None):
         """Apply an operation to the output of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-            condition (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
             DAGNode: the current max node
@@ -308,14 +307,14 @@ class DAGCircuit:
         qargs = qargs or []
         cargs = cargs or []
 
-        all_cbits = self._bits_in_condition(condition)
+        all_cbits = self._bits_in_condition(op.condition)
         all_cbits = set(all_cbits).union(cargs)
 
-        self._check_condition(op.name, condition)
+        self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        node = self._add_op_node(op, qargs, cargs, condition)
+        node = self._add_op_node(op, qargs, cargs, op.condition)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -335,14 +334,13 @@ class DAGCircuit:
 
         return node
 
-    def apply_operation_front(self, op, qargs, cargs, condition=None):
+    def apply_operation_front(self, op, qargs, cargs):
         """Apply an operation to the input of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-            condition (tuple or None): optional condition (ClassicalRegister, value)
 
         Returns:
             DAGNode: the current max node
@@ -350,13 +348,13 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
-        all_cbits = self._bits_in_condition(condition)
+        all_cbits = self._bits_in_condition(op.condition)
         all_cbits.extend(cargs)
 
-        self._check_condition(op.name, condition)
+        self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
-        node = self._add_op_node(op, qargs, cargs, condition)
+        node = self._add_op_node(op, qargs, cargs, op.condition)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
@@ -550,7 +548,7 @@ class DAGCircuit:
                 self._check_condition(nd.name, condition)
                 m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
                 m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
-                self.apply_operation_back(nd.op, m_qargs, m_cargs, condition)
+                self.apply_operation_back(nd.op, m_qargs, m_cargs)
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
 
@@ -739,7 +737,7 @@ class DAGCircuit:
                 input_dag.remove_op_node(input_node)
             for replay_node in to_replay:
                 input_dag.apply_operation_back(replay_node.op, replay_node.qargs,
-                                               replay_node.cargs, condition=condition)
+                                               replay_node.cargs)
 
         if wires is None:
             wires = input_dag.wires
@@ -1158,8 +1156,7 @@ class DAGCircuit:
                 # this creates new DAGNodes in the new_layer
                 new_layer.apply_operation_back(node.op,
                                                node.qargs,
-                                               node.cargs,
-                                               node.condition)
+                                               node.cargs)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
@@ -1192,7 +1189,7 @@ class DAGCircuit:
             _ = self._bits_in_condition(co)
 
             # Add node to new_layer
-            new_layer.apply_operation_back(op, qa, ca, co)
+            new_layer.apply_operation_back(op, qa, ca)
             # Add operation to partition
             if next_node.name not in ["barrier",
                                       "snapshot", "save", "load", "noise"]:
