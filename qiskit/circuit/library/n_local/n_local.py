@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The NLocalCircuit class.
+"""The NLocal class.
 
 TODO
     * store circuits instead of gates?
@@ -22,7 +22,7 @@ TODO
     * rename append to combine(after=True) with to support after/before
 """
 
-from __future__ import annotations  # to use the type hint 'NLocalCircuit' in the class itself
+from __future__ import annotations  # to use the type hint 'NLocal' in the class itself
 import copy
 import warnings
 import logging
@@ -32,13 +32,11 @@ import numbers
 import numpy
 from qiskit import QuantumCircuit, QiskitError, transpile, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterVector, ParameterExpression
-from qiskit.aqua.aqua_error import AquaError
-from qiskit.aqua.components.initial_states.initial_state import InitialState
 
 logger = logging.getLogger(__name__)
 
 
-class NLocalCircuit(QuantumCircuit):
+class NLocal(QuantumCircuit):
     """The n-local circuit class."""
 
     def __init__(self,
@@ -49,19 +47,19 @@ class NLocalCircuit(QuantumCircuit):
                  insert_barriers: bool = False,
                  parameter_prefix: str = 'θ',
                  overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
-                 initial_state: Optional[InitialState] = None) -> None:
-        """Initializer.
+                 initial_state: Optional['InitialState'] = None) -> None:
+        """Create a new n-local circuit.
 
-        The structure of the NLocalCircuit are repeated parameterized circuit-blocks (referred to
+        The structure of the NLocal are repeated parameterized circuit-blocks (referred to
         as blocks in the code). For every block, qubit indices indicate on which qubits the block
         acts on. Which and how blocks are repeated is determined via the ``reps`` argument.
         If the same block is supposed to be repeated several times with the same qubit indices,
         it is only stored once.  On circuit construction, copies of the blocks are inserted in the
-        NLocalCircuit with new, unique parameters.
+        NLocal with new, unique parameters.
         These "base parameters" do not change. The user modifies "surface parameters" which are
         bound to the circuit upon requesting the circuit.
         If specified, barriers can be inserted in between every block.
-        If an initial state is provided, it is added in front of the NLocalCircuit.
+        If an initial state is provided, it is added in front of the NLocal.
 
         Args:
             blocks: The input blocks. Can be a single gate, a list of gates, (or circuits?)
@@ -70,7 +68,7 @@ class NLocalCircuit(QuantumCircuit):
                 qubits the block acts on.
             reps: Specifies how the input blocks are repeated. If an integer, all input blocks
                 are repeated ``reps`` times (in the provided order). If a list of
-                integers, ``reps`` determines the order of the layers in NLocalCircuit using the
+                integers, ``reps`` determines the order of the layers in NLocal using the
                 elements of ``reps`` as index. See the Examples section for more detail.
             insert_barriers: If True, barriers are inserted in between each layer/block. If False,
                 no barriers are inserted.
@@ -78,7 +76,7 @@ class NLocalCircuit(QuantumCircuit):
             overwrite_block_parameters: If the parameters in the added blocks should be overwritten.
                 If a list of list of Parameters is passed, these Parameters are used to set the
                 parameters in the blocks.
-            initial_state: An ``InitialState`` object to prepend to the NLocalCircuit.
+            initial_state: An ``InitialState`` object to prepend to the NLocal.
                 TODO deprecate this feature in favor of prepend or overloading __add__ in
                 the initial state class
 
@@ -136,7 +134,7 @@ class NLocalCircuit(QuantumCircuit):
         # temporary fix until UCCSD is rewritten
         self._tmp_num_parameters = None
 
-    def __iadd__(self, other: Union[NLocalCircuit, Instruction, QuantumCircuit]) -> NLocalCircuit:
+    def __iadd__(self, other: Union[NLocal, Instruction, QuantumCircuit]) -> NLocal:
         """Overloading += for convenience.
 
         This presumes list(range(other.num_qubits)) as qubit indices and calls self.append().
@@ -152,7 +150,7 @@ class NLocalCircuit(QuantumCircuit):
         """
         return self.append(other)
 
-    def __add__(self, other: Union[NLocalCircuit, Instruction, QuantumCircuit]) -> NLocalCircuit:
+    def __add__(self, other: Union[NLocal, Instruction, QuantumCircuit]) -> NLocal:
         """Overloading += for convenience.
 
         This presumes list(range(other.num_qubits)) as qubit indices and calls self.append().
@@ -170,10 +168,10 @@ class NLocalCircuit(QuantumCircuit):
         return target.append(other)
 
     def __repr__(self) -> str:
-        """Draw this NLocalCircuit in circuit format using the standard gates.
+        """Draw this NLocal in circuit format using the standard gates.
 
         Returns:
-            A single string representing this NLocalCircuit.
+            A single string representing this NLocal.
         """
         basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
@@ -184,7 +182,7 @@ class NLocalCircuit(QuantumCircuit):
         """Try to convert ``layer`` to an Instruction.
 
         Args:
-            layer: The object to be converted to an NLocalCircuit block / Instruction.
+            layer: The object to be converted to an NLocal block / Instruction.
 
         Returns:
             The layer converted to an Instruction.
@@ -197,7 +195,7 @@ class NLocalCircuit(QuantumCircuit):
         elif hasattr(layer, 'to_instruction'):
             return layer.to_instruction()
         else:
-            raise TypeError('Adding a {} to an NLocalCircuit is not supported.'.format(type(layer)))
+            raise TypeError('Adding a {} to an NLocal is not supported.'.format(type(layer)))
 
     def _parametrize_block(self, block: Instruction,
                            params: Optional[List[Parameter]]) -> QuantumCircuit:
@@ -233,7 +231,7 @@ class NLocalCircuit(QuantumCircuit):
         return circuit
 
     def _configuration_is_valid(self) -> bool:
-        """Check if the configuration of the NLocalCircuit class is valid.
+        """Check if the configuration of the NLocal class is valid.
 
         Returns:
             True, if the configuration is valid and the circuit can be constructed. Otherwise
@@ -298,7 +296,7 @@ class NLocalCircuit(QuantumCircuit):
         Returns:
             The class name and the attributes/parameters of the instance as ``str``.
         """
-        ret = 'NLocalCircuit: {}\n'.format(self.__class__.__name__)
+        ret = 'NLocal: {}\n'.format(self.__class__.__name__)
         params = ''
         for key, value in self.__dict__.items():
             if key[0] == '_':
@@ -356,20 +354,20 @@ class NLocalCircuit(QuantumCircuit):
 
     @property
     def blocks(self) -> List[Instruction]:
-        """The blocks in the NLocalCircuit.
+        """The blocks in the NLocal.
 
         Returns:
-            The blocks that define the NLocalCircuit.
+            The blocks that define the NLocal.
         """
         return self._blocks
 
     @blocks.setter
     def blocks(self, blocks: Union[QuantumCircuit, List[QuantumCircuit],
                                    Instruction, List[Instruction]]) -> None:
-        """Set the blocks of the NLocalCircuit.
+        """Set the blocks of the NLocal.
 
         Args:
-            blocks: The new blocks of the NLocalCircuit.
+            blocks: The new blocks of the NLocal.
         """
         # cannot check for the attribute ``'__len__'`` because a circuit also has this attribute
         if not isinstance(blocks, (list, numpy.ndarray)):
@@ -442,8 +440,8 @@ class NLocalCircuit(QuantumCircuit):
         self._circuit = None
 
     @property
-    def initial_state(self) -> InitialState:
-        """Return the initial state that is added in front of the NLocalCircuit.
+    def initial_state(self) -> 'InitialState':
+        """Return the initial state that is added in front of the NLocal.
 
         Returns:
             The initial state.
@@ -451,7 +449,7 @@ class NLocalCircuit(QuantumCircuit):
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state: InitialState) -> None:
+    def initial_state(self, initial_state: 'InitialState') -> None:
         """Set the initial state.
 
         Note that this sets the number of qubits to the width of the initial state.
@@ -473,15 +471,16 @@ class NLocalCircuit(QuantumCircuit):
 
         # the initial state dictates the number of qubits since we do not have information
         # about on which qubits the initial state acts
-        if self._num_qubits is not None and self._initial_state_circuit.n_qubits < self._num_qubits:
-            raise ValueError('The provided initial state has less qubits than the NLocalCircuit.')
+        if self._num_qubits is not None and \
+                self._initial_state_circuit.num_qubits < self._num_qubits:
+            raise ValueError('The provided initial state has less qubits than the NLocal.')
 
-        self._num_qubits = self._initial_state_circuit.n_qubits
+        self._num_qubits = self._initial_state_circuit.num_qubits
         self._circuit = None
 
     @property
     def insert_barriers(self) -> bool:
-        """Check whether the NLocalCircuit inserts barriers or not.
+        """Check whether the NLocal inserts barriers or not.
 
         Returns:
             True, if barriers are inserted in between the layers, False if not.
@@ -496,14 +495,14 @@ class NLocalCircuit(QuantumCircuit):
             insert_barriers: If True, barriers are inserted, if False not.
         """
         # if insert_barriers changes, we have to invalidate the circuit definition,
-        # if it is the same as before we can leave the NLocalCircuit instance as it is
+        # if it is the same as before we can leave the NLocal instance as it is
         if insert_barriers is not self._insert_barriers:
             self._circuit = None
             self._insert_barriers = insert_barriers
 
     @property
     def num_parameters(self) -> int:
-        """Returns the number of parameters in the NLocalCircuit.
+        """Returns the number of parameters in the NLocal.
 
         Returns:
             The number of parameters.
@@ -528,7 +527,7 @@ class NLocalCircuit(QuantumCircuit):
 
     @property
     def num_qubits(self) -> int:
-        """Returns the number of qubits in this NLocalCircuit.
+        """Returns the number of qubits in this NLocal.
 
         If the number of qubits has not been explicitly set via the setter or the initial state
         (which dictates the number of qubits), infer the number of qubits from the qubit indices
@@ -550,10 +549,10 @@ class NLocalCircuit(QuantumCircuit):
 
     @num_qubits.setter
     def num_qubits(self, num_qubits: int) -> None:
-        """Set the number of qubits for the NLocalCircuit.
+        """Set the number of qubits for the NLocal.
 
         This does not change the qubit indices. If the number of qubits is not sufficient for the
-        blocks in the NLocalCircuit, an error will be thrown upon circuit construction.
+        blocks in the NLocal, an error will be thrown upon circuit construction.
 
         Args:
             The new number of qubits.
@@ -589,10 +588,10 @@ class NLocalCircuit(QuantumCircuit):
 
     @property
     def parameters(self) -> Union[List[float], List[Parameter]]:
-        """Get the parameters of the NLocalCircuit.
+        """Get the parameters of the NLocal.
 
-        Only the so-called "surface parameters" of the NLocalCircuit are subject to change, these
-        can be modified and re-assigned to new values. Below, the NLocalCircuit keeps track of the
+        Only the so-called "surface parameters" of the NLocal are subject to change, these
+        can be modified and re-assigned to new values. Below, the NLocal keeps track of the
         "base parameters" which remain unique.
 
         Returns:
@@ -607,7 +606,7 @@ class NLocalCircuit(QuantumCircuit):
     @parameters.setter
     def parameters(self, params: Union[dict, List[float], List[Parameter], ParameterVector]
                    ) -> None:
-        """Set the parameters of the NLocalCircuit.
+        """Set the parameters of the NLocal.
 
         This sets the surface parameters, not the base parameters.
 
@@ -616,7 +615,7 @@ class NLocalCircuit(QuantumCircuit):
 
         Raises:
             ValueError: If the number of provided parameters does not match the number of
-                parameters of the NLocalCircuit.
+                parameters of the NLocal.
             TypeError: If the type of `params` is not supported.
         """
         # TODO figure out whether it is more efficient to iterate over the list and check for
@@ -644,7 +643,7 @@ class NLocalCircuit(QuantumCircuit):
         Returns:
             The repetitions. If it is an integer the repetitions specify how often
             all blocks are repeated. If a list of integers, each element is an index specifying
-            which block is added to the NLocalCircuit.
+            which block is added to the NLocal.
         """
         return self._reps
 
@@ -694,10 +693,10 @@ class NLocalCircuit(QuantumCircuit):
 
     @property
     def blockwise_parameters(self) -> List[List[List[Parameter]]]:
-        """Get the parameters of the NLocalCircuit.
+        """Get the parameters of the NLocal.
 
-        Only the so-called "surface parameters" of the NLocalCircuit are subject to change, these
-        can be modified and re-assigned to new values. Below, the NLocalCircuit keeps track of the
+        Only the so-called "surface parameters" of the NLocal are subject to change, these
+        can be modified and re-assigned to new values. Below, the NLocal keeps track of the
         "base parameters" which remain unique.
 
         Returns:
@@ -735,7 +734,7 @@ class NLocalCircuit(QuantumCircuit):
 
     @blockwise_parameters.setter
     def blockwise_parameters(self, params: List[List[List[Parameter]]]) -> None:
-        """Set the parameters of the NLocalCircuit.
+        """Set the parameters of the NLocal.
 
         This sets the surface parameters, not the base parameters.
 
@@ -744,7 +743,7 @@ class NLocalCircuit(QuantumCircuit):
 
         Raises:
             ValueError: If the number of provided parameters does not match the number of
-                parameters of the NLocalCircuit.
+                parameters of the NLocal.
             TypeError: If the type of `params` is not supported.
         """
         self._blockwise_base_params = params
@@ -755,13 +754,13 @@ class NLocalCircuit(QuantumCircuit):
         return self.to_circuit().data
 
     def append(self,
-               other: Union[NLocalCircuit, Instruction, QuantumCircuit],
+               other: Union[NLocal, Instruction, QuantumCircuit],
                entangler_maps: Optional[List[int]] = None
-               ) -> NLocalCircuit:
-        """Append another layer to the NLocalCircuit.
+               ) -> NLocal:
+        """Append another layer to the NLocal.
 
         Args:
-            other: The layer to append, can be another NLocalCircuit, an Instruction or Gate,
+            other: The layer to append, can be another NLocal, an Instruction or Gate,
                 or a QuantumCircuit.
             entangler_maps: The qubit indices where to append the layer to.
                 Defaults to the first `n` qubits, where `n` is the number of qubits the layer acts
@@ -790,7 +789,7 @@ class NLocalCircuit(QuantumCircuit):
         # add other to the list of blocks
         self._blocks += [block]
 
-        # We can have two cases: the appended block fits onto the current NLocalCircuit (i.e. has
+        # We can have two cases: the appended block fits onto the current NLocal (i.e. has
         # less of equal number of qubits), or exceeds the number of qubits.
         # In the latter case we have to add an according offset to the qubit indices.
         # Since we cannot append a circuit of larger size to an existing circuit we have to rebuild
@@ -810,13 +809,13 @@ class NLocalCircuit(QuantumCircuit):
 
     def bind_parameters(self, params: Union[List[float], List[Parameter], ParameterVector]
                         ) -> QuantumCircuit:
-        """Bind ``params`` to the underlying circuit of the NLocalCircuit.
+        """Bind ``params`` to the underlying circuit of the NLocal.
 
         This method allows handling of both ``qiskit.circuit.Parameter`` objects and numbers.
         It returns a copy of the internally stored circuit with the new specified parameters.
 
         Returns:
-            A copy of the NLocalCircuit circuit with the specified parameters.
+            A copy of the NLocal circuit with the specified parameters.
 
         Raises:
             TypeError: If ``params`` contains an unsupported type.
@@ -847,16 +846,16 @@ class NLocalCircuit(QuantumCircuit):
         """Deprecated, use `to_circuit()`.
 
         Args:
-            params: The parameters for the NLocalCircuit.
+            params: The parameters for the NLocal.
             q: The qubit register to use to build the circuit. If None, a new register with the
                 name 'q' is created.
 
         Returns:
-            The NLocalCircuit as circuit with the specified parameters.
+            The NLocal as circuit with the specified parameters.
 
         Raises:
             ValueError: If the qubit register is provided but the length does not coincide with the
-               number of qubits of the NLocalCircuit.
+               number of qubits of the NLocal.
         """
         self.parameters = params
         if q is None:
@@ -896,13 +895,13 @@ class NLocalCircuit(QuantumCircuit):
             self._circuit = circuit
 
     def to_circuit(self) -> QuantumCircuit:
-        """Convert the NLocalCircuit into a circuit.
+        """Convert the NLocal into a circuit.
 
-        If the NLocalCircuit has not been defined, an empty quantum circuit is returned.
+        If the NLocal has not been defined, an empty quantum circuit is returned.
 
         Returns:
-            A quantum circuit containing this NLocalCircuit. The width of the circuit equals
-            the number of qubits in this NLocalCircuit.
+            A quantum circuit containing this NLocal. The width of the circuit equals
+            the number of qubits in this NLocal.
         """
         # build the circuit if it has not been constructed yet
         self._build()
@@ -911,23 +910,23 @@ class NLocalCircuit(QuantumCircuit):
         return self.bind_parameters(self.parameters)
 
     def to_instruction(self) -> Instruction:
-        """Convert the NLocalCircuit into an Instruction.
+        """Convert the NLocal into an Instruction.
 
         Returns:
-            An Instruction containing this NLocalCircuit.
+            An Instruction containing this NLocal.
         """
         return self.to_circuit().to_instruction()
 
     def to_gate(self) -> Gate:
-        """Convert this NLocalCircuit into a Gate, if possible.
+        """Convert this NLocal into a Gate, if possible.
 
-        If the NLocalCircuit contains only unitary operations return this NLocalCircuit as a Gate.
+        If the NLocal contains only unitary operations return this NLocal as a Gate.
 
         Returns:
-            A Gate containing this NLocalCircuit.
+            A Gate containing this NLocal.
 
         Raises:
-            AquaError: If the NLocalCircuit contains non-unitary operations.
+            QiskitError: If the NLocal contains non-unitary operations.
         """
         try:
             # Terra bug: cannot identify nested instructions as gates
@@ -938,9 +937,9 @@ class NLocalCircuit(QuantumCircuit):
             return transpiled.to_gate()
         except QiskitError:
             # the QiskitError raised does not give a hint what the non-unitary operations can be
-            # therefore raise a more meaningful AquaError
-            raise AquaError('The NLocalCircuit contains non-unitary operations (e.g. barriers, '
-                            'resets or measurements) and cannot be converted to a Gate!')
+            # therefore raise a more meaningful one
+            raise QiskitError('The NLocal contains non-unitary operations (e.g. barriers, '
+                              'resets or measurements) and cannot be converted to a Gate!')
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:

@@ -23,6 +23,7 @@ from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation, XOR, InnerProduct
+from qiskit.circuit.library.n_local import NLocal
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
@@ -504,3 +505,242 @@ class TestWeightedAdder(QiskitTestCase):
             adder.num_state_qubits = 4
             adder.weights = [2, 0, 1, 1]
             self.assertSummationIsCorrect(adder)
+
+
+@ddt
+class TestNLocalCircuit(QiskitTestCase):
+    """Test the n-local circuit class."""
+
+    def setUp(self):
+        super().setUp()
+        self.resources = './resources/'
+
+    def assertCircuitEqual(self, qc1, qc2, visual=False, verbosity=0, transpiled=True):
+        """An equality test specialized to circuits."""
+        basis_gates = ['id', 'u1', 'u3', 'cx']
+        qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
+        qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
+
+        if verbosity > 0:
+            print('-- circuit 1:')
+            print(qc1)
+            print('-- circuit 2:')
+            print(qc2)
+            print('-- transpiled circuit 1:')
+            print(qc1_transpiled)
+            print('-- transpiled circuit 2:')
+            print(qc2_transpiled)
+
+        if verbosity > 1:
+            print('-- dict:')
+            for key in qc1.__dict__.keys():
+                if key == '_data':
+                    print(key)
+                    print(qc1.__dict__[key])
+                    print(qc2.__dict__[key])
+                else:
+                    print(key, qc1.__dict__[key], qc2.__dict__[key])
+
+        if transpiled:
+            qc1, qc2 = qc1_transpiled, qc2_transpiled
+
+        if visual:
+            self.assertEqual(qc1.draw(), qc2.draw())
+        else:
+            self.assertEqual(qc1, qc2)
+
+    def test_empty_nlocal(self):
+        """Test the creation of an empty NLocal."""
+        nlocal = NLocal()
+        self.assertEqual(nlocal.num_qubits, 0)
+        self.assertEqual(nlocal.num_parameters, 0)
+        self.assertEqual(nlocal.reps, 1)
+
+        self.assertEqual(nlocal.to_circuit(), QuantumCircuit())
+
+        for attribute in [nlocal.blocks, nlocal.entangler_maps, nlocal._reps_as_list()]:
+            self.assertEqual(len(attribute), 0)
+
+    @data(
+        [(XGate(), [0])],
+        [(XGate(), [0]), (XGate(), [2])],
+        [(RXGate(0.2), [2]), (CrxGate(-0.2), [1, 3])],
+    )
+    def test_append_gates_to_empty_nlocal(self, gate_data):
+        """Test appending gates to an empty nlocal."""
+        nlocal = NLocal()
+
+        max_num_qubits = 0
+        for (_, indices) in gate_data:
+            max_num_qubits = max(max_num_qubits, max(indices))
+
+        reference = QuantumCircuit(max_num_qubits + 1)
+        for (gate, indices) in gate_data:
+            nlocal.append(gate, indices)
+            reference.append(gate, indices)
+
+        self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=0)
+
+    @data(
+        [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
+    )
+    def test_append_circuit(self, num_qubits):
+        """Test appending circuits to an nlocal."""
+        # fixed depth of 3 gates per circuit
+        depth = 3
+
+        # keep track of a reference circuit
+        reference = QuantumCircuit(max(num_qubits))
+
+        # construct the NLocal from the first circuit
+        first_circuit = random_circuit(num_qubits[0], depth)
+        # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
+        nlocal = NLocal(first_circuit.to_instruction())
+        reference.append(first_circuit, list(range(num_qubits[0])))
+
+        # append the rest
+        for num in num_qubits[1:]:
+            circuit = random_circuit(num, depth)
+            nlocal.append(circuit)
+            reference.append(circuit, list(range(num)))
+
+        self.assertCircuitEqual(nlocal.to_circuit(), reference)
+
+    @data(
+        [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
+    )
+    def test_append_nlocal(self, num_qubits):
+        """Test appending an nlocal to an nlocal."""
+        # fixed depth of 3 gates per circuit
+        depth = 3
+
+        # keep track of a reference circuit
+        reference = QuantumCircuit(max(num_qubits))
+
+        # construct the NLocal from the first circuit
+        first_circuit = random_circuit(num_qubits[0], depth)
+        # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
+        nlocal = NLocal(first_circuit.to_instruction())
+        reference.append(first_circuit, list(range(num_qubits[0])))
+
+        # print(nlocal.to_circuit())
+        # print(reference)
+
+        # append the rest
+        for num in num_qubits[1:]:
+            circuit = random_circuit(num, depth)
+            nlocal.append(NLocal(circuit))
+            reference.append(circuit, list(range(num)))
+            # print(nlocal.to_circuit())
+            # print(reference)
+
+        self.assertCircuitEqual(nlocal.to_circuit(), reference)
+
+    def test_iadd_overload(self):
+        """Test the overloaded + operator."""
+        num_qubits, depth = 2, 2
+
+        # construct two circuits for adding
+        first_circuit = random_circuit(num_qubits, depth)
+        circuit = random_circuit(num_qubits, depth)
+
+        # get a reference
+        reference = first_circuit + circuit
+
+        # convert the object to be appended to different types
+        others = [circuit, circuit.to_instruction(), circuit.to_gate(), NLocal(circuit)]
+
+        # try adding each type
+        for other in others:
+            nlocal = NLocal(first_circuit)
+            nlocal += other
+            with self.subTest(msg='type: {}'.format(type(other))):
+                self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=0)
+
+    def test_parameter_getter_from_automatic_repetition(self):
+        """Test getting and setting of the nlocal parameters."""
+        circuit = QuantumCircuit(2)
+        circuit.ry(Parameter('a'), 0)
+        circuit.crx(Parameter('b'), 0, 1)
+
+        # repeat circuit and check that parameters are duplicated
+        reps = 3
+        nlocal = NLocal(circuit, reps=reps)
+        self.assertTrue(len(nlocal.parameters), 6)
+
+    @data(list(range(6)), ParameterVector('θ', length=6))
+    def test_parameter_setter_from_automatic_repetition(self, params):
+        """Test getting and setting of the nlocal parameters.
+
+        TODO Test the input ``[0, 1, Parameter('theta'), 3, 4, 5]`` once that's supported.
+        """
+        circuit = QuantumCircuit(2)
+        circuit.ry(Parameter('a'), 0)
+        circuit.crx(Parameter('b'), 0, 1)
+
+        # repeat circuit and check that parameters are duplicated
+        reps = 3
+        nlocal = NLocal(circuit, reps=reps)
+        nlocal.parameters = params
+
+        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
+            # check the parameters of the final circuit
+            self.assertEqual(nlocal.to_circuit().parameters, param_set)
+
+        with self.subTest(msg='Test the parameters of the transpiled circuit'):
+            basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
+            transpiled_circuit = transpile(nlocal.to_circuit(), basis_gates=basis_gates)
+            self.assertEqual(transpiled_circuit.parameters, param_set)
+
+    # TODO add as soon as supported by Terra: [0, 1, Parameter('theta'), 3, 4, 5])
+    # (the test already supports that structure)
+    @data(list(range(6)), ParameterVector('θ', length=6))
+    def test_parameters_setter(self, params):
+        """Test setting the parameters via list."""
+        # construct circuit with some parameters
+        initial_params = ParameterVector('p', length=6)
+        circuit = QuantumCircuit(1)
+        for i, initial_param in enumerate(initial_params):
+            circuit.ry(i * initial_param, 0)
+
+        # create an NLocal from the circuit and set the new parameters
+        nlocal = NLocal(circuit)
+        nlocal.parameters = params
+
+        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
+            # check the parameters of the final circuit
+            self.assertEqual(nlocal.to_circuit().parameters, param_set)
+
+        with self.subTest(msg='Test the parameters of the transpiled circuit'):
+            basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
+            transpiled_circuit = transpile(nlocal.to_circuit(), basis_gates=basis_gates)
+            self.assertEqual(transpiled_circuit.parameters, param_set)
+
+    def test_repetetive_parameter_setting(self):
+        """Test alternate setting of parameters and circuit construction."""
+        x = Parameter('x')
+        circuit = QuantumCircuit(1)
+        circuit.rx(x, 0)
+
+        nlocal = NLocal(circuit, reps=[0, 0, 0], insert_barriers=True)
+        with self.subTest(msg='immediately after initialization'):
+            self.assertEqual(len(nlocal.parameters), 3)
+
+        with self.subTest(msg='after circuit construction'):
+            as_circuit = nlocal.to_circuit()
+            self.assertEqual(len(nlocal.parameters), 3)
+
+        nlocal.parameters = [0, -1, 0]
+        with self.subTest(msg='setting parameter to numbers'):
+            as_circuit = nlocal.to_circuit()
+            self.assertEqual(nlocal.parameters, [0, -1, 0])
+            self.assertEqual(as_circuit.parameters, set())
+
+        q = Parameter('q')
+        nlocal.parameters = [x, q, q]
+        with self.subTest(msg='setting parameter to Parameter objects'):
+            as_circuit = nlocal.to_circuit()
+            self.assertEqual(nlocal.parameters, [x, q, q])
+            self.assertEqual(as_circuit.parameters, set({x, q}))
