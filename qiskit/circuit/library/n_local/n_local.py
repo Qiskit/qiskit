@@ -22,13 +22,11 @@ TODO
     * rename append to combine(after=True) with to support after/before
 """
 
-from __future__ import annotations  # to use the type hint 'NLocal' in the class itself
 import copy
 import warnings
 import logging
 from typing import Union, Optional, List, Any, Tuple
 
-import numbers
 import numpy
 from qiskit import QuantumCircuit, QiskitError, transpile, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterVector, ParameterExpression
@@ -134,7 +132,7 @@ class NLocal(QuantumCircuit):
         # temporary fix until UCCSD is rewritten
         self._tmp_num_parameters = None
 
-    def __iadd__(self, other: Union[NLocal, Instruction, QuantumCircuit]) -> NLocal:
+    def __iadd__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
         """Overloading += for convenience.
 
         This presumes list(range(other.num_qubits)) as qubit indices and calls self.append().
@@ -150,7 +148,7 @@ class NLocal(QuantumCircuit):
         """
         return self.append(other)
 
-    def __add__(self, other: Union[NLocal, Instruction, QuantumCircuit]) -> NLocal:
+    def __add__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
         """Overloading += for convenience.
 
         This presumes list(range(other.num_qubits)) as qubit indices and calls self.append().
@@ -214,8 +212,7 @@ class NLocal(QuantumCircuit):
         circuit.append(block, list(range(block.num_qubits)))
         if params is not None and self._overwrite_block_parameters:
             update = dict(zip(circuit.parameters, params))
-            circuit = circuit.copy()
-            circuit._substitute_parameters(update)
+            circuit = circuit.assign_parameters(update, inplace=False)
 
         return circuit
 
@@ -349,7 +346,7 @@ class NLocal(QuantumCircuit):
             The parameters to be used in the underlying circuit.
         """
         if self._circuit:
-            self._circuit._substitute_parameters(dict(zip(self._base_params, parameters)))
+            self._circuit.assign_parameters(dict(zip(self._base_params, parameters)), inplace=True)
         self._base_params = parameters
 
     @property
@@ -754,9 +751,9 @@ class NLocal(QuantumCircuit):
         return self.to_circuit().data
 
     def append(self,
-               other: Union[NLocal, Instruction, QuantumCircuit],
+               other: Union['NLocal', Instruction, QuantumCircuit],
                entangler_maps: Optional[List[int]] = None
-               ) -> NLocal:
+               ) -> 'NLocal':
         """Append another layer to the NLocal.
 
         Args:
@@ -823,19 +820,8 @@ class NLocal(QuantumCircuit):
         if self._circuit is None:
             _ = self.to_circuit()
 
-        if all(isinstance(param, numbers.Real) for param in params):
-            param_dict = dict(zip(self.base_parameters, params))
-            circuit_copy = self._circuit.bind_parameters(param_dict)
-
-        # if they are new parameters, replace them in the circuit
-        elif all(isinstance(param, Parameter) for param in params):
-            param_dict = dict(zip(self.base_parameters, params))
-            circuit_copy = self._circuit.copy()
-            circuit_copy._substitute_parameters(param_dict)
-
-        # otherwise the input type is not supported
-        else:
-            raise TypeError('Unsupported type of `params`, {}'.format(type(params)))
+        param_dict = dict(zip(self.base_parameters, params))
+        circuit_copy = self._circuit.assign_parameters(param_dict, inplace=False)
 
         return circuit_copy
 
