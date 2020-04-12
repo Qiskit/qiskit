@@ -89,7 +89,6 @@ def control(operation: Union[Gate, ControlledGate],
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
     import qiskit.extensions.standard.multi_control_rotation_gates
-    import qiskit.extensions.standard.multi_control_toffoli_gate
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
