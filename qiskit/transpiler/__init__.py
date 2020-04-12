@@ -188,6 +188,7 @@ Supplementary Information
       circuit with large depth and will therefore be appreciably affected by noise and gate
       errors.
 
+
    .. raw:: html
 
       <br>
@@ -221,6 +222,7 @@ Supplementary Information
    - **Noise adaptive layout**: Uses the noise properties of the device, in concert with the
    circuit properties, to generate the layout with the best noise properties (default in
    `optimization_level=2` and `optimization_level=3`).
+
 
    The choice of initial layout is extremely important when:
 
