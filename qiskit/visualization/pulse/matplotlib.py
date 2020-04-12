@@ -308,7 +308,7 @@ class SamplePulseDrawer:
         bbox = ax.get_position()
 
         if self.style.title_font_size > 0:
-            figure.suptitle('%s' % pulse.name,
+            figure.suptitle(str(pulse.name),
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
                             va='bottom')
@@ -863,7 +863,7 @@ class ScheduleDrawer:
             bbox = ax.get_position()
 
         if self.style.title_font_size > 0:
-            figure.suptitle('%s' % schedule.name,
+            figure.suptitle(str(schedule.name),
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
                             va='bottom')
