@@ -515,10 +515,6 @@ class TestWeightedAdder(QiskitTestCase):
 class TestNLocal(QiskitTestCase):
     """Test the n-local circuit class."""
 
-    def setUp(self):
-        super().setUp()
-        self.resources = './resources/'
-
     def assertCircuitEqual(self, qc1, qc2, visual=False, verbosity=0, transpiled=True):
         """An equality test specialized to circuits."""
         basis_gates = ['id', 'u1', 'u3', 'cx']
@@ -697,9 +693,7 @@ class TestNLocal(QiskitTestCase):
             transpiled_circuit = transpile(nlocal.to_circuit(), basis_gates=basis_gates)
             self.assertEqual(transpiled_circuit.parameters, param_set)
 
-    # TODO add as soon as supported by Terra: [0, 1, Parameter('theta'), 3, 4, 5])
-    # (the test already supports that structure)
-    @data(list(range(6)), ParameterVector('θ', length=6))
+    @data(list(range(6)), ParameterVector('θ', length=6), [0, 1, Parameter('theta'), 3, 4, 5])
     def test_parameters_setter(self, params):
         """Test setting the parameters via list."""
         # construct circuit with some parameters
