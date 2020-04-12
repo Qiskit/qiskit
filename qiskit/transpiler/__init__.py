@@ -214,14 +214,14 @@ Supplementary Information
    level that is chosen.  The basic mapping strategies are the following:
 
    - **Trivial layout**: Map virtual qubits to the same numbered physical qubit on the device,
-   i.e. `[0,1,2,3,4]` -> `[0,1,2,3,4]` (default in `optimization_level=0`).
+     i.e. `[0,1,2,3,4]` -> `[0,1,2,3,4]` (default in `optimization_level=0`).
 
    - **Dense layout**: Find the sub-graph of the device with same number of qubits as the circuit
-   with the greatest connectivity (default in `optimization_level=1`).
+     with the greatest connectivity (default in `optimization_level=1`).
 
    - **Noise adaptive layout**: Uses the noise properties of the device, in concert with the
-   circuit properties, to generate the layout with the best noise properties (default in
-   `optimization_level=2` and `optimization_level=3`).
+     circuit properties, to generate the layout with the best noise properties (default in
+     `optimization_level=2` and `optimization_level=3`).
 
 
    The choice of initial layout is extremely important when:
@@ -254,12 +254,14 @@ Supplementary Information
       ghz.measure(range(3), range(3))
       ghz.draw(output='mpl')
 
+
    - **Layout Using Optimization Level 0**
 
       .. jupyter-execute::
 
          new_circ_lv0 = transpile(ghz, backend=backend, optimization_level=0)
          plot_circuit_layout(new_circ_lv0, backend)
+
 
    - **Layout Using Optimization Level 3**
 
