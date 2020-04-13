@@ -120,43 +120,43 @@ class NLocal(QuantumCircuit):
             self.initial_state = initial_state
 
         # keep track of the circuit
-        self._circuit = None
+        self._data = None
 
         # parameter bounds
         self._bounds = None
 
-    def __iadd__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
-        """Overloading += for convenience.
+    # def __iadd__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
+    #     """Overloading += for convenience.
 
-        This presumes list(range(other.num_qubits)) as qubit indices and calls self.append().
+    #     This presumes list(range(other.num_qubits)) as qubit indices and calls self.compose().
 
-        Args:
-            other: The object to append.
+    #     Args:
+    #         other: The object to compose.
 
-        Raises:
-            TypeError: If the added type is unsupported.
+    #     Raises:
+    #         TypeError: If the added type is unsupported.
 
-        Returns:
-            self
-        """
-        return self.append(other)
+    #     Returns:
+    #         self
+    #     """
+    #     return self.compose(other)
 
-    def __add__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
-        """Overloading += for convenience.
+    # def __add__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
+    #     """Overloading += for convenience.
 
-        This presumes list(range(other.num_qubits)) as qubit indices and calls self.append().
+    #     This presumes list(range(other.num_qubits)) as qubit indices and calls self.compose().
 
-        Args:
-            other: The object to append.
+    #     Args:
+    #         other: The object to compose.
 
-        Raises:
-            TypeError: If the added type is unsupported.
+    #     Raises:
+    #         TypeError: If the added type is unsupported.
 
-        Returns:
-            A copy of self with the other object appended.
-        """
-        target = copy.deepcopy(self)
-        return target.append(other)
+    #     Returns:
+    #         A copy of self with the other object composeed.
+    #     """
+    #     target = copy.deepcopy(self)
+    #     return target.compose(other)
 
     def __str__(self) -> str:
         """Draw this NLocal in circuit format using the standard gates.
@@ -340,7 +340,8 @@ class NLocal(QuantumCircuit):
         Returns:
             The parameters objects used in the circuit.
         """
-        return self._ordered_parameters.resize(self.num_parameters)
+        self._ordered_parameters.resize(self.num_parameters)
+        return list(self._ordered_parameters)
 
     @ordered_parameters.setter
     def ordered_parameters(self, parameters: ParameterVector) -> None:
@@ -491,7 +492,7 @@ class NLocal(QuantumCircuit):
 
         # TODO check if indices is the same if s, only then invalidate the definition
         # but this setter is probably not really used anywhere except the initializer anyways
-        self._circuit = None
+        self._data = None
 
     @property
     def initial_state(self) -> 'InitialState':
@@ -530,7 +531,7 @@ class NLocal(QuantumCircuit):
             raise ValueError('The provided initial state has less qubits than the NLocal.')
 
         self._num_qubits = self._initial_state_circuit.num_qubits
-        self._circuit = None
+        self._data = None
 
     @property
     def insert_barriers(self) -> bool:
@@ -551,7 +552,7 @@ class NLocal(QuantumCircuit):
         # if insert_barriers changes, we have to invalidate the circuit definition,
         # if it is the same as before we can leave the NLocal instance as it is
         if insert_barriers is not self._insert_barriers:
-            self._circuit = None
+            self._data = None
             self._insert_barriers = insert_barriers
 
     @property
@@ -588,7 +589,7 @@ class NLocal(QuantumCircuit):
         """
         if self._num_qubits != num_qubits:
             # invalidate the circuit
-            self._circuit = None
+            self._data = None
             self._num_qubits = num_qubits
 
     @property
@@ -634,7 +635,8 @@ class NLocal(QuantumCircuit):
         Returns:
             A list containing the surface parameters.
         """
-        return set(self.ordered_parameters)
+        self._build()
+        return super().parameters
 
     @parameters.setter
     def parameters(self, params: Union[dict, List[float], List[Parameter], ParameterVector]
@@ -651,7 +653,9 @@ class NLocal(QuantumCircuit):
                 parameters of the NLocal.
             TypeError: If the type of `params` is not supported.
         """
-        raise RuntimeError('Dont use the parameters setter for now!')
+        self.assign_parameters(params, inplace=True)
+        return
+
         # TODO figure out whether it is more efficient to iterate over the list and check for
         # values in the dictionary, or iterate over the dictionary and find the according value
         # in the list. Random access via element should be much faster in the dictionary, probably.
@@ -690,7 +694,7 @@ class NLocal(QuantumCircuit):
         """
 
         # TODO invalidate circuit only when reps changed
-        self._circuit = None
+        self._data = None
         self._reps = repetitions
 
     def _get_default_parameters(self, start: int, num: int) -> List[Parameter]:
@@ -727,23 +731,24 @@ class NLocal(QuantumCircuit):
 
     @property
     def data(self):
-        return self.to_circuit().data
+        self._build()
+        return self._data
 
-    def append(self,
-               other: Union['NLocal', Instruction, QuantumCircuit],
-               entangler_maps: Optional[List[int]] = None
-               ) -> 'NLocal':
+    def compose(self,
+                other: Union['NLocal', Instruction, QuantumCircuit],
+                entangler_maps: Optional[List[int]] = None
+                ) -> 'NLocal':
         """Append another layer to the NLocal.
 
         Args:
-            other: The layer to append, can be another NLocal, an Instruction or Gate,
+            other: The layer to compose, can be another NLocal, an Instruction or Gate,
                 or a QuantumCircuit.
-            entangler_maps: The qubit indices where to append the layer to.
+            entangler_maps: The qubit indices where to compose the layer to.
                 Defaults to the first `n` qubits, where `n` is the number of qubits the layer acts
                 on.
 
         Returns:
-            self, such that chained appends are possible.
+            self, such that chained composes are possible.
 
         Raises:
             TypeError: If `other` is not compatible, i.e. is no Instruction and does not have a
@@ -758,35 +763,34 @@ class NLocal(QuantumCircuit):
         else:
             num_qubits = block.num_qubits
 
-        # Convert to a list, so that if reps was an integer, the appended block gets added
-        # once and not multiple times. Must happen before appending block to self._blocks.
+        # Convert to a list, so that if reps was an integer, the composeed block gets added
+        # once and not multiple times. Must happen before composeing block to self._blocks.
         self._reps = self._reps_as_list() + [len(self._blocks)]
 
         # add other to the list of blocks
         self._blocks += [block]
 
-        # We can have two cases: the appended block fits onto the current NLocal (i.e. has
+        # We can have two cases: the composeed block fits onto the current NLocal (i.e. has
         # less of equal number of qubits), or exceeds the number of qubits.
         # In the latter case we have to add an according offset to the qubit indices.
-        # Since we cannot append a circuit of larger size to an existing circuit we have to rebuild
+        # Since we cannot compose a circuit of larger size to an existing circuit we have to rebuild
         if num_qubits != self.num_qubits:
-            self._circuit = None  # rebuild circuit
+            self._data = None  # rebuild circuit
 
         # modify the circuit accordingly
-        if self._circuit:
+        if self._data:
             if self._insert_barriers and len(self._reps_as_list()) > 1:
-                self._circuit.barrier()
+                self.barrier()
 
             block, entangler_map = self.blocks[-1], self.entangler_maps[-1]
-            self._ordered_parameters.resize(self.num_parameters)
 
             layer = QuantumCircuit(self.num_qubits)
             for indices in entangler_map:
-                params = self._ordered_parameters[-len(get_parameters(block)):]
+                params = self.ordered_parameters[-len(get_parameters(block)):]
                 parametrized_block = self._parametrize_block(block, params)
                 layer.append(parametrized_block.to_instruction(), indices)
 
-            self._circuit += layer
+            self += layer
 
         return self
 
@@ -805,11 +809,17 @@ class NLocal(QuantumCircuit):
             TypeError: If ``params`` contains an unsupported type.
         """
         self._build()
+        if not isinstance(param_dict, dict):
+            param_dict = dict(zip(self.ordered_parameters, param_dict))
 
-        param_dict = dict(zip(self.ordered_parameters, params))
-        circuit_copy = self._circuit.assign_parameters(param_dict, inplace=False)
+        print('ordered', self.ordered_parameters)
+        print('self', self.parameters)
+        print('param_dict', param_dict)
+        return super().assign_parameters(param_dict, inplace=inplace)
 
-        return circuit_copy
+    def to_circuit(self):
+        self._build()
+        return self
 
     def construct_circuit(self,
                           params: Union[List[float], List[Parameter], ParameterVector],
@@ -863,7 +873,8 @@ class NLocal(QuantumCircuit):
 
     def _build(self) -> None:
         """Build the circuit."""
-        if self._circuit is None and self._configuration_is_valid():
+        if self._data is None and self._configuration_is_valid():
+            self._data = []
             if self.num_qubits == 0:
                 circuit = QuantumCircuit()
 
@@ -872,7 +883,8 @@ class NLocal(QuantumCircuit):
                 if self._initial_state:
                     circuit = self._initial_state.construct_circuit('circuit')
                 else:
-                    circuit = QuantumCircuit(self.num_qubits)
+                    self.qregs = [QuantumRegister(self.num_qubits, name='q')]
+                    # circuit = QuantumCircuit(q)
 
                 param_iter = iter(self.ordered_parameters)
 
@@ -880,7 +892,7 @@ class NLocal(QuantumCircuit):
                 if len(self._reps_as_list()) > 0:
                     for i, j in enumerate(self._reps_as_list()):
                         if self._insert_barriers and i > 0:
-                            circuit.barrier()
+                            self.barrier()
                         block = self.blocks[j]
                         entangler_map = self.entangler_maps[i]
 
@@ -890,55 +902,11 @@ class NLocal(QuantumCircuit):
                             parametrized_block = self._parametrize_block(block, params)
                             layer.append(parametrized_block, indices)
 
-                        circuit += layer
+                        self += layer
 
-            # store the circuit
-            self._circuit = circuit
-
-    def to_circuit(self) -> QuantumCircuit:
-        """Convert the NLocal into a circuit.
-
-        If the NLocal has not been defined, an empty quantum circuit is returned.
-
-        Returns:
-            A quantum circuit containing this NLocal. The width of the circuit equals
-            the number of qubits in this NLocal.
-        """
-        # build the circuit if it has not been constructed yet
-        self._build()
-        return self._circuit
-
-    def to_instruction(self) -> Instruction:
-        """Convert the NLocal into an Instruction.
-
-        Returns:
-            An Instruction containing this NLocal.
-        """
-        return self.to_circuit().to_instruction()
-
-    def to_gate(self) -> Gate:
-        """Convert this NLocal into a Gate, if possible.
-
-        If the NLocal contains only unitary operations return this NLocal as a Gate.
-
-        Returns:
-            A Gate containing this NLocal.
-
-        Raises:
-            QiskitError: If the NLocal contains non-unitary operations.
-        """
-        try:
-            # Terra bug: cannot identify nested instructions as gates
-            basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
-                           'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
-                           'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
-            transpiled = transpile(self.to_circuit(), basis_gates=basis_gates)
-            return transpiled.to_gate()
-        except QiskitError:
-            # the QiskitError raised does not give a hint what the non-unitary operations can be
-            # therefore raise a more meaningful one
-            raise QiskitError('The NLocal contains non-unitary operations (e.g. barriers, '
-                              'resets or measurements) and cannot be converted to a Gate!')
+            # store the data
+            # self.qregs = circuit.qregs
+            # self._data = circuit._data
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:
