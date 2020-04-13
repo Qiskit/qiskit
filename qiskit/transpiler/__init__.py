@@ -44,10 +44,6 @@ Qiskit has four pre-built transpilation pipelines available here:
 quantum circuit optimization methods and their usage, it is best to use one of
 these ready-made routines.
 
-.. raw:: html
-
-   <br><br>
-
 
 Supplementary Information
 =========================
