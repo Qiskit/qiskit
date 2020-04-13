@@ -23,7 +23,7 @@ non-trivial and/or have unknown post-conditions.
 try:
     from z3 import Not, And
     HAS_Z3 = True
-except ModuleNotFoundError:
+except ImportError:
     HAS_Z3 = False
 from qiskit.extensions.standard import IGate, XGate, YGate, ZGate
 from qiskit.extensions.standard import CXGate, CCXGate, CYGate, CZGate
