@@ -37,8 +37,8 @@ class HamiltonianGate(Gate):
         """Create a gate from a hamiltonian operator and evolution time parameter t
 
         Args:
-            data (matrix or Operator): unitary operator.
-            time (float or complex): time evolution parameter.
+            data (matrix or Operator): a hermitian operator.
+            time (float): time evolution parameter.
             label (str): unitary name for backend [Default: None].
 
         Raises:
