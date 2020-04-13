@@ -16,6 +16,7 @@
 Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
+from numbers import Number
 import numpy
 import scipy.linalg
 
@@ -29,15 +30,15 @@ from .unitary import UnitaryGate
 
 class HamiltonianGate(Gate):
     """Class for representing evolution by a Hermitian Hamiltonian operator as a gate. This gate
-    resolves to a UnitaryGate, which can be decomposed into basis gates if it is 2 qubits or
-    less, or simulated directly in Aer for more qubits. """
+    resolves to a UnitaryGate U(t) = exp(-1j * t * H), which can be decomposed into basis gates if
+    it is 2 qubits or less, or simulated directly in Aer for more qubits. """
 
     def __init__(self, data, time, label=None):
         """Create a gate from a hamiltonian operator and evolution time parameter t
 
         Args:
-            data (matrix or Operator): unitary operator.
-            time (float or complex): time evolution parameter.
+            data (matrix or Operator): a hermitian operator.
+            time (float): time evolution parameter.
             label (str): unitary name for backend [Default: None].
 
         Raises:
@@ -57,6 +58,8 @@ class HamiltonianGate(Gate):
         # Check input is unitary
         if not is_hermitian_matrix(data):
             raise ExtensionError("Input matrix is not Hermitian.")
+        if isinstance(time, Number) and time != numpy.real(time):
+            raise ExtensionError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
@@ -80,7 +83,7 @@ class HamiltonianGate(Gate):
         """Return matrix for the unitary."""
         try:
             # pylint: disable=no-member
-            return scipy.linalg.expm(1j * self.params[0] * float(self.params[1]))
+            return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError:
             raise TypeError("Unable to generate Unitary matrix for "
                             "unbound t parameter {}".format(self.params[1]))
@@ -91,7 +94,7 @@ class HamiltonianGate(Gate):
 
     def conjugate(self):
         """Return the conjugate of the Hamiltonian."""
-        return HamiltonianGate(numpy.transpose(self.params[0]), -self.params[1])
+        return HamiltonianGate(numpy.conj(self.params[0]), -self.params[1])
 
     def adjoint(self):
         """Return the adjoint of the unitary."""
