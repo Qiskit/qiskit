@@ -37,6 +37,15 @@ follow the structure given below:
 
 .. raw:: html
 
+   <br>
+
+Qiskit has four pre-built transpilation pipelines available here:
+:mod:`qiskit.transpiler.preset_passmanagers`.  Unless the reader is familiar with
+quantum circuit optimization methods and their usage, it is best to use one of
+these ready-made routines.
+
+.. raw:: html
+
    <br><br>
 
 
@@ -369,14 +378,6 @@ Supplementary Information
 
 Transpiler API
 ==============
-
-Preset Pass Managers
---------------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   preset_passmanagers
 
 Pass Manager Construction
 -------------------------
