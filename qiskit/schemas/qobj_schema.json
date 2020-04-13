@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "definitions": {
         "bfunc": {
             "properties": {
@@ -905,9 +905,6 @@
                 "config": {
                     "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",
                     "properties": {
-                        "max_credits": {
-                            "type": "integer"
-                        },
                         "memory_slots": {
                             "description": "The number of (slow) measurement slots requested on the backend, equivalent to the max of memory_slot requested by individual experiments.",
                             "minimum": 0,

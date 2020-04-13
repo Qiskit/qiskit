@@ -22,21 +22,18 @@ class RunConfig(SimpleNamespace):
 
     Attributes:
         shots (int): the number of shots
-        max_credits (int): the max_credits to use on the IBM Q public devices
         seed_simulator (int): the seed to use in the simulator
         memory (bool): whether to request memory from backend (per-shot
             readouts)
         parameter_binds (list[dict]): List of parameter bindings
     """
 
-    def __init__(self, shots=None, max_credits=None, seed_simulator=None,
+    def __init__(self, shots=None, seed_simulator=None,
                  memory=None, parameter_binds=None, **kwargs):
         """Initialize a RunConfig object
 
         Args:
             shots (int): the number of shots
-            max_credits (int): the max_credits to use on the IBM Q public
-                devices
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend
                 (per-shot readouts)
@@ -45,8 +42,6 @@ class RunConfig(SimpleNamespace):
         """
         if shots is not None:
             self.shots = shots
-        if max_credits is not None:
-            self.max_credits = max_credits
         if seed_simulator is not None:
             self.seed_simulator = seed_simulator
         if memory is not None:

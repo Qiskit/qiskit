@@ -248,14 +248,13 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for a QASM Qobj."""
 
-    def __init__(self, shots=None, max_credits=None, seed_simulator=None,
+    def __init__(self, shots=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
                  n_qubits=None, **kwargs):
         """Model for RunConfig.
 
         Args:
             shots (int): the number of shots.
-            max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings
@@ -266,9 +265,6 @@ class QasmQobjConfig(SimpleNamespace):
         """
         if shots is not None:
             self.shots = int(shots)
-
-        if max_credits is not None:
-            self.max_credits = int(max_credits)
 
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)

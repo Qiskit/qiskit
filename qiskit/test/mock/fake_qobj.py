@@ -26,7 +26,7 @@ class FakeQobj(QasmQobj):
     """A fake `Qobj` instance."""
     def __init__(self):
         qobj_id = 'test_id'
-        config = QasmQobjConfig(shots=1024, memory_slots=1, max_credits=100)
+        config = QasmQobjConfig(shots=1024, memory_slots=1)
         header = QobjHeader(backend_name=FakeQasmSimulator().name())
         experiments = [QasmQobjExperiment(
             instructions=[

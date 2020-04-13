@@ -43,7 +43,7 @@ class TestQASMQobj(QiskitTestCase):
         self.valid_qobj = QasmQobj(
             qobj_id='12345',
             header=QobjHeader(),
-            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            config=QasmQobjConfig(shots=1024, memory_slots=2),
             experiments=[
                 QasmQobjExperiment(instructions=[
                     QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
@@ -57,7 +57,7 @@ class TestQASMQobj(QiskitTestCase):
             'type': 'QASM',
             'schema_version': '1.1.0',
             'header': {},
-            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
+            'config': {'memory_slots': 2, 'shots': 1024},
             'experiments': [
                 {'instructions': [
                     {'name': 'u1', 'params': [0.4], 'qubits': [1]},
@@ -107,7 +107,7 @@ class TestQASMQobj(QiskitTestCase):
         valid_qobj = QasmQobj(
             qobj_id='12345',
             header=QobjHeader(),
-            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            config=QasmQobjConfig(shots=1024, memory_slots=2),
             experiments=[
                 QasmQobjExperiment(instructions=[
                     QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
@@ -124,7 +124,7 @@ class TestQASMQobj(QiskitTestCase):
             'type': 'QASM',
             'schema_version': '1.1.0',
             'header': {},
-            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
+            'config': {'memory_slots': 2, 'shots': 1024},
             'experiments': [
                 {'instructions': [
                     {'name': 'u1', 'params': [0.4], 'qubits': [1]},
@@ -143,7 +143,7 @@ class TestQASMQobj(QiskitTestCase):
         expected_qobj = QasmQobj(
             qobj_id='12345',
             header=QobjHeader(),
-            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            config=QasmQobjConfig(shots=1024, memory_slots=2),
             experiments=[
                 QasmQobjExperiment(instructions=[
                     QasmQobjInstruction(name='u1', qubits=[1], params=[0.4]),
@@ -159,7 +159,7 @@ class TestQASMQobj(QiskitTestCase):
             'type': 'QASM',
             'schema_version': '1.1.0',
             'header': {},
-            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
+            'config': {'memory_slots': 2, 'shots': 1024},
             'experiments': [
                 {'instructions': [
                     {'name': 'u1', 'params': [0.4], 'qubits': [1]},
@@ -210,7 +210,7 @@ class TestPulseQobj(QiskitTestCase):
         self.valid_qobj = PulseQobj(
             qobj_id='12345',
             header=QobjHeader(),
-            config=PulseQobjConfig(shots=1024, memory_slots=2, max_credits=10,
+            config=PulseQobjConfig(shots=1024, memory_slots=2,
                                    meas_level=1,
                                    memory_slot_size=8192,
                                    meas_return='avg',
@@ -247,7 +247,7 @@ class TestPulseQobj(QiskitTestCase):
             'type': 'PULSE',
             'schema_version': '1.1.0',
             'header': {},
-            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024,
+            'config': {'memory_slots': 2, 'shots': 1024,
                        'meas_level': 1,
                        'memory_slot_size': 8192,
                        'meas_return': 'avg',
