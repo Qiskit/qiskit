@@ -654,7 +654,7 @@ class MatplotlibDrawer:
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _wide_gate = ['u2', 'u3', 'cu1', 'cu3', 'unitary', 'r']
+        _wide_gate = ['u2', 'u3', 'cu3', 'unitary', 'r', 'cu1', 'rzz']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -945,7 +945,7 @@ class MatplotlibDrawer:
                         else:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
-                    elif op.name in ['cy', 'ch', 'cu1', 'cu3', 'crz']:
+                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
 
                         color = None
@@ -965,6 +965,27 @@ class MatplotlibDrawer:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
                                        fc=color)
                         # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t, lc=color)
+
+                    # rzz gate
+                    elif op.name == 'rzz':
+                        color = self._style.dispcol['multi']
+                        self._ctrl_qubit(q_xy[0], fc=color, ec=color)
+                        self._ctrl_qubit(q_xy[1], fc=color, ec=color)
+                        self._sidetext(qreg_b, text='zz({})'.format(param))
+
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t, lc=color)
+
+                    # cu1 gate
+                    elif op.name == 'cu1':
+                        color = self._style.dispcol['multi']
+                        self._ctrl_qubit(q_xy[0], fc=color, ec=color)
+                        self._ctrl_qubit(q_xy[1], fc=color, ec=color)
+                        self._sidetext(qreg_b, text='U1 ({})'.format(param))
+
+                        # add qubit-qubit wiring
+                        fc = self._style
                         self._line(qreg_b, qreg_t, lc=color)
 
                     # swap gate
