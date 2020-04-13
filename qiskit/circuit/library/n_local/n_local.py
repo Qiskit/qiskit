@@ -25,7 +25,8 @@ TODO
 import copy
 import warnings
 import logging
-from typing import Union, Optional, List, Any, Tuple
+from typing import Union, Optional, List, Any, Tuple, Sequence
+from itertools import combinations
 
 import numpy
 from qiskit import QuantumCircuit, QiskitError, transpile, QuantumRegister
@@ -38,6 +39,7 @@ class NLocal(QuantumCircuit):
     """The n-local circuit class."""
 
     def __init__(self,
+                 num_qubits: Optional[int] = None,
                  blocks: Optional[Union[QuantumCircuit, List[QuantumCircuit],
                                         Instruction, List[Instruction]]] = None,
                  entanglement: Optional[Union[List[int], List[List[int]]]] = None,
@@ -60,6 +62,7 @@ class NLocal(QuantumCircuit):
         If an initial state is provided, it is added in front of the NLocal.
 
         Args:
+            num_qubits: The number of qubits of the circuit.
             blocks: The input blocks. Can be a single gate, a list of gates, (or circuits?)
             entanglement: The indices specifying on which qubits the input blocks act. If None, for
                 each block this is set to the first ``n`` qubits, where ``n`` is the number of
@@ -92,6 +95,8 @@ class NLocal(QuantumCircuit):
 
         # insert barriers in between the blocks?
         self._num_qubits = None
+        self.num_qubits = num_qubits
+
         self._insert_barriers = insert_barriers
 
         self._blocks = []
@@ -165,7 +170,7 @@ class NLocal(QuantumCircuit):
         target = copy.deepcopy(self)
         return target.append(other)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Draw this NLocal in circuit format using the standard gates.
 
         Returns:
@@ -287,7 +292,7 @@ class NLocal(QuantumCircuit):
             return self._reps * list(range(len(self.blocks)))
         return self._reps
 
-    def __str__(self) -> str:
+    def print_settings(self) -> str:
         """Returns information about the setting.
 
         Returns:
@@ -301,10 +306,36 @@ class NLocal(QuantumCircuit):
         ret += '{}'.format(params)
         return ret
 
+    @staticmethod
+    def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entanglement: str
+                          ) -> List[Sequence[int]]:
+        """Get an entangler map for an arbitrary number of qubits.
+
+        Args:
+            num_block_qubits: The number of qubits of the entangling block.
+            num_circuit_qubits: The number of qubits of the circuit.
+            entanglement: The entanglement strategy.
+        """
+        n, m = num_circuit_qubits, num_block_qubits
+        print('Called entangler map with', m, n, entanglement)
+        if m > n:
+            raise ValueError('The number of block qubits must be smaller or equal to the number of '
+                             'qubits in the circuit.')
+
+        if entanglement == 'full':
+            return list(combinations(list(range(n)), m))
+        if entanglement in ['linear', 'circular']:
+            linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
+            if entanglement == 'linear':
+                return linear
+            return linear + [tuple(range(n - m + 1, n)) + (0,)]
+        else:
+            raise ValueError('Unsupported entanglement type: {}'.format(entanglement))
+
     @property
     def setting(self):
         """Deprecated, moved to __str__."""
-        return self.__str__()
+        return self.print_settings()
 
     @property
     def preferred_init_points(self):
@@ -373,17 +404,56 @@ class NLocal(QuantumCircuit):
         self._blocks = [self._convert_to_block(block) for block in blocks]
 
     @property
-    def entangler_maps(self) -> List[List[int]]:
+    def entangler_maps(self) -> List[List[Sequence[int]]]:
         """The qubit indices each block acts on.
 
-        Returns:
-            The qubit indices specifying the qubits each block acts on.
+        An entangler map is a list of qubit indicies (tuples of ints) that specify on which qubits
+        the block act. If the block acts on two qubits (e.g. a CX gate) then the entangler map
+        is a list of 2-tuples, e.g. ``[(0, 1), (0, 2), (1, 2)]``.
+        This property returns a list of such entangler maps, one entangler map per block.
 
-        TODO handle 'full' or 'linear'
+        Returns:
+            A list of entangler maps for each block.
+
+        Raises:
+            RuntimeError: If the format of the entanglement cannot be understood.
         """
-        if self._entangler_maps:
-            return self._entangler_maps
-        return [[list(range(self.blocks[i].num_qubits))] for i in self._reps_as_list()]
+        # if no entanglement was set return default
+        entanglement = self._entanglement
+        if not entanglement:
+            return [[list(range(self.blocks[i].num_qubits))] for i in self._reps_as_list()]
+
+        if isinstance(entanglement, str):
+            entangler_maps = []
+            for i in self._reps_as_list():
+                block = self.blocks[i]
+                entangler_maps += [
+                    self.get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
+                ]
+            return entangler_maps
+
+        if isinstance(entanglement, list):
+            # is list of strings
+            if all(isinstance(e, str) for e in entanglement):
+                entangler_maps = []
+                for i, ent in zip(self._reps_as_list(), entanglement):
+                    block = self.blocks[i]
+                    entangler_maps += [
+                        self.get_entangler_map(block.num_qubits, self.num_qubits, ent)
+                    ]
+                    return entangler_maps
+
+            if all(isinstance(e, (tuple, list)) for e in entanglement):
+                # is list of lists of int, i.e. a single entangler map
+                if all(isinstance(e_i, int) for e in entanglement for e_i in e):
+                    return [entanglement] * self.num_layers
+
+                # is list of lists of lists of int, i.e. a list of entangler maps
+                if all(isinstance(e_i, (tuple, list)) for e in entanglement for e_i in e):
+                    if all(isinstance(e_j, int) for e in entanglement for e_i in e for e_j in e_i):
+                        return entanglement
+
+        raise RuntimeError('Could not understand format of entanglement: {}'.format(entanglement))
 
     @property
     def entanglement(self):
@@ -391,25 +461,34 @@ class NLocal(QuantumCircuit):
         return self._entanglement
 
     @entanglement.setter
-    def entanglement(self, entanglement):
+    def entanglement(self, entanglement: Optional[str, List[str], List[List[int]],
+                                                  List[List[List[int]]]]) -> None:
         """Set the entanglement strategy."""
+        valid_format = False
         # TODO set entangler maps correctly
-        self._entanglement = entanglement
         if entanglement is None:
-            self.entangler_maps = None
+            valid_format = True
         elif isinstance(entanglement, str):
-            raise NotImplementedError('Setting by str not currently supported.')
+            valid_format = True
         elif isinstance(entanglement, list):
             if all(isinstance(e, str) for e in entanglement):
-                raise NotImplementedError('Setting by List[str] not currently supported.')
-            if all(isinstance(e, list) for e in entanglement):  # is List[List[?]]
+                valid_format = True
+            elif all(isinstance(e, (tuple, list)) for e in entanglement):  # is List[List[?]]
                 if all(isinstance(e_i, int) for e in entanglement for e_i in e):
-                    raise NotImplementedError('Setting by List[List[int]] not yet supported.')
-                if all(isinstance(e_i, list) for e in entanglement for e_i in e):
+                    valid_format = True
+                elif all(isinstance(e_i, (tuple, list)) for e in entanglement for e_i in e):
                     if all(isinstance(e_j, int) for e in entanglement for e_i in e for e_j in e_i):
-                        self.entangler_maps = entanglement
+                        valid_format = True
+
+        if valid_format:
+            self._entanglement = entanglement
         else:
             raise NotImplementedError('Unsupported format, {}'.format(entanglement))
+
+    @property
+    def num_layers(self):
+        """Return the number of layers in the n-local circuit."""
+        return len(self._reps_as_list())
 
     @property
     def qubit_indices(self):
