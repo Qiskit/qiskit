@@ -96,8 +96,8 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = None  # To be removed after 0.10 is released
         self.bundle = True
+        self.fold = 25
         self.index = False
         self.figwidth = -1
         self.dpi = 150
