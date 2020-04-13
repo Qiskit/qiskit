@@ -307,14 +307,16 @@ class NLocal(QuantumCircuit):
         return ret
 
     @staticmethod
-    def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entanglement: str
-                          ) -> List[Sequence[int]]:
+    def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entanglement: str,
+                          offset: int = 0) -> List[Sequence[int]]:
         """Get an entangler map for an arbitrary number of qubits.
 
         Args:
             num_block_qubits: The number of qubits of the entangling block.
             num_circuit_qubits: The number of qubits of the circuit.
             entanglement: The entanglement strategy.
+            offset: The block offset, can be used if the entanglements differ per block.
+                See mode ``sca`` for instance.
 
         Returns:
             The entangler map using mode ``entanglement`` to scatter a block of ``num_block_qubits``
@@ -331,11 +333,25 @@ class NLocal(QuantumCircuit):
 
         if entanglement == 'full':
             return list(combinations(list(range(n)), m))
-        if entanglement in ['linear', 'circular']:
+        if entanglement in ['linear', 'circular', 'sca']:
             linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
             if entanglement == 'linear':
                 return linear
-            return linear + [tuple(range(n - m + 1, n)) + (0,)]
+
+            # circular equals linear plus top-bottom entanglement
+            circular = linear + [tuple(range(n - m + 1, n)) + (0,)]
+            if entanglement == 'circular':
+                return circular
+
+            # sca is circular plus shift and reverse
+            shifted = numpy.roll(circular, offset)
+            if offset % 2 == 1:  # if odd, reverse the qubit indices
+                sca = [reversed(ind) for ind in shifted]
+            else:
+                sca = shifted
+
+            return sca
+
         else:
             raise ValueError('Unsupported entanglement type: {}'.format(entanglement))
 
