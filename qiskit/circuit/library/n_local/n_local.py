@@ -439,6 +439,18 @@ class NLocal(QuantumCircuit):
                 ]
             return entangler_maps
 
+        if callable(entanglement):
+            entangler_maps = []
+            for num, i in enumerate(self._reps_as_list()):
+                ent = entanglement(num)
+                block = self.blocks[i]
+                if isinstance(entanglement, str):
+                    entangler_maps += [
+                        self.get_entangler_map(block.num_qubits, self.num_qubits, ent)
+                    ]
+                else:
+                    entangler_maps += [ent]
+
         if isinstance(entanglement, list):
             # is list of strings
             if all(isinstance(e, str) for e in entanglement):
@@ -474,6 +486,10 @@ class NLocal(QuantumCircuit):
         valid_format = False
         # TODO set entangler maps correctly
         if entanglement is None:
+            valid_format = True
+        elif callable(entanglement):
+            # no real checking possible here, but that happens later when the entangler maps
+            # are generated and the configuration to construct the circuit is checked
             valid_format = True
         elif isinstance(entanglement, str):
             valid_format = True
