@@ -595,8 +595,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             channel: Deprecated.
 
         Raises:
-            BackendConfigurationError: If the qubit is not a part of the system or if
-                given ``qubits`` is not found.
+            BackendConfigurationError: If the ``qubits`` is not a part of the system.
 
         Returns:
             List of control channel.
@@ -619,7 +618,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """
-        Return a list of indices for qubits which are operated on directly by the given channel.
+        Return a list of indices for qubits which are operated on directly by the given ``channel``.
 
         Raises:
             BackendConfigurationError: If ``channel`` is not a found.
@@ -633,7 +632,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError("Couldn't find the Channel - {}".format(channel))
 
     def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
-        r"""Return a list of channels which operate on the given qubit(s).
+        r"""Return a list of channels which operate on the given ``qubit``.
 
         Raises:
             BackendConfigurationError: If ``qubit`` is not a found.
