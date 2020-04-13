@@ -1,0 +1,35 @@
+---
+upgrade:
+  - |
+    :func:`qiskit.compiler.transpile` (and :func:`qiskit.execute.execute`,
+    which uses ``transpile`` internally) will now raise an error when the
+    ``pass_manager`` kwarg is set and a value is set for other kwargs that
+    are already set in an instantiated :class:`~qiskit.transpiler.PassManager`
+    object. Previously, these conflicting kwargs would just be silently
+    ignored and the values in the ``PassManager`` instance would be used. For
+    example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler.pass_manager_config import PassManagerConfig
+        from qiskit.transpiler import preset_passmanagers
+        from qiskit.compiler import transpile
+
+        qc = QuantumCircuit(5)
+
+        config = PassManagerConfig(basis_gates=['u3', 'cx'])
+        pm = preset_passmanagers.level_0_pass_manager(config)
+        transpile(qc, optimization_level=3, pass_manager=pm)
+
+    will now raise an error while prior to this release the value in ``pm``
+    would just silently be used and the value for the ``optimization_level``
+    kwarg would be ignored. The ``transpile`` kwargs this applies to are:
+
+    * ``optimization_level``
+    * ``basis_gates``
+    * ``coupling_map``
+    * ``seed_transpiler``
+    * ``backend_properties``
+    * ``initial_layout``
+    * ``layout_method``
+    * ``routing_method``
+    * ``backend``
