@@ -25,7 +25,7 @@ from qiskit.test.mock.fake_backend import FakeBackend
 
 
 class FakeArmonk(FakeBackend):
-    """A fake 5 qubit backend."""
+    """A fake 1 qubit backend."""
 
     def __init__(self):
         """
