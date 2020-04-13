@@ -1,4 +1,0 @@
----
-other:
-  - |
-    The function ```iqiskit.compiler.transpile``` now raises an error when conlicting parameters are passed, instead of ignoring them silently. 

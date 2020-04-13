@@ -79,13 +79,6 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
         diag_circuit.append(gate, q[:])
         self.definition = diag_circuit.data
 
-    def validate_parameter(self, parameter):
-        """Diagonal Gate parameter can be complex in addition to the Gate parameter types."""
-        if isinstance(parameter, complex):
-            return parameter
-        else:
-            return super().validate_parameter(parameter)
-
     def _dec_diag(self):
         """
         Call to create a circuit implementing the diagonal gate.

@@ -1035,6 +1035,17 @@ class QuantumCircuit:
             count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
+    def num_nonlocal_gates(self):
+        """Return number of non-local gates (i.e. involving 2+ qubits).
+
+        Conditional nonlocal gates are also included.
+        """
+        multi_qubit_gates = 0
+        for instr, _, _ in self._data:
+            if instr.num_qubits > 1:
+                multi_qubit_gates += 1
+        return multi_qubit_gates
+
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
 
