@@ -109,6 +109,10 @@ class HamiltonianGate(Gate):
         q = QuantumRegister(self.num_qubits, 'q')
         self.definition = [(UnitaryGate(self.to_matrix()), q[:], [])]
 
+    def qasm(self):
+        """Raise an error, as QASM is not defined for the HamiltonianGate."""
+        raise ExtensionError("HamiltonianGate as no QASM definition.")
+
 
 def hamiltonian(self, operator, time, qubits, label=None):
     """Apply hamiltonian evolution to to qubits."""

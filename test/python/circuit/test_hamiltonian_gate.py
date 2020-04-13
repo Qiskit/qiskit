@@ -84,17 +84,6 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.append(HamiltonianGate(matrix, theta), [qr[0]])
         qc = qc.bind_parameters({theta: 1})
 
-        # test of qasm output
-        self.log.info(qc.qasm())
-        ref_qasm = "OPENQASM 2.0;\n" \
-                   "include \"qelib1.inc\";\n" \
-                   "qreg q0[1];\n" \
-                   "creg c0[1];\n" \
-                   "x q0[0];\n" \
-                   "hamiltonian([[0.+0.j 0.+0.j]\n" \
-                   " [0.+0.j 0.+0.j]],1) q0[0];\n"
-        self.assertEqual(qc.qasm(), ref_qasm)
-
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
@@ -104,6 +93,17 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, HamiltonianGate)
         self.assertListEqual(dnode.qargs, qc.qubits)
         assert_allclose(dnode.op.to_matrix(), np.eye(2))
+
+    def test_error_on_qasm(self):
+        """test that an error is thrown if qc.qasm() is called. """
+        qr = QuantumRegister(1, 'q0')
+        cr = ClassicalRegister(1, 'c0')
+        qc = QuantumCircuit(qr, cr)
+        matrix = np.zeros((2, 2))
+        qc.hamiltonian(operator=matrix, time=1, qubits=qr[0])
+
+        with self.assertRaises(ExtensionError):
+            qc.qasm()
 
     def test_2q_hamiltonian(self):
         """test 2 qubit hamiltonian """
@@ -121,8 +121,6 @@ class TestHamiltonianCircuit(QiskitTestCase):
 
         # Testing bind after transpile
         qc2 = qc2.bind_parameters({theta: -np.pi / 2})
-        # test of qasm output
-        self.log.info(qc2.qasm())
         # test of text drawer
         self.log.info(qc2)
         dag = circuit_to_dag(qc2)
