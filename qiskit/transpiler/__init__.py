@@ -69,50 +69,6 @@ Supplementary Information
 
       backend.configuration().basis_gates
 
-   We see that IBM Quantum devices support five native gates: four single-qubit gates
-   [`u1`, `u2`, `u3`, and `id`] and one two-qubit entangling gate `cx`.  In addition, the
-   devices support qubit measurements (otherwise we can not read out an answer!).
-
-   The `u*` gates represent arbitrary single-qubit rotations of one, two, and three angles.
-   The `u1` gates are single-parameter rotations that represent generalized phase gates of
-   the form:
-
-   .. math::
-
-      U_{1}(\\lambda) = \\begin{bmatrix}
-      1 & 0 \\\\
-      0 & e^{i\\lambda}
-      \\end{bmatrix}
-
-   This set includes common gates such as :math:`Z`, :math:`T`, :math:`T^{\\dagger}`, :math:`S`,
-   and :math:`S^{\\dagger}`.  It turns out that these gates do not actually need to be performed
-   on hardware, but instead, can be implemented in software as "virtual gates".  These virtual
-   gates are called "frame changes" and take zero time, and have no associated error; they are
-   free gates on hardware.
-
-   Two-angle rotations, :math:`U_{2}(\\phi, \\lambda)`, are actually two frame changes with a single
-   :math:`X_{\\pi/2}` gate in between them, and can be used to synthesize gates like the Hadamard
-   (:math:`U_{2}(0,\\pi)`) gate.  As the only actual gate performed is the :math:`X_{\\pi/2}`
-   gate, the error and gate time associated with any :math:`U_{2}` gate is the same as an
-   :math:`X_{\\pi/2}` gate.  Similarly, :math:`U_{3}(\\theta,\\phi,\\lambda)` gates are formed
-   from three frame changes with two :math:`X_{\\pi/2}` gates in between them.  The errors and
-   gate times are twice those of a single :math:`X_{\\pi/2}`. The identity gate, `id`, is
-   straightforward (although the qubit may not actually remain idle during this time), and is
-   a placeholder gate with a fixed time-interval.
-
-   The only entangling gate supported by the IBM Quantum devices is the CNOT gate (`cx`)
-   which, in the computational basis, can be written as:
-
-   .. math::
-
-      \\mathrm{cx}(0, 1) = \\begin{bmatrix}
-      1 & 0 & 0 & 0 \\\\
-      0 & 0 & 0 & 1 \\\\
-      0 & 0 & 1 & 0 \\\\
-      0 & 1 & 0 & 0
-      \\end{bmatrix}
-
-   where the matrix form above follows from the specific bit-ordering convention used in Qiskit.
 
    Every quantum circuit run on an IBM Q device must be expressed using only these basis gates.
    For example, suppose one wants to run a simple phase estimation circuit:
@@ -132,7 +88,7 @@ Supplementary Information
 
    We have :math:`H`, :math:`X`, and controlled-:math:`U_{1}` gates, all of which are
    not in our devices basis gate set, and must be expanded.  This expansion is taken
-   care of for us in the :func:`qiskit.execute.execute` function. However, we can
+   care of for us in the :func:`qiskit.execute` function. However, we can
    decompose the circuit to show what it would look like in the native gate set of
    the IBM Quantum devices:
 
@@ -414,8 +370,16 @@ Supplementary Information
 Transpiler API
 ==============
 
-Pass Management
----------------
+Preset Pass Managers
+--------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   preset_passmanagers
+
+Pass Manager Construction
+-------------------------
 
 .. autosummary::
    :toctree: ../stubs/
