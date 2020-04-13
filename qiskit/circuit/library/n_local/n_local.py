@@ -315,6 +315,13 @@ class NLocal(QuantumCircuit):
             num_block_qubits: The number of qubits of the entangling block.
             num_circuit_qubits: The number of qubits of the circuit.
             entanglement: The entanglement strategy.
+
+        Returns:
+            The entangler map using mode ``entanglement`` to scatter a block of ``num_block_qubits``
+            qubits on ``num_circuit_qubits`` qubits.
+
+        Raises:
+            ValueError: If the entanglement mode ist not supported.
         """
         n, m = num_circuit_qubits, num_block_qubits
         print('Called entangler map with', m, n, entanglement)
@@ -461,8 +468,8 @@ class NLocal(QuantumCircuit):
         return self._entanglement
 
     @entanglement.setter
-    def entanglement(self, entanglement: Optional[str, List[str], List[List[int]],
-                                                  List[List[List[int]]]]) -> None:
+    def entanglement(self, entanglement: Optional[Union[str, List[str], List[List[int]],
+                                                        List[List[List[int]]]]]) -> None:
         """Set the entanglement strategy."""
         valid_format = False
         # TODO set entangler maps correctly
