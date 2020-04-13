@@ -389,7 +389,7 @@ def _parse_transpile_args(circuits, backend,
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits, faulty_qubits_map)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits,
                                                    faulty_qubits_map)
-    initial_layout = _parse_initial_layout(initial_layout, circuits)
+    initial_layout = _parse_initial_layout(initial_layout, circuits, faulty_qubits_map)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
@@ -522,7 +522,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
     return backend_properties
 
 
-def _parse_initial_layout(initial_layout, circuits):
+def _parse_initial_layout(initial_layout, circuits, faulty_qubits_map):
     # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
     # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
     def _layout_from_raw(initial_layout, circuit):
