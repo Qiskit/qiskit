@@ -579,7 +579,7 @@ class TestNLocal(QiskitTestCase):
             nlocal.append(gate, indices)
             reference.append(gate, indices)
 
-        self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=0)
+        self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=1)
 
     @data(
         [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
@@ -595,7 +595,7 @@ class TestNLocal(QiskitTestCase):
         # construct the NLocal from the first circuit
         first_circuit = random_circuit(num_qubits[0], depth)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
-        nlocal = NLocal(first_circuit.to_instruction())
+        nlocal = NLocal(blocks=first_circuit.to_instruction())
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
@@ -620,7 +620,7 @@ class TestNLocal(QiskitTestCase):
         # construct the NLocal from the first circuit
         first_circuit = random_circuit(num_qubits[0], depth)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
-        nlocal = NLocal(first_circuit.to_instruction())
+        nlocal = NLocal(blocks=first_circuit.to_instruction())
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # print(nlocal.to_circuit())
@@ -629,7 +629,7 @@ class TestNLocal(QiskitTestCase):
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth)
-            nlocal.append(NLocal(circuit))
+            nlocal.append(NLocal(blocks=circuit))
             reference.append(circuit, list(range(num)))
             # print(nlocal.to_circuit())
             # print(reference)
@@ -652,7 +652,7 @@ class TestNLocal(QiskitTestCase):
 
         # try adding each type
         for other in others:
-            nlocal = NLocal(first_circuit)
+            nlocal = NLocal(blocks=first_circuit)
             nlocal += other
             with self.subTest(msg='type: {}'.format(type(other))):
                 self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=0)
@@ -665,7 +665,8 @@ class TestNLocal(QiskitTestCase):
 
         # repeat circuit and check that parameters are duplicated
         reps = 3
-        nlocal = NLocal(circuit, reps=reps)
+        nlocal = NLocal(blocks=circuit, reps=reps)
+        self.assertTrue(nlocal.num_parameters, 6)
         self.assertTrue(len(nlocal.parameters), 6)
 
     @data(list(range(6)), ParameterVector('θ', length=6))
@@ -680,7 +681,7 @@ class TestNLocal(QiskitTestCase):
 
         # repeat circuit and check that parameters are duplicated
         reps = 3
-        nlocal = NLocal(circuit, reps=reps)
+        nlocal = NLocal(blocks=circuit, reps=reps)
         nlocal.parameters = params
 
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
@@ -703,7 +704,7 @@ class TestNLocal(QiskitTestCase):
             circuit.ry(i * initial_param, 0)
 
         # create an NLocal from the circuit and set the new parameters
-        nlocal = NLocal(circuit)
+        nlocal = NLocal(blocks=circuit)
         nlocal.parameters = params
 
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
@@ -722,7 +723,7 @@ class TestNLocal(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(x, 0)
 
-        nlocal = NLocal(circuit, reps=[0, 0, 0], insert_barriers=True)
+        nlocal = NLocal(blocks=circuit, reps=[0, 0, 0], insert_barriers=True)
         with self.subTest(msg='immediately after initialization'):
             self.assertEqual(len(nlocal.parameters), 3)
 

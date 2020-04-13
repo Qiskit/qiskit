@@ -167,7 +167,8 @@ class NLocal(QuantumCircuit):
         basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
                        'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
-        return transpile(self.to_circuit(), basis_gates=basis_gates).draw().single_string()
+        return transpile(self.to_circuit(), basis_gates=basis_gates,
+                         optimization_level=0).draw().single_string()
 
     def _convert_to_block(self, layer: Any) -> Instruction:
         """Try to convert ``layer`` to an Instruction.
@@ -339,7 +340,7 @@ class NLocal(QuantumCircuit):
         Returns:
             The parameters objects used in the circuit.
         """
-        return self._ordered_parameters
+        return self._ordered_parameters.resize(self.num_parameters)
 
     @ordered_parameters.setter
     def ordered_parameters(self, parameters: ParameterVector) -> None:
@@ -752,7 +753,7 @@ class NLocal(QuantumCircuit):
 
         # define the the qubit indices
         if entangler_maps:
-            self.entangler_maps = self.entangler_maps + [[entangler_maps]]
+            self._entanglement = self.entangler_maps + [[entangler_maps]]
             num_qubits = max(entangler_maps)
         else:
             num_qubits = block.num_qubits
@@ -768,7 +769,7 @@ class NLocal(QuantumCircuit):
         # less of equal number of qubits), or exceeds the number of qubits.
         # In the latter case we have to add an according offset to the qubit indices.
         # Since we cannot append a circuit of larger size to an existing circuit we have to rebuild
-        if num_qubits > self.num_qubits:
+        if num_qubits != self.num_qubits:
             self._circuit = None  # rebuild circuit
 
         # modify the circuit accordingly
@@ -777,13 +778,21 @@ class NLocal(QuantumCircuit):
                 self._circuit.barrier()
 
             block, entangler_map = self.blocks[-1], self.entangler_maps[-1]
-            params = self.blockwise_parameters[-1]
-            self._circuit.extend(self._build_layer(block, entangler_map, params))
+            self._ordered_parameters.resize(self.num_parameters)
+
+            layer = QuantumCircuit(self.num_qubits)
+            for indices in entangler_map:
+                params = self._ordered_parameters[-len(get_parameters(block)):]
+                parametrized_block = self._parametrize_block(block, params)
+                layer.append(parametrized_block.to_instruction(), indices)
+
+            self._circuit += layer
 
         return self
 
-    def bind_parameters(self, params: Union[List[float], List[Parameter], ParameterVector]
-                        ) -> QuantumCircuit:
+    def assign_parameters(self, param_dict: Union[dict, List[float], List[Parameter],
+                                                  ParameterVector],
+                          inplace: bool = False) -> QuantumCircuit:
         """Bind ``params`` to the underlying circuit of the NLocal.
 
         This method allows handling of both ``qiskit.circuit.Parameter`` objects and numbers.
@@ -795,8 +804,7 @@ class NLocal(QuantumCircuit):
         Raises:
             TypeError: If ``params`` contains an unsupported type.
         """
-        if self._circuit is None:
-            _ = self.to_circuit()
+        self._build()
 
         param_dict = dict(zip(self.ordered_parameters, params))
         circuit_copy = self._circuit.assign_parameters(param_dict, inplace=False)
@@ -866,8 +874,7 @@ class NLocal(QuantumCircuit):
                 else:
                     circuit = QuantumCircuit(self.num_qubits)
 
-                self._ordered_parameters.resize(self.num_parameters)
-                param_iter = iter(self._ordered_parameters)
+                param_iter = iter(self.ordered_parameters)
 
                 # add the blocks, if they are specified
                 if len(self._reps_as_list()) > 0:
@@ -881,7 +888,7 @@ class NLocal(QuantumCircuit):
                         for indices in entangler_map:
                             params = [next(param_iter) for _ in range(len(get_parameters(block)))]
                             parametrized_block = self._parametrize_block(block, params)
-                            layer.append(parametrized_block.to_instruction(), indices)
+                            layer.append(parametrized_block, indices)
 
                         circuit += layer
 
@@ -899,9 +906,7 @@ class NLocal(QuantumCircuit):
         """
         # build the circuit if it has not been constructed yet
         self._build()
-
-        # TODO make this on parameter change only?
-        return self.bind_parameters(self.parameters)
+        return self._circuit
 
     def to_instruction(self) -> Instruction:
         """Convert the NLocal into an Instruction.
