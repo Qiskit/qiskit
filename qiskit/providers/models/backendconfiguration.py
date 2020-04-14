@@ -739,4 +739,5 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         try:
             return channel_prefix.group('channel'), int(channel_prefix.group('index'))
         except AttributeError:
-            raise BackendConfigurationError("The given channel does not match with the regex.")
+            raise BackendConfigurationError("The given channel - '{}' does not match with "
+                                            "the regular expression.".format(channel))
