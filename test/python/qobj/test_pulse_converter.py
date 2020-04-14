@@ -353,19 +353,20 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
-        inst = Snapshot(label='label', snapshot_type='type')
-        instruction = inst << 10
+        instruction = Snapshot(label='label', snapshot_type='type')
+        shifted = instruction << 10
 
         qobj = PulseQobjInstruction(name='snapshot', t0=10, label='label', type='type')
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.start_time, 10)
-        self.assertEqual(converted_instruction.duration, 10)
-        self.assertEqual(converted_instruction.instructions[0][-1], inst)
+        self.assertEqual(converted_instruction.start_time, shifted.start_time)
+        self.assertEqual(converted_instruction.duration, shifted.duration)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_parameterized_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
         instruction = ShiftPhase(4., MeasureChannel(0))
+        shifted = instruction << 10
 
         qobj = PulseQobjInstruction(name='fc', ch='m0', t0=10, phase='P1**2')
         converted_instruction = self.converter(qobj)
@@ -374,8 +375,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         evaluated_instruction = converted_instruction.bind_parameters(2.)
 
-        self.assertEqual(evaluated_instruction.start_time, 10)
-        self.assertEqual(evaluated_instruction.duration, 10)
+        self.assertEqual(evaluated_instruction.start_time, shifted.start_time)
+        self.assertEqual(evaluated_instruction.duration, shifted.duration)
         self.assertEqual(evaluated_instruction.instructions[0][-1], instruction)
 
     def test_parameterized_persistent_value(self):
