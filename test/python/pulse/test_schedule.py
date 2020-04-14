@@ -521,6 +521,18 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in excluded.instructions:
             self.assertFalse(any([chan in channels for chan in inst.channels]))
 
+    def test_filter_exclude_name(self):
+        """Test the name of the schedules after applying filter and exclude functions."""
+        sched = Schedule(name='test-schedule')
+        sched = sched.insert(10, Acquire(5, AcquireChannel(0), MemorySlot(0)))
+        sched = sched.insert(10, Acquire(5, AcquireChannel(1), MemorySlot(1)))
+        excluded = sched.exclude(channels=[AcquireChannel(0)])
+        filtered = sched.filter(channels=[AcquireChannel(1)])
+
+        # check if the excluded and filtered schedule have the same name as sched
+        self.assertEqual(sched.name, filtered.name)
+        self.assertEqual(sched.name, excluded.name)
+
     def test_filter_inst_types(self):
         """Test filtering on instruction types."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
