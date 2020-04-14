@@ -397,7 +397,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            if num_ctrl_qubits == 1:
+            if num_ctrl_qubit1:
                 return C3XGate()
             if num_ctrl_qubits == 2:
                 return C4XGate()
@@ -1044,6 +1044,10 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla
         'basic': MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
         'basic-dirty-ancilla': MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
     }
+
+    # check ancilla input
+    if ancilla_qubits:
+        _ = self.qbit_argument_conversion(ancilla_qubits)
 
     try:
         gate = available_implementations[mode]
