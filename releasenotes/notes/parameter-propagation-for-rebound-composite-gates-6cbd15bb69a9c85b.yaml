@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Previously, for circuits containing composite gates (those created via
-    ``QuantumCircuit.to_gate``/``.to_instruction`` or their corresponding
-    converters), attempting to bind the circuit more than once would result in
-    only the first bind value being applied to all circuits when transpiled.
-    This has been resolved so that the values provided for subsequent binds are
-    correctly respected.

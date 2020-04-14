@@ -90,7 +90,6 @@ def control(operation: Union[Gate, ControlledGate],
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
     import qiskit.extensions.standard.multi_control_rotation_gates
-    import qiskit.extensions.standard.multi_control_toffoli_gate
 
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
