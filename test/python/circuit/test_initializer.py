@@ -375,5 +375,6 @@ class TestInitialize(QiskitTestCase):
             print(type(param))
             self.assertTrue(isinstance(param, float))
 
+
 if __name__ == '__main__':
     unittest.main()
