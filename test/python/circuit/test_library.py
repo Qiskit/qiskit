@@ -26,6 +26,7 @@ from qiskit.circuit.library import Permutation, XOR, InnerProduct, OR, AND
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
+from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -38,29 +39,26 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         circuit.h(list(range(boolean_circuit.num_variable_qubits)))
         circuit.append(boolean_circuit.to_instruction(), list(range(boolean_circuit.num_qubits)))
 
-        backend = BasicAer.get_backend('statevector_simulator')
-        statevector = execute(circuit, backend).result().get_statevector()
+        # compute the statevector of the circuit
+        statevector = Statevector.from_label('0' * circuit.num_qubits)
+        statevector = statevector.evolve(circuit)
 
-        if hasattr(boolean_circuit, 'num_ancilla_qubits'):
-            num_ancillas = boolean_circuit.num_ancilla_qubits
-        else:
-            num_ancillas = 0
+        # trace out ancillas
+        probabilities = statevector.probabilities(
+            qargs=list(range(boolean_circuit.num_variable_qubits + 1))
+        )
 
-        probabilities = defaultdict(float)
-        for i, statevector_amplitude in enumerate(statevector):
-            i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancillas:]
-            probabilities[i] += np.real(np.abs(statevector_amplitude) ** 2)
-
-        expectations = defaultdict(float)
+        # compute the expected outcome by computing the entries of the statevector that should
+        # have a 1 / sqrt(2**n) factor
+        expectations = np.zeros_like(probabilities)
         for x in range(2 ** boolean_circuit.num_variable_qubits):
             bits = np.array(list(bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)), dtype=int)
             result = reference(bits[::-1])
 
-            entry = str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)
+            entry = int(str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits), 2)
             expectations[entry] = 1 / 2 ** boolean_circuit.num_variable_qubits
 
-        for state, probability in probabilities.items():
-            self.assertAlmostEqual(probability, expectations[state])
+        np.testing.assert_array_almost_equal(probabilities, expectations)
 
     def test_permutation(self):
         """Test permutation circuit."""
