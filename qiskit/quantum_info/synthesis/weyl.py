@@ -46,6 +46,7 @@ def weyl_coordinates(U):
     U = U / la.det(U)**(0.25)
     Up = _Bd.dot(U).dot(_B)
     M2 = Up.T.dot(Up)
+    M2 = np.round(M2, decimals=10)
 
     # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
     # P ∈ SO(4), D is diagonal with unit-magnitude elements.
