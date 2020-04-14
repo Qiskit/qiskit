@@ -16,3 +16,5 @@
 
 from .n_local import NLocal
 from .two_local import TwoLocal
+from .ry import RY
+from .ryrz import RYRZ
