@@ -58,7 +58,10 @@ def weyl_coordinates(U):
         if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
             break
     else:
-        raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
+        raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2. "
+                          "Please submit this output to "
+                          "https://github.com/Qiskit/qiskit-terra/issues/4159 "
+                          "Input %s" % U.tolist())
 
     d = -np.angle(D)/2
     d[3] = -d[0]-d[1]-d[2]
