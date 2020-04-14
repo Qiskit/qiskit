@@ -397,7 +397,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            if num_ctrl_qubit1:
+            if num_ctrl_qubits == 1:
                 return C3XGate()
             if num_ctrl_qubits == 2:
                 return C4XGate()
