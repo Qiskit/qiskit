@@ -588,7 +588,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                     elif len(qarglist) == 2:
-                        if op.name not in ['swap', 'rzz']:
+                        if isinstance(op.op, ControlledGate):
                             cond = str(op.op.ctrl_state)
                         pos_1 = self.img_regs[qarglist[0]]
                         pos_2 = self.img_regs[qarglist[1]]
@@ -793,7 +793,7 @@ class QCircuitImage:
                                                                      nm)
 
                     elif len(qarglist) == 3:
-                        if op.name in ['ccx', 'cswap']:
+                        if isinstance(op.op, ControlledGate):
                             ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]
