@@ -595,7 +595,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             channel: Deprecated.
 
         Raises:
-            BackendConfigurationError: If the ``qubits`` is not a part of the system.
+            BackendConfigurationError: If the ``qubits`` is not a part of the system or if
+                the backend does not provide `channels` information in its configuration.
 
         Returns:
             List of control channels.
@@ -625,7 +626,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Return a list of indices for qubits which are operated on directly by the given ``channel``.
 
         Raises:
-            BackendConfigurationError: If ``channel`` is not a found.
+            BackendConfigurationError: If ``channel`` is not a found or if
+                the backend does not provide `channels` information in its configuration.
 
         Returns:
             List of qubits operated on my the given ``channel``.
@@ -642,7 +644,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         r"""Return a list of channels which operate on the given ``qubit``.
 
         Raises:
-            BackendConfigurationError: If ``qubit`` is not a found.
+            BackendConfigurationError: If ``qubit`` is not a found or if
+                the backend does not provide `channels` information in its configuration.
 
         Returns:
             List of ``Channel``\s operated on my the given ``qubit``.
@@ -738,7 +741,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             channel: Name of channel.
 
         Raises:
-            BackendConfigurationError if channel does not match with the regex.
+            BackendConfigurationError: If channel does not match with the regex.
 
         Return:
             Channel name and index. For example, if ``channel=acquire0``, this method
