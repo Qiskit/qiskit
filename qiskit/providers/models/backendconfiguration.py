@@ -647,8 +647,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                 for key in self._qubit_channel_map.keys():
                     if qubit in key:
                         channels.extend(self._qubit_channel_map[key])
-                qubit = [qubit]
-            if isinstance(qubit, list):
+                if len(channels) == 0:
+                    raise KeyError
+            elif isinstance(qubit, list):
                 qubit = tuple(qubit)
                 channels.extend(self._qubit_channel_map[qubit])
             elif isinstance(qubit, tuple):
