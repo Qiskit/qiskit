@@ -24,7 +24,6 @@ from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequen
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
 from qiskit.pulse.commands import PersistentValue, PulseInstruction
-from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 from qiskit.test import QiskitTestCase
@@ -187,7 +186,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
         self.assertEqual((), sched._children)
-        self.assertEqual(TimeslotCollection(), sched.timeslots)
+        self.assertEqual({}, sched.timeslots)
         self.assertEqual([], list(sched.instructions))
 
     def test_overlapping_schedules(self):
@@ -201,10 +200,10 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         self.assertIsInstance(my_test_make_schedule(4, 0, 4), Schedule)
         self.assertRaisesRegex(PulseError,
-                               r".* MemorySlot\(0\) over time range \[2, 4\] .*",
+                               r".*MemorySlot\(0\).*overlaps .*",
                                my_test_make_schedule, 4, 0, 2)
         self.assertRaisesRegex(PulseError,
-                               r".* MemorySlot\(1\) over time range \[0, 4\] .*",
+                               r".*MemorySlot\(1\).*overlaps .*",
                                my_test_make_schedule, 4, 1, 0)
 
     def test_flat_instruction_sequence_returns_instructions(self):
@@ -624,7 +623,7 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # split instructions from non-overlapping intervals, specified as Intervals
         filtered, excluded = \
-            self._filter_and_test_consistency(sched, intervals=[Interval(10, 15), Interval(63, 93)])
+            self._filter_and_test_consistency(sched, intervals=[(10, 15), (63, 93)])
         self.assertEqual(len(filtered.instructions), 2)
         self.assertEqual(len(excluded.instructions), 4)
 

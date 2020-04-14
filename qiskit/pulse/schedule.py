@@ -18,6 +18,7 @@ instruction occuring in parallel over multiple signal *channels*.
 """
 
 import abc
+from copy import copy
 import itertools
 import multiprocessing as mp
 import sys
@@ -25,10 +26,10 @@ from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 import warnings
 
 from qiskit.util import is_main_process
-from .timeslots import Interval, TimeslotCollection
 from .channels import Channel
 from .interfaces import ScheduleComponent
 from .exceptions import PulseError
+from .timing import Interval, _insertion_index
 
 # pylint: disable=missing-return-doc
 
@@ -61,35 +62,20 @@ class Schedule(ScheduleComponent):
                 name += '-{}'.format(mp.current_process().pid)
 
         self._name = name
+        self._duration = 0
 
-        timeslots = []
+        self._timeslots = {}
         _children = []
         for sched_pair in schedules:
-            # recreate as sequence starting at 0.
-            if not isinstance(sched_pair, (list, tuple)):
+            if isinstance(sched_pair, list):
+                sched_pair = tuple(sched_pair)
+            if not isinstance(sched_pair, tuple):
+                # recreate as sequence starting at 0.
                 sched_pair = (0, sched_pair)
-            # convert to tuple
-            sched_pair = tuple(sched_pair)
             insert_time, sched = sched_pair
-            sched_timeslots = sched.timeslots
-            if insert_time:
-                sched_timeslots = sched_timeslots.shift(insert_time)
-            timeslots.append(sched_timeslots)
+            # This will also update duration
+            self._add_timeslots(insert_time, sched)
             _children.append(sched_pair)
-
-        try:
-            self._timeslots = TimeslotCollection(*timeslots)
-        except PulseError as ts_err:
-            formatted_schedules = []
-            for sched_pair in schedules:
-                sched = sched_pair[1] if isinstance(sched_pair, (List, tuple)) else sched_pair
-                formatted_sched = 'Schedule(name="{0}", duration={1})'.format(sched.name,
-                                                                              sched.duration)
-                formatted_schedules.append(formatted_sched)
-            formatted_schedules = ", ".join(formatted_schedules)
-            raise PulseError('Schedules overlap: {0} for {1}'
-                             ''.format(ts_err.message, formatted_schedules)) from ts_err
-
         self.__children = tuple(_children)
 
     @property
@@ -97,25 +83,26 @@ class Schedule(ScheduleComponent):
         return self._name
 
     @property
-    def timeslots(self) -> TimeslotCollection:
+    def timeslots(self) -> Dict[Channel, List[Interval]]:
+        """Time keeping attribute."""
         return self._timeslots
 
     @property
     def duration(self) -> int:
-        return self.timeslots.duration
+        return self._duration
 
     @property
     def start_time(self) -> int:
-        return self.timeslots.start_time
+        return self.ch_start_time(*self.channels)
 
     @property
     def stop_time(self) -> int:
-        return self.timeslots.stop_time
+        return self.duration
 
     @property
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
-        return self.timeslots.channels
+        return tuple(self._timeslots.keys())
 
     @property
     def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
@@ -142,7 +129,7 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        return self.timeslots.ch_duration(*channels)
+        return self.ch_stop_time(channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
@@ -150,7 +137,10 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        return self.timeslots.ch_start_time(*channels)
+        chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
+        if chan_intervals:
+            return min([intervals[0][0] for intervals in chan_intervals])
+        return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum start time over supplied channels.
@@ -158,7 +148,10 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        return self.timeslots.ch_stop_time(*channels)
+        chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
+        if chan_intervals:
+            return max(intervals[-1][1] for intervals in chan_intervals)
+        return 0
 
     def _instructions(self, time: int = 0):
         """Iterable for flattening Schedule tree.
@@ -201,6 +194,7 @@ class Schedule(ScheduleComponent):
             start_time: Time to insert the second schedule.
             schedule: Schedule to mutably insert.
         """
+        self._add_timeslots(start_time, schedule)
         if isinstance(schedule, Schedule):
             shifted_children = schedule._children
             if start_time != 0:
@@ -208,10 +202,6 @@ class Schedule(ScheduleComponent):
             self.__children += shifted_children
         else:  # isinstance(schedule, Instruction)
             self.__children += ((start_time, schedule),)
-
-        sched_timeslots = (schedule.timeslots if start_time == 0
-                           else schedule.timeslots.shift(start_time))
-        self._timeslots = self.timeslots.merge(sched_timeslots)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by ``time``.
@@ -283,7 +273,7 @@ class Schedule(ScheduleComponent):
             instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
-            intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
+            intervals: For example, ``[(0, 5), (6, 10)]``.
         """
         composed_filter = self._construct_filter(*filter_funcs,
                                                  channels=channels,
@@ -310,7 +300,7 @@ class Schedule(ScheduleComponent):
             instruction_types (Optional[Iterable[Type[qiskit.pulse.Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
-            intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
+            intervals: For example, ``[(0, 5), (6, 10)]``.
         """
         composed_filter = self._construct_filter(*filter_funcs,
                                                  channels=channels,
@@ -351,7 +341,7 @@ class Schedule(ScheduleComponent):
             instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
                 ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
-            intervals: For example, ``[Interval(0, 5), Interval(6, 10)]``.
+            intervals: For example, ``[(0, 5), (6, 10)]``.
         """
         def only_channels(channels: Set[Channel]) -> Callable:
             def channel_filter(time_inst) -> bool:
@@ -381,9 +371,9 @@ class Schedule(ScheduleComponent):
                     time_inst (Tuple[int, Instruction]): Time
                 """
                 for i in ranges:
-                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
-                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
-                            for ts in time_inst[1].timeslots.timeslots]):
+                    inst_start = time_inst[0]
+                    inst_stop = inst_start + time_inst[1].duration
+                    if i[0] <= inst_start and inst_stop <= i[1]:
                         return True
                 return False
             return interval_filter
@@ -394,13 +384,55 @@ class Schedule(ScheduleComponent):
         if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges is not None:
-            filter_func_list.append(
-                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
+            filter_func_list.append(only_intervals(time_ranges))
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
+
+    def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
+        """Update all time tracking within this schedule based on the given schedule.
+
+        Args:
+            time: The time to insert the schedule into self.
+            schedule: The schedule to insert into self.
+
+        Raises:
+            PulseError: If timeslots overlap.
+        """
+        self._duration = max(self._duration, time + schedule.duration)
+
+        for channel in schedule.channels:
+
+            if channel not in self._timeslots:
+                if time == 0:
+                    self._timeslots[channel] = copy(schedule._timeslots[channel])
+                else:
+                    self._timeslots[channel] = [(i[0] + time, i[1] + time)
+                                                for i in schedule._timeslots[channel]]
+                continue
+
+            for idx, interval in enumerate(schedule._timeslots[channel]):
+                if interval[0] + time >= self._timeslots[channel][-1][1]:
+                    # Can append the remaining intervals
+                    self._timeslots[channel].extend(
+                        [(i[0] + time, i[1] + time)
+                         for i in schedule._timeslots[channel][idx:]])
+                    break
+
+                try:
+                    interval = (interval[0] + time, interval[1] + time)
+                    index = _insertion_index(self._timeslots[channel], interval)
+                    self._timeslots[channel].insert(index, interval)
+                except PulseError:
+                    raise PulseError("Schedule(name='{new}') cannot be inserted into "
+                                     "Schedule(name='{old}') at time {time} because its "
+                                     "instruction on channel {ch} scheduled from time "
+                                     "{t0} to {tf} overlaps with an existing instruction."
+                                     "".format(new=schedule.name or '', old=self.name or '',
+                                               time=time, ch=channel,
+                                               t0=interval[0], tf=interval[1]))
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
