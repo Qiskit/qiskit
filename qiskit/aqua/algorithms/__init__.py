@@ -24,9 +24,9 @@ were designed to be swappable sub-parts of an algorithm. Any component and may b
 a different implementation of the same component type in order to potentially alter the behavior
 and outcome of the algorithm.
 
-Algorithms are run via a :class:`~qiskit.aqua.QuantumInstance` which must be set with the desired
-backend where the algorithm's circuits will be executed and be configured with a number of compile
-and runtime parameters controlling circuit compilation and execution. Aqua ultimately uses
+Quantum algorithms are run via a :class:`~qiskit.aqua.QuantumInstance` which must be set with the
+desired backend where the algorithm's circuits will be executed and be configured with a number of
+compile and runtime parameters controlling circuit compilation and execution. Aqua ultimately uses
 `Terra <https://www.qiskit.org/terra>`__ for the actual compilation and execution of the quantum
 circuits created by the algorithm and its components.
 
@@ -42,39 +42,111 @@ Algorithms Base Class
    QuantumAlgorithm
    ClassicalAlgorithm
 
-Quantum Algorithms
-==================
+Algorithms
+==========
+
+Aqua contains a variety of quantum algorithms and these have been grouped by logical function such
+as minimum eigensolvers and amplitude amplifiers.
+
+Additionally Aqua includes some classical algorithms. While these algorithms do not use a quantum
+device or simulator, and rely on purely classical approaches, they may be useful in the near term
+to generate reference values while experimenting with, developing and testing quantum algorithms.
+
+The classical algorithms are designed to take the same input data as the quantum algorithms so that
+behavior, data validity and output can be evaluated and compared to a quantum result.
+
+Amplitude Amplifiers
+++++++++++++++++++++
 
 .. autosummary::
    :toctree: ../stubs/
    :nosignatures:
 
-   VQE
-   QAOA
-   VQC
-   QGAN
-   EOH
-   QSVM
    Grover
-   IQPEMinimumEigensolver
-   QPEMinimumEigensolver
+
+Amplitude Estimators
+++++++++++++++++++++
+Algorithms that estimate a value.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
    AmplitudeEstimation
    IterativeAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimation
-   Simon
-   DeutschJozsa
+
+Classifiers
++++++++++++
+Algorithms for data classification.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   QSVM
+   VQC
+   SklearnSVM
+
+Distribution Learners
++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   QGAN
+
+Education
++++++++++
+Algorithms whose main role is educational. These are provided as Aqua algorithms so they can be
+run in the same framework but their existence here is principally for educational reasons.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
    BernsteinVazirani
-   HHL
+   DeutschJozsa
+   EOH
+   Simon
+
+Eigensolvers
+++++++++++++
+Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
+states of a molecule and qiskit.chemistry has some algorithms that leverage chemistry specific
+knowledge to do this in that application domain.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   NumPyEigensolver
+
+Factorizers
++++++++++++
+Algorithms to find factors of a number.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
    Shor
 
-Classical Algorithms
-====================
-Aqua includes some classical algorithms. While these algorithms do not use a quantum device or
-simulator, and rely on purely classical approaches, they may be useful in the near term to
-generate reference values while experimenting with, developing and testing quantum algorithms.
+Linear Solvers
+++++++++++++++
+Algorithms to find solutions for linear equations of equations.
 
-The algorithms are designed to take the same input data as the quantum algorithms so that
-behavior, data validity and output can be evaluated and compared to a quantum result.
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HHL
+   NumPyLSsolver
+
+Minimum Eigensolvers
+++++++++++++++++++++
+Algorithms that can find the minimum eigenvalue of an operator.
 
 Note: The :class:`ClassicalCPLEX` algorithm requires `IBM ILOG CPLEX Optimization Studio
 <https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html>`__
@@ -89,11 +161,19 @@ and its Python API to be installed. See the following for more information:
    :toctree: ../stubs/
    :nosignatures:
 
-   NumPyEigensolver
-   NumPyMinimumEigensolver
-   NumPyLSsolver
-   SklearnSVM
+   MinimumEigensolver
+   MinimumEigensolverResult
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
    ClassicalCPLEX
+   IQPEMinimumEigensolver
+   NumPyMinimumEigensolver
+   QAOA
+   QPEMinimumEigensolver
+   VQE
 
 """
 
