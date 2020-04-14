@@ -31,6 +31,7 @@ from itertools import combinations
 import numpy
 from qiskit import QuantumCircuit, transpile, QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit.parametertable import ParameterTable
 
 logger = logging.getLogger(__name__)
 
@@ -239,19 +240,6 @@ class NLocal(QuantumCircuit):
 
         return True
 
-    def _reps_as_list(self) -> List[int]:
-        """Return the indices of the blocks that go in the circuit.
-
-        Returns:
-            If ``reps`` has been set to a list, return that list. Otherwise, i.e. if ``reps`` is an
-            integer, return ``reps * list(range(num. of blocks))``.
-        """
-        if isinstance(self._reps, int):
-            if self.entanglement_blocks is None and self.rotation_blocks is None:
-                return []
-            return self._reps * list(range(len(self.blocks)))
-        return self._reps
-
     def _rotation_reps(self) -> List[int]:
         """Return the indices of the rotation layers that go in the circuit."""
         if self.rotation_blocks is None or len(self.rotation_blocks) == 0:
@@ -400,7 +388,7 @@ class NLocal(QuantumCircuit):
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
 
-        self._data = None
+        self._invalidate()
         self._rotation_blocks = [self._convert_to_block(block) for block in blocks]
 
     @entanglement_blocks.setter
@@ -415,7 +403,7 @@ class NLocal(QuantumCircuit):
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
 
-        self._data = None
+        self._invalidate()
         self._entanglement_blocks = [self._convert_to_block(block) for block in blocks]
 
     @property
@@ -533,7 +521,7 @@ class NLocal(QuantumCircuit):
 
         # TODO check if indices is the same if s, only then invalidate the definition
         # but this setter is probably not really used anywhere except the initializer anyways
-        self._data = None
+        self._invalidate()
 
     @property
     def initial_state(self) -> 'InitialState':
@@ -572,7 +560,7 @@ class NLocal(QuantumCircuit):
             raise ValueError('The provided initial state has less qubits than the NLocal.')
 
         self._num_qubits = self._initial_state_circuit.num_qubits
-        self._data = None
+        self._invalidate()
 
     @property
     def insert_barriers(self) -> bool:
@@ -593,7 +581,7 @@ class NLocal(QuantumCircuit):
         # if insert_barriers changes, we have to invalidate the circuit definition,
         # if it is the same as before we can leave the NLocal instance as it is
         if insert_barriers is not self._insert_barriers:
-            self._data = None
+            self._invalidate()
             self._insert_barriers = insert_barriers
 
     @property
@@ -630,7 +618,7 @@ class NLocal(QuantumCircuit):
         """
         if self._num_qubits != num_qubits:
             # invalidate the circuit
-            self._data = None
+            self._invalidate()
             self._num_qubits = num_qubits
 
     @property
@@ -700,24 +688,6 @@ class NLocal(QuantumCircuit):
         self.assign_parameters(params, inplace=True)
         return
 
-        # TODO figure out whether it is more efficient to iterate over the list and check for
-        # values in the dictionary, or iterate over the dictionary and find the according value
-        # in the list. Random access via element should be much faster in the dictionary, probably.
-        # if isinstance(params, dict):
-        #     new_params = []
-        #     for i, current_param in enumerate(self.parameters):
-        #         # try to get the new value, if there is none, use the current value
-        #         new_params[i] = params.get(current_param, self.parameters[i])
-        #     self._surface_params = new_params
-
-        # # if a list is provided, just assign if the sizes match
-        # else:
-        #     if len(params) != self.num_parameters:
-        #         raise ValueError('Mismatching number of parameters! '
-        #                          'Provided: {}, required: {}'
-        #                          ''.format(len(params), self.num_parameters))
-        #     self._surface_params = params
-
     @property
     def reps(self) -> Union[int, List[int]]:
         """Return reps as integer, or if not available, as list.
@@ -730,53 +700,26 @@ class NLocal(QuantumCircuit):
         return self._reps
 
     @reps.setter
-    def reps(self, repetitions: Union[int, List[int]]) -> None:
+    def reps(self, repetitions: int) -> None:
         """Set the repetitions.
 
         Args:
             repetitions: The new repetitions.
         """
-
-        # TODO invalidate circuit only when reps changed
-        self._data = None
-        self._reps = repetitions
-
-    def _get_default_parameters(self, start: int, num: int) -> List[Parameter]:
-        """Get ``num`` default parameters. Returns the same instances if called repeatedly.
-
-        Args:
-            start: The first index of the parameters.
-            num: The number of required parameters.
-
-        Returns:
-            A list of ``num`` parameters, named ``self._parameter_prefix + i``, where the index
-            ``i`` runs from ``start`` to ``start + num``.
-
-        Note:
-            This method guarantees to return the same instances if the same indices are
-            requested, i.e.
-
-        Example:
-            >>> self._get_default_parameters(10, 2)[0] is self._get_default_parameters(10, 2)[0]
-            True
-
-        TODO:
-            Implement this more efficiently such that only the asked for params are created.
-            E.g. ``_get_default_parameters(1000, 1)`` should not create 1001 parameters, but 1.
-        """
-        num_default_parameters = len(self._default_parameters)
-        if num_default_parameters < start + num:
-            self._default_parameters += [
-                Parameter('{}{}'.format(self._parameter_prefix, num_default_parameters + i))
-                for i in range(start + num - num_default_parameters)
-            ]
-
-        return self._default_parameters[start:start + num]
+        if repetitions != self._reps:
+            self._invalidate()
+            self._reps = repetitions
 
     @property
     def data(self):
-        self._build()
+        if self._data is None:
+            self._build()
         return self._data
+
+    def _invalidate(self):
+        """Invalidate the current circuit build."""
+        self._data = None
+        self._parameter_table = ParameterTable()
 
     def compose(self,
                 other: Union['NLocal', Instruction, QuantumCircuit],
@@ -819,7 +762,7 @@ class NLocal(QuantumCircuit):
         # In the latter case we have to add an according offset to the qubit indices.
         # Since we cannot compose a circuit of larger size to an existing circuit we have to rebuild
         if num_qubits != self.num_qubits:
-            self._data = None  # rebuild circuit
+            self._invalidate()  # rebuild circuit
 
         # modify the circuit accordingly
         if self._data:
