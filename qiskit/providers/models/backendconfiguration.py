@@ -616,6 +616,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                                             "{} on {}-qubit system. The ControlChannel information"
                                             " is retrieved from the "
                                             " backend.".format(qubits, self.n_qubits))
+        except AttributeError:
+            raise BackendConfigurationError("This backend - '{}' does not provide channel "
+                                            "information.".format(self.backend_name))
 
     def get_channel_qubits(self, channel: Channel) -> List[int]:
         """
@@ -631,6 +634,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             return self._channel_qubit_map[channel]
         except KeyError:
             raise BackendConfigurationError("Couldn't find the Channel - {}".format(channel))
+        except AttributeError:
+            raise BackendConfigurationError("This backend - '{}' does not provide channel "
+                                            "information.".format(self.backend_name))
 
     def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
         r"""Return a list of channels which operate on the given ``qubit``.
@@ -657,6 +663,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             return channels
         except KeyError:
             raise BackendConfigurationError("Couldn't find the qubit - {}".format(qubit))
+        except AttributeError:
+            raise BackendConfigurationError("This backend - '{}' does not provide channel "
+                                            "information.".format(self.backend_name))
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """
