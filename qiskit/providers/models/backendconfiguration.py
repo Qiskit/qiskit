@@ -728,6 +728,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Args:
             channel: Name of channel.
 
+        Raises:
+            BackendConfigurationError if channel does not match with the regex.
+
         Return:
             Channel name and index. For example, if ``channel=acquire0``, this method
             returns ``acquire`` and ``0``.
