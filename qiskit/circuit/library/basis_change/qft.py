@@ -19,6 +19,8 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
+# pylint: disable=no-member
+
 
 class QFT(QuantumCircuit):
     r"""Quantum Fourier Transform Circuit.
