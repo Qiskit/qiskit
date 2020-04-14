@@ -43,7 +43,7 @@ class RYRZ(TwoLocal):
     @deprecate_arguments({'entangler_map': 'entanglement'})
     def __init__(self,
                  num_qubits: Optional[int] = None,
-                 depth: int = 3,
+                 reps: int = 3,
                  entanglement_gates: Union[str, List[str], type, List[type]] = CZGate,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  initial_state: Optional[InitialState] = None,
@@ -57,7 +57,7 @@ class RYRZ(TwoLocal):
 
         Args:
             num_qubits: The number of qubits of the Ansatz.
-            depth: Specifies how often the structure of a rotation layer followed by an entanglement
+            reps: Specifies how often the structure of a rotation layer followed by an entanglement
                 layer is repeated.
             entanglement_gates: The gates used in the entanglement layer. Can be specified via the
                 name of a gate (e.g. 'cx') or the gate type itself (e.g. CnotGate).
@@ -114,7 +114,7 @@ class RYRZ(TwoLocal):
             >>> print(my_varform)
         """
         super().__init__(num_qubits=num_qubits,
-                         depth=depth,
+                         reps=reps,
                          rotation_gates=[RYGate, RZGate],
                          entanglement_gates=entanglement_gates,
                          entanglement=entanglement,

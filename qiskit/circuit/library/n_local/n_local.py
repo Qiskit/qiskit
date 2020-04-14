@@ -856,9 +856,6 @@ class NLocal(QuantumCircuit):
         if not isinstance(param_dict, dict):
             param_dict = dict(zip(self.ordered_parameters, param_dict))
 
-        print('ordered', self.ordered_parameters)
-        print('self', self.parameters)
-        print('param_dict', param_dict)
         return super().assign_parameters(param_dict, inplace=inplace)
 
     def to_circuit(self):
