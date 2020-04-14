@@ -171,7 +171,7 @@ class NLocal(QuantumCircuit):
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
                        'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
         return transpile(self.to_circuit(), basis_gates=basis_gates,
-                         optimization_level=0).draw().single_string()
+                         optimization_level=0).draw(fold=1000).single_string()
 
     def _convert_to_block(self, layer: Any) -> Instruction:
         """Try to convert ``layer`` to an Instruction.
@@ -400,6 +400,7 @@ class NLocal(QuantumCircuit):
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
 
+        self._data = None
         self._rotation_blocks = [self._convert_to_block(block) for block in blocks]
 
     @entanglement_blocks.setter
@@ -414,6 +415,7 @@ class NLocal(QuantumCircuit):
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
 
+        self._data = None
         self._entanglement_blocks = [self._convert_to_block(block) for block in blocks]
 
     @property
@@ -914,11 +916,15 @@ class NLocal(QuantumCircuit):
 
         return circuit
 
+    def draw(self, *args, **kwargs):
+        self._build()
+        return super().draw(*args, **kwargs)
+
     def _build(self) -> None:
         """Build the circuit."""
         if self._data is None and self._configuration_is_valid():
-            print('building')
             self._data = []
+            self._parameter_table = {}
             if self.num_qubits > 0:
                 # use the initial state circuit if it is not None
                 if self._initial_state:
@@ -927,10 +933,11 @@ class NLocal(QuantumCircuit):
                 else:
                     self.qregs = [QuantumRegister(self.num_qubits, name='q')]
                     # circuit = QuantumCircuit(q)
+            else:
+                self.qregs = []
 
             # add the blocks, if they are specified
             rotation_reps, entanglement_reps = self._rotation_reps(), self._entanglement_reps()
-            print('reps', rotation_reps, entanglement_reps)
             if len(rotation_reps) > 0 or len(entanglement_reps) > 0:
                 param_iter = iter(self.ordered_parameters)
 
@@ -969,6 +976,8 @@ class NLocal(QuantumCircuit):
                         self += layer
 
             if len(rotation_reps) > self._reps:
+                if self.insert_barriers:
+                    self.barrier()
                 block = self.rotation_blocks[rotation_reps[self._reps]]
                 layer = QuantumCircuit(self.num_qubits)
                 block_indices = [
