@@ -181,10 +181,6 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
-    full_mat_dim = ctrl_dim * base_mat.shape[0]
-    full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-
-
 def unitary(self, obj, qubits, label=None):
     """Apply u2 to q."""
     if isinstance(qubits, QuantumRegister):

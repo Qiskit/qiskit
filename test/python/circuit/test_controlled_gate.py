@@ -108,7 +108,6 @@ class TestControlledGate(QiskitTestCase):
         circ.append(inst.control(), qargs=[0, 2, 1])
         circ.append(inst.control(2), qargs=[0, 3, 1, 2])
         circ.append(inst.control().control(), qargs=[0, 3, 1, 2])  # should be same as above
-        import ipdb;ipdb.set_trace()
         self.assertEqual(circ[1][0], circ[2][0])
         self.assertEqual(circ.depth(), 3)
         self.assertEqual(circ[0][0].num_ctrl_qubits, 2)
