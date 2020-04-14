@@ -226,7 +226,8 @@ class Schedule(ScheduleComponent):
         if name is None:
             name = self.name
         new_sched = Schedule(name=name)
-        new_sched._insert(0, self)
+        new_sched._timeslots = copy(self._timeslots)
+        new_sched.__children = copy(self.__children)
         new_sched._insert(start_time, schedule)
         return new_sched
 
