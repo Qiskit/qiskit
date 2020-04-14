@@ -181,6 +181,7 @@ class UnitaryGate(Gate):
 
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
+
 def unitary(self, obj, qubits, label=None):
     """Apply u2 to q."""
     if isinstance(qubits, QuantumRegister):
