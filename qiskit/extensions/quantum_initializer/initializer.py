@@ -54,7 +54,6 @@ class Initialize(Instruction):
 
         # Check if probabilities (amplitudes squared) sum to 1
         if not math.isclose(sum(np.absolute(params) ** 2), 1.0, rel_tol=1e-7):
-            print(sum(np.absolute(params) ** 2) - 1.0)
             raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
         num_qubits = int(num_qubits)

@@ -53,7 +53,7 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
     def __init__(self, diag):
         """Check types"""
         # Check if diag has type "list"
-        if not isinstance(diag, list):
+        if not isinstance(diag, (list, np.ndarray)):
             raise QiskitError("The diagonal entries are not provided in a list.")
         # Check if the right number of diagonal entries is provided and if the diagonal entries
         # have absolute value one.
@@ -141,7 +141,7 @@ def diagonal(self, diag, qubit):
         raise QiskitError("The qubits must be provided as a list "
                           "(also if there is only one qubit).")
     # Check if diag has type "list"
-    if not isinstance(diag, list):
+    if not isinstance(diag, (list, np.ndarray)):
         raise QiskitError("The diagonal entries are not provided in a list.")
     num_action_qubits = math.log2(len(diag))
     if not len(qubit) == num_action_qubits:

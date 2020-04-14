@@ -318,7 +318,7 @@ class TestInitialize(QiskitTestCase):
         """Test when state type is a ndarray (cast to list)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        circ = QuantumCircuit(1, 1)
+        circ = QuantumCircuit(1)
         state = (1 / np.sqrt(2)) * np.array([1, 1 + 0j])
         circ.initialize(state, 0)
         params = circ.data[0][0].params
@@ -333,7 +333,7 @@ class TestInitialize(QiskitTestCase):
         """Test when state type is a ndarray (dtype=complex), cast to list(complex)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        circ = QuantumCircuit(1, 1)
+        circ = QuantumCircuit(1)
         state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=complex)
         circ.initialize(state, 0)
         params = circ.data[0][0].params
@@ -348,7 +348,7 @@ class TestInitialize(QiskitTestCase):
         """Test when state type is a ndarray (dtype=np.complex128), cast to list(complex)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        circ = QuantumCircuit(1, 1)
+        circ = QuantumCircuit(1)
         state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=np.complex128)
         circ.initialize(state, 0)
         params = circ.data[0][0].params
@@ -363,7 +363,7 @@ class TestInitialize(QiskitTestCase):
         """Test when state type is a ndarray (dtype=np.float32), cast to list(float)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        circ = QuantumCircuit(1, 1)
+        circ = QuantumCircuit(1)
         state = (1 / np.sqrt(2)) * np.array([1., 1.], dtype=np.float32)
         circ.initialize(state, 0)
         params = circ.data[0][0].params
@@ -372,7 +372,6 @@ class TestInitialize(QiskitTestCase):
 
         for param in params:
             self.assertFalse(isinstance(param, np.number))
-            print(type(param))
             self.assertTrue(isinstance(param, float))
 
 

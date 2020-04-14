@@ -51,6 +51,70 @@ class TestDiagonalGate(QiskitTestCase):
                 unitary_desired = _get_diag_gate_matrix(diag)
                 self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=True))
 
+    def test_ndarray(self):
+        """Test when state type is a ndarray (cast to list)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        q = QuantumRegister(1)
+        circ = QuantumCircuit(q)
+        state = (1 / np.sqrt(2)) * np.array([1, 1 + 0j])
+        circ.diagonal(state, q[:])
+        params = circ.data[0][0].params
+
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, complex))
+
+    def test_ndarray_complex(self):
+        """Test when state type is a ndarray (dtype=complex), cast to list(complex)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        q = QuantumRegister(1)
+        circ = QuantumCircuit(q)
+        state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=complex)
+        circ.diagonal(state, q[:])
+        params = circ.data[0][0].params
+
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, complex))
+
+    def test_ndarray_complex128(self):
+        """Test when state type is a ndarray (dtype=np.complex128), cast to list(complex)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        q = QuantumRegister(1)
+        circ = QuantumCircuit(q)
+        state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=np.complex128)
+        circ.diagonal(state, q[:])
+        params = circ.data[0][0].params
+
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, complex))
+
+    def test_ndarray_float32(self):
+        """Test when state type is a ndarray (dtype=np.float32), cast to list(float)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        q = QuantumRegister(1)
+        circ = QuantumCircuit(q)
+        state = (1 / np.sqrt(2)) * np.array([1., 1.], dtype=np.float32)
+        circ.diagonal(state, q[:])
+        params = circ.data[0][0].params
+
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, float))
+
 
 def _get_diag_gate_matrix(diag):
     return np.diagflat(diag)
