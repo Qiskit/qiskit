@@ -315,80 +315,65 @@ class TestInitialize(QiskitTestCase):
         self.assertEqual(qc1, qc2)
 
     def test_ndarray(self):
-        """Test when state type is a ndarray
+        """Test when state type is a ndarray (cast to list)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        desired_vector = [1, 0]
         circ = QuantumCircuit(1, 1)
         state = (1 / np.sqrt(2)) * np.array([1, 1 + 0j])
         circ.initialize(state, 0)
-        circ.measure(0, 0)
+        params = circ.data[0][0].params
 
-        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
-                      shots=1, seed_simulator=42)
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_vector)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, complex))
 
     def test_ndarray_complex(self):
-        """Test when state type is a ndarray (dtype=complex)
+        """Test when state type is a ndarray (dtype=complex), cast to list(complex)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        desired_vector = [1, 0]
         circ = QuantumCircuit(1, 1)
         state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=complex)
         circ.initialize(state, 0)
-        circ.measure(0, 0)
+        params = circ.data[0][0].params
 
-        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
-                      shots=1, seed_simulator=42)
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_vector)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, complex))
 
     def test_ndarray_complex128(self):
-        """Test when state type is a ndarray (dtype=np.complex128)
+        """Test when state type is a ndarray (dtype=np.complex128), cast to list(complex)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        desired_vector = [1, 0]
         circ = QuantumCircuit(1, 1)
         state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=np.complex128)
         circ.initialize(state, 0)
-        circ.measure(0, 0)
+        params = circ.data[0][0].params
 
-        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
-                      shots=1, seed_simulator=42)
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_vector)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            self.assertTrue(isinstance(param, complex))
 
     def test_ndarray_float32(self):
-        """Test when state type is a ndarray (dtype=np.float32)
+        """Test when state type is a ndarray (dtype=np.float32), cast to list(float)
         See: https://github.com/Qiskit/qiskit-aer/issues/692
         """
-        desired_vector = [1, 0]
         circ = QuantumCircuit(1, 1)
         state = (1 / np.sqrt(2)) * np.array([1., 1.], dtype=np.float32)
         circ.initialize(state, 0)
-        circ.measure(0, 0)
+        params = circ.data[0][0].params
 
-        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
-                      shots=1, seed_simulator=42)
-        result = job.result()
-        statevector = result.get_statevector()
-        fidelity = state_fidelity(statevector, desired_vector)
-        self.assertGreater(
-            fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+        self.assertTrue(type(params), list)
+
+        for param in params:
+            self.assertFalse(isinstance(param, np.number))
+            print(type(param))
+            self.assertTrue(isinstance(param, float))
 
 if __name__ == '__main__':
     unittest.main()
