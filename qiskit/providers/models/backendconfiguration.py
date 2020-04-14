@@ -360,7 +360,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  max_shots: int,
                  coupling_map,
                  n_uchannels: int,
-                 u_channel_lo: List[UchannelLO],
+                 u_channel_lo: List[List[UchannelLO]],
                  meas_levels: List[int],
                  qubit_lo_range: List[List[float]],
                  meas_lo_range: List[List[float]],
