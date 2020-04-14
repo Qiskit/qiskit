@@ -394,8 +394,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             evaluated_instruction = converted_instruction.bind_parameters(P1=0.5, P2=0.)
 
-        self.assertEqual(evaluated_instruction.start_time, 10)
-        self.assertEqual(evaluated_instruction.duration, 10)
+        self.assertEqual(evaluated_instruction.start_time, instruction.start_time)
+        self.assertEqual(evaluated_instruction.duration, instruction.duration)
         self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
 
 
