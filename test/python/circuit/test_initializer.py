@@ -333,6 +333,62 @@ class TestInitialize(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
+    def test_ndarray_complex(self):
+        """Test when state type is a ndarray (dtype=complex)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        desired_vector = [1, 0]
+        circ = QuantumCircuit(1, 1)
+        state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=complex)
+        circ.initialize(state, 0)
+        circ.measure(0, 0)
+
+        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
+                      shots=1, seed_simulator=42)
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_vector)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+
+    def test_ndarray_complex128(self):
+        """Test when state type is a ndarray (dtype=np.complex128)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        desired_vector = [1, 0]
+        circ = QuantumCircuit(1, 1)
+        state = (1 / np.sqrt(2)) * np.array([1, 1], dtype=np.complex128)
+        circ.initialize(state, 0)
+        circ.measure(0, 0)
+
+        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
+                      shots=1, seed_simulator=42)
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_vector)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+
+    def test_ndarray_float32(self):
+        """Test when state type is a ndarray (dtype=np.float32)
+        See: https://github.com/Qiskit/qiskit-aer/issues/692
+        """
+        desired_vector = [1, 0]
+        circ = QuantumCircuit(1, 1)
+        state = (1 / np.sqrt(2)) * np.array([1., 1.], dtype=np.float32)
+        circ.initialize(state, 0)
+        circ.measure(0, 0)
+
+        job = execute(circ, BasicAer.get_backend('statevector_simulator'),
+                      shots=1, seed_simulator=42)
+        result = job.result()
+        statevector = result.get_statevector()
+        fidelity = state_fidelity(statevector, desired_vector)
+        self.assertGreater(
+            fidelity, self._desired_fidelity,
+            "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
 if __name__ == '__main__':
     unittest.main()
