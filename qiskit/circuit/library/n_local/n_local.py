@@ -302,7 +302,6 @@ class NLocal(QuantumCircuit):
 
             # sca is circular plus shift and reverse
             shifted = circular[-offset:] + circular[:-offset]
-            print(shifted)
             if offset % 2 == 1:  # if odd, reverse the qubit indices
                 sca = [ind[::-1] for ind in shifted]
             else:
