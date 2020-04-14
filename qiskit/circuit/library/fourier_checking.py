@@ -12,10 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
 
 """Fourier checking circuit."""
 
-from typing import List, Optional
+from typing import List
 
 import math
 from qiskit.circuit import QuantumCircuit

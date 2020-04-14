@@ -291,7 +291,7 @@ class Schedule(ScheduleComponent):
                                                  time_ranges=time_ranges,
                                                  intervals=intervals)
         return self._apply_filter(composed_filter,
-                                  new_sched_name="{name}-filtered".format(name=self.name))
+                                  new_sched_name="{name}".format(name=self.name))
 
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
@@ -318,7 +318,7 @@ class Schedule(ScheduleComponent):
                                                  time_ranges=time_ranges,
                                                  intervals=intervals)
         return self._apply_filter(lambda x: not composed_filter(x),
-                                  new_sched_name="{name}-excluded".format(name=self.name))
+                                  new_sched_name="{name}".format(name=self.name))
 
     def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
         """Return a Schedule containing only the instructions from this Schedule for which
