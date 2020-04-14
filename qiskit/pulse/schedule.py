@@ -430,8 +430,8 @@ class Schedule(ScheduleComponent):
                         "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
                         "time {time} because its instruction on channel {ch} scheduled from time "
                         "{t0} to {tf} overlaps with an existing instruction."
-                        "".format(new=schedule.name or '', old=self.name or '', time=time, ch=channel,
-                                  t0=interval[0], tf=interval[1]))
+                        "".format(new=schedule.name or '', old=self.name or '', time=time,
+                                  ch=channel, t0=interval[0], tf=interval[1]))
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
