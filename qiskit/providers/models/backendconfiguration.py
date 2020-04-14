@@ -601,7 +601,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Returns:
             List of control channels.
         """
-        # TODO: Determine this from the hamiltonian.
         if channel is not None:
             warnings.warn('The channel argument has been deprecated in favor of qubits. '
                           'This method will now return accurate ControlChannels determined '
@@ -741,7 +740,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             channel: Name of channel.
 
         Raises:
-            BackendConfigurationError: If channel does not match with the regex.
+            BackendConfigurationError: If invalid channel name is found.
 
         Return:
             Channel name and index. For example, if ``channel=acquire0``, this method
@@ -751,5 +750,4 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         try:
             return channel_prefix.group('channel'), int(channel_prefix.group('index'))
         except AttributeError:
-            raise BackendConfigurationError("The given channel - '{}' does not match with "
-                                            "the regular expression.".format(channel))
+            raise BackendConfigurationError("Invalid channel name - '{}' found.".format(channel))
