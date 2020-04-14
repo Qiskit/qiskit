@@ -22,7 +22,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate, CXGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError, QiskitError
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -119,6 +119,7 @@ class ConsolidateBlocks(TransformationPass):
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
                 if self.force_consolidate or unitary.num_qubits > 2 or \
                         self.decomposer.num_basis_gates(unitary) != basis_count:
+
                     new_dag.apply_operation_back(
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
