@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The :class:`~qiskit.transpiler.passes.BarrierBeforeFinalMeasurements`
+    transpiler pass, included in the preset transpiler levels when targeting
+    a physical device, previously inserted a barrier across only measured
+    qubits. In some cases, this allowed the transpiler to insert a swap after a
+    measure operation, rendering the circuit invalid for current
+    devices. The pass has been updated so that the inserted barrier
+    will span all qubits on the device. Fixes
+    `#3937 <https://github.com/Qiskit/qiskit-terra/issues/3937>`_

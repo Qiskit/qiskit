@@ -30,6 +30,7 @@ class SchedStyle:
                  axis_font_size: int = 18,
                  label_font_size: int = 10,
                  icon_font_size: int = 18,
+                 title_font_size: int = 25,
                  label_ch_linestyle: str = '--',
                  label_ch_color: str = None,
                  label_ch_alpha: float = 0.3,
@@ -57,6 +58,7 @@ class SchedStyle:
             axis_font_size: Font size of channel aliases.
             label_font_size: Font size of labels in canvas.
             icon_font_size: Size of symbols.
+            title_font_size: Font size of schedule name in title.
             label_ch_linestyle: Line style for channel pulse label line.
             label_ch_color: Color code or name of color for channel pulse label line.
             label_ch_alpha: Transparency for channel pulse label line from 0 to 1.
@@ -104,6 +106,7 @@ class SchedStyle:
         self.axis_font_size = axis_font_size
         self.label_font_size = label_font_size
         self.icon_font_size = icon_font_size
+        self.title_font_size = title_font_size
         self.d_ch_color = d_ch_color or ['#648fff', '#002999']
         self.label_ch_linestyle = label_ch_linestyle
         self.label_ch_color = label_ch_color or '#222222'
@@ -126,6 +129,7 @@ class SchedStyle:
 class PulseStyle:
     """Style sheet for Qiskit-Pulse sample pulse drawer."""
     def __init__(self, figsize: Tuple[float, float] = (7, 5),
+                 title_font_size: int = 18,
                  wave_color: List[str] = None,
                  bg_color: str = None,
                  num_points: int = None,
@@ -134,6 +138,7 @@ class PulseStyle:
 
         Args:
             figsize: Size of figure.
+            title_font_size: Font size of schedule name in title.
             wave_color: Color code or name of colors for real and imaginary part
                 of SamplePulse waveform.
             bg_color: Color code or name of color for pulse canvas background.
@@ -141,6 +146,7 @@ class PulseStyle:
             dpi: Resolution in the unit of dot per inch to save image.
         """
         self.figsize = figsize
+        self.title_font_size = title_font_size
         self.wave_color = wave_color or ['#ff0000', '#0000ff']
         self.bg_color = bg_color or '#f2f3f4'
         self.num_points = num_points or 1000
