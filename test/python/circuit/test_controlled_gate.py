@@ -220,11 +220,25 @@ class TestControlledGate(QiskitTestCase):
         from qiskit import transpile
         basis_gates = ['u1', 'u3', 'cx']
         gate = Gate('my_gate', 1, [])
-        #gate._definition = []
+        import ipdb;ipdb.set_trace()
+        ###gate._definition = []
 
         circuit = QuantumCircuit(2)
         circuit.append(gate.control(), [0, 1], [])
-        transpile(circuit, basis_gates=basis_gates)
+        try:
+            transpile(circuit, basis_gates=basis_gates)
+        except QiskitError:
+            self.fail('Transpiling opaque gate failed.')
+
+    def test_controlled_custom_gate_with_identity_gate(self):
+        custom = QuantumCircuit(2)
+        custom.x(0)
+        custom.i(1)
+        custom_gate = custom.to_gate()
+        try:
+            custom_gate.control()
+        except CircuitError:
+            self.fail('Control of custom gate containing identity failed.')
 
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
