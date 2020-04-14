@@ -15,4 +15,4 @@
 """The N-local circuits."""
 
 from .n_local import NLocal
-# from .two_local import TwoLocal
+from .two_local import TwoLocal

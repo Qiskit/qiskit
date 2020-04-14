@@ -46,7 +46,7 @@ class TwoLocal(NLocal):
 
     def __init__(self,
                  num_qubits: Optional[int] = None,
-                 depth: int = 3,
+                 reps: int = 3,
                  rotation_gates: Optional[Union[str, List[str], type, List[type]]] = None,
                  entanglement_gates: Optional[Union[str, List[str], type, List[type]]] = None,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
@@ -137,149 +137,162 @@ class TwoLocal(NLocal):
             q_3: |0>┤ Ry(θ0) ├──────────┤ Ry(θ0) ├──────────
                     └────────┘          └────────┘
         """
+        super().__init__(num_qubits=num_qubits,
+                         insert_barriers=insert_barriers, initial_state=initial_state,
+                         rotation_blocks=rotation_gates,
+                         entanglement_blocks=entanglement_gates,
+                         entanglement=entanglement,
+                         reps=reps,
+                         parameter_prefix=parameter_prefix)
+
         # initialize Ansatz
-        super().__init__(insert_barriers=insert_barriers, initial_state=initial_state)
+        # super().__init__(insert_barriers=insert_barriers, initial_state=initial_state)
 
-        # store arguments needing no pre-processing
-        self._depth = depth
-        self._num_qubits = num_qubits
-        self._entanglement = entanglement
-        self._parameter_prefix = parameter_prefix
-        self._skip_unentangled_qubits = skip_unentangled_qubits
-        self._skip_final_rotation_layer = skip_final_rotation_layer
+        # # store arguments needing no pre-processing
+        # self._depth = depth
+        # self._num_qubits = num_qubits
+        # self._entanglement = entanglement
+        # self._parameter_prefix = parameter_prefix
+        # self._skip_unentangled_qubits = skip_unentangled_qubits
+        # self._skip_final_rotation_layer = skip_final_rotation_layer
 
-        # internal variables
-        self._param_count = 0  # class-internal parameter count
-        self._overwrite_block_parameters = False
+        # # internal variables
+        # self._param_count = 0  # class-internal parameter count
+        # self._overwrite_block_parameters = False
 
-        # handle the single- and two-qubit gate specifications
-        self.rotation_gates = rotation_gates or []
-        self.entanglement_gates = entanglement_gates or []
+        # # handle the single- and two-qubit gate specifications
+        # self.rotation_gates = rotation_gates or []
+        # self.entanglement_gates = entanglement_gates or []
 
-    def _get_new_parameters(self, n):
-        new_parameters = [Parameter('{}{}'.format(self._parameter_prefix, i + self._param_count))
-                          for i in range(n)]
-        self._param_count += n
-        self._base_params += new_parameters
-        return new_parameters
+    # def _get_new_parameters(self, n):
+    #     new_parameters = [Parameter('{}{}'.format(self._parameter_prefix, i + self._param_count))
+    #                       for i in range(n)]
+    #     self._param_count += n
+    #     self._base_params += new_parameters
+    #     return new_parameters
 
-    def _get_entanglement_layer(self, block_num: int) -> Gate:
-        """Get the entangler map for this block.
+    # def _get_entanglement_layer(self, block_num: int) -> Gate:
+    #     """Get the entangler map for this block.
 
-        For some kinds of entanglement (e.g. 'sca') the entangler map is differs in different
-        blocks, therefore we query the entangler map every time. For constant schemata, such as
-        'linear', this is slightly inefficient, since the entangler map does not change.
-        However, the number of times get_entangler_map is called equals to `reps` which usually is
-        of O(10), and therefore most likely no bottleneck
+    #     For some kinds of entanglement (e.g. 'sca') the entangler map is differs in different
+    #     blocks, therefore we query the entangler map every time. For constant schemata, such as
+    #     'linear', this is slightly inefficient, since the entangler map does not change.
+    #     However, the number of times get_entangler_map is called equals to `reps` which usually is
+    #     of O(10), and therefore most likely no bottleneck
+
+    #     Args:
+    #         block_num: The index of the current block.
+
+    #     Returns:
+    #         The entanglement layer as gate.
+    #     """
+
+    #     circuit = QuantumCircuit(self._num_qubits, name='ent{}'.format(block_num))
+
+    #     for control, target in self.get_entangler_map(block_num):
+    #         # apply the gates
+    #         for gate, num_params in self.entanglement_gates:
+    #             if num_params == 0:
+    #                 params = []
+    #                 circuit.append(gate, [control, target], params)
+    #             else:
+    #                 # param_count = self.num_parameters + len(circuit.parameters)
+    #                 # params = [Parameter('{}{}'.format(self._parameter_prefix, param_count + i))
+    #                 #           for i in range(num_params)]
+    #                 # params = [Parameter('{}'.format(param_count + i)) for i in range(num_params)]
+    #                 # param_count += num_params
+    #                 params = self._get_new_parameters(num_params)
+
+    #                 # correctly replace the parameters
+    #                 sub_circuit = QuantumCircuit(self._num_qubits)
+    #                 sub_circuit.append(gate, [control, target], [])
+    #                 update = dict(zip(list(sub_circuit.parameters), params))
+    #                 sub_circuit._substitute_parameters(update)
+
+    #                 # add the gate
+    #                 circuit.extend(sub_circuit)
+
+    #     return circuit.to_gate()
+
+    # def _get_rotation_layer(self, block_num: int) -> Gate:
+    #     """Get the rotation layer for the current block.
+
+    #     Args:
+    #         block_num: The index of the current block.
+
+    #     Returns:
+    #         The rotation layer as Gate.
+    #     """
+    #     # determine the entangled qubits for this block
+    #     if self._skip_unentangled_qubits:
+    #         all_qubits = []
+    #         for control, target in self.get_entangler_map(block_num):
+    #             all_qubits.extend([control, target])
+    #         entangled_qubits = sorted(list(set(all_qubits)))
+    #     else:
+    #         entangled_qubits = list(range(self._num_qubits))
+
+    #     # build the circuit for this block
+    #     circuit = QuantumCircuit(self._num_qubits, name='rot{}'.format(block_num))
+
+    #     # iterate over all qubits
+    #     for qubit in range(self._num_qubits):
+
+    #         # check if we need to apply the gate to the qubit
+    #         if not self._skip_unentangled_qubits or qubit in entangled_qubits:
+
+    #             # apply the gates
+    #             for gate, num_params in self.rotation_gates:
+    #                 if num_params == 0:
+    #                     params = []
+    #                     circuit.append(gate, [qubit], params)  # TODO use _append with register
+    #                 else:
+    #                     params = self._get_new_parameters(num_params)
+
+    #                     # correctly replace the parameters
+    #                     sub_circuit = QuantumCircuit(self._num_qubits)
+    #                     sub_circuit.append(gate, [qubit], [])
+    #                     update = dict(zip(list(sub_circuit.parameters), params))
+    #                     sub_circuit._substitute_parameters(update)
+
+    #                     # add the gate
+    #                     circuit.extend(sub_circuit)
+
+    #     return circuit.to_gate()
+
+    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> Instruction:
+        """For a layer provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
+        according layer type along with the number of parameters (e.g. (RYGate, 1)).
 
         Args:
-            block_num: The index of the current block.
+            layer: The qubit layer.
 
         Returns:
-            The entanglement layer as gate.
-        """
-
-        circuit = QuantumCircuit(self._num_qubits, name='ent{}'.format(block_num))
-
-        for control, target in self.get_entangler_map(block_num):
-            # apply the gates
-            for gate, num_params in self.entanglement_gates:
-                if num_params == 0:
-                    params = []
-                    circuit.append(gate, [control, target], params)
-                else:
-                    # param_count = self.num_parameters + len(circuit.parameters)
-                    # params = [Parameter('{}{}'.format(self._parameter_prefix, param_count + i))
-                    #           for i in range(num_params)]
-                    # params = [Parameter('{}'.format(param_count + i)) for i in range(num_params)]
-                    # param_count += num_params
-                    params = self._get_new_parameters(num_params)
-
-                    # correctly replace the parameters
-                    sub_circuit = QuantumCircuit(self._num_qubits)
-                    sub_circuit.append(gate, [control, target], [])
-                    update = dict(zip(list(sub_circuit.parameters), params))
-                    sub_circuit._substitute_parameters(update)
-
-                    # add the gate
-                    circuit.extend(sub_circuit)
-
-        return circuit.to_gate()
-
-    def _get_rotation_layer(self, block_num: int) -> Gate:
-        """Get the rotation layer for the current block.
-
-        Args:
-            block_num: The index of the current block.
-
-        Returns:
-            The rotation layer as Gate.
-        """
-        # determine the entangled qubits for this block
-        if self._skip_unentangled_qubits:
-            all_qubits = []
-            for control, target in self.get_entangler_map(block_num):
-                all_qubits.extend([control, target])
-            entangled_qubits = sorted(list(set(all_qubits)))
-        else:
-            entangled_qubits = list(range(self._num_qubits))
-
-        # build the circuit for this block
-        circuit = QuantumCircuit(self._num_qubits, name='rot{}'.format(block_num))
-
-        # iterate over all qubits
-        for qubit in range(self._num_qubits):
-
-            # check if we need to apply the gate to the qubit
-            if not self._skip_unentangled_qubits or qubit in entangled_qubits:
-
-                # apply the gates
-                for gate, num_params in self.rotation_gates:
-                    if num_params == 0:
-                        params = []
-                        circuit.append(gate, [qubit], params)  # TODO use _append with register
-                    else:
-                        params = self._get_new_parameters(num_params)
-
-                        # correctly replace the parameters
-                        sub_circuit = QuantumCircuit(self._num_qubits)
-                        sub_circuit.append(gate, [qubit], [])
-                        update = dict(zip(list(sub_circuit.parameters), params))
-                        sub_circuit._substitute_parameters(update)
-
-                        # add the gate
-                        circuit.extend(sub_circuit)
-
-        return circuit.to_gate()
-
-    @staticmethod
-    def identify_gate(gate: Union[str, type, QuantumCircuit]) -> Tuple[type, int]:
-        """For a gate provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
-        according gate type along with the number of parameters (e.g. (RYGate, 1)).
-
-        Args:
-            gate: The qubit gate.
-
-        Returns:
-            The specified gate with the required number of parameters.
+            The specified layer with the required number of parameters.
 
         Raises:
-            ValueError: The type of `gate` is invalid.
-            ValueError: The type of `gate` is str but the name is unknown.
-            ValueError: The type of `gate` is type but the gate type is unknown.
+            ValueError: The type of `layer` is invalid.
+            ValueError: The type of `layer` is str but the name is unknown.
+            ValueError: The type of `layer` is type but the layer type is unknown.
 
         Note:
-            Outlook: If gates knew their number of parameters as static property, we could also
-            allow custom gate types.
+            Outlook: If layers knew their number of parameters as static property, we could also
+            allow custom layer types.
         """
-        if isinstance(gate, QuantumCircuit):
-            return (gate.to_gate(), len(gate.parameters))
+        if isinstance(layer, Instruction):
+            return layer
 
-        # check the list of valid gates
-        # this could be a lot easier if the standard gates would have `name` and `num_params`
+        if hasattr(layer, 'to_gate'):
+            return layer.to_gate()
+
+        if hasattr(layer, 'to_instruction'):
+            return layer.to_instruction()
+
+        # check the list of valid layers
+        # this could be a lot easier if the standard layers would have `name` and `num_params`
         # as static types, which might be something they should have anyways
         theta = Parameter('θ')
-        valid_gates = {
+        valid_layers = {
             'ch': (CHGate(), 0),
             'cx': (CXGate(), 0),
             'cy': (CYGate(), 0),
@@ -306,235 +319,235 @@ class TwoLocal(NLocal):
             'tdg': (TdgGate(), 0),
         }
 
-        if isinstance(gate, str):
-            # iterate over the gate names and look for the specified gate
-            for identifier, (standard_gate, num_params) in valid_gates.items():
-                if gate == identifier:
-                    return (standard_gate, num_params)
-            raise ValueError('Unknown gate name `{}`.'.format(gate))
+        if isinstance(layer, str):
+            # iterate over the layer names and look for the specified layer
+            for identifier, (standard_gate, _) in valid_layers.items():
+                if layer == identifier:
+                    return standard_gate
+            raise ValueError('Unknown layer name `{}`.'.format(layer))
 
-        if isinstance(gate, type):
-            # iterate over the gate types and look for the specified gate
-            for _, (standard_gate, num_params) in valid_gates.items():
-                if isinstance(standard_gate, gate):
-                    return (standard_gate, num_params)
-            raise ValueError('Unknown gate type`{}`.'.format(gate))
+        if isinstance(layer, type):
+            # iterate over the layer types and look for the specified layer
+            for _, (standard_gate, _) in valid_layers.items():
+                if isinstance(standard_gate, layer):
+                    return standard_gate
+            raise ValueError('Unknown layer type`{}`.'.format(layer))
 
-        raise ValueError('Invalid input type {}. '.format(type(gate))
-                         + '`gate` must be a type, str or QuantumCircuit.')
+        raise ValueError('Invalid input type {}. '.format(type(layer))
+                         + '`layer` must be a type, str or QuantumCircuit.')
 
-    @NLocal.blocks.getter
-    def blocks(self) -> List[Instruction]:
-        """Set the blocks according to the current state.
+    # @NLocal.blocks.getter
+    # def blocks(self) -> List[Instruction]:
+    #     """Set the blocks according to the current state.
 
-        Set the blocks and return them.
-        """
-        if self._blocks:
-            return self._blocks
+    #     Set the blocks and return them.
+    #     """
+    #     if self._blocks:
+    #         return self._blocks
 
-        if self._num_qubits is None:
-            raise ValueError('The number of qubits has not been set!')
+    #     if self._num_qubits is None:
+    #         raise ValueError('The number of qubits has not been set!')
 
-        if self.rotation_gates is None:
-            raise ValueError('No rotation gates are specified.')
+    #     if self.rotation_gates is None:
+    #         raise ValueError('No rotation gates are specified.')
 
-        if self.entanglement_gates is None:
-            raise ValueError('No entanglement gates are specified.')
+    #     if self.entanglement_gates is None:
+    #         raise ValueError('No entanglement gates are specified.')
 
-        blocks = []
-        self._param_count = 0
-        self._base_params = []
-        # define the blocks of this NLocal
-        for block_num in range(self._depth):
-            # append a rotation layer, if entanglement gates are specified
-            if len(self._rotation_gates) > 0:
-                block = self._get_rotation_layer(block_num)
-                blocks += [block]
+    #     blocks = []
+    #     self._param_count = 0
+    #     self._base_params = []
+    #     # define the blocks of this NLocal
+    #     for block_num in range(self._depth):
+    #         # append a rotation layer, if entanglement gates are specified
+    #         if len(self._rotation_gates) > 0:
+    #             block = self._get_rotation_layer(block_num)
+    #             blocks += [block]
 
-            # append an entanglement layer, if entanglement gates are specified
-            if len(self._entanglement_gates) > 0:
-                block = self._get_entanglement_layer(block_num)
-                blocks += [block]
+    #         # append an entanglement layer, if entanglement gates are specified
+    #         if len(self._entanglement_gates) > 0:
+    #             block = self._get_entanglement_layer(block_num)
+    #             blocks += [block]
 
-        # add a final rotation layer, if not specified otherwise
-        if not self._skip_final_rotation_layer and len(self._rotation_gates) > 0:
-            block = self._get_rotation_layer(block_num)
-            blocks += [block]
+    #     # add a final rotation layer, if not specified otherwise
+    #     if not self._skip_final_rotation_layer and len(self._rotation_gates) > 0:
+    #         block = self._get_rotation_layer(block_num)
+    #         blocks += [block]
 
-        self._blocks = blocks
-        return blocks
+    #     self._blocks = blocks
+    #     return blocks
 
-    @NLocal.base_parameters.getter
-    def base_parameters(self) -> List[Parameter]:
-        """Return the parameters of the underlying circuit.
+    # @NLocal.base_parameters.getter
+    # def base_parameters(self) -> List[Parameter]:
+    #     """Return the parameters of the underlying circuit.
 
-        Returns:
-            The parameters used in the circuit.
-        """
-        _ = self.blocks
-        return self._base_params
+    #     Returns:
+    #         The parameters used in the circuit.
+    #     """
+    #     _ = self.blocks
+    #     return self._base_params
 
-    @NLocal.num_qubits.setter
-    def num_qubits(self, num_qubits: int) -> None:
-        """Set the number of qubits.
+    # @NLocal.num_qubits.setter
+    # def num_qubits(self, num_qubits: int) -> None:
+    #     """Set the number of qubits.
 
-        Args:
-            num_qubits: The new number of qubits.
+    #     Args:
+    #         num_qubits: The new number of qubits.
 
-        Note:
-            Additionally to invalidating the circuit (which is done in NLocal.num_qubits),
-            here we need to invalidate the blocks, since they are dependent on the number of qubits.
-        """
-        if num_qubits != self._num_qubits:
-            self._blocks, self._circuit = None, None  # invalidate current setup
-            self._num_qubits = num_qubits
+    #     Note:
+    #         Additionally to invalidating the circuit (which is done in NLocal.num_qubits),
+    #         here we need to invalidate the blocks, since they are dependent on the number of qubits.
+    #     """
+    #     if num_qubits != self._num_qubits:
+    #         self._blocks, self._circuit = None, None  # invalidate current setup
+    #         self._num_qubits = num_qubits
 
-    @property
-    def depth(self) -> int:
-        """Return the depth of the two-local NLocal.
+    # @property
+    # def depth(self) -> int:
+    #     """Return the depth of the two-local NLocal.
 
-        The depth specifies how often the sequence of rotation and entanglement layer is
-        repeated. Additionally, a rotation layer is appended at the end (which can be
-        turned off using the attribute `skip_final_rotation_layer`).
+    #     The depth specifies how often the sequence of rotation and entanglement layer is
+    #     repeated. Additionally, a rotation layer is appended at the end (which can be
+    #     turned off using the attribute `skip_final_rotation_layer`).
 
-        Example:
-            >>> ansatz = TwoLocal(2, 2, 'ry', 'cx')  # the second argument, depth, is 2
-            >>> ansatz
-                    ┌────────┐     ┌────────┐     ┌────────┐
-            q_0: |0>┤ Ry(θ0) ├──■──┤ Ry(θ2) ├──■──┤ Ry(θ4) ├
-                    ├────────┤┌─┴─┐├────────┤┌─┴─┐├────────┤
-            q_1: |0>┤ Ry(θ1) ├┤ X ├┤ Ry(θ3) ├┤ X ├┤ Ry(θ5) ├
-                    └────────┘└───┘└────────┘└───┘└────────┘
-            >>> ansatz.depth = 1
-            >>> ansatz
-                    ┌────────┐     ┌────────┐
-            q_0: |0>┤ Ry(θ0) ├──■──┤ Ry(θ2) ├
-                    ├────────┤┌─┴─┐├────────┤
-            q_1: |0>┤ Ry(θ1) ├┤ X ├┤ Ry(θ3) ├
-                    └────────┘└───┘└────────┘
+    #     Example:
+    #         >>> ansatz = TwoLocal(2, 2, 'ry', 'cx')  # the second argument, depth, is 2
+    #         >>> ansatz
+    #                 ┌────────┐     ┌────────┐     ┌────────┐
+    #         q_0: |0>┤ Ry(θ0) ├──■──┤ Ry(θ2) ├──■──┤ Ry(θ4) ├
+    #                 ├────────┤┌─┴─┐├────────┤┌─┴─┐├────────┤
+    #         q_1: |0>┤ Ry(θ1) ├┤ X ├┤ Ry(θ3) ├┤ X ├┤ Ry(θ5) ├
+    #                 └────────┘└───┘└────────┘└───┘└────────┘
+    #         >>> ansatz.depth = 1
+    #         >>> ansatz
+    #                 ┌────────┐     ┌────────┐
+    #         q_0: |0>┤ Ry(θ0) ├──■──┤ Ry(θ2) ├
+    #                 ├────────┤┌─┴─┐├────────┤
+    #         q_1: |0>┤ Ry(θ1) ├┤ X ├┤ Ry(θ3) ├
+    #                 └────────┘└───┘└────────┘
 
-        Returns:
-            The depth.
-        """
-        return self._depth
+    #     Returns:
+    #         The depth.
+    #     """
+    #     return self._depth
 
-    @depth.setter
-    def depth(self, depth: int) -> None:
-        """Set the new depth.
+    # @depth.setter
+    # def depth(self, depth: int) -> None:
+    #     """Set the new depth.
 
-        Args:
-            depth: The new depth.
-        """
-        if depth != self._depth:
-            self._blocks, self._circuit = None, None
-            self._depth = depth
+    #     Args:
+    #         depth: The new depth.
+    #     """
+    #     if depth != self._depth:
+    #         self._blocks, self._circuit = None, None
+    #         self._depth = depth
 
-    @property
-    def entanglement(self) -> Union[str, List[List[int]], callable]:
-        """Return the current entanglement strategy.
+    # @property
+    # def entanglement(self) -> Union[str, List[List[int]], callable]:
+    #     """Return the current entanglement strategy.
 
-        Can be of type ``str``, a list of ``int`` or a ``callable``.
-        If the entanglement is a ``str`` it can be one of:
-        - ``'full'``: Entangle each qubit with every qubit (all-to-all).
-        - ``'linear'``: Entangle each qubit with its direct neighbor.
-        - ``'sca'``: Shifted-circular-alternating entanglement. Within every entanglement block,
-        the qubits are entangled circularly, i.e. linear but the first and last qubit are
-        also entangled. Shifted means that in the next block the (i+1)-th entanglement is the
-        i-th entanglement of the previous block (modulo ``num_qubits``). Alternating indicates
-        that the role of target and control qubit is swapped every other block.
+    #     Can be of type ``str``, a list of ``int`` or a ``callable``.
+    #     If the entanglement is a ``str`` it can be one of:
+    #     - ``'full'``: Entangle each qubit with every qubit (all-to-all).
+    #     - ``'linear'``: Entangle each qubit with its direct neighbor.
+    #     - ``'sca'``: Shifted-circular-alternating entanglement. Within every entanglement block,
+    #     the qubits are entangled circularly, i.e. linear but the first and last qubit are
+    #     also entangled. Shifted means that in the next block the (i+1)-th entanglement is the
+    #     i-th entanglement of the previous block (modulo ``num_qubits``). Alternating indicates
+    #     that the role of target and control qubit is swapped every other block.
 
-        If the entanglement is a list of lists of ``int``, the structure is specified as
-        ``[[control1, target1], [control2, target2], ...]``.
+    #     If the entanglement is a list of lists of ``int``, the structure is specified as
+    #     ``[[control1, target1], [control2, target2], ...]``.
 
-        If the entanglement is a callable, it takes the number of the current entanglement block
-        as argument and returns the entanglement list for that particular block, i.e. returns
-        a list of lists of ``int``.
+    #     If the entanglement is a callable, it takes the number of the current entanglement block
+    #     as argument and returns the entanglement list for that particular block, i.e. returns
+    #     a list of lists of ``int``.
 
-        Returns:
-            The entanglement strategy.
-        """
-        return self._entanglement
+    #     Returns:
+    #         The entanglement strategy.
+    #     """
+    #     return self._entanglement
 
-    @entanglement.setter
-    def entanglement(self, entanglement: Union[str, List[List[int]], callable]):
-        """Set the entanglement strategy.
+    # @entanglement.setter
+    # def entanglement(self, entanglement: Union[str, List[List[int]], callable]):
+    #     """Set the entanglement strategy.
 
-        Args:
-            entanglement: The entanglement strategy.
-        """
-        self._blocks, self._circuit = None, None  # invalidate current setup
-        self._entanglement = entanglement
+    #     Args:
+    #         entanglement: The entanglement strategy.
+    #     """
+    #     self._blocks, self._circuit = None, None  # invalidate current setup
+    #     self._entanglement = entanglement
 
-    @property
-    def entanglement_gates(self) -> List[Tuple[type, int]]:
-        """
-        Return a the twos qubit gate(or gates) in form of callable(s).
+    # @property
+    # def entanglement_gates(self) -> List[Tuple[type, int]]:
+    #     """
+    #     Return a the twos qubit gate(or gates) in form of callable(s).
 
-        Returns:
-            list[tuple]: the single qubit gate(s) as tuples (QuantumCircuit.gate, num_parameters),
-                e.g. (QuantumCircuit.cx, 0) or (QuantumCircuit.cry, 1)
-        """
-        gate_param_list = [TwoLocal.identify_gate(gate) for gate in self._entanglement_gates]
-        return gate_param_list
+    #     Returns:
+    #         list[tuple]: the single qubit gate(s) as tuples (QuantumCircuit.gate, num_parameters),
+    #             e.g. (QuantumCircuit.cx, 0) or (QuantumCircuit.cry, 1)
+    #     """
+    #     gate_param_list = [TwoLocal.identify_gate(gate) for gate in self._entanglement_gates]
+    #     return gate_param_list
 
-    @entanglement_gates.setter
-    def entanglement_gates(self, gates):
-        """Set new entanglement gates."""
-        # invalidate circuit definition
-        self._blocks, self._circuit = None, None
+    # @entanglement_gates.setter
+    # def entanglement_gates(self, gates):
+    #     """Set new entanglement gates."""
+    #     # invalidate circuit definition
+    #     self._blocks, self._circuit = None, None
 
-        if not isinstance(gates, list):
-            self._entanglement_gates = [gates]
-        else:
-            self._entanglement_gates = gates
+    #     if not isinstance(gates, list):
+    #         self._entanglement_gates = [gates]
+    #     else:
+    #         self._entanglement_gates = gates
 
-    @property
-    def rotation_gates(self) -> List[Tuple[type, int]]:
-        """Return a the single qubit gate (or gates) in tuples of callable and number of parameters.
+    # @property
+    # def rotation_gates(self) -> List[Tuple[type, int]]:
+    #     """Return a the single qubit gate (or gates) in tuples of callable and number of parameters.
 
-        The reason this is implemented as separate function is that the user can set up a class
-        with special single and two qubit gates, for cases we do not cover in identify gate.
-        And this design "outsources" the identification of the gate from the main code that
-        builds the circuit, which makes the code more modular.
+    #     The reason this is implemented as separate function is that the user can set up a class
+    #     with special single and two qubit gates, for cases we do not cover in identify gate.
+    #     And this design "outsources" the identification of the gate from the main code that
+    #     builds the circuit, which makes the code more modular.
 
-        Returns:
-            list[tuple]: the single qubit gate(s) as tuples (QuantumCircuit.gate, num_parameters),
-                e.g. (QuantumCircuit.x, 0) or (QuantumCircuit.ry, 1)
-        """
-        gate_param_list = [TwoLocal.identify_gate(gate) for gate in self._rotation_gates]
-        return gate_param_list
+    #     Returns:
+    #         list[tuple]: the single qubit gate(s) as tuples (QuantumCircuit.gate, num_parameters),
+    #             e.g. (QuantumCircuit.x, 0) or (QuantumCircuit.ry, 1)
+    #     """
+    #     gate_param_list = [TwoLocal.identify_gate(gate) for gate in self._rotation_gates]
+    #     return gate_param_list
 
-    @rotation_gates.setter
-    def rotation_gates(self, gates):
-        """Set new rotation gates."""
-        # invalidate circuit definition
-        self._blocks, self._circuit = None, None
+    # @rotation_gates.setter
+    # def rotation_gates(self, gates):
+    #     """Set new rotation gates."""
+    #     # invalidate circuit definition
+    #     self._blocks, self._circuit = None, None
 
-        if not isinstance(gates, list):
-            self._rotation_gates = [gates]
-        else:
-            self._rotation_gates = gates
+    #     if not isinstance(gates, list):
+    #         self._rotation_gates = [gates]
+    #     else:
+    #         self._rotation_gates = gates
 
-    def get_entangler_map(self, offset: int = 0) -> List[List[int]]:
-        """Return the specified entangler map, if self._entangler_map if it has been set previously.
+    # def get_entangler_map(self, offset: int = 0) -> List[List[int]]:
+    #     """Return the specified entangler map, if self._entangler_map if it has been set previously.
 
-        Args:
-            offset (int): Some entanglements allow an offset argument, since the entangler map might
-                differ per entanglement block (e.g. for 'sca' entanglement). This is the block
-                index.
+    #     Args:
+    #         offset (int): Some entanglements allow an offset argument, since the entangler map might
+    #             differ per entanglement block (e.g. for 'sca' entanglement). This is the block
+    #             index.
 
-        Returns:
-            A list of [control, target] pairs specifying entanglements, also known as entangler map.
+    #     Returns:
+    #         A list of [control, target] pairs specifying entanglements, also known as entangler map.
 
-        Raises:
-            ValueError: Unsupported format of entanglement, if self._entanglement has the wrong
-                format.
-        """
-        if isinstance(self._entanglement, str):
-            return get_entangler_map(self._entanglement, self._num_qubits, offset)
-        elif callable(self._entanglement):
-            return validate_entangler_map(self._entanglement(offset), self._num_qubits)
-        elif isinstance(self._entanglement, list):
-            return validate_entangler_map(self._entanglement, self._num_qubits)
-        else:
-            raise ValueError('Unsupported format of entanglement!')
+    #     Raises:
+    #         ValueError: Unsupported format of entanglement, if self._entanglement has the wrong
+    #             format.
+    #     """
+    #     if isinstance(self._entanglement, str):
+    #         return get_entangler_map(self._entanglement, self._num_qubits, offset)
+    #     elif callable(self._entanglement):
+    #         return validate_entangler_map(self._entanglement(offset), self._num_qubits)
+    #     elif isinstance(self._entanglement, list):
+    #         return validate_entangler_map(self._entanglement, self._num_qubits)
+    #     else:
+    #         raise ValueError('Unsupported format of entanglement!')

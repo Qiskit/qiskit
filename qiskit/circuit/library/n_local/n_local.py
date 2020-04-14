@@ -400,7 +400,6 @@ class NLocal(QuantumCircuit):
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
 
-        print('blocks', blocks)
         self._rotation_blocks = [self._convert_to_block(block) for block in blocks]
 
     @entanglement_blocks.setter
@@ -435,7 +434,8 @@ class NLocal(QuantumCircuit):
         # if no entanglement was set return default
         entanglement = self._entanglement
         if not entanglement:
-            return [[list(range(self.entanglement_blocks[i].num_qubits))] for i in self._entanglement_reps()]
+            return [[list(range(self.entanglement_blocks[i].num_qubits))]
+                    for i in self._entanglement_reps()]
 
         if isinstance(entanglement, str):
             entangler_maps = []
@@ -663,7 +663,6 @@ class NLocal(QuantumCircuit):
             num += len(self.entangler_maps[i]) * len(get_parameters(self.entanglement_blocks[i]))
         for i in self._rotation_reps():
             block = self.rotation_blocks[i]
-            print('block', block, self.rotation_blocks)
             num += len(get_parameters(block)) * self.num_qubits // block.num_qubits
         return num
 
