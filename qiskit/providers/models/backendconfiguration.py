@@ -602,9 +602,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         """
         # TODO: Determine this from the hamiltonian.
         if channel is not None:
-            warnings.warn('control(channel: int) is deprecated. Use '
-                          'control(qubits: List or Tuple [control_qubit, target_qubit]) instead. '
-                          'The ControlChannel information is retrieved from the backend. ',
+            warnings.warn('The channel argument has been deprecated in favor of qubits. '
+                          'This method will now return accurate ControlChannels determined '
+                          'by qubit indices.',
                           DeprecationWarning)
             qubits = [channel]
         try:
@@ -705,7 +705,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         qubit_channel_map = defaultdict(list)
         channel_qubit_map = defaultdict(list)
         control_channels = defaultdict(list)
-        example = {
+        channels_dict = {
             DriveChannel.prefix: DriveChannel,
             ControlChannel.prefix: ControlChannel,
             MeasureChannel.prefix: MeasureChannel,
@@ -713,17 +713,27 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         }
         for channel, config in channels.items():
             channel_prefix, index = self._get_channel_prefix_index(channel)
-            if channel_prefix in example:
-                qubit_channel_map[tuple(config['operates']['qubits'])].append(
-                    example[channel_prefix](int(index)))
-                channel_qubit_map[(example[channel_prefix](int(
-                    index)))].extend(config['operates']['qubits'])
-                if channel_prefix == 'u':
-                    control_channels[tuple(config['operates']['qubits'])].append(
-                        example[channel_prefix](int(index)))
+            channel_type = channels_dict[channel_prefix]
+            qubits = tuple(config['operates']['qubits'])
+            if channel_prefix in channels_dict:
+                qubit_channel_map[qubits].append(channel_type(index))
+                channel_qubit_map[(channel_type(index))].extend(list(qubits))
+                if channel_prefix == ControlChannel.prefix:
+                    control_channels[qubits].append(channel_type(index))
         return dict(qubit_channel_map), dict(channel_qubit_map), dict(control_channels)
 
-    def _get_channel_prefix_index(self, channel: str):
-        """Return channel prefix and index from the given ``channel``."""
+    def _get_channel_prefix_index(self, channel: str) -> str:
+        """Return channel prefix and index from the given ``channel``.
+
+        Args:
+            channel: Name of channel.
+
+        Return:
+            Channel name and index. For example, if ``channel=acquire0``, this method
+            returns ``acquire`` and ``0``.
+        """
         channel_prefix = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
-        return channel_prefix.group('channel'), channel_prefix.group('index')
+        try:
+            return channel_prefix.group('channel'), int(channel_prefix.group('index'))
+        except AttributeError:
+            raise BackendConfigurationError("The given channel does not match with the regex.")

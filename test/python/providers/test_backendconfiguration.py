@@ -102,6 +102,12 @@ class TestBackendConfiguration(QiskitTestCase):
         for i, time in enumerate(_rep_times_us):
             self.assertEqual(round(self.config.rep_times[i]*1e6), time)
 
+    def test_get_channel_prefix_index(self):
+        """Test private method to get channel and index."""
+        self.assertEqual(self.config._get_channel_prefix_index('acquire0'), ('acquire', 0))
+        with self.assertRaises(BackendConfigurationError):
+            self.config._get_channel_prefix_index("acquire")
+
     def _test_lists_equal(self, actual, expected):
         """Test if 2 lists are equal. It returns ``True`` is lists are equal."""
         return collections.Counter(actual) == collections.Counter(expected)
