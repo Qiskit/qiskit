@@ -61,7 +61,10 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         np.testing.assert_array_almost_equal(probabilities, expectations)
 
     def test_permutation(self):
-        """Test permutation circuit."""
+        """Test permutation circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
@@ -69,18 +72,27 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         self.assertEqual(circuit, expected)
 
     def test_permutation_bad(self):
-        """Test that [0,..,n-1] permutation is required (no -1 for last element)"""
+        """Test that [0,..,n-1] permutation is required (no -1 for last element).
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
     def test_xor(self):
-        """Test xor circuit."""
+        """Test xor circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = XOR(num_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
 
     def test_inner_product(self):
-        """Test inner product circuit."""
+        """Test inner product circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = InnerProduct(num_qubits=3)
         expected = QuantumCircuit(*circuit.qregs)
         expected.cz(0, 3)
