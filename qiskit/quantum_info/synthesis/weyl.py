@@ -55,7 +55,7 @@ def weyl_coordinates(U):
         M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
         _, P = la.eigh(M2real)
         D = P.T.dot(M2).dot(P).diagonal()
-        if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
+        if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-10, atol=1.0e-10):
             break
     else:
         raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2. "
