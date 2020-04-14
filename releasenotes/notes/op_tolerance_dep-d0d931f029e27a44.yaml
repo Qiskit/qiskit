@@ -6,7 +6,8 @@ upgrade:
     classes use now property style setters and getters to retrieve
     and set `atol` and `rtol` class properties
 
-    .. code::
+    .. code-block::
+
         ScalarOp.atol = 3e-5
 
 deprecations:
