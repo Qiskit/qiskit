@@ -29,6 +29,7 @@ def logical_and(self, qr_variables, qb_target, qr_ancillae, flags=None, mct_mode
         flags (list[int]): A list of +1/-1/0 to mark negations or omissions of qubits.
         mct_mode (str): The mct building mode.
     """
+    # pylint: disable=cyclic-import
     from qiskit.circuit.library import AND
 
     warnings.warn('The QuantumCircuit.AND method is deprecated as of Terra 0.13.1 / Aqua 0.7.0 and '
@@ -55,6 +56,7 @@ def logical_or(self, qr_variables, qb_target, qr_ancillae, flags=None, mct_mode=
         qr_ancillae (QuantumRegister): The ancillary QuantumRegister for building the mct.
         mct_mode (str): The mct building mode.
     """
+    # pylint: disable=cyclic-import
     from qiskit.circuit.library import OR
 
     warnings.warn('The QuantumCircuit.OR method is deprecated as of Terra 0.13.1 / Aqua 0.7.0 and '
