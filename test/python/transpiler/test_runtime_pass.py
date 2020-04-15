@@ -23,10 +23,10 @@ from qiskit.test import QiskitTestCase
 
 
 class TestRuntimePass(QiskitTestCase):
-    """ Tests for Runtime analysis methods. """
+    """Tests for Runtime analysis methods. """
 
     def test_empty_dag(self):
-        """ Empty DAG has 0 runtime"""
+        """Empty DAG has 0 runtime"""
         circuit = QuantumCircuit()
 
         pass_manager = PassManager()
@@ -36,7 +36,7 @@ class TestRuntimePass(QiskitTestCase):
         self.assertEqual(pass_manager.property_set['runtime'], 0)
 
     def test_only_measure(self):
-        """ A dag with only measurements"""
+        """A dag with only measurements"""
         op_times = {
             'barrier': 0,
             'measure': 1
@@ -53,7 +53,7 @@ class TestRuntimePass(QiskitTestCase):
         self.assertEqual(pass_manager.property_set['runtime'], 1)
 
     def test_no_optimes(self):
-        """ A dag with 2 parallel operations and no classic bits"""
+        """A dag with 2 parallel operations and no classic bits"""
 
         qr = QuantumRegister(1)
         circuit = QuantumCircuit(qr)
@@ -66,7 +66,7 @@ class TestRuntimePass(QiskitTestCase):
         self.assertEqual(pass_manager.property_set['runtime'], 1)
 
     def test_key_error(self):
-        """ KeyError test, if operation is not in op_times dictionary"""
+        """KeyError test, if operation is not in op_times dictionary"""
         op_times = {
             'h': 1
         }
@@ -81,7 +81,7 @@ class TestRuntimePass(QiskitTestCase):
         self.assertRaises(KeyError, pass_manager.run, circuit)
 
     def test_parallel_ops(self):
-        """ A dag with 2 parallel operations and no classic bits"""
+        """A dag with 2 parallel operations and no classic bits"""
         op_times = {
             'h': 1
         }
@@ -98,7 +98,7 @@ class TestRuntimePass(QiskitTestCase):
         self.assertEqual(pass_manager.property_set['runtime'], 1)
 
     def test_longest_path(self):
-        """ A dag with operations on alternating qubits, to test finding
+        """A dag with operations on alternating qubits, to test finding
         of longest path"""
         op_times = {
             'h': 1,
@@ -124,7 +124,7 @@ class TestRuntimePass(QiskitTestCase):
         self.assertEqual(pass_manager.property_set['runtime'], 9)
 
     def test_op_times(self):
-        """ A dag with different length operations, where longest path is
+        """A dag with different length operations, where longest path is
         different from path with maximum number of operations"""
         op_times = {
             'h': 1,

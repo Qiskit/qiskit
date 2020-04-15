@@ -24,10 +24,10 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCountOpsDeepestPathPass(QiskitTestCase):
-    """ Tests for CountOpsLongestPath analysis methods. """
+    """Tests for CountOpsLongestPath analysis methods. """
 
     def test_empty_dag(self):
-        """ Empty DAG has empty counts."""
+        """Empty DAG has empty counts."""
         circuit = QuantumCircuit()
 
         passmanager = PassManager()
@@ -37,7 +37,7 @@ class TestCountOpsDeepestPathPass(QiskitTestCase):
         self.assertDictEqual(passmanager.property_set['count_ops_longest_path'], {})
 
     def test_op_times(self):
-        """ A dag with different length operations, where longest path depends
+        """A dag with different length operations, where longest path depends
         on operation times dictionary"""
         op_times1 = {
             'h': 1,

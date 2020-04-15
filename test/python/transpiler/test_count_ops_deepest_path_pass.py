@@ -23,10 +23,10 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCountOpsDeepestPathPass(QiskitTestCase):
-    """ Tests for CountOpsDeepestPath analysis methods. """
+    """Tests for CountOpsDeepestPath analysis methods."""
 
     def test_empty_dag(self):
-        """ Empty DAG has empty counts."""
+        """Empty DAG has empty counts."""
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
@@ -37,8 +37,7 @@ class TestCountOpsDeepestPathPass(QiskitTestCase):
 
     def test_just_qubits(self):
         """ A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the deepest
-        path
-        """
+        path"""
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
