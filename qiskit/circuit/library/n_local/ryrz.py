@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,19 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The RYRZ variational form."""
+"""The RYRZ 2-local circuit."""
 
 from typing import Union, Optional, List, Tuple, Callable
 from numpy import pi
 
+from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.extensions.standard import RYGate, RZGate, CZGate
 from qiskit.util import deprecate_arguments
-from qiskit.aqua.components.initial_states import InitialState
 from .two_local import TwoLocal
 
 
 class RYRZ(TwoLocal):
-    r"""The RYRZ variational form.
+    r"""The RYRZ 2-local circuit.
 
     The RYRZ trial wave function is layers of :math:`y` plus :math:`z` rotations with entanglements.
     When none of qubits are unentangled to other qubits, the number of optimizer parameters this
@@ -43,23 +43,24 @@ class RYRZ(TwoLocal):
     @deprecate_arguments({'entangler_map': 'entanglement'})
     def __init__(self,
                  num_qubits: Optional[int] = None,
-                 reps: int = 3,
-                 entanglement_gates: Union[str, List[str], type, List[type]] = CZGate,
+                 entanglement_blocks: Union[
+                     str, type, Instruction, QuantumCircuit,
+                     List[Union[str, type, Instruction, QuantumCircuit]]
+                 ] = CZGate,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 initial_state: Optional[InitialState] = None,
+                 reps: int = 3,
                  skip_unentangled_qubits: bool = False,
                  skip_final_rotation_layer: bool = False,
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
+                 initial_state: Optional['InitialState'] = None,
                  entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
                  ) -> None:
-        """Initializer. Assumes that the type hints are obeyed for now.
+        """Create a new RYRZ 2-local circuit.
 
         Args:
             num_qubits: The number of qubits of the Ansatz.
-            reps: Specifies how often the structure of a rotation layer followed by an entanglement
-                layer is repeated.
-            entanglement_gates: The gates used in the entanglement layer. Can be specified via the
+            entanglement_blocks: The gates used in the entanglement layer. Can be specified via the
                 name of a gate (e.g. 'cx') or the gate type itself (e.g. CnotGate).
                 If only one gate is provided, the gate same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
@@ -71,9 +72,8 @@ class RYRZ(TwoLocal):
                 the index of the entanglement layer.
                 Default to 'full' entanglement.
                 See the Examples section for more detail.
-            initial_state: An `InitialState` object to prepend to the Ansatz.
-                TODO deprecate this feature in favor of prepend or overloading __add__ in
-                the initial state class
+            reps: Specifies how often the structure of a rotation layer followed by an entanglement
+                layer is repeated.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
@@ -85,6 +85,9 @@ class RYRZ(TwoLocal):
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
                 Defaults to False.
+            initial_state: An `InitialState` object to prepend to the Ansatz.
+                TODO deprecate this feature in favor of prepend or overloading __add__ in
+                the initial state class
             entangler_map: Deprecated, use `entanglement` instead. This argument now also supports
                 entangler maps.
 
@@ -114,15 +117,15 @@ class RYRZ(TwoLocal):
             >>> print(my_varform)
         """
         super().__init__(num_qubits=num_qubits,
-                         reps=reps,
                          rotation_gates=[RYGate, RZGate],
-                         entanglement_gates=entanglement_gates,
+                         entanglement_blocks=entanglement_blocks,
                          entanglement=entanglement,
-                         initial_state=initial_state,
+                         reps=reps,
                          skip_unentangled_qubits=skip_unentangled_qubits,
                          skip_final_rotation_layer=skip_final_rotation_layer,
                          parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers)
+                         insert_barriers=insert_barriers,
+                         initial_state=initial_state)
 
     @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:

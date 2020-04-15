@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,19 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The RY variational form."""
+"""The RY 2-local circuit."""
 
 from typing import Union, Optional, List, Tuple, Callable
-
 import numpy as np
+
+from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.extensions.standard import RYGate, CZGate
 from qiskit.util import deprecate_arguments
-from qiskit.aqua.components.initial_states import InitialState
 from .two_local import TwoLocal
 
 
 class RY(TwoLocal):
-    r"""The RY Variational Form.
+    r"""The RY 2-local circuit.
 
     The RY trial wave function is layers of :math:`y` rotations with entanglements.
     When none of qubits are unentangled to other qubits the number of parameters
@@ -69,28 +69,31 @@ class RY(TwoLocal):
 
     @deprecate_arguments({'entangler_map': 'entanglement',
                           'skip_final_ry': 'skip_final_rotation_layer',
-                          'entanglement_gate': 'entanglement_gates'})
+                          'entanglement_gate': 'entanglement_blocks'})
     def __init__(self,
                  num_qubits: Optional[int] = None,
-                 reps: int = 3,
-                 entanglement_gates: Union[str, List[str], type, List[type]] = CZGate,
+                 entanglement_blocks: Union[
+                     str, type, Instruction, QuantumCircuit,
+                     List[Union[str, type, Instruction, QuantumCircuit]]
+                 ] = CZGate,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 initial_state: Optional[InitialState] = None,
+                 reps: int = 3,
                  skip_unentangled_qubits: bool = False,
                  skip_final_rotation_layer: bool = False,
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
+                 initial_state: Optional['InitialState'] = None,
                  entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
                  skip_final_ry: Optional[bool] = None,  # pylint: disable=unused-argument
                  entanglement_gate: Optional[str] = None,  # pylint: disable=unused-argument
                  ) -> None:
-        """Initializer. Assumes that the type hints are obeyed for now.
+        """Create a new RY 2-local circuit.
 
         Args:
             num_qubits: The number of qubits of the Ansatz.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
                 layer is repeated.
-            entanglement_gates: The gates used in the entanglement layer. Can be specified via the
+            entanglement_blocks: The gates used in the entanglement layer. Can be specified via the
                 name of a gate (e.g. 'cx') or the gate type itself (e.g. CnotGate).
                 If only one gate is provided, the gate same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
@@ -119,7 +122,7 @@ class RY(TwoLocal):
             entangler_map: Deprecated, use `entanglement` instead. This argument now also supports
                 entangler maps.
             skip_final_ry: Deprecated, use `skip_final_rotation_layer` instead.
-            entanglement_gate: Deprecated, use `entanglement_gates` instead.
+            entanglement_gate: Deprecated, use `entanglement_blocks` instead.
 
         Examples:
             >>> ry = RY(3)  # create the variational form on 3 qubits
@@ -149,7 +152,7 @@ class RY(TwoLocal):
         super().__init__(num_qubits=num_qubits,
                          reps=reps,
                          rotation_gates=RYGate,
-                         entanglement_gates=entanglement_gates,
+                         entanglement_blocks=entanglement_blocks,
                          entanglement=entanglement,
                          initial_state=initial_state,
                          skip_unentangled_qubits=skip_unentangled_qubits,
