@@ -67,7 +67,8 @@ class RY(TwoLocal):
 
     """
 
-    @deprecate_arguments({'entangler_map': 'entanglement',
+    @deprecate_arguments({'depth': 'reps',
+                          'entangler_map': 'entanglement',
                           'skip_final_ry': 'skip_final_rotation_layer',
                           'entanglement_gate': 'entanglement_blocks'})
     def __init__(self,
@@ -83,6 +84,7 @@ class RY(TwoLocal):
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
                  initial_state: Optional['InitialState'] = None,
+                 depth: Optional[int] = None,  # pylint: disable=unused-argument
                  entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
                  skip_final_ry: Optional[bool] = None,  # pylint: disable=unused-argument
                  entanglement_gate: Optional[str] = None,  # pylint: disable=unused-argument
@@ -119,6 +121,7 @@ class RY(TwoLocal):
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
                 Defaults to False.
+            depth: Deprecated, use `reps` instead.
             entangler_map: Deprecated, use `entanglement` instead. This argument now also supports
                 entangler maps.
             skip_final_ry: Deprecated, use `skip_final_rotation_layer` instead.
@@ -151,7 +154,7 @@ class RY(TwoLocal):
         """
         super().__init__(num_qubits=num_qubits,
                          reps=reps,
-                         rotation_gates=RYGate,
+                         rotation_blocks=RYGate,
                          entanglement_blocks=entanglement_blocks,
                          entanglement=entanglement,
                          initial_state=initial_state,

@@ -40,7 +40,8 @@ class RYRZ(TwoLocal):
     See :class:`RY` for more detail on `entanglement` which applies here too.
     """
 
-    @deprecate_arguments({'entangler_map': 'entanglement'})
+    @deprecate_arguments({'depth': 'reps',
+                          'entangler_map': 'entanglement'})
     def __init__(self,
                  num_qubits: Optional[int] = None,
                  entanglement_blocks: Union[
@@ -54,6 +55,7 @@ class RYRZ(TwoLocal):
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
                  initial_state: Optional['InitialState'] = None,
+                 depth: Optional[int] = None,  # pylint: disable=unused-argument
                  entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
                  ) -> None:
         """Create a new RYRZ 2-local circuit.
@@ -88,6 +90,7 @@ class RYRZ(TwoLocal):
             initial_state: An `InitialState` object to prepend to the Ansatz.
                 TODO deprecate this feature in favor of prepend or overloading __add__ in
                 the initial state class
+            depth: Deprecated, use `reps` instead.
             entangler_map: Deprecated, use `entanglement` instead. This argument now also supports
                 entangler maps.
 
@@ -117,7 +120,7 @@ class RYRZ(TwoLocal):
             >>> print(my_varform)
         """
         super().__init__(num_qubits=num_qubits,
-                         rotation_gates=[RYGate, RZGate],
+                         rotation_blocks=[RYGate, RZGate],
                          entanglement_blocks=entanglement_blocks,
                          entanglement=entanglement,
                          reps=reps,
