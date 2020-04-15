@@ -28,7 +28,7 @@ from qiskit.circuit.random.utils import random_circuit
 from qiskit.extensions.standard import XGate, RXGate, CRXGate
 
 from qiskit.circuit.library import Permutation, XOR, InnerProduct
-from qiskit.circuit.library.n_local import NLocal
+from qiskit.circuit.library.n_local import NLocal, TwoLocal
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
@@ -736,6 +736,25 @@ class TestNLocal(QiskitTestCase):
         nlocal.parameters = [0, -1]
         with self.subTest(msg='setting parameter to numbers'):
             self.assertEqual(nlocal.parameters, set())
+
+
+@ddt
+class TestTwoLocal(QiskitTestCase):
+    """Tests for the TwoLocal circuit."""
+
+    def test_standard_cases(self):
+        """Test some standard cases."""
+        two = TwoLocal(5, rotation_blocks='rx', entanglement_blocks='cx', reps=2)
+        print(two)
+
+        two.insert_barriers = True
+        two.rotation_blocks = ['x', 'h']
+        two.entanglement_blocks = 'cry'
+        two.reps = 1
+        print(two)
+
+        two.num_qubits = 2
+        print(two)
 
 
 if __name__ == '__main__':
