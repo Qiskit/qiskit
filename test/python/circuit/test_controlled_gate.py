@@ -220,9 +220,6 @@ class TestControlledGate(QiskitTestCase):
         from qiskit import transpile
         basis_gates = ['u1', 'u3', 'cx']
         gate = Gate('my_gate', 1, [])
-        import ipdb;ipdb.set_trace()
-        ###gate._definition = []
-
         circuit = QuantumCircuit(2)
         circuit.append(gate.control(), [0, 1], [])
         try:
@@ -231,6 +228,7 @@ class TestControlledGate(QiskitTestCase):
             self.fail('Transpiling opaque gate failed.')
 
     def test_controlled_custom_gate_with_identity_gate(self):
+        """Test a custom gate with an identity."""
         custom = QuantumCircuit(2)
         custom.x(0)
         custom.i(1)
