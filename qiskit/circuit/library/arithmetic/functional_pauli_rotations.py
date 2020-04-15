@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Base class for functional Pauli rotations."""
 
 from typing import Optional, List, Tuple
