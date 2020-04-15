@@ -1061,6 +1061,10 @@ def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla
         'basic-dirty-ancilla': MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
     }
 
+    # check ancilla input
+    if ancilla_qubits:
+        _ = self.qbit_argument_conversion(ancilla_qubits)
+
     try:
         gate = available_implementations[mode]
     except KeyError:

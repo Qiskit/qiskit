@@ -29,6 +29,14 @@ Boolean Logic Circuits
    Permutation
    XOR
 
+Basis Change Circuits
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFT
+
 Arithmetic Circuits
 ===================
 
@@ -78,6 +86,7 @@ Quantum Complexity Advantage Circuits
 
 
 from .boolean_logic import Permutation, XOR, InnerProduct
+from .basis_change import QFT
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
