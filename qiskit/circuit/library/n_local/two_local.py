@@ -42,10 +42,10 @@ class TwoLocal(NLocal):
 
     def __init__(self,
                  num_qubits: Optional[int] = None,
-                 reps: int = 3,
                  rotation_blocks: Optional[Union[str, List[str], type, List[type]]] = None,
                  entanglement_blocks: Optional[Union[str, List[str], type, List[type]]] = None,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
+                 reps: int = 3,
                  initial_state: Optional['InitialState'] = None,
                  skip_unentangled_qubits: bool = False,
                  skip_final_rotation_layer: bool = False,
@@ -87,51 +87,51 @@ class TwoLocal(NLocal):
                 no barriers are inserted. Defaults to False.
 
         Examples:
-            >>> ansatz = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-            >>> qc = QuantumCircuit(3)  # create a circuit and append the Ansatz
-            >>> qc += ansatz.to_circuit()
-            >>> qc.decompose().draw()  # decompose the layers into standard gates
-                    ┌────────┐ ░            ░ ┌────────┐ ░            ░ ┌────────┐
-            q_0: |0>┤ Ry(θ0) ├─░───■────────░─┤ Ry(θ3) ├─░───■────────░─┤ Ry(θ6) ├
-                    ├────────┤ ░ ┌─┴─┐      ░ ├────────┤ ░ ┌─┴─┐      ░ ├────────┤
-            q_1: |0>┤ Ry(θ1) ├─░─┤ X ├──■───░─┤ Ry(θ4) ├─░─┤ X ├──■───░─┤ Ry(θ7) ├
-                    ├────────┤ ░ └───┘┌─┴─┐ ░ ├────────┤ ░ └───┘┌─┴─┐ ░ ├────────┤
-            q_2: |0>┤ Ry(θ2) ├─░──────┤ X ├─░─┤ Ry(θ5) ├─░──────┤ X ├─░─┤ Ry(θ8) ├
-                    └────────┘ ░      └───┘ ░ └────────┘ ░      └───┘ ░ └────────┘
+            >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+            >>> print(two)  # decompose the layers into standard gates
+                 ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
+            q_0: ┤ Ry(θ[0]) ├─░───■────────░─┤ Ry(θ[3]) ├─░───■────────░─┤ Ry(θ[6]) ├
+                 ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
+            q_1: ┤ Ry(θ[1]) ├─░─┤ X ├──■───░─┤ Ry(θ[4]) ├─░─┤ X ├──■───░─┤ Ry(θ[7]) ├
+                 ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
+            q_2: ┤ Ry(θ[2]) ├─░──────┤ X ├─░─┤ Ry(θ[5]) ├─░──────┤ X ├─░─┤ Ry(θ[8]) ├
+                 └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
 
-            >>> ansatz = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
-            >>> print(ansatz)  # quick way of plotting the Ansatz
-                    ┌────────┐┌────────┐ ░           ░  ┌────────┐ ┌────────┐
-            q_0: |0>┤ Ry(θ0) ├┤ Rz(θ1) ├─░──■──■─────░──┤ Ry(θ6) ├─┤ Rz(θ7) ├
-                    ├────────┤├────────┤ ░  │  │     ░  ├────────┤ ├────────┤
-            q_1: |0>┤ Ry(θ2) ├┤ Rz(θ3) ├─░──■──┼──■──░──┤ Ry(θ8) ├─┤ Rz(θ9) ├
-                    ├────────┤├────────┤ ░     │  │  ░ ┌┴────────┤┌┴────────┤
-            q_2: |0>┤ Ry(θ4) ├┤ Rz(θ5) ├─░─────■──■──░─┤ Ry(θ10) ├┤ Rz(θ11) ├
-                    └────────┘└────────┘ ░           ░ └─────────┘└─────────┘
+            >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
+            >>> qc = QuantumCircuit(3)
+            >>> qc += two
+            >>> print(qc.decompose().draw())
+                 ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
+            q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
+                 ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
+            q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─░──■──┼──■──░─┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
+                 ├──────────┤├──────────┤ ░     │  │  ░ ├──────────┤├───────────┤
+            q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├─░─────■──■──░─┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
+                 └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
 
             >>> entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
-            >>> ansatz = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
-            >>> print(ansatz)  # note: no barriers inserted this time!
-                    ┌───┐                         ┌────────┐┌───┐
-            q_0: |0>┤ X ├────■────────────────────┤ Rx(θ2) ├┤ X ├
-                    ├───┤┌───┴────┐          ┌───┐└───┬────┘└───┘
-            q_1: |0>┤ X ├┤ Rx(θ0) ├────■─────┤ X ├────┼──────────
-                    ├───┤└────────┘┌───┴────┐└───┘    │     ┌───┐
-            q_2: |0>┤ X ├──────────┤ Rx(θ1) ├─────────■─────┤ X ├
-                    └───┘          └────────┘               └───┘
+            >>> two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
+            >>> print(two)  # note: no barriers inserted this time!
+                    ┌───┐                             ┌──────────┐┌───┐
+            q_0: |0>┤ X ├─────■───────────────────────┤ Rx(θ[2]) ├┤ X ├
+                    ├───┤┌────┴─────┐            ┌───┐└─────┬────┘└───┘
+            q_1: |0>┤ X ├┤ Rx(θ[0]) ├─────■──────┤ X ├──────┼──────────
+                    ├───┤└──────────┘┌────┴─────┐└───┘      │     ┌───┐
+            q_2: |0>┤ X ├────────────┤ Rx(θ[1]) ├───────────■─────┤ X ├
+                    └───┘            └──────────┘                 └───┘
 
             >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
-            >>> ansatz = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-            >>> circuit = ansatz.to_circuit() + ansatz.to_circuit()  # add two Ansatzes
-            >>> circuit.decompose().draw()  # note, that the parameters are the same!
-            q_0: |0>────■─────────■─────────■─────────■─────
-                        │         │         │         │
-            q_1: |0>────┼─────────┼─────────┼─────────┼─────
-                        │     ┌───┴────┐    │     ┌───┴────┐
-            q_2: |0>────┼─────┤ Ry(θ1) ├────┼─────┤ Ry(θ1) ├
-                    ┌───┴────┐└────────┘┌───┴────┐└────────┘
-            q_3: |0>┤ Ry(θ0) ├──────────┤ Ry(θ0) ├──────────
-                    └────────┘          └────────┘
+            >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
+            >>> circuit = two + two
+            >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
+            q_0: ─────■───────────■───────────■───────────■──────
+                      │           │           │           │
+            q_1: ─────┼───────────┼───────────┼───────────┼──────
+                      │      ┌────┴─────┐     │      ┌────┴─────┐
+            q_2: ─────┼──────┤ Ry(θ[1]) ├─────┼──────┤ Ry(θ[1]) ├
+                 ┌────┴─────┐└──────────┘┌────┴─────┐└──────────┘
+            q_3: ┤ Ry(θ[0]) ├────────────┤ Ry(θ[0]) ├────────────
+                 └──────────┘            └──────────┘
         """
         super().__init__(num_qubits=num_qubits,
                          insert_barriers=insert_barriers, initial_state=initial_state,
@@ -140,26 +140,8 @@ class TwoLocal(NLocal):
                          entanglement=entanglement,
                          reps=reps,
                          skip_final_rotation_layer=skip_final_rotation_layer,
+                         skip_unentangled_qubits=skip_unentangled_qubits,
                          parameter_prefix=parameter_prefix)
-
-        # initialize Ansatz
-        # super().__init__(insert_barriers=insert_barriers, initial_state=initial_state)
-
-        # # store arguments needing no pre-processing
-        # self._depth = depth
-        # self._num_qubits = num_qubits
-        # self._entanglement = entanglement
-        # self._parameter_prefix = parameter_prefix
-        # self._skip_unentangled_qubits = skip_unentangled_qubits
-        # self._skip_final_rotation_layer = skip_final_rotation_layer
-
-        # # internal variables
-        # self._param_count = 0  # class-internal parameter count
-        # self._overwrite_block_parameters = False
-
-        # # handle the single- and two-qubit gate specifications
-        # self.rotation_blocks = rotation_blocks or []
-        # self.entanglement_blocks = entanglement_blocks or []
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> Instruction:
         """For a layer provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
