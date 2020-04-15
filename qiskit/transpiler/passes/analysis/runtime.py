@@ -28,10 +28,8 @@ class Runtime(AnalysisPass):
 
         Args:
             op_times (dict): Dictionary of operation runtimes for all gates in
-            basis gate set.
-                e.g.
-                `{'h': 1,
-                  'cx': 4}`
+                basis gate set.
+                e.g. `{'h': 1, 'cx': 4}`
         """
         super().__init__()
         self.requires.append(DAGLongestPath(op_times))
