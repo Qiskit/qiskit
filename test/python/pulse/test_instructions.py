@@ -52,9 +52,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0), None))
 
     def test_isntructions_hash(self):
-        """Test hashing for acquire instruction.
-        """
-        """Test if valid acquire command can be constructed."""
+        """Test hashing for acquire instruction."""
         kernel_opts = {
             'start_window': 0,
             'stop_window': 10
@@ -68,9 +66,9 @@ class TestAcquire(QiskitTestCase):
         }
         discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
         acq_1 = Acquire(10, AcquireChannel(0), MemorySlot(0),
-                      kernel=kernel, discriminator=discriminator, name='acquire')
+                        kernel=kernel, discriminator=discriminator, name='acquire')
         acq_2 = Acquire(10, AcquireChannel(0), MemorySlot(0),
-                      kernel=kernel, discriminator=discriminator, name='acquire')
+                        kernel=kernel, discriminator=discriminator, name='acquire')
 
         hash_1 = hash(acq_1)
         hash_2 = hash(acq_2)
