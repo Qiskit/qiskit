@@ -47,7 +47,6 @@ class FakeOpenPulse3Q(FakeBackend):
                 [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)],
                 [UchannelLO(q=0, scale=1. + 0.j)]
             ],
-            meas_level=[1, 2],
             qubit_lo_range=[[4.5, 5.5], [4.5, 5.5], [4.5, 5.5]],
             meas_lo_range=[[6.0, 7.0], [6.0, 7.0], [6.0, 7.0]],
             dt=1.3333,

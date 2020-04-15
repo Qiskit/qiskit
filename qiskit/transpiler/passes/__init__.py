@@ -134,6 +134,7 @@ from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
+from .optimization import HoareOptimizer
 
 # circuit analysis
 from .analysis import ResourceEstimation
