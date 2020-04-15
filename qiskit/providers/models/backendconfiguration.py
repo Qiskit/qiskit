@@ -649,20 +649,20 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Returns:
             List of ``Channel``\s operated on my the given ``qubit``.
         """
-        channels = list()
+        channels = set()
         try:
             if isinstance(qubit, int):
                 for key in self._qubit_channel_map.keys():
                     if qubit in key:
-                        channels.extend(self._qubit_channel_map[key])
+                        channels.update(self._qubit_channel_map[key])
                 if len(channels) == 0:
                     raise KeyError
             elif isinstance(qubit, list):
                 qubit = tuple(qubit)
-                channels.extend(self._qubit_channel_map[qubit])
+                channels.update(self._qubit_channel_map[qubit])
             elif isinstance(qubit, tuple):
-                channels.extend(self._qubit_channel_map[qubit])
-            return channels
+                channels.update(self._qubit_channel_map[qubit])
+            return list(channels)
         except KeyError:
             raise BackendConfigurationError("Couldn't find the qubit - {}".format(qubit))
         except AttributeError:
