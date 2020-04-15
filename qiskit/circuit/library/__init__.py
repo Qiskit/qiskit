@@ -74,6 +74,23 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+
+
+N-local circuits
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NLocal
+   TwoLocal
+   RY
+   RYRZ
+   PauliExpansion
+   PauliZExpansion
+   FirstOrderExpansion
+   SecondOrderExpansion
+
 """
 
 
@@ -89,6 +106,12 @@ from .arithmetic import (
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .n_local import (
-    NLocal, TwoLocal, RY, RYRZ, PauliExpansion, PauliZExpansion, FirstOrderExpansion,
+    NLocal,
+    TwoLocal,
+    RY,
+    RYRZ,
+    PauliExpansion,
+    PauliZExpansion,
+    FirstOrderExpansion,
     SecondOrderExpansion
 )
