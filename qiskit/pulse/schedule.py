@@ -140,7 +140,7 @@ class Schedule(ScheduleComponent):
         def key(time_inst_pair):
             inst = time_inst_pair[1]
             return (time_inst_pair[0], inst.duration,
-                    min(chan.index for chan in inst.channels))
+                    sorted(chan.name for chan in inst.channels))
 
         return tuple(sorted(self._instructions(), key=key))
 

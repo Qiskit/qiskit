@@ -414,13 +414,17 @@ class TestUtilities(TestBuilderContext):
 
         self.assertEqual(schedule, instruction)
 
-    @unittest.expectedFailure
     def test_qubit_channels(self):
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             qubit_channels = pulse.qubit_channels(0)
 
-        self.assertEqual(qubit_channels, set())
+        self.assertEqual(qubit_channels,
+                         {pulse.DriveChannel(0),
+                          pulse.MeasureChannel(0),
+                          pulse.AcquireChannel(0),
+                          pulse.ControlChannel(0),
+                          pulse.ControlChannel(1)})
 
     def test_current_transpiler_settings(self):
         schedule = pulse.Schedule()
@@ -455,24 +459,49 @@ class TestMacros(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_delay_qubit(self):
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            pulse.delay_qubit(0, 10)
+            pulse.delay_qubits(0, 10)
 
         d0 = pulse.DriveChannel(0)
         m0 = pulse.MeasureChannel(0)
         a0 = pulse.AcquireChannel(0)
         u0 = pulse.ControlChannel(0)
-        u1 = pulse.ControlChannel(0)
+        u1 = pulse.ControlChannel(1)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(d0)
-        reference += instructions.Delay(m0)
-        reference += instructions.Delay(a0)
-        reference += instructions.Delay(u0)
-        reference += instructions.Delay(u1)
+        reference += instructions.Delay(10, d0)
+        reference += instructions.Delay(10, m0)
+        reference += instructions.Delay(10, a0)
+        reference += instructions.Delay(10, u0)
+        reference += instructions.Delay(10, u1)
+
+        self.assertEqual(schedule, reference)
+
+    def test_delay_qubits(self):
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.delay_qubits([0, 1], 10)
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        m0 = pulse.MeasureChannel(0)
+        m1 = pulse.MeasureChannel(1)
+        a0 = pulse.AcquireChannel(0)
+        a1 = pulse.AcquireChannel(1)
+        u0 = pulse.ControlChannel(0)
+        u1 = pulse.ControlChannel(1)
+
+        reference = pulse.Schedule()
+        reference += instructions.Delay(10, d0)
+        reference += instructions.Delay(10, d1)
+        reference += instructions.Delay(10, m0)
+        reference += instructions.Delay(10, m1)
+        reference += instructions.Delay(10, a0)
+        reference += instructions.Delay(10, a1)
+        reference += instructions.Delay(10, u0)
+        reference += instructions.Delay(10, u1)
 
         self.assertEqual(schedule, reference)
 

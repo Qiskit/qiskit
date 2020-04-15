@@ -132,10 +132,12 @@ syntax. For example::
 import collections
 import contextvars
 import functools
+import itertools
 import numpy as np
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
-                    Mapping, Set, Tuple, TypeVar, Union)
+                    Iterable, Mapping, Set, Tuple, TypeVar,
+                    Union)
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -378,7 +380,7 @@ def append_instruction(instruction: instructions.Instruction):
 
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """Returns the 'typical' set of channels associated with a qubit."""
-    raise NotImplementedError('Qubit channels is not yet implemented.')
+    return set(current_backend().configuration().get_qubit_channels(qubit))
 
 
 def current_transpiler_settings() -> Dict[str, Any]:
@@ -519,7 +521,8 @@ def play(channel: channels.PulseChannel,
 def acquire(channel: Union[channels.AcquireChannel, int],
             register: Union[channels.RegisterSlot, channels.MemorySlot],
             duration: int,
-            **metadata: Union[configuration.Kernel, configuration.Discriminator]):
+            **metadata: Union[configuration.Kernel,
+                              configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``."""
     if isinstance(register, channels.MemorySlot):
@@ -619,9 +622,16 @@ def measure(qubit: int,
     return register
 
 
-def delay_qubit(qubit: int, duration: int):
+def delay_qubits(qubits: Union[int, Iterable[int]], duration: int):
+    try:
+        iter(qubits)
+    except TypeError:
+        qubits = [qubits]
+
+    channels = set(itertools.chain.from_iterable(qubit_channels(qubit) for
+                                                 qubit in qubits))
     with align_left(), group():
-        for channel in qubit_channels(qubit):
+        for channel in channels:
             delay(channel, duration)
 
 
