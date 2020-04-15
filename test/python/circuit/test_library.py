@@ -554,7 +554,7 @@ class TestNLocal(QiskitTestCase):
         """Test the creation of an empty NLocal."""
         nlocal = NLocal()
         self.assertEqual(nlocal.num_qubits, 0)
-        self.assertEqual(nlocal.num_parameters, 0)
+        self.assertEqual(nlocal.num_parameters_settable, 0)
         self.assertEqual(nlocal.reps, 1)
 
         self.assertEqual(nlocal, QuantumCircuit())
@@ -597,7 +597,7 @@ class TestNLocal(QiskitTestCase):
         # construct the NLocal from the first circuit
         first_circuit = random_circuit(num_qubits[0], depth)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
-        nlocal = NLocal(entanglement_blocks=first_circuit.to_instruction(), reps=1)
+        nlocal = NLocal(max(num_qubits), entanglement_blocks=first_circuit.to_instruction(), reps=1)
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
@@ -622,13 +622,13 @@ class TestNLocal(QiskitTestCase):
         # construct the NLocal from the first circuit
         first_circuit = random_circuit(num_qubits[0], depth)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
-        nlocal = NLocal(entanglement_blocks=first_circuit.to_instruction(), reps=1)
+        nlocal = NLocal(max(num_qubits), entanglement_blocks=first_circuit.to_instruction(), reps=1)
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth)
-            nlocal.compose(NLocal(entanglement_blocks=circuit, reps=1))
+            nlocal.compose(NLocal(num, entanglement_blocks=circuit, reps=1))
             reference.append(circuit, list(range(num)))
 
         self.assertCircuitEqual(nlocal.to_circuit(), reference)
@@ -650,7 +650,7 @@ class TestNLocal(QiskitTestCase):
 
         # try adding each type
         for other in others:
-            nlocal = NLocal(entanglement_blocks=first_circuit, reps=1)
+            nlocal = NLocal(num_qubits, entanglement_blocks=first_circuit, reps=1)
             nlocal += other
             with self.subTest(msg='type: {}'.format(type(other))):
                 self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=0)
@@ -663,7 +663,7 @@ class TestNLocal(QiskitTestCase):
 
         # repeat circuit and check that parameters are duplicated
         reps = 3
-        nlocal = NLocal(entanglement_blocks=circuit, reps=reps)
+        nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         self.assertTrue(nlocal.num_parameters, 6)
         self.assertTrue(len(nlocal.parameters), 6)
 
@@ -679,7 +679,7 @@ class TestNLocal(QiskitTestCase):
 
         # repeat circuit and check that parameters are duplicated
         reps = 3
-        nlocal = NLocal(entanglement_blocks=circuit, reps=reps)
+        nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         nlocal.parameters = params
 
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
@@ -702,7 +702,7 @@ class TestNLocal(QiskitTestCase):
             circuit.ry(i * initial_param, 0)
 
         # create an NLocal from the circuit and set the new parameters
-        nlocal = NLocal(entanglement_blocks=circuit, reps=1)
+        nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.parameters = params
 
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
@@ -721,7 +721,7 @@ class TestNLocal(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(x, 0)
 
-        nlocal = NLocal(entanglement_blocks=circuit, reps=3, insert_barriers=True)
+        nlocal = NLocal(1, entanglement_blocks=circuit, reps=3, insert_barriers=True)
         with self.subTest(msg='immediately after initialization'):
             self.assertEqual(len(nlocal.parameters), 3)
 

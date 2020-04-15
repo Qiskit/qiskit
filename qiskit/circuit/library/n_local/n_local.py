@@ -23,7 +23,7 @@ TODO
 """
 
 # import copy
-# import warnings
+import warnings
 import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set
 from itertools import combinations
@@ -187,6 +187,9 @@ class NLocal(QuantumCircuit):
             ValueError: If a specified qubit index is larger than the (manually set) number of
                 qubits.
         """
+        if self.num_qubits is None:
+            raise ValueError('No number of qubits specified.')
+
         # check no needed parameters are None
         if self.entanglement_blocks is None and self.rotation_blocks is None:
             raise ValueError('The blocks are not set.')
@@ -236,55 +239,6 @@ class NLocal(QuantumCircuit):
                 params += '-- {}: {}\n'.format(key[1:], value)
         ret += '{}'.format(params)
         return ret
-
-    @staticmethod
-    def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entanglement: str,
-                          offset: int = 0) -> List[Sequence[int]]:
-        """Get an entangler map for an arbitrary number of qubits.
-
-        Args:
-            num_block_qubits: The number of qubits of the entangling block.
-            num_circuit_qubits: The number of qubits of the circuit.
-            entanglement: The entanglement strategy.
-            offset: The block offset, can be used if the entanglements differ per block.
-                See mode ``sca`` for instance.
-
-        Returns:
-            The entangler map using mode ``entanglement`` to scatter a block of ``num_block_qubits``
-            qubits on ``num_circuit_qubits`` qubits.
-
-        Raises:
-            ValueError: If the entanglement mode ist not supported.
-        """
-        n, m = num_circuit_qubits, num_block_qubits
-        if m > n:
-            raise ValueError('The number of block qubits must be smaller or equal to the number of '
-                             'qubits in the circuit.')
-
-        if entanglement == 'full':
-            return list(combinations(list(range(n)), m))
-        if entanglement in ['linear', 'circular', 'sca']:
-            linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
-            # if the number of block qubits is 1, we don't have to add the 'circular' part
-            if entanglement == 'linear' or m == 1:
-                return linear
-
-            # circular equals linear plus top-bottom entanglement
-            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
-            if entanglement == 'circular':
-                return circular
-
-            # sca is circular plus shift and reverse
-            shifted = circular[-offset:] + circular[:-offset]
-            if offset % 2 == 1:  # if odd, reverse the qubit indices
-                sca = [ind[::-1] for ind in shifted]
-            else:
-                sca = shifted
-
-            return sca
-
-        else:
-            raise ValueError('Unsupported entanglement type: {}'.format(entanglement))
 
     @property
     def setting(self):
@@ -386,6 +340,104 @@ class NLocal(QuantumCircuit):
         self._invalidate()
         self._entanglement_blocks = [self._convert_to_block(block) for block in blocks]
 
+    # pylint:disable=too-many-return-statements
+    def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
+                          ) -> List[List[int]]:
+        """Get the entangler map for in the repetition ``rep_num`` and the block ``block_num``.
+
+        The entangler map for the current block is derived from the value of ``self.entanglement``.
+        Below the different cases are listed, where ``i`` and ``j`` denote the repetition number
+        and the block number, respectively, and ``n`` the number of qubits in the block.
+
+        entanglement type              | entangler map
+        -------------------------------+--------------------------------------------------------
+        None                           | [[0, ..., n - 1]]
+        str (e.g 'full')               | the specified connectivity on ``n`` qubits
+        List[int]                      | [``entanglement``]
+        List[List[int]]                | ``entanglement``
+        List[List[List[int]]]          | ``entanglement[i]``
+        List[List[List[List[int]]]]    | ``entanglement[i][j]``
+        List[str]                      | the connectivity specified in ``entanglement[i]``
+        List[List[str]]                | the connectivity specified in ``entanglement[i][j]``
+        Callable[int, str]             | same as List[str]
+        Callable[int, List[List[int]]] | same as List[List[List[int]]]
+
+        Note that all indices are to be taken modulo the length of the array they act on, i.e.
+        no out-of-bounds index error will be raised but we re-iterate from the beginning of the
+        list.
+
+        Args:
+            rep_num: The current repetition we are in.
+            block_num: The block number within the entanglement layers.
+            num_block_qubits: The number of qubits in the block.
+
+        Returns:
+            The entangler map for the current block in the current repetition.
+
+        Raises:
+            ValueError: If the value of ``entanglement`` could not be cast to a corresponding
+                entangler map.
+        """
+        i, j, n = rep_num, block_num, num_block_qubits
+        entanglement = self._entanglement
+
+        # entanglement is None
+        if entanglement is None:
+            return [list(range(n))]
+
+        # entanglement is callable
+        if callable(entanglement):
+            entanglement = entanglement(i)
+
+        # entanglement is str
+        if isinstance(entanglement, str):
+            return get_entangler_map(n, self.num_qubits, entanglement, offset=i)
+
+        # check if entanglement is list of something
+        if not isinstance(entanglement, list):
+            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+        num_i = len(entanglement)
+
+        # entanglement is List[str]
+        if all(isinstance(e, str) for e in entanglement):
+            return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
+
+        # entanglement is List[int]
+        if all(isinstance(e, int) for e in entanglement):
+            return [entanglement]
+
+        # check if entanglement is List[List]
+        if not all(isinstance(e, list) for e in entanglement):
+            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+        num_j = len(entanglement[i])
+
+        # entanglement is List[List[str]]
+        if all(isinstance(e2, str) for e in entanglement for e2 in e):
+            return get_entangler_map(n, self.num_qubits, entanglement[i % num_i][j % num_j],
+                                     offset=i)
+
+        # entanglement is List[List[int]]
+        if all(isinstance(e2, str) for e in entanglement for e2 in e):
+            return entanglement
+
+        # check if entanglement is List[List[List]]
+        if not all(isinstance(e2, list) for e in entanglement for e2 in e):
+            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+
+        # entanglement is List[List[List[int]]]
+        if all(isinstance(e3, int) for e in entanglement for e2 in e for e3 in e2):
+            return entanglement[i % num_i]
+
+        # check if entanglement is List[List[List[List]]]
+        if not all(isinstance(e3, list) for e in entanglement for e2 in e for e3 in e2):
+            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+
+        # entanglement is List[List[List[List[int]]]]
+        if all(isinstance(e4, int) for e in entanglement for e2 in e for e3 in e2 for e4 in e3):
+            return entanglement[i % num_i][j % num_j]
+
+        raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+
     @property
     def entangler_maps(self) -> List[List[Sequence[int]]]:
         """The qubit indices each block acts on.
@@ -412,7 +464,7 @@ class NLocal(QuantumCircuit):
             for num, i in enumerate(self._entanglement_reps()):
                 block = self.entanglement_blocks[i]
                 entangler_maps += [
-                    self.get_entangler_map(block.num_qubits, self.num_qubits, entanglement, num)
+                    get_entangler_map(block.num_qubits, self.num_qubits, entanglement, num)
                 ]
             return entangler_maps
 
@@ -423,7 +475,7 @@ class NLocal(QuantumCircuit):
                 block = self.entanglement_blocks[i]
                 if isinstance(entanglement, str):
                     entangler_maps += [
-                        self.get_entangler_map(block.num_qubits, self.num_qubits, ent, num)
+                        get_entangler_map(block.num_qubits, self.num_qubits, ent, num)
                     ]
                 else:
                     entangler_maps += [ent]
@@ -435,7 +487,7 @@ class NLocal(QuantumCircuit):
                 for num, i, ent in enumerate(zip(self._entanglement_reps(), entanglement)):
                     block = self.entanglement_blocks[i]
                     entangler_maps += [
-                        self.get_entangler_map(block.num_qubits, self.num_qubits, ent, num)
+                        get_entangler_map(block.num_qubits, self.num_qubits, ent, num)
                     ]
                     return entangler_maps
 
@@ -563,15 +615,7 @@ class NLocal(QuantumCircuit):
             The number of qubits.
         """
         # get the maximum number of qubits from the qubit indices
-        if self._num_qubits is None:
-            if len(self.entangler_maps) > 0:
-                flattened_indices = [i for layer in self.entangler_maps
-                                     for block in layer
-                                     for i in block]
-                return 1 + max(flattened_indices)
-            return 0
-
-        return int(self._num_qubits)
+        return self._num_qubits or 0
 
     @num_qubits.setter
     def num_qubits(self, num_qubits: int) -> None:
@@ -803,6 +847,7 @@ class NLocal(QuantumCircuit):
 
     def to_circuit(self):
         """Build and return the circuit."""
+        warnings.warn('Dont use to circuit!')
         self._build()
         return self
 
@@ -856,7 +901,7 @@ class NLocal(QuantumCircuit):
 
         return circuit
 
-    def _build_rotation_layer(self, param_iter, offset):
+    def _build_rotation_layer(self, param_iter, i):
         """Build a rotation layer."""
         # rotation layer
         for block in self.rotation_blocks:
@@ -872,12 +917,12 @@ class NLocal(QuantumCircuit):
 
             self += layer
 
-    def _build_entanglement_layer(self, param_iter, offset):
+    def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
         # entanglement layer
-        for block in self.entanglement_blocks:
+        for j, block in enumerate(self.entanglement_blocks):
             layer = QuantumCircuit(*self.qregs)
-            entangler_map = self.entangler_maps[offset]
+            entangler_map = self.get_entangler_map(i, j, block.num_qubits)
 
             for indices in entangler_map:
                 params = [next(param_iter) for _ in range(len(get_parameters(block)))]
@@ -899,7 +944,7 @@ class NLocal(QuantumCircuit):
         for i, (block, ent) in enumerate(zip(blocks, entanglements)):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
-                ent = self.get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+                ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
             for indices in ent:
                 layer.append(block, indices)
             self += layer
@@ -965,40 +1010,50 @@ def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]
         return [p for p in block.params if isinstance(p, ParameterExpression)]
 
 
-def combine_parameterlists(first: List[Parameter], other: List[Parameter],
-                           duplicate_existing: bool = True) -> List[Parameter]:
-    """Add ``other`` to the ``first`` via name, not instance.
-
-    TODO This functionality will be moved to another location, this is just a helper.
-
-    If the parameters in ``other`` already exists in the list, add the instance with the same
-    name at the end of the list. If the name does not exist in the list, add the parameter
-    in ``other``.
-    This prevents having different instances with the same name in the list of parameters,
-    which leads to naming conflict if a circuit is constructed with these parameters.
+def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entanglement: str,
+                      offset: int = 0) -> List[Sequence[int]]:
+    """Get an entangler map for an arbitrary number of qubits.
 
     Args:
-        first: The list of parameters, where ``new_parameter`` is to be added.
-        other: The parameter list that should be added.
-        duplicate_existing: Duplicate the parameter even if it is in the list.
+        num_block_qubits: The number of qubits of the entangling block.
+        num_circuit_qubits: The number of qubits of the circuit.
+        entanglement: The entanglement strategy.
+        offset: The block offset, can be used if the entanglements differ per block.
+            See mode ``sca`` for instance.
 
     Returns:
-        The merged parameter list, where same names are the same instance.
+        The entangler map using mode ``entanglement`` to scatter a block of ``num_block_qubits``
+        qubits on ``num_circuit_qubits`` qubits.
+
+    Raises:
+        ValueError: If the entanglement mode ist not supported.
     """
-    for obj in [first, other]:
-        if isinstance(obj, ParameterExpression):
-            obj = [obj]
+    n, m = num_circuit_qubits, num_block_qubits
+    if m > n:
+        raise ValueError('The number of block qubits must be smaller or equal to the number of '
+                         'qubits in the circuit.')
 
-    for new_param in other:
-        found = False
-        for existing_param in first:
-            if new_param.name == existing_param.name:
-                if duplicate_existing:
-                    first.append(existing_param)
-                found = True
-                break
+    if entanglement == 'full':
+        return list(combinations(list(range(n)), m))
+    if entanglement in ['linear', 'circular', 'sca']:
+        linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
+        # if the number of block qubits is 1, we don't have to add the 'circular' part
+        if entanglement == 'linear' or m == 1:
+            return linear
 
-        if not found:
-            first.append(new_param)
+        # circular equals linear plus top-bottom entanglement
+        circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        if entanglement == 'circular':
+            return circular
 
-    return first
+        # sca is circular plus shift and reverse
+        shifted = circular[-offset:] + circular[:-offset]
+        if offset % 2 == 1:  # if odd, reverse the qubit indices
+            sca = [ind[::-1] for ind in shifted]
+        else:
+            sca = shifted
+
+        return sca
+
+    else:
+        raise ValueError('Unsupported entanglement type: {}'.format(entanglement))
