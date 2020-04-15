@@ -27,6 +27,7 @@ Operators
    Operator
    Clifford
    ScalarOp
+   SparsePauliOp
    Pauli
    pauli_group
    Quaternion
@@ -62,11 +63,11 @@ Measures
 .. autosummary::
    :toctree: ../stubs/
 
-   state_fidelity
-   purity
    average_gate_fidelity
    process_fidelity
    gate_error
+   diamond_norm
+   state_fidelity
    purity
    concurrence
    entropy
@@ -122,10 +123,12 @@ from .operators import Operator, ScalarOp
 from .operators.pauli import Pauli, pauli_group
 from .operators.quaternion import Quaternion
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-from .operators.measures import process_fidelity
-from .operators import average_gate_fidelity
-from .operators import gate_error
-from .operators.symplectic import Clifford, PauliTable, StabilizerTable
+from .operators.measures import (process_fidelity,
+                                 average_gate_fidelity,
+                                 gate_error,
+                                 diamond_norm)
+from .operators.symplectic import (Clifford, SparsePauliOp,
+                                   PauliTable, StabilizerTable)
 from .operators.symplectic import pauli_basis
 
 from .states import Statevector, DensityMatrix

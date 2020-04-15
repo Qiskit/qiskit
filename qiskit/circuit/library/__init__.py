@@ -29,6 +29,13 @@ Boolean Logic Circuits
    Permutation
    XOR
 
+Basis Change Circuits
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFT
 
 Arithmetic Circuits
 ===================
@@ -60,10 +67,26 @@ Comparators
 
    IntegerComparator
 
+Characterization and Validation Circuits
+========================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuantumVolume
+
+Quantum Complexity Advantage Circuits
+=====================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FourierChecking
 """
 
 
 from .boolean_logic import Permutation, XOR, InnerProduct
+from .basis_change import QFT
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
@@ -72,3 +95,5 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder
 )
+from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking
