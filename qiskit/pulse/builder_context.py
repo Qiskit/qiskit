@@ -155,12 +155,12 @@ BUILDER_CONTEXT = contextvars.ContextVar("backend")
 T = TypeVar('T')
 
 
-def _schedule_lazy_circuit_before(fn: Callable[...,  T]) -> Callable[...,  T]:
+def _compile_lazy_circuit_before(fn: Callable[...,  T]) -> Callable[...,  T]:
     """Decorator thats schedules and calls the current circuit executing
     the decorated function."""
     @functools.wraps(fn)
     def wrapper(self, *args, **kwargs):
-        self.schedule_lazy_circuit()
+        self.compile_lazy_circuit()
         return fn(self, *args, **kwargs)
     return wrapper
 
@@ -214,7 +214,7 @@ class _PulseBuilder():
         self._default_alignment_context.__enter__()
         return self
 
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit Builder Context."""
         self._default_alignment_context.__exit__(exc_type, exc_val, exc_tb)
@@ -236,9 +236,9 @@ class _PulseBuilder():
         return self._transpiler_settings
 
     @transpiler_settings.setter
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def transpiler_settings(self, settings: Mapping):
-        self.schedule_lazy_circuit()
+        self.compile_lazy_circuit()
         self._transpiler_settings = settings
 
     @property
@@ -246,12 +246,12 @@ class _PulseBuilder():
         return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def circuit_scheduler_settings(self, settings: Mapping):
-        self.schedule_lazy_circuit()
+        self.compile_lazy_circuit()
         self._circuit_scheduler_settings = settings
 
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def compile(self) -> Schedule:
         """Compile and output the built program."""
         # Not much happens because we currently compile as we build.
@@ -261,23 +261,23 @@ class _PulseBuilder():
         self.set_current_block(Schedule())
         return program
 
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def set_current_block(self, block: Schedule):
         """Set the current block."""
         assert isinstance(block, Schedule)
         self._block = block
 
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def append_block(self, block: Schedule):
         """Add a block to the current current block."""
         self.block.append(block, mutate=True)
 
-    @_schedule_lazy_circuit_before
+    @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
         """Add an instruction to the current current block."""
         self.block.append(instruction, mutate=True)
 
-    def schedule_lazy_circuit(self):
+    def compile_lazy_circuit(self):
         """Call a QuantumCircuit."""
         if len(self._lazy_circuit):
             import qiskit.compiler as compiler
@@ -304,7 +304,7 @@ class _PulseBuilder():
     def call_circuit(self, circuit: circuit.QuantumCircuit, lazy=True):
         self._lazy_circuit.extend(circuit)
         if not lazy:
-            self.schedule_lazy_circuit()
+            self.compile_lazy_circuit()
 
     def call_gate(self,
                   gate: circuit.Gate, qubits: Tuple[int, ...],
@@ -411,7 +411,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
             try:
                 yield
             finally:
-                builder.schedule_lazy_circuit()
+                builder.compile_lazy_circuit()
                 transformed_block = transform(transform_block,
                                               *args,
                                               **kwargs,
