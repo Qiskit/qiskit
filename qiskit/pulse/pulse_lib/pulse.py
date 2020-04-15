@@ -47,7 +47,7 @@ class Pulse(ABC):
                       "instruction directly with a pulse and a channel. In this case, please "
                       "use: `Play({}, {})`.".format(self.__class__.__name__, repr(self), channel),
                       DeprecationWarning)
-        from ..instructions import Play
+        from ..instructions import Play  # pylint: disable=cyclic-import
         return Play(self, channel)
 
     @abstractmethod
