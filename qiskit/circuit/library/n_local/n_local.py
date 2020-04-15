@@ -151,7 +151,7 @@ class NLocal(QuantumCircuit):
         basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
                        'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
-        return transpile(self.to_circuit(), basis_gates=basis_gates,
+        return transpile(self, basis_gates=basis_gates,
                          optimization_level=0).draw(fold=1000).single_string()
 
     def _convert_to_block(self, layer: Any) -> Instruction:
@@ -429,71 +429,6 @@ class NLocal(QuantumCircuit):
             return entanglement[i % num_i][j % num_j]
 
         raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
-
-    @property
-    def entangler_maps(self) -> List[List[Sequence[int]]]:
-        """The qubit indices each block acts on.
-
-        An entangler map is a list of qubit indicies (tuples of ints) that specify on which qubits
-        the block act. If the block acts on two qubits (e.g. a CX gate) then the entangler map
-        is a list of 2-tuples, e.g. ``[(0, 1), (0, 2), (1, 2)]``.
-        This property returns a list of such entangler maps, one entangler map per block.
-
-        Returns:
-            A list of entangler maps for each block.
-
-        Raises:
-            RuntimeError: If the format of the entanglement cannot be understood.
-        """
-        # if no entanglement was set return default
-        entanglement = self._entanglement
-        if not entanglement:
-            return [[list(range(self.entanglement_blocks[i].num_qubits))]
-                    for i in self._entanglement_reps()]
-
-        if isinstance(entanglement, str):
-            entangler_maps = []
-            for num, i in enumerate(self._entanglement_reps()):
-                block = self.entanglement_blocks[i]
-                entangler_maps += [
-                    get_entangler_map(block.num_qubits, self.num_qubits, entanglement, num)
-                ]
-            return entangler_maps
-
-        if callable(entanglement):
-            entangler_maps = []
-            for num, i in enumerate(self._entanglement_reps()):
-                ent = entanglement(num)
-                block = self.entanglement_blocks[i]
-                if isinstance(entanglement, str):
-                    entangler_maps += [
-                        get_entangler_map(block.num_qubits, self.num_qubits, ent, num)
-                    ]
-                else:
-                    entangler_maps += [ent]
-
-        if isinstance(entanglement, list):
-            # is list of strings
-            if all(isinstance(e, str) for e in entanglement):
-                entangler_maps = []
-                for num, i, ent in enumerate(zip(self._entanglement_reps(), entanglement)):
-                    block = self.entanglement_blocks[i]
-                    entangler_maps += [
-                        get_entangler_map(block.num_qubits, self.num_qubits, ent, num)
-                    ]
-                    return entangler_maps
-
-            if all(isinstance(e, (tuple, list)) for e in entanglement):
-                # is list of lists of int, i.e. a single entangler map
-                if all(isinstance(e_i, int) for e in entanglement for e_i in e):
-                    return [entanglement] * self.num_layers
-
-                # is list of lists of lists of int, i.e. a list of entangler maps
-                if all(isinstance(e_i, (tuple, list)) for e in entanglement for e_i in e):
-                    if all(isinstance(e_j, int) for e in entanglement for e_i in e for e_j in e_i):
-                        return entanglement
-
-        raise RuntimeError('Could not understand format of entanglement: {}'.format(entanglement))
 
     @property
     def entanglement(self):
@@ -808,7 +743,10 @@ class NLocal(QuantumCircuit):
             if self._insert_barriers and len(self._data) > 0:
                 self.barrier()
 
-            block, entangler_map = self.blocks[-1], self.entangler_maps[-1]
+            if isinstance(entanglement, str):
+                entangler_map = get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
+            else:
+                entangler_map = entanglement
 
             layer = QuantumCircuit(self.num_qubits)
             for i in entangler_map:
@@ -887,7 +825,7 @@ class NLocal(QuantumCircuit):
         else:
             circuit = QuantumCircuit(q)
 
-        circuit += self.to_circuit()
+        circuit += self
         return circuit
 
     def _parametrize_block(self, block: Instruction,
