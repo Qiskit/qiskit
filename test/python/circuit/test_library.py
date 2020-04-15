@@ -606,7 +606,7 @@ class TestNLocal(QiskitTestCase):
             nlocal.compose(circuit)
             reference.append(circuit, list(range(num)))
 
-        self.assertCircuitEqual(nlocal.to_circuit(), reference)
+        self.assertCircuitEqual(nlocal, reference)
 
     @data(
         [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
@@ -631,7 +631,7 @@ class TestNLocal(QiskitTestCase):
             nlocal.compose(NLocal(num, entanglement_blocks=circuit, reps=1))
             reference.append(circuit, list(range(num)))
 
-        self.assertCircuitEqual(nlocal.to_circuit(), reference)
+        self.assertCircuitEqual(nlocal, reference)
 
     @unittest.skip('Feature missing')
     def test_iadd_overload(self):
@@ -653,7 +653,7 @@ class TestNLocal(QiskitTestCase):
             nlocal = NLocal(num_qubits, entanglement_blocks=first_circuit, reps=1)
             nlocal += other
             with self.subTest(msg='type: {}'.format(type(other))):
-                self.assertCircuitEqual(nlocal.to_circuit(), reference, verbosity=0)
+                self.assertCircuitEqual(nlocal, reference, verbosity=0)
 
     def test_parameter_getter_from_automatic_repetition(self):
         """Test getting and setting of the nlocal parameters."""
@@ -685,11 +685,11 @@ class TestNLocal(QiskitTestCase):
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
-            self.assertEqual(nlocal.to_circuit().parameters, param_set)
+            self.assertEqual(nlocal.parameters, param_set)
 
         with self.subTest(msg='Test the parameters of the transpiled circuit'):
             basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
-            transpiled_circuit = transpile(nlocal.to_circuit(), basis_gates=basis_gates)
+            transpiled_circuit = transpile(nlocal, basis_gates=basis_gates)
             self.assertEqual(transpiled_circuit.parameters, param_set)
 
     @data(list(range(6)), ParameterVector('θ', length=6), [0, 1, Parameter('theta'), 3, 4, 5])
@@ -708,11 +708,11 @@ class TestNLocal(QiskitTestCase):
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
-            self.assertEqual(nlocal.to_circuit().parameters, param_set)
+            self.assertEqual(nlocal.parameters, param_set)
 
         with self.subTest(msg='Test the parameters of the transpiled circuit'):
             basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
-            transpiled_circuit = transpile(nlocal.to_circuit(), basis_gates=basis_gates)
+            transpiled_circuit = transpile(nlocal, basis_gates=basis_gates)
             self.assertEqual(transpiled_circuit.parameters, param_set)
 
     def test_repetetive_parameter_setting(self):
@@ -742,19 +742,95 @@ class TestNLocal(QiskitTestCase):
 class TestTwoLocal(QiskitTestCase):
     """Tests for the TwoLocal circuit."""
 
+    def assertCircuitEqual(self, qc1, qc2, visual=False, verbosity=0, transpiled=True):
+        """An equality test specialized to circuits."""
+        basis_gates = ['id', 'u1', 'u3', 'cx']
+        qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
+        qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
+
+        if verbosity > 0:
+            print('-- circuit 1:')
+            print(qc1)
+            print('-- circuit 2:')
+            print(qc2)
+            print('-- transpiled circuit 1:')
+            print(qc1_transpiled)
+            print('-- transpiled circuit 2:')
+            print(qc2_transpiled)
+
+        if verbosity > 1:
+            print('-- dict:')
+            for key in qc1.__dict__.keys():
+                if key == '_data':
+                    print(key)
+                    print(qc1.__dict__[key])
+                    print(qc2.__dict__[key])
+                else:
+                    print(key, qc1.__dict__[key], qc2.__dict__[key])
+
+        if transpiled:
+            qc1, qc2 = qc1_transpiled, qc2_transpiled
+
+        if visual:
+            self.assertEqual(qc1.draw(), qc2.draw())
+        else:
+            self.assertEqual(qc1, qc2)
+
     def test_standard_cases(self):
         """Test some standard cases."""
         two = TwoLocal(5, rotation_blocks='rx', entanglement_blocks='cx', reps=2)
         print(two)
 
+        two.num_qubits = 3
         two.insert_barriers = True
-        two.rotation_blocks = ['x', 'h']
-        two.entanglement_blocks = 'cry'
-        two.reps = 1
+        two.rotation_blocks = ['ry']
+        two.entanglement = 'linear'
+        # two.entanglement_blocks = 'cry'
+        two.reps = 2
         print(two)
 
         two.num_qubits = 2
         print(two)
+
+    def test_iadd_to_circuit(self):
+        """Test adding a two-local to an existing circuit."""
+        two = TwoLocal(3, ['ry', 'rz'], 'cz', 'full', reps=1, insert_barriers=True)
+        circuit = QuantumCircuit(3)
+        circuit += two
+
+        reference = QuantumCircuit(3)
+        param_iter = iter(two.ordered_parameters)
+        for i in range(3):
+            reference.ry(next(param_iter), i)
+        for i in range(3):
+            reference.rz(next(param_iter), i)
+        reference.barrier()
+        reference.cz(0, 1)
+        reference.cz(0, 2)
+        reference.cz(1, 2)
+        reference.barrier()
+        for i in range(3):
+            reference.ry(next(param_iter), i)
+        for i in range(3):
+            reference.rz(next(param_iter), i)
+
+        print(circuit.decompose().draw())
+
+        self.assertCircuitEqual(circuit, reference)
+
+    def test_adding_two(self):
+        """Test adding two two-local circuits."""
+        entangler_map = [[0, 3], [0, 2]]
+        two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
+        circuit = two + two
+
+        reference = QuantumCircuit(4)
+        params = two.ordered_parameters
+        for _ in range(2):
+            reference.cry(params[0], 0, 3)
+            reference.cry(params[1], 0, 2)
+
+        self.assertCircuitEqual(reference, circuit)
 
 
 if __name__ == '__main__':
