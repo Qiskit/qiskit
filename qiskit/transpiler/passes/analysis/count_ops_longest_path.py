@@ -19,27 +19,15 @@ from qiskit.transpiler.passes.analysis.dag_longest_path import DAGLongestPath
 
 
 class CountOpsLongestPath(AnalysisPass):
-    """Count the operations on the longest path in a DAGcircuit.
 
-    The result is saved in ``property_set['count_ops_longest_path']`` as an integer.
-    """
 
     def __init__(self, op_times=None):
-        """CountOpsLongestPath initializer.
 
-        Args:
-            op_times (dict): Dictionary of operation runtimes for all gates in
-                basis gate set.
-                e.g.::
-
-                {'h': 1,
-                 'cx': 4}
-        """
         super().__init__()
         self.requires.append(DAGLongestPath(op_times))
 
     def run(self, dag):
-        """Run the CountOpsLongestPath pass on `dag`."""
+
         op_dict = {}
         path = self.property_set['dag_longest_path']
         path = path[1:-1]     # remove qubit at beginning and at end
