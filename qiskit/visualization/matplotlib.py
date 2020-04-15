@@ -910,7 +910,7 @@ class MatplotlibDrawer:
                             add_width = None
                         num_ctrl_qubits = op.op.num_ctrl_qubits
                         # set the ctrl qbits to open or closed
-                        self.set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, 'x')
+                        self.set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, 'cx')
 
                         if self._style.name != 'bw':
                             self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
