@@ -54,7 +54,6 @@ class Command(metaclass=MetaCount):
             raise PulseError('Pulse duration should be integer.')
 
         self._name = Command.create_name()
-        self._update_cmd_hash()
 
     @classmethod
     def create_name(cls, name: str = None) -> str:
@@ -114,11 +113,8 @@ class Command(metaclass=MetaCount):
         """
         return (type(self) is type(other)) and (self.duration == other.duration)
 
-    def _update_cmd_hash(self):
-        self._hash = hash((type(self), self.duration, self.name))
-    
     def __hash__(self):
-        return self._hash
+        return hash((type(self), self.duration, self.name))
 
     def __repr__(self):
         return '%s(duration=%d, name="%s")' % (self.__class__.__name__,

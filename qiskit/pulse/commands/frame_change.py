@@ -42,7 +42,6 @@ class FrameChange(Command):
         super().__init__(duration=0)
         self._phase = float(phase)
         self._name = FrameChange.create_name(name)
-        self._update_hash()
 
     @property
     def phase(self):
@@ -60,11 +59,8 @@ class FrameChange(Command):
         """
         return super().__eq__(other) and (self.phase == other.phase)
 
-    def _update_hash(self):
-        self._hash = hash((super().__hash__(), self.phase))
-
     def __hash__(self):
-        return self._hash
+        return hash((super().__hash__(), self.phase))
 
     def __repr__(self):
         return '%s(phase=%.3f, name="%s")' % (self.__class__.__name__,
