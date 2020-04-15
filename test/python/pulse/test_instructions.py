@@ -51,6 +51,32 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.name, 'acquire')
         self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0), None))
 
+    def test_isntructions_hash(self):
+        """Test hashing for acquire instruction.
+        """
+        """Test if valid acquire command can be constructed."""
+        kernel_opts = {
+            'start_window': 0,
+            'stop_window': 10
+        }
+        kernel = Kernel(name='boxcar', **kernel_opts)
+
+        discriminator_opts = {
+            'neighborhoods': [{'qubits': 1, 'channels': 1}],
+            'cal': 'coloring',
+            'resample': False
+        }
+        discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
+        acq_1 = Acquire(10, AcquireChannel(0), MemorySlot(0),
+                      kernel=kernel, discriminator=discriminator, name='acquire')
+        acq_2 = Acquire(10, AcquireChannel(0), MemorySlot(0),
+                      kernel=kernel, discriminator=discriminator, name='acquire')
+
+        hash_1 = hash(acq_1)
+        hash_2 = hash(acq_2)
+
+        self.assertEqual(hash_1, hash_2)
+
 
 class TestDelay(QiskitTestCase):
     """Delay tests."""
