@@ -14,7 +14,6 @@
 """
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
-import collections
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 
@@ -73,21 +72,21 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_get_qubit_channels(self):
         """Test to get all channels operated on a given qubit."""
-        self.assertTrue(self._test_lists_equal(
-            actual=self.config.get_qubit_channels(qubit=(1,)),
-            expected=[DriveChannel(1), MeasureChannel(1), AcquireChannel(1)]
-        ))
-        self.assertTrue(self._test_lists_equal(
-            actual=self.config.get_qubit_channels(qubit=1),
-            expected=[ControlChannel(0), ControlChannel(1), AcquireChannel(1),
-                      DriveChannel(1), MeasureChannel(1)]
-        ))
+        self.assertEqual(
+            len(self.config.get_qubit_channels(qubit=(1,))),
+            len(set([DriveChannel(1), MeasureChannel(1), AcquireChannel(1)]))
+        )
+        self.assertEqual(
+            len(self.config.get_qubit_channels(qubit=1)),
+            len(set([ControlChannel(0), ControlChannel(1), AcquireChannel(1),
+                     DriveChannel(1), MeasureChannel(1)]))
+        )
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
-        self.assertTrue(self._test_lists_equal(
-            actual=backend_3q.configuration().get_qubit_channels(1),
-            expected=[MeasureChannel(1), ControlChannel(0), ControlChannel(2),
-                      AcquireChannel(1), DriveChannel(1), ControlChannel(1)]
-        ))
+        self.assertEqual(
+            len(backend_3q.configuration().get_qubit_channels(1)),
+            len(set([MeasureChannel(1), ControlChannel(0), ControlChannel(2),
+                     AcquireChannel(1), DriveChannel(1), ControlChannel(1)]))
+        )
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
@@ -107,7 +106,3 @@ class TestBackendConfiguration(QiskitTestCase):
         self.assertEqual(self.config._get_channel_prefix_index('acquire0'), ('acquire', 0))
         with self.assertRaises(BackendConfigurationError):
             self.config._get_channel_prefix_index("acquire")
-
-    def _test_lists_equal(self, actual, expected):
-        """Test if 2 lists are equal. It returns ``True`` is lists are equal."""
-        return collections.Counter(actual) == collections.Counter(expected)
