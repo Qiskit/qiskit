@@ -567,30 +567,75 @@ class TestGates(TestBuilderContext):
 class TestBuilderComposition(TestBuilderContext):
     """Test more sophisticated composite builder examples."""
 
-    @unittest.expectedFailure
-    def test_context(self):
+    def test_complex_build(self):
         """Test a general program build."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
-
+        d2 = pulse.DriveChannel(2)
+        delay_dur = 19
+        short_dur = 31
+        long_dur = 101
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             with pulse.align_sequential():
-                pulse.delay(d0, 10)
+                pulse.delay(d0, delay_dur)
                 pulse.u2(1, 0, pi/2)
-                with pulse.align_right():
-                    pulse.play(d0, pulse_lib.ConstantPulse(20, 0.1))
-                    pulse.play(d1, pulse_lib.ConstantPulse(30, 0.1))
-                    pulse.u2(1, 0, pi/2)
-                with pulse.align_left():
-                    pulse.u2(0, 0, pi/2)
-                    pulse.u2(1, 0, pi/2)
-                    pulse.u2(0, 0, pi/2)
+            with pulse.align_right():
+                pulse.play(d1, pulse_lib.ConstantPulse(short_dur, 0.1))
+                pulse.play(d2, pulse_lib.ConstantPulse(long_dur, 0.1))
+                pulse.u2(1, 0, pi/2)
+            with pulse.align_left():
+                pulse.u2(0, 0, pi/2)
+                pulse.u2(1, 0, pi/2)
+                pulse.u2(0, 0, pi/2)
             pulse.measure(0)
 
-        reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
+        single_u2_qc = circuit.QuantumCircuit(2)
+        single_u2_qc.u2(0, pi/2, 1)
+        single_u2_qc = compiler.transpile(single_u2_qc, self.backend)
+        single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
 
+        triple_u2_qc = circuit.QuantumCircuit(2)
+        triple_u2_qc.u2(0, pi/2, 0)
+        triple_u2_qc.u2(0, pi/2, 1)
+        triple_u2_qc.u2(0, pi/2, 0)
+        triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
+        triple_u2_sched = compiler.schedule(triple_u2_qc, self.backend, method='alap')
+
+        # outer sequential context
+        outer_reference = pulse.Schedule()
+        outer_reference += instructions.Delay(delay_dur, d0)
+        outer_reference.insert(delay_dur, single_u2_sched, mutate=True)
+
+        # inner align right
+        align_right_reference = pulse.Schedule()
+        align_right_reference += pulse.Play(pulse_lib.ConstantPulse(long_dur, 0.1), d2)
+        align_right_reference.insert(long_dur-single_u2_sched.duration,
+                                     single_u2_sched,
+                                     mutate=True)
+        align_right_reference.insert(long_dur-single_u2_sched.duration-short_dur,
+                                     pulse.Play(pulse_lib.ConstantPulse(short_dur, 0.1), d1),
+                                     mutate=True)
+        # inner align left
+        align_left_reference = triple_u2_sched
+
+        # measurement
+        measure_reference = macros.measure(qubits=[0],
+                                           inst_map=self.inst_map,
+                                           meas_map=self.configuration.meas_map)
+        reference = pulse.Schedule()
+        reference += outer_reference
+        # Insert so that the long pulse on d2 ocurrs as early as possible
+        # without an overval on d1.
+        insert_time = (reference.ch_stop_time(d1) -
+                       align_right_reference.ch_start_time(d1))
+        reference.insert(insert_time,
+                         align_right_reference,
+                         mutate=True)
+        reference.insert(reference.ch_stop_time(d0, d1),
+                         align_left_reference,
+                         mutate=True)
+        reference += measure_reference
         self.assertEqual(schedule, reference)
 
     def test_default_alignment_left(self):

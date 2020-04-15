@@ -211,12 +211,13 @@ class _PulseBuilder():
     def __enter__(self):
         """Enter Builder Context."""
         self._backend_ctx_token = BUILDER_CONTEXT.set(self)
-        with self._default_alignment_context:
-            return self
+        self._default_alignment_context.__enter__()
+        return self
 
     @_schedule_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit Builder Context."""
+        self._default_alignment_context.__exit__(exc_type, exc_val, exc_tb)
         self.compile()
         BUILDER_CONTEXT.reset(self._backend_ctx_token)
 
@@ -252,7 +253,7 @@ class _PulseBuilder():
 
     @_schedule_lazy_circuit_before
     def compile(self) -> Schedule:
-        """Compile built program."""
+        """Compile and output the built program."""
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
@@ -422,6 +423,21 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     return wrap
 
 
+@_transform_context(transforms.align_left)
+def align_left() -> ContextManager[None]:
+    """Left alignment transform builder context."""
+
+
+@_transform_context(transforms.align_right)
+def align_right() -> ContextManager[None]:
+    """Right alignment transform builder context."""
+
+
+@_transform_context(transforms.align_sequential)
+def align_sequential() -> ContextManager[None]:
+    """Sequential alignment transform builder context."""
+
+
 def align(alignment: str = 'left') -> ContextManager[None]:
     """General alignment context.
 
@@ -438,21 +454,6 @@ def align(alignment: str = 'left') -> ContextManager[None]:
     else:
         raise exceptions.PulseError('Alignment "{}" is not '
                                     'supported.'.format(alignment))
-
-
-@_transform_context(transforms.align_left)
-def align_left() -> ContextManager[None]:
-    """Left alignment transform builder context."""
-
-
-@_transform_context(transforms.align_right)
-def align_right() -> ContextManager[None]:
-    """Right alignment transform builder context."""
-
-
-@_transform_context(transforms.align_sequential)
-def align_sequential() -> ContextManager[None]:
-    """Sequential alignment transform builder context."""
 
 
 @_transform_context(transforms.group)
