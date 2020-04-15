@@ -20,7 +20,6 @@ from qiskit.transpiler.passes.analysis.dag_longest_path import DAGLongestPath
 
 class CountOpsLongestPath(AnalysisPass):
 
-
     def __init__(self, op_times=None):
 
         super().__init__()
