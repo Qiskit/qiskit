@@ -46,18 +46,16 @@ class TwoLocal(NLocal):
                  entanglement_blocks: Optional[Union[str, List[str], type, List[type]]] = None,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  reps: int = 3,
-                 initial_state: Optional['InitialState'] = None,
                  skip_unentangled_qubits: bool = False,
                  skip_final_rotation_layer: bool = False,
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
+                 initial_state: Optional['InitialState'] = None,
                  ) -> None:
         """Initializer. Assumes that the type hints are obeyed for now.
 
         Args:
             num_qubits: The number of qubits of the Ansatz.
-            reps: Specifies how often a block of consisting of a rotation layer and entanglement
-                layer is repeated.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
                 a gate (e.g. 'ry') or the gate type itself (e.g. RYGate).
                 If only one gate is provided, the gate same gate is applied to each qubit.
@@ -72,9 +70,8 @@ class TwoLocal(NLocal):
                 the index of the entanglement layer.
                 Default to 'full' entanglement.
                 See the Examples section for more detail.
-            initial_state: An `'InitialState'` object to prepend to the Ansatz.
-                TODO deprecate this feature in favor of prepend or overloading __add__ in
-                the initial state class
+            reps: Specifies how often a block of consisting of a rotation layer and entanglement
+                layer is repeated.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
@@ -85,6 +82,9 @@ class TwoLocal(NLocal):
                 number of its occurrence with this specified prefix.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted. Defaults to False.
+            initial_state: An `'InitialState'` object to prepend to the Ansatz.
+                TODO deprecate this feature in favor of prepend or overloading __add__ in
+                the initial state class
 
         Examples:
             >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
