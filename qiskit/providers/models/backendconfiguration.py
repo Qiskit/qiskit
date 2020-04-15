@@ -462,7 +462,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.dtm = dtm * 1e-9
 
         if channels is not None:
-            self.channels = channels
+            self._channels = channels
 
             (self._qubit_channel_map,
              self._channel_qubit_map,
