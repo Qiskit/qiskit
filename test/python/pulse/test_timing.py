@@ -20,7 +20,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.timing import _overlaps, _insertion_index
 
 
-class TestPulseUtils(QiskitTestCase):
+class TestTimingUtils(QiskitTestCase):
     """Test the pulse utility functions."""
 
     def test_overlaps(self):
