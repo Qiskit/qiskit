@@ -463,12 +463,24 @@ def group() -> ContextManager[None]:
     """Group the instructions within this context fixing their relative timing."""
 
 
-@_transform_context(transforms.flatten)
-def flatten() -> ContextManager[None]:
-    """Flatten any grouped instructions upon exiting context.
+@contextmanager
+def inline() -> ContextManager[None]:
+    """Inline all instructions within this context into the parent context.
 
-    .. warning:: This will remove any ``barrier`` you have set.
+    .. warning:: This will cause all scheduling directives within this context
+        to be ignored.
     """
+    builder = _current_builder()
+    current_block = builder.block
+    transform_block = Schedule()
+    builder.set_current_block(transform_block)
+    try:
+        yield
+    finally:
+        builder.compile_lazy_circuit()
+        builder.set_current_block(current_block)
+        for _, instruction in transform_block.instructions:
+            append_instruction(instruction)
 
 
 @_transform_context(transforms.pad, mutate=True)

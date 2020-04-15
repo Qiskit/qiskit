@@ -126,6 +126,26 @@ class TestContexts(TestBuilder):
         reference = reference.insert(3, instructions.Delay(5, d1))
         self.assertEqual(schedule, reference)
 
+    def test_inline(self):
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.delay(d0, 3)
+            with pulse.inline():
+                pulse.delay(d1, 5)
+                pulse.delay(d0, 7)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        reference += instructions.Delay(7, d0)
+        # d1
+        reference += instructions.Delay(5, d1)
+
+        self.assertEqual(schedule, reference)
+
     def test_transpiler_settings(self):
         """Test that two cx gates are optimized away with higher optimization level"""
         twice_cx_qc = circuit.QuantumCircuit(2)
@@ -401,7 +421,6 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_barrier(self):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
