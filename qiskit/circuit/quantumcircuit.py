@@ -158,14 +158,34 @@ class QuantumCircuit:
         self._data = []
 
         # This is a map of registers bound to this circuit, by name.
-        self.qregs = []
-        self.cregs = []
+        self._qregs = []
+        self._cregs = []
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
         self._parameter_table = ParameterTable()
 
         self._layout = None
+
+    @property
+    def qregs(self):
+        """The quantum registers associated with the circuit."""
+        return self._qregs
+
+    @qregs.setter
+    def qregs(self, qregs):
+        """Set the quantum registers associated with the circuit."""
+        self._qregs = qregs
+
+    @property
+    def cregs(self):
+        """The quantum registers associated with the circuit."""
+        return self._cregs
+
+    @cregs.setter
+    def cregs(self, cregs):
+        """Set the quantum registers associated with the circuit."""
+        self._cregs = cregs
 
     @property
     def data(self):
@@ -552,9 +572,9 @@ class QuantumCircuit:
                 raise CircuitError("register name \"%s\" already exists"
                                    % register.name)
             if isinstance(register, QuantumRegister):
-                self.qregs.append(register)
+                self._qregs.append(register)
             elif isinstance(register, ClassicalRegister):
-                self.cregs.append(register)
+                self._cregs.append(register)
             else:
                 raise CircuitError("expected a register")
 

@@ -31,6 +31,7 @@ from itertools import combinations
 import numpy
 from qiskit import QuantumCircuit, transpile, QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.parametertable import ParameterTable
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class NLocal(QuantumCircuit):
                  entanglement_blocks: Optional[Union[QuantumCircuit, List[QuantumCircuit],
                                                      Instruction, List[Instruction]]] = None,
                  entanglement: Optional[Union[List[int], List[List[int]]]] = None,
-                 reps: int = 3,
+                 reps: int = 1,
                  insert_barriers: bool = False,
                  parameter_prefix: str = 'θ',
                  overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
@@ -104,8 +105,13 @@ class NLocal(QuantumCircuit):
         self._insert_barriers = insert_barriers
 
         self._entanglement_blocks = []
-        self.entanglement_blocks = entanglement_blocks or []
         self._rotation_blocks = []
+        self._prepended_blocks = []
+        self._prepended_entanglement = []
+        self._appended_blocks = []
+        self._appended_entanglement = []
+
+        self.entanglement_blocks = entanglement_blocks or []
         self.rotation_blocks = rotation_blocks or []
         self._ordered_parameters = ParameterVector(name=parameter_prefix)
         self._overwrite_block_parameters = overwrite_block_parameters
@@ -128,39 +134,6 @@ class NLocal(QuantumCircuit):
 
         # parameter bounds
         self._bounds = None
-
-    # def __iadd__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
-    #     """Overloading += for convenience.
-
-    #     This presumes list(range(other.num_qubits)) as qubit indices and calls self.compose().
-
-    #     Args:
-    #         other: The object to compose.
-
-    #     Raises:
-    #         TypeError: If the added type is unsupported.
-
-    #     Returns:
-    #         self
-    #     """
-    #     return self.compose(other)
-
-    # def __add__(self, other: Union['NLocal', Instruction, QuantumCircuit]) -> 'NLocal':
-    #     """Overloading += for convenience.
-
-    #     This presumes list(range(other.num_qubits)) as qubit indices and calls self.compose().
-
-    #     Args:
-    #         other: The object to compose.
-
-    #     Raises:
-    #         TypeError: If the added type is unsupported.
-
-    #     Returns:
-    #         A copy of self with the other object composeed.
-    #     """
-    #     target = copy.deepcopy(self)
-    #     return target.compose(other)
 
     def __str__(self) -> str:
         """Draw this NLocal in circuit format using the standard gates.
@@ -337,26 +310,36 @@ class NLocal(QuantumCircuit):
         return True
 
     @property
-    def ordered_parameters(self) -> ParameterVector:
+    def ordered_parameters(self) -> List[Parameter]:
         """The parameters used in the underlying circuit.
 
         Returns:
             The parameters objects used in the circuit.
+
+        Raises:
+            CircuitError: If the length of ordered parameters does not match the number of
+                parameters in the circuit and they are not a ``ParameterVector`` (which could
+                be resized to fit the number of parameters).
         """
-        self._ordered_parameters.resize(self.num_parameters)
-        return list(self._ordered_parameters)
+        if isinstance(self._ordered_parameters, ParameterVector):
+            self._ordered_parameters.resize(self.num_parameters_settable)
+            return list(self._ordered_parameters)
+
+        if len(self._ordered_parameters) != self.num_parameters_settable:
+            raise CircuitError('The number of ordered parameters does not match the number '
+                               'of circuit parameters, {} != {}'.format(
+                                   len(self._ordered_parameters), self.num_parameters_settable
+                               ))
+        return self._ordered_parameters
 
     @ordered_parameters.setter
-    def ordered_parameters(self, parameters: ParameterVector) -> None:
+    def ordered_parameters(self, parameters: Union[ParameterVector, List[Parameter]]) -> None:
         """Set the parameters used in the underlying circuit.
 
         Args:
             The parameters to be used in the underlying circuit.
         """
-        if self._circuit:
-            self._circuit.assign_parameters(dict(zip(self._ordered_parameters, parameters)),
-                                            inplace=True)
-        self._ordered_parameters = parameters
+        self.assign_parameters(dict(zip(self._ordered_parameters, parameters)))
 
     @property
     def entanglement_blocks(self) -> List[Instruction]:
@@ -611,7 +594,7 @@ class NLocal(QuantumCircuit):
         """Set the number of qubits for the NLocal.
 
         This does not change the qubit indices. If the number of qubits is not sufficient for the
-        blocks in the NLocal, an error will be thrown upon circuit construction.
+        blocks in the NLocal, an err will be thrown upon circuit construction.
 
         Args:
             The new number of qubits.
@@ -646,15 +629,22 @@ class NLocal(QuantumCircuit):
         self._bounds = bounds
 
     @property
+    def num_parameters_settable(self):
+        """The number of total parameters that can be set to distinct values."""
+        num = 0
+        for i in range(self._reps):
+            for block in self.entanglement_blocks:
+                num += len(self.entangler_maps[i]) * len(get_parameters(block))
+            for block in self.rotation_blocks:
+                num += self.num_qubits // block.num_qubits * len(get_parameters(block))
+        return num
+
+    @property
     def num_parameters(self):
         """The number of free parameters in the circuit."""
-        num = 0
-        for i in self._entanglement_reps():
-            num += len(self.entangler_maps[i]) * len(get_parameters(self.entanglement_blocks[i]))
-        for i in self._rotation_reps():
-            block = self.rotation_blocks[i]
-            num += len(get_parameters(block)) * self.num_qubits // block.num_qubits
-        return num
+        if self._data is None:
+            self._build()
+        return len(set(self._ordered_parameters))
 
     @property
     def parameters(self) -> Set[Parameter]:
@@ -686,7 +676,6 @@ class NLocal(QuantumCircuit):
             TypeError: If the type of `params` is not supported.
         """
         self.assign_parameters(params, inplace=True)
-        return
 
     @property
     def reps(self) -> Union[int, List[int]]:
@@ -716,6 +705,18 @@ class NLocal(QuantumCircuit):
             self._build()
         return self._data
 
+    @property
+    def qregs(self):
+        """The quantum registers associated with the circuit."""
+        if self._data is None:
+            self._build()
+        return self._qregs
+
+    @qregs.setter
+    def qregs(self, qregs):
+        """Set the quantum registers associated with the circuit."""
+        self._qregs = qregs
+
     def _invalidate(self):
         """Invalidate the current circuit build."""
         self._data = None
@@ -723,16 +724,16 @@ class NLocal(QuantumCircuit):
 
     def compose(self,
                 other: Union['NLocal', Instruction, QuantumCircuit],
-                entangler_maps: Optional[List[int]] = None
+                indices: Optional[Union[List[int], str, List[List[int]]]] = None,
+                front: bool = False,
                 ) -> 'NLocal':
         """Append another layer to the NLocal.
 
         Args:
             other: The layer to compose, can be another NLocal, an Instruction or Gate,
                 or a QuantumCircuit.
-            entangler_maps: The qubit indices where to compose the layer to.
-                Defaults to the first `n` qubits, where `n` is the number of qubits the layer acts
-                on.
+            indices: The qubit indices or entanglement.
+            front: If True, ``other`` is appended to the front, else to the back.
 
         Returns:
             self, such that chained composes are possible.
@@ -743,41 +744,41 @@ class NLocal(QuantumCircuit):
         """
         block = self._convert_to_block(other)
 
-        # define the the qubit indices
-        if entangler_maps:
-            self._entanglement = self.entangler_maps + [[entangler_maps]]
-            num_qubits = max(entangler_maps)
+        if isinstance(indices, list) and not isinstance(indices[0], list):
+            entanglement = [indices]
         else:
-            num_qubits = block.num_qubits
+            entanglement = indices or [list(range(block.num_qubits))]
 
-        # Convert to a list, so that if reps was an integer, the composeed block gets added
-        # once and not multiple times. Must happen before composeing block to self._blocks.
-        self._reps = self._reps_as_list() + [len(self._blocks)]
+        if front:
+            self._prepended_blocks += [block]
+            self._prepended_entanglement += [entanglement]
+        else:
+            self._appended_blocks += [block]
+            self._appended_entanglement += [entanglement]
 
-        # add other to the list of blocks
-        self._blocks += [block]
-
-        # We can have two cases: the composeed block fits onto the current NLocal (i.e. has
-        # less of equal number of qubits), or exceeds the number of qubits.
-        # In the latter case we have to add an according offset to the qubit indices.
-        # Since we cannot compose a circuit of larger size to an existing circuit we have to rebuild
-        if num_qubits != self.num_qubits:
-            self._invalidate()  # rebuild circuit
+        if isinstance(entanglement, list):
+            num_qubits = 1 + max(max(indices) for indices in entanglement)
+            if num_qubits > self.num_qubits:
+                self._invalidate()  # rebuild circuit
+                self.num_qubits = num_qubits
 
         # modify the circuit accordingly
-        if self._data:
-            if self._insert_barriers and len(self._reps_as_list()) > 1:
+        if self._data and front is False:
+            if self._insert_barriers and len(self._data) > 0:
                 self.barrier()
 
             block, entangler_map = self.blocks[-1], self.entangler_maps[-1]
 
             layer = QuantumCircuit(self.num_qubits)
-            for indices in entangler_map:
+            for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)):]
                 parametrized_block = self._parametrize_block(block, params)
-                layer.append(parametrized_block.to_instruction(), indices)
+                layer.append(parametrized_block.to_instruction(), i)
 
             self += layer
+        else:
+            # cannot prepend a block currently, just rebuild
+            self._invalidate()
 
         return self
 
@@ -795,9 +796,20 @@ class NLocal(QuantumCircuit):
         Raises:
             TypeError: If ``params`` contains an unsupported type.
         """
-        self._build()
+        if self._data is None:
+            self._build()
+
         if not isinstance(param_dict, dict):
-            param_dict = dict(zip(self.ordered_parameters, param_dict))
+            if len(param_dict) != self.num_parameters:
+                raise AttributeError('If the parameters are provided as list, the size must match '
+                                     'the number of parameters ({}), but {} are given.'.format(
+                                         self.num_parameters, len(param_dict)
+                                     ))
+            param_dict = dict(zip(self._ordered_parameters, param_dict))
+
+        if inplace:
+            new = [param_dict.get(param, param) for param in self.ordered_parameters]
+            self._ordered_parameters = new
 
         return super().assign_parameters(param_dict, inplace=inplace)
 
@@ -862,78 +874,98 @@ class NLocal(QuantumCircuit):
 
     def _build(self) -> None:
         """Build the circuit."""
-        if self._data is None and self._configuration_is_valid():
-            self._data = []
-            self._parameter_table = {}
-            if self.num_qubits > 0:
-                # use the initial state circuit if it is not None
-                if self._initial_state:
-                    circuit = self._initial_state.construct_circuit('circuit')
-                    self += circuit
-                else:
-                    self.qregs = [QuantumRegister(self.num_qubits, name='q')]
-                    # circuit = QuantumCircuit(q)
-            else:
-                self.qregs = []
+        if self._data:
+            return
 
-            # add the blocks, if they are specified
-            rotation_reps, entanglement_reps = self._rotation_reps(), self._entanglement_reps()
-            if len(rotation_reps) > 0 or len(entanglement_reps) > 0:
-                param_iter = iter(self.ordered_parameters)
+        _ = self._configuration_is_valid()
 
-                for i in range(self.reps):
+        self._data = []
 
-                    if self._insert_barriers and i > 0:
-                        self.barrier()
+        if self.num_qubits == 0:
+            return
 
-                    # rotation layer
-                    if len(rotation_reps) > 0:
-                        block = self.rotation_blocks[rotation_reps[i]]
+        # use the initial state circuit if it is not None
+        if self._initial_state:
+            circuit = self._initial_state.construct_circuit('circuit')
+            self += circuit
+        else:
+            q = QuantumRegister(self.num_qubits, name='q')
+            self.qregs = [q]
+            # circuit = QuantumCircuit(q)
 
-                        layer = QuantumCircuit(self.num_qubits)
-                        block_indices = [
-                            list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
-                            for j in range(self.num_qubits // block.num_qubits)
-                        ]
-                        for indices in block_indices:
-                            params = [next(param_iter) for _ in range(len(get_parameters(block)))]
-                            parametrized_block = self._parametrize_block(block, params)
-                            layer.append(parametrized_block, indices)
+        # add the blocks, if they are specified
+        rotation_reps, entanglement_reps = self._rotation_reps(), self._entanglement_reps()
 
-                        self += layer
+        for i, (block, ent) in enumerate(zip(reversed(self._prepended_blocks),
+                                             reversed(self._prepended_entanglement))):
+            if self.insert_barriers and i > 0:
+                self.barrier()
+            layer = QuantumCircuit(q)
+            if isinstance(ent, str):
+                ent = self.get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+            for indices in ent:
+                layer.append(block, indices)
+            self += layer
 
-                    # entanglement layer
-                    if len(entanglement_reps) > 0:
-                        block = self.entanglement_blocks[entanglement_reps[i]]
-                        entangler_map = self.entangler_maps[i]
+        if len(rotation_reps) > 0 or len(entanglement_reps) > 0:
+            param_iter = iter(self.ordered_parameters)
 
-                        layer = QuantumCircuit(self.num_qubits)
-                        for indices in entangler_map:
-                            params = [next(param_iter) for _ in range(len(get_parameters(block)))]
-                            parametrized_block = self._parametrize_block(block, params)
-                            layer.append(parametrized_block, indices)
-
-                        self += layer
-
-            if len(rotation_reps) > self._reps:
-                if self.insert_barriers:
+            for i in range(self.reps):
+                if self._insert_barriers and (i > 0 or len(self._prepended_blocks) > 0):
                     self.barrier()
-                block = self.rotation_blocks[rotation_reps[self._reps]]
-                layer = QuantumCircuit(self.num_qubits)
-                block_indices = [
-                    list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
-                    for j in range(self.num_qubits // block.num_qubits)
-                ]
-                for indices in block_indices:
-                    params = [next(param_iter) for _ in range(len(get_parameters(block)))]
-                    parametrized_block = self._parametrize_block(block, params)
-                    layer.append(parametrized_block, indices)
 
-                self += layer
+                # rotation layer
+                for block in self.rotation_blocks:
+                    layer = QuantumCircuit(q)
+                    block_indices = [
+                        list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
+                        for j in range(self.num_qubits // block.num_qubits)
+                    ]
+                    for indices in block_indices:
+                        params = [next(param_iter) for _ in range(len(get_parameters(block)))]
+                        parametrized_block = self._parametrize_block(block, params)
+                        layer.append(parametrized_block, indices)
 
-            # store the data
-            # self.qregs = circuit.qregs
-            # self._data = circuit._data
+                    self += layer
+
+                # entanglement layer
+                for block in self.entanglement_blocks:
+                    entangler_map = self.entangler_maps[i]
+
+                    layer = QuantumCircuit(q)
+                    for indices in entangler_map:
+                        params = [next(param_iter) for _ in range(len(get_parameters(block)))]
+                        parametrized_block = self._parametrize_block(block, params)
+                        layer.append(parametrized_block, indices)
+
+                    self += layer
+
+        if len(rotation_reps) > self._reps:
+            if self.insert_barriers:
+                self.barrier()
+            block = self.rotation_blocks[rotation_reps[self._reps]]
+            layer = QuantumCircuit(q)
+            block_indices = [
+                list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
+                for j in range(self.num_qubits // block.num_qubits)
+            ]
+            for indices in block_indices:
+                params = [next(param_iter) for _ in range(len(get_parameters(block)))]
+                parametrized_block = self._parametrize_block(block, params)
+                layer.append(parametrized_block, indices)
+
+            self += layer
+
+        for i, (block, ent) in enumerate(zip(self._appended_blocks,
+                                             self._appended_entanglement)):
+            if self.insert_barriers and len(self._data) > 0:
+                self.barrier()
+            layer = QuantumCircuit(q)
+            if isinstance(ent, str):
+                ent = self.get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+            for indices in ent:
+                layer.append(block, indices)
+            self += layer
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:
