@@ -107,7 +107,6 @@ class TestContexts(TestBuilderContext):
 
         self.assertEqual(schedule, reference)
 
-
     def test_group(self):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
@@ -162,6 +161,54 @@ class TestContexts(TestBuilderContext):
                     pulse.call_circuit(x_qc)
 
         self.assertEqual(schedule, test_x_sched)
+
+    def test_phase_offset(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.phase_offset(d0, 3.14):
+                pulse.delay(d0, 10)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftPhase(3.14, d0)
+        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftPhase(-3.14, d0)
+
+        self.assertEqual(schedule, reference)
+
+    @unittest.expectedFailure
+    def test_frequency_offset(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.frequency_offset(d0, 1e9):
+                pulse.delay(d0, 10)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftFrequency(1e9, d0)
+        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftFrequency(-1e9, d0)
+
+        self.assertEqual(schedule, reference)
+
+    @unittest.expectedFailure
+    def test_phase_compensated_frequency_offset(self):
+        d0 = pulse.DriveChannel(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            with pulse.frequency_offset(d0, 1e9, compensate_phase=True):
+                pulse.delay(d0, 10)
+
+        reference = pulse.Schedule()
+        reference += instructions.ShiftFrequency(1e9, d0)
+        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftPhase(-1e9*10/self.configuration.dt, d0)
+        reference += instructions.ShiftFrequency(-1e9, d0)
+
+        self.assertEqual(schedule, reference)
 
 
 class TestInstructions(TestBuilderContext):

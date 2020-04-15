@@ -502,6 +502,49 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
         builder.circuit_scheduler_settings = current_circuit_scheduler_settings
 
 
+@contextmanager
+def phase_offset(channel: channels.PulseChannel,
+                 phase: float) -> ContextManager[None]:
+    """Shift the phase of a channel on entry into context and undo on exit.
+
+    Args:
+        channel: Channel to offset phase of.
+        phase: Amount of phase offset in radians.
+    """
+    shift_phase(channel, phase)
+    try:
+        yield
+    finally:
+        shift_phase(channel, -phase)
+
+
+@contextmanager
+def frequency_offset(channel: channels.PulseChannel,
+                     frequency: float,
+                     compensate_phase: bool = False
+                     ) -> ContextManager[None]:
+    """Shift the frequency of a channel on entry into context and undo on exit.
+
+    Args:
+        channel: Channel to offset phase of.
+        phase: Amount of frequency offset in Hz.
+        compensate_phase: Compensate for accumulated phase in accumulated with
+            respect to the channels frame at its initial frequency.
+    """
+    builder = _current_builder()
+    t0 = builder.block.duration
+    shift_frequency(channel, frequency)
+    try:
+        yield
+    finally:
+        if compensate_phase:
+            duration = builder.block.duration - t0
+            dt = current_backend().configuration().dt
+            accumulated_phase = duration * dt * frequency % (2*np.pi)
+            shift_phase(channel, -accumulated_phase)
+        shift_frequency(channel, -frequency)
+
+
 # Base Instructions ############################################################
 def delay(channel: channels.Channel, duration: int):
     """Delay on a ``channel`` for a ``duration``."""
