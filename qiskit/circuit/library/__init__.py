@@ -31,6 +31,14 @@ Boolean Logic Circuits
    Permutation
    XOR
 
+Basis Change Circuits
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFT
+
 Arithmetic Circuits
 ===================
 
@@ -86,6 +94,7 @@ from .boolean_logic import (
     OR,
     AND,
 )
+from .basis_change import QFT
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
