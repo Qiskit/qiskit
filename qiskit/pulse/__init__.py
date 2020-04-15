@@ -146,7 +146,7 @@ Exceptions
    PulseError
 
 """
-from .builder_context import *
+from .builder import *
 from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .commands import AcquireInstruction, FrameChange, PersistentValue

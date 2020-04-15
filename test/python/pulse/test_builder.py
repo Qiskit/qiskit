@@ -28,7 +28,7 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse import pulse_lib, instructions
 
 
-class TestBuilderContext(QiskitTestCase):
+class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
 
     def setUp(self):
@@ -38,7 +38,7 @@ class TestBuilderContext(QiskitTestCase):
         self.inst_map = self.defaults.instruction_schedule_map
 
 
-class TestContexts(TestBuilderContext):
+class TestContexts(TestBuilder):
     """test context builder contexts."""
     def test_align_sequential(self):
         d0 = pulse.DriveChannel(0)
@@ -211,7 +211,7 @@ class TestContexts(TestBuilderContext):
         self.assertEqual(schedule, reference)
 
 
-class TestInstructions(TestBuilderContext):
+class TestInstructions(TestBuilder):
     """test context builder instructions."""
 
     def test_delay(self):
@@ -433,7 +433,7 @@ class TestInstructions(TestBuilderContext):
         self.assertEqual(schedule, reference)
 
 
-class TestUtilities(TestBuilderContext):
+class TestUtilities(TestBuilder):
     """test context builder utilities."""
     def test_current_backend(self):
         schedule = pulse.Schedule()
@@ -490,7 +490,7 @@ class TestUtilities(TestBuilderContext):
                     pulse.current_circuit_scheduler_settings()['test_setting'], 1)
 
 
-class TestMacros(TestBuilderContext):
+class TestMacros(TestBuilder):
     """test context builder macros."""
 
     def test_measure(self):
@@ -553,7 +553,7 @@ class TestMacros(TestBuilderContext):
         self.assertEqual(schedule, reference)
 
 
-class TestGates(TestBuilderContext):
+class TestGates(TestBuilder):
     """test context builder gates."""
 
     def test_cx(self):
@@ -640,7 +640,7 @@ class TestGates(TestBuilderContext):
         self.assertEqual(schedule, reference)
 
 
-class TestBuilderComposition(TestBuilderContext):
+class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
 
     def test_complex_build(self):
