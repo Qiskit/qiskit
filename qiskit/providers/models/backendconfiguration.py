@@ -278,6 +278,24 @@ class QasmBackendConfiguration(SimpleNamespace):
             self.description = description
         if tags is not None:
             self.tags = tags
+
+        # Add pulse properties here becuase some backends do not
+        # fit within the Qasm / Pulse backend partitioning in Qiskit
+        if 'dt' in kwargs.keys():
+            kwargs['dt'] *= 1e-9
+            kwargs['dtm'] *= 1e-9
+
+        if 'qubit_lo_range'in kwargs.keys():
+            kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
+                                        (min_range, max_range) in kwargs['qubit_lo_range']]
+
+        if 'meas_lo_range' in kwargs.keys():
+            kwargs['meas_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
+                                       (min_range, max_range) in kwargs['meas_lo_range']]
+
+        if 'rep_times' in kwargs.keys():
+            kwargs['rep_times'] = [_rt * 1e-6 for _rt in kwargs['rep_times']]
+
         self.__dict__.update(kwargs)
 
     def __getstate__(self):
