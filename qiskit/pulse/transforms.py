@@ -52,6 +52,9 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
 
+    Returns:
+        The input list of schedules transformed to have their measurements aligned.
+
     Raises:
         PulseError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire, or if align_time is negative
