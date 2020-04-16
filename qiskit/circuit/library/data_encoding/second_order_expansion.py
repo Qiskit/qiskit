@@ -17,7 +17,7 @@
 from typing import Callable, List, Union, Optional
 import numpy as np
 from qiskit.util import deprecate_arguments
-from .pauli_expansion import PauliExpansion, self_product
+from .pauli_expansion import PauliExpansion
 
 
 class SecondOrderExpansion(PauliExpansion):
@@ -28,7 +28,7 @@ class SecondOrderExpansion(PauliExpansion):
                  feature_dimension: int,
                  reps: int = 2,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 data_map_func: Callable[[np.ndarray], float] = self_product,
+                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  insert_barriers: bool = False,
                  entangler_map: Optional[List[List[int]]] = None,  # pylint:disable=unused-argument
                  depth: Optional[int] = None,  # pylint:disable=unused-argument

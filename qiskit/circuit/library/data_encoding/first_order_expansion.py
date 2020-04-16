@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.util import deprecate_arguments
 
-from .pauli_expansion import PauliExpansion, self_product
+from .pauli_expansion import PauliExpansion
 
 
 class FirstOrderExpansion(PauliExpansion):
@@ -33,7 +33,7 @@ class FirstOrderExpansion(PauliExpansion):
     def __init__(self,
                  feature_dimension: int,
                  reps: int = 2,
-                 data_map_func: Callable[[np.ndarray], float] = self_product,
+                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  insert_barriers: bool = False,
                  depth: Optional[int] = None  # pylint: disable=unused-argument
                  ) -> None:

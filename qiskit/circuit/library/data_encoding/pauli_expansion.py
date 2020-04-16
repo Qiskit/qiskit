@@ -64,7 +64,7 @@ class PauliExpansion(NLocal):
                  reps: int = 2,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  paulis: Optional[List[str]] = None,
-                 data_map_func: Callable[[np.ndarray], float] = self_product,
+                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  insert_barriers: bool = False,
                  depth: Optional[int] = None,  # pylint: disable=unused-argument
                  ) -> None:
@@ -90,7 +90,7 @@ class PauliExpansion(NLocal):
                          entanglement=entanglement,
                          insert_barriers=insert_barriers)
 
-        self._data_map_func = data_map_func
+        self._data_map_func = data_map_func or self_product
 
         paulis = paulis or ['Z', 'ZZ']
         self.entanglement_blocks = [self.pauli_block(pauli) for pauli in paulis]
