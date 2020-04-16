@@ -133,9 +133,8 @@ class SamplePulse(Pulse):
                                           interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and np.allclose(self.samples, other.samples,
-                                                     rtol=0,
-                                                     atol=self.epsilon)
+        return super().__eq__(other) and self.samples.shape == other.samples.shape and \
+               np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
 
     def __hash__(self) -> int:
         return hash(self.samples.tostring())
