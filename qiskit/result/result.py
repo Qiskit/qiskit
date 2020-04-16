@@ -15,7 +15,6 @@
 """Model for schema-conformant Results."""
 
 import copy
-from types import SimpleNamespace
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
@@ -64,6 +63,11 @@ class Result:
         self._metadata.update(kwargs)
 
     def to_dict(self):
+        """Return a dictionary format representation of the Result
+
+        Returns:
+            dict: The dictionary form of the Result
+        """
         out_dict = {
             'backend_name': self.backend_name,
             'backend_version': self.backend_version,
@@ -77,7 +81,7 @@ class Result:
         if hasattr(self, 'status'):
             out_dict['status'] = self.status
         if hasattr(self, 'header'):
-            out_dict[field] = self.header.to_dict()
+            out_dict['header'] = self.header.to_dict()
         out_dict.update(self._metadata)
         return out_dict
 
@@ -89,6 +93,17 @@ class Result:
 
     @classmethod
     def from_dict(cls, data):
+        """Create a new ExperimentResultData object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Result to create. It
+                         will be in the same format as output by
+                         :meth:`to_dict`.
+        Returns:
+            Result: The ``Result`` object from the input dictionary.
+
+        """
+
         in_data = copy.copy(data)
         in_data['results'] = [
             ExperimentResult.from_dict(x) for x in in_data.pop('results')]

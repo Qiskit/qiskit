@@ -15,11 +15,10 @@
 """Schema and helper models for schema-conformant Results."""
 
 import copy
-from types import SimpleNamespace
 
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
 from qiskit.qobj import QobjExperimentHeader
-from qiskit.validation.exceptions import ModelValidationError
+from qiskit.exceptions import QiskitError
 
 
 class ExperimentResultData:
@@ -56,6 +55,11 @@ class ExperimentResultData:
             self.unitary = unitary
 
     def to_dict(self):
+        """Return a dictionary format representation of the ExperimentResultData
+
+        Returns:
+            dict: The dictionary form of the ExperimentResultData
+        """
         out_dict = {}
         for field in ['counts', 'snapshots', 'memory', 'statevector',
                       'unitary']:
@@ -65,6 +69,16 @@ class ExperimentResultData:
 
     @classmethod
     def from_dict(cls, data):
+        """Create a new ExperimentResultData object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the ExperimentResultData to
+                         create. It will be in the same format as output by
+                         :meth:`to_dict`
+        Returns:
+            ExperimentResultData: The ``ExperimentResultData`` object from the
+                                  input dictionary.
+        """
         in_data = copy.copy(data)
         return cls(**in_data)
 
@@ -116,7 +130,7 @@ class ExperimentResult:
             self.seed = seed
         if meas_return is not None:
             if meas_return not in list(MeasReturnType):
-                raise ModelValidationError('%s not a valid meas_return value')
+                raise QiskitError('%s not a valid meas_return value')
             self.meas_return = meas_return
         self._metadata.update(kwargs)
 
@@ -127,6 +141,11 @@ class ExperimentResult:
             raise AttributeError('Attribute %s is not defined' % name)
 
     def to_dict(self):
+        """Return a dictionary format representation of the ExperimentResult
+
+        Returns:
+            dict: The dictionary form of the ExperimentResult
+        """
         out_dict = {
             'shots': self.shots,
             'success': self.success,
@@ -146,6 +165,18 @@ class ExperimentResult:
 
     @classmethod
     def from_dict(cls, data):
+        """Create a new ExperimentResult object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the ExperimentResult to
+                         create. It will be in the same format as output by
+                         :meth:`to_dict`
+
+        Returns:
+            ExperimentResult: The ``ExperimentResult`` object from the input
+                              dictionary.
+        """
+
         in_data = copy.copy(data)
         data_obj = ExperimentResultData.from_dict(in_data.pop('data'))
         if 'header' in in_data:

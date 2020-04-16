@@ -19,16 +19,13 @@ Models and Schemas (:mod:`qiskit.validation`)
 
 .. currentmodule:: qiskit.validation
 
-Base
-====
+JSON Schema
+===========
 
-.. autosummary::
+,, autosummary::
    :toctree: ../stubs/
 
-   BaseModel
-   BaseSchema
-   bind_schema
-   ModelTypeValidator
+   jsonschema.validate_json_against_schema
 
 Exceptions
 ==========
@@ -37,6 +34,5 @@ Exceptions
    :toctree: ../stubs/
 
    ModelValidationError
+   jsonschema.SchemaValidationError
 """
-
-from .exceptions import ModelValidationError
