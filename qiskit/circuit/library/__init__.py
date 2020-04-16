@@ -86,8 +86,15 @@ N-local circuits
    TwoLocal
    RY
    RYRZ
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
    PauliExpansion
-   PauliZExpansion
    FirstOrderExpansion
    SecondOrderExpansion
 
@@ -109,9 +116,10 @@ from .n_local import (
     NLocal,
     TwoLocal,
     RY,
-    RYRZ,
+    RYRZ
+)
+from .data_encoding import (
     PauliExpansion,
-    PauliZExpansion,
     FirstOrderExpansion,
     SecondOrderExpansion
 )
