@@ -202,6 +202,7 @@ class Schedule(ScheduleComponent):
         else:
             return self._immutable_insert(0, *schedules, name=name)
 
+    # pylint: disable=arguments-differ
     def shift(self,
               time: int,
               name: Optional[str] = None,
@@ -244,9 +245,10 @@ class Schedule(ScheduleComponent):
         """
         self._timeslots = self._timeslots.shift(time)
         self._children = tuple((orig_time+time, component) for
-                                orig_time, component in self.children)
+                               orig_time, component in self.children)
         return self
 
+    # pylint: disable=arguments-differ
     def insert(self,
                start_time: int,
                schedule: ScheduleComponent,
@@ -293,6 +295,7 @@ class Schedule(ScheduleComponent):
         Args:
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
+            name: Name of the new ``Schedule``. Defaults to name of ``self``.
         """
         if name is None:
             name = self.name
@@ -301,6 +304,7 @@ class Schedule(ScheduleComponent):
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
 
+    # pylint: disable=arguments-differ
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None,
                mutate: bool = False) -> 'Schedule':
