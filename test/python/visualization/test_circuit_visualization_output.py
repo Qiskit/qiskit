@@ -16,6 +16,7 @@
 
 import os
 import unittest
+import logging
 from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -81,13 +82,14 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    #@unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_latex_drawer(self):
         filename = self._get_resource_path('current_latex.png')
         qc = self.sample_circuit()
         circuit_drawer(qc, filename=filename, output='latex')
         self.assertImagesAreEqual(filename, self.latex_reference)
-        os.remove(filename)
+        logging.warning(filename)
+        #os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
