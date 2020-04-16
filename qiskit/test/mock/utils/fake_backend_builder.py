@@ -16,7 +16,6 @@
 Fake backend generation.
 """
 import itertools
-import json
 from datetime import datetime
 from typing import Optional, List
 
@@ -25,7 +24,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import (PulseBackendConfiguration,
                                      BackendProperties, PulseDefaults,
-                                     GateConfig, Command, UchannelLO)
+                                     Command, UchannelLO)
 from qiskit.providers.models.backendproperties import Nduv, Gate
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.test.mock.fake_backend import FakeBackend
