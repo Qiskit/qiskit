@@ -27,6 +27,8 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse import pulse_lib, instructions
 
+# pylint: disable=invalid-name
+
 
 class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
@@ -198,7 +200,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
-    def test_frequency_offset(self):
+    def test_frequency_offset(self):  # pylint: disable=no-member
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -214,7 +216,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
-    def test_phase_compensated_frequency_offset(self):
+    def test_phase_compensated_frequency_offset(self):  # pylint: disable=no-member
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -325,7 +327,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
-    def test_shift_frequency(self):
+    def test_shift_frequency(self):  # pylint: disable=no-member
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -338,7 +340,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
-    def test_set_phase(self):
+    def test_set_phase(self):  # pylint: disable=no-member
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
