@@ -36,7 +36,8 @@ class ExperimentResultData:
             snapshots (dict): A dictionary where the key is the snapshot
                 slot and the value is a dictionary of the snapshots for
                 that slot.
-            memory (list)
+            memory (list): A list of results per shot if the run had
+                memory enabled
             statevector (list or numpy.array): A list or numpy array of the
                 statevector result
             unitary (list or numpy.array): A list or numpy arrray of the
@@ -64,10 +65,11 @@ class ExperimentResultData:
 
     @classmethod
     def from_dict(cls, data):
-        return cls(**data)
+        in_data = copy.copy(data)
+        return cls(**in_data)
 
 
-class ExperimentResult(SimpleNamespace):
+class ExperimentResult:
     """Class representing an Experiment Result.
 
     Attributes:
@@ -76,6 +78,8 @@ class ExperimentResult(SimpleNamespace):
         data (ExperimentResultData): results information.
         meas_level (int): Measurement result level.
     """
+
+    _metadata = {}
 
     def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED,
                  status=None, seed=None, meas_return=None, header=None,
@@ -99,6 +103,7 @@ class ExperimentResult(SimpleNamespace):
         Raises:
             QiskitError: If meas_return or meas_level are not valid values
         """
+        self._metadata = {}
         self.shots = shots
         self.success = success
         self.data = data
@@ -113,7 +118,13 @@ class ExperimentResult(SimpleNamespace):
             if meas_return not in list(MeasReturnType):
                 raise ModelValidationError('%s not a valid meas_return value')
             self.meas_return = meas_return
-        self.__dict__.update(kwargs)
+        self._metadata.update(kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return self._metadata[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     def to_dict(self):
         out_dict = {
@@ -122,48 +133,25 @@ class ExperimentResult(SimpleNamespace):
             'data': self.data.to_dict(),
             'meas_level': self.meas_level,
         }
-        for field in self.__dict__.keys():
-            if field not in ['shots', 'success', 'data', 'meas_level']:
-                out_dict[field] = getattr(self, field)
-            elif field == 'header':
-                out_dict['header'] = self.header.to_dict()
-        print(out_dict)
+        if hasattr(self, 'header'):
+            out_dict['header'] = self.header.to_dict()
+        if hasattr(self, 'status'):
+            out_dict['status'] = self.status
+        if hasattr(self, 'seed'):
+            out_dict['seed'] = self.seed
+        if hasattr(self, 'meas_return'):
+            out_dict['meas_return'] = self.meas_return
+        out_dict.update(self._metadata)
         return out_dict
 
     @classmethod
     def from_dict(cls, data):
         in_data = copy.copy(data)
-        in_data['data'] = ExperimentResultData.from_dict(in_data.pop('data'))
+        data_obj = ExperimentResultData.from_dict(in_data.pop('data'))
         if 'header' in in_data:
-#            print(in_data['header'])
             in_data['header'] = QobjExperimentHeader.from_dict(
                 in_data.pop('header'))
-        return cls(**in_data)
+        shots = in_data.pop('shots')
+        success = in_data.pop('success')
 
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        args = [self.shots, self.success, self.data, self.meas_level]
-        if hasattr(self, 'status'):
-            args.append(self.status)
-        else:
-            args.append(None)
-        if hasattr(self, 'seed'):
-            args.append(self.seed)
-        else:
-            args.append(None)
-        if hasattr(self, 'meas_return'):
-            args.append(self.meas_return)
-        else:
-            args.append(None)
-        if hasattr(self, 'header'):
-            args.append(self.header)
-        else:
-            args.append(None)
-
-        state = self.to_dict()
-        return (self.__class__, tuple(args), state)
+        return cls(shots, success, data_obj, **in_data)

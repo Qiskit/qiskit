@@ -51,7 +51,7 @@ class TestResultOperations(QiskitTestCase):
         processed_counts = {'0 0 00': 4, '0 0 10': 10}
         data = models.ExperimentResultData(counts=dict(**raw_counts))
         exp_result_header = dict(creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]],
-                                     memory_slots=4)
+                                 memory_slots=4)
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
                                              data=data, header=exp_result_header)
         result = Result(results=[exp_result], **self.base_result_args)
@@ -151,7 +151,7 @@ class TestResultOperations(QiskitTestCase):
                                       '0 0 10', '0 0 10', '0 0 10']
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result_header = dict(creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]],
-                                     memory_slots=4)
+                                 memory_slots=4)
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
                                              memory=True, data=data,
                                              header=exp_result_header)

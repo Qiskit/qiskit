@@ -27,7 +27,7 @@ from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
 
 
-class Result(SimpleNamespace):
+class Result:
     """Model for Results.
 
     Please note that this class only describes the required fields. For the
@@ -44,8 +44,11 @@ class Result(SimpleNamespace):
             experiments of the input qobj
     """
 
+    _metadata = {}
+
     def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
                  results, date=None, status=None, header=None, **kwargs):
+        self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.qobj_id = qobj_id
@@ -58,7 +61,7 @@ class Result(SimpleNamespace):
             self.status = status
         if header is not None:
             self.header = header
-        self.__dict__.update(kwargs)
+        self._metadata.update(kwargs)
 
     def to_dict(self):
         out_dict = {
@@ -69,13 +72,20 @@ class Result(SimpleNamespace):
             'success': self.success,
             'results': [x.to_dict() for x in self.results]
         }
-        for field in self.__dict__.keys():
-            if field not in ['backend_name', 'backend_version', 'qobj_id',
-                             'job_id', 'success', 'results']:
-                out_dict[field] = getattr(self, field)
-            elif field == 'header':
-                out_dict[field] = self.header.to_dict()
+        if hasattr(self, 'date'):
+            out_dict['date'] = self.date
+        if hasattr(self, 'status'):
+            out_dict['status'] = self.status
+        if hasattr(self, 'header'):
+            out_dict[field] = self.header.to_dict()
+        out_dict.update(self._metadata)
         return out_dict
+
+    def __getattr__(self, name):
+        try:
+            return self._metadata[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     @classmethod
     def from_dict(cls, data):
@@ -85,31 +95,6 @@ class Result(SimpleNamespace):
         if 'header' in in_data:
             in_data['header'] = QobjHeader.from_dict(in_data.pop('header'))
         return cls(**in_data)
-
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        args = [self.backend_name, self.backend_version,
-                self.qobj_id, self.job_id, self.success,
-                self.results]
-        if hasattr(self, 'date'):
-            args.append(self.date)
-        else:
-            args.append(None)
-        if hasattr(self, 'status'):
-            args.append(self.status)
-        else:
-            args.append(None)
-        if hasattr(self, 'header'):
-            args.append(self.header)
-        else:
-            args.append(None)
-        state = self.to_dict()
-        return (self.__class__, tuple(args), state)
 
     def data(self, experiment=None):
         """Get the raw data for an experiment.
