@@ -134,7 +134,7 @@ class SamplePulse(Pulse):
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and np.allclose(self.samples, other.samples,
-                                                     rtol=other.epsilon,
+                                                     rtol=0,
                                                      atol=self.epsilon)
 
     def __hash__(self) -> int:

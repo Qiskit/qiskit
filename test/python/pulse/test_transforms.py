@@ -143,7 +143,7 @@ class TestCompressTransform(QiskitTestCase):
         """Test sample pulses with tolerance."""
         schedule = Schedule()
         schedule += Play(SamplePulse([0.0, 0.1001], epsilon=1e-3), DriveChannel(0))
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
+        schedule += Play(SamplePulse([0.0, 0.1], epsilon=1e-3), DriveChannel(1))
 
         compressed_schedule = compress_pulses(schedule)
         original_pulse_ids = get_pulse_ids(schedule)
