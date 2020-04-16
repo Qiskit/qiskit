@@ -15,6 +15,7 @@
 """The Pauli expansion circuit module."""
 
 from typing import Optional, Callable, List, Union
+from functools import reduce
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -22,8 +23,7 @@ from qiskit.circuit import ParameterVector
 from qiskit.extensions.standard import HGate
 from qiskit.util import deprecate_arguments
 
-from .data_mapping import self_product
-from .n_local import NLocal
+from ..n_local.n_local import NLocal
 
 
 class PauliExpansion(NLocal):
@@ -151,3 +151,17 @@ class PauliExpansion(NLocal):
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
+
+
+def self_product(x: np.ndarray) -> float:
+    """
+    Define a function map from R^n to R.
+
+    Args:
+        x: data
+
+    Returns:
+        float: the mapped value
+    """
+    coeff = x[0] if len(x) == 1 else reduce(lambda m, n: m * n, np.pi - x)
+    return coeff
