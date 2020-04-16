@@ -43,6 +43,7 @@ class TestBuilder(QiskitTestCase):
 class TestContexts(TestBuilder):
     """test context builder contexts."""
     def test_align_sequential(self):
+        """Test the sequential alignment context."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
@@ -63,6 +64,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_align_left(self):
+        """Test the left alignment context."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -86,6 +88,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_align_right(self):
+        """Test the right alignment context."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -110,6 +113,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_group(self):
+        """Test the grouping context."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
@@ -129,6 +133,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_inline(self):
+        """Test the inlining context."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
@@ -149,7 +154,10 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_transpiler_settings(self):
-        """Test that two cx gates are optimized away with higher optimization level"""
+        """Test the transpiler settings context.
+
+        Tests that two cx gates are optimized away with higher optimization level.
+        """
         twice_cx_qc = circuit.QuantumCircuit(2)
         twice_cx_qc.cx(0, 1)
         twice_cx_qc.cx(0, 1)
@@ -167,6 +175,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(len(schedule.instructions), 0)
 
     def test_scheduler_settings(self):
+        """Test the circuit scheduler settings context."""
         inst_map = pulse.InstructionScheduleMap()
         d0 = pulse.DriveChannel(0)
         test_x_sched = pulse.Schedule()
@@ -185,6 +194,7 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, test_x_sched)
 
     def test_phase_offset(self):
+        """Test the phase offset context."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -200,7 +210,8 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
-    def test_frequency_offset(self):  # pylint: disable=no-member
+    def test_frequency_offset(self):
+        """Test the frequency offset context."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -209,14 +220,15 @@ class TestContexts(TestBuilder):
                 pulse.delay(d0, 10)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
+        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
 
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
-    def test_phase_compensated_frequency_offset(self):  # pylint: disable=no-member
+    def test_phase_compensated_frequency_offset(self):
+        """Test that the phase offset context properly compensates for phase accumulation."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -225,10 +237,10 @@ class TestContexts(TestBuilder):
                 pulse.delay(d0, 10)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
+        reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
         reference += instructions.Delay(10, d0)
         reference += instructions.ShiftPhase(-1e9*10/self.configuration.dt, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
 
         self.assertEqual(schedule, reference)
 
@@ -237,6 +249,7 @@ class TestInstructions(TestBuilder):
     """test context builder instructions."""
 
     def test_delay(self):
+        """Test delay instruction."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -249,6 +262,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_play_parametric_pulse(self):
+        """Test play instruction with parametric pulse."""
         d0 = pulse.DriveChannel(0)
         test_pulse = pulse_lib.ConstantPulse(10, 1.0)
 
@@ -262,6 +276,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_play_sample_pulse(self):
+        """Test play instruction with sample pulse."""
         d0 = pulse.DriveChannel(0)
         test_pulse = pulse_lib.SamplePulse([0.0, 0.0])
 
@@ -275,6 +290,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_play_array_pulse(self):
+        """Test play instruction on an array directly."""
         d0 = pulse.DriveChannel(0)
         test_array = np.array([0., 0.], dtype=np.complex_)
 
@@ -289,6 +305,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_acquire_memory_slot(self):
+        """Test acquire instruction into memory slot."""
         acquire0 = pulse.AcquireChannel(0)
         mem0 = pulse.MemorySlot(0)
 
@@ -302,6 +319,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_acquire_register_slot(self):
+        """Test acquire instruction into register slot."""
         acquire0 = pulse.AcquireChannel(0)
         reg0 = pulse.RegisterSlot(0)
 
@@ -315,6 +333,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_set_frequency(self):
+        """Test set frequency instruction."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -328,6 +347,7 @@ class TestInstructions(TestBuilder):
 
     @unittest.expectedFailure
     def test_shift_frequency(self):  # pylint: disable=no-member
+        """Test shift frequency instruction."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -335,12 +355,13 @@ class TestInstructions(TestBuilder):
             pulse.shift_frequency(d0, 0.1e9)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(0.1e9, d0)
+        reference += instructions.ShiftFrequency(0.1e9, d0)  # pylint: disable=no-member
 
         self.assertEqual(schedule, reference)
 
     @unittest.expectedFailure
     def test_set_phase(self):  # pylint: disable=no-member
+        """Test set phase instruction."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -348,11 +369,12 @@ class TestInstructions(TestBuilder):
             pulse.set_phase(d0, 3.14)
 
         reference = pulse.Schedule()
-        reference += instructions.SetPhase(3.14, d0)
+        reference += instructions.SetPhase(3.14, d0)  # pylint: disable=no-member
 
         self.assertEqual(schedule, reference)
 
     def test_shift_phase(self):
+        """Test shift phase instruction."""
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
@@ -365,7 +387,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_snapshot(self):
-
+        """Test snapshot instruction."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.snapshot('test', 'state')
@@ -376,6 +398,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_call_schedule(self):
+        """Test calling schedule instruction."""
         schedule = pulse.Schedule()
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
@@ -399,6 +422,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_call_circuit(self):
+        """Test calling circuit instruction."""
         inst_map = self.inst_map
         reference = inst_map.get('u1', (0,), 0.0)
 
@@ -424,6 +448,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_barrier(self):
+        """Test barrier instruction."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         test_pulse = pulse_lib.ConstantPulse(10, 1.0)
@@ -457,11 +482,13 @@ class TestInstructions(TestBuilder):
 class TestUtilities(TestBuilder):
     """test context builder utilities."""
     def test_current_backend(self):
+        """Test getting active builder backend."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             self.assertEqual(pulse.current_backend(), self.backend)
 
     def test_append_block(self):
+        """Test appending a block to the active builder."""
         d0 = pulse.DriveChannel(0)
         block = pulse.Schedule()
         block += instructions.Delay(10, d0)
@@ -473,6 +500,7 @@ class TestUtilities(TestBuilder):
         self.assertEqual(schedule, block)
 
     def test_append_instruction(self):
+        """Test appending an instruction to the active builder."""
         d0 = pulse.DriveChannel(0)
         instruction = instructions.Delay(10, d0)
 
@@ -483,6 +511,7 @@ class TestUtilities(TestBuilder):
         self.assertEqual(schedule, instruction)
 
     def test_qubit_channels(self):
+        """Test getting the qubit channels of the active builder's backend."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             qubit_channels = pulse.qubit_channels(0)
@@ -495,6 +524,7 @@ class TestUtilities(TestBuilder):
                           pulse.ControlChannel(1)})
 
     def test_current_transpiler_settings(self):
+        """Test setting settings of current builder's transpiler."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             self.assertFalse(pulse.current_transpiler_settings())
@@ -503,6 +533,7 @@ class TestUtilities(TestBuilder):
                     pulse.current_transpiler_settings()['test_setting'], 1)
 
     def test_current_circuit_scheduler_settings(self):
+        """Test setting settings of current builder's circuit scheduler."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             self.assertFalse(pulse.current_circuit_scheduler_settings())
@@ -528,6 +559,7 @@ class TestMacros(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_delay_qubit(self):
+        """Test delaying on a qubit macro."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.delay_qubits(0, 10)
@@ -548,6 +580,7 @@ class TestMacros(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_delay_qubits(self):
+        """Test delaying on multiple qubits to make sure we don't insert delays twice."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.delay_qubits([0, 1], 10)
@@ -578,6 +611,7 @@ class TestGates(TestBuilder):
     """test context builder gates."""
 
     def test_cx(self):
+        """Test cx gate."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.cx(0, 1)
@@ -589,6 +623,7 @@ class TestGates(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_u1(self):
+        """Test u1 gate."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.u1(0, np.pi)
@@ -600,6 +635,7 @@ class TestGates(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_u2(self):
+        """Test u2 gate."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.u2(0, np.pi, 0)
@@ -611,6 +647,7 @@ class TestGates(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_u3(self):
+        """Test u3 gate."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.u3(0, np.pi, 0, np.pi/2)
@@ -622,6 +659,8 @@ class TestGates(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_x(self):
+
+        """Test x gate."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             pulse.x(0)
@@ -646,6 +685,7 @@ class TestGates(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_measure(self):
+        """Test pulse measurement macro against circuit measurement and ensure agreement."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             with pulse.align_sequential():
@@ -665,7 +705,7 @@ class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
 
     def test_complex_build(self):
-        """Test a general program build."""
+        """Test a general program build with nested contexts, circuits and macros."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -736,6 +776,7 @@ class TestBuilderComposition(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_default_alignment_left(self):
+        """Test default left alignment setting."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(0)
 
@@ -754,6 +795,7 @@ class TestBuilderComposition(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_default_alignment_right(self):
+        """Test default right alignment setting."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(0)
 
@@ -772,6 +814,7 @@ class TestBuilderComposition(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_default_alignment_sequential(self):
+        """Test default sequential alignment setting."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(0)
 
