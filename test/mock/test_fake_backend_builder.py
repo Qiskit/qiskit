@@ -13,12 +13,11 @@
 # that they have been altered from the originals.
 
 """Test of fake backend generation."""
-
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
 
 
-class FakeBackendBuilderTest(QiskitTestCase):
+class TestFakeBackendBuilder(QiskitTestCase):
     """Fake backend builder test."""
 
     def test_default_parameters(self):
@@ -83,8 +82,10 @@ class FakeBackendBuilderTest(QiskitTestCase):
         fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
         cmap = fake_backend.configuration().coupling_map
         target = [
-            [0, 1], [1, 2], [2, 3], [0, 4], [2, 6],
-            [4, 5], [5, 6], [6, 7], [5, 9], [8, 9]
+            [0, 1], [0, 4], [1, 2], [1, 5],
+            [2, 3], [2, 6], [3, 7], [4, 5],
+            [4, 8], [5, 6], [5, 9], [6, 7],
+            [8, 9]
         ]
         for couple in cmap:
             with self.subTest(coupling=couple):
@@ -100,8 +101,8 @@ class FakeBackendBuilderTest(QiskitTestCase):
         self.assertEqual(configuration.n_qubits, 10)
         self.assertEqual(configuration.meas_map, [list(range(10))])
         self.assertEqual(len(configuration.hamiltonian['qub']), 10)
-        self.assertEqual(len(configuration.hamiltonian['vars']), 30)
-        self.assertEqual(len(configuration.u_channel_lo), 10)
+        self.assertEqual(len(configuration.hamiltonian['vars']), 33)
+        self.assertEqual(len(configuration.u_channel_lo), 13)
         self.assertEqual(len(configuration.meas_lo_range), 10)
         self.assertEqual(len(configuration.qubit_lo_range), 10)
 
@@ -110,7 +111,7 @@ class FakeBackendBuilderTest(QiskitTestCase):
         fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
         defaults = fake_backend.defaults()
 
-        self.assertEqual(len(defaults.cmd_def), 41)
+        self.assertEqual(len(defaults.cmd_def), 44)
         self.assertEqual(len(defaults.meas_freq_est), 10)
         self.assertEqual(len(defaults.qubit_freq_est), 10)
 

@@ -104,7 +104,7 @@ class FakeBackendBuilder:
         return self.coupling_map if self.coupling_map else self._generate_cmap()
 
     def _generate_cmap(self) -> List[List[int]]:
-        """Generate Almaden like coupling map."""
+        """Generate default grid-like coupling map."""
         cmap = []
         grid_size = int(np.ceil(np.sqrt(self.n_qubits)))
 
@@ -114,8 +114,7 @@ class FakeBackendBuilder:
                     qubit1 = column + row * grid_size
                     qubit2 = qubit1 + 1
                     cmap.append([qubit1, qubit2])
-                if row + 1 < grid_size and (column + row) % 2 == 0\
-                        and column + (row + 1) * grid_size < self.n_qubits:
+                if row + 1 < grid_size and column + (row + 1) * grid_size < self.n_qubits:
                     qubit1 = column + row * grid_size
                     qubit2 = qubit1 + grid_size
                     cmap.append([qubit1, qubit2])
@@ -198,7 +197,7 @@ class FakeBackendBuilder:
         qubit_lo_range = [[self.qubit_frequency - .5, self.qubit_frequency + .5]
                           for _ in range(self.n_qubits)]
         meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
-        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i, _ in enumerate(self.cmap)]
+        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i in range(len(self.cmap))]
 
         return PulseBackendConfiguration(
             backend_name=self.name,
@@ -212,7 +211,7 @@ class FakeBackendBuilder:
             open_pulse=True,
             memory=False,
             max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            gates=[],
             coupling_map=self.cmap,
             n_registers=self.n_qubits,
             n_uchannels=self.n_qubits,
@@ -326,19 +325,6 @@ class FakeBackendBuilder:
             'pulse_library': pulse_library,
             'cmd_def': cmd_def
         })
-
-    def dump(self, folder: str):
-        """Dumps backend configuration files to specifier folder."""
-        with open('{0}/props_{1}.json'.format(folder, self.name), 'w') as file:
-            json.dump(self.build_props().to_dict(), file, indent=4, sort_keys=True)
-
-        with open('{0}/conf_{1}.json'.format(folder, self.name), 'w') as file:
-            json.dump(self.build_conf().to_dict(), file, indent=4, sort_keys=True)
-
-        with open('{0}/defs_{1}.json'.format(folder, self.name), 'w') as file:
-            json.dump(self.build_defaults().to_dict(), file,
-                      indent=4, sort_keys=True,
-                      default=lambda o: '')
 
     def build(self):
         """Builds fake backend with specified parameters."""
