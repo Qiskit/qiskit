@@ -133,11 +133,12 @@ import collections
 import contextvars
 import functools
 import itertools
-import numpy as np
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
                     Iterable, Mapping, Set, Tuple, TypeVar,
                     Union)
+
+import numpy as np
 
 import qiskit.extensions.standard as gates
 import qiskit.circuit as circuit
@@ -152,18 +153,16 @@ from qiskit.pulse.schedule import Schedule
 
 
 #: contextvars.ContextVar[BuilderContext]: current builder
-BUILDER_CONTEXT = contextvars.ContextVar("backend")
+BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
-T = TypeVar('T')
-
-
-def _compile_lazy_circuit_before(fn: Callable[...,  T]) -> Callable[...,  T]:
+T = TypeVar('T')  # pylint: disable=invalid-name
+def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]:
     """Decorator thats schedules and calls the current circuit executing
     the decorated function."""
-    @functools.wraps(fn)
+    @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         self.compile_lazy_circuit()
-        return fn(self, *args, **kwargs)
+        return function(self, *args, **kwargs)
     return wrapper
 
 
@@ -173,18 +172,28 @@ class _PulseBuilder():
     def __init__(self,
                  backend,
                  entry_block: Schedule = None,
-                 alignment: Union[str, Callable] = 'left',
-                 transpiler_settings: Mapping = None,
-                 circuit_scheduler_settings: Mapping = None):
+                 default_alignment: Union[str, Callable] = 'left',
+                 default_transpiler_settings: Mapping = None,
+                 default_circuit_scheduler_settings: Mapping = None):
         """Initialize builder context.
 
         This is not a public class
 
         Args:
-            backend (BaseBackend):
+            backend (BaseBackend): Input backend to use in builder.
+            entry_block: Initital schedule block to build off of.
+            default_alignment: Default scheduling alignment for builder.
+                One of 'left', 'right', 'sequential' or an alignment
+                contextmanager.
+            default_transpiler_settings: Default settings for the transpiler.
+            default_circuit_scheduler_settings: Default settings for the
+                circuit to pulse scheduler.
         """
         #: BaseBackend: Backend instance for context builder.
         self.backend = backend
+
+        #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
+        self._backend_ctx_token = None
 
         #: pulse.Schedule: Current current schedule of BuilderContext.
         self._block = None
@@ -193,15 +202,15 @@ class _PulseBuilder():
         self._lazy_circuit = self.new_circuit()
 
         # ContextManager: Default alignment context.
-        self._default_alignment_context = align(alignment)
+        self._default_alignment_context = align(default_alignment)
 
-        if transpiler_settings is None:
-            transpiler_settings = {}
-        self._transpiler_settings = transpiler_settings
+        if default_transpiler_settings is None:
+            default_transpiler_settings = {}
+        self._transpiler_settings = default_transpiler_settings
 
-        if circuit_scheduler_settings is None:
-            circuit_scheduler_settings = {}
-        self._circuit_scheduler_settings = {}
+        if default_circuit_scheduler_settings is None:
+            default_circuit_scheduler_settings = {}
+        self._circuit_scheduler_settings = default_circuit_scheduler_settings
 
         if entry_block is None:
             entry_block = Schedule()
@@ -210,9 +219,9 @@ class _PulseBuilder():
 
         self.set_current_block(Schedule())
 
-    def __enter__(self):
+    def __enter__(self) -> '_PulseBuilder':
         """Enter Builder Context."""
-        self._backend_ctx_token = BUILDER_CONTEXT.set(self)
+        self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
         self._default_alignment_context.__enter__()
         return self
 
@@ -221,11 +230,11 @@ class _PulseBuilder():
         """Exit Builder Context."""
         self._default_alignment_context.__exit__(exc_type, exc_val, exc_tb)
         self.compile()
-        BUILDER_CONTEXT.reset(self._backend_ctx_token)
+        BUILDER_CONTEXTVAR.reset(self._backend_ctx_token)
 
     @property
     def block(self) -> Schedule:
-        """The current block."""
+        """Return the current block of this bulder."""
         return self._block
 
     @property
@@ -235,6 +244,7 @@ class _PulseBuilder():
 
     @property
     def transpiler_settings(self) -> Mapping:
+        """The current builder transpiler settings."""
         return self._transpiler_settings
 
     @transpiler_settings.setter
@@ -245,6 +255,7 @@ class _PulseBuilder():
 
     @property
     def circuit_scheduler_settings(self) -> Mapping:
+        """The current builder circuit to pulse scheduler settings."""
         return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
@@ -281,16 +292,18 @@ class _PulseBuilder():
 
     def compile_lazy_circuit(self):
         """Call a QuantumCircuit."""
-        if len(self._lazy_circuit):
+        # check by length, can't check if QuantumCircuit is None
+        # so disable pylint error.
+        if len(self._lazy_circuit):  # pylint: disable=len-as-condition
             import qiskit.compiler as compiler
 
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self.new_circuit()
-            circuit = compiler.transpile(lazy_circuit,
-                                         self.backend,
-                                         **self.transpiler_settings)
-            sched = compiler.schedule(circuit,
+            transpiled_circuit = compiler.transpile(lazy_circuit,
+                                                    self.backend,
+                                                    **self.transpiler_settings)
+            sched = compiler.schedule(transpiled_circuit,
                                       self.backend,
                                       **self.circuit_scheduler_settings)
             self.call_schedule(sched)
@@ -303,15 +316,53 @@ class _PulseBuilder():
         """Create a new circuit for scheduling."""
         return circuit.QuantumCircuit(self.num_qubits)
 
-    def call_circuit(self, circuit: circuit.QuantumCircuit, lazy=True):
-        self._lazy_circuit.extend(circuit)
-        if not lazy:
+    def call_circuit(self,
+                     circ: circuit.QuantumCircuit,
+                     lazy: bool = True):
+        """Call a circuit in the pulse program.
+
+        The circuit is assumed to be defined on physical qubits.
+
+        If ``lazy == True`` this circuit will extend a lazily constructed
+        quantum circuit. When the given context changes breaking the circuit
+        assumptions such as adding a pulse instruction, changing the alignment
+        context, or using new scheduling instructions the circuit will be
+        transpiled and pulse scheduled.
+
+        Args:
+            circ: Circuit to call.
+            lazy: If false the circuit will be transpiled and pulse scheduled
+                immediately. Otherwise, it will extend the current lazy circuit
+                as defined above.
+        """
+        if lazy:
+            self._lazy_circuit.extend(circ)
+        else:
+            self.compile_lazy_circuit()
+            self._lazy_circuit.extend(circ)
             self.compile_lazy_circuit()
 
     def call_gate(self,
-                  gate: circuit.Gate, qubits: Tuple[int, ...],
-                  lazy=True):
-        """Lower a circuit gate to pulse instruction."""
+                  gate: circuit.Gate,
+                  qubits: Tuple[int, ...],
+                  lazy: bool = True):
+        """Call the circuit ``gate`` in the pulse program.
+
+        The qubits are assumed to be defined on physical qubits.
+
+        If ``lazy == True`` this gate will extend a lazily constructed
+        quantum circuit. When the given context changes breaking the circuit
+        assumptions such as adding a pulse instruction, changing the alignment
+        context, or using new scheduling instructions the circuit will be
+        transpiled and pulse scheduled.
+
+        Args:
+            gate: Gate to call.
+            qubits: Qubits to call gate on.
+            lazy: If false the circuit will be transpiled and pulse scheduled
+                immediately. Otherwise, it will extend the current lazy circuit
+                as defined above.
+        """
         try:
             iter(qubits)
         except TypeError:
@@ -319,48 +370,64 @@ class _PulseBuilder():
 
         qc = circuit.QuantumCircuit(self.num_qubits)
         qc.append(gate, qargs=qubits)
-        self.call_circuit(qc)
+        self.call_circuit(qc, lazy=lazy)
 
 
-def build(backend, schedule: Schedule,
-          alignment: str = 'left',
-          transpiler_settings: Dict[str, Any] = None,
-          circuit_scheduler_settings: Dict[str, Any] = None):
+def build(backend,
+          schedule: Schedule,
+          default_alignment: str = 'left',
+          default_transpiler_settings: Dict[str, Any] = None,
+          default_circuit_scheduler_settings: Dict[str, Any] = None
+          ) -> ContextManager[None]:
     """
-    A context manager for the pulse DSL.
+    A context manager for the imperative pulse builder DSL.
 
     Args:
-        backend (BaseBackend): a qiskit backend
-        schedule: a *mutable* pulse Schedule
-        alignment: Default alignment context. One of ``left``, ``right``,
-            ``sequential``, or an alignment context instance.
-        transpiler_settings: Settings for the transpiler.
-        circuit_scheduler_settings: Settings for the circuit scheduler.
+        backend (BaseBackend): a Qiskit backend.
+        schedule: a *mutable* pulse Schedule in which to build your pulse program.
+        default_alignment: Default scheduling alignment for builder.
+            One of ``left``, ``right``, ``sequential`` or an alignment
+            contextmanager.
+        default_transpiler_settings: Default settings for the transpiler.
+        default_circuit_scheduler_settings: Default settings for the
+            circuit to pulse scheduler.
+
+    Returns:
+        A new builder context which has the current builder inititalized.
     """
-    return _PulseBuilder(backend,
-                         schedule,
-                         alignment=alignment,
-                         transpiler_settings=transpiler_settings,
-                         circuit_scheduler_settings=circuit_scheduler_settings)
+    return _PulseBuilder(
+        backend,
+        schedule,
+        default_alignment=default_alignment,
+        default_transpiler_settings=default_transpiler_settings,
+        default_circuit_scheduler_settings=default_circuit_scheduler_settings)
 
 
 # Builder Utilities ############################################################
 def _current_builder() -> _PulseBuilder:
-    """Get the current builder in the current context."""
+    """Get the current builder in the current context.
+
+    Returns:
+        The current active builder in this context.
+
+    Raises:
+        exceptions.PulseError: If a pulse builder function is called outside of a
+            builder context.
+    """
     try:
-        return BUILDER_CONTEXT.get()
+        return BUILDER_CONTEXTVAR.get()
     except LookupError as err:
         raise exceptions.PulseError(
-            'A Pulse context builder method was called outside of '
+            'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
-            'context, eg., "with build(backend, context): ...".') from err
+            'context, eg., "with build(backend, schedule): ...".') from err
 
 
 def current_backend():
     """Get the backend of the current context.
 
     Returns:
-        BaseBackend
+        BaseBackend: The current backend in the current builder context.
     """
     return _current_builder().backend
 
@@ -388,6 +455,7 @@ def current_transpiler_settings() -> Dict[str, Any]:
     return _current_builder().transpiler_settings
 
 
+# pylint: disable=invalid-name
 def current_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return current context circuit scheduler settings."""
     return _current_builder().circuit_scheduler_settings
@@ -395,15 +463,31 @@ def current_circuit_scheduler_settings() -> Dict[str, Any]:
 
 # Contexts ###########################################################
 def _transform_context(transform: Callable[[Schedule], Schedule],
-                       **decorator_kwargs: Any,
+                       **transform_kwargs: Any,
                        ) -> Callable[..., ContextManager[None]]:
-    """A tranform context.
+    """A tranform context generator decorator
+
+    Decorator accepts a transformation function, and then decorates a new
+    ContextManager function.
+
+    When the context is entered it creates a new schedule, sets it as the
+    active block and then yields.
+
+    Finally it will reset the initial active block after exiting
+    the context and apply the decorated transform function to the
+    context Schedule. The output transformed schedule will then be
+    appended to the initial active block.
 
     Args:
         transform: Transform to decorate as context.
+        transform_kwargs: Additional override keyword arguments for the
+            decorated transform.
+
+    Returns:
+        A function that generates a new transformation ``ContextManager``.
     """
     @functools.wraps(transform)
-    def wrap(fn):
+    def wrap(function):  # pylint: disable=unused-argument
         @contextmanager
         def wrapped_transform(*args, **kwargs):
             builder = _current_builder()
@@ -417,7 +501,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
                 transformed_block = transform(transform_block,
                                               *args,
                                               **kwargs,
-                                              **decorator_kwargs)
+                                              **transform_kwargs)
                 builder.set_current_block(current_block)
                 builder.append_block(transformed_block)
         return wrapped_transform
@@ -444,8 +528,15 @@ def align(alignment: str = 'left') -> ContextManager[None]:
     """General alignment context.
 
     Args:
-        alignment: Alignment policy to follow.
+        alignment: Alignment scheduling policy to follow.
             One of "left", "right" or "sequential".
+
+    Returns:
+        An alignment context that will schedule the instructions it contains
+        according to the selected alignment policy upon exiting the context.
+
+    Raises:
+        exceptions.PulseError: If an unsupported alignment context is selected.
     """
     if alignment == 'left':
         return align_left()
@@ -484,34 +575,38 @@ def inline() -> ContextManager[None]:
 
 
 @_transform_context(transforms.pad, mutate=True)
-def pad(*channels) -> ContextManager[None]:
-    """Pad all availale timeslots with delays upon exiting context."""
+def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
+    """Pad all availale timeslots with delays upon exiting context.
+    Args:
+        chs: Channels to pad with delays. Defaults to all channels in context
+            if none are supplied.
+    """
 
 
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the current current tranpiler settings for this context."""
     builder = _current_builder()
-    current_transpiler_settings = builder.transpiler_settings
+    curr_transpiler_settings = builder.transpiler_settings
     builder.transpiler_settings = collections.ChainMap(
-        settings, current_transpiler_settings)
+        settings, curr_transpiler_settings)
     try:
         yield
     finally:
-        builder.transpiler_settings = current_transpiler_settings
+        builder.transpiler_settings = curr_transpiler_settings
 
 
 @contextmanager
 def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     """Set the current current circuit scheduling settings for this context."""
     builder = _current_builder()
-    current_circuit_scheduler_settings = builder.circuit_scheduler_settings
+    curr_circuit_scheduler_settings = builder.circuit_scheduler_settings
     builder.circuit_scheduler_settings = collections.ChainMap(
-        settings, current_circuit_scheduler_settings)
+        settings, curr_circuit_scheduler_settings)
     try:
         yield
     finally:
-        builder.circuit_scheduler_settings = current_circuit_scheduler_settings
+        builder.circuit_scheduler_settings = curr_circuit_scheduler_settings
 
 
 @contextmanager
@@ -522,6 +617,9 @@ def phase_offset(channel: channels.PulseChannel,
     Args:
         channel: Channel to offset phase of.
         phase: Amount of phase offset in radians.
+
+    Yields:
+        None
     """
     shift_phase(channel, phase)
     try:
@@ -539,9 +637,12 @@ def frequency_offset(channel: channels.PulseChannel,
 
     Args:
         channel: Channel to offset phase of.
-        phase: Amount of frequency offset in Hz.
+        frequency: Amount of frequency offset in Hz.
         compensate_phase: Compensate for accumulated phase in accumulated with
             respect to the channels frame at its initial frequency.
+
+    Yields:
+        None
     """
     builder = _current_builder()
     t0 = builder.block.duration
@@ -618,13 +719,18 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
         channels_or_qubits: Channels or qubits to barrier.
 
     .. todo:: Implement this as a proper instruction.
+
+    Raises:
+        exceptions.PulseError: If input is not a ``Channel`` or an integer
+            representing a qubit index.
+        NotImplementedError: Barrier has not yet been implemented.
     """
-    channels = set()
+    chans = set()
     for channel_or_qubit in channels_or_qubits:
         if isinstance(channel_or_qubit, int):
-            channels += qubit_channels(channel_or_qubit)
+            chans += qubit_channels(channel_or_qubit)
         elif isinstance(channel_or_qubit, channels.Channel):
-            channels += channel_or_qubit
+            chans.add(channel_or_qubit)
         else:
             raise exceptions.PulseError(
                 '{} is not a "Channel" or '
@@ -643,13 +749,20 @@ def call_schedule(schedule: Schedule):
     _current_builder().call_schedule(schedule)
 
 
-def call_circuit(circuit: circuit.QuantumCircuit):
-    """Call a quantum ``circuit`` in the builder context."""
-    _current_builder().call_circuit(circuit)
+def call_circuit(circ: circuit.QuantumCircuit):
+    """Call a quantum ``circuit`` within the current builder context."""
+    _current_builder().call_circuit(circ, lazy=True)
 
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
-    """Call the ``target`` within this builder context."""
+    """Call the ``target`` within the current builder context.
+
+    Args:
+        target: Target circuit or pulse schedule to call.
+
+    Raises:
+        exceptions.PulseError: If the input ``target`` type is not supported.
+    """
     if isinstance(target, circuit.QuantumCircuit):
         call_circuit(target)
     elif isinstance(target, Schedule):
@@ -663,6 +776,16 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 def measure(qubit: int,
             register: Union[channels.MemorySlot, channels.RegisterSlot] = None,
             ) -> Union[channels.MemorySlot, channels.RegisterSlot]:
+    """Measure a qubit within the current builder context.
+
+    Args:
+        qubit: Physical qubit to measure.
+        register: Register to store result in. If not selected the current
+            behavior is to return the :class:`MemorySlot` with the same
+            index as ``qubit``. This register will be returned.
+    Returns:
+        The ``register`` the qubit measurement result will be stored in.
+    """
     backend = current_backend()
     if not register:
         register = channels.MemorySlot(qubit)
@@ -678,39 +801,55 @@ def measure(qubit: int,
 
 
 def delay_qubits(qubits: Union[int, Iterable[int]], duration: int):
+    """Insert delays on all of the :class:`channels.Channel` that belong ``qubits``.
+
+    Args:
+        qubits: Physical qubits to delay on. Delays will be inserted based on
+            the channels returned by :function:`qubit_channels`.
+        duration: Duration to delay for.
+    """
     try:
         iter(qubits)
     except TypeError:
         qubits = [qubits]
 
-    channels = set(itertools.chain.from_iterable(qubit_channels(qubit) for
-                                                 qubit in qubits))
+    qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for
+                                                    qubit in qubits))
     with align_left(), group():
-        for channel in channels:
-            delay(channel, duration)
+        for chan in qubit_chans:
+            delay(chan, duration)
 
 
 # Gate instructions ############################################################
 def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...]):
-    """Lower a circuit gate to pulse instruction."""
-    _current_builder().call_gate(gate, qubits)
+    """Call a gate and lower to its corresponding pulse instruction.
+
+    .. note:: If multiple gates are called in a row they may be optimized by the
+        transpiler, depending on the :function:`current_transpiler_settings``.
+    """
+    _current_builder().call_gate(gate, qubits, lazy=True)
 
 
 def cx(control: int, target: int):
+    """Call a cx gate on physical qubits."""
     call_gate(gates.CXGate(), (control, target))
 
 
 def u1(qubit: int, theta: float):
+    """Call a u1 gate on physical qubits."""
     call_gate(gates.U1Gate(theta), qubit)
 
 
 def u2(qubit: int, phi: float, lam: float):
+    """Call a u2 gate on physical qubits."""
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
 def u3(qubit: int, theta: float, phi: float, lam: float):
+    """Call a u3 gate on physical qubits."""
     call_gate(gates.U3Gate(theta, phi, lam), qubit)
 
 
 def x(qubit: int):
+    """Call a x gate on physical qubits."""
     call_gate(gates.XGate(), qubit)

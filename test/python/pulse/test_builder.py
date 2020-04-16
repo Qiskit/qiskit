@@ -434,14 +434,14 @@ class TestInstructions(TestBuilder):
         schedule = pulse.Schedule()
         with pulse.build(self.backend,
                          schedule,
-                         transpiler_settings=transpiler_settings):
+                         default_transpiler_settings=transpiler_settings):
             with pulse.align_right():
                 pulse.call_circuit(u1_qc)
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend,
                          schedule,
-                         transpiler_settings=transpiler_settings):
+                         default_transpiler_settings=transpiler_settings):
             with pulse.align_right():
                 pulse.call(u1_qc)
 
@@ -782,7 +782,7 @@ class TestBuilderComposition(TestBuilder):
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule,
-                         alignment='left'):
+                         default_alignment='left'):
             pulse.delay(d0, 10)
             pulse.delay(d1, 20)
 
@@ -801,7 +801,7 @@ class TestBuilderComposition(TestBuilder):
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule,
-                         alignment='right'):
+                         default_alignment='right'):
             pulse.delay(d0, 10)
             pulse.delay(d1, 20)
 
@@ -820,7 +820,7 @@ class TestBuilderComposition(TestBuilder):
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule,
-                         alignment='sequential'):
+                         default_alignment='sequential'):
             pulse.delay(d0, 10)
             pulse.delay(d1, 20)
 
