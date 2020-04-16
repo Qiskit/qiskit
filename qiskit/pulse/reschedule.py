@@ -14,8 +14,8 @@
 
 """Deprecated transforms. Moved to "qiskit.pulse.transforms"."""
 import warnings
-
-from .transforms import *
+# pylint: disable=unused-import
+from .transforms import align_measures, add_implicit_acquires, pad
 
 warnings.warn('This module has been moved to "qiskit.pulse.transforms".',
               DeprecationWarning)
