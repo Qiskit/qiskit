@@ -31,6 +31,7 @@ from typing import Tuple, List, Iterable, Callable, Optional, Union
 import numpy as np
 
 from ..channels import Channel
+from ..exceptions import PulseError
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
 from ..timeslots import Interval, Timeslot, TimeslotCollection
@@ -57,6 +58,9 @@ class Instruction(ScheduleComponent, ABC):
                       Deprecated: the first argument used to be the Command.
             channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
+
+        Raises:
+            PulseError: If duration is negative.
         """
         self._command = None
         if not isinstance(duration, (int, np.integer)):
@@ -66,6 +70,9 @@ class Instruction(ScheduleComponent, ABC):
             if name is None:
                 name = self.command.name
             duration = self.command.duration
+        if duration < 0:
+            raise PulseError("{} duration of {} is invalid: must be nonnegative."
+                             "".format(self.__class__.__name__, duration))
         self._duration = duration
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
