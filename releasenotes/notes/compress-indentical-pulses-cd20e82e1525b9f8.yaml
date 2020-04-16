@@ -6,3 +6,10 @@ features:
     a pulse in a pulse schedule that improves the usage of waveform
     memory in hardware and reduce confusion of pulse
     users running into waveform limits on hardware.
+    For example::
+
+        schedule = Schedule()
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+
+        compressed_schedule = compress_pulses(schedule)
