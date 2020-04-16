@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Two transpiler passes have been added to ``qiskit.transpiler.passes.basis``.
+    The first, ``UnrollCustomDefinitions``, unrolls all instructions in the
+    circuit according to their ``.definition`` property, stopping when reaching
+    either the specified ``basis_gates`` or a set of gates in the provided
+    ``EquivalenceLibrary``. The second, ``BasisTranslator``, uses the set of
+    translations in the provided ``EquivalenceLibrary`` to re-write circuit
+    instructions in a specified basis.

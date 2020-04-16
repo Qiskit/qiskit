@@ -55,6 +55,7 @@ Basis Change
    Unroll3qOrMore
    Decompose
    UnrollCustomDefinitions
+   BasisTranslator
 
 Optimizations
 =============
@@ -124,6 +125,7 @@ from .basis import Decompose
 from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
+from .basis import BasisTranslator
 
 # optimization
 from .optimization import Optimize1qGates
