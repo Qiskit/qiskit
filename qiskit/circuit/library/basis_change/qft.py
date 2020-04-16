@@ -96,8 +96,18 @@ class QFT(QuantumCircuit):
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
+        self._data = None
         self.num_qubits = num_qubits
-        self._build()
+
+    def qasm(self, formatted=False, filename=None):
+        if self._data is None:
+            self._build()
+        return super().qasm(formatted, filename)
+
+    def append(self, instruction, qargs=None, cargs=None):
+        if self._data is None:
+            self._build()
+        return super().append(instruction, qargs, cargs)
 
     @property
     def num_qubits(self) -> int:
