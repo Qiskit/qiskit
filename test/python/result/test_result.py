@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.result import models
 from qiskit.result import marginal_counts
 from qiskit.result import Result
+from qiskit.qobj import QobjExperimentHeader
 from qiskit.test import QiskitTestCase
 
 
@@ -50,8 +51,8 @@ class TestResultOperations(QiskitTestCase):
         raw_counts = {'0x0': 4, '0x2': 10}
         processed_counts = {'0 0 00': 4, '0 0 10': 10}
         data = models.ExperimentResultData(counts=dict(**raw_counts))
-        exp_result_header = dict(creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]],
-                                 memory_slots=4)
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4)
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
                                              data=data, header=exp_result_header)
         result = Result(results=[exp_result], **self.base_result_args)
@@ -70,21 +71,21 @@ class TestResultOperations(QiskitTestCase):
         raw_counts_1 = {'0x0': 5, '0x3': 12, '0x5': 9, '0xD': 6, '0xE': 2}
         processed_counts_1 = {'0000': 5, '0011': 12, '0101': 9, '1101': 6, '1110': 2}
         data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
-        exp_result_header_1 = dict(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
         exp_result_1 = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data_1,
                                                header=exp_result_header_1)
 
         raw_counts_2 = {'0x1': 0, '0x4': 3, '0x6': 6, '0xA': 1, '0xB': 2}
         processed_counts_2 = {'0001': 0, '0100': 3, '0110': 6, '1010': 1, '1011': 2}
         data_2 = models.ExperimentResultData(counts=dict(**raw_counts_2))
-        exp_result_header_2 = dict(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_header_2 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
         exp_result_2 = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data_2,
                                                header=exp_result_header_2)
 
         raw_counts_3 = {'0xC': 27, '0xF': 20}
         processed_counts_3 = {'1100': 27, '1111': 20}
         data_3 = models.ExperimentResultData(counts=dict(**raw_counts_3))
-        exp_result_header_3 = dict(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_header_3 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
         exp_result_3 = models.ExperimentResult(shots=14, success=True, meas_level=2, data=data_3,
                                                header=exp_result_header_3)
 
@@ -100,7 +101,8 @@ class TestResultOperations(QiskitTestCase):
         """Test that counts are marginalized correctly."""
         raw_counts = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
         data = models.ExperimentResultData(counts=dict(**raw_counts))
-        exp_result_header = dict(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_header = QobjExperimentHeader(creg_sizes=[['c0', 4]],
+                                                 memory_slots=4)
         exp_result = models.ExperimentResult(shots=54, success=True, data=data,
                                              header=exp_result_header)
         result = Result(results=[exp_result], **self.base_result_args)
@@ -113,13 +115,13 @@ class TestResultOperations(QiskitTestCase):
         """Test that a Result object containing counts marginalizes correctly."""
         raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
         data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
-        exp_result_header_1 = dict(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
         exp_result_1 = models.ExperimentResult(shots=54, success=True, data=data_1,
                                                header=exp_result_header_1)
 
         raw_counts_2 = {'0x2': 5, '0x3': 8}
         data_2 = models.ExperimentResultData(counts=dict(**raw_counts_2))
-        exp_result_header_2 = dict(creg_sizes=[['c0', 2]], memory_slots=2)
+        exp_result_header_2 = QobjExperimentHeader(creg_sizes=[['c0', 2]], memory_slots=2)
         exp_result_2 = models.ExperimentResult(shots=13, success=True, data=data_2,
                                                header=exp_result_header_2)
 
@@ -150,8 +152,8 @@ class TestResultOperations(QiskitTestCase):
         no_header_processed_memory = ['0 0 00', '0 0 00', '0 0 10', '0 0 10',
                                       '0 0 10', '0 0 10', '0 0 10']
         data = models.ExperimentResultData(memory=raw_memory)
-        exp_result_header = dict(creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]],
-                                 memory_slots=4)
+        exp_result_header = QobjExperimentHeader(
+            creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4)
         exp_result = models.ExperimentResult(shots=14, success=True, meas_level=2,
                                              memory=True, data=data,
                                              header=exp_result_header)
