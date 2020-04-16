@@ -93,13 +93,11 @@ class QFT(QuantumCircuit):
             name: The name of the circuit.
         """
         super().__init__(name=name)
-
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
-        self._data = None
-
         self.num_qubits = num_qubits
+        self._build()
 
     @property
     def num_qubits(self) -> int:
