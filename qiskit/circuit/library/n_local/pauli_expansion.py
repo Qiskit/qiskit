@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,101 +12,88 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-This module contains the definition of a base class for
-feature map. Several types of commonly used approaches.
-"""
+"""The Pauli expansion circuit module."""
 
 from typing import Optional, Callable, List, Union
-import itertools
-import logging
-
 import numpy as np
-from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import Pauli
 
-from qiskit.aqua.operators import evolution_instruction
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ParameterVector
+from qiskit.extensions.standard import HGate
+from qiskit.util import deprecate_arguments
 
 from .data_mapping import self_product
 from .n_local import NLocal
 
 
-logger = logging.getLogger(__name__)
-
-# pylint: disable=invalid-name
-
-
 class PauliExpansion(NLocal):
-    r"""The Pauli Expansion feature map.
+    r"""The Pauli Expansion circuit.
 
-    Refer to https://arxiv.org/abs/1804.11326 for details.
-    The Pauli Expansion feature map transforms data :math:`\vec{x} \in \mathbb{R}^n`
-    according to the following equation, and then duplicate the same circuit with depth
-    :math:`d` times, where :math:`d` is the depth of the circuit:
+    The Pauli Expansion circuit is a data encoding circuit that transforms input data
+    :math:`\vec{x} \in \mathbb{R}^n` as
 
-    :math:`U_{\Phi(\vec{x})}=\exp\left(i\sum_{S\subseteq [n]}
-    \phi_S(\vec{x})\prod_{i\in S} P_i\right)`
+    .. math::
 
-    where :math:`S \in \{\binom{n}{k}\ combinations,\ k = 1,... n \}, \phi_S(\vec{x}) = x_i` if
-    :math:`k=1`, otherwise :math:`\phi_S(\vec{x}) = \prod_S(\pi - x_j)`, where :math:`j \in S`, and
-    :math:`P_i \in \{ I, X, Y, Z \}`
+        U_{\Phi(\vec{x})}=\exp\left(i\sum_{S\subseteq [n]}
+        \phi_S(\vec{x})\prod_{i\in S} P_i\right)
 
-    Please refer to :class:`FirstOrderExpansion` for the case
-    :math:`k = 1`, :math:`P_0 = Z`
-    and to :class:`SecondOrderExpansion` for the case
-    :math:`k = 2`, :math:`P_0 = Z\ and\ P_1 P_0 = ZZ`.
+    The circuit contains ``reps`` repetitions of this transformation.
+    The variable :math:`P_i \in \{ I, X, Y, Z \}` denotes the Pauli matrices.
+    The index :math:`S` describes connectivities between different qubits or datapoints:
+    :math:`S \in \{\binom{n}{k}\ combinations,\ k = 1,... n \}`. Per default the data-mapping
+    :math:`\phi_S` is
+
+    .. math::
+
+        \phi_S(\vec{x}) = \begin{cases}
+            x_0 \text{ if } k = 1 \\
+            \prod_{j \in S} (\pi - x_j)
+
+    Please refer to :class:`FirstOrderExpansion` for the case :math:`k = 1`, :math:`P_0 = Z`
+    and to :class:`SecondOrderExpansion` for the case :math:`k = 2`, :math:`P_0 = Z` and
+    :math:`P_1 P_0 = ZZ`.
+
+    References:
+        [1]: Havlicek et al. (2018), Supervised learning with quantum enhanced feature spaces.
+            https://arxiv.org/abs/1804.11326.
     """
 
+    @deprecate_arguments({'depth': 'reps'})
     def __init__(self,
                  feature_dimension: int,
-                 depth: int = 2,
+                 reps: int = 2,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  paulis: Optional[List[str]] = None,
                  data_map_func: Callable[[np.ndarray], float] = self_product,
-                 insert_barriers: bool = False) -> None:
+                 insert_barriers: bool = False,
+                 depth: Optional[int] = None,  # pylint: disable=unused-argument
+                 ) -> None:
         """
         Args:
-            feature_dimension: Number of features.
-            depth: The number of repeated circuits. Defaults to 2, has a min. value of 1.
-            entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                or 'sca'), a list of integer-pairs specifying the indices of qubits
-                entangled with one another, or a callable returning such a list provided with
-                the index of the entanglement layer.
-                Default to 'full' entanglement.
-            paulis: A list of strings for to-be-used paulis. Defaults to None.
-                If None, ['Z', 'ZZ'] will be used.
+            feature_dimension: Number of qubits in the circuit.
+            reps: The number of repeated circuits.
+            entanglement: Specifies the entanglement structure. Refer to
+                :class:`~qiskit.circuit.library.NLocal` for detail.
+            paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
+                will be used.
             data_map_func: A mapping function for data x which can be supplied to override the
                 default mapping from :meth:`self_product`.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
+            depth: Deprecated, use ``reps`` instead.
         """
-        paulis = paulis if paulis is not None else ['Z', 'ZZ']
 
-        super().__init__(insert_barriers=insert_barriers, overwrite_block_parameters=False,
-                         entanglement=entanglement)
+        super().__init__(num_qubits=feature_dimension,
+                         reps=reps,
+                         rotation_blocks=HGate(),
+                         entanglement_blocks=[],
+                         entanglement=entanglement,
+                         insert_barriers=insert_barriers)
 
-        self._num_qubits = feature_dimension
-        self._entanglement = entanglement
-        self._pauli_strings = self._build_subset_paulis_string(paulis)
         self._data_map_func = data_map_func
 
-        # define a hadamard layer for convenience
-        hadamards = QuantumCircuit(self.num_qubits)
-        for i in range(self.num_qubits):
-            hadamards.h(i)
-
-        # set the parameters
-        x = ParameterVector('x', length=feature_dimension)
-
-        # iterate over the layers
-        for _ in range(depth):
-            self += hadamards
-            for pauli in self._pauli_strings:
-                coeff = self._data_map_func(self._extract_data_for_rotation(pauli, x))
-                p = Pauli.from_label(pauli)
-                inst = evolution_instruction([[1, p]], coeff, 1)
-                self.append(inst)
+        paulis = paulis or ['Z', 'ZZ']
+        self.entanglement_blocks = [self.pauli_block(pauli) for pauli in paulis]
 
     @property
     def feature_dimension(self) -> int:
@@ -117,38 +104,50 @@ class PauliExpansion(NLocal):
         """
         return self.num_qubits
 
-    def _build_subset_paulis_string(self, paulis):
-        # fill out the paulis to the number of qubits
-        temp_paulis = []
-        for pauli in paulis:
-            len_pauli = len(pauli)
-            for possible_pauli_idx in itertools.combinations(range(self.num_qubits), len_pauli):
-                string_temp = ['I'] * self.num_qubits
-                for idx, _ in enumerate(possible_pauli_idx):
-                    string_temp[-possible_pauli_idx[idx] - 1] = pauli[-idx - 1]
-                temp_paulis.append(''.join(string_temp))
-        # clean up string that can not be entangled.
-        final_paulis = []
-        for pauli in temp_paulis:
-            where_z = np.where(np.asarray(list(pauli[::-1])) != 'I')[0]
-            if len(where_z) == 1:
-                final_paulis.append(pauli)
-            else:
-                is_valid = True
-                for control, target in itertools.combinations(where_z, 2):
-                    if [control, target] not in self.get_entangler_map(2, self.num_qubits,
-                                                                       self.entanglement):
-                        is_valid = False
-                        break
-                if is_valid:
-                    final_paulis.append(pauli)
-                else:
-                    logger.warning("Due to the limited entangler_map, %s is skipped.", pauli)
-
-        logger.info("Pauli terms include: %s", final_paulis)
-        return final_paulis
-
     def _extract_data_for_rotation(self, pauli, x):
         where_non_i = np.where(np.asarray(list(pauli[::-1])) != 'I')[0]
         x = np.asarray(x)
         return x[where_non_i]
+
+    def pauli_block(self, pauli_string):
+        """Get the Pauli block for the feature map circuit."""
+        params = ParameterVector('x', length=self.feature_dimension)
+        time = self._data_map_func(np.asarray(params))
+        return self.pauli_evolution(pauli_string, time)
+
+    def pauli_evolution(self, pauli_string, time):
+        """Get the evolution block for the given pauli string."""
+        # for some reason this is in reversed order
+        pauli_string = pauli_string[::-1]
+
+        # trim the pauli string if identities are included
+        trimmed = []
+        indices = []
+        for i, pauli in enumerate(pauli_string):
+            if pauli != 'I':
+                trimmed += [pauli]
+                indices += [i]
+
+        evo = QuantumCircuit(len(pauli_string))
+
+        if len(trimmed) == 0:
+            return evo
+
+        def basis_change(circuit, inverse=False):
+            for i, pauli in enumerate(pauli_string):
+                if pauli == 'X':
+                    circuit.h(i)
+                elif pauli == 'Y':
+                    circuit.rx(-np.pi / 2 if inverse else np.pi / 2, i)
+
+        def cx_chain(circuit, inverse=False):
+            num_cx = len(indices) - 1
+            for i in reversed(range(num_cx)) if inverse else range(num_cx):
+                circuit.cx(indices[i], indices[i + 1])
+
+        basis_change(evo)
+        cx_chain(evo)
+        evo.u1(2 * time, indices[-1])
+        cx_chain(evo, inverse=True)
+        basis_change(evo, inverse=True)
+        return evo
