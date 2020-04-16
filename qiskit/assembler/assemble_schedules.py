@@ -30,6 +30,7 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 from .run_config import RunConfig
+from ..pulse.transforms import compress_pulses
 
 
 def assemble_schedules(schedules: List[Schedule],
@@ -101,8 +102,9 @@ def _assemble_experiments(
     user_pulselib = {}
     experiments = []
     for idx, schedule in enumerate(schedules):
+        compressed_schedule = compress_pulses(schedule)
         qobj_instructions, max_memory_slot = _assemble_instructions(
-            schedule,
+            compressed_schedule,
             instruction_converter,
             run_config,
             user_pulselib)
