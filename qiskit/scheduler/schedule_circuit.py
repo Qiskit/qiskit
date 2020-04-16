@@ -15,5 +15,5 @@
 """
 Deprecated module. Moved to ``qiskit.pulse.circuit_scheduler.schedule_circuit``.
 """
-
+# pylint: disable=unused-wildcard-import, wildcard-import
 from qiskit.pulse.circuit_scheduler.schedule_circuit import *

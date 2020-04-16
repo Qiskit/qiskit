@@ -14,5 +14,6 @@
 
 """Scheduling utility functions."""
 
-
-from qiskit.pulse.builder import *
+# pylint: disable=unused-import
+from qiskit.pulse.utils import format_meas_map
+from qiskit.pulse.macros import measure, measure_all
