@@ -18,6 +18,8 @@ transmitted pulses, such as ``DriveChannel``).
 from typing import Optional
 
 from ..channels import PulseChannel
+from ..exceptions import PulseError
+from ..pulse_lib.pulse import Pulse
 from .instruction import Instruction
 
 
@@ -30,17 +32,22 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse,  # TODO: ``Pulse`` type annotation when cyclic import is removed
+    def __init__(self, pulse: Pulse,
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
-            pulse (qiskit.pulse.Pulse): A pulse waveform description, such as
-                                        :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
+            pulse: A pulse waveform description, such as
+                   :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
+
+        Raises:
+            PulseError: If pulse is not a Pulse type.
         """
+        if not isinstance(pulse, Pulse):
+            raise PulseError("The `pulse` argument to `Play` must be of type `pulse_lib.Pulse`.")
         self._pulse = pulse
         self._channel = channel
         if name is None:
@@ -48,15 +55,8 @@ class Play(Instruction):
         super().__init__((pulse, channel), pulse.duration, (channel,), name=name)
 
     @property
-    def pulse(self):
-        """A description of the samples that will be played.
-
-        Returns:
-            :class:`~qiskit.pulse.pulse_lib.Pulse`: A subclass of
-            :class:`~qiskit.pulse.pulse_lib.Pulse`, e.g.
-            :class:`~qiskit.pulse.pulse_lib.SamplePulse` or
-            :class:`~qiskit.pulse.pulse_lib.Gaussian`.
-        """
+    def pulse(self) -> Pulse:
+        """A description of the samples that will be played."""
         return self._pulse
 
     @property
