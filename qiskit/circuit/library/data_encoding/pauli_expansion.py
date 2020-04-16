@@ -65,6 +65,7 @@ class PauliExpansion(NLocal):
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  paulis: Optional[List[str]] = None,
                  data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+                 parameter_prefix: str = 'x',
                  insert_barriers: bool = False,
                  depth: Optional[int] = None,  # pylint: disable=unused-argument
                  ) -> None:
@@ -78,6 +79,7 @@ class PauliExpansion(NLocal):
                 will be used.
             data_map_func: A mapping function for data x which can be supplied to override the
                 default mapping from :meth:`self_product`.
+            parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
             depth: Deprecated, use ``reps`` instead.
@@ -86,14 +88,40 @@ class PauliExpansion(NLocal):
         super().__init__(num_qubits=feature_dimension,
                          reps=reps,
                          rotation_blocks=HGate(),
-                         entanglement_blocks=[],
                          entanglement=entanglement,
+                         parameter_prefix=parameter_prefix,
                          insert_barriers=insert_barriers)
 
         self._data_map_func = data_map_func or self_product
+        self._paulis = paulis or ['Z', 'ZZ']
 
-        paulis = paulis or ['Z', 'ZZ']
-        self.entanglement_blocks = [self.pauli_block(pauli) for pauli in paulis]
+    @property
+    def num_parameters_settable(self):
+        """The number of distinct parameters."""
+        return self.feature_dimension
+
+    @property
+    def paulis(self) -> List[str]:
+        """The Pauli strings used in the entanglement of the qubits.
+
+        Returns:
+            The Pauli strings as list.
+        """
+        return self._paulis
+
+    @paulis.setter
+    def paulis(self, paulis: List[str]) -> None:
+        """Set the pauli strings.
+
+        Args:
+            paulis: The new pauli strings.
+        """
+        self._invalidate()
+        self._paulis = paulis
+
+    @property
+    def entanglement_blocks(self):
+        return [self.pauli_block(pauli) for pauli in self._paulis]
 
     @property
     def feature_dimension(self) -> int:
@@ -103,6 +131,15 @@ class PauliExpansion(NLocal):
             The feature dimension of this feature map.
         """
         return self.num_qubits
+
+    @feature_dimension.setter
+    def feature_dimension(self, feature_dimension: int) -> None:
+        """Set the feature dimension.
+
+        Args:
+            feature_dimension: The new feature dimension.
+        """
+        self.num_qubits = feature_dimension
 
     def _extract_data_for_rotation(self, pauli, x):
         where_non_i = np.where(np.asarray(list(pauli[::-1])) != 'I')[0]
@@ -151,6 +188,22 @@ class PauliExpansion(NLocal):
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
+
+    def _build_entanglement_layer(self, param_iter, i):
+        """Build an entanglement layer."""
+        # iterate over all entanglement blocks
+        for j, block in enumerate(self.entanglement_blocks):
+            # create a new layer and get the entangler map for this block
+            layer = QuantumCircuit(*self.qregs)
+            entangler_map = self.get_entangler_map(i, j, block.num_qubits)
+
+            # apply the operations in the layer
+            for indices in entangler_map:
+                parametrized_block = self._parametrize_block(block, param_iter)
+                layer.append(parametrized_block, indices)
+
+            # add the layer to the circuit
+            self += layer
 
 
 def self_product(x: np.ndarray) -> float:
