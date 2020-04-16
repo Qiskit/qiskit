@@ -559,8 +559,7 @@ class TestNLocal(QiskitTestCase):
 
         self.assertEqual(nlocal, QuantumCircuit())
 
-        for attribute in [nlocal.rotation_blocks, nlocal.entanglement_blocks, nlocal.entangler_maps,
-                          nlocal._entanglement_reps(), nlocal._rotation_reps()]:
+        for attribute in [nlocal.rotation_blocks, nlocal.entanglement_blocks]:
             self.assertEqual(len(attribute), 0)
 
     @data(
