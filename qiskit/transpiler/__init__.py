@@ -19,8 +19,8 @@ Transpiler (:mod:`qiskit.transpiler`)
 
 .. currentmodule:: qiskit.transpiler
 
-Pass Managment
-==============
+Pass Management
+===============
 
 .. autosummary::
    :toctree: ../stubs/
