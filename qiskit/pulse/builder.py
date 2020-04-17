@@ -135,8 +135,8 @@ import functools
 import itertools
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
-                    Iterable, Mapping, Set, Tuple, TypeVar,
-                    Union)
+                    Iterable, List, Mapping, Set, Tuple,
+                    TypeVar, Union)
 
 import numpy as np
 
@@ -152,12 +152,12 @@ import qiskit.pulse.transforms as transforms
 from qiskit.pulse.schedule import Schedule
 
 
-#: contextvars.ContextVar[BuilderContext]: current builder
+#: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
 T = TypeVar('T')  # pylint: disable=invalid-name
 def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]:
-    """Decorator thats schedules and calls the current circuit executing
+    """Decorator thats schedules and calls the active circuit executing
     the decorated function."""
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
@@ -195,7 +195,7 @@ class _PulseBuilder():
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
         self._backend_ctx_token = None
 
-        #: pulse.Schedule: Current current schedule of BuilderContext.
+        #: pulse.Schedule: Active schedule of BuilderContext.
         self._block = None
 
         #: QuantumCircuit: Lazily constructed quantum circuit
@@ -217,7 +217,7 @@ class _PulseBuilder():
         # pulse.Schedule: Root program block
         self._entry_block = entry_block
 
-        self.set_current_block(Schedule())
+        self.set_active_block(Schedule())
 
     def __enter__(self) -> '_PulseBuilder':
         """Enter Builder Context."""
@@ -234,7 +234,7 @@ class _PulseBuilder():
 
     @property
     def block(self) -> Schedule:
-        """Return the current block of this bulder."""
+        """Return the active block of this bulder."""
         return self._block
 
     @property
@@ -244,7 +244,7 @@ class _PulseBuilder():
 
     @property
     def transpiler_settings(self) -> Mapping:
-        """The current builder transpiler settings."""
+        """The active builder transpiler settings."""
         return self._transpiler_settings
 
     @transpiler_settings.setter
@@ -255,7 +255,7 @@ class _PulseBuilder():
 
     @property
     def circuit_scheduler_settings(self) -> Mapping:
-        """The current builder circuit to pulse scheduler settings."""
+        """The active builder circuit to pulse scheduler settings."""
         return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
@@ -271,23 +271,23 @@ class _PulseBuilder():
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
         program = self._entry_block.append(self.block, mutate=True)
-        self.set_current_block(Schedule())
+        self.set_active_block(Schedule())
         return program
 
     @_compile_lazy_circuit_before
-    def set_current_block(self, block: Schedule):
-        """Set the current block."""
+    def set_active_block(self, block: Schedule):
+        """Set the active block."""
         assert isinstance(block, Schedule)
         self._block = block
 
     @_compile_lazy_circuit_before
     def append_block(self, block: Schedule):
-        """Add a block to the current current block."""
+        """Add a block to the active block."""
         self.block.append(block, mutate=True)
 
     @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
-        """Add an instruction to the current current block."""
+        """Add an instruction to the active block."""
         self.block.append(instruction, mutate=True)
 
     def compile_lazy_circuit(self):
@@ -332,7 +332,7 @@ class _PulseBuilder():
         Args:
             circ: Circuit to call.
             lazy: If false the circuit will be transpiled and pulse scheduled
-                immediately. Otherwise, it will extend the current lazy circuit
+                immediately. Otherwise, it will extend the active lazy circuit
                 as defined above.
         """
         if lazy:
@@ -360,7 +360,7 @@ class _PulseBuilder():
             gate: Gate to call.
             qubits: Qubits to call gate on.
             lazy: If false the circuit will be transpiled and pulse scheduled
-                immediately. Otherwise, it will extend the current lazy circuit
+                immediately. Otherwise, it will extend the active lazy circuit
                 as defined above.
         """
         try:
@@ -393,7 +393,7 @@ def build(backend,
             circuit to pulse scheduler.
 
     Returns:
-        A new builder context which has the current builder inititalized.
+        A new builder context which has the active builder inititalized.
     """
     return _PulseBuilder(
         backend,
@@ -404,11 +404,11 @@ def build(backend,
 
 
 # Builder Utilities ############################################################
-def _current_builder() -> _PulseBuilder:
-    """Get the current builder in the current context.
+def _active_builder() -> _PulseBuilder:
+    """Get the active builder in the active context.
 
     Returns:
-        The current active builder in this context.
+        The active active builder in this context.
 
     Raises:
         exceptions.PulseError: If a pulse builder function is called outside of a
@@ -423,42 +423,42 @@ def _current_builder() -> _PulseBuilder:
             'context, eg., "with build(backend, schedule): ...".') from err
 
 
-def current_backend():
-    """Get the backend of the current context.
+def active_backend():
+    """Get the backend of the currently active context.
 
     Returns:
-        BaseBackend: The current backend in the current builder context.
+        BaseBackend: The active backend in the currently active builder context.
     """
-    return _current_builder().backend
+    return _active_builder().backend
 
 
 def append_block(block: Schedule):
-    """Append a block to the current block.
+    """Append a block to the active block.
 
-    The current block is not changed.
+    The active block is not changed.
     """
-    _current_builder().append_block(block)
+    _active_builder().append_block(block)
 
 
 def append_instruction(instruction: instructions.Instruction):
-    """Append an instruction to current context."""
-    _current_builder().append_instruction(instruction)
+    """Append an instruction to the currently active builder context."""
+    _active_builder().append_instruction(instruction)
 
 
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """Returns the 'typical' set of channels associated with a qubit."""
-    return set(current_backend().configuration().get_qubit_channels(qubit))
+    return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
-def current_transpiler_settings() -> Dict[str, Any]:
-    """Return current context transpiler settings."""
-    return _current_builder().transpiler_settings
+def active_transpiler_settings() -> Dict[str, Any]:
+    """Return the currently active context transpiler settings."""
+    return _active_builder().transpiler_settings
 
 
 # pylint: disable=invalid-name
-def current_circuit_scheduler_settings() -> Dict[str, Any]:
-    """Return current context circuit scheduler settings."""
-    return _current_builder().circuit_scheduler_settings
+def active_circuit_scheduler_settings() -> Dict[str, Any]:
+    """Return the currently active context circuit scheduler settings."""
+    return _active_builder().circuit_scheduler_settings
 
 
 # Contexts ###########################################################
@@ -490,10 +490,10 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     def wrap(function):  # pylint: disable=unused-argument
         @contextmanager
         def wrapped_transform(*args, **kwargs):
-            builder = _current_builder()
-            current_block = builder.block
+            builder = _active_builder()
+            active_block = builder.block
             transform_block = Schedule()
-            builder.set_current_block(transform_block)
+            builder.set_active_block(transform_block)
             try:
                 yield
             finally:
@@ -502,7 +502,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
                                               *args,
                                               **kwargs,
                                               **transform_kwargs)
-                builder.set_current_block(current_block)
+                builder.set_active_block(active_block)
                 builder.append_block(transformed_block)
         return wrapped_transform
 
@@ -561,15 +561,15 @@ def inline() -> ContextManager[None]:
     .. warning:: This will cause all scheduling directives within this context
         to be ignored.
     """
-    builder = _current_builder()
-    current_block = builder.block
+    builder = _active_builder()
+    active_block = builder.block
     transform_block = Schedule()
-    builder.set_current_block(transform_block)
+    builder.set_active_block(transform_block)
     try:
         yield
     finally:
         builder.compile_lazy_circuit()
-        builder.set_current_block(current_block)
+        builder.set_active_block(active_block)
         for _, instruction in transform_block.instructions:
             append_instruction(instruction)
 
@@ -585,8 +585,8 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
 
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
-    """Set the current current tranpiler settings for this context."""
-    builder = _current_builder()
+    """Set the currently active transpiler settings for this context."""
+    builder = _active_builder()
     curr_transpiler_settings = builder.transpiler_settings
     builder.transpiler_settings = collections.ChainMap(
         settings, curr_transpiler_settings)
@@ -598,8 +598,8 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 
 @contextmanager
 def circuit_scheduler_settings(**settings) -> ContextManager[None]:
-    """Set the current current circuit scheduling settings for this context."""
-    builder = _current_builder()
+    """Set the currently active circuit scheduling settings for this context."""
+    builder = _active_builder()
     curr_circuit_scheduler_settings = builder.circuit_scheduler_settings
     builder.circuit_scheduler_settings = collections.ChainMap(
         settings, curr_circuit_scheduler_settings)
@@ -644,7 +644,7 @@ def frequency_offset(channel: channels.PulseChannel,
     Yields:
         None
     """
-    builder = _current_builder()
+    builder = _active_builder()
     t0 = builder.block.duration
     shift_frequency(channel, frequency)
     try:
@@ -652,10 +652,41 @@ def frequency_offset(channel: channels.PulseChannel,
     finally:
         if compensate_phase:
             duration = builder.block.duration - t0
-            dt = current_backend().configuration().dt
+            dt = active_backend().configuration().dt
             accumulated_phase = duration * dt * frequency % (2*np.pi)
             shift_phase(channel, -accumulated_phase)
         shift_frequency(channel, -frequency)
+
+
+# Types ########################################################################
+def drive_channel(qubit: int) -> channels.DriveChannel:
+    """Return ``DriveChannel`` for ``qubit`` on the active builder backend."""
+    return active_backend().configuration().drive(qubit)
+
+
+def measure_channel(qubit: int) -> channels.MeasureChannel:
+    """Return ``MeasureChannel`` for ``qubit`` on the active builder backend."""
+    return active_backend().configuration().measure(qubit)
+
+
+def acquire_channel(qubit: int) -> channels.AcquireChannel:
+    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend."""
+    return active_backend().configuration().acquire(qubit)
+
+
+def control_channel(qubits: Iterable[int]) -> List[channels.ControlChannel]:
+    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
+
+    Return the secondary drive channel for the given qubit -- typically utilized for
+    controlling multiqubit interactions. This channel is derived from other channels.
+
+    Args:
+      qubits: Tuple or list of qubits of the form `(control_qubit, target_qubit)`.
+
+    Returns:
+      List of control channels.
+    """
+    return active_backend().configuration().control(qubits=qubits)
 
 
 # Base Instructions ############################################################
@@ -746,16 +777,16 @@ def snapshot(label: str, snapshot_type: str = 'statevector'):
 
 def call_schedule(schedule: Schedule):
     """Call a pulse ``schedule`` in the builder context."""
-    _current_builder().call_schedule(schedule)
+    _active_builder().call_schedule(schedule)
 
 
 def call_circuit(circ: circuit.QuantumCircuit):
-    """Call a quantum ``circuit`` within the current builder context."""
-    _current_builder().call_circuit(circ, lazy=True)
+    """Call a quantum ``circuit`` within the active builder context."""
+    _active_builder().call_circuit(circ, lazy=True)
 
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
-    """Call the ``target`` within the current builder context.
+    """Call the ``target`` within the currently active builder context.
 
     Args:
         target: Target circuit or pulse schedule to call.
@@ -776,7 +807,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 def measure(qubit: int,
             register: Union[channels.MemorySlot, channels.RegisterSlot] = None,
             ) -> Union[channels.MemorySlot, channels.RegisterSlot]:
-    """Measure a qubit within the current builder context.
+    """Measure a qubit within the currently active builder context.
 
     Args:
         qubit: Physical qubit to measure.
@@ -786,7 +817,7 @@ def measure(qubit: int,
     Returns:
         The ``register`` the qubit measurement result will be stored in.
     """
-    backend = current_backend()
+    backend = active_backend()
     if not register:
         register = channels.MemorySlot(qubit)
 
@@ -825,9 +856,9 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...]):
     """Call a gate and lower to its corresponding pulse instruction.
 
     .. note:: If multiple gates are called in a row they may be optimized by the
-        transpiler, depending on the :function:`current_transpiler_settings``.
+        transpiler, depending on the :function:`active_transpiler_settings``.
     """
-    _current_builder().call_gate(gate, qubits, lazy=True)
+    _active_builder().call_gate(gate, qubits, lazy=True)
 
 
 def cx(control: int, target: int):

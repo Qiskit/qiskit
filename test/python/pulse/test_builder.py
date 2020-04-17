@@ -245,6 +245,35 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
 
+class TestTypes(TestBuilder):
+    """test context builder types."""
+
+    def test_drive_channel(self):
+        """Text context builder drive channel."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertEqual(pulse.drive_channel(0), pulse.DriveChannel(0))
+
+    def test_measure_channel(self):
+        """Text context builder measure channel."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertEqual(pulse.measure_channel(0), pulse.MeasureChannel(0))
+
+    def test_acquire_channel(self):
+        """Text context builder acquire channel."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertEqual(pulse.acquire_channel(0), pulse.AcquireChannel(0))
+
+    def test_control_channel(self):
+        """Text context builder control channel."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            self.assertEqual(pulse.control_channel((0, 1))[0],
+                             pulse.ControlChannel(0))
+
+
 class TestInstructions(TestBuilder):
     """test context builder instructions."""
 
@@ -481,11 +510,11 @@ class TestInstructions(TestBuilder):
 
 class TestUtilities(TestBuilder):
     """test context builder utilities."""
-    def test_current_backend(self):
+    def test_active_backend(self):
         """Test getting active builder backend."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            self.assertEqual(pulse.current_backend(), self.backend)
+            self.assertEqual(pulse.active_backend(), self.backend)
 
     def test_append_block(self):
         """Test appending a block to the active builder."""
@@ -523,23 +552,23 @@ class TestUtilities(TestBuilder):
                           pulse.ControlChannel(0),
                           pulse.ControlChannel(1)})
 
-    def test_current_transpiler_settings(self):
-        """Test setting settings of current builder's transpiler."""
+    def test_active_transpiler_settings(self):
+        """Test setting settings of active builder's transpiler."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            self.assertFalse(pulse.current_transpiler_settings())
+            self.assertFalse(pulse.active_transpiler_settings())
             with pulse.transpiler_settings(test_setting=1):
                 self.assertEqual(
-                    pulse.current_transpiler_settings()['test_setting'], 1)
+                    pulse.active_transpiler_settings()['test_setting'], 1)
 
-    def test_current_circuit_scheduler_settings(self):
-        """Test setting settings of current builder's circuit scheduler."""
+    def test_active_circuit_scheduler_settings(self):
+        """Test setting settings of active builder's circuit scheduler."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            self.assertFalse(pulse.current_circuit_scheduler_settings())
+            self.assertFalse(pulse.active_circuit_scheduler_settings())
             with pulse.circuit_scheduler_settings(test_setting=1):
                 self.assertEqual(
-                    pulse.current_circuit_scheduler_settings()['test_setting'], 1)
+                    pulse.active_circuit_scheduler_settings()['test_setting'], 1)
 
 
 class TestMacros(TestBuilder):
