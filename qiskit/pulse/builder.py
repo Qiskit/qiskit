@@ -728,19 +728,21 @@ def play(channel: channels.PulseChannel,
     append_instruction(instructions.Play(pulse, channel))
 
 
-def acquire(channel: Union[channels.AcquireChannel, int],
+def acquire(qubit_or_channel: Union[int, channels.AcquireChannel],
             register: Union[channels.RegisterSlot, channels.MemorySlot],
             duration: int,
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``."""
+    if isinstance(qubit_or_channel, int):
+        qubit_or_channel = channels.AcquireChannel(qubit_or_channel)
     if isinstance(register, channels.MemorySlot):
         append_instruction(instructions.Acquire(
-            duration, channel, mem_slot=register, **metadata))
+            duration, qubit_or_channel, mem_slot=register, **metadata))
     elif isinstance(register, channels.RegisterSlot):
         append_instruction(instructions.Acquire(
-            duration, channel, reg_slot=register, **metadata))
+            duration, qubit_or_channel, reg_slot=register, **metadata))
     else:
         raise exceptions.PulseError(
             'Register of type: "{}" is not supported'.format(type(register)))

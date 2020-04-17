@@ -361,6 +361,20 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_acquire_qubit(self):
+        """Test acquire instruction on qubit."""
+        acquire0 = pulse.AcquireChannel(0)
+        mem0 = pulse.MemorySlot(0)
+
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            pulse.acquire(0, mem0, 10)
+
+        reference = pulse.Schedule()
+        reference += pulse.Acquire(10, acquire0, mem_slot=mem0)
+
+        self.assertEqual(schedule, reference)
+
     def test_set_frequency(self):
         """Test set frequency instruction."""
         d0 = pulse.DriveChannel(0)
