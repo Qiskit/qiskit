@@ -93,13 +93,21 @@ class QFT(QuantumCircuit):
             name: The name of the circuit.
         """
         super().__init__(name=name)
-
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
         self._data = None
-
         self.num_qubits = num_qubits
+
+    def qasm(self, formatted=False, filename=None):
+        if self._data is None:
+            self._build()
+        return super().qasm(formatted, filename)
+
+    def append(self, instruction, qargs=None, cargs=None):
+        if self._data is None:
+            self._build()
+        return super().append(instruction, qargs, cargs)
 
     @property
     def num_qubits(self) -> int:
