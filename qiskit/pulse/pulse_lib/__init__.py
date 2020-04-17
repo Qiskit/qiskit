@@ -37,6 +37,5 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 """
 
 from .discrete import *
-from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, ConstantPulse
-from .pulse import Pulse
-from .sample_pulse import SamplePulse
+from .parametric_pulses import Gaussian, GaussianSquare, Drag, ConstantPulse
+from ..types import Pulse, SamplePulse, ParametricPulse

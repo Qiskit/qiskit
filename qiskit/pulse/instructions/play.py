@@ -19,7 +19,7 @@ from typing import Optional
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
-from ..pulse_lib.pulse import Pulse
+from ..types import Pulse
 from .instruction import Instruction
 
 

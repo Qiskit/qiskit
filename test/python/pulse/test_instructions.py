@@ -17,7 +17,7 @@
 import numpy as np
 from qiskit.pulse import DriveChannel, AcquireChannel, MemorySlot, pulse_lib
 from qiskit.pulse import Delay, Play, ShiftPhase, Snapshot, SetFrequency, Acquire
-from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse import Kernel, Discriminator
 from qiskit.test import QiskitTestCase
 
 

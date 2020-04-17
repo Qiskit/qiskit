@@ -22,7 +22,7 @@ import warnings
 from typing import Optional
 
 from ..exceptions import PulseError
-from .sample_pulse import SamplePulse
+from ..types import SamplePulse
 from . import continuous
 from . import samplers
 

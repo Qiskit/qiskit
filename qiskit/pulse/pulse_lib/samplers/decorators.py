@@ -136,7 +136,7 @@ import pydoc
 import numpy as np
 
 from ...exceptions import PulseError
-from ..sample_pulse import SamplePulse
+from ...types import SamplePulse
 from . import strategies
 
 

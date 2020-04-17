@@ -36,85 +36,14 @@ by following the existing pattern:
         ...
         new_supported_pulse_name = commands.YourPulseCommandClass
 """
-from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 import math
 import numpy as np
 
-from . import continuous
+from .continuous import drag as contin_drag
 from .discrete import gaussian, gaussian_square, drag, constant
-from .pulse import Pulse
-from .sample_pulse import SamplePulse
+from ..types import SamplePulse, ParametricPulse
 from ..exceptions import PulseError
-
-
-class ParametricPulse(Pulse):
-    """The abstract superclass for parametric pulses."""
-
-    @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
-        """Create a parametric pulse and validate the input parameters.
-
-        Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
-            name: Display name for this pulse envelope.
-        """
-        super().__init__(duration=duration, name=name)
-        self.validate_parameters()
-
-    @abstractmethod
-    def get_sample_pulse(self) -> SamplePulse:
-        """Return a SamplePulse with samples filled according to the formula that the pulse
-        represents and the parameter values it contains.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def validate_parameters(self) -> None:
-        """
-        Validate parameters.
-
-        Raises:
-            PulseError: If the parameters passed are not valid.
-        """
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def parameters(self) -> Dict[str, Any]:
-        """Return a dictionary containing the pulse's parameters."""
-        pass
-
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             scaling: float = None):
-        """Plot the pulse.
-
-        Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-            scaling: Deprecated, see `scale`
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
-        """
-        return self.get_sample_pulse().draw(dt=dt, style=style, filename=filename,
-                                            interp_method=interp_method, scale=scale,
-                                            interactive=interactive)
-
-    def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and self.parameters == other.parameters
-
-    def __hash__(self) -> int:
-        return hash(self.parameters[k] for k in sorted(self.parameters))
 
 
 class Gaussian(ParametricPulse):
@@ -354,8 +283,8 @@ class Drag(ParametricPulse):
                 argmax_x = 0
 
             # 2. Find the value at that maximum
-            max_val = continuous.drag(np.array(argmax_x), sigma=self.sigma,
-                                      beta=self.beta, amp=self.amp, center=self.duration / 2)
+            max_val = contin_drag(np.array(argmax_x), sigma=self.sigma,
+                                  beta=self.beta, amp=self.amp, center=self.duration / 2)
             if abs(max_val) > 1.:
                 raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
 
