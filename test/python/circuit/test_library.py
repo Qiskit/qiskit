@@ -22,18 +22,49 @@ from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import (Permutation, XOR, InnerProduct, QFT,
+from qiskit.circuit.library import (Permutation, XOR, InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder)
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Statevector, Operator
 
 
+@ddt
 class TestBooleanLogicLibrary(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
 
+    def assertBooleanFunctionIsCorrect(self, boolean_circuit, reference):
+        """Assert that ``boolean_circuit`` implements the reference boolean function correctly."""
+        circuit = QuantumCircuit(boolean_circuit.num_qubits)
+        circuit.h(list(range(boolean_circuit.num_variable_qubits)))
+        circuit.append(boolean_circuit.to_instruction(), list(range(boolean_circuit.num_qubits)))
+
+        # compute the statevector of the circuit
+        statevector = Statevector.from_label('0' * circuit.num_qubits)
+        statevector = statevector.evolve(circuit)
+
+        # trace out ancillas
+        probabilities = statevector.probabilities(
+            qargs=list(range(boolean_circuit.num_variable_qubits + 1))
+        )
+
+        # compute the expected outcome by computing the entries of the statevector that should
+        # have a 1 / sqrt(2**n) factor
+        expectations = np.zeros_like(probabilities)
+        for x in range(2 ** boolean_circuit.num_variable_qubits):
+            bits = np.array(list(bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)), dtype=int)
+            result = reference(bits[::-1])
+
+            entry = int(str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits), 2)
+            expectations[entry] = 1 / 2 ** boolean_circuit.num_variable_qubits
+
+        np.testing.assert_array_almost_equal(probabilities, expectations)
+
     def test_permutation(self):
-        """Test permutation circuit."""
+        """Test permutation circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
@@ -41,24 +72,81 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         self.assertEqual(circuit, expected)
 
     def test_permutation_bad(self):
-        """Test that [0,..,n-1] permutation is required (no -1 for last element)"""
+        """Test that [0,..,n-1] permutation is required (no -1 for last element).
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
     def test_xor(self):
-        """Test xor circuit."""
+        """Test xor circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = XOR(num_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
 
     def test_inner_product(self):
-        """Test inner product circuit."""
+        """Test inner product circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = InnerProduct(num_qubits=3)
         expected = QuantumCircuit(*circuit.qregs)
         expected.cz(0, 3)
         expected.cz(1, 4)
         expected.cz(2, 5)
         self.assertEqual(circuit, expected)
+
+    @data(
+        (2, None, 'noancilla'),
+        (5, None, 'noancilla'),
+        (2, [-1, 1], 'v-chain'),
+        (2, [-1, 1], 'noancilla'),
+        (5, [0, 0, -1, 1, -1], 'noancilla'),
+        (5, [-1, 0, 0, 1, 1], 'v-chain'),
+    )
+    @unpack
+    def test_or(self, num_variables, flags, mcx_mode):
+        """Test the or circuit."""
+        or_circuit = OR(num_variables, flags, mcx_mode=mcx_mode)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.any(flagged)
+
+        self.assertBooleanFunctionIsCorrect(or_circuit, reference)
+
+    @data(
+        (2, None, 'noancilla'),
+        (2, [-1, 1], 'v-chain'),
+        (5, [0, 0, -1, 1, -1], 'noancilla'),
+        (5, [-1, 0, 0, 1, 1], 'v-chain'),
+    )
+    @unpack
+    def test_and(self, num_variables, flags, mcx_mode):
+        """Test the and circuit."""
+        and_circuit = AND(num_variables, flags, mcx_mode=mcx_mode)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.all(flagged)
+
+        self.assertBooleanFunctionIsCorrect(and_circuit, reference)
 
 
 @ddt
