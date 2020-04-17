@@ -19,7 +19,7 @@ from functools import reduce
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.extensions.standard import HGate
 from qiskit.util import deprecate_arguments
 
@@ -95,6 +95,13 @@ class PauliExpansion(NLocal):
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ['Z', 'ZZ']
 
+    # pylint: disable=unused-argument
+    def parameter_generator(self, rep: int, block: int, indices: List[int]
+                            ) -> Optional[List[Parameter]]:
+        """If certain blocks should use certain parameters this method can be overriden."""
+        params = [self.ordered_parameters[i] for i in indices]
+        return params
+
     @property
     def num_parameters_settable(self):
         """The number of distinct parameters."""
@@ -123,6 +130,10 @@ class PauliExpansion(NLocal):
     def entanglement_blocks(self):
         return [self.pauli_block(pauli) for pauli in self._paulis]
 
+    @entanglement_blocks.setter
+    def entanglement_blocks(self, entanglement_blocks):
+        self._entanglement_blocks = entanglement_blocks
+
     @property
     def feature_dimension(self) -> int:
         """Returns the feature dimension (which is equal to the number of qubits).
@@ -148,7 +159,7 @@ class PauliExpansion(NLocal):
 
     def pauli_block(self, pauli_string):
         """Get the Pauli block for the feature map circuit."""
-        params = ParameterVector('x', length=self.feature_dimension)
+        params = ParameterVector('_', length=len(pauli_string))
         time = self._data_map_func(np.asarray(params))
         return self.pauli_evolution(pauli_string, time)
 
@@ -188,22 +199,6 @@ class PauliExpansion(NLocal):
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
-
-    def _build_entanglement_layer(self, param_iter, i):
-        """Build an entanglement layer."""
-        # iterate over all entanglement blocks
-        for j, block in enumerate(self.entanglement_blocks):
-            # create a new layer and get the entangler map for this block
-            layer = QuantumCircuit(*self.qregs)
-            entangler_map = self.get_entangler_map(i, j, block.num_qubits)
-
-            # apply the operations in the layer
-            for indices in entangler_map:
-                parametrized_block = self._parametrize_block(block, param_iter)
-                layer.append(parametrized_block, indices)
-
-            # add the layer to the circuit
-            self += layer
 
 
 def self_product(x: np.ndarray) -> float:

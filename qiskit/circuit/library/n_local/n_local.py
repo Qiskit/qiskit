@@ -142,6 +142,11 @@ class NLocal(QuantumCircuit):
         # parameter bounds
         self._bounds = None
 
+    # pylint: disable=unused-argument
+    def parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
+        """If certain blocks should use certain parameters this method can be overriden."""
+        return None
+
     def __str__(self) -> str:
         """Draw this NLocal in circuit format using the standard gates.
 
@@ -751,7 +756,7 @@ class NLocal(QuantumCircuit):
             layer = QuantumCircuit(self.num_qubits)
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)):]
-                parametrized_block = self._parametrize_block(block, params)
+                parametrized_block = self._parametrize_block(block, params=params)
                 layer.append(parametrized_block.to_instruction(), i)
 
             self += layer
@@ -828,20 +833,27 @@ class NLocal(QuantumCircuit):
         circuit += self
         return circuit
 
-    def _parametrize_block(self, block, param_iter):
+    def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
+                           params=None):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         circuit = QuantumCircuit(block.num_qubits)
         circuit.append(block, list(range(block.num_qubits)))
         if self._overwrite_block_parameters:
-            params = [next(param_iter) for _ in range(len(get_parameters(block)))]
+            # check if special parameters should be used
+            # pylint: disable=assignment-from-none
+            if params is None:
+                params = self.parameter_generator(rep_num, block_num, indices)
+            if params is None:
+                params = [next(param_iter) for _ in range(len(get_parameters(block)))]
             update = dict(zip(circuit.parameters, params))
-            circuit = circuit.assign_parameters(update, inplace=False)
+            circuit.assign_parameters(update, inplace=True)
 
         return circuit
 
     def _build_rotation_layer(self, param_iter, i):
         """Build a rotation layer."""
         # if the unentangled qubits are skipped, compute the set of qubits that are not entangled
+        print('buliding rot')
         if self._skip_unentangled_qubits:
             entangled_qubits = set()
             # iterate over all blocks of entanglement
@@ -853,15 +865,15 @@ class NLocal(QuantumCircuit):
             unentangled_qubits = set(range(self.num_qubits)) - entangled_qubits
 
         # iterate over all rotation blocks
-        for block in self.rotation_blocks:
+        for j, block in enumerate(self.rotation_blocks):
             # create a new layer
             layer = QuantumCircuit(*self.qregs)
 
             # we apply the rotation gates stacked on top of each other, i.e.
             # if we have 4 qubits and a rotation block of width 2, we apply two instances
             block_indices = [
-                list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
-                for j in range(self.num_qubits // block.num_qubits)
+                list(range(k * block.num_qubits, (k + 1) * block.num_qubits))
+                for k in range(self.num_qubits // block.num_qubits)
             ]
 
             # if unentangled qubits should not be acted on, remove all operations that
@@ -872,7 +884,7 @@ class NLocal(QuantumCircuit):
 
             # apply the operations in the layer
             for indices in block_indices:
-                parametrized_block = self._parametrize_block(block, param_iter)
+                parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
                 layer.append(parametrized_block, indices)
 
             # add the layer to the circuit
@@ -880,6 +892,7 @@ class NLocal(QuantumCircuit):
 
     def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
+        print('building ent')
         # iterate over all entanglement blocks
         for j, block in enumerate(self.entanglement_blocks):
             # create a new layer and get the entangler map for this block
@@ -888,7 +901,7 @@ class NLocal(QuantumCircuit):
 
             # apply the operations in the layer
             for indices in entangler_map:
-                parametrized_block = self._parametrize_block(block, param_iter)
+                parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
                 layer.append(parametrized_block, indices)
 
             # add the layer to the circuit
@@ -911,8 +924,6 @@ class NLocal(QuantumCircuit):
             for indices in ent:
                 layer.append(block, indices)
             self += layer
-
-    def get_parameter(self, rep_num, indices)
 
     def _build(self) -> None:
         """Build the circuit."""

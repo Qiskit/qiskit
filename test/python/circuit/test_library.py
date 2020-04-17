@@ -28,10 +28,12 @@ from qiskit.circuit.random.utils import random_circuit
 from qiskit.extensions.standard import XGate, RXGate, CRXGate
 
 from qiskit.circuit.library import Permutation, XOR, InnerProduct
+from qiskit.circuit.library.basis_change import QFT
 from qiskit.circuit.library.n_local import NLocal, TwoLocal
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
+from qiskit.quantum_info import Operator
 
 
 class TestBooleanLogicLibrary(QiskitTestCase):
