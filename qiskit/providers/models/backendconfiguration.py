@@ -283,6 +283,7 @@ class QasmBackendConfiguration(SimpleNamespace):
         # fit within the Qasm / Pulse backend partitioning in Qiskit
         if 'dt' in kwargs.keys():
             kwargs['dt'] *= 1e-9
+        if 'dtm' in kwargs.keys():
             kwargs['dtm'] *= 1e-9
 
         if 'qubit_lo_range'in kwargs.keys():
