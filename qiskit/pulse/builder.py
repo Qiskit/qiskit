@@ -447,6 +447,11 @@ def append_instruction(instruction: instructions.Instruction):
     _active_builder().append_instruction(instruction)
 
 
+def num_qubits() -> int:
+    """Return number of qubits in currently active backend."""
+    return active_backend().configuration().n_qubits
+
+
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """Returns the 'typical' set of channels associated with a qubit."""
     return set(active_backend().configuration().get_qubit_channels(qubit))

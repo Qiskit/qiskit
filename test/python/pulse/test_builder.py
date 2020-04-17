@@ -597,6 +597,11 @@ class TestUtilities(TestBuilder):
                 self.assertEqual(
                     pulse.active_circuit_scheduler_settings()['test_setting'], 1)
 
+    def test_num_qubits(self):
+        """Test builder utility to get number of qubits."""
+        with pulse.build(self.backend, pulse.Schedule()):
+            self.assertEqual(pulse.num_qubits(), 2)
+
 
 class TestMacros(TestBuilder):
     """test context builder macros."""
