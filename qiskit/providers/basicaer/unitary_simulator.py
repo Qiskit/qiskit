@@ -21,55 +21,63 @@ the simulator. It is exponential in the number of qubits.
 
 .. code-block:: python
 
-    UnitarySimulator().run(qobj)
+    UnitarySimulator().run(circuit)
 
-Where the input is a Qobj object and the output is a BasicAerJob object, which can
-later be queried for the Result object. The result will contain a 'unitary'
-data field, which is a 2**n x 2**n complex numpy array representing the
-circuit's unitary matrix.
+Where the input is a QuantumCircuit object and the output a unitary matrix,
+which is a 2**n x 2**n complex numpy array representing the circuit's unitary
+matrix.
 """
+
+import collections
 import logging
-import uuid
-import time
 from math import log2, sqrt
+import time
+import uuid
+
 import numpy as np
+
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers import BaseBackend
+from qiskit.providers.v2.backend import Backend
+from qiskit.providers.v2.configuration import Configuration
+from qiskit.providers.v2.target import Target
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import cx_gate_matrix
 from .basicaertools import einsum_matmul_index
+from .basicaertools import assemble_circuit
 
 logger = logging.getLogger(__name__)
 
+MAX_QUBITS_MEMORY = int(
+    log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
-# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
-# does not show up
+class QasmUnitarySimulatorTarget(Target):
+    @property
+    def num_qubits(self):
+        return min(24, MAX_QUBITS_MEMORY)
 
+    @property
+    def conditional(self):
+        return False
 
-class UnitarySimulatorPy(BaseBackend):
-    """Python implementation of a unitary simulator."""
+    @property
+    def coupling_map(self):
+        return None
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
+    @property
+    def supported_instructions(self):
+        return None
 
-    DEFAULT_CONFIGURATION = {
-        'backend_name': 'unitary_simulator',
-        'backend_version': '1.0.0',
-        'n_qubits': min(24, MAX_QUBITS_MEMORY),
-        'url': 'https://github.com/Qiskit/qiskit-terra',
-        'simulator': True,
-        'local': True,
-        'conditional': False,
-        'open_pulse': False,
-        'memory': False,
-        'max_shots': 65536,
-        'coupling_map': None,
-        'description': 'A python simulator for unitary matrix corresponding to a circuit',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
-        'gates': [
+    @property
+    def basis_gates(self):
+        return ['u1', 'u2', 'u3', 'cx', 'id', 'unitary']
+
+    @property
+    def gates(self):
+        return [
             {
                 'name': 'u1',
                 'parameters': ['lambda'],
@@ -101,23 +109,41 @@ class UnitarySimulatorPy(BaseBackend):
                 'qasm_def': 'unitary(matrix) q1, q2,...'
             }
         ]
-    }
 
-    DEFAULT_OPTIONS = {
-        "initial_unitary": None,
-        "chop_threshold": 1e-15
-    }
 
-    def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
-                         provider=provider)
 
+
+
+# TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
+# does not show up
+
+class UnitarySimulatorPy(Backend):
+    """Python implementation of a unitary simulator."""
+    @property
+    def local(self):
+        return True
+
+    @property
+    def open_pulse(self):
+        return False
+
+    @property
+    def memory(self):
+        return False
+
+    def __init__(self, name='unitary_simulator', **fields):
+        super().__init__(name, **fields)
         # Define attributes inside __init__.
+        self._target = QasmUnitarySimulatorTarget()
         self._unitary = None
         self._number_of_qubits = 0
-        self._initial_unitary = None
-        self._chop_threshold = 1e-15
+        self._initial_unitary = self.configuration.get('initial_unitary')
+        self._chop_threshold = self.configuration.get('chop_threshold')
+
+    @classmethod
+    def _default_config(cls):
+        return Configuration(shots=1,
+                             initial_unitary=None, chop_threshold=1e-15)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -150,22 +176,11 @@ class UnitarySimulatorPy(BaseBackend):
             raise BasicAerError('initial unitary is incorrect shape: ' +
                                 '{} != 2 ** {}'.format(shape, required_shape))
 
-    def _set_options(self, qobj_config=None, backend_options=None):
+    def _set_options(self):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
-        self._initial_unitary = self.DEFAULT_OPTIONS["initial_unitary"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
-        if backend_options is None:
-            backend_options = {}
-
-        # Check for custom initial statevector in backend_options first,
-        # then config second
-        if 'initial_unitary' in backend_options:
-            self._initial_unitary = np.array(backend_options['initial_unitary'],
-                                             dtype=complex)
-        elif hasattr(qobj_config, 'initial_unitary'):
-            self._initial_unitary = np.array(qobj_config.initial_unitary,
-                                             dtype=complex)
+        self._initial_unitary = self.configuration.get("initial_unitary")
+        self._chop_threshold = self.configuration.get("chop_threshold")
         if self._initial_unitary is not None:
             # Check the initial unitary is actually unitary
             shape = np.shape(self._initial_unitary)
@@ -177,14 +192,6 @@ class UnitarySimulatorPy(BaseBackend):
             norm = np.linalg.norm(u_dagger_u - iden)
             if round(norm, 10) != 0:
                 raise BasicAerError("initial unitary is not unitary")
-            # Check the initial statevector is normalized
-
-        # Check for custom chop threshold
-        # Replace with custom options
-        if 'chop_threshold' in backend_options:
-            self._chop_threshold = backend_options['chop_threshold']
-        elif hasattr(qobj_config, 'chop_threshold'):
-            self._chop_threshold = qobj_config.chop_threshold
 
     def _initialize_unitary(self):
         """Set the initial unitary for simulation"""
@@ -205,7 +212,7 @@ class UnitarySimulatorPy(BaseBackend):
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
-    def run(self, qobj, backend_options=None):
+    def run(self, circuits):
         """Run qobj asynchronously.
 
         Args:
@@ -213,67 +220,20 @@ class UnitarySimulatorPy(BaseBackend):
             backend_options (dict): backend options
 
         Returns:
-            BasicAerJob: derived from BaseJob
-
-        Additional Information::
-
-            backend_options: Is a dict of options for the backend. It may contain
-                * "initial_unitary": matrix_like
-                * "chop_threshold": double
-
-            The "initial_unitary" option specifies a custom initial unitary
-            matrix for the simulator to be used instead of the identity
-            matrix. This size of this matrix must be correct for the number
-            of qubits inall experiments in the qobj.
-
-            The "chop_threshold" option specifies a truncation value for
-            setting small values to zero in the output unitary. The default
-            value is 1e-15.
-
-            Example::
-
-                backend_options = {
-                    "initial_unitary": np.array([[1, 0, 0, 0],
-                                                 [0, 0, 0, 1],
-                                                 [0, 0, 1, 0],
-                                                 [0, 1, 0, 0]])
-                    "chop_threshold": 1e-15
-                }
+            list: a list of unitary matrices
         """
-        self._set_options(qobj_config=qobj.config,
-                          backend_options=backend_options)
+        if isinstance(circuits, QuantumCircuit):
+            circuits = [circuits]
+        self._set_options()
         job_id = str(uuid.uuid4())
-        job = BasicAerJob(self, job_id, self._run_job, qobj)
-        job.submit()
-        return job
-
-    def _run_job(self, job_id, qobj):
-        """Run experiments in qobj.
-
-        Args:
-            job_id (str): unique id for the job.
-            qobj (Qobj): job description
-
-        Returns:
-            Result: Result object
-        """
-        self._validate(qobj)
-        result_list = []
+        self._validate(circuits)
+        result_dict = collections.OrderedDict()
         start = time.time()
-        for experiment in qobj.experiments:
-            result_list.append(self.run_experiment(experiment))
+        for experiment in circuits:
+            result_dict[experiment.name] = self.run_experiment(experiment)
         end = time.time()
-        result = {'backend_name': self.name(),
-                  'backend_version': self._configuration.backend_version,
-                  'qobj_id': qobj.qobj_id,
-                  'job_id': job_id,
-                  'results': result_list,
-                  'status': 'COMPLETED',
-                  'success': True,
-                  'time_taken': (end - start),
-                  'header': qobj.header.to_dict()}
-
-        return Result.from_dict(result)
+        time_taken = end - start
+        return BasicAerJob(job_id, self, result_dict, time_taken=time_taken)
 
     def run_experiment(self, experiment):
         """Run an experiment (circuit) and return a single experiment result.
@@ -303,13 +263,13 @@ class UnitarySimulatorPy(BaseBackend):
             Note that the practical qubit limit is much lower than 24.
         """
         start = time.time()
-        self._number_of_qubits = experiment.header.n_qubits
+        self._number_of_qubits = experiment.num_qubits
 
         # Validate the dimension of initial unitary if set
         self._validate_initial_unitary()
         self._initialize_unitary()
 
-        for operation in experiment.instructions:
+        for operation in assemble_circuit(experiment):
             if operation.name == 'unitary':
                 qubits = operation.qubits
                 gate = operation.params[0]
@@ -336,41 +296,29 @@ class UnitarySimulatorPy(BaseBackend):
                 err_msg = '{0} encountered unrecognized operation "{1}"'
                 raise BasicAerError(err_msg.format(backend, operation.name))
         # Add final state to data
-        data = {'unitary': self._get_unitary()}
+        data = self._get_unitary()
         end = time.time()
-        return {'name': experiment.header.name,
-                'shots': 1,
-                'data': data,
-                'status': 'DONE',
-                'success': True,
-                'time_taken': (end - start),
-                'header': experiment.header.to_dict()}
+        return data
 
-    def _validate(self, qobj):
-        """Semantic validations of the qobj which cannot be done via schemas.
+    def _validate(self, circuits):
+        """Semantic validations of the circuit.
         Some of these may later move to backend schemas.
         1. No shots
         2. No measurements in the middle
         """
-        n_qubits = qobj.config.n_qubits
-        max_qubits = self.configuration().n_qubits
-        if n_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
-                                'is greater than maximum ({}) '.format(max_qubits) +
-                                'for "{}".'.format(self.name()))
-        if hasattr(qobj.config, 'shots') and qobj.config.shots != 1:
+        shots = self.configuration.get('shots')
+        if shots and shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.',
-                        self.name())
-            qobj.config.shots = 1
-        for experiment in qobj.experiments:
-            name = experiment.header.name
-            if getattr(experiment.config, 'shots', 1) != 1:
-                logger.info('"%s" only supports 1 shot. '
-                            'Setting shots=1 for circuit "%s".',
-                            self.name(), name)
-                experiment.config.shots = 1
-            for operation in experiment.instructions:
-                if operation.name in ['measure', 'reset']:
+                        self.name)
+            self.set_configuration(shots=1)
+        for experiment in circuits:
+            if experiment.num_qubits > self._target.num_qubits:
+                raise BasicAerError('Number of qubits {} '.format(experiment.num_qubits) +
+                                    'is greater than maximum ({}) '.format(self.num_qubits) +
+                                    'for "{}".'.format(self.name))
+            name = experiment.name
+            for operation in experiment.count_ops():
+                if operation in ['measure', 'reset']:
                     raise BasicAerError('Unsupported "%s" instruction "%s" ' +
-                                        'in circuit "%s" ', self.name(),
-                                        operation.name, name)
+                                        'in circuit "%s" ', self.name,
+                                        operation[0].name, name)

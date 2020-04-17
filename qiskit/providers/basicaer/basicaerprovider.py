@@ -19,9 +19,9 @@ from collections import OrderedDict
 import logging
 
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BaseProvider
+from qiskit.providers.v2 import Provider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from qiskit.providers.providerutils import resolve_backend_name, filter_backends
+from qiskit.providers.providerutils import filter_backends
 
 from .qasm_simulator import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulatorPy
@@ -37,23 +37,39 @@ SIMULATORS = [
 ]
 
 
-class BasicAerProvider(BaseProvider):
+def _resolve_backend_name(name, backends, deprecated, aliased):
+    available = [backend.name for backend in backends]
+
+    resolved_name = deprecated.get(name, aliased.get(name, name))
+    if isinstance(resolved_name, list):
+        resolved_name = next((b for b in resolved_name if b in available), "")
+
+    if resolved_name not in available:
+        raise LookupError("backend '{}' not found.".format(name))
+
+    if name in deprecated:
+        logger.warning("Backend '%s' is deprecated. Use '%s'.", name,
+                       resolved_name)
+
+    return resolved_name
+
+
+class BasicAerProvider(Provider):
     """Provider for Basic Aer backends."""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
+        super().__init__()
 
         # Populate the list of Basic Aer backends.
         self._backends = self._verify_backends()
 
     def get_backend(self, name=None, **kwargs):
         backends = self._backends.values()
-
         # Special handling of the `name` parameter, to support alias resolution
         # and deprecated names.
         if name:
             try:
-                resolved_name = resolve_backend_name(
+                resolved_name = _resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
                     {}
@@ -73,13 +89,13 @@ class BasicAerProvider(BaseProvider):
         # and deprecated names.
         if name:
             try:
-                resolved_name = resolve_backend_name(
+                resolved_name = _resolve_backend_name(
                     name, backends,
                     self._deprecated_backend_names(),
                     {}
                 )
                 backends = [backend for backend in backends if
-                            backend.name() == resolved_name]
+                            backend.name == resolved_name]
             except LookupError:
                 return []
 
@@ -112,7 +128,7 @@ class BasicAerProvider(BaseProvider):
         for backend_cls in SIMULATORS:
             try:
                 backend_instance = self._get_backend_instance(backend_cls)
-                backend_name = backend_instance.name()
+                backend_name = backend_instance.name
                 ret[backend_name] = backend_instance
             except QiskitError as err:
                 # Ignore backends that could not be initialized.
@@ -133,7 +149,7 @@ class BasicAerProvider(BaseProvider):
         """
         # Verify that the backend can be instantiated.
         try:
-            backend_instance = backend_cls(provider=self)
+            backend_instance = backend_cls()
         except Exception as err:
             raise QiskitError('Backend %s could not be instantiated: %s' %
                               (backend_cls, err))

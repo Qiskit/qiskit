@@ -23,54 +23,67 @@ The simulator is run using
 
 .. code-block:: python
 
-    QasmSimulatorPy().run(qobj)
+    QasmSimulatorPy().run(circuits)
 
 Where the input is a Qobj object and the output is a BasicAerJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
 
-import uuid
-import time
+import collections
 import logging
-
 from math import log2
-from collections import Counter
+import time
+import uuid
+import warnings
+
 import numpy as np
 
+from qiskit.assembler.disassemble import disassemble
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.result import Result
-from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
+from qiskit.result.counts import Counts
+from qiskit.providers.models import BackendStatus
+from qiskit.providers.v2 import Backend
+from qiskit.providers.v2 import Configuration
+from qiskit.providers.v2.target import Target
+from qiskit.qobj.qasm_qobj import QasmQobj
+from qiskit.version import VERSION as __version__
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import cx_gate_matrix
 from .basicaertools import einsum_vecmul_index
+from .basicaertools import assemble_circuit
 
 logger = logging.getLogger(__name__)
 
+MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
-class QasmSimulatorPy(BaseBackend):
-    """Python implementation of a qasm simulator."""
+class QasmSimulatorTarget(Target):
+    @property
+    def num_qubits(self):
+        return min(24, MAX_QUBITS_MEMORY)
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
+    @property
+    def conditional(self):
+        return True
 
-    DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator',
-        'backend_version': '2.0.0',
-        'n_qubits': min(24, MAX_QUBITS_MEMORY),
-        'url': 'https://github.com/Qiskit/qiskit-terra',
-        'simulator': True,
-        'local': True,
-        'conditional': True,
-        'open_pulse': False,
-        'memory': True,
-        'max_shots': 65536,
-        'coupling_map': None,
-        'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
-        'gates': [
+    @property
+    def basis_gates(self):
+        return ['u1', 'u2', 'u3', 'cx', 'id', 'unitary']
+
+    @property
+    def supported_instructions(self):
+        return None
+
+    @property
+    def coupling_map(self):
+        return None
+
+    @property
+    def gates(self):
+        return [
             {
                 'name': 'u1',
                 'parameters': ['lambda'],
@@ -102,22 +115,30 @@ class QasmSimulatorPy(BaseBackend):
                 'qasm_def': 'unitary(matrix) q1, q2,...'
             }
         ]
-    }
 
-    DEFAULT_OPTIONS = {
-        "initial_statevector": None,
-        "chop_threshold": 1e-15
-    }
+
+class QasmSimulatorPy(Backend):
+    """Python implementation of a qasm simulator."""
 
     # Class level variable to return the final state at the end of simulation
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
-    def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
-                         provider=provider)
+    @property
+    def local(self):
+        return True
 
+    @property
+    def open_pulse(self):
+        return False
+
+    @property
+    def memory(self):
+        return True
+
+    def __init__(self, name='qasm_simulator', **fields):
+        super().__init__(name, **fields)
+        self._target = QasmSimulatorTarget()
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0
@@ -127,11 +148,16 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_qubits = 0
         self._shots = 0
         self._memory = False
-        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
-        self._qobj_config = None
+        self._initial_statevector = None
+        self._chop_threshold = self.configuration.get('chop_threshold')
         # TEMP
-        self._sample_measure = False
+        self._sample_measure = self.configuration.get('allow_sample_measuring')
+
+    @classmethod
+    def _default_config(cls):
+        return Configuration(shots=1024, memory=False,
+                             initial_statevector=None, chop_threshold=1e-15,
+                             allow_sample_measuring=False)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -266,7 +292,7 @@ class QasmSimulatorPy(BaseBackend):
     def _validate_initial_statevector(self):
         """Validate an initial statevector"""
         # If initial statevector isn't set we don't need to validate
-        if self._initial_statevector is None:
+        if self.configuration.get('initial_statevector') is None:
             return
         # Check statevector is correct length for number of qubits
         length = len(self._initial_statevector)
@@ -275,34 +301,18 @@ class QasmSimulatorPy(BaseBackend):
             raise BasicAerError('initial statevector is incorrect length: ' +
                                 '{} != {}'.format(length, required_dim))
 
-    def _set_options(self, qobj_config=None, backend_options=None):
-        """Set the backend options for all experiments in a qobj"""
+    def _set_options(self):
+        """Set the backend options for all experiments"""
         # Reset default options
-        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
-        if backend_options is None:
-            backend_options = {}
+        self._initial_statevector = self.configuration.get('initial_statevector')
+        self._chop_threshold = self.configuration.get('chop_threshold')
 
-        # Check for custom initial statevector in backend_options first,
-        # then config second
-        if 'initial_statevector' in backend_options:
-            self._initial_statevector = np.array(backend_options['initial_statevector'],
-                                                 dtype=complex)
-        elif hasattr(qobj_config, 'initial_statevector'):
-            self._initial_statevector = np.array(qobj_config.initial_statevector,
-                                                 dtype=complex)
         if self._initial_statevector is not None:
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
                 raise BasicAerError('initial statevector is not normalized: ' +
                                     'norm {} != 1'.format(norm))
-        # Check for custom chop threshold
-        # Replace with custom options
-        if 'chop_threshold' in backend_options:
-            self._chop_threshold = backend_options['chop_threshold']
-        elif hasattr(qobj_config, 'chop_threshold'):
-            self._chop_threshold = qobj_config.chop_threshold
 
     def _initialize_statevector(self):
         """Set the initial statevector for simulation"""
@@ -327,7 +337,7 @@ class QasmSimulatorPy(BaseBackend):
         """Determine if measure sampling is allowed for an experiment
 
         Args:
-            experiment (QobjExperiment): a qobj experiment.
+            experiment (QobjCircuit): a QuantumCircuit experiment.
         """
         # If shots=1 we should disable measure sampling.
         # This is also required for statevector simulator to return the
@@ -336,124 +346,75 @@ class QasmSimulatorPy(BaseBackend):
             self._sample_measure = False
             return
 
-        # Check for config flag
-        if hasattr(experiment.config, 'allows_measure_sampling'):
-            self._sample_measure = experiment.config.allows_measure_sampling
         # If flag isn't found do a simple test to see if a circuit contains
         # no reset instructions, and no gates instructions after
         # the first measure.
-        else:
-            measure_flag = False
-            for instruction in experiment.instructions:
-                # If circuit contains reset operations we cannot sample
-                if instruction.name == "reset":
+        measure_flag = False
+        for instruction in experiment.data:
+            # If circuit contains reset operations we cannot sample
+            if instruction[0].name == "reset":
+                self._sample_measure = False
+                return
+            # If circuit contains a measure option then we can
+            # sample only if all following operations are measures
+            if measure_flag:
+                # If we find a non-measure instruction
+                # we cannot do measure sampling
+                if instruction[0].name not in ["measure", "barrier", "id", "u0"]:
                     self._sample_measure = False
                     return
-                # If circuit contains a measure option then we can
-                # sample only if all following operations are measures
-                if measure_flag:
-                    # If we find a non-measure instruction
-                    # we cannot do measure sampling
-                    if instruction.name not in ["measure", "barrier", "id", "u0"]:
-                        self._sample_measure = False
-                        return
-                elif instruction.name == "measure":
-                    measure_flag = True
-            # If we made it to the end of the circuit without returning
-            # measure sampling is allowed
-            self._sample_measure = True
+            elif instruction[0].name == "measure":
+                measure_flag = True
+        # If we made it to the end of the circuit without returning
+        # measure sampling is allowed
+        self._sample_measure = True
 
-    def run(self, qobj, backend_options=None):
-        """Run qobj asynchronously.
+    def run(self, circuits):
+        """Run circuits
 
         Args:
-            qobj (Qobj): payload of the experiment
-            backend_options (dict): backend options
+            circuits (list(QuantumCircuits): payload of the experiment
 
         Returns:
-            BasicAerJob: derived from BaseJob
-
-        Additional Information:
-            backend_options: Is a dict of options for the backend. It may contain
-                * "initial_statevector": vector_like
-
-            The "initial_statevector" option specifies a custom initial
-            initial statevector for the simulator to be used instead of the all
-            zero state. This size of this vector must be correct for the number
-            of qubits in all experiments in the qobj.
-
-            Example::
-
-                backend_options = {
-                    "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
-                }
+            List[Counts]: list
         """
-        self._set_options(qobj_config=qobj.config,
-                          backend_options=backend_options)
+        if isinstance(circuits, QuantumCircuit):
+            circuits = [circuits]
+        self._set_options()
         job_id = str(uuid.uuid4())
-        job = BasicAerJob(self, job_id, self._run_job, qobj)
-        job.submit()
-        return job
-
-    def _run_job(self, job_id, qobj):
-        """Run experiments in qobj
-
-        Args:
-            job_id (str): unique id for the job.
-            qobj (Qobj): job description
-
-        Returns:
-            Result: Result object
-        """
-        self._validate(qobj)
         result_list = []
-        self._shots = qobj.config.shots
-        self._memory = getattr(qobj.config, 'memory', False)
-        self._qobj_config = qobj.config
+        self._shots = self.configuration.get('shots')
+        self._memory = self.configuration.get('memory', False)
         start = time.time()
-        for experiment in qobj.experiments:
-            result_list.append(self.run_experiment(experiment))
-        end = time.time()
-        result = {'backend_name': self.name(),
-                  'backend_version': self._configuration.backend_version,
-                  'qobj_id': qobj.qobj_id,
-                  'job_id': job_id,
-                  'results': result_list,
-                  'status': 'COMPLETED',
-                  'success': True,
-                  'time_taken': (end - start),
-                  'header': qobj.header.to_dict()}
+        result_dict = collections.OrderedDict()
+        if isinstance(circuits, QasmQobj):
+            warnings.warn(
+                'Passing in a Qobj object to run() is deprecated and support '
+                'for it will be removed in the future. Instead pass circuits '
+                'directly and use the backend to set run configuration ',
+                DeprecationWarning, stacklevel=2)
+            circuits, _, __ = disassemble(circuits)
 
-        return Result.from_dict(result)
+        for experiment in circuits:
+            result_dict[experiment.name] = self.run_experiment(experiment)
+        end = time.time()
+        time_taken = end - start
+        return BasicAerJob(job_id, self,  result_dict, time_taken=time_taken)
 
     def run_experiment(self, experiment):
         """Run an experiment (circuit) and return a single experiment result.
 
         Args:
-            experiment (QobjExperiment): experiment from qobj experiments list
+            experiment (QuantumCircuit): A quantumcircuit to run
 
         Returns:
-             dict: A result dictionary which looks something like::
-
-                {
-                "name": name of this experiment (obtained from qobj.experiment header)
-                "seed": random seed used for simulation
-                "shots": number of shots used in the simulation
-                "data":
-                    {
-                    "counts": {'0x9: 5, ...},
-                    "memory": ['0x9', '0xF', '0x1D', ..., '0x9']
-                    },
-                "status": status string for the simulation
-                "success": boolean
-                "time_taken": simulation time of this single experiment
-                }
+            Counts: A counts object with the result of the experiment
         Raises:
             BasicAerError: if an error occurred.
         """
         start = time.time()
-        self._number_of_qubits = experiment.config.n_qubits
-        self._number_of_cmembits = experiment.config.memory_slots
+        self._number_of_qubits = experiment.num_qubits
+        self._number_of_cmembits = experiment.num_clbits
         self._statevector = 0
         self._classical_memory = 0
         self._classical_register = 0
@@ -461,10 +422,9 @@ class QasmSimulatorPy(BaseBackend):
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
-        if hasattr(experiment.config, 'seed_simulator'):
-            seed_simulator = experiment.config.seed_simulator
-        elif hasattr(self._qobj_config, 'seed_simulator'):
-            seed_simulator = self._qobj_config.seed_simulator
+        seed_config = self.configuration.get('seed_simulator')
+        if seed_config:
+            seed_simulator = seed_config
         else:
             # For compatibility on Windows force dyte to be int32
             # and set the maximum value to be (2 ** 31) - 1
@@ -490,7 +450,7 @@ class QasmSimulatorPy(BaseBackend):
             # Initialize classical memory to all 0
             self._classical_memory = 0
             self._classical_register = 0
-            for operation in experiment.instructions:
+            for operation in assemble_circuit(experiment):
                 conditional = getattr(operation, 'conditional', None)
                 if isinstance(conditional, int):
                     conditional_bit_set = (self._classical_register >> conditional) & 1
@@ -578,7 +538,7 @@ class QasmSimulatorPy(BaseBackend):
                         self._classical_memory = \
                             (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
                 else:
-                    backend = self.name()
+                    backend = self.name
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise BasicAerError(err_msg.format(backend, operation.name))
 
@@ -593,7 +553,7 @@ class QasmSimulatorPy(BaseBackend):
                     memory.append(hex(int(outcome, 2)))
 
         # Add data
-        data = {'counts': dict(Counter(memory))}
+        data = {'counts': dict(collections.Counter(memory))}
         # Optionally add memory list
         if self._memory:
             data['memory'] = memory
@@ -606,28 +566,31 @@ class QasmSimulatorPy(BaseBackend):
             if 'memory' in data and not data['memory']:
                 data.pop('memory')
         end = time.time()
-        return {'name': experiment.header.name,
-                'seed_simulator': seed_simulator,
-                'shots': self._shots,
-                'data': data,
-                'status': 'DONE',
-                'success': True,
-                'time_taken': (end - start),
-                'header': experiment.header.to_dict()}
+        return Counts(data, name=experiment.name, shots=self._shots,
+                      time_taken=end - start, seed_simulator=seed_simulator)
 
-    def _validate(self, qobj):
+    def _validate(self, circuits):
         """Semantic validations of the qobj which cannot be done via schemas."""
-        n_qubits = qobj.config.n_qubits
-        max_qubits = self.configuration().n_qubits
-        if n_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
-                                'is greater than maximum ({}) '.format(max_qubits) +
-                                'for "{}".'.format(self.name()))
-        for experiment in qobj.experiments:
-            name = experiment.header.name
-            if experiment.config.memory_slots == 0:
+        for circuit in circuits:
+            if circuit.num_qubits > self.num_qubits:
+                raise BasicAerError('Number of qubits {} '.format(circuit.num_qubits) +
+                                    'is greater than maximum ({}) '.format(self.num_qubits) +
+                                    'for "{}".'.format(self.name()))
+        for experiment in circuits:
+            name = experiment.name
+            if experiment.num_clbits == 0:
                 logger.warning('No classical registers in circuit "%s", '
                                'counts will be empty.', name)
-            elif 'measure' not in [op.name for op in experiment.instructions]:
+            elif 'measure' not in experiment.count_ops:
                 logger.warning('No measurements in circuit "%s", '
                                'classical register will remain all zeros.', name)
+
+    def status(self):
+        warnings.warn("The status method for QasmSimulatorPy is deprecated "
+                      "and will be removed in a future release.",
+                      DeprecationWarning, stacklevel=2)
+        return BackendStatus(backend_name=self.name,
+                             backend_version=__version__,
+                             operational=True,
+                             pending_jobs=0,
+                             status_msg='')

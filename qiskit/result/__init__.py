@@ -27,5 +27,6 @@ Experiment Results (:mod:`qiskit.result`)
 """
 
 from .result import Result
+from .counts import Counts
 from .exceptions import ResultError
 from .utils import marginal_counts

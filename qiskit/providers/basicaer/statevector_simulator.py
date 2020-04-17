@@ -38,65 +38,13 @@ logger = logging.getLogger(__name__)
 class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
-
-    DEFAULT_CONFIGURATION = {
-        'backend_name': 'statevector_simulator',
-        'backend_version': '1.0.0',
-        'n_qubits': min(24, MAX_QUBITS_MEMORY),
-        'url': 'https://github.com/Qiskit/qiskit-terra',
-        'simulator': True,
-        'local': True,
-        'conditional': True,
-        'open_pulse': False,
-        'memory': True,
-        'max_shots': 65536,
-        'coupling_map': None,
-        'description': 'A Python statevector simulator for qobj files',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
-        'gates': [
-            {
-                'name': 'u1',
-                'parameters': ['lambda'],
-                'qasm_def': 'gate u1(lambda) q { U(0,0,lambda) q; }'
-            },
-            {
-                'name': 'u2',
-                'parameters': ['phi', 'lambda'],
-                'qasm_def': 'gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }'
-            },
-            {
-                'name': 'u3',
-                'parameters': ['theta', 'phi', 'lambda'],
-                'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
-            },
-            {
-                'name': 'cx',
-                'parameters': ['c', 't'],
-                'qasm_def': 'gate cx c,t { CX c,t; }'
-            },
-            {
-                'name': 'id',
-                'parameters': ['a'],
-                'qasm_def': 'gate id a { U(0,0,0) a; }'
-            },
-            {
-                'name': 'unitary',
-                'parameters': ['matrix'],
-                'qasm_def': 'unitary(matrix) q1, q2,...'
-            }
-        ]
-    }
-
     # Override base class value to return the final state vector
     SHOW_FINAL_STATE = True
 
-    def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
-                         provider=provider)
+    def __init__(self, **fields):
+        super().__init__('statevector_simulator', **fields)
 
-    def run(self, qobj, backend_options=None):
+    def run(self, circuits):
         """Run qobj asynchronously.
 
         Args:
@@ -128,7 +76,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                     "chop_threshold": 1e-15
                 }
         """
-        return super().run(qobj, backend_options=backend_options)
+        return super().run(circuits)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

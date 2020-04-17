@@ -25,6 +25,7 @@ import logging
 from time import time
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.providers.v2.backend import Backend
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
 
@@ -59,7 +60,7 @@ def execute(experiments, backend,
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
             Circuit(s) or pulse schedule(s) to execute
 
-        backend (BaseBackend):
+        backend (BaseBackend|Backend):
             Backend to execute circuits on.
             Transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
@@ -261,33 +262,45 @@ def execute(experiments, backend,
                                meas_map=meas_map,
                                method=scheduling_method)
 
-    # assembling the circuits into a qobj to be run on the backend
-    qobj = assemble(experiments,
-                    qobj_id=qobj_id,
-                    qobj_header=qobj_header,
-                    shots=shots,
-                    memory=memory,
-                    max_credits=max_credits,
-                    seed_simulator=seed_simulator,
-                    default_qubit_los=default_qubit_los,
-                    default_meas_los=default_meas_los,
-                    schedule_los=schedule_los,
-                    meas_level=meas_level,
-                    meas_return=meas_return,
-                    memory_slots=memory_slots,
-                    memory_slot_size=memory_slot_size,
-                    rep_time=rep_time,
-                    parameter_binds=parameter_binds,
-                    backend=backend,
-                    init_qubits=init_qubits,
-                    **run_config)
+    # v2 Providers Backend
+    if isinstance(backend, Backend):
+        start_time = time()
+        backend.set_configuration(shots=shots, **run_config)
+        job = backend.run(experiments)
+        end_time = time()
+        _log_submission_time(start_time, end_time)
+        return job
 
-    # executing the circuits on the backend and returning the job
-    start_time = time()
-    job = backend.run(qobj, **run_config)
-    end_time = time()
-    _log_submission_time(start_time, end_time)
-    return job
+    # v1 Providers Backend
+    else:
+        # assembling the circuits into a qobj to be run on the backend
+        qobj = assemble(experiments,
+                        qobj_id=qobj_id,
+                        qobj_header=qobj_header,
+                        shots=shots,
+                        memory=memory,
+                        max_credits=max_credits,
+                        seed_simulator=seed_simulator,
+                        default_qubit_los=default_qubit_los,
+                        default_meas_los=default_meas_los,
+                        schedule_los=schedule_los,
+                        meas_level=meas_level,
+                        meas_return=meas_return,
+                        memory_slots=memory_slots,
+                        memory_slot_size=memory_slot_size,
+                        rep_time=rep_time,
+                        parameter_binds=parameter_binds,
+                        backend=backend,
+                        init_qubits=init_qubits,
+                        **run_config)
+
+        # executing the circuits on the backend and returning the job
+        start_time = time()
+        job = backend.run(qobj, **run_config)
+        end_time = time()
+        _log_submission_time(start_time, end_time)
+        return job
+
 
 
 def _check_conflicting_argument(**kargs):

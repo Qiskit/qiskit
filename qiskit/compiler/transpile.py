@@ -20,6 +20,7 @@ from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
+from qiskit.providers.v2.backend import Backend
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.dagcircuit import DAGCircuit
@@ -40,7 +41,7 @@ LOG = logging.getLogger(__name__)
 
 
 def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-              backend: Optional[BaseBackend] = None,
+              backend: Optional[Union[BaseBackend, Backend]] = None,
               basis_gates: Optional[List[str]] = None,
               coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
               backend_properties: Optional[BackendProperties] = None,
@@ -237,8 +238,12 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
             max_qubits = parsed_coupling_map.size()
 
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
-        elif backend is not None and not backend.configuration().simulator:
-            max_qubits = backend.configuration().n_qubits
+        elif backend is not None:
+            if isinstance(backend, Backend):
+                max_qubits = backend.target.num_qubits
+            else:
+                if not backend.configuration().simulator:
+                    max_qubits = backend.configuration().n_qubits
 
         if max_qubits is not None and (num_qubits > max_qubits):
             raise TranspilerError('Number of qubits ({}) '.format(num_qubits) +
@@ -364,8 +369,11 @@ def _parse_transpile_args(circuits, backend,
 def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
-        if getattr(backend, 'configuration', None):
-            basis_gates = getattr(backend.configuration(), 'basis_gates', None)
+        if isinstance(backend, Backend):
+            basis_gates = backend.target.basis_gates
+        else:
+            if getattr(backend, 'configuration', None):
+                basis_gates = getattr(backend.configuration(), 'basis_gates', None)
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
     if basis_gates is None or (isinstance(basis_gates, list) and
                                all(isinstance(i, str) for i in basis_gates)):
@@ -377,10 +385,13 @@ def _parse_basis_gates(basis_gates, backend, circuits):
 def _parse_coupling_map(coupling_map, backend, num_circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
-        if getattr(backend, 'configuration', None):
-            configuration = backend.configuration()
-            if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
-                coupling_map = CouplingMap(configuration.coupling_map)
+        if isinstance(backend, Backend):
+            coupling_map = backend.target.coupling_map
+        else:
+            if getattr(backend, 'configuration', None):
+                configuration = backend.configuration()
+                if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
+                    coupling_map = CouplingMap(configuration.coupling_map)
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
@@ -397,8 +408,11 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
-        if getattr(backend, 'properties', None):
-            backend_properties = backend.properties()
+        if isinstance(backend, Backend):
+            backend_properties = backend.properties
+        else:
+            if getattr(backend, 'properties', None):
+                backend_properties = backend.properties()
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties
