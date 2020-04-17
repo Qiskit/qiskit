@@ -294,8 +294,8 @@ class _PulseBuilder():
         """Call a QuantumCircuit."""
         # check by length, can't check if QuantumCircuit is None
         # so disable pylint error.
-        if len(self._lazy_circuit):  # pylint: disable=len-as-condition
-            import qiskit.compiler as compiler
+        if self._lazy_circuit:
+            import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
