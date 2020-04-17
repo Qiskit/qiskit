@@ -32,6 +32,17 @@ class TestAcquireChannel(QiskitTestCase):
         self.assertEqual(acquire_channel.index, 123)
         self.assertEqual(acquire_channel.name, 'a123')
 
+    def test_channel_hash(self):
+        """Test hashing for acquire channel.
+        """
+        acq_channel_1 = AcquireChannel(123)
+        acq_channel_2 = AcquireChannel(123)
+
+        hash_1 = hash(acq_channel_1)
+        hash_2 = hash(acq_channel_2)
+
+        self.assertEqual(hash_1, hash_2)
+
 
 class TestMemorySlot(QiskitTestCase):
     """AcquireChannel tests."""

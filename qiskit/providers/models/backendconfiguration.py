@@ -13,13 +13,17 @@
 # that they have been altered from the originals.
 
 """Backend Configuration Classes."""
+import re
 import copy
+import warnings
 from types import SimpleNamespace
-from typing import Dict, List
+from typing import Dict, List, Any, Iterable, Union
+from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
+from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,
+                                   ControlChannel, AcquireChannel)
 
 
 class GateConfig:
@@ -384,6 +388,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  display_name=None,
                  description=None,
                  tags=None,
+                 channels: Dict[str, Any] = None,
                  **kwargs):
         """
         Initialize a backend configuration that contains all the extra configuration that is made
@@ -437,6 +442,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             display_name (str): Alternate name field for the backend
             description (str): A description for the backend
             tags (list): A list of string tags to describe the backend
+            channels: An optional dictionary containing information of each channel -- their
+                purpose, type, and qubits operated on.
             **kwargs: Optional fields.
         """
         self.n_uchannels = n_uchannels
@@ -453,6 +460,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]
         self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
+
+        if channels is not None:
+            self._channels = channels
+
+            (self._qubit_channel_map,
+             self._channel_qubit_map,
+             self._control_channels) = self._parse_channels(channels=channels)
 
         if channel_bandwidth is not None:
             self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
@@ -570,16 +584,90 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, channel: int) -> ControlChannel:
+    def control(self, qubits: Iterable[int] = None,
+                channel: int = None) -> List[ControlChannel]:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
+        Args:
+            qubits: Tuple or list of qubits of the form `(control_qubit, target_qubit)`.
+            channel: Deprecated.
+
+        Raises:
+            BackendConfigurationError: If the ``qubits`` is not a part of the system or if
+                the backend does not provide `channels` information in its configuration.
+
         Returns:
-            Qubit control channel.
+            List of control channels.
         """
-        # TODO: Determine this from the hamiltonian.
-        return ControlChannel(channel)
+        if channel is not None:
+            warnings.warn('The channel argument has been deprecated in favor of qubits. '
+                          'This method will now return accurate ControlChannels determined '
+                          'by qubit indices.',
+                          DeprecationWarning)
+            qubits = [channel]
+        try:
+            if isinstance(qubits, list):
+                qubits = tuple(qubits)
+            return self._control_channels[qubits]
+        except KeyError:
+            raise BackendConfigurationError("Couldn't find the ControlChannel operating on qubits "
+                                            "{} on {}-qubit system. The ControlChannel information"
+                                            " is retrieved from the "
+                                            " backend.".format(qubits, self.n_qubits))
+        except AttributeError:
+            raise BackendConfigurationError("This backend - '{}' does not provide channel "
+                                            "information.".format(self.backend_name))
+
+    def get_channel_qubits(self, channel: Channel) -> List[int]:
+        """
+        Return a list of indices for qubits which are operated on directly by the given ``channel``.
+
+        Raises:
+            BackendConfigurationError: If ``channel`` is not a found or if
+                the backend does not provide `channels` information in its configuration.
+
+        Returns:
+            List of qubits operated on my the given ``channel``.
+        """
+        try:
+            return self._channel_qubit_map[channel]
+        except KeyError:
+            raise BackendConfigurationError("Couldn't find the Channel - {}".format(channel))
+        except AttributeError:
+            raise BackendConfigurationError("This backend - '{}' does not provide channel "
+                                            "information.".format(self.backend_name))
+
+    def get_qubit_channels(self, qubit: Union[int, Iterable[int]]) -> List[Channel]:
+        r"""Return a list of channels which operate on the given ``qubit``.
+
+        Raises:
+            BackendConfigurationError: If ``qubit`` is not a found or if
+                the backend does not provide `channels` information in its configuration.
+
+        Returns:
+            List of ``Channel``\s operated on my the given ``qubit``.
+        """
+        channels = set()
+        try:
+            if isinstance(qubit, int):
+                for key in self._qubit_channel_map.keys():
+                    if qubit in key:
+                        channels.update(self._qubit_channel_map[key])
+                if len(channels) == 0:
+                    raise KeyError
+            elif isinstance(qubit, list):
+                qubit = tuple(qubit)
+                channels.update(self._qubit_channel_map[qubit])
+            elif isinstance(qubit, tuple):
+                channels.update(self._qubit_channel_map[qubit])
+            return list(channels)
+        except KeyError:
+            raise BackendConfigurationError("Couldn't find the qubit - {}".format(qubit))
+        except AttributeError:
+            raise BackendConfigurationError("This backend - '{}' does not provide channel "
+                                            "information.".format(self.backend_name))
 
     def describe(self, channel: ControlChannel) -> Dict[DriveChannel, complex]:
         """
@@ -610,3 +698,56 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         for u_chan_lo in self.u_channel_lo[channel.index]:
             result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
         return result
+
+    def _parse_channels(self, channels: Dict[set, Any]) -> Dict[Any, Any]:
+        r"""
+        Generates a dictionaries of ``Channel``\s, and tuple of qubit(s) they operate on.
+
+        Args:
+            channels: An optional dictionary containing information of each channel -- their
+                purpose, type, and qubits operated on.
+
+        Returns:
+            qubit_channel_map: Dictionary mapping tuple of qubit(s) to list of ``Channel``\s.
+            channel_qubit_map: Dictionary mapping ``Channel`` to list of qubit(s).
+            control_channels: Dictionary mapping tuple of qubit(s), to list of
+                ``ControlChannel``\s.
+        """
+        qubit_channel_map = defaultdict(list)
+        channel_qubit_map = defaultdict(list)
+        control_channels = defaultdict(list)
+        channels_dict = {
+            DriveChannel.prefix: DriveChannel,
+            ControlChannel.prefix: ControlChannel,
+            MeasureChannel.prefix: MeasureChannel,
+            'acquire': AcquireChannel
+        }
+        for channel, config in channels.items():
+            channel_prefix, index = self._get_channel_prefix_index(channel)
+            channel_type = channels_dict[channel_prefix]
+            qubits = tuple(config['operates']['qubits'])
+            if channel_prefix in channels_dict:
+                qubit_channel_map[qubits].append(channel_type(index))
+                channel_qubit_map[(channel_type(index))].extend(list(qubits))
+                if channel_prefix == ControlChannel.prefix:
+                    control_channels[qubits].append(channel_type(index))
+        return dict(qubit_channel_map), dict(channel_qubit_map), dict(control_channels)
+
+    def _get_channel_prefix_index(self, channel: str) -> str:
+        """Return channel prefix and index from the given ``channel``.
+
+        Args:
+            channel: Name of channel.
+
+        Raises:
+            BackendConfigurationError: If invalid channel name is found.
+
+        Return:
+            Channel name and index. For example, if ``channel=acquire0``, this method
+            returns ``acquire`` and ``0``.
+        """
+        channel_prefix = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
+        try:
+            return channel_prefix.group('channel'), int(channel_prefix.group('index'))
+        except AttributeError:
+            raise BackendConfigurationError("Invalid channel name - '{}' found.".format(channel))
