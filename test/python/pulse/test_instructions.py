@@ -15,9 +15,10 @@
 """Unit tests for pulse instructions."""
 
 import numpy as np
-from qiskit.pulse import DriveChannel, AcquireChannel, MemorySlot, pulse_lib
-from qiskit.pulse import Delay, Play, ShiftPhase, Snapshot, SetFrequency, Acquire
-from qiskit.pulse.configuration import Kernel, Discriminator
+import qiskit.pulse.channels as channels
+import qiskit.pulse.configuration as configuration
+import qiskit.pulse.instructions as instructions
+import qiskit.pulse.pulse_lib as pulse_lib
 from qiskit.test import QiskitTestCase
 
 
@@ -30,17 +31,22 @@ class TestAcquire(QiskitTestCase):
             'start_window': 0,
             'stop_window': 10
         }
-        kernel = Kernel(name='boxcar', **kernel_opts)
+        kernel = configuration.Kernel(name='boxcar', **kernel_opts)
 
         discriminator_opts = {
             'neighborhoods': [{'qubits': 1, 'channels': 1}],
             'cal': 'coloring',
             'resample': False
         }
-        discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
+        discriminator = configuration.Discriminator(name='linear_discriminator',
+                                                    **discriminator_opts)
 
-        acq = Acquire(10, AcquireChannel(0), MemorySlot(0),
-                      kernel=kernel, discriminator=discriminator, name='acquire')
+        acq = instructions.Acquire(10,
+                                   channels.AcquireChannel(0),
+                                   channels.MemorySlot(0),
+                                   kernel=kernel,
+                                   discriminator=discriminator,
+                                   name='acquire')
 
         self.assertEqual(acq.duration, 10)
         self.assertEqual(acq.discriminator.name, 'linear_discriminator')
@@ -49,7 +55,9 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.kernel.params, kernel_opts)
         self.assertIsInstance(acq.id, int)
         self.assertEqual(acq.name, 'acquire')
-        self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0), None))
+        self.assertEqual(acq.operands, (10,
+                                        channels.AcquireChannel(0),
+                                        channels.MemorySlot(0), None))
 
 
 class TestDelay(QiskitTestCase):
@@ -57,19 +65,21 @@ class TestDelay(QiskitTestCase):
 
     def test_delay(self):
         """Test delay."""
-        delay = Delay(10, DriveChannel(0), name='test_name')
+        delay = instructions.Delay(10, channels.DriveChannel(0), name='test_name')
 
         self.assertIsInstance(delay.id, int)
         self.assertEqual(delay.name, 'test_name')
         self.assertEqual(delay.duration, 10)
         self.assertIsInstance(delay.duration, int)
-        self.assertEqual(delay.operands, (10, DriveChannel(0)))
-        self.assertEqual(delay, Delay(10, DriveChannel(0)))
-        self.assertNotEqual(delay, Delay(11, DriveChannel(1)))
+        self.assertEqual(delay.operands, (10, channels.DriveChannel(0)))
+        self.assertEqual(delay, instructions.Delay(10, channels.DriveChannel(0)))
+        self.assertNotEqual(delay, instructions.Delay(11, channels.DriveChannel(1)))
         self.assertEqual(repr(delay), "Delay(10, DriveChannel(0), name='test_name')")
 
         # Test numpy int for duration
-        delay = Delay(np.int32(10), DriveChannel(0), name='test_name2')
+        delay = instructions.Delay(np.int32(10),
+                                   channels.DriveChannel(0),
+                                   name='test_name2')
         self.assertEqual(delay.duration, 10)
         self.assertIsInstance(delay.duration, np.integer)
 
@@ -79,14 +89,20 @@ class TestSetFrequency(QiskitTestCase):
 
     def test_freq(self):
         """Test set frequency basic functionality."""
-        set_freq = SetFrequency(4.5e9, DriveChannel(1), name='test')
+        set_freq = instructions.SetFrequency(4.5e9, channels.DriveChannel(1), name='test')
 
         self.assertIsInstance(set_freq.id, int)
         self.assertEqual(set_freq.duration, 0)
         self.assertEqual(set_freq.frequency, 4.5e9)
-        self.assertEqual(set_freq.operands, (4.5e9, DriveChannel(1)))
-        self.assertEqual(set_freq, SetFrequency(4.5e9, DriveChannel(1), name='test'))
-        self.assertNotEqual(set_freq, SetFrequency(4.5e8, DriveChannel(1), name='test'))
+        self.assertEqual(set_freq.operands, (4.5e9, channels.DriveChannel(1)))
+        self.assertEqual(set_freq,
+                         instructions.SetFrequency(4.5e9,
+                                                   channels.DriveChannel(1),
+                                                   name='test'))
+        self.assertNotEqual(set_freq,
+                            instructions.SetFrequency(4.5e8,
+                                                      channels.DriveChannel(1),
+                                                      name='test'))
         self.assertEqual(repr(set_freq),
                          "SetFrequency(4500000000.0, DriveChannel(1), name='test')")
 
@@ -96,15 +112,21 @@ class TestShiftPhase(QiskitTestCase):
 
     def test_default(self):
         """Test basic ShiftPhase."""
-        shift_phase = ShiftPhase(1.57, DriveChannel(0))
+        shift_phase = instructions.ShiftPhase(1.57, channels.DriveChannel(0))
 
         self.assertIsInstance(shift_phase.id, int)
         self.assertEqual(shift_phase.name, None)
         self.assertEqual(shift_phase.duration, 0)
         self.assertEqual(shift_phase.phase, 1.57)
-        self.assertEqual(shift_phase.operands, (1.57, DriveChannel(0)))
-        self.assertEqual(shift_phase, ShiftPhase(1.57, DriveChannel(0), name='test'))
-        self.assertNotEqual(shift_phase, ShiftPhase(1.57j, DriveChannel(0), name='test'))
+        self.assertEqual(shift_phase.operands, (1.57, channels.DriveChannel(0)))
+        self.assertEqual(shift_phase,
+                         instructions.ShiftPhase(1.57,
+                                                 channels.DriveChannel(0),
+                                                 name='test'))
+        self.assertNotEqual(shift_phase,
+                            instructions.ShiftPhase(1.57j,
+                                                    channels.DriveChannel(0),
+                                                    name='test'))
         self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0))")
 
 
@@ -113,13 +135,13 @@ class TestSnapshot(QiskitTestCase):
 
     def test_default(self):
         """Test default snapshot."""
-        snapshot = Snapshot(label='test_name', snapshot_type='state')
+        snapshot = instructions.Snapshot(label='test_name', snapshot_type='state')
 
         self.assertIsInstance(snapshot.id, int)
         self.assertEqual(snapshot.name, 'test_name')
         self.assertEqual(snapshot.type, 'state')
         self.assertEqual(snapshot.duration, 0)
-        self.assertNotEqual(snapshot, Delay(10, DriveChannel(0)))
+        self.assertNotEqual(snapshot, instructions.Delay(10, channels.DriveChannel(0)))
         self.assertEqual(repr(snapshot), "Snapshot(test_name, state, name='test_name')")
 
 
@@ -130,7 +152,7 @@ class TestPlay(QiskitTestCase):
         """Test basic play instruction."""
         duration = 4
         pulse = pulse_lib.SamplePulse([1.0] * duration, name='test')
-        play = Play(pulse, DriveChannel(1))
+        play = instructions.Play(pulse, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
         self.assertEqual(play.name, pulse.name)
@@ -138,3 +160,24 @@ class TestPlay(QiskitTestCase):
         self.assertEqual(repr(play),
                          "Play(SamplePulse(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
                          " DriveChannel(1), name='test')")
+
+
+class TestDirectives(QiskitTestCase):
+    """Test pulse directives."""
+    def test_relative_barrier(self):
+        """Test the relative barrier directive."""
+        # pylint: disable=invalid-name
+        a0 = channels.AcquireChannel(0)
+        d0 = channels.DriveChannel(0)
+        m0 = channels.MeasureChannel(0)
+        u0 = channels.ControlChannel(0)
+        mem0 = channels.MemorySlot(0)
+        reg0 = channels.RegisterSlot(0)
+        chans = (a0, d0, m0, u0, mem0, reg0)
+        name = 'barrier'
+        barrier = instructions.RelativeBarrier(*chans, name=name)
+
+        self.assertEqual(barrier.name, name)
+        self.assertEqual(barrier.duration, 0)
+        self.assertEqual(barrier.channels, chans)
+        self.assertEqual(barrier.operands, chans)

@@ -55,7 +55,7 @@ class TestContexts(TestBuilder):
                 pulse.delay(d0, 7)
 
         reference = pulse.Schedule()
-
+        # d0
         reference.insert(0, instructions.Delay(3, d0), mutate=True)
         reference.insert(8, instructions.Delay(7, d0), mutate=True)
         # d1

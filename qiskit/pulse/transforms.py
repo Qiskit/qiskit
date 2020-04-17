@@ -23,16 +23,17 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
-from .commands import AcquireInstruction
-from .exceptions import PulseError
-from .instructions import Acquire, Delay
-from .instruction_schedule_map import InstructionScheduleMap
-from .interfaces import ScheduleComponent
-from .schedule import Schedule
+import qiskit.pulse.channels as chans
+import qiskit.pulse.commands as commands
+import qiskit.pulse.exceptions as exceptions
+import qiskit.pulse.instructions as instructions
+import qiskit.pulse.instructions.directives as directives
+import qiskit.pulse.interfaces as interfaces
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.schedule import Schedule
 
 
-def align_measures(schedules: Iterable[ScheduleComponent],
+def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
@@ -70,7 +71,8 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         for schedule in schedules:
             last_acquire = 0
             acquire_times = [time for time, inst in schedule.instructions
-                             if isinstance(inst, (Acquire, AcquireInstruction))]
+                             if isinstance(inst, (instructions.Acquire,
+                                                  commands.AcquireInstruction))]
             if acquire_times:
                 last_acquire = max(acquire_times)
             align_time = max(align_time, last_acquire)
@@ -85,9 +87,10 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         return max_calibration_duration
 
     if align_time is None and max_calibration_duration is None and inst_map is None:
-        raise PulseError("Must provide a inst_map, an alignment time, or a calibration duration.")
+        raise exceptions.PulseError("Must provide a inst_map, an alignment time, "
+                                    "or a calibration duration.")
     if align_time is not None and align_time < 0:
-        raise PulseError("Align time cannot be negative.")
+        raise exceptions.PulseError("Align time cannot be negative.")
     if align_time is None:
         align_time = calculate_align_time()
 
@@ -100,21 +103,23 @@ def align_measures(schedules: Iterable[ScheduleComponent],
 
         for time, inst in schedule.instructions:
             for chan in inst.channels:
-                if isinstance(chan, MeasureChannel):
+                if isinstance(chan, chans.MeasureChannel):
                     if chan.index in measured_channels:
-                        raise PulseError("Multiple measurements are not supported by this "
-                                         "rescheduling pass.")
+                        raise exceptions.PulseError("Multiple measurements are "
+                                                    "not supported by this "
+                                                    "rescheduling pass.")
                 elif chan.index in acquired_channels:
-                    raise PulseError("Pulse encountered on channel {0} after acquire on "
-                                     "same channel.".format(chan.index))
+                    raise exceptions.PulseError("Pulse encountered on channel "
+                                                "{0} after acquire on "
+                                                "same channel.".format(chan.index))
 
-            if isinstance(inst, (Acquire, AcquireInstruction)):
+            if isinstance(inst, (instructions.Acquire, commands.AcquireInstruction)):
                 if time > align_time:
                     warnings.warn("You provided an align_time which is scheduling an acquire "
                                   "sooner than it was scheduled for in the original Schedule.")
                 new_schedule |= inst << align_time
                 acquired_channels.update({a.index for a in inst.acquires})
-            elif isinstance(inst.channels[0], MeasureChannel):
+            elif isinstance(inst.channels[0], chans.MeasureChannel):
                 new_schedule |= inst << align_time
                 measured_channels.update({a.index for a in inst.channels})
             else:
@@ -125,7 +130,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     return new_schedules
 
 
-def add_implicit_acquires(schedule: ScheduleComponent,
+def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
                           meas_map: List[List[int]]
                           ) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
@@ -145,7 +150,7 @@ def add_implicit_acquires(schedule: ScheduleComponent,
     acquire_map = dict()
 
     for time, inst in schedule.instructions:
-        if isinstance(inst, (Acquire, AcquireInstruction)):
+        if isinstance(inst, (instructions.Acquire, commands.AcquireInstruction)):
             if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")
@@ -159,10 +164,11 @@ def add_implicit_acquires(schedule: ScheduleComponent,
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
             for i in all_qubits:
-                explicit_inst = Acquire(inst.duration, AcquireChannel(i),
-                                        mem_slot=MemorySlot(i),
-                                        kernel=inst.kernel,
-                                        discriminator=inst.discriminator) << time
+                explicit_inst = instructions.Acquire(inst.duration,
+                                                     chans.AcquireChannel(i),
+                                                     mem_slot=chans.MemorySlot(i),
+                                                     kernel=inst.kernel,
+                                                     discriminator=inst.discriminator) << time
                 if time not in acquire_map:
                     new_schedule |= explicit_inst
                     acquire_map = {time: {i}}
@@ -176,7 +182,7 @@ def add_implicit_acquires(schedule: ScheduleComponent,
 
 
 def pad(schedule: Schedule,
-        channels: Optional[Iterable[Channel]] = None,
+        channels: Optional[Iterable[chans.Channel]] = None,
         until: Optional[int] = None,
         mutate: bool = False
         ) -> Schedule:
@@ -205,17 +211,20 @@ def pad(schedule: Schedule,
     for channel in channels:
         for timeslot in empty_timeslot_collection.ch_timeslots(channel):
             schedule = schedule.insert(timeslot.start,
-                                       Delay(timeslot.duration)(timeslot.channel),
+                                       instructions.Delay(timeslot.duration,
+                                                          timeslot.channel),
                                        mutate=mutate)
 
     for channel in unoccupied_channels:
-        schedule = schedule.insert(0, Delay(until)(channel), mutate=mutate)
+        schedule = schedule.insert(0,
+                                   instructions.Delay(until, channel),
+                                   mutate=mutate)
 
     return schedule
 
 
-def push_append(this: List[ScheduleComponent],
-                other: List[ScheduleComponent],
+def push_append(this: List[interfaces.ScheduleComponent],
+                other: List[interfaces.ScheduleComponent],
                 ) -> Schedule:
     r"""Return a ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
@@ -308,7 +317,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
 
 
 def barrier_left(schedule: Schedule,
-                 channels: Optional[Iterable[Channel]] = None
+                 channels: Optional[Iterable[chans.Channel]] = None
                  ) -> Schedule:
     """Align on the left and create a barrier so that pulses cannot be inserted
         within this pulse interval.
@@ -328,7 +337,7 @@ def barrier_left(schedule: Schedule,
 
 
 def barrier_right(schedule: Schedule,
-                  channels: Optional[Iterable[Channel]] = None
+                  channels: Optional[Iterable[chans.Channel]] = None
                   ) -> Schedule:
     """Align on the right and create a barrier so that pulses cannot be
         inserted within this pulse interval.
@@ -347,7 +356,7 @@ def barrier_right(schedule: Schedule,
     return pad(aligned, channels=channels)
 
 
-def group(schedule):
+def group(schedule: Schedule) -> Schedule:
     """Group all instructions in a node.
 
     With the current schedule implementation this is trivial.
@@ -355,6 +364,11 @@ def group(schedule):
     return schedule
 
 
-def flatten(schedule):
+def flatten(schedule: Schedule) -> Schedule:
     """Flatten any grouped nodes."""
     return schedule.flatten()
+
+
+def remove_directives(schedule: Schedule) -> Schedule:
+    """Remove directives."""
+    return schedule.exclude(instruction_types=[directives.Directive])

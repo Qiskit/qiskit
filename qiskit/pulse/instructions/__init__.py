@@ -52,6 +52,7 @@ Abstract Classes
 """
 from .acquire import Acquire
 from .delay import Delay
+from .directives import Directive, RelativeBarrier
 from .instruction import Instruction
 from .frequency import SetFrequency
 from .phase import ShiftPhase
