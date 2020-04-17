@@ -499,7 +499,7 @@ class QuantumCircuit:
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
-        self.data.append(instruction_context)
+        self._data.append(instruction_context)
 
         self._update_parameter_table(instruction)
 
@@ -655,7 +655,7 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
         unitary_gates = []
-        for instruction, qargs, cargs in self.data:
+        for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
