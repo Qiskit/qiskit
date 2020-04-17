@@ -21,8 +21,9 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
+from qiskit.pulse import (Acquire, Delay,
                           InstructionScheduleMap, ScheduleComponent, Schedule)
+from qiskit.pulse.commands import AcquireInstruction
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
 

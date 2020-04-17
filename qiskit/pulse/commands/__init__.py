@@ -21,5 +21,14 @@ PersistentValueInstruction, PulseInstruction, DelayInstruction and ParametricIns
 deprecated. When they are removed, this ``pulse.commands`` import path for the remaining objects
 can also be deprecated.
 """
+from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
+from .meas_opts import Discriminator, Kernel
 from .persistent_value import PersistentValue, PersistentValueInstruction
+from .command import Command
+from .pulse_decorators import functional_pulse
+from .sample_pulse import SamplePulse, PulseInstruction
+from .snapshot import Snapshot
+from .delay import Delay, DelayInstruction
+from .parametric_pulses import (ParametricPulse, ParametricInstruction, Gaussian, GaussianSquare,
+                                Drag, ConstantPulse)

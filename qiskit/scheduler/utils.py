@@ -16,7 +16,7 @@
 
 from typing import Dict, List, Optional, Union
 from qiskit.pulse import Schedule, MemorySlot, Acquire, PulseError, InstructionScheduleMap
-from qiskit.pulse import AcquireInstruction
+from qiskit.pulse.commands import AcquireInstruction
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
