@@ -35,7 +35,7 @@ def add_control(operation: Union[Gate, ControlledGate],
     Open controls are implemented by conjugating the control line with
     X gates. Adds num_ctrl_qubits controls to operation.
 
-    This function is meant to becalled from the
+    This function is meant to be called from the
     :method:`qiskit.circuit.gate.Gate.control()` method.
 
     Args:
