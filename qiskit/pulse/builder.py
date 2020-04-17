@@ -849,6 +849,25 @@ def measure(qubit: int,
     return register
 
 
+def measure_all() -> List[channels.MemorySlot]:
+    """Measure all qubits within the currently active builder context.
+
+    Returns:
+        The ``register``s the qubit measurement results will be stored in.
+    """
+    backend = active_backend()
+    qubits = range(num_qubits())
+    registers = [channels.MemorySlot(qubit) for qubit in qubits]
+    measure_sched = macros.measure(
+        qubits=qubits,
+        inst_map=backend.defaults().instruction_schedule_map,
+        meas_map=backend.configuration().meas_map,
+        qubit_mem_slots={register: register for register in registers})
+    call_schedule(measure_sched)
+
+    return registers
+
+
 def delay_qubits(qubits: Union[int, Iterable[int]], duration: int):
     """Insert delays on all of the :class:`channels.Channel` that belong ``qubits``.
 

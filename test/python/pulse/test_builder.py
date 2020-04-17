@@ -610,12 +610,25 @@ class TestMacros(TestBuilder):
         """Test utility function - measure."""
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            pulse.measure(0)
+            reg = pulse.measure(0)
+
+        self.assertEqual(reg, pulse.MemorySlot(0))
 
         reference = macros.measure(
             qubits=[0],
             inst_map=self.inst_map,
             meas_map=self.configuration.meas_map)
+
+        self.assertEqual(schedule, reference)
+
+    def test_measure_all(self):
+        """Test utility function - measure."""
+        schedule = pulse.Schedule()
+        with pulse.build(self.backend, schedule):
+            regs = pulse.measure_all()
+
+        self.assertEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
+        reference = macros.measure_all(self.backend)
 
         self.assertEqual(schedule, reference)
 
