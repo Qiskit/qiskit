@@ -78,6 +78,7 @@ class Instruction(ScheduleComponent, ABC):
                                                for channel in channels if channel is not None))
         self._operands = operands
         self._name = name
+        self._hash = None
 
     @property
     def name(self) -> str:
@@ -292,10 +293,12 @@ class Instruction(ScheduleComponent, ABC):
         return isinstance(other, type(self)) and self.operands == other.operands
 
     def __hash__(self) -> int:
-        if self.command:
-            # Backwards compatibility for Instructions with Commands
-            return hash(((tuple(self.command)), self.channels.__hash__()))
-        return hash((type(self), self.operands, self.name))
+        if self._hash is None:
+            if self.command:
+                # Backwards compatibility for Instructions with Commands
+                return hash(((tuple(self.command)), self.channels.__hash__()))
+            self._hash = hash((type(self), self.operands, self.name))
+        return self._hash
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
