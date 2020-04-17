@@ -962,10 +962,7 @@ class TextDrawing():
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(instruction, conditional)
-
-            if instruction.op.base_gate.name == 'z':
-                gates.append(Bullet(conditional=conditional))
-            elif len(rest) > 1:
+            if len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
                 indexes = layer.set_qu_multibox(rest, label,
@@ -975,6 +972,8 @@ class TextDrawing():
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
+            elif instruction.op.base_gate.name == 'z':
+                gates.append(Bullet(conditional=conditional))
             else:
                 gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
