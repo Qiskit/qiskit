@@ -22,7 +22,7 @@ from . import _gate_extension  # pylint: disable=W0611
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
     HAS_Z3 = True
-except ModuleNotFoundError:
+except ImportError:
     HAS_Z3 = False
 
 
