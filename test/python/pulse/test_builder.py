@@ -476,34 +476,61 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    def test_barrier(self):
-        """Test barrier instruction."""
+
+class TestDirectives(TestBuilder):
+    """Test context builder directives."""
+
+    def test_barrier_with_align_right(self):
+        """Test barrier directive with right alignment context."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
-        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+        d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
-            with pulse.align_left():
-                pulse.play(d0, test_pulse)
-                pulse.barrier(d0, d1)
-                pulse.play(d1, test_pulse)
+            with pulse.align_right():
+                pulse.delay(d0, 3)
+                pulse.barrier(d0, d1, d2)
+                pulse.delay(d2, 11)
+                with pulse.align_right():
+                    pulse.delay(d1, 5)
+                    pulse.delay(d0, 7)
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Play(test_pulse, d0)
+        reference = reference.insert(0, instructions.Delay(3, d0))
+        reference = reference.insert(7, instructions.Delay(7, d0))
         # d1
-        reference.insert(10, instructions.Play(test_pulse, d1), mutate=True)
+        reference = reference.insert(9, instructions.Delay(5, d1))
+        # d2
+        reference = reference.insert(3, instructions.Delay(11, d2))
 
         self.assertEqual(schedule, reference)
 
-        # test barrier on qubits
+    def test_barrier_with_align_left(self):
+        """Test barrier directive with left alignment context."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
         schedule = pulse.Schedule()
         with pulse.build(self.backend, schedule):
             with pulse.align_left():
-                pulse.play(d0, test_pulse)
-                pulse.barrier(0, 1)
-                pulse.play(d1, test_pulse)
+                pulse.delay(d0, 3)
+                pulse.barrier(d0, d1, d2)
+                pulse.delay(d2, 11)
+                with pulse.align_left():
+                    pulse.delay(d1, 5)
+                    pulse.delay(d0, 7)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        reference += instructions.Delay(7, d0)
+        # d1
+        reference = reference.insert(3, instructions.Delay(5, d1))
+        # d2
+        reference = reference.insert(3, instructions.Delay(11, d2))
 
         self.assertEqual(schedule, reference)
 

@@ -146,6 +146,7 @@ import qiskit.pulse.channels as channels
 import qiskit.pulse.configuration as configuration
 import qiskit.pulse.exceptions as exceptions
 import qiskit.pulse.instructions as instructions
+import qiskit.pulse.instructions.directives as directives
 import qiskit.pulse.macros as macros
 import qiskit.pulse.pulse_lib as pulse_lib
 import qiskit.pulse.transforms as transforms
@@ -270,7 +271,8 @@ class _PulseBuilder():
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
-        program = self._entry_block.append(self.block, mutate=True)
+        built_program = transforms.remove_directives(self.block)
+        program = self._entry_block.append(built_program, mutate=True)
         self.set_active_block(Schedule())
         return program
 
@@ -448,6 +450,22 @@ def append_instruction(instruction: instructions.Instruction):
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """Returns the 'typical' set of channels associated with a qubit."""
     return set(active_backend().configuration().get_qubit_channels(qubit))
+
+
+def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
+                        ) -> Set[channels.Channel]:
+    """Returns the unique channels of the input qubits."""
+    chans = set()
+    for channel_or_qubit in channels_or_qubits:
+        if isinstance(channel_or_qubit, int):
+            chans += qubit_channels(channel_or_qubit)
+        elif isinstance(channel_or_qubit, channels.Channel):
+            chans.add(channel_or_qubit)
+        else:
+            raise exceptions.PulseError(
+                '{} is not a "Channel" or '
+                'qubit (integer).'.format(channel_or_qubit))
+    return chans
 
 
 def active_transpiler_settings() -> Dict[str, Any]:
@@ -743,32 +761,6 @@ def shift_phase(channel: channels.PulseChannel, phase: float):
     append_instruction(instructions.ShiftPhase(phase, channel))
 
 
-def barrier(*channels_or_qubits: Union[channels.Channel, int]):
-    """Barrier a set of channels and qubits.
-
-    Args:
-        channels_or_qubits: Channels or qubits to barrier.
-
-    .. todo:: Implement this as a proper instruction.
-
-    Raises:
-        exceptions.PulseError: If input is not a ``Channel`` or an integer
-            representing a qubit index.
-        NotImplementedError: Barrier has not yet been implemented.
-    """
-    chans = set()
-    for channel_or_qubit in channels_or_qubits:
-        if isinstance(channel_or_qubit, int):
-            chans += qubit_channels(channel_or_qubit)
-        elif isinstance(channel_or_qubit, channels.Channel):
-            chans.add(channel_or_qubit)
-        else:
-            raise exceptions.PulseError(
-                '{} is not a "Channel" or '
-                'qubit (integer).'.format(channel_or_qubit))
-    raise NotImplementedError('Barrier has not yet been implemented.')
-
-
 def snapshot(label: str, snapshot_type: str = 'statevector'):
     """Simulator snapshot."""
     append_instruction(
@@ -801,6 +793,27 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
     else:
         raise exceptions.PulseError(
             'Target of type "{}" is not supported.'.format(type(target)))
+
+
+# Directives ###################################################################
+def barrier(*channels_or_qubits: Union[channels.Channel, int]):
+    """Barrier directive for a set of channels and qubits.
+
+    This directive prevents the compiler from moving instructions across
+    the barrier.
+
+    Args:
+        channels_or_qubits: Channels or qubits to barrier.
+
+    .. todo:: Implement this as a proper instruction.
+
+    Raises:
+        exceptions.PulseError: If input is not a ``Channel`` or an integer
+            representing a qubit index.
+        NotImplementedError: Barrier has not yet been implemented.
+    """
+    chans = _qubits_to_channels(*channels_or_qubits)
+    append_instruction(directives.RelativeBarrier(*chans))
 
 
 # Macros #######################################################################

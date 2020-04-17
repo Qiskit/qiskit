@@ -28,6 +28,7 @@ from qiskit.test.mock import FakeOpenPulse2Q
 
 # pylint: disable=invalid-name
 
+
 class TestAutoMerge(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
@@ -301,7 +302,8 @@ class TestAlignSequential(QiskitTestCase):
         schedule = schedule.insert(4, instructions.Delay(5, d1), mutate=True)
         schedule = schedule.insert(12, instructions.Delay(7, d0), mutate=True)
 
-        schedule = transforms.remove_directives(transforms.align_sequential(schedule))
+        schedule = transforms.remove_directives(
+            transforms.align_sequential(schedule))
 
         reference = pulse.Schedule()
         # d0
@@ -323,7 +325,8 @@ class TestAlignSequential(QiskitTestCase):
         schedule = schedule.insert(4, instructions.Delay(5, d1), mutate=True)
         schedule = schedule.insert(12, instructions.Delay(7, d0), mutate=True)
 
-        schedule = transforms.remove_directives(transforms.align_sequential(schedule))
+        schedule = transforms.remove_directives(
+            transforms.align_sequential(schedule))
 
         reference = pulse.Schedule()
         # d0
@@ -380,7 +383,8 @@ class TestAlignLeft(QiskitTestCase):
         sched_grouped += instructions.Delay(5, d1)
         sched_grouped += instructions.Delay(7, d0)
         schedule.append(sched_grouped, mutate=True)
-        schedule = transforms.remove_directives(transforms.align_left(schedule))
+        schedule = transforms.remove_directives(
+            transforms.align_left(schedule))
 
         reference = pulse.Schedule()
         # d0
@@ -440,7 +444,8 @@ class TestAlignRight(QiskitTestCase):
         sched_grouped += instructions.Delay(7, d0)
 
         schedule.append(sched_grouped, mutate=True)
-        schedule = transforms.remove_directives(transforms.align_right(schedule))
+        schedule = transforms.remove_directives(
+            transforms.align_right(schedule))
 
         reference = pulse.Schedule()
         # d0
