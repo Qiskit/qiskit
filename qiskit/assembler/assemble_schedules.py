@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Tuple
 import hashlib
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, Acquire, Delay, Play
+from qiskit.pulse import Schedule, Acquire, Delay, Play, transforms
 from qiskit.pulse.pulse_lib import ParametricPulse, SamplePulse
 from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
                                    DelayInstruction, ParametricInstruction)
@@ -30,7 +30,6 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 from .run_config import RunConfig
-from qiskit.pulse import transforms
 
 
 def assemble_schedules(schedules: List[Schedule],
