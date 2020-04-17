@@ -8,8 +8,14 @@ features:
     users running into waveform limits on hardware.
     For example::
 
-        schedule = Schedule()
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+        from qiskit.pulse import transforms
 
-        compressed_schedule = compress_pulses(schedule)
+        schedules = []
+        for _ in range(2):
+            schedule = Schedule()
+            drive_channel = DriveChannel(0)
+            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+            schedules.append(schedule)
+
+        compressed_schedules = transforms.compress_pulses(schedules)

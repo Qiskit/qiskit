@@ -17,37 +17,51 @@ Basic rescheduling functions which take schedules or instructions
 (and possibly some arguments) and return new schedules.
 """
 from collections import defaultdict
+from typing import List
 
-from . import Play
-from .schedule import Schedule
+from qiskit.pulse import Play, Schedule
 
 
-def compress_pulses(schedule: Schedule,
-                    by_channel: bool = False) -> Schedule:
+def compress_pulses(schedules: List[Schedule],
+                    by_schedule: bool = False,
+                    by_channel: bool = False) -> List[Schedule]:
     """Optimization pass to replace identical pulses.
 
     Args:
-        schedule (Schedule): Schedule to compress.
+        schedules (list): Schedules to compress.
+        by_schedule (bool): Compress pulses by schedule.
         by_channel (bool): Compress pulses by channel.
 
     Returns:
-        Compressed schedule.
+        Compressed schedules.
     """
 
-    new_schedule = Schedule(name=schedule.name)
+    def _identifier(sched: str, chan: str) -> str:
+        if not by_channel and not by_schedule:
+            return '__all__'
+
+        pairs = [(chan, by_channel), (sched, by_schedule)]
+        return '_'.join([p[0] for p in pairs if p[1]])
+
     existing_pulses = defaultdict(list)
+    new_schedules = []
 
-    for time, inst in schedule.instructions:
-        if isinstance(inst, Play):
-            channel = inst.channel.name if by_channel else '__all__'
-            if inst.pulse in existing_pulses[channel]:
-                idx = existing_pulses[channel].index(inst.pulse)
-                identical_pulse = existing_pulses[channel][idx]
-                new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
+    for schedule in schedules:
+        new_schedule = Schedule(name=schedule.name)
+
+        for time, inst in schedule.instructions:
+            if isinstance(inst, Play):
+                identifier = _identifier(schedule.name, inst.channel.name)
+                if inst.pulse in existing_pulses[identifier]:
+                    idx = existing_pulses[identifier].index(inst.pulse)
+                    identical_pulse = existing_pulses[identifier][idx]
+                    new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
+                else:
+                    existing_pulses[identifier].append(inst.pulse)
+                    new_schedule |= inst << time
             else:
-                existing_pulses[channel].append(inst.pulse)
                 new_schedule |= inst << time
-        else:
-            new_schedule |= inst << time
 
-    return new_schedule
+        new_schedules.append(new_schedule)
+
+    return new_schedules
