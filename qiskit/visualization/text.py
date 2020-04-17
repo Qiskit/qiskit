@@ -852,7 +852,7 @@ class TextDrawing():
             else:
                 gates.append(OpenBullet(conditional=conditional))
         return gates
-                    
+
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
         any connections it introduces between qubits"""
