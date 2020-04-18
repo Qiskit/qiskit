@@ -59,7 +59,7 @@ def step_wise(time: np.ndarray,
               samples: np.ndarray,
               nop: int
               ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    # pylint: disable=nop
+    # pylint: disable=unused-argument
     """Keep uniform variation between sample values. No interpolation is applied.
     Args:
         time: Time vector with length of ``samples`` + 1.
