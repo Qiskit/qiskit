@@ -18,116 +18,109 @@ Use the context builder interface to program pulse programs with assembly-like
 syntax. For example::
 
 .. code::
-    from qiskit.circuit import QuantumCircuit
-    from qiskit.pulse import pulse_lib, Schedule, Gaussian, DriveChannel
+    import math
+
+    import qiskit.pulse as pulse
+    import qiskit.pulse.pulse_lib as pulse_lib
     from qiskit.test.mock import FakeOpenPulse2Q
+    from qiskit import QuantumCircuit
 
-    sched = Schedule()
+    backend = FakeOpenPulse2Q()
 
-    # This creates a PulseProgramBuilderContext(sched, backend=backend)
-    # instance internally and wraps in a
-    # dsl builder context
-    with builder(sched, backend=backend):
-      # create a pulse
-      gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
-      # create a channel type
-      d0 = DriveChannel(0)
-      d1 = DriveChannel(1)
-      # play a pulse at time=0
-      play(d0, gaussian_pulse)
-      # play another pulse directly after at t=10
-      play(d0, gaussian_pulse)
-      # The default scheduling behavior is to schedule pulse in parallel
-      # across independent resources, for example
-      # play the same pulse on a different channel at t=0
-      play(d1, gaussian_pulse)
-
-      # We also provide alignment contexts
-      # if channels are not supplied defaults to all channels
-      # this context starts at t=10 due to earlier pulses
-      with align_sequential():
+    sched = pulse.Schedule()
+    with build(backend, sched):
+        # Create a pulse.
+        gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
+        # Create a channel type.
+        d0 = drive_channel(0)
+        d1 = drive_channel(1)
+        # Play a pulse at t=0,
         play(d0, gaussian_pulse)
-        # play another pulse after at t=20
+        # Play another pulse directly after at t=10,
+        play(d0, gaussian_pulse)
+        # The default scheduling behavior is to schedule pulse in parallel
+        # across independent resources. For example, this
+        # plays the same pulse on a different channel at t=0.
         play(d1, gaussian_pulse)
 
-        # we can also layer contexts as each instruction is contained in its
-        # local scheduling context (block).
-        # Scheduling contexts are layered, and the output of a child context is
-        # a fixed scheduled block in its parent context.
-        # starts at t=20
-        with align_left():
-          # start at t=20
-          play(d0, gaussian_pulse)
-          # start at t=20
-          play(d1, gaussian_pulse)
-        # context ends at t=30
+        # We also provide alignment contexts.
+        # This context starts at t=10 due to earlier pulses.
+        with align_sequential():
+            play(d0, gaussian_pulse)
+            # Play another pulse after at t=20.
+            play(d1, gaussian_pulse)
 
-      # We also support different alignment contexts
-      # Default is
-      # with left():
+            # We can also layer contexts as each instruction is
+            # contained in its local scheduling context.
+            # The output of a child context is a
+            # fixed scheduled block in its parent context.
 
-      # all pulse instructions occur as late as possible
-      with align_right():
-        set_phase(d1, math.pi)
-        # starts at t=30
-        delay(d0, 100)
-        # ends at t=130
+            # Context starts at t=30.
+            with align_left():
+                # Start at t=30.
+                play(d0, gaussian_pulse)
+                # Start at t=30.
+                play(d1, gaussian_pulse)
+            # Context ends at t=40.
 
-        # starts at t=120
-        play(d1, gaussian_pulse)
-        # ends at t=130
+            # We also support different alignment contexts.
+            # The default is,
+            # with align_left():
 
-      # acquire a qubit
-      acquire(0, ClassicalRegister(0))
-      # maps to
-      #acquire(AcquireChannel(0), ClassicalRegister(0))
+            # Alignment context where all pulse instructions are
+            # aligned to the right at their end.
+            with align_right():
+                shift_phase(d1, math.pi)
+                # Starts at t=40.
+                delay(d0, 100)
+                # Ends at t=140.
 
-      # We will also support a variety of helper functions for common operations
+                # Starts at t=130.
+                play(d1, gaussian_pulse)
+                # Ends at t=140.
 
-      # measure all qubits
-      # Note that as this DSL is pure Python
-      # any Python code is accepted within contexts
-      for i in range(n_qubits):
-        measure(i, ClassicalRegister(i))
+            # Acquire a qubit.
+            acquire(0, pulse.MemorySlot(0), 100)
 
-      # delay on a qubit
-      # this requires knowledge of which channels belong to which qubits
-      delay(0, 100)
+            # We also support a variety of helper functions for common operations.
 
-      # insert a quantum circuit. This functions by behind the scenes calling
-      # the scheduler on the given quantum circuit to output a new schedule
-      # NOTE: assumes quantum registers correspond to physical qubit indices
-      qc = QuantumCircuit(2, 2)
-      qc.cx(0, 1)
-      call(qc)
-      # We will also support a small set of standard gates
-      u3(0, 0, np.pi, 0)
-      cx(0, 1)
+            # Measure all qubits.
+            measure_all()
+
+            # Delay on a qubit.
+            # This requires knowledge of which channels belong to which qubits.
+            delay_qubits(0, 100)
+
+            # Call a quantum circuit. This functions by behind the scene by calling
+            # the scheduler on the given quantum circuit to output a new schedule.
+            # NOTE: assumes quantum registers correspond to physical qubit indices.
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            call(qc)
+            # We will also support decomposing a small set of standard gates
+            # to pulse schedules.
+            u3(0, 0, np.pi, 0)
+            cx(0, 1)
 
 
-      # It is also be possible to call a preexisting
-      # schedule constructed with another
-      # NOTE: once internals are fleshed out, Schedule may not be the default class
-      tmp_sched = Schedule()
-      tmp_sched += Play(dc0, gaussian_pulse)
-      call(tmp_sched)
+            # It is also be possible to call a preexisting
+            # schedule constructed with another
+            # NOTE: once internals are fleshed out, Schedule may not be the default class
+            tmp_sched = Schedule()
+            tmp_sched += pulse.Play(gaussian_pulse, d0)
+            call(tmp_sched)
 
-      # We also support:
+            # We also support:
 
-      # frequency instructions
-      set_frequency(dc0, 5.0e9)
-      shift_frequency(dc0, 0.1e9)
+            # frequency instructions
+            set_frequency(d0, 5.0e9)
 
-      # phase instructions
-      set_phase(dc0, math.pi)
-      shift_phase(dc0, 0.1)
+            # phase instructions
+            shift_phase(d0, 0.1)
 
-      # offset contexts
-      with phase_offset(d0, math.pi):
-        play(d0, gaussian_pulse)
-
-      with frequency_offset(d0, 0.1e9):
-        play(d0, gaussian_pulse)
+            # offset contexts
+            with phase_offset(d0, math.pi):
+                play(d0, gaussian_pulse)
 """
 import collections
 import contextvars

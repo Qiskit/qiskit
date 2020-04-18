@@ -30,6 +30,7 @@ from abc import ABC
 from typing import Tuple, List, Iterable, Callable, Optional, Union
 import numpy as np
 
+import qiskit.pulse.exceptions as exceptions
 from ..channels import Channel
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
@@ -56,6 +57,10 @@ class Instruction(ScheduleComponent, ABC):
                       Deprecated: the first argument used to be the Command.
             channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
+
+        Raises:
+            exceptions.QiskitError: If the input ``channels`` are not all of
+                type :class:`Channel`.
         """
         self._command = None
         if not isinstance(duration, (int, np.integer)):
@@ -66,6 +71,11 @@ class Instruction(ScheduleComponent, ABC):
                 name = self.command.name
             duration = self.command.duration
         self._duration = duration
+
+        for channel in channels:
+            if not isinstance(channel, Channel):
+                raise exceptions.QiskitError('Input {} is not a channel.'.format(channel))
+
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
         self._operands = operands
