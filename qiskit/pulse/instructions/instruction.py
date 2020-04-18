@@ -32,6 +32,7 @@ import numpy as np
 
 import qiskit.pulse.exceptions as exceptions
 from ..channels import Channel
+from ..exceptions import PulseError
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
 from ..timeslots import Interval, Timeslot, TimeslotCollection
@@ -59,7 +60,8 @@ class Instruction(ScheduleComponent, ABC):
             name: Optional display name for this instruction.
 
         Raises:
-            exceptions.QiskitError: If the input ``channels`` are not all of
+            PulseError: If duration is negative.
+            PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
         self._command = None
@@ -70,16 +72,20 @@ class Instruction(ScheduleComponent, ABC):
             if name is None:
                 name = self.command.name
             duration = self.command.duration
+        if duration < 0:
+            raise PulseError("{} duration of {} is invalid: must be nonnegative."
+                             "".format(self.__class__.__name__, duration))
         self._duration = duration
 
         for channel in channels:
             if not isinstance(channel, Channel):
-                raise exceptions.QiskitError('Input {} is not a channel.'.format(channel))
+                raise PulseError('Input {} is not a channel.'.format(channel))
 
         self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
                                                for channel in channels if channel is not None))
         self._operands = operands
         self._name = name
+        self._hash = None
 
     @property
     def name(self) -> str:
@@ -294,10 +300,12 @@ class Instruction(ScheduleComponent, ABC):
         return isinstance(other, type(self)) and self.operands == other.operands
 
     def __hash__(self) -> int:
-        if self.command:
-            # Backwards compatibility for Instructions with Commands
-            return hash(((tuple(self.command)), self.channels.__hash__()))
-        return hash((type(self), self.operands, self.name))
+        if self._hash is None:
+            if self.command:
+                # Backwards compatibility for Instructions with Commands
+                return hash(((tuple(self.command)), self.channels.__hash__()))
+            self._hash = hash((type(self), self.operands, self.name))
+        return self._hash
 
     def __add__(self, other: ScheduleComponent) -> Schedule:
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
