@@ -730,6 +730,8 @@ def _generate_latex_gate(gate, params, gap=0, if_value=''):
         return '\\control \\qw'
     if gate == 'swap':
         return "\\qswap \\qwx[" + str(gap) + "]"
+    if gate == "reset":
+        return "\\push{\\rule{.6em}{0em}\\ket{0}\\rule{.2em}{0em}} \\qw"
     if "control" in gate:
         return "\\" + gate + " \\cw \\cwx[-" + str(gap) + "]"
     if "ctrl" in gate:
