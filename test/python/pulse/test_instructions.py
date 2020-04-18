@@ -65,18 +65,27 @@ class TestAcquire(QiskitTestCase):
             'start_window': 0,
             'stop_window': 10
         }
-        kernel = Kernel(name='boxcar', **kernel_opts)
+        kernel = configuration.Kernel(name='boxcar', **kernel_opts)
 
         discriminator_opts = {
             'neighborhoods': [{'qubits': 1, 'channels': 1}],
             'cal': 'coloring',
             'resample': False
         }
-        discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
-        acq_1 = Acquire(10, AcquireChannel(0), MemorySlot(0),
-                        kernel=kernel, discriminator=discriminator, name='acquire')
-        acq_2 = Acquire(10, AcquireChannel(0), MemorySlot(0),
-                        kernel=kernel, discriminator=discriminator, name='acquire')
+        discriminator = configuration.Discriminator(
+            name='linear_discriminator', **discriminator_opts)
+        acq_1 = instructions.Acquire(10,
+                                     channels.AcquireChannel(0),
+                                     channels.MemorySlot(0),
+                                     kernel=kernel,
+                                     discriminator=discriminator,
+                                     name='acquire')
+        acq_2 = instructions.Acquire(10,
+                                     channels.AcquireChannel(0),
+                                     channels.MemorySlot(0),
+                                     kernel=kernel,
+                                     discriminator=discriminator,
+                                     name='acquire')
 
         hash_1 = hash(acq_1)
         hash_2 = hash(acq_2)

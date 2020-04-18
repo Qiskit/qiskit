@@ -30,7 +30,6 @@ from abc import ABC
 from typing import Tuple, List, Iterable, Callable, Optional, Union
 import numpy as np
 
-import qiskit.pulse.exceptions as exceptions
 from ..channels import Channel
 from ..exceptions import PulseError
 from ..interfaces import ScheduleComponent

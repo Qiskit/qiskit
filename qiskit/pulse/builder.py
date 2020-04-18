@@ -150,6 +150,8 @@ from qiskit.pulse.schedule import Schedule
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
 T = TypeVar('T')  # pylint: disable=invalid-name
+
+
 def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]:
     """Decorator thats schedules and calls the active circuit executing
     the decorated function."""
