@@ -25,7 +25,9 @@ from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, Paramete
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random.utils import random_circuit
-from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate, SwapGate
+from qiskit.quantum_info import Operator
 
 from qiskit.circuit.library import Permutation, XOR, InnerProduct
 from qiskit.circuit.library.basis_change import QFT
@@ -33,8 +35,6 @@ from qiskit.circuit.library.n_local import NLocal, TwoLocal
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.quantum_info import Operator
 
 
 class TestBooleanLogicLibrary(QiskitTestCase):
@@ -864,6 +864,92 @@ class TestNLocal(QiskitTestCase):
                 dag = circuit_to_dag(nlocal)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
+
+    @data('linear', 'full', 'circular', 'sca',
+          ['linear', 'full'],
+          ['circular', 'linear', 'sca']
+          )
+    def test_entanglement_by_str(self, entanglement):
+        """Test setting the entanglement of the layers by str."""
+        reps = 3
+        nlocal = NLocal(5, rotation_blocks=XGate(), entanglement_blocks=CCXGate(),
+                        entanglement=entanglement, reps=reps)
+
+        def get_expected_entangler_map(rep_num, mode):
+            if mode == 'linear':
+                return [(0, 1, 2), (1, 2, 3), (2, 3, 4)]
+            elif mode == 'full':
+                return [(0, 1, 2), (0, 1, 3), (0, 1, 4), (0, 2, 3), (0, 2, 4), (0, 3, 4),
+                        (1, 2, 3), (1, 2, 4), (1, 3, 4),
+                        (2, 3, 4)]
+            else:
+                circular = [(3, 4, 0), (0, 1, 2), (1, 2, 3), (2, 3, 4)]
+                if mode == 'circular':
+                    return circular
+                sca = circular[-rep_num:] + circular[:-rep_num]
+                if rep_num % 2 == 1:
+                    sca = [tuple(reversed(indices)) for indices in sca]
+                return sca
+
+        for rep_num in range(reps):
+            entangler_map = nlocal.get_entangler_map(rep_num, 0, 3)
+            if isinstance(entanglement, list):
+                mode = entanglement[rep_num % len(entanglement)]
+            else:
+                mode = entanglement
+            expected = get_expected_entangler_map(rep_num, mode)
+
+            with self.subTest(rep_num=rep_num):
+                # using a set here since the order does not matter
+                self.assertEqual(set(entangler_map), set(expected))
+
+    def test_entanglement_by_list(self):
+        """Test setting the entanglement by list.
+
+        This is the circuit we test (times 2, with final X layer)
+                ┌───┐                ┌───┐┌───┐                  ┌───┐
+        q_0: |0>┤ X ├──■────■───X────┤ X ├┤ X ├──■───X─────── .. ┤ X ├
+                ├───┤  │    │   │    ├───┤└─┬─┘  │   │           ├───┤
+        q_1: |0>┤ X ├──■────┼───┼──X─┤ X ├──■────┼───X──X──── .. ┤ X ├
+                ├───┤┌─┴─┐  │   │  │ ├───┤  │    │      │     x2 ├───┤
+        q_2: |0>┤ X ├┤ X ├──■───┼──X─┤ X ├──■────■──────X──X─ .. ┤ X ├
+                ├───┤└───┘┌─┴─┐ │    ├───┤     ┌─┴─┐       │     ├───┤
+        q_3: |0>┤ X ├─────┤ X ├─X────┤ X ├─────┤ X ├───────X─ .. ┤ X ├
+                └───┘     └───┘      └───┘     └───┘             └───┘
+        """
+        circuit = QuantumCircuit(4)
+        for _ in range(2):
+            circuit.x([0, 1, 2, 3])
+            circuit.barrier()
+            circuit.ccx(0, 1, 2)
+            circuit.ccx(0, 2, 3)
+            circuit.swap(0, 3)
+            circuit.swap(1, 2)
+            circuit.barrier()
+            circuit.x([0, 1, 2, 3])
+            circuit.barrier()
+            circuit.ccx(2, 1, 0)
+            circuit.ccx(0, 2, 3)
+            circuit.swap(0, 1)
+            circuit.swap(1, 2)
+            circuit.swap(2, 3)
+            circuit.barrier()
+        circuit.x([0, 1, 2, 3])
+
+        layer_1_ccx = [(0, 1, 2), (0, 2, 3)]
+        layer_1_swap = [(0, 3), (1, 2)]
+        layer_1 = [layer_1_ccx, layer_1_swap]
+
+        layer_2_ccx = [(2, 1, 0), (0, 2, 3)]
+        layer_2_swap = [(0, 1), (1, 2), (2, 3)]
+        layer_2 = [layer_2_ccx, layer_2_swap]
+
+        entanglement = [layer_1, layer_2]
+
+        nlocal = NLocal(4, rotation_blocks=XGate(), entanglement_blocks=[CCXGate(), SwapGate()],
+                        reps=4, entanglement=entanglement, insert_barriers=True)
+
+        self.assertCircuitEqual(nlocal, circuit)
 
 
 @ddt

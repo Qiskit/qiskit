@@ -391,7 +391,7 @@ class NLocal(QuantumCircuit):
             return get_entangler_map(n, self.num_qubits, entanglement, offset=i)
 
         # check if entanglement is list of something
-        if not isinstance(entanglement, list):
+        if not isinstance(entanglement, (tuple, list)):
             raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
         num_i = len(entanglement)
 
@@ -404,7 +404,7 @@ class NLocal(QuantumCircuit):
             return [entanglement]
 
         # check if entanglement is List[List]
-        if not all(isinstance(e, list) for e in entanglement):
+        if not all(isinstance(e, (tuple, list)) for e in entanglement):
             raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
         num_j = len(entanglement[i % num_i])
 
@@ -418,7 +418,7 @@ class NLocal(QuantumCircuit):
             return entanglement
 
         # check if entanglement is List[List[List]]
-        if not all(isinstance(e2, list) for e in entanglement for e2 in e):
+        if not all(isinstance(e2, (tuple, list)) for e in entanglement for e2 in e):
             raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
 
         # entanglement is List[List[List[int]]]
@@ -426,7 +426,7 @@ class NLocal(QuantumCircuit):
             return entanglement[i % num_i]
 
         # check if entanglement is List[List[List[List]]]
-        if not all(isinstance(e3, list) for e in entanglement for e2 in e for e3 in e2):
+        if not all(isinstance(e3, (tuple, list)) for e in entanglement for e2 in e for e3 in e2):
             raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
 
         # entanglement is List[List[List[List[int]]]]
@@ -444,30 +444,7 @@ class NLocal(QuantumCircuit):
     def entanglement(self, entanglement: Optional[Union[str, List[str], List[List[int]],
                                                         List[List[List[int]]]]]) -> None:
         """Set the entanglement strategy."""
-        valid_format = False
-        # TODO set entangler maps correctly
-        if entanglement is None:
-            valid_format = True
-        elif callable(entanglement):
-            # no real checking possible here, but that happens later when the entangler maps
-            # are generated and the configuration to construct the circuit is checked
-            valid_format = True
-        elif isinstance(entanglement, str):
-            valid_format = True
-        elif isinstance(entanglement, list):
-            if all(isinstance(e, str) for e in entanglement):
-                valid_format = True
-            elif all(isinstance(e, (tuple, list)) for e in entanglement):  # is List[List[?]]
-                if all(isinstance(e_i, int) for e in entanglement for e_i in e):
-                    valid_format = True
-                elif all(isinstance(e_i, (tuple, list)) for e in entanglement for e_i in e):
-                    if all(isinstance(e_j, int) for e in entanglement for e_i in e for e_j in e_i):
-                        valid_format = True
-
-        if valid_format:
-            self._entanglement = entanglement
-        else:
-            raise NotImplementedError('Unsupported format, {}'.format(entanglement))
+        self._entanglement = entanglement
 
     @property
     def num_layers(self):
