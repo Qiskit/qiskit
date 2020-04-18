@@ -231,7 +231,7 @@ class QCircuitImage:
                 # useful information for determining row spacing
                 boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                                'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
-                               'crz', 'cu3', 'id']
+                               'crx', 'cry', 'crz', 'cu3', 'id']
                 target_gates = ['cx', 'ccx']
                 if op.name in boxed_gates:
                     self.has_box = True
@@ -365,7 +365,7 @@ class QCircuitImage:
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if controlled_gate and op.name not in ['ccx', 'cx', 'cz', 'cu1',
-                        'cu3', 'crz', 'cswap']:
+                        'cu3', 'crx', 'cry', 'crz', 'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
                         op.op.base_gate.name.upper()).replace(" ", "\\,")
@@ -664,7 +664,8 @@ def _assign_cregs(cregs, if_value, latex_array, hipos, lopos, column):
 
 def _assign_cgate(gate, params, cond, latex_array, column, pos_1, pos_2, pos_3=0,
         length=0):
-    if gate not in ['cx','cz','cy','ch','swap','crz','cu1','cu3','rzz'] and length == 0:
+    if (gate not in ['cx','cz','cy','ch','swap','crx', 'cry', 'crz','cu1','cu3','rzz'] and
+            length == 0):
         return -1
     if gate == 'rzz':
         cond = [1]
@@ -718,10 +719,6 @@ def _generate_latex_gate(gate, params, gap=0, if_value=''):
         return "\\gate{U_2\\left(%s,%s\\right)}" % (
                 _parse_params(params[0]),
                 _parse_params(params[1]))
-    if gate == "rx":
-        return "\\gate{R_x(%s)}" % _parse_params(params[0])
-    if gate == "ry":
-        return "\\gate{R_y(%s)}" % _parse_params(params[0])
     if gate == 'cx':
         return '\\targ'
     if gate == 'cz':
@@ -736,6 +733,10 @@ def _generate_latex_gate(gate, params, gap=0, if_value=''):
         return "\\" + gate + " \\cw \\cwx[-" + str(gap) + "]"
     if "ctrl" in gate:
         return "\\" + gate + "{" + str(gap) + "}"
+    if "rx" in gate:
+        return "\\gate{R_x(%s)}" % _parse_params(params[0])
+    if "ry" in gate:
+        return "\\gate{R_y(%s)}" % _parse_params(params[0])
     if "rz" in gate:
         return "\\gate{R_z(%s)}" % _parse_params(params[0])
     if "u3" in gate:
