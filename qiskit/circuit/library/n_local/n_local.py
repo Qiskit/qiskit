@@ -612,23 +612,6 @@ class NLocal(QuantumCircuit):
         self._build()
         return super().parameters
 
-    @parameters.setter
-    def parameters(self, params: Union[dict, List[float], List[Parameter], ParameterVector]
-                   ) -> None:
-        """Set the parameters of the NLocal.
-
-        This sets the surface parameters, not the base parameters.
-
-        Args:
-            The new parameters.
-
-        Raises:
-            ValueError: If the number of provided parameters does not match the number of
-                parameters of the NLocal.
-            TypeError: If the type of `params` is not supported.
-        """
-        self.assign_parameters(params, inplace=True)
-
     @property
     def reps(self) -> Union[int, List[int]]:
         """Return reps as integer, or if not available, as list.

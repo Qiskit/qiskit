@@ -786,7 +786,7 @@ class TestNLocal(QiskitTestCase):
         # repeat circuit and check that parameters are duplicated
         reps = 3
         nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
-        nlocal.parameters = params
+        nlocal.assign_parameters(params, inplace=True)
 
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
@@ -809,7 +809,7 @@ class TestNLocal(QiskitTestCase):
 
         # create an NLocal from the circuit and set the new parameters
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
-        nlocal.parameters = params
+        nlocal.assign_parameters(params, inplace=True)
 
         param_set = set(p for p in params if isinstance(p, ParameterExpression))
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
@@ -835,11 +835,11 @@ class TestNLocal(QiskitTestCase):
             self.assertEqual(len(nlocal.parameters), 3)
 
         q = Parameter('q')
-        nlocal.parameters = [x, q, q]
+        nlocal.assign_parameters([x, q, q], inplace=True)
         with self.subTest(msg='setting parameter to Parameter objects'):
             self.assertEqual(nlocal.parameters, set({x, q}))
 
-        nlocal.parameters = [0, -1]
+        nlocal.assign_parameters([0, -1], inplace=True)
         with self.subTest(msg='setting parameter to numbers'):
             self.assertEqual(nlocal.parameters, set())
 
