@@ -22,10 +22,12 @@ from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
 from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01, FakeOurenseFaultyCX13
 from qiskit.extensions.standard import CnotGate
+from qiskit.transpiler import TranspilerError
 
 
 class TestFaultyBackendCase(QiskitTestCase):
     """Base TestCase for testing transpilation if faulty backends."""
+
     def assertEqualCount(self, circuit1, circuit2):
         """Asserts circuit1 and circuit2 has the same result counts after execution in BasicAer"""
         backend = BasicAer.get_backend('qasm_simulator')
@@ -54,9 +56,6 @@ class TestFaultyCX01(TestFaultyBackendCase):
                2
     """
 
-    def setUp(self) -> None:
-        self.backend = FakeOurenseFaultyCX01()
-
     def assertIdleCX01(self, circuit):
         """Asserts the CX(0, 1) (and symmetric) is not used in the circuit"""
         physical_qubits = QuantumRegister(5, 'q')
@@ -73,12 +72,46 @@ class TestFaultyCX01(TestFaultyBackendCase):
         circuit.ccx(0, 1, 2)
         circuit.measure_all()
         result = transpile(circuit,
-                           backend=self.backend,
+                           backend=FakeOurenseFaultyCX01(),
                            optimization_level=level,
                            seed_transpiler=42)
 
         self.assertIdleCX01(result)
         self.assertEqualCount(circuit, result)
+
+    @data(0, 1, 2, 3)
+    def test_layout_level(self, level):
+        """Test level {level} with a faulty CX(Q0, Q1) with a working initial layout"""
+        circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
+        circuit.h(range(4))
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+        result = transpile(circuit,
+                           backend=FakeOurenseFaultyCX01(),
+                           optimization_level=level,
+                           initial_layout=[3, 4, 1, 2],
+                           seed_transpiler=42)
+
+        self.assertIdleCX01(result)
+        self.assertEqualCount(circuit, result)
+
+    @data(0, 1, 2, 3)
+    def test_failing_layout_level(self, level):
+        """Test level {level} with a faulty CX(Q0, Q1) with a failing initial layout. Raises."""
+        circuit = QuantumCircuit(QuantumRegister(4, 'qr'))
+        circuit.h(range(4))
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+
+        message = 'The initial_layout parameter refers to faulty or disconnected qubits'
+
+        with self.assertRaises(TranspilerError) as cm:
+            transpile(circuit, backend=FakeOurenseFaultyCX01(),
+                      optimization_level=level,
+                      initial_layout=[0, 4, 1, 2],
+                      seed_transpiler=42)
+
+        self.assertEqual(cm.exception.message, message)
 
 
 @ddt
@@ -89,9 +122,6 @@ class TestFaultyCX13(TestFaultyBackendCase):
              ↕
              2
     """
-
-    def setUp(self) -> None:
-        self.backend = FakeOurenseFaultyCX13()
 
     def assertIdleCX13(self, circuit):
         """Asserts the CX(1, 3) (and symmetric) is not used in the circuit"""
@@ -109,7 +139,7 @@ class TestFaultyCX13(TestFaultyBackendCase):
         circuit.ccx(0, 1, 2)
         circuit.measure_all()
         result = transpile(circuit,
-                           backend=self.backend,
+                           backend=FakeOurenseFaultyCX13(),
                            optimization_level=level,
                            seed_transpiler=42)
 

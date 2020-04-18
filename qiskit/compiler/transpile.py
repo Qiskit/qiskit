@@ -362,6 +362,18 @@ def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
     return circuit
 
 
+def _remap_layout_faulty_backend(layout, faulty_qubits_map):
+    if layout is None:
+        return layout
+    new_layout = Layout()
+    for virtual, physical in layout.get_virtual_bits().items():
+        if faulty_qubits_map[physical] is None:
+            raise TranspilerError("The initial_layout parameter refers to faulty"
+                                  " or disconnected qubits")
+        new_layout[virtual] = faulty_qubits_map[physical]
+    return new_layout
+
+
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method,
@@ -547,8 +559,13 @@ def _parse_initial_layout(initial_layout, circuits, faulty_qubits_map):
     else:
         # even if one layout, but multiple circuits, the layout needs to be adapted for each
         initial_layout = [_layout_from_raw(initial_layout, circ) for circ in circuits]
+
     if not isinstance(initial_layout, list):
         initial_layout = [initial_layout] * len(circuits)
+
+    if faulty_qubits_map:
+        initial_layout = [_remap_layout_faulty_backend(i, faulty_qubits_map) for i in
+                          initial_layout]
     return initial_layout
 
 
