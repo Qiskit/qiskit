@@ -52,6 +52,7 @@ class FakeProvider(BaseProvider):
         self._backends = [FakeQasmSimulator(),
                           FakeOpenPulse2Q(),
                           FakeOpenPulse3Q(),
+                          FakeArmonk(),
                           FakeYorktown(),
                           FakeTenerife(),
                           FakeOurense(),
@@ -59,6 +60,9 @@ class FakeProvider(BaseProvider):
                           FakeOurenseFaultyCX13(),
                           FakeOurenseFaultyQ1(),
                           FakeVigo(),
+                          FakeValencia(),
+                          FakeEssex(),
+                          FakeLondon(),
                           FakeBurlington(),
                           FakeMelbourne(),
                           FakeRueschlikon(),
@@ -68,6 +72,8 @@ class FakeProvider(BaseProvider):
                           FakeSingapore(),
                           FakeJohannesburg(),
                           FakeBoeblingen(),
+                          FakeCambridge(),
+                          FakeParis(),
                           FakeRochester()]
 
         super().__init__()
