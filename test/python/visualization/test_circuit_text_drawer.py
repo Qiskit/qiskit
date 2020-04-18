@@ -1002,6 +1002,25 @@ class TestTextDrawerParams(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_binded_parameters(self):
+        """Binded parameters
+        See: https://github.com/Qiskit/qiskit-terra/pull/3876 """
+        expected = '\n'.join(["         ┌──────────────┐",
+                              "qr_0: |0>┤ My_u2(pi,pi) ├",
+                              "         └──────────────┘"])
+
+        my_u2_circuit = QuantumCircuit(1, name='my_u2')
+        phi = Parameter('phi')
+        lam = Parameter('lambda')
+        my_u2_circuit.u3(3.141592653589793, phi, lam, 0)
+        my_u2 = my_u2_circuit.to_gate()
+        qr = QuantumRegister(1, name='qr')
+        circuit = QuantumCircuit(qr, name='circuit')
+        circuit.append(my_u2, [qr[0]])
+        circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
     """Test vertical_compression='low' """
