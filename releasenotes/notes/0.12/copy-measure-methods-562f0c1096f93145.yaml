@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The :class:`qiskit.circuit.QuantumCircuit` methods
+    :meth:`qiskit.circuit.QuantumCircuit.measure_active`,
+    :meth:`qiskit.circuit.QuantumCircuit.measure_all`, and
+    :meth:`qiskit.circuit.QuantumCircuit.remove_final_measurements` now have
+    an addition kwarg ``inplace``. When ``inplace`` is set to ``False`` the
+    function will return a modified **copy** of the circuit. This is different
+    from the default behavior which will modify the circuit object in-place and
+    return nothing.

@@ -25,6 +25,22 @@ from qiskit.test import QiskitTestCase
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
+    def test_adding_self(self):
+        """Test that qc += qc finishes, which can be prone to infinite while-loops.
+
+        This can occur e.g. when a user tries
+        >>> other_qc = qc
+        >>> other_qc += qc  # or qc2.extend(qc)
+        """
+        qc = QuantumCircuit(1)
+        qc.x(0)  # must contain at least one operation to end up in a infinite while-loop
+
+        # attempt addition, times out if qc is added via reference
+        qc += qc
+
+        # finally, qc should contain two X gates
+        self.assertEqual(['x', 'x'], [x[0].name for x in qc.data])
+
     def test_combine_circuit_common(self):
         """Test combining two circuits with same registers.
         """
@@ -224,7 +240,7 @@ class TestCircuitOperations(QiskitTestCase):
         store those measured values.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         circuit.measure_all()
@@ -239,7 +255,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test measure_all with inplace=False
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         new_circuit = circuit.measure_all(inplace=False)
@@ -270,7 +286,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -285,7 +301,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)

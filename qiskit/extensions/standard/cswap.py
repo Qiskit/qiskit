@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fredkin gate. Controlled-SWAP.
+Controlled-Swap gate or Fredkin gate.
 """
 import warnings
 # pylint: disable=unused-import

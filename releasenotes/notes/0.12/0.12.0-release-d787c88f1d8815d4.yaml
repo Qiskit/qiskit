@@ -1,0 +1,9 @@
+---
+prelude: >
+    The 0.12.0 release includes several new features and bug fixes. The biggest
+    changes for this release is the addition of support for parametric pulses
+    to OpenPulse. These are Pulse commands which take parameters rather than
+    sample points to describe a pulse. 0.12.0 is also the first release to
+    include support for Python 3.8. It also marks the beginning of the
+    deprecation for Python 3.5 support, which will be removed when the upstream
+    community stops supporting it.

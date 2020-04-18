@@ -15,66 +15,107 @@
 """
 Two-qubit XX-rotation gate.
 """
-import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 
 
 class RXXGate(Gate):
-    """Two-qubit XX-rotation gate.
+    r"""A parameteric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
 
-    This gate corresponds to the rotation U(θ) = exp(-1j * θ * X⊗X / 2)
+    This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤1        ├
+             │  Rxx(ϴ) │
+        q_1: ┤0        ├
+             └─────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        R_{XX}(\theta) = exp(-i \frac{\theta}{2} X{\otimes}X) =
+            \begin{pmatrix}
+                \cos(\th)   & 0           & 0           & -i\sin(\th) \\
+                0           & \cos(\th)   & -i\sin(\th) & 0 \\
+                0           & -i\sin(\th) & \cos(\th)   & 0 \\
+                -i\sin(\th) & 0           & 0           & \cos(\th)}
+            \end{pmatrix}
+
+    **Examples:**
+
+        .. math::
+
+            R_{XX}(\theta = 0) = I
+
+        .. math::
+
+            R_{XX}(\theta = \pi) = i X \otimes X
+
+        .. math::
+
+            R_{XX}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+                                    \begin{pmatrix}
+                                        1  & 0  & 0  & -i \\
+                                        0  & 1  & -i & 0 \\
+                                        0  & -i & 1  & 0 \\
+                                        -i & 0  & 0  & 1
+                                    \end{pmatrix}
     """
 
     def __init__(self, theta):
-        """Create new rxx gate."""
-        super().__init__("rxx", 2, [theta])
+        """Create new RXX gate."""
+        super().__init__('rxx', 2, [theta])
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        from qiskit.extensions.standard.x import CnotGate
-        from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.u2 import U2Gate
-        from qiskit.extensions.standard.u3 import U3Gate
+        from qiskit.extensions.standard.x import CXGate
+        from qiskit.extensions.standard.rz import RZGate
         from qiskit.extensions.standard.h import HGate
         definition = []
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         theta = self.params[0]
         rule = [
-            (U3Gate(np.pi / 2, theta, 0), [q[0]], []),
+            (HGate(), [q[0]], []),
             (HGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (U1Gate(-theta), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (RZGate(theta), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
-            (U2Gate(-np.pi, np.pi - theta), [q[0]], []),
+            (HGate(), [q[0]], []),
         ]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
 
     def inverse(self):
-        """Invert this gate."""
+        """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 
-    # NOTE: we should use the following as the canonical matrix
-    # definition but we don't include it yet since it differs from
-    # the circuit decomposition matrix by a global phase
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
-    #   """Return a Numpy.array for the RXX gate."""
-    #    theta = float(self.params[0])
-    #    return np.array([
-    #        [np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
-    #        [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-    #        [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-    #        [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
+    #     """Return a Numpy.array for the RXX gate."""
+    #     theta = float(self.params[0])
+    #     cos = np.cos(theta / 2)
+    #     sin = np.sin(theta / 2)
+    #     return np.array([
+    #             [cos, 0, 0, -1j * sin],
+    #             [0, cos, -1j * sin, 0],
+    #             [0, -1j * sin, cos, 0],
+    #             [-1j * sin, 0, 0, cos]], dtype=complex)
 
 
 def rxx(self, theta, qubit1, qubit2):
-    """Apply RXX to circuit."""
+    """Apply :class:`~qiskit.extensions.standard.RXXGate`."""
     return self.append(RXXGate(theta), [qubit1, qubit2], [])
 
 
-# Add to QuantumCircuit class
 QuantumCircuit.rxx = rxx
