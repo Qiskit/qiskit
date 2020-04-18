@@ -25,7 +25,7 @@ except ImportError:
     from Cython.Build import cythonize
 
 REQUIREMENTS = [
-    "contextvars>=2.4;python_version>='3.5,<'3.7'"
+    "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
     "marshmallow>=3,<4",
     "marshmallow_polyfield>=5.7,<6",
