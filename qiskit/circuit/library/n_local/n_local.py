@@ -406,7 +406,7 @@ class NLocal(QuantumCircuit):
         # check if entanglement is List[List]
         if not all(isinstance(e, list) for e in entanglement):
             raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
-        num_j = len(entanglement[i])
+        num_j = len(entanglement[i % num_i])
 
         # entanglement is List[List[str]]
         if all(isinstance(e2, str) for e in entanglement for e2 in e):
@@ -620,12 +620,6 @@ class NLocal(QuantumCircuit):
         num += num_rot * (self._reps + int(not self._skip_final_rotation_layer))
 
         return num
-
-    @property
-    def num_parameters(self):
-        """The number of free parameters in the circuit."""
-        self._build()
-        return len(set(self._ordered_parameters))
 
     @property
     def parameters(self) -> Set[Parameter]:
@@ -853,7 +847,6 @@ class NLocal(QuantumCircuit):
     def _build_rotation_layer(self, param_iter, i):
         """Build a rotation layer."""
         # if the unentangled qubits are skipped, compute the set of qubits that are not entangled
-        print('buliding rot')
         if self._skip_unentangled_qubits:
             entangled_qubits = set()
             # iterate over all blocks of entanglement
@@ -892,7 +885,6 @@ class NLocal(QuantumCircuit):
 
     def _build_entanglement_layer(self, param_iter, i):
         """Build an entanglement layer."""
-        print('building ent')
         # iterate over all entanglement blocks
         for j, block in enumerate(self.entanglement_blocks):
             # create a new layer and get the entangler map for this block

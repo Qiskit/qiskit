@@ -25,7 +25,7 @@ from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, Paramete
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random.utils import random_circuit
-from qiskit.extensions.standard import XGate, RXGate, CRXGate
+from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate
 
 from qiskit.circuit.library import Permutation, XOR, InnerProduct
 from qiskit.circuit.library.basis_change import QFT
@@ -33,6 +33,7 @@ from qiskit.circuit.library.n_local import NLocal, TwoLocal
 from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
                                                IntegerComparator, PiecewiseLinearPauliRotations,
                                                WeightedAdder)
+from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.quantum_info import Operator
 
 
@@ -842,6 +843,28 @@ class TestNLocal(QiskitTestCase):
         with self.subTest(msg='setting parameter to numbers'):
             self.assertEqual(nlocal.parameters, set())
 
+    def test_skip_unentangled_qubits(self):
+        """Test skipping the unentangled qubits."""
+        num_qubits = 6
+        entanglement_1 = [[0, 1, 3], [1, 3, 5], [0, 1, 5]]
+        skipped_1 = [2, 4]
+
+        entanglement_2 = [
+            entanglement_1,
+            [[0, 1, 2], [2, 3, 5]]
+        ]
+        skipped_2 = [4]
+
+        for entanglement, skipped in zip([entanglement_1, entanglement_2], [skipped_1, skipped_2]):
+            with self.subTest(entanglement=entanglement, skipped=skipped):
+                nlocal = NLocal(num_qubits, rotation_blocks=XGate(), entanglement_blocks=CCXGate(),
+                                entanglement=entanglement, reps=3, skip_unentangled_qubits=True)
+
+                skipped_set = set(nlocal.qubits[i] for i in skipped)
+                dag = circuit_to_dag(nlocal)
+                idle = set(dag.idle_wires())
+                self.assertEqual(skipped_set, idle)
+
 
 @ddt
 class TestTwoLocal(QiskitTestCase):
@@ -881,21 +904,97 @@ class TestTwoLocal(QiskitTestCase):
         else:
             self.assertEqual(qc1, qc2)
 
-    def test_standard_cases(self):
-        """Test some standard cases."""
-        two = TwoLocal(5, rotation_blocks='rx', entanglement_blocks='cx', reps=2)
-        print(two)
+    def test_skip_final_rotation_layer(self):
+        """Test skipping the final rotation layer works."""
+        two = TwoLocal(3, ['ry', 'h'], ['cz', 'cx'], reps=2, skip_final_rotation_layer=True)
+        self.assertEqual(two.num_parameters, 6)  # would be 9 with a final rotation layer
 
-        two.num_qubits = 3
-        two.insert_barriers = True
-        two.rotation_blocks = ['ry']
-        two.entanglement = 'linear'
-        # two.entanglement_blocks = 'cry'
-        two.reps = 2
-        print(two)
+    @data(
+        (5, 'rx', 'cx', 'full', 2, 15),
+        (3, 'x', 'z', 'linear', 1, 0),
+        (3, ['rx', 'ry'], ['cry', 'cx'], 'circular', 2, 24)
+    )
+    @unpack
+    def test_num_parameters(self, num_qubits, rot, ent, ent_mode, reps, expected):
+        """Test the number of parameters."""
+        two = TwoLocal(num_qubits, rotation_blocks=rot, entanglement_blocks=ent,
+                       entanglement=ent_mode, reps=reps)
 
-        two.num_qubits = 2
-        print(two)
+        with self.subTest(msg='num_parameters_settable'):
+            self.assertEqual(two.num_parameters_settable, expected)
+
+        with self.subTest(msg='num_parameters'):
+            self.assertEqual(two.num_parameters, expected)
+
+    def test_empty_two_local(self):
+        """Test the setup of an empty two-local circuit."""
+        two = TwoLocal()
+
+        with self.subTest(msg='0 qubits'):
+            self.assertEqual(two.num_qubits, 0)
+
+        with self.subTest(msg='no blocks are set'):
+            self.assertListEqual(two.rotation_blocks, [])
+            self.assertListEqual(two.entanglement_blocks, [])
+
+        with self.subTest(msg='equal to empty circuit'):
+            self.assertEqual(two, QuantumCircuit())
+
+    @data('rx', RXGate(Parameter('p')), RXGate, 'circuit')
+    def test_various_block_types(self, rot):
+        """Test setting the rotation blocks to various type and assert the output type is RX."""
+        if rot == 'circuit':
+            rot = QuantumCircuit(1)
+            rot.rx(Parameter('angle'), 0)
+
+        two = TwoLocal(3, rot, 'cz', reps=1)
+        self.assertEqual(len(two.rotation_blocks), 1)
+        rotation = two.rotation_blocks[0]
+
+        if isinstance(rot, QuantumCircuit):
+            # decompose
+            rotation = rotation.definition[0][0]
+
+        self.assertIsInstance(rotation, RXGate)
+
+    def test_parameter_setters(self):
+        """Test different possibilities to set parameters."""
+        two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
+        params = [0, 1, 2, Parameter('x'), Parameter('y'), Parameter('z'), 6, 7, 0]
+        params_set = set(param for param in params if isinstance(param, Parameter))
+
+        with self.subTest(msg='dict assign and copy'):
+            ordered = two.ordered_parameters
+            bound = two.assign_parameters(dict(zip(ordered, params)), inplace=False)
+            self.assertEqual(bound.parameters, params_set)
+            self.assertEqual(two.num_parameters, 9)
+
+        with self.subTest(msg='list assign and copy'):
+            ordered = two.ordered_parameters
+            bound = two.assign_parameters(params, inplace=False)
+            self.assertEqual(bound.parameters, params_set)
+            self.assertEqual(two.num_parameters, 9)
+
+        with self.subTest(msg='list assign inplace'):
+            ordered = two.ordered_parameters
+            two.assign_parameters(params, inplace=True)
+            self.assertEqual(two.parameters, params_set)
+            self.assertEqual(two.num_parameters, 3)
+            self.assertEqual(two.num_parameters_settable, 9)
+
+    def test_parameters_settable_is_constant(self):
+        """Test the attribute num_parameters_settable does not change on parameter change."""
+        two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
+        ordered_params = two.ordered_parameters
+
+        x = Parameter('x')
+        two.assign_parameters(dict(zip(ordered_params, [x] * two.num_parameters)), inplace=True)
+
+        with self.subTest(msg='num_parameters collapsed to 1'):
+            self.assertEqual(two.num_parameters, 1)
+
+        with self.subTest(msg='num_parameters_settable remained constant'):
+            self.assertEqual(two.num_parameters_settable, len(ordered_params))
 
     def test_iadd_to_circuit(self):
         """Test adding a two-local to an existing circuit."""
@@ -918,8 +1017,6 @@ class TestTwoLocal(QiskitTestCase):
             reference.ry(next(param_iter), i)
         for i in range(3):
             reference.rz(next(param_iter), i)
-
-        print(circuit.decompose().draw())
 
         self.assertCircuitEqual(circuit, reference)
 
