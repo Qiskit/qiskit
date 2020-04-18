@@ -190,9 +190,6 @@ class TestFaultyQ1(TestFaultyBackendCase):
               2
     """
 
-    def setUp(self) -> None:
-        self.backend = FakeOurenseFaultyQ1()
-
     def assertIdleQ1(self, circuit):
         """Asserts the Q1 in circuit is not used with operations"""
         physical_qubits = QuantumRegister(5, 'q')
@@ -208,9 +205,42 @@ class TestFaultyQ1(TestFaultyBackendCase):
         circuit.h(range(2))
         circuit.cz(0, 1)
         circuit.measure_all()
-        result = transpile(circuit, backend=self.backend,
+        result = transpile(circuit, backend=FakeOurenseFaultyQ1(),
                            optimization_level=level,
                            seed_transpiler=42)
 
         self.assertIdleQ1(result)
         self.assertEqualCount(circuit, result)
+
+    @data(0, 1, 2, 3)
+    def test_layout_level(self, level):
+        """Test level {level} with a faulty Q1 with a working initial layout"""
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+        result = transpile(circuit, backend=FakeOurenseFaultyQ1(),
+                           optimization_level=level,
+                           initial_layout=[4, 3],
+                           seed_transpiler=42)
+
+        self.assertIdleQ1(result)
+        self.assertEqualCount(circuit, result)
+
+    @data(0, 1, 2, 3)
+    def test_failing_layout_level(self, level):
+        """Test level {level} with a faulty Q1 with a failing initial layout. Raises."""
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+
+        message = 'The initial_layout parameter refers to faulty or disconnected qubits'
+
+        with self.assertRaises(TranspilerError) as cm:
+            transpile(circuit, backend=FakeOurenseFaultyQ1(),
+                      optimization_level=level,
+                      initial_layout=[4, 0],
+                      seed_transpiler=42)
+
+        self.assertEqual(cm.exception.message, message)
