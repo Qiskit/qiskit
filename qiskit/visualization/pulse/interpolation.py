@@ -20,8 +20,8 @@ interpolation module for pulse visualization.
 from functools import partial
 from typing import Tuple
 
-from scipy import interpolate
 import numpy as np
+from scipy import interpolate
 
 
 def interp1d(time: np.ndarray,

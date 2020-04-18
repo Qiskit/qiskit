@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,96 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for builtin library of circuits."""
+"""
+===============================================
+Circuit Library (:mod:`qiskit.circuit.library`)
+===============================================
 
-from .boolean_logic import Permutation, XOR, InnerProduct
+.. currentmodule:: qiskit.circuit.library
+
+Boolean Logic Circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AND
+   InnerProduct
+   OR
+   Permutation
+   XOR
+
+Basis Change Circuits
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFT
+
+Arithmetic Circuits
+===================
+
+Functional Pauli Rotations
+++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FunctionalPauliRotations
+   LinearPauliRotations
+   PolynomialPauliRotations
+   PiecewiseLinearPauliRotations
+
+Adders
+++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   WeightedAdder
+
+Comparators
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   IntegerComparator
+
+Characterization and Validation Circuits
+========================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuantumVolume
+
+Quantum Complexity Advantage Circuits
+=====================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FourierChecking
+"""
+
+
+from .boolean_logic import (
+    Permutation,
+    XOR,
+    InnerProduct,
+    OR,
+    AND,
+)
+from .basis_change import QFT
+from .arithmetic import (
+    FunctionalPauliRotations,
+    LinearPauliRotations,
+    PiecewiseLinearPauliRotations,
+    PolynomialPauliRotations,
+    IntegerComparator,
+    WeightedAdder,
+)
+from .fourier_checking import FourierChecking
+from .quantum_volume import QuantumVolume
