@@ -146,6 +146,40 @@ class TestFaultyCX13(TestFaultyBackendCase):
         self.assertIdleCX13(result)
         self.assertEqualCount(circuit, result)
 
+    @data(0, 1, 2, 3)
+    def test_layout_level(self, level):
+        """Test level {level} with a faulty CX(Q1, Q3) with a working initial layout"""
+        circuit = QuantumCircuit(QuantumRegister(3, 'qr'))
+        circuit.h(range(3))
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+        result = transpile(circuit,
+                           backend=FakeOurenseFaultyCX13(),
+                           optimization_level=level,
+                           initial_layout=[0, 2, 1],
+                           seed_transpiler=42)
+
+        self.assertIdleCX13(result)
+        self.assertEqualCount(circuit, result)
+
+    @data(0, 1, 2, 3)
+    def test_failing_layout_level(self, level):
+        """Test level {level} with a faulty CX(Q1, Q3) with a failing initial layout. Raises."""
+        circuit = QuantumCircuit(QuantumRegister(3, 'qr'))
+        circuit.h(range(3))
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+
+        message = 'The initial_layout parameter refers to faulty or disconnected qubits'
+
+        with self.assertRaises(TranspilerError) as cm:
+            transpile(circuit, backend=FakeOurenseFaultyCX13(),
+                      optimization_level=level,
+                      initial_layout=[0, 1, 3],
+                      seed_transpiler=42)
+
+        self.assertEqual(cm.exception.message, message)
+
 
 @ddt
 class TestFaultyQ1(TestFaultyBackendCase):
