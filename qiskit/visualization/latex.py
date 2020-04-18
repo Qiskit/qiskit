@@ -341,7 +341,7 @@ class QCircuitImage:
         if aliases:
             qregdata = {}
             for q in aliases.values():
-                if q[0] not in qregdata or elif qregdata[q[0]] < q[1] + 1:
+                if q[0] not in qregdata or qregdata[q[0]] < q[1] + 1:
                     qregdata[q[0]] = q[1] + 1
         else:
             qregdata = self.qregs
@@ -353,8 +353,10 @@ class QCircuitImage:
             column += 1
         for layer in self.ops:
             num_cols_used = 1
-
+            extra_forms = ['measure', 'barrier', 'snapshot', 'load', 'save', 'noise']
             for op in layer:
+                special_gate = op.name not in extra_forms
+                controlled_gate = isinstance(op.op, ControlledGate)
                 if op.condition:
                     mask = self._get_mask(op.condition[0])
                     cl_reg = self.clbit_list[self._ffs(mask)]
@@ -362,9 +364,8 @@ class QCircuitImage:
                     pos_2 = self.img_regs[cl_reg]
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
-                if isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cz', 'cu1', 'cu3', 'crz',
-                        'cswap']:
+                if controlled_gate and op.name not in ['ccx', 'cx', 'cz', 'cu1',
+                        'cu3', 'crz', 'cswap']:
                     qarglist = op.qargs
                     name = generate_latex_label(
                         op.op.base_gate.name.upper()).replace(" ", "\\,")
@@ -406,12 +407,14 @@ class QCircuitImage:
                         else:
                             self._latex[pos_array[-1]][column] = "\\gate{%s}" % name
                     else:
+                        multigate_array = pos_qargs
                         pos_start = min(pos_qargs)
                         pos_stop = max(pos_qargs)
                         # If any controls appear in the span of the multiqubit
                         # gate just treat the whole thing as a big gate instead
                         # of trying to render the controls separately
                         if any(ctrl_pos) in range(pos_start, pos_stop):
+                            multigate_array = pos_array
                             pos_start = min(pos_array)
                             pos_stop = max(pos_array)
                             num_qargs = len(qarglist)
@@ -432,11 +435,10 @@ class QCircuitImage:
                                 self._latex[pos][column] = _generate_latex_gate("ctrlo",
                                     [], gap=upper - pos_array[index], if_value=cond)
 
-                        _assign_multigate(num_qargs, name, self._latex, pos_start,
-                            pos_stop, column)
+                        _assign_multigate(num_qargs, name, self._latex, multigate_array,
+                            column, not controlled_gate)
 
-                elif op.name not in ['measure', 'barrier', 'snapshot', 'load',
-                                     'save', 'noise']:
+                elif special_gate:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
 
@@ -458,8 +460,10 @@ class QCircuitImage:
                                     op.op.params)
 
                     elif len(qarglist) == 2:
-                        if isinstance(op.op, ControlledGate):
+                        if controlled_gate:
                             cond = str(op.op.ctrl_state)
+                        else:
+                            cond = 0
                         pos_1 = self.img_regs[qarglist[0]]
                         pos_2 = self.img_regs[qarglist[1]]
 
@@ -472,122 +476,56 @@ class QCircuitImage:
                             _assign_cregs(self.cregs[if_reg], if_value, self._latex,
                                 pos_3, bottom, column)
                             assignment_result = _assign_cgate(nm, op.op.params,
-                                    cond, self._latex, pos_1, pos_2, column)
+                                    [cond], self._latex, column, pos_1, pos_2)
                             if assignment_result > 0:
                                 num_cols_used = assignment_result
                         else:
-                            temp = [pos_1, pos_2]
-                            temp.sort(key=int)
-
                             assignment_result = _assign_cgate(nm, op.op.params,
-                                    cond, self._latex, pos_1, pos_2, column)
+                                    [cond], self._latex, column, pos_1, pos_2)
                             if assignment_result > 0:
                                 num_cols_used = assignment_result
                             if assignment_result < 0:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
-                                if stop_pos - start_pos >= 2:
-                                    delta = stop_pos - start_pos
-                                    #TODO: refactor multigate
-                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
-                                                                      % (delta, nm))
-                                    for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}"
-                                                                      % nm)
-                                else:
-                                    self._latex[start_pos][column] = ("\\multigate{1}{%s}"
-                                                                      % nm)
-                                    self._latex[stop_pos][column] = ("\\ghost{%s}" %
-                                                                     nm)
+                                delta = stop_pos - start_pos
+                                _assign_multigate(delta, nm, self._latex, [pos_1, pos_2],
+                                    column, special_gate, length=len(qarglist)) 
 
                     elif len(qarglist) == 3:
-                        if isinstance(op.op, ControlledGate):
-                            ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
-                            cond_1 = ctrl_state[0]
-                            cond_2 = ctrl_state[1]
+                        if controlled_gate:
+                            ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
+                        else:
+                            crtl_state = [0,0]
+                        cond_1 = ctrl_state[0]
+                        cond_2 = ctrl_state[1]
                         pos_1 = self.img_regs[qarglist[0]]
                         pos_2 = self.img_regs[qarglist[1]]
                         pos_3 = self.img_regs[qarglist[2]]
+                        cgates = ['ccx','cswap']
 
                         if op.condition:
                             pos_4 = self.img_regs[if_reg[0]]
                             temp = [pos_1, pos_2, pos_3, pos_4]
                             temp.sort(key=int)
                             bottom = temp[2]
-
                             _assign_cregs(self.cregs[if_reg], if_value, self._latex,
                                 pos_4, bottom, column)
                             #TODO: Figure out how to refactor this using cgate
                             #maybe use length as an argument?
-                            if nm == "ccx":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                if cond_2 == '0':
-                                    self._latex[pos_2][column] = "\\ctrlo{" + str(
-                                        pos_3 - pos_2) + "}"
-                                elif cond_2 == '1':
-                                    self._latex[pos_2][column] = "\\ctrl{" + str(
-                                        pos_3 - pos_2) + "}"
-                                self._latex[pos_3][column] = "\\targ"
-
-                            if nm == "cswap":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\qswap"
-                                self._latex[pos_3][column] = \
-                                    "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                            if nm in cgates: 
+                                _assign_cgate(nm, [], [cond_1, cond_2], self._latex,
+                                    column, pos_1, pos_2, pos_3=pos_3, length=len(qarglist))
                         else:
-                            if nm == "ccx":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                if cond_2 == '0':
-                                    self._latex[pos_2][column] = "\\ctrlo{" + str(
-                                        pos_3 - pos_2) + "}"
-                                elif cond_2 == '1':
-                                    self._latex[pos_2][column] = "\\ctrl{" + str(
-                                        pos_3 - pos_2) + "}"
-                                self._latex[pos_3][column] = "\\targ"
-
-                            elif nm == "cswap":
-                                if cond_1 == '0':
-                                    self._latex[pos_1][column] = "\\ctrlo{" + str(
-                                        pos_2 - pos_1) + "}"
-                                elif cond_1 == '1':
-                                    self._latex[pos_1][column] = "\\ctrl{" + str(
-                                        pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = "\\qswap"
-                                self._latex[pos_3][column] = \
-                                    "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                            if nm in cgates:
+                                _assign_cgate(nm, [], [cond_1, cond_2], self._latex,
+                                    column, pos_1, pos_2, pos_3=pos_3, length=len(qarglist))
                             else:
                                 start_pos = min([pos_1, pos_2, pos_3])
                                 stop_pos = max([pos_1, pos_2, pos_3])
-                                if stop_pos - start_pos >= 3:
-                                    delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
-                                                                      (delta, nm))
-                                    for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}" %
-                                                                      nm)
-                                else:
-                                    self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
-                                                                  nm)
-                                    self._latex[pos_2][column] = ("\\ghost{%s}" %
-                                                                  nm)
-                                    self._latex[pos_3][column] = ("\\ghost{%s}" %
-                                                                  nm)
-
+                                delta = stop_pos - start_pos
+                                _assign_multigate(delta, nm, self._latex,
+                                    [pos_1, pos_2, pos_3], column, special_gate,
+                                    length=len(qarglist)) 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
                         pos_array = [self.img_regs[qarglist[0]]]
@@ -595,8 +533,8 @@ class QCircuitImage:
                             pos_array.append(self.img_regs[qarglist[i]])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
-                        _assign_multigate(nbits, nm, self._latex, pos_start, pos_stop
-                            column)
+                        _assign_multigate(nbits, nm, self._latex, pos_array,
+                            column, not special_gate)
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
@@ -697,10 +635,25 @@ def _parse_params(param):
         return generate_latex_label(str(param))
     return pi_check(param, output='latex')
 
-def _assign_multigate(number, gate, latex_array, pos_start, pos_stop, column):
-    latex_array[pos_start][column] = "\\multigate{%s}{%s}" % (number - 1, gate)
-    for pos in range(pos_start + 1, pos_stop + 1):
-        latex_array[pos][column] = "\\ghost{%s}" % gate
+def _assign_multigate(number, gate, latex_array, pos_array, column, special_gate,
+        length=0):
+    pos_start = min(pos_array)
+    pos_stop = max(pos_array)
+    if special_gate and number >= 2:
+        number = number + 1
+    elif special_gate:
+        number = length
+    if not special_gate or not length == 3 or pos_stop - pos_start >= 3:
+        latex_array[pos_start][column] = "\\multigate{%s}{%s}" % (number - 1, gate)
+    if special_gate and pos_stop - pos_start < length and not length == 3:
+        latex_array[pos_stop][column] = "\\ghost{%s}" % gate
+    elif special_gate and pos_stop - pos_start < length:
+        latex_array[pos_array[1]][column] = ("\\multigate{2}{%s}" % gate)
+        latex_array[pos_array[2]][column] = ("\\ghost{%s}" % gate)
+        latex_array[pos_array[3]][column] = ("\\ghost{%s}" % gate)
+    else:
+        for pos in range(pos_start + 1, pos_stop + 1):
+            latex_array[pos][column] = "\\ghost{%s}" % gate
 
 def _assign_cregs(cregs, if_value, latex_array, hipos, lopos, column):
     gap = hipos - lopos
@@ -709,14 +662,23 @@ def _assign_cregs(cregs, if_value, latex_array, hipos, lopos, column):
             gap=gap, if_value=if_value[i])
         gap = 1
 
-def _assign_cgate(gate, params, cond, latex_array, pos_1, pos_2, column):
-    if gate not in ['cx','cz','cy','ch','swap','crz','cu1','cu3','rzz']:
+def _assign_cgate(gate, params, cond, latex_array, column, pos_1, pos_2, pos_3=0,
+        length=0):
+    if gate not in ['cx','cz','cy','ch','swap','crz','cu1','cu3','rzz'] and length == 0:
         return -1
     if gate == 'rzz':
-        cond = 1
+        cond = [1]
     latex_array[pos_1][column] = _generate_latex_gate('ctrlo', [], gap=pos_2 - pos_1,
-        if_value=cond)
-    latex_array[pos_2][column] = _generate_latex_gate(gate, params, gap=pos_1 - pos_2)
+        if_value=cond[0])
+    if length == 0:
+        latex_array[pos_2][column] = _generate_latex_gate(gate, params, gap=pos_1 - pos_2)
+    elif gate == 'ccx':
+        latex_array[pos_2][column] = _generate_latex_gate('ctrlo', [], gap=pos_3-pos_2,
+            if_value=cond[1])
+        latex_array[pos_3][column] = '\\targ'
+    elif gate == 'cswap':
+        latex_array[pos_2][column] = '\\qswap'
+        latex_array[pos_3][column] = "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
     if gate == "swap":
         latex_array[pos_1][column] = "\\qswap"
         return 0
