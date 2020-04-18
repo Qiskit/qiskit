@@ -27,8 +27,7 @@ syntax. For example::
 
     backend = FakeOpenPulse2Q()
 
-    sched = pulse.Schedule()
-    with build(sched, backend):
+    with build(backend) as sched:
         # Create a pulse.
         gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
         # Create a channel type.
@@ -128,8 +127,8 @@ import functools
 import itertools
 from contextlib import contextmanager
 from typing import (Any, Callable, ContextManager, Dict,
-                    Iterable, List, Mapping, Set, Tuple,
-                    TypeVar, Union)
+                    Iterable, List, Mapping, Optional, Set,
+                    Tuple, TypeVar, Union)
 
 import numpy as np
 
@@ -180,8 +179,8 @@ class _PulseBuilder():
     """Builder context class."""
 
     def __init__(self,
-                 schedule: Schedule,
                  backend=None,
+                 schedule: Optional[Schedule] = None,
                  default_alignment: Union[str, Callable] = 'left',
                  default_transpiler_settings: Mapping = None,
                  default_circuit_scheduler_settings: Mapping = None):
@@ -190,8 +189,10 @@ class _PulseBuilder():
         This is not a public class
 
         Args:
-            schedule: Initital schedule block to build off of.
-            backend (BaseBackend): Input backend to use in builder.
+            backend (BaseBackend): Input backend to use in builder. If not set
+                certain functionality will be unavailable.
+            schedule: Initital schedule block to build off of. If not supplied
+                a schedule will be created.
             default_alignment: Default scheduling alignment for builder.
                 One of 'left', 'right', 'sequential' or an alignment
                 contextmanager.
@@ -229,10 +230,15 @@ class _PulseBuilder():
 
         self.set_active_block(Schedule())
 
-    def __enter__(self):
-        """Enter Builder Context."""
+    def __enter__(self) -> Schedule:
+        """Enter Builder Context.
+
+        Returns:
+            The schedule to be built.
+        """
         self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
         self._default_alignment_context.__enter__()
+        return self._schedule
 
     @_compile_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -398,19 +404,20 @@ class _PulseBuilder():
         self.call_circuit(qc, lazy=lazy)
 
 
-def build(schedule: Schedule,
-          backend=None,
+def build(backend=None,
+          schedule: Optional[Schedule] = None,
           default_alignment: str = 'left',
-          default_transpiler_settings: Dict[str, Any] = None,
-          default_circuit_scheduler_settings: Dict[str, Any] = None
-          ) -> ContextManager[None]:
+          default_transpiler_settings: Optional[Dict[str, Any]] = None,
+          default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
+          ) -> ContextManager[Schedule]:
     """
     A context manager for the imperative pulse builder DSL.
 
     Args:
-        schedule: a *mutable* pulse Schedule in which to build your pulse program.
         backend (BaseBackend): a Qiskit backend. If not supplied certain builder
             functionality will be unavailable.
+        schedule: a *mutable* pulse Schedule in which to build your
+            pulse program.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment
             contextmanager.
@@ -422,8 +429,8 @@ def build(schedule: Schedule,
         A new builder context which has the active builder inititalized.
     """
     return _PulseBuilder(
-        schedule,
         backend=backend,
+        schedule=schedule,
         default_alignment=default_alignment,
         default_transpiler_settings=default_transpiler_settings,
         default_circuit_scheduler_settings=default_circuit_scheduler_settings)
