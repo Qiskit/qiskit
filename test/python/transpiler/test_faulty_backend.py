@@ -105,13 +105,13 @@ class TestFaultyCX01(TestFaultyBackendCase):
 
         message = 'The initial_layout parameter refers to faulty or disconnected qubits'
 
-        with self.assertRaises(TranspilerError) as cm:
+        with self.assertRaises(TranspilerError) as context:
             transpile(circuit, backend=FakeOurenseFaultyCX01(),
                       optimization_level=level,
                       initial_layout=[0, 4, 1, 2],
                       seed_transpiler=42)
 
-        self.assertEqual(cm.exception.message, message)
+        self.assertEqual(context.exception.message, message)
 
 
 @ddt
@@ -172,13 +172,13 @@ class TestFaultyCX13(TestFaultyBackendCase):
 
         message = 'The initial_layout parameter refers to faulty or disconnected qubits'
 
-        with self.assertRaises(TranspilerError) as cm:
+        with self.assertRaises(TranspilerError) as context:
             transpile(circuit, backend=FakeOurenseFaultyCX13(),
                       optimization_level=level,
                       initial_layout=[0, 1, 3],
                       seed_transpiler=42)
 
-        self.assertEqual(cm.exception.message, message)
+        self.assertEqual(context.exception.message, message)
 
 
 @ddt
@@ -237,10 +237,10 @@ class TestFaultyQ1(TestFaultyBackendCase):
 
         message = 'The initial_layout parameter refers to faulty or disconnected qubits'
 
-        with self.assertRaises(TranspilerError) as cm:
+        with self.assertRaises(TranspilerError) as context:
             transpile(circuit, backend=FakeOurenseFaultyQ1(),
                       optimization_level=level,
                       initial_layout=[4, 0],
                       seed_transpiler=42)
 
-        self.assertEqual(cm.exception.message, message)
+        self.assertEqual(context.exception.message, message)
