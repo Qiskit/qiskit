@@ -21,7 +21,8 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import (Acquire, Delay, InstructionScheduleMap, ScheduleComponent, Schedule)
+from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
+                          InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
 
@@ -63,7 +64,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         for schedule in schedules:
             last_acquire = 0
             acquire_times = [time for time, inst in schedule.instructions
-                             if isinstance(inst, Acquire)]
+                             if isinstance(inst, (Acquire, AcquireInstruction))]
             if acquire_times:
                 last_acquire = max(acquire_times)
             align_time = max(align_time, last_acquire)
@@ -101,7 +102,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
                     raise PulseError("Pulse encountered on channel {0} after acquire on "
                                      "same channel.".format(chan.index))
 
-            if isinstance(inst, Acquire):
+            if isinstance(inst, (Acquire, AcquireInstruction)):
                 if time > align_time:
                     warnings.warn("You provided an align_time which is scheduling an acquire "
                                   "sooner than it was scheduled for in the original Schedule.")
@@ -136,7 +137,7 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     acquire_map = dict()
 
     for time, inst in schedule.instructions:
-        if isinstance(inst, Acquire):
+        if isinstance(inst, (Acquire, AcquireInstruction)):
             if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")

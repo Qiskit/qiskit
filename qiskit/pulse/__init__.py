@@ -132,7 +132,7 @@ Exceptions
 
 from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
-from .commands import FrameChange, PersistentValue
+from .commands import AcquireInstruction, FrameChange, PersistentValue
 from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
