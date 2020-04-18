@@ -987,8 +987,8 @@ class TestTextDrawerParams(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    def test_text_binded_parameters(self):
-        """Binded parameters
+    def test_text_bound_parameters(self):
+        """Bound parameters
         See: https://github.com/Qiskit/qiskit-terra/pull/3876 """
         expected = '\n'.join(["         ┌──────────────┐",
                               "qr_0: |0>┤ My_u2(pi,pi) ├",
