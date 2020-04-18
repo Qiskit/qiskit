@@ -17,12 +17,12 @@
 """Test the InstructionScheduleMap."""
 import numpy as np
 
+import qiskit.pulse.pulse_lib as pulse_lib
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
-
-from qiskit.pulse import InstructionScheduleMap, SamplePulse, Schedule, PulseError
+from qiskit.pulse import InstructionScheduleMap, Play, SamplePulse, Schedule, PulseError
 from qiskit.pulse.channels import DriveChannel
 from qiskit.pulse.schedule import ParameterizedSchedule
 
@@ -33,7 +33,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_add(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(DriveChannel(0)))
+        sched.append(Play(SamplePulse(np.ones(5)), DriveChannel(0)))
         inst_map = InstructionScheduleMap()
 
         inst_map.add('u1', 1, sched)
@@ -118,7 +118,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_get(self):
         """Test `get`."""
         sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(DriveChannel(0)))
+        sched.append(Play(SamplePulse(np.ones(5)), DriveChannel(0)))
         inst_map = InstructionScheduleMap()
 
         inst_map.add('u1', 0, sched)
@@ -162,7 +162,8 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add('pv_test', 0, converted_instruction)
         self.assertEqual(inst_map.get_parameters('pv_test', 0), ('P1', 'P2'))
 
-        sched = inst_map.get('pv_test', 0, P1=0, P2=-1)
+        with self.assertWarns(DeprecationWarning):
+            sched = inst_map.get('pv_test', 0, P1=0, P2=-1)
         self.assertEqual(sched.instructions[0][-1].command.value, -1)
         with self.assertRaises(PulseError):
             inst_map.get('pv_test', 0, 0, P1=-1)
@@ -192,16 +193,36 @@ class TestInstructionScheduleMap(QiskitTestCase):
             inst_map.get('inst_seq', 0, 1, 2, 3, P1=1)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, 3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
         sched = inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, P3=3)
-        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
-        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
-        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+        self.assertEqual(sched.instructions[0][-1].phase, 1)
+        self.assertEqual(sched.instructions[1][-1].phase, 2)
+        self.assertEqual(sched.instructions[2][-1].phase, 3)
+
+    def test_schedule_generator(self):
+        """Test schedule generator functionalty."""
+
+        x_test = 10
+        amp_test = 1.0
+
+        def test_func(x):
+            sched = Schedule()
+            sched += Play(pulse_lib.constant(int(x), amp_test), DriveChannel(0))
+            return sched
+
+        ref_sched = Schedule()
+        ref_sched += Play(pulse_lib.constant(x_test, amp_test), DriveChannel(0))
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add('f', (0,), test_func)
+        self.assertEqual(inst_map.get('f', (0,), x_test), ref_sched)
+
+        self.assertEqual(inst_map.get_parameters('f', (0,)), ('x',))
