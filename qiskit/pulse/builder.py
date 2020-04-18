@@ -28,7 +28,7 @@ syntax. For example::
     backend = FakeOpenPulse2Q()
 
     sched = pulse.Schedule()
-    with build(backend, sched):
+    with build(sched, backend):
         # Create a pulse.
         gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
         # Create a channel type.
@@ -446,7 +446,7 @@ def _active_builder() -> _PulseBuilder:
         raise exceptions.PulseError(
             'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
-            'context, eg., "with build(backend, schedule): ...".') from err
+            'context, eg., "with build(schedule): ...".') from err
 
 
 def active_backend():
