@@ -157,7 +157,21 @@ def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]
     the decorated function."""
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
-        self.compile_lazy_circuit()
+        self._compile_lazy_circuit()
+        return function(self, *args, **kwargs)
+    return wrapper
+
+
+def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
+    """Decorator that will raise if a function is called without a builder.
+    With an active backend.
+    """
+    @functools.wraps(function)
+    def wrapper(self, *args, **kwargs):
+        if self.backend is None:
+            raise exceptions.PulseError(
+                'This function requires the builder to '
+                'have a "backend" set.')
         return function(self, *args, **kwargs)
     return wrapper
 
@@ -166,8 +180,8 @@ class _PulseBuilder():
     """Builder context class."""
 
     def __init__(self,
-                 backend,
-                 entry_block: Schedule = None,
+                 schedule: Schedule,
+                 backend=None,
                  default_alignment: Union[str, Callable] = 'left',
                  default_transpiler_settings: Mapping = None,
                  default_circuit_scheduler_settings: Mapping = None):
@@ -176,8 +190,8 @@ class _PulseBuilder():
         This is not a public class
 
         Args:
+            schedule: Initital schedule block to build off of.
             backend (BaseBackend): Input backend to use in builder.
-            entry_block: Initital schedule block to build off of.
             default_alignment: Default scheduling alignment for builder.
                 One of 'left', 'right', 'sequential' or an alignment
                 contextmanager.
@@ -186,7 +200,7 @@ class _PulseBuilder():
                 circuit to pulse scheduler.
         """
         #: BaseBackend: Backend instance for context builder.
-        self.backend = backend
+        self._backend = backend
 
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
         self._backend_ctx_token = None
@@ -195,7 +209,7 @@ class _PulseBuilder():
         self._block = None
 
         #: QuantumCircuit: Lazily constructed quantum circuit
-        self._lazy_circuit = self.new_circuit()
+        self._lazy_circuit = None
 
         # ContextManager: Default alignment context.
         self._default_alignment_context = align(default_alignment)
@@ -208,18 +222,17 @@ class _PulseBuilder():
             default_circuit_scheduler_settings = {}
         self._circuit_scheduler_settings = default_circuit_scheduler_settings
 
-        if entry_block is None:
-            entry_block = Schedule()
+        if schedule is None:
+            schedule = Schedule()
         # pulse.Schedule: Root program block
-        self._entry_block = entry_block
+        self._schedule = schedule
 
         self.set_active_block(Schedule())
 
-    def __enter__(self) -> '_PulseBuilder':
+    def __enter__(self):
         """Enter Builder Context."""
         self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
         self._default_alignment_context.__enter__()
-        return self
 
     @_compile_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -229,11 +242,21 @@ class _PulseBuilder():
         BUILDER_CONTEXTVAR.reset(self._backend_ctx_token)
 
     @property
+    def backend(self):
+        """Returns the builder backend if set.
+
+        Returns:
+            exceptions.PulseError: If backend not set.
+        """
+        return self._backend
+
+    @property
     def block(self) -> Schedule:
         """Return the active block of this bulder."""
         return self._block
 
     @property
+    @_requires_backend
     def num_qubits(self):
         """Get the number of qubits in the backend."""
         return self.backend.configuration().n_qubits
@@ -246,7 +269,7 @@ class _PulseBuilder():
     @transpiler_settings.setter
     @_compile_lazy_circuit_before
     def transpiler_settings(self, settings: Mapping):
-        self.compile_lazy_circuit()
+        self._compile_lazy_circuit()
         self._transpiler_settings = settings
 
     @property
@@ -257,7 +280,7 @@ class _PulseBuilder():
     @circuit_scheduler_settings.setter
     @_compile_lazy_circuit_before
     def circuit_scheduler_settings(self, settings: Mapping):
-        self.compile_lazy_circuit()
+        self._compile_lazy_circuit()
         self._circuit_scheduler_settings = settings
 
     @_compile_lazy_circuit_before
@@ -267,7 +290,7 @@ class _PulseBuilder():
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
         built_program = transforms.remove_directives(self.block)
-        program = self._entry_block.append(built_program, mutate=True)
+        program = self._schedule.append(built_program, mutate=True)
         self.set_active_block(Schedule())
         return program
 
@@ -287,7 +310,7 @@ class _PulseBuilder():
         """Add an instruction to the active block."""
         self.block.append(instruction, mutate=True)
 
-    def compile_lazy_circuit(self):
+    def _compile_lazy_circuit(self):
         """Call a QuantumCircuit."""
         # check by length, can't check if QuantumCircuit is None
         # so disable pylint error.
@@ -313,6 +336,7 @@ class _PulseBuilder():
         """Create a new circuit for scheduling."""
         return circuit.QuantumCircuit(self.num_qubits)
 
+    @_requires_backend
     def call_circuit(self,
                      circ: circuit.QuantumCircuit,
                      lazy: bool = True):
@@ -332,13 +356,17 @@ class _PulseBuilder():
                 immediately. Otherwise, it will extend the active lazy circuit
                 as defined above.
         """
+        if self._lazy_circuit is None:
+            self._lazy_circuit = self.new_circuit()
+
         if lazy:
             self._lazy_circuit.extend(circ)
         else:
-            self.compile_lazy_circuit()
+            self._compile_lazy_circuit()
             self._lazy_circuit.extend(circ)
-            self.compile_lazy_circuit()
+            self._compile_lazy_circuit()
 
+    @_requires_backend
     def call_gate(self,
                   gate: circuit.Gate,
                   qubits: Tuple[int, ...],
@@ -370,8 +398,8 @@ class _PulseBuilder():
         self.call_circuit(qc, lazy=lazy)
 
 
-def build(backend,
-          schedule: Schedule,
+def build(schedule: Schedule,
+          backend=None,
           default_alignment: str = 'left',
           default_transpiler_settings: Dict[str, Any] = None,
           default_circuit_scheduler_settings: Dict[str, Any] = None
@@ -380,8 +408,9 @@ def build(backend,
     A context manager for the imperative pulse builder DSL.
 
     Args:
-        backend (BaseBackend): a Qiskit backend.
         schedule: a *mutable* pulse Schedule in which to build your pulse program.
+        backend (BaseBackend): a Qiskit backend. If not supplied certain builder
+            functionality will be unavailable.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment
             contextmanager.
@@ -393,8 +422,8 @@ def build(backend,
         A new builder context which has the active builder inititalized.
     """
     return _PulseBuilder(
-        backend,
         schedule,
+        backend=backend,
         default_alignment=default_alignment,
         default_transpiler_settings=default_transpiler_settings,
         default_circuit_scheduler_settings=default_circuit_scheduler_settings)
@@ -425,8 +454,16 @@ def active_backend():
 
     Returns:
         BaseBackend: The active backend in the currently active builder context.
+
+    Raises:
+        exceptions.PulseError: If the builder does not have a backend set.
     """
-    return _active_builder().backend
+    builder = _active_builder().backend
+    if builder is None:
+        raise exceptions.PulseError(
+            'This function requires the active builder to '
+            'have a "backend" set.')
+    return builder
 
 
 def append_block(block: Schedule):
@@ -481,7 +518,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 
 # Contexts ###########################################################
 def _transform_context(transform: Callable[[Schedule], Schedule],
-                       **transform_kwargs: Any,
+                       **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
     """A tranform context generator decorator
 
@@ -515,7 +552,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
             try:
                 yield
             finally:
-                builder.compile_lazy_circuit()
+                builder._compile_lazy_circuit()
                 transformed_block = transform(transform_block,
                                               *args,
                                               **kwargs,
@@ -586,7 +623,7 @@ def inline() -> ContextManager[None]:
     try:
         yield
     finally:
-        builder.compile_lazy_circuit()
+        builder._compile_lazy_circuit()
         builder.set_active_block(active_block)
         for _, instruction in transform_block.instructions:
             append_instruction(instruction)

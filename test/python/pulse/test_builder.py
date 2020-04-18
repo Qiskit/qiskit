@@ -22,6 +22,7 @@ import numpy as np
 import qiskit.circuit as circuit
 import qiskit.compiler as compiler
 import qiskit.pulse as pulse
+import qiskit.pulse.exceptions as exceptions
 import qiskit.pulse.macros as macros
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -48,7 +49,7 @@ class TestContexts(TestBuilder):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_sequential():
                 pulse.delay(d0, 3)
                 pulse.delay(d1, 5)
@@ -69,7 +70,7 @@ class TestContexts(TestBuilder):
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_left():
                 pulse.delay(d2, 11)
                 pulse.delay(d0, 3)
@@ -93,7 +94,7 @@ class TestContexts(TestBuilder):
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_right():
                 pulse.delay(d2, 11)
                 pulse.delay(d0, 3)
@@ -118,7 +119,7 @@ class TestContexts(TestBuilder):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.delay(d0, 3)
             with pulse.group():
                 pulse.delay(d1, 5)
@@ -138,7 +139,7 @@ class TestContexts(TestBuilder):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.delay(d0, 3)
             with pulse.inline():
                 pulse.delay(d1, 5)
@@ -163,13 +164,13 @@ class TestContexts(TestBuilder):
         twice_cx_qc.cx(0, 1)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             with pulse.transpiler_settings(optimization_level=0):
                 pulse.call_circuit(twice_cx_qc)
         self.assertNotEqual(len(schedule.instructions), 0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             with pulse.transpiler_settings(optimization_level=3):
                 pulse.call_circuit(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
@@ -186,7 +187,7 @@ class TestContexts(TestBuilder):
         x_qc.x(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             with pulse.transpiler_settings(basis_gates=['x']):
                 with pulse.circuit_scheduler_settings(inst_map=inst_map):
                     pulse.call_circuit(x_qc)
@@ -198,7 +199,7 @@ class TestContexts(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.phase_offset(d0, 3.14):
                 pulse.delay(d0, 10)
 
@@ -215,7 +216,7 @@ class TestContexts(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.frequency_offset(d0, 1e9):
                 pulse.delay(d0, 10)
 
@@ -232,7 +233,7 @@ class TestContexts(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             with pulse.frequency_offset(d0, 1e9, compensate_phase=True):
                 pulse.delay(d0, 10)
 
@@ -251,25 +252,25 @@ class TestTypes(TestBuilder):
     def test_drive_channel(self):
         """Text context builder drive channel."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertEqual(pulse.drive_channel(0), pulse.DriveChannel(0))
 
     def test_measure_channel(self):
         """Text context builder measure channel."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertEqual(pulse.measure_channel(0), pulse.MeasureChannel(0))
 
     def test_acquire_channel(self):
         """Text context builder acquire channel."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertEqual(pulse.acquire_channel(0), pulse.AcquireChannel(0))
 
     def test_control_channel(self):
         """Text context builder control channel."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertEqual(pulse.control_channel((0, 1))[0],
                              pulse.ControlChannel(0))
 
@@ -282,7 +283,7 @@ class TestInstructions(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.delay(d0, 10)
 
         reference = pulse.Schedule()
@@ -296,7 +297,7 @@ class TestInstructions(TestBuilder):
         test_pulse = pulse_lib.ConstantPulse(10, 1.0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.play(d0, test_pulse)
 
         reference = pulse.Schedule()
@@ -310,7 +311,7 @@ class TestInstructions(TestBuilder):
         test_pulse = pulse_lib.SamplePulse([0.0, 0.0])
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.play(d0, test_pulse)
 
         reference = pulse.Schedule()
@@ -324,7 +325,7 @@ class TestInstructions(TestBuilder):
         test_array = np.array([0., 0.], dtype=np.complex_)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.play(d0, test_array)
 
         reference = pulse.Schedule()
@@ -339,7 +340,7 @@ class TestInstructions(TestBuilder):
         mem0 = pulse.MemorySlot(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.acquire(acquire0, mem0, 10)
 
         reference = pulse.Schedule()
@@ -353,7 +354,7 @@ class TestInstructions(TestBuilder):
         reg0 = pulse.RegisterSlot(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.acquire(acquire0, reg0, 10)
 
         reference = pulse.Schedule()
@@ -367,7 +368,7 @@ class TestInstructions(TestBuilder):
         mem0 = pulse.MemorySlot(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.acquire(0, mem0, 10)
 
         reference = pulse.Schedule()
@@ -380,7 +381,7 @@ class TestInstructions(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.set_frequency(d0, 1e9)
 
         reference = pulse.Schedule()
@@ -394,7 +395,7 @@ class TestInstructions(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.shift_frequency(d0, 0.1e9)
 
         reference = pulse.Schedule()
@@ -408,7 +409,7 @@ class TestInstructions(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.set_phase(d0, 3.14)
 
         reference = pulse.Schedule()
@@ -421,7 +422,7 @@ class TestInstructions(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.shift_phase(d0, 3.14)
 
         reference = pulse.Schedule()
@@ -432,7 +433,7 @@ class TestInstructions(TestBuilder):
     def test_snapshot(self):
         """Test snapshot instruction."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.snapshot('test', 'state')
 
         reference = pulse.Schedule()
@@ -451,14 +452,14 @@ class TestInstructions(TestBuilder):
         reference += instructions.Delay(20, d1)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_right():
                 pulse.call_schedule(reference)
 
         self.assertEqual(schedule, reference)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_right():
                 pulse.call(reference)
 
@@ -475,15 +476,15 @@ class TestInstructions(TestBuilder):
         transpiler_settings = {'optimization_level': 0}
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend,
-                         schedule,
+        with pulse.build(schedule,
+                         self.backend,
                          default_transpiler_settings=transpiler_settings):
             with pulse.align_right():
                 pulse.call_circuit(u1_qc)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend,
-                         schedule,
+        with pulse.build(schedule,
+                         self.backend,
                          default_transpiler_settings=transpiler_settings):
             with pulse.align_right():
                 pulse.call(u1_qc)
@@ -501,7 +502,7 @@ class TestDirectives(TestBuilder):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_right():
                 pulse.delay(d0, 3)
                 pulse.barrier(d0, d1, d2)
@@ -528,7 +529,7 @@ class TestDirectives(TestBuilder):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             with pulse.align_left():
                 pulse.delay(d0, 3)
                 pulse.barrier(d0, d1, d2)
@@ -554,7 +555,7 @@ class TestUtilities(TestBuilder):
     def test_active_backend(self):
         """Test getting active builder backend."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertEqual(pulse.active_backend(), self.backend)
 
     def test_append_block(self):
@@ -564,7 +565,7 @@ class TestUtilities(TestBuilder):
         block += instructions.Delay(10, d0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.append_block(block)
 
         self.assertEqual(schedule, block)
@@ -575,7 +576,7 @@ class TestUtilities(TestBuilder):
         instruction = instructions.Delay(10, d0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule):
             pulse.append_instruction(instruction)
 
         self.assertEqual(schedule, instruction)
@@ -583,7 +584,7 @@ class TestUtilities(TestBuilder):
     def test_qubit_channels(self):
         """Test getting the qubit channels of the active builder's backend."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             qubit_channels = pulse.qubit_channels(0)
 
         self.assertEqual(qubit_channels,
@@ -596,7 +597,7 @@ class TestUtilities(TestBuilder):
     def test_active_transpiler_settings(self):
         """Test setting settings of active builder's transpiler."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertFalse(pulse.active_transpiler_settings())
             with pulse.transpiler_settings(test_setting=1):
                 self.assertEqual(
@@ -605,7 +606,7 @@ class TestUtilities(TestBuilder):
     def test_active_circuit_scheduler_settings(self):
         """Test setting settings of active builder's circuit scheduler."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             self.assertFalse(pulse.active_circuit_scheduler_settings())
             with pulse.circuit_scheduler_settings(test_setting=1):
                 self.assertEqual(
@@ -613,7 +614,7 @@ class TestUtilities(TestBuilder):
 
     def test_num_qubits(self):
         """Test builder utility to get number of qubits."""
-        with pulse.build(self.backend, pulse.Schedule()):
+        with pulse.build(pulse.Schedule(), self.backend):
             self.assertEqual(pulse.num_qubits(), 2)
 
 
@@ -623,7 +624,7 @@ class TestMacros(TestBuilder):
     def test_measure(self):
         """Test utility function - measure."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             reg = pulse.measure(0)
 
         self.assertEqual(reg, pulse.MemorySlot(0))
@@ -638,7 +639,7 @@ class TestMacros(TestBuilder):
     def test_measure_all(self):
         """Test utility function - measure."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             regs = pulse.measure_all()
 
         self.assertEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
@@ -649,7 +650,7 @@ class TestMacros(TestBuilder):
     def test_delay_qubit(self):
         """Test delaying on a qubit macro."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.delay_qubits(0, 10)
 
         d0 = pulse.DriveChannel(0)
@@ -670,7 +671,7 @@ class TestMacros(TestBuilder):
     def test_delay_qubits(self):
         """Test delaying on multiple qubits to make sure we don't insert delays twice."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.delay_qubits([0, 1], 10)
 
         d0 = pulse.DriveChannel(0)
@@ -701,7 +702,7 @@ class TestGates(TestBuilder):
     def test_cx(self):
         """Test cx gate."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.cx(0, 1)
 
         reference_qc = circuit.QuantumCircuit(2)
@@ -713,7 +714,7 @@ class TestGates(TestBuilder):
     def test_u1(self):
         """Test u1 gate."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.u1(0, np.pi)
 
         reference_qc = circuit.QuantumCircuit(1)
@@ -725,7 +726,7 @@ class TestGates(TestBuilder):
     def test_u2(self):
         """Test u2 gate."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.u2(0, np.pi, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
@@ -737,7 +738,7 @@ class TestGates(TestBuilder):
     def test_u3(self):
         """Test u3 gate."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.u3(0, np.pi, 0, np.pi/2)
 
         reference_qc = circuit.QuantumCircuit(1)
@@ -750,7 +751,7 @@ class TestGates(TestBuilder):
 
         """Test x gate."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.x(0)
 
         reference_qc = circuit.QuantumCircuit(1)
@@ -763,7 +764,7 @@ class TestGates(TestBuilder):
     def test_lazy_evaluation_with_transpiler(self):
         """Test that the two cx gates are optimizied away by the transpiler."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             pulse.cx(0, 1)
             pulse.cx(0, 1)
 
@@ -775,7 +776,7 @@ class TestGates(TestBuilder):
     def test_measure(self):
         """Test pulse measurement macro against circuit measurement and ensure agreement."""
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             with pulse.align_sequential():
                 pulse.x(0)
                 pulse.measure(0)
@@ -788,6 +789,12 @@ class TestGates(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_backend_require(self):
+        """Test that a backend is required to use a gate."""
+        with self.assertRaises(exceptions.PulseError):
+            schedule = pulse.Schedule()
+            with pulse.build(schedule):
+                pulse.x(0)
 
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
@@ -801,7 +808,7 @@ class TestBuilderComposition(TestBuilder):
         short_dur = 31
         long_dur = 101
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule):
+        with pulse.build(schedule, self.backend):
             with pulse.align_sequential():
                 pulse.delay(d0, delay_dur)
                 pulse.u2(1, 0, pi/2)
@@ -869,13 +876,12 @@ class TestBuilderComposition(TestBuilder):
         d1 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule,
-                         default_alignment='left'):
+        with pulse.build(schedule, default_alignment='left'):
             pulse.delay(d0, 10)
             pulse.delay(d1, 20)
 
         reference = pulse.Schedule()
-        with pulse.build(self.backend, reference):
+        with pulse.build(reference, self.backend):
             with pulse.align_left():
                 pulse.delay(d0, 10)
                 pulse.delay(d1, 20)
@@ -888,13 +894,12 @@ class TestBuilderComposition(TestBuilder):
         d1 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule,
-                         default_alignment='right'):
+        with pulse.build(schedule, default_alignment='right'):
             pulse.delay(d0, 10)
             pulse.delay(d1, 20)
 
         reference = pulse.Schedule()
-        with pulse.build(self.backend, reference):
+        with pulse.build(reference):
             with pulse.align_right():
                 pulse.delay(d0, 10)
                 pulse.delay(d1, 20)
@@ -907,13 +912,12 @@ class TestBuilderComposition(TestBuilder):
         d1 = pulse.DriveChannel(0)
 
         schedule = pulse.Schedule()
-        with pulse.build(self.backend, schedule,
-                         default_alignment='sequential'):
+        with pulse.build(schedule, default_alignment='sequential'):
             pulse.delay(d0, 10)
             pulse.delay(d1, 20)
 
         reference = pulse.Schedule()
-        with pulse.build(self.backend, reference):
+        with pulse.build(reference):
             with pulse.align_sequential():
                 pulse.delay(d0, 10)
                 pulse.delay(d1, 20)
