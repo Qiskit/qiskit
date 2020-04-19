@@ -49,7 +49,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params):
+    def __init__(self, name, num_qubits, num_clbits, params, label=None):
         """Create a new instruction.
 
         Args:
@@ -58,6 +58,7 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
+            label (str or None): An optional label for the instruction [Default: None]
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -73,6 +74,7 @@ class Instruction:
         self.num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
+        self._label = label
 
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
         self.condition = None
@@ -160,6 +162,26 @@ class Instruction:
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
+
+    @property
+    def label(self):
+        """Return instruction label"""
+        return self._label
+
+    @label.setter
+    def label(self, name):
+        """Set instruction label to name
+
+        Args:
+            name (str or None): label to assign unitary
+
+        Raises:
+            TypeError: name is not string or None.
+        """
+        if isinstance(name, (str, type(None))):
+            self._label = name
+        else:
+            raise TypeError('label expects a string or None')
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
