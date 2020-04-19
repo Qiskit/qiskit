@@ -113,11 +113,11 @@ class Initialize(Instruction):
                 add_last_cnot = False
 
             if np.linalg.norm(phis) != 0:
-                rz_mult = self._multiplex(RZGate, phis, first_call=add_last_cnot)
+                rz_mult = self._multiplex(RZGate, phis, last_cnot=add_last_cnot)
                 circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
 
             if np.linalg.norm(thetas) != 0:
-                ry_mult = self._multiplex(RYGate, thetas, first_call=add_last_cnot)
+                ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
                 circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
 
         return circuit
@@ -187,7 +187,7 @@ class Initialize(Instruction):
 
         return final_r * np.exp(1.J * final_t / 2), theta, phi
 
-    def _multiplex(self, target_gate, list_of_angles, first_call = True):
+    def _multiplex(self, target_gate, list_of_angles, last_cnot=True):
         """
         Return a recursive implementation of a multiplexor circuit,
         where each instruction itself has a decomposition based on
@@ -199,6 +199,7 @@ class Initialize(Instruction):
             target_gate (Gate): Ry or Rz gate to apply to target qubit, multiplexed
                 over all other "select" qubits
             list_of_angles (list[float]): list of rotation angles to apply Ry and Rz
+            last_cnot (bool): add the last cnot if last_cnot = True
 
         Returns:
             DAGCircuit: the circuit implementing the multiplexor's action
@@ -242,7 +243,7 @@ class Initialize(Instruction):
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
-        if first_call:
+        if last_cnot:
             circuit.append(CXGate(), [msb, lsb])
 
         return circuit

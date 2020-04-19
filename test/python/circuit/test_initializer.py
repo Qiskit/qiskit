@@ -330,9 +330,11 @@ class TestInitialize(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.initialize(vector, qr)
 
-        b = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=_optimization_level)
+        b = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'],
+                      optimization_level=_optimization_level)
+
         number_cnots = b.count_ops()['cx']
-        max_cnots = 2** (num_qubits + 1) - 2 * num_qubits
+        max_cnots = 2 ** (num_qubits + 1) - 2 * num_qubits
 
         self.assertLessEqual(number_cnots, max_cnots)
 
@@ -375,6 +377,7 @@ class TestInstructionParam(QiskitTestCase):
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number)
                 for p in params))
+
 
 if __name__ == '__main__':
     unittest.main()
