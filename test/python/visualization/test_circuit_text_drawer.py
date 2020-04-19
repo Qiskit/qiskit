@@ -28,7 +28,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CZGate, ZGate
+from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CZGate, ZGate, YGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -2149,6 +2149,66 @@ class TestTextOpenControlledGate(QiskitTestCase):
         ccghz = ghz.control(3, ctrl_state='000')
         circuit = QuantumCircuit(6)
         circuit.append(ccghz, [0, 2, 5, 1, 3, 4])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_open_controlled_x(self):
+        """Controlled X gates.
+        See https://github.com/Qiskit/qiskit-terra/issues/4180"""
+        expected = '\n'.join(["                                  ",
+                              "qr_0: |0>──o────o────o────o────■──",
+                              "         ┌─┴─┐  │    │    │    │  ",
+                              "qr_1: |0>┤ X ├──o────■────■────o──",
+                              "         └───┘┌─┴─┐┌─┴─┐  │    │  ",
+                              "qr_2: |0>─────┤ X ├┤ X ├──o────■──",
+                              "              └───┘└───┘┌─┴─┐┌─┴─┐",
+                              "qr_3: |0>───────────────┤ X ├┤ X ├",
+                              "                        └───┘└─┬─┘",
+                              "qr_4: |0>──────────────────────o──",
+                              "                                  "])
+        qreg = QuantumRegister(5, 'qr')
+        circuit = QuantumCircuit(qreg)
+        control1 = XGate().control(1, ctrl_state='0')
+        circuit.append(control1, [0, 1])
+        control2 = XGate().control(2, ctrl_state='00')
+        circuit.append(control2, [0, 1, 2])
+        control2_2 = XGate().control(2, ctrl_state='10')
+        circuit.append(control2_2, [0, 1, 2])
+        control3 = XGate().control(3, ctrl_state='010')
+        circuit.append(control3, [0, 1, 2, 3])
+        control3 = XGate().control(4, ctrl_state='0101')
+        circuit.append(control3, [0, 1, 4, 2, 3])
+        circuit.draw()
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_open_controlled_y(self):
+        """Controlled Y gates.
+        See https://github.com/Qiskit/qiskit-terra/issues/4180"""
+        expected = '\n'.join(["                                  ",
+                              "qr_0: |0>──o────o────o────o────■──",
+                              "         ┌─┴─┐  │    │    │    │  ",
+                              "qr_1: |0>┤ Y ├──o────■────■────o──",
+                              "         └───┘┌─┴─┐┌─┴─┐  │    │  ",
+                              "qr_2: |0>─────┤ Y ├┤ Y ├──o────■──",
+                              "              └───┘└───┘┌─┴─┐┌─┴─┐",
+                              "qr_3: |0>───────────────┤ Y ├┤ Y ├",
+                              "                        └───┘└─┬─┘",
+                              "qr_4: |0>──────────────────────o──",
+                              "                                  "])
+        qreg = QuantumRegister(5, 'qr')
+        circuit = QuantumCircuit(qreg)
+        control1 = YGate().control(1, ctrl_state='0')
+        circuit.append(control1, [0, 1])
+        control2 = YGate().control(2, ctrl_state='00')
+        circuit.append(control2, [0, 1, 2])
+        control2_2 = YGate().control(2, ctrl_state='10')
+        circuit.append(control2_2, [0, 1, 2])
+        control3 = YGate().control(3, ctrl_state='010')
+        circuit.append(control3, [0, 1, 2, 3])
+        control3 = YGate().control(4, ctrl_state='0101')
+        circuit.append(control3, [0, 1, 4, 2, 3])
+        circuit.draw()
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 

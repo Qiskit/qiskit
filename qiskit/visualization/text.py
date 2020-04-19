@@ -895,17 +895,6 @@ class TextDrawing():
         elif instruction.name == 'reset':
             layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
-        elif instruction.name in ['cx', 'CX', 'ccx']:
-            # cx/ccx
-            gates = [Bullet(conditional=conditional) for _ in range(len(instruction.qargs) - 1)]
-            gates.append(BoxOnQuWire('X', conditional=conditional))
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'cy':
-            # cy
-            gates = [Bullet(conditional=conditional), BoxOnQuWire('Y')]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
         elif instruction.name == 'cz' and instruction.op.ctrl_state == 1:
             # cz TODO: only supports one closed controlled for now
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
