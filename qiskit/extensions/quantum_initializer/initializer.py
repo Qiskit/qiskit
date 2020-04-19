@@ -110,7 +110,7 @@ class Initialize(Instruction):
             rz_mult = self._multiplex(RZGate, phis)
             ry_mult = self._multiplex(RYGate, thetas)
             circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
-            circuit.append(ry_mult.to_instruction(), q[i:self.num_qubits])
+            circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
         return circuit
 
     @staticmethod
