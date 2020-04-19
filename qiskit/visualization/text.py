@@ -885,13 +885,6 @@ class TextDrawing():
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif instruction.name == 'cswap':
-            # cswap
-            gates = [Bullet(conditional=conditional),
-                     Ex(conditional=conditional),
-                     Ex(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
         elif instruction.name == 'reset':
             layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
@@ -925,6 +918,10 @@ class TextDrawing():
                 # cu1
                 connection_label = TextDrawing.params_for_label(instruction)[0]
                 gates.append(Bullet(conditional=conditional))
+            elif instruction.op.base_gate.name == 'swap':
+                # cswap
+                gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
+                add_connected_gate(instruction, gates, layer, current_cons)
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
