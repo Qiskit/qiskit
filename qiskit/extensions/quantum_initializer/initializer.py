@@ -107,10 +107,13 @@ class Initialize(Instruction):
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
-            rz_mult = self._multiplex(RZGate, phis)
-            ry_mult = self._multiplex(RYGate, thetas)
-            circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
-            circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
+            if np.linalg.norm(phis) != 0:
+                rz_mult = self._multiplex(RZGate, phis)
+                circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
+            if np.linalg.norm(thetas) != 0:
+                ry_mult = self._multiplex(RYGate, thetas)
+                circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
+
         return circuit
 
     @staticmethod
