@@ -717,5 +717,5 @@ class TestDiagonalGate(QiskitTestCase):
         qc = Diagonal(diag)
         simulated_diag = Statevector(Operator(qc).data.diagonal())
         ref_diag = Statevector(diag)
-        
+
         self.assertTrue(simulated_diag.equiv(ref_diag))
