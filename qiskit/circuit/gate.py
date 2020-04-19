@@ -16,6 +16,7 @@
 
 import numpy as np
 from scipy.linalg import schur
+from warnings import warn
 
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
@@ -224,6 +225,11 @@ class Gate(Instruction):
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
         if isinstance(parameter, (int, float, np.number, ParameterExpression)):
+            return parameter
+        if isinstance(parameter, np.ndarray):
+            warn("Gate param type %s is being deprecated. Considering creating your own Gate "
+                 "subclass with the method validate_parameter to allow this param"
+                 " type." % type(parameter), DeprecationWarning, 3)
             return parameter
         else:
             raise CircuitError("invalid param type {0} for gate {1}".format(type(parameter),
