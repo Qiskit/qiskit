@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Blueprint Circuit
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlueprintCircuit
+
 Boolean Logic Circuits
 ======================
 
@@ -85,6 +93,7 @@ Quantum Complexity Advantage Circuits
 """
 
 
+from .blueprintcircuit import BlueprintCircuit
 from .boolean_logic import Permutation, XOR, InnerProduct
 from .basis_change import QFT
 from .arithmetic import (
