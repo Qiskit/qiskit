@@ -18,13 +18,12 @@
 
 """Diagonal matrix circuit."""
 
+from typing import Union, List, Optional
 import cmath
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.util import deprecate_arguments
-from typing import Union, List, Optional
 
 _EPS = 1e-10
 
@@ -87,7 +86,7 @@ class Diagonal(QuantumCircuit):
             QuantumCircuit: the diagonal gate which was attached to the circuit.
 
         Raises:
-            QiskitError: if the list of the diagonal entries or the qubit list is in bad format;
+            CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
                 if the number of diagonal entries is not 2^k, where k denotes the number of qubits
         """
         if not isinstance(diag, (list, np.ndarray)):
