@@ -922,6 +922,10 @@ class TextDrawing():
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
                 add_connected_gate(instruction, gates, layer, current_cons)
+            elif instruction.op.base_gate.name == 'rzz':
+                # crzz
+                connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+                gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
