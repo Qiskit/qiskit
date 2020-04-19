@@ -218,7 +218,7 @@ class QFT(BlueprintCircuit):
 
     def _build(self) -> None:
         """Construct the circuit representing the desired state vector."""
-        super._build()
+        super()._build()
 
         for j in range(self.num_qubits):
             self.h(j)
