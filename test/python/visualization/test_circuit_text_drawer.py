@@ -2212,6 +2212,35 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_open_controlled_z(self):
+        """Controlled Z gates."""
+        expected = '\n'.join(["                        ",
+                              "qr_0: |0>─o──o──o──o──■─",
+                              "          │  │  │  │  │ ",
+                              "qr_1: |0>─■──o──■──■──o─",
+                              "             │  │  │  │ ",
+                              "qr_2: |0>────■──■──o──■─",
+                              "                   │  │ ",
+                              "qr_3: |0>──────────■──■─",
+                              "                      │ ",
+                              "qr_4: |0>─────────────o─",
+                              "                        "])
+        qreg = QuantumRegister(5, 'qr')
+        circuit = QuantumCircuit(qreg)
+        control1 = ZGate().control(1, ctrl_state='0')
+        circuit.append(control1, [0, 1])
+        control2 = ZGate().control(2, ctrl_state='00')
+        circuit.append(control2, [0, 1, 2])
+        control2_2 = ZGate().control(2, ctrl_state='10')
+        circuit.append(control2_2, [0, 1, 2])
+        control3 = ZGate().control(3, ctrl_state='010')
+        circuit.append(control3, [0, 1, 2, 3])
+        control3 = ZGate().control(4, ctrl_state='0101')
+        circuit.append(control3, [0, 1, 4, 2, 3])
+        circuit.draw()
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""

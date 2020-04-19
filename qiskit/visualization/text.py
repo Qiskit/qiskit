@@ -895,11 +895,6 @@ class TextDrawing():
         elif instruction.name == 'reset':
             layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
-        elif instruction.name == 'cz' and instruction.op.ctrl_state == 1:
-            # cz TODO: only supports one closed controlled for now
-            gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
         elif instruction.name == 'cu1':
             # cu1
             connection_label = TextDrawing.params_for_label(instruction)[0]
