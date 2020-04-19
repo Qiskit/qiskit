@@ -23,6 +23,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
+from qiskit import transpile
 from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity
 from qiskit.exceptions import QiskitError
@@ -314,6 +315,27 @@ class TestInitialize(QiskitTestCase):
 
         self.assertEqual(qc1, qc2)
 
+    def test_max_number_cnots(self):
+        """
+        Check if the number of cnots <= 2^(n+1) - 2n (arXiv:quant-ph/0406176)
+        """
+        num_qubits = 3
+        _optimization_level = 0
+
+        vector = -1 * np.random.rand(2 ** num_qubits)
+        vector[0] = 0
+        vector = vector / np.linalg.norm(vector)
+
+        qr = QuantumRegister(num_qubits, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.initialize(vector, qr)
+
+        b = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=_optimization_level)
+        number_cnots = b.count_ops()['cx']
+        max_cnots = 2** (num_qubits + 1) - 2 * num_qubits
+
+        self.assertLessEqual(number_cnots, max_cnots)
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
@@ -353,7 +375,6 @@ class TestInstructionParam(QiskitTestCase):
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number)
                 for p in params))
-
 
 if __name__ == '__main__':
     unittest.main()
