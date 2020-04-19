@@ -117,3 +117,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data is None:
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
+
+    def copy(self, name=None):
+        if self._data is None:
+            self._build()
+        return super().copy(name=name)
