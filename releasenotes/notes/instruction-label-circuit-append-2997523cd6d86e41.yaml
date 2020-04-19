@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The ``Instruction`` class now has a ``label`` attribute. This is a generalization of
+    labels previously belonging to only ``Gate``s. A label is useful for distinguishing
+    between different instances of the same instruction. This can be used for visualizing
+    or simulating those instances differently.
+  - |
+    ``QuantumCircuit.append()`` now takes an optional ``label`` argument, which can be
+    used to set the label of the appended instruction.
