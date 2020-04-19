@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+
 Boolean Logic Circuits
 ======================
 
@@ -105,3 +113,4 @@ from .arithmetic import (
 )
 from .fourier_checking import FourierChecking
 from .quantum_volume import QuantumVolume
+from .diagonal import Diagonal
