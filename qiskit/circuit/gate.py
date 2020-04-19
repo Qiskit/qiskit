@@ -224,9 +224,11 @@ class Gate(Instruction):
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
-        if isinstance(parameter, (int, float, np.number, ParameterExpression)):
+        if isinstance(parameter, (int, float, ParameterExpression)):
             return parameter
-        if isinstance(parameter, np.ndarray):
+        elif isinstance(parameter, (np.integer, np.floating)):
+            return parameter.item()
+        elif isinstance(parameter, np.ndarray):
             warn("Gate param type %s is being deprecated. Considering creating your own Gate "
                  "subclass with the method validate_parameter to allow this param"
                  " type." % type(parameter), DeprecationWarning, 3)

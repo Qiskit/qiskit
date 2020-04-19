@@ -318,7 +318,7 @@ class TestInitialize(QiskitTestCase):
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
 
-    def test_daig_(self):
+    def test_diag(self):
         """Verify diagonal gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1+0j, 1+0j])

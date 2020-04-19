@@ -80,11 +80,12 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
         self.definition = diag_circuit.data
 
     def validate_parameter(self, parameter):
-        """Diagonal Gate parameter can be complex in addition to the Gate parameter types."""
+        """Diagonal Gate parameter should accept complex
+        (in addition to the Gate parameter types) and always return build-in complex."""
         if isinstance(parameter, complex):
-            return parameter
+            return complex(parameter)
         else:
-            return super().validate_parameter(parameter)
+            return complex(super().validate_parameter(parameter))
 
     def _dec_diag(self):
         """

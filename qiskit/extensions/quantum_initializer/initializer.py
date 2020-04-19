@@ -250,7 +250,9 @@ class Initialize(Instruction):
     def validate_parameter(self, parameter):
         """Initialize instruction parameter can be int, float, and complex."""
         if isinstance(parameter, (int, float, complex)):
-            return parameter
+            return complex(parameter)
+        elif isinstance(parameter, np.number):
+            return complex(parameter.item())
         else:
             raise CircuitError("invalid param type {0} for instruction  "
                                "{1}".format(type(parameter), self.name))
