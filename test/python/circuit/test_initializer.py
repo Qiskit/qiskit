@@ -23,7 +23,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import ClassicalRegister
-from qiskit import execute, BasicAer
+from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
@@ -313,6 +313,46 @@ class TestInitialize(QiskitTestCase):
         qc2.initialize(desired_vector, [qr[0], qr[1]])
 
         self.assertEqual(qc1, qc2)
+
+
+class TestInstructionParam(QiskitTestCase):
+    """Test conversion of numpy type parameters."""
+
+    def test_daig_(self):
+        """Verify diagonal gate converts numpy.complex to complex."""
+        # ref: https://github.com/Qiskit/qiskit-aer/issues/696
+        diag = np.array([1+0j, 1+0j])
+        qc = QuantumCircuit(1)
+        qc.diagonal(list(diag), [0])
+
+        params = qc.data[0][0].params
+        self.assertTrue(
+            all(isinstance(p, complex) and not isinstance(p, np.number)
+                for p in params))
+
+        qobj = assemble(qc)
+        params = qobj.experiments[0].instructions[0].params
+        self.assertTrue(
+            all(isinstance(p, complex) and not isinstance(p, np.number)
+                for p in params))
+
+    def test_init(self):
+        """Verify initialize gate converts numpy.complex to complex."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/4151
+        qc = QuantumCircuit(1)
+        vec = np.array([0, 0+1j])
+        qc.initialize(vec, 0)
+
+        params = qc.data[0][0].params
+        self.assertTrue(
+            all(isinstance(p, complex) and not isinstance(p, np.number)
+                for p in params))
+
+        qobj = assemble(qc)
+        params = qobj.experiments[0].instructions[0].params
+        self.assertTrue(
+            all(isinstance(p, complex) and not isinstance(p, np.number)
+                for p in params))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new instruction :py:class:`~qiskit.pulse.SetFrequency` which allows users
+    to change the frequency of the :class:`~qiskit.pulse.PulseChannel`. This is
+    done in the following way::
+
+        from qiskit.pulse import Schedule
+        from qiskit.pulse import SetFrequency
+
+        sched = pulse.Schedule()
+        sched += SetFrequency(5.5e9, DriveChannel(0))
+
+    In this example, the frequency of all pulses before the ``SetFrequency``
+    command will be the default frequency and all pulses applied to drive
+    channel zero after the ``SetFrequency`` command will be at 5.5 GHz. Users
+    of ``SetFrequency`` should keep in mind any hardware limitations.
