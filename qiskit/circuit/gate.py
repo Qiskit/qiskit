@@ -14,9 +14,9 @@
 
 """Unitary gate."""
 
+from warnings import warn
 import numpy as np
 from scipy.linalg import schur
-from warnings import warn
 
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
