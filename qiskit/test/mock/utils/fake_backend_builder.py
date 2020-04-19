@@ -34,9 +34,7 @@ class FakeBackendBuilder:
     """FakeBackend builder.
 
     For example:
-        builder = FakeBackendBuilder("Tashkent", n_qubits=100)
-        FakeOpenPulse100Q = builder.build()
-        fake_backend = FakeOpenPulse100Q()
+        backend = FakeBackendBuilder("Tashkent", n_qubits=100).build()
     """
 
     def __init__(self,
