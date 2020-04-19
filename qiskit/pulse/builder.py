@@ -207,6 +207,10 @@ def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]
     return wrapper
 
 
+class BackendNotSet(exceptions.PulseError):
+    """Eaised if the builder context does not have a backend."""
+
+
 def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     """Decorator that will raise if a function is called without a builder.
     With an active backend.
@@ -214,7 +218,7 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         if self.backend is None:
-            raise exceptions.PulseError(
+            raise BackendNotSet(
                 'This function requires the builder to '
                 'have a "backend" set.')
         return function(self, *args, **kwargs)
@@ -483,6 +487,10 @@ def build(backend=None,
 
 
 # Builder Utilities ############################################################
+class NoActiveBuilder(exceptions.PulseError):
+    """Raised if no builder context is active."""
+
+
 def _active_builder() -> _PulseBuilder:
     """Get the active builder in the active context.
 
@@ -490,16 +498,16 @@ def _active_builder() -> _PulseBuilder:
         The active active builder in this context.
 
     Raises:
-        exceptions.PulseError: If a pulse builder function is called outside of a
+        NoActiveBuilder: If a pulse builder function is called outside of a
             builder context.
     """
     try:
         return BUILDER_CONTEXTVAR.get()
-    except LookupError as err:
-        raise exceptions.PulseError(
+    except LookupError:
+        raise NoActiveBuilder(
             'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
-            'context, eg., "with build(schedule): ...".') from err
+            'context, eg., "with pulse.build() as schedule: ...".')
 
 
 def active_backend():
@@ -513,7 +521,7 @@ def active_backend():
     """
     builder = _active_builder().backend
     if builder is None:
-        raise exceptions.PulseError(
+        raise  BackendNotSet(
             'This function requires the active builder to '
             'have a "backend" set.')
     return builder

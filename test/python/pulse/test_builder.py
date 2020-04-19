@@ -22,7 +22,7 @@ import numpy as np
 import qiskit.circuit as circuit
 import qiskit.compiler as compiler
 import qiskit.pulse as pulse
-import qiskit.pulse.exceptions as exceptions
+import qiskit.pulse.builder as builder
 import qiskit.pulse.macros as macros
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -738,7 +738,7 @@ class TestGates(TestBuilder):
 
     def test_backend_require(self):
         """Test that a backend is required to use a gate."""
-        with self.assertRaises(exceptions.PulseError):
+        with self.assertRaises(builder.BackendNotSet):
             with pulse.build():
                 pulse.x(0)
 
