@@ -178,7 +178,7 @@ class Initialize(Instruction):
 
         return final_r * np.exp(1.J * final_t / 2), theta, phi
 
-    def _multiplex(self, target_gate, list_of_angles):
+    def _multiplex(self, target_gate, list_of_angles, first_call = True):
         """
         Return a recursive implementation of a multiplexor circuit,
         where each instruction itself has a decomposition based on
@@ -217,7 +217,7 @@ class Initialize(Instruction):
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)])
+        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)], False)
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
@@ -226,14 +226,15 @@ class Initialize(Instruction):
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):])
+        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):], False)
         if list_len > 1:
             circuit.append(multiplex_2.to_instruction().mirror(), q[0:-1])
         else:
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
         # attach a final CNOT
-        circuit.append(CXGate(), [msb, lsb])
+        if first_call:
+            circuit.append(CXGate(), [msb, lsb])
 
         return circuit
 
