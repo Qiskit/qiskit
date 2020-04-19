@@ -61,6 +61,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data:
             return
 
+        self._data = []
+
         # check whether the configuration is valid
         self._check_configuration()
 

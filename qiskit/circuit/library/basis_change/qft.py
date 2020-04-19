@@ -17,12 +17,14 @@
 from typing import Optional
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
+
+from ..blueprintcircuit import BlueprintCircuit
 
 # pylint: disable=no-member
 
 
-class QFT(QuantumCircuit):
+class QFT(BlueprintCircuit):
     r"""Quantum Fourier Transform Circuit.
 
     The Quantum Fourier Transform (QFT) on :math:`n` qubits is the operation
@@ -97,7 +99,6 @@ class QFT(QuantumCircuit):
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
-        self._data = None
 
         self.num_qubits = num_qubits
 
@@ -206,12 +207,18 @@ class QFT(QuantumCircuit):
         for i in range(num_qubits // 2):
             self.swap(i, num_qubits - i - 1)
 
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        valid = True
+        if self.num_qubits is None:
+            valid = False
+            if raise_on_failure:
+                raise AttributeError('The number of qubits has not been set.')
+
+        return valid
+
     def _build(self) -> None:
         """Construct the circuit representing the desired state vector."""
-        if self._data:
-            return
-
-        self._data = []
+        super._build()
 
         for j in range(self.num_qubits):
             self.h(j)
@@ -225,9 +232,3 @@ class QFT(QuantumCircuit):
 
         if self._do_swaps:
             self._swap_qubits()
-
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return super().data
