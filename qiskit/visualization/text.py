@@ -901,19 +901,6 @@ class TextDrawing():
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif instruction.name == 'cu3':
-            # cu3
-            params = TextDrawing.params_for_label(instruction)
-            gates = [Bullet(conditional=conditional),
-                     BoxOnQuWire("U3(%s)" % ','.join(params), conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'crz':
-            # crz
-            label = "Rz(%s)" % TextDrawing.params_for_label(instruction)[0]
-            gates = [Bullet(conditional=conditional), BoxOnQuWire(label, conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
         elif len(instruction.qargs) == 1 and not instruction.cargs:
             # unitary gate
             layer.set_qubit(instruction.qargs[0],
