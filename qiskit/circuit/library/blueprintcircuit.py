@@ -14,6 +14,7 @@
 
 """Blueprint circuit object."""
 
+from typing import Optional
 from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterTable
@@ -30,17 +31,32 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     accessed, the ``_build`` method is called. There the configuration of the circuit is checked.
     """
 
-    def __init__(self, *regs, name=None):
+    def __init__(self, *regs, name: Optional[str] = None) -> None:
+        """Create a new blueprint circuit.
+
+        The ``_data`` argument storing the internal circuit data is set to ``None`` to indicate
+        that the circuit has not been built yet.
+        """
         super().__init__(*regs, name=name)
         self._data = None
 
     @abstractmethod
-    def _check_configuration(self, raise_on_failure=True):
-        """Return True if the current configuration allows the circuit to be built."""
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration allows the circuit to be built.
+
+        Args:
+            raise_on_failure: If True, raise if the configuration is invalid. If False, return
+                False if the configuration is invalid.
+
+        Returns:
+            True, if the configuration is valid. Otherwise, depending on the value of
+            ``raise_on_failure`` an error is raised or False is returned.
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def _build(self):
+    def _build(self) -> None:
+        """Build the circuit."""
         # do not build the circuit if _data is already populated
         if self._data:
             return
@@ -48,7 +64,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         # check whether the configuration is valid
         self._check_configuration()
 
-    def _invalidate(self):
+    def _invalidate(self) -> None:
+        """Invalidate the current circuit build."""
         self._data = None
         self._parameter_table = ParameterTable()
 
