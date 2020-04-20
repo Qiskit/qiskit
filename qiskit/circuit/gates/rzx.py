@@ -14,6 +14,9 @@
 
 """Two-qubit ZX-rotation gate."""
 
+from .rz import RZGate
+from .h import HGate
+from .x import CXGate
 from ..gate import Gate
 from ..quantumregister import QuantumRegister
 
@@ -122,14 +125,11 @@ class RZXGate(Gate):
         """
         gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
         """
-        from qiskit.extensions.standard.u1 import U1Gate
-        from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.x import CXGate
         q = QuantumRegister(2, 'q')
         self.definition = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),
+            (RZGate(self.params[0]), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]

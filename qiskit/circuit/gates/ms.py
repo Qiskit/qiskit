@@ -28,9 +28,10 @@ class MSGate(Gate):
     and is thus reduced to the RXXGate.
     """
 
-    def __init__(self, n_qubits, theta):
+    @deprecate_arguments({'n_qubits': 'num_qubits'})
+    def __init__(self, num_qubits, theta, *, n_qubits=None):  # pylint:disable=unused-argument
         """Create new MS gate."""
-        super().__init__('ms', n_qubits, [theta])
+        super().__init__('ms', num_qubits, [theta])
 
     def _define(self):
         from .rxx import RXXGate

@@ -23,7 +23,6 @@ import numpy as np
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
-from ..instructions.play import Play
 
 
 class Pulse(ABC):
@@ -36,22 +35,19 @@ class Pulse(ABC):
         if not isinstance(duration, (int, np.integer)):
             raise PulseError('Pulse duration should be integer.')
         self.duration = int(duration)
-        self.name = (name if name is not None
-                     else '{}{}'.format(str(self.__class__.__name__).lower(),
-                                        self.__hash__()))
+        self.name = name
 
-    def __call__(self, channel: PulseChannel) -> Play:
-        """Return new ``Play`` instruction that is fully instantiated with both ``pulse`` and a
-        ``channel``.
+    @property
+    def id(self) -> int:  # pylint: disable=invalid-name
+        """Unique identifier for this pulse."""
+        return id(self)
 
-        Args:
-            channel: The channel that will have the pulse.
-
-        Return:
-            Complete and ready to schedule ``Play``.
-        """
-        warnings.warn("Calling a ``Pulse`` with a channel is deprecated. Instantiate ``Play`` "
-                      "directly with a pulse and a channel.", DeprecationWarning)
+    def __call__(self, channel: PulseChannel):
+        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
+                      "instruction directly with a pulse and a channel. In this case, please "
+                      "use: `Play({}, {})`.".format(self.__class__.__name__, repr(self), channel),
+                      DeprecationWarning)
+        from ..instructions import Play  # pylint: disable=cyclic-import
         return Play(self, channel)
 
     @abstractmethod
@@ -84,4 +80,8 @@ class Pulse(ABC):
 
     @abstractmethod
     def __hash__(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __repr__(self) -> str:
         raise NotImplementedError

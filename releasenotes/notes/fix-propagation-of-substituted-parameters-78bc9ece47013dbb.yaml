@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Previously, _substitute_parameters (i.e. replacing Parameter objects in a circuit with
-    new Parameter objects) prior to decomposing a circuit would result in
-    the substituted values not correctly being substituted into the decomposed gates.
-    This has been resolved such that binding and decomposition may occur in any order.

@@ -1352,12 +1352,20 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
+        from qiskit.extensions.standard.ms import MSGate
+
         params = [0.1 * i for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
-            sig = signature(gate_class.__init__)
-            free_params = len(sig.parameters) - 1  # subtract "self"
+            sig = signature(gate_class)
+            if gate_class == MSGate:
+                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
+                # 3 arguments but really its only 2. This if can be removed once the deprecated
+                # n_qubits argument is no longer supported.
+                free_params = 2
+            else:
+                free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
             try:
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1429,9 +1437,9 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
     # pylint: enable=bad-whitespace
     def test_kwarg_deprecation(self, instr_name, inst_class, n_params, kwarg_map):
         # Verify providing *args is unchanged
-        n_qubits = len(kwarg_map)
+        num_qubits = len(kwarg_map)
 
-        qr = QuantumRegister(n_qubits)
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         params = ParameterVector('theta', n_params)
 
@@ -1444,9 +1452,9 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
         self.assertEqual(cargs, [])
 
         # Verify providing old_arg raises a DeprecationWarning
-        n_qubits = len(kwarg_map)
+        num_qubits = len(kwarg_map)
 
-        qr = QuantumRegister(n_qubits)
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         params = ParameterVector('theta', n_params)
 
@@ -1463,9 +1471,9 @@ class TestQubitKeywordArgRenaming(QiskitTestCase):
         self.assertEqual(cargs, [])
 
         # Verify providing new_arg does not raise a DeprecationWarning
-        n_qubits = len(kwarg_map)
+        num_qubits = len(kwarg_map)
 
-        qr = QuantumRegister(n_qubits)
+        qr = QuantumRegister(num_qubits)
         qc = QuantumCircuit(qr)
         params = ParameterVector('theta', n_params)
 

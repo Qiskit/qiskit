@@ -81,7 +81,7 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.13.0",
+    version="0.14.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
@@ -113,7 +113,7 @@ setup(
     extras_require={
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
-                          "seaborn>=0.9.0"],
+                          "seaborn>=0.9.0", "pygments>=2.4"],
         'full-featured-simulators': ['qiskit-aer>=0.1'],
         'crosstalk-pass': ['z3-solver>=4.7'],
     },
