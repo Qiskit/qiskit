@@ -74,7 +74,7 @@ def measure_pauli_z(data, pauli):
     num_shots = sum(data.values())
     p_z_or_x = np.logical_or(pauli.z, pauli.x)
     for key, value in data.items():
-        bitstr = np.asarray(list(key))[::-1].astype(np.bool)
+        bitstr = np.asarray(list(key))[::-1].astype(np.int).astype(np.bool)
         # pylint: disable=no-member
         sign = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p_z_or_x)) else 1.0
         observable += sign * value
@@ -107,7 +107,7 @@ def covariance(data, pauli_1, pauli_2, avg_1, avg_2):
     p1_z_or_x = np.logical_or(pauli_1.z, pauli_1.x)
     p2_z_or_x = np.logical_or(pauli_2.z, pauli_2.x)
     for key, value in data.items():
-        bitstr = np.asarray(list(key))[::-1].astype(np.bool)
+        bitstr = np.asarray(list(key))[::-1].astype(np.int).astype(np.bool)
         # pylint: disable=no-member
         sign_1 = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p1_z_or_x)) else 1.0
         sign_2 = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p2_z_or_x)) else 1.0
