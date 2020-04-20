@@ -1183,6 +1183,9 @@ class QuantumCircuit:
         """
 
         cpy = copy.copy(self)
+        # copy registers correctly, in copy.copy they are only copied via reference
+        cpy.qregs = self.qregs.copy()
+        cpy.cregs = self.cregs.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self.data}
