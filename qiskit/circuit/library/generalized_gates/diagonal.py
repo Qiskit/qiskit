@@ -12,8 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# The structure of the code is based on Emanuel Malvetti's semester thesis at ETH in 2018,
-# which was supervised by Raban Iten and Prof. Renato Renner.
+# pylint: disable=no-member
 
 
 """Diagonal matrix circuit."""
@@ -46,7 +45,7 @@ class Diagonal(QuantumCircuit):
     Matrix form:
 
     .. math::
-        DiagonalGate\ q_0, q_1, .., q_{n-1} =
+        \text{DiagonalGate}\ q_0, q_1, .., q_{n-1} =
             \begin{pmatrix}
                 D[0]    & 0         & \dots     & 0 \\
                 0       & D[1]      & \dots     & 0 \\
@@ -67,7 +66,8 @@ class Diagonal(QuantumCircuit):
     2**n x 2**n unitary matrix.
 
     The reference implementation is via the method described in
-    Theorem 7 of [1].
+    Theorem 7 of [1]. The code is based on Emanuel Malvetti's semester thesis
+    at ETH in 2018, supervised by Raban Iten and Prof. Renato Renner.
 
     **Reference:**
 
