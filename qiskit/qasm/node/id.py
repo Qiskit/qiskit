@@ -45,11 +45,9 @@ class Id(Node):
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning,2 )
-
+                          DeprecationWarning, 2)
         return self.name
 
     def latex(self, prec=None, nested_scope=None):
