@@ -96,7 +96,6 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = None  # To be removed after 0.10 is released
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -125,12 +124,6 @@ class DefaultStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'fold' in dic:
-            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
-                 DeprecationWarning, 5)
-            self.fold = dic.pop('fold', self.fold)
-            if self.fold < 2:
-                self.fold = -1
 
         if dic:
             warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
@@ -200,7 +193,6 @@ class BWStyle:
             'multi': '#000000'
         }
         self.latexmode = False
-        self.fold = 25
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -231,12 +223,6 @@ class BWStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'fold' in dic:
-            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
-                 DeprecationWarning, 5)
-            self.fold = dic.pop('fold', self.fold)
-            if self.fold < 2:
-                self.fold = -1
 
         if dic:
             warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),

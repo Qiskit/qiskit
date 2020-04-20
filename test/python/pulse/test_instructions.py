@@ -14,6 +14,7 @@
 
 """Unit tests for pulse instructions."""
 
+import numpy as np
 from qiskit.pulse import DriveChannel, AcquireChannel, MemorySlot, pulse_lib
 from qiskit.pulse import Delay, Play, ShiftPhase, Snapshot, SetFrequency, Acquire
 from qiskit.pulse.configuration import Kernel, Discriminator
@@ -50,6 +51,30 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.name, 'acquire')
         self.assertEqual(acq.operands, (10, AcquireChannel(0), MemorySlot(0), None))
 
+    def test_isntructions_hash(self):
+        """Test hashing for acquire instruction."""
+        kernel_opts = {
+            'start_window': 0,
+            'stop_window': 10
+        }
+        kernel = Kernel(name='boxcar', **kernel_opts)
+
+        discriminator_opts = {
+            'neighborhoods': [{'qubits': 1, 'channels': 1}],
+            'cal': 'coloring',
+            'resample': False
+        }
+        discriminator = Discriminator(name='linear_discriminator', **discriminator_opts)
+        acq_1 = Acquire(10, AcquireChannel(0), MemorySlot(0),
+                        kernel=kernel, discriminator=discriminator, name='acquire')
+        acq_2 = Acquire(10, AcquireChannel(0), MemorySlot(0),
+                        kernel=kernel, discriminator=discriminator, name='acquire')
+
+        hash_1 = hash(acq_1)
+        hash_2 = hash(acq_2)
+
+        self.assertEqual(hash_1, hash_2)
+
 
 class TestDelay(QiskitTestCase):
     """Delay tests."""
@@ -61,10 +86,16 @@ class TestDelay(QiskitTestCase):
         self.assertIsInstance(delay.id, int)
         self.assertEqual(delay.name, 'test_name')
         self.assertEqual(delay.duration, 10)
+        self.assertIsInstance(delay.duration, int)
         self.assertEqual(delay.operands, (10, DriveChannel(0)))
         self.assertEqual(delay, Delay(10, DriveChannel(0)))
         self.assertNotEqual(delay, Delay(11, DriveChannel(1)))
         self.assertEqual(repr(delay), "Delay(10, DriveChannel(0), name='test_name')")
+
+        # Test numpy int for duration
+        delay = Delay(np.int32(10), DriveChannel(0), name='test_name2')
+        self.assertEqual(delay.duration, 10)
+        self.assertIsInstance(delay.duration, np.integer)
 
 
 class TestSetFrequency(QiskitTestCase):
