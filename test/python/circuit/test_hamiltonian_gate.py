@@ -16,7 +16,6 @@
 
 """Quick program to test the qi tools modules."""
 
-import json
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -166,21 +165,6 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(instr.label, 'XIZ')
         np.testing.assert_array_almost_equal(np.array(instr.params[0]).astype(np.complex64),
                                              matrix.data)
-        # check conversion to dict
-        qobj_dict = qobj.to_dict(validate=True)
-
-        class NumpyEncoder(json.JSONEncoder):
-            """Class for encoding json str with complex and np arrays."""
-            def default(self, obj):
-                if isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        # check json serialization
-        self.assertTrue(isinstance(json.dumps(qobj_dict, cls=NumpyEncoder),
-                                   str))
 
     def test_decomposes_into_correct_unitary(self):
         """test 2 qubit hamiltonian """
