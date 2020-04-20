@@ -14,6 +14,7 @@
 
 """Global Mølmer–Sørensen gate."""
 
+from qiskit.util import deprecate_arguments
 from ..gate import Gate
 from ..quantumregister import QuantumRegister
 

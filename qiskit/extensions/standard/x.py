@@ -15,8 +15,9 @@
 """The standard gates moved to qiskit/circuit/gates."""
 
 from qiskit.circuit.gates.x import (
-    XGate, CXGate, CCXGate, CnotGate, ToffoliGate, MCXGate, MCXGrayCode, MCXVChain, MCXRecursive
+    XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate, CnotGate, ToffoliGate,
+    MCXGate, MCXGrayCode, MCXVChain, MCXRecursive
 )
 
-__all__ = ['XGate', 'CXGate', 'CCXGate', 'CnotGate', 'ToffoliGate', 'MCXGate', 'MCXGrayCode',
-           'MCXVChain', 'MCXRecursive']
+__all__ = ['XGate', 'CXGate', 'CCXGate', 'C3XGate', 'C4XGate', 'RCCXGate', 'RC3XGate',
+           'CnotGate', 'ToffoliGate', 'MCXGate', 'MCXGrayCode', 'MCXVChain', 'MCXRecursive']

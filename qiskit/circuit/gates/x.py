@@ -19,7 +19,7 @@ import numpy
 from qiskit.qasm import pi
 from .h import HGate
 from .t import TGate, TdgGate
-from .u1 import U1Gate, CU1Gate, MCU1Gate
+from .u1 import U1Gate
 from .u2 import U2Gate
 from ..controlledgate import ControlledGate
 from ..gate import Gate
@@ -507,6 +507,7 @@ class C3XGate(ControlledGate):
             h d; cu1(-pi/4) c,d; h d;
         }
         """
+        from .u1 import CU1Gate
         q = QuantumRegister(4, name='q')
         definition = [
             (HGate(), [q[3]], []),
@@ -707,6 +708,7 @@ class C4XGate(ControlledGate):
             c3sqrtx a,b,c,e;
         }
         """
+        from .u1 import CU1Gate
         q = QuantumRegister(5, name='q')
         definition = [
             (HGate(), [q[4]], []),
@@ -826,6 +828,7 @@ class MCXGrayCode(MCXGate):
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
+        from .u1 import MCU1Gate
         q = QuantumRegister(self.num_qubits, name='q')
         self.definition = [
             (HGate(), [q[-1]], []),

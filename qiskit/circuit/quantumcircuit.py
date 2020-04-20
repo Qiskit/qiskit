@@ -1799,6 +1799,10 @@ class QuantumCircuit:
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
+    def mct(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla'):
+        """Apply :class:`~qiskit.extensions.standard.MCXGate`."""
+        return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode)
+
     @deprecate_arguments({'q': 'qubit'})
     def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.gates.YGate`."""

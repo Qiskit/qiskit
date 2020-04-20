@@ -190,7 +190,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         }
         """
         from .u1 import U1Gate
-        from .x import CXGate
+        from .x import CXGate  # pylint: disable=cyclic-import
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
