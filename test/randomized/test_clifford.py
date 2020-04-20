@@ -14,9 +14,10 @@
 
 """Randomized tests of Clifford operator class."""
 import unittest
+from hypothesis import given, strategies
+
 from qiskit.quantum_info.random import random_clifford
 from qiskit.quantum_info import Clifford
-from hypothesis import given, strategies
 
 
 class TestClifford(unittest.TestCase):
