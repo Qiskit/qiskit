@@ -25,9 +25,19 @@ Boolean Logic Circuits
 .. autosummary::
    :toctree: ../stubs/
 
+   AND
    InnerProduct
+   OR
    Permutation
    XOR
+
+Basis Change Circuits
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFT
 
 Arithmetic Circuits
 ===================
@@ -88,18 +98,25 @@ Generalized Gates
 """
 
 
-from .boolean_logic import Permutation, XOR, InnerProduct
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
-    WeightedAdder
+    WeightedAdder,
 )
-from .quantum_volume import QuantumVolume
+from .basis_change import QFT
+from .boolean_logic import (
+    Permutation,
+    XOR,
+    InnerProduct,
+    OR,
+    AND,
+)
 from .fourier_checking import FourierChecking
 from .generalized_gates import (
     MCMT,
     MCMTVChain
 )
+from .quantum_volume import QuantumVolume
