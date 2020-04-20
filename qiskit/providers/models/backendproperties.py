@@ -184,7 +184,7 @@ class BackendProperties(SimpleNamespace):
         self.backend_name = backend_name
         self.backend_version = backend_version
         if isinstance(last_update_date, str):
-            last_update_date = dateutil.parser.parse(last_update_date)
+            last_update_date = dateutil.parser.isoparse(last_update_date)
         self.last_update_date = last_update_date
         self.general = general
         self.qubits = qubits
