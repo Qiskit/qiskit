@@ -40,9 +40,8 @@ class Real(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' (Real.qasm) is no longer used and'
+            warnings.warn('Parameter \'Real.qasm(..., prec)\' is no longer used and'
                           ' is being deprecated.', DeprecationWarning, 2)
-
         if self.value == np.pi:
             return "pi"
 
@@ -51,12 +50,11 @@ class Real(Node):
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' (Real.latex) is no longer used'
-                          ' and is being deprecated.', DeprecationWarning, 2)
+            warnings.warn('Parameter \'Real.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' (Real.latex) is no longer '
-                          'used and is being deprecated.', DeprecationWarning, 2)
-
+            warnings.warn('Parameter \'Real.latex(..., nested_scope)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError:
