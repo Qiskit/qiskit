@@ -68,7 +68,7 @@ class Collect2qBlocks(AnalysisPass):
                     # If there is one predecessor, add it if it's on the right qubits
                     if len(pred) == 1 and not nodes_seen[pred[0]]:
                         pnd = pred[0]
-                        if pnd.name in good_names:
+                        if pnd.name in good_names and pnd.condition is None:
                             if (pnd.name == "cx" and set(pnd.qargs) == these_qubits) or \
                                     pnd.name != "cx" and not pnd.op.is_parameterized():
                                 group.append(pnd)
@@ -96,7 +96,7 @@ class Collect2qBlocks(AnalysisPass):
                             break  # stop immediately if we hit a pair of cx
                         # Examine each predecessor
                         for pnd in sorted_pred:
-                            if pnd.name not in good_names:
+                            if pnd.name not in good_names or pnd.condition is not None:
                                 # remove any qubits that are interrupted by a gate
                                 # e.g. a measure in the middle of the circuit
                                 these_qubits = list(set(these_qubits) -
@@ -111,7 +111,7 @@ class Collect2qBlocks(AnalysisPass):
                             # If cx, check qubits
                             else:
                                 pred_qubits = set(pnd.qargs)
-                                if pred_qubits == these_qubits:
+                                if pred_qubits == these_qubits and pnd.condition is None:
                                     # add if on same qubits
                                     if not nodes_seen[pnd]:
                                         group.append(pnd)
@@ -140,7 +140,7 @@ class Collect2qBlocks(AnalysisPass):
                     # If there is one successor, add it if its on the right qubits
                     if len(succ) == 1 and not nodes_seen[succ[0]]:
                         snd = succ[0]
-                        if snd.name in good_names:
+                        if snd.name in good_names and snd.condition is None:
                             if (snd.name == "cx" and set(snd.qargs) == these_qubits) or \
                                     snd.name != "cx" and not snd.op.is_parameterized():
                                 group.append(snd)
@@ -169,7 +169,7 @@ class Collect2qBlocks(AnalysisPass):
                             break  # stop immediately if we hit a pair of cx
                         # Examine each successor
                         for snd in sorted_succ:
-                            if snd.name not in good_names:
+                            if snd.name not in good_names or snd.condition is not None:
                                 # remove qubits from consideration if interrupted
                                 # by a gate e.g. a measure in the middle of the circuit
                                 these_qubits = list(set(these_qubits) -
@@ -187,7 +187,7 @@ class Collect2qBlocks(AnalysisPass):
                             else:
                                 # If cx, check qubits
                                 succ_qubits = set(snd.qargs)
-                                if succ_qubits == these_qubits:
+                                if succ_qubits == these_qubits and snd.condition is None:
                                     # add if on same qubits
                                     if not nodes_seen[snd]:
                                         group.append(snd)

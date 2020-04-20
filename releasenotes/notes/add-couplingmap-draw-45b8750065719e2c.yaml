@@ -1,6 +1,0 @@
----
-features:
-  - |
-    A ``draw`` method was added to ``qiskit.transpiler.CouplingMap`` to quickly
-    generate graphviz images from the coupling map graph.
- 
