@@ -19,7 +19,7 @@ from .parameter import Parameter
 
 
 class ParameterVector():
-    """ParameterVector Class to quickly generate lists of parameters"""
+    """ParameterVector Class to quickly generate lists of parameters."""
     def __init__(self, name, length=0):
         self._name = name
         self._params = []

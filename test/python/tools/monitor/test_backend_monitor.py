@@ -46,10 +46,11 @@ class TestBackendOverview(QiskitTestCase):
         IBMQ.enable_account(qe_token, qe_url)
         self.addCleanup(IBMQ.disable_account)
 
-        for back in IBMQ.backends():
-            if not back.configuration().simulator:
-                backend = back
-                break
+        for provider in IBMQ.providers():
+            for back in provider.backends():
+                if not back.configuration().simulator:
+                    backend = back
+                    break
         with patch('sys.stdout', new=StringIO()) as fake_stdout:
             backend_monitor(backend)
 

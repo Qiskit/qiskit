@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed race condition occurring in the job monitor when
+    ``job.queue_position()`` returns ``None``. ``None`` is a valid
+    return from ``job.queue_position()``.

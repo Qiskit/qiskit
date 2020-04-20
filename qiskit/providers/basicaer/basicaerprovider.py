@@ -125,7 +125,7 @@ class BasicAerProvider(BaseProvider):
         Return an instance of a backend from its class.
 
         Args:
-            backend_cls (class): Backend class.
+            backend_cls (class): backend class.
         Returns:
             BaseBackend: a backend instance.
         Raises:

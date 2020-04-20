@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The :class:`qiskit.providers.BaseJob` class has four new methods:
+
+    * :meth:`~qiskit.providers.BaseJob.done`
+    * :meth:`~qiskit.providers.BaseJob.running`
+    * :meth:`~qiskit.providers.BaseJob.cancelled`
+    * :meth:`~qiskit.providers.BaseJob.in_final_state`
+
+    These methods are used to check wheter a job is in a given job status.

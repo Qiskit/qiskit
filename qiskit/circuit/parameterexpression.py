@@ -60,7 +60,7 @@ class ParameterExpression():
                 - If binding the provided values requires division by zero.
 
         Returns:
-            ParameterExpression: a new expession parameterized by any parameters
+            ParameterExpression: a new expression parameterized by any parameters
                 which were not bound by parameter_values.
         """
 
@@ -103,7 +103,7 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expession with the specified parameters
+            ParameterExpression: a new expression with the specified parameters
                                  replaced.
         """
 
@@ -241,3 +241,9 @@ class ParameterExpression():
 
     def __deepcopy__(self, memo=None):
         return self
+
+    def __eq__(self, other):
+        from sympy import srepr
+        return (isinstance(other, ParameterExpression)
+                and self.parameters == other.parameters
+                and srepr(self._symbol_expr) == srepr(other._symbol_expr))

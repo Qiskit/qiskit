@@ -210,9 +210,9 @@ class TestTimeslotCollection(QiskitTestCase):
 
         merged = TimeslotCollection(int1, col1, col2)
 
-        from_interal = TimeslotCollection(*merged.timeslots)
+        from_internal = TimeslotCollection(*merged.timeslots)
 
-        self.assertEqual(merged, from_interal)
+        self.assertEqual(merged, from_internal)
 
     def test_zero_duration_timeslot(self):
         """Test that TimeslotCollection works properly for zero duration timeslots."""

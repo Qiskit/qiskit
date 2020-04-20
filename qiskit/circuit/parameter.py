@@ -21,7 +21,7 @@ from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters"""
+    """Parameter Class for variable parameters."""
 
     def __new__(cls, _, uuid=None):
         # Parameter relies on self._uuid being set prior to other attributes
@@ -72,7 +72,12 @@ class Parameter(ParameterExpression):
         return '{}({})'.format(self.__class__.__name__, self.name)
 
     def __eq__(self, other):
-        return isinstance(other, Parameter) and self._uuid == other._uuid
+        if isinstance(other, Parameter):
+            return self._uuid == other._uuid
+        elif isinstance(other, ParameterExpression):
+            return super().__eq__(other)
+        else:
+            return False
 
     def __hash__(self):
         return hash(self._uuid)

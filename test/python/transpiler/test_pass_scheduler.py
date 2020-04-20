@@ -23,7 +23,6 @@ import sys
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerError
-from qiskit.compiler import transpile
 from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalController, \
     FlowController
 from qiskit.test import QiskitTestCase
@@ -48,7 +47,7 @@ class SchedulerTestCase(QiskitTestCase):
         """
         logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
-            out = transpile(circuit, pass_manager=passmanager)
+            out = passmanager.run(circuit)
         self.assertIsInstance(out, QuantumCircuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
@@ -65,7 +64,7 @@ class SchedulerTestCase(QiskitTestCase):
         """
         logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
-            self.assertRaises(exception_type, transpile, circuit, pass_manager=passmanager)
+            self.assertRaises(exception_type, passmanager.run, circuit)
         self.assertEqual([record.message for record in cm.records], expected)
 
 
@@ -296,7 +295,7 @@ class TestUseCases(SchedulerTestCase):
         self.passmanager.append(PassI_Bad_AP())
         self.assertSchedulerRaises(circ, self.passmanager,
                                    ['run analysis pass PassI_Bad_AP',
-                                    'cx_runs: {(5, 6, 7, 8)}'],
+                                    'cx_runs: {(4, 5, 6, 7)}'],
                                    TranspilerError)
 
     def test_analysis_pass_is_idempotent(self):
@@ -550,7 +549,7 @@ class TestLogPasses(QiskitTestCase):
     def assertPassLog(self, passmanager, list_of_passes):
         """ Runs the passmanager and checks that the elements in
         passmanager.property_set['pass_log'] match list_of_passes (the names)."""
-        transpile(self.circuit, pass_manager=passmanager)
+        passmanager.run(self.circuit)
         self.output.seek(0)
         # Filter unrelated log lines
         output_lines = self.output.readlines()
@@ -611,7 +610,7 @@ class TestLogPasses(QiskitTestCase):
 
 
 class TestPassManagerReuse(SchedulerTestCase):
-    """The PassManager instance should be resusable."""
+    """The PassManager instance should be reusable."""
 
     def setUp(self):
         self.passmanager = PassManager()
@@ -755,6 +754,226 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         with self.assertRaises(TranspilerError):
             self.passmanager.replace(99, PassA_TP_NR_NP())
+
+
+class TestPassManagerSlicing(SchedulerTestCase):
+    """test PassManager slicing."""
+
+    def setUp(self):
+        self.passmanager = PassManager()
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
+    def test_empty_passmanager_length(self):
+        """ test len(PassManager) when PassManager is empty """
+        length = len(self.passmanager)
+
+        expected_length = 0
+        self.assertEqual(length, expected_length)
+
+    def test_passmanager_length(self):
+        """ test len(PassManager) when PassManager is not empty """
+        self.passmanager.append(PassA_TP_NR_NP())
+        self.passmanager.append(PassA_TP_NR_NP())
+
+        length = len(self.passmanager)
+
+        expected_length = 2
+        self.assertEqual(length, expected_length)
+
+    def test_accessing_passmanager_by_index(self):
+        """ test accessing PassManager's passes by index """
+        self.passmanager.append(PassB_TP_RA_PA())
+        self.passmanager.append(PassC_TP_RA_PA())
+
+        new_passmanager = self.passmanager[1]
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, new_passmanager, expected)
+
+    def test_accessing_passmanager_by_index_with_condition(self):
+        """ test accessing PassManager's conditioned passes by index """
+        self.passmanager.append(PassF_reduce_dag_property())
+        self.passmanager.append(
+            [PassK_check_fixed_point_property(),
+             PassA_TP_NR_NP(),
+             PassF_reduce_dag_property()],
+            condition=lambda property_set: True,
+            do_while=lambda property_set: not property_set['property_fixed_point'])
+
+        new_passmanager = self.passmanager[1]
+
+        expected = ['run analysis pass PassG_calculates_dag_property',
+                    'set property as 8 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 6',
+                    'run analysis pass PassG_calculates_dag_property',
+                    'set property as 6 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 5',
+                    'run analysis pass PassG_calculates_dag_property',
+                    'set property as 5 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 4',
+                    'run analysis pass PassG_calculates_dag_property',
+                    'set property as 4 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 3',
+                    'run analysis pass PassG_calculates_dag_property',
+                    'set property as 3 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 2',
+                    'run analysis pass PassG_calculates_dag_property',
+                    'set property as 2 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 2',
+                    'run analysis pass PassG_calculates_dag_property',
+                    'set property as 2 (from dag.property)',
+                    'run analysis pass PassK_check_fixed_point_property',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassF_reduce_dag_property',
+                    'dag property = 2']
+        self.assertScheduler(self.circuit, new_passmanager, expected)
+
+    def test_accessing_passmanager_by_range(self):
+        """ test accessing PassManager's passes by range """
+        self.passmanager.append(PassC_TP_RA_PA())
+        self.passmanager.append(PassB_TP_RA_PA())
+        self.passmanager.append(PassC_TP_RA_PA())
+        self.passmanager.append(PassD_TP_NR_NP())
+
+        new_passmanager = self.passmanager[1:3]
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, new_passmanager, expected)
+
+    def test_accessing_passmanager_by_range_with_condition(self):
+        """ test accessing PassManager's passes by range with condition """
+        self.passmanager.append(PassB_TP_RA_PA())
+        self.passmanager.append(PassE_AP_NR_NP(True))
+        self.passmanager.append(PassA_TP_NR_NP(),
+                                condition=lambda property_set: property_set['property'])
+        self.passmanager.append(PassB_TP_RA_PA())
+
+        new_passmanager = self.passmanager[1:3]
+
+        expected = ['run analysis pass PassE_AP_NR_NP',
+                    'set property as True',
+                    'run transformation pass PassA_TP_NR_NP']
+        self.assertScheduler(self.circuit, new_passmanager, expected)
+
+    def test_accessing_passmanager_error(self):
+        """ testing accessing a pass item not in list """
+        self.passmanager.append(PassB_TP_RA_PA())
+
+        with self.assertRaises(IndexError):
+            self.passmanager = self.passmanager[99]
+
+
+class TestPassManagerConcatenation(SchedulerTestCase):
+    """test PassManager concatenation by + operator."""
+
+    def setUp(self):
+        self.passmanager1 = PassManager()
+        self.passmanager2 = PassManager()
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
+    def test_concatenating_passmanagers(self):
+        """ test adding two PassManagers together """
+        self.passmanager1.append(PassB_TP_RA_PA())
+        self.passmanager2.append(PassC_TP_RA_PA())
+
+        new_passmanager = self.passmanager1 + self.passmanager2
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, new_passmanager, expected)
+
+    def test_concatenating_passmanagers_with_condition(self):
+        """ test adding two pass managers with condition """
+        self.passmanager1.append(PassE_AP_NR_NP(True))
+        self.passmanager1.append(PassB_TP_RA_PA())
+        self.passmanager2.append(PassC_TP_RA_PA(),
+                                 condition=lambda property_set: property_set['property'])
+        self.passmanager2.append(PassB_TP_RA_PA())
+
+        new_passmanager = self.passmanager1 + self.passmanager2
+
+        expected = ['run analysis pass PassE_AP_NR_NP',
+                    'set property as True',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA',
+                    'run transformation pass PassC_TP_RA_PA',
+                    'run transformation pass PassB_TP_RA_PA']
+        self.assertScheduler(self.circuit, new_passmanager, expected)
+
+    def test_adding_pass_to_passmanager(self):
+        """ test adding a pass to PassManager """
+        self.passmanager1.append(PassE_AP_NR_NP(argument1=1))
+        self.passmanager1.append(PassB_TP_RA_PA())
+
+        self.passmanager1 += PassC_TP_RA_PA()
+
+        expected = ['run analysis pass PassE_AP_NR_NP',
+                    'set property as 1',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager1, expected)
+
+    def test_adding_list_of_passes_to_passmanager(self):
+        """ test adding a list of passes to PassManager """
+        self.passmanager1.append(PassE_AP_NR_NP(argument1=1))
+        self.passmanager1.append(PassB_TP_RA_PA())
+
+        self.passmanager1 += [PassC_TP_RA_PA(), PassB_TP_RA_PA()]
+
+        expected = ['run analysis pass PassE_AP_NR_NP',
+                    'set property as 1',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA',
+                    'run transformation pass PassC_TP_RA_PA',
+                    'run transformation pass PassB_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager1, expected)
+
+    def test_adding_list_of_passes_to_passmanager_with_condition(self):
+        """ test adding a list of passes to a PassManager that have conditions"""
+        self.passmanager1.append(PassE_AP_NR_NP(False))
+        self.passmanager1.append(PassB_TP_RA_PA(),
+                                 condition=lambda property_set: property_set['property'])
+
+        self.passmanager1 += PassC_TP_RA_PA()
+
+        expected = ['run analysis pass PassE_AP_NR_NP',
+                    'set property as False',
+                    'run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager1, expected)
+
+    def test_adding_pass_to_passmanager_error(self):
+        """ testing adding a non-pass item to PassManager """
+        with self.assertRaises(TypeError):
+            self.passmanager1 += "not a pass"
+
+    def test_adding_list_to_passmanager_error(self):
+        """ testing adding a list having a non-pass item to PassManager """
+        with self.assertRaises(TypeError):
+            self.passmanager1 += [PassB_TP_RA_PA(), "not a pass"]
 
 
 if __name__ == '__main__':

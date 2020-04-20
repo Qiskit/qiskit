@@ -12,7 +12,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Qiskit schema-conformant objects used by the backends and providers."""
+"""
+================================================
+Backend Objects (:mod:`qiskit.providers.models`)
+================================================
+
+.. currentmodule:: qiskit.providers.models
+
+Qiskit schema-conformant objects used by the backends and providers.
+
+Backend Objects
+===============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BackendConfiguration
+   BackendProperties
+   BackendStatus
+   QasmBackendConfiguration
+   PulseBackendConfiguration
+   UchannelLO
+   GateConfig
+   PulseDefaults
+   Command
+   JobStatus
+"""
 
 from .backendconfiguration import (BackendConfiguration, PulseBackendConfiguration,
                                    QasmBackendConfiguration, UchannelLO, GateConfig)

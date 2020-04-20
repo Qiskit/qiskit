@@ -21,7 +21,7 @@ from numpy import pi
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, U3Gate, UnitaryGate, CnotGate
+from qiskit.extensions import SGate, U3Gate, UnitaryGate, CXGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.transpiler.passes import Unroller
 from qiskit.circuit.exceptions import CircuitError
@@ -68,11 +68,11 @@ class TestRepeatInt2Q(QiskitTestCase):
         """
         qr = QuantumRegister(2, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected_circ.append(CXGate(), [qr[0], qr[1]])
+        expected_circ.append(CXGate(), [qr[0], qr[1]])
         expected = expected_circ.to_instruction()
 
-        result = CnotGate().repeat(2)
+        result = CXGate().repeat(2)
 
         self.assertEqual(result.name, 'cx*2')
         self.assertEqual(result.definition, expected.definition)
@@ -83,10 +83,10 @@ class TestRepeatInt2Q(QiskitTestCase):
         """
         qr = QuantumRegister(2, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected_circ.append(CXGate(), [qr[0], qr[1]])
         expected = expected_circ.to_instruction()
 
-        result = CnotGate().repeat(1)
+        result = CXGate().repeat(1)
 
         self.assertEqual(result.name, 'cx*1')
         self.assertEqual(result.definition, expected.definition)
@@ -173,7 +173,7 @@ class TestRepeatErrors(QiskitTestCase):
             _ = UnitaryGate([[0, 1j], [-1j, 0]]).repeat(2 / 3)
         self.assertIn('strictly positive integer', str(context.exception))
 
-    def test_starndard_no_int(self):
+    def test_standard_no_int(self):
         """Test standard Gate.repeat(2/3) method. Raises, since n is not int.
         """
         with self.assertRaises(CircuitError) as context:
@@ -205,7 +205,7 @@ class TestRepeatErrors(QiskitTestCase):
         """Test standard 2Q gate.repeat(-1) method. Raises, since n<1.
         """
         with self.assertRaises(CircuitError) as context:
-            _ = CnotGate().repeat(-1)
+            _ = CXGate().repeat(-1)
         self.assertIn('strictly positive integer', str(context.exception))
 
     def test_measure_minus_one(self):
@@ -219,7 +219,7 @@ class TestRepeatErrors(QiskitTestCase):
         """Test standard 2Q gate.repeat(0) method. Raises, since n<1.
         """
         with self.assertRaises(CircuitError) as context:
-            _ = CnotGate().repeat(0)
+            _ = CXGate().repeat(0)
         self.assertIn('strictly positive integer', str(context.exception))
 
 

@@ -53,3 +53,18 @@ class TestSchemas(QiskitTestCase):
                 pass
         except ValueError:
             self.fail('`bind_schema` raised while binding.')
+
+    def test_binding_params(self):
+        """Test using parameters in schema binding."""
+        class _DummySchema(BaseSchema):
+            pass
+
+        # Set `many=True` as an example of a marshmallow parameter.
+        @bind_schema(_DummySchema, many=True)
+        class _DummyModel(BaseModel):
+            pass
+
+        # By using `many=True`, the serialization outputs a list.
+        dummy_models = _DummyModel.from_dict([{}])
+        self.assertIsInstance(dummy_models, list)
+        self.assertTrue(all([isinstance(obj, _DummyModel) for obj in dummy_models]))

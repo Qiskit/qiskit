@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes for handling of complex number parameter in circuit visualization.
+    Fixes `issue #3640 <https://github.com/Qiskit/qiskit-terra/issues/3640>`_

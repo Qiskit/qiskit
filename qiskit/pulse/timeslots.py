@@ -280,9 +280,13 @@ class TimeslotCollection:
 
             if interval.start >= ch_interval.stop:
                 break
-            elif interval.has_overlap(ch_interval):
-                raise PulseError("Timeslot: {0} overlaps with existing"
-                                 "Timeslot: {1}".format(timeslot, ch_timeslot))
+            if interval.has_overlap(ch_interval):
+                overlap_start = interval.start if interval.start > ch_interval.start \
+                    else ch_interval.start
+                overlap_end = ch_interval.stop if interval.stop > ch_interval.stop \
+                    else interval.stop
+                raise PulseError("Overlap on channel {0} over time range [{1}, {2}]"
+                                 "".format(timeslot.channel, overlap_start, overlap_end))
 
             insert_idx -= 1
 
@@ -370,8 +374,11 @@ class TimeslotCollection:
         Args:
             time: time to be shifted by
         """
-        slots = [slot.shift(time) for slot in self.timeslots]
-        return TimeslotCollection(*slots)
+        new_tc = TimeslotCollection()
+        new_tc_table = new_tc._table
+        for channel, timeslots in self._table.items():
+            new_tc_table[channel] = [tc.shift(time) for tc in timeslots]
+        return new_tc
 
     def complement(self, stop_time: Optional[int] = None) -> 'TimeslotCollection':
         """Return a complement TimeSlotCollection containing all unoccupied Timeslots

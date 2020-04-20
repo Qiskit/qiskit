@@ -164,3 +164,9 @@ class TestModels(QiskitTestCase):
         self.assertEqual(book.to_dict(),
                          {'title': 'A Book',
                           'author': {'name': 'Foo', 'other': 'bar'}})
+
+    def test_instantiate_no_validation(self):
+        """Test model instantiation without validation."""
+        person = Person(name='Foo', birth_date='INVALID', validate=False)
+        self.assertEqual(person.name, 'Foo')
+        self.assertEqual(person.birth_date, 'INVALID')

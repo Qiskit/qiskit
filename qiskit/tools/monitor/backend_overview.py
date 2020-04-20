@@ -19,12 +19,6 @@
 import math
 from qiskit.exceptions import QiskitError
 
-try:
-    # pylint: disable=import-error,no-name-in-module
-    from qiskit.providers.ibmq import IBMQ, IBMQBackend
-except ImportError:
-    pass
-
 
 def get_unique_backends():
     """Gets the unique backends that are available.
@@ -34,7 +28,14 @@ def get_unique_backends():
 
     Raises:
         QiskitError: No backends available.
+        ImportError: If qiskit-ibmq-provider is not installed
     """
+    try:
+        from qiskit.providers.ibmq import IBMQ
+    except ImportError:
+        raise ImportError("The IBMQ provider is necessary for this function "
+                          " to work. Please ensure it's installed before "
+                          "using this function")
     backends = []
     for provider in IBMQ.providers():
         for backend in provider.backends():
@@ -57,7 +58,16 @@ def backend_monitor(backend):
         backend (IBMQBackend): Backend to monitor.
     Raises:
         QiskitError: Input is not a IBMQ backend.
+        ImportError: If qiskit-ibmq-provider is not installed
     """
+    try:
+        # pylint: disable=import-error,no-name-in-module
+        from qiskit.providers.ibmq import IBMQBackend
+    except ImportError:
+        raise ImportError("The IBMQ provider is necessary for this function "
+                          " to work. Please ensure it's installed before "
+                          "using this function")
+
     if not isinstance(backend, IBMQBackend):
         raise QiskitError('Input variable is not of type IBMQBackend.')
     config = backend.configuration().to_dict()
@@ -176,7 +186,7 @@ def backend_overview():
             offset = ' ' * 10 if idx else ''
             config = _backends[count].configuration().to_dict()
             props = _backends[count].properties().to_dict()
-            n_qubits = config['n_qubits']
+            num_qubits = config['n_qubits']
             str_list[0] += (' '*(max_len-len(str_list[0]))+offset)
             str_list[0] += _backends[count].name()
 
@@ -197,10 +207,10 @@ def backend_overview():
 
             str_list[6] += (' '*(max_len-len(str_list[6]))+offset)
             str_list[6] += 'Avg. T1:      %s' % round(sum([q[0]['value']
-                                                           for q in props['qubits']])/n_qubits, 1)
+                                                           for q in props['qubits']])/num_qubits, 1)
             str_list[7] += (' '*(max_len-len(str_list[7]))+offset)
             str_list[7] += 'Avg. T2:      %s' % round(sum([q[1]['value']
-                                                           for q in props['qubits']])/n_qubits, 1)
+                                                           for q in props['qubits']])/num_qubits, 1)
             count += 1
             if count == num_backends:
                 break

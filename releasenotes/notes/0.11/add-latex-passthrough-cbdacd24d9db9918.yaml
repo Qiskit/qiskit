@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    The ``latex`` output mode for ``qiskit.visualization.circuit_drawer()`` and
+    the ``qiskit.circuit.QuantumCircuit.draw()`` method now has a mode to
+    passthrough raw latex from gate labels and parameters. The syntax
+    for doing this mirrors matplotlib's
+    `mathtext mode <https://matplotlib.org/tutorials/text/mathtext.html>`__
+    syntax. Any portion of a label string between a pair of '$' characters will
+    be treated as raw latex and passed directly into the generated output latex.
+    This can be leveraged to add more advanced formatting to circuit diagrams
+    generated with the latex drawer.
+
+    Prior to this release all gate labels were run through a utf8 -> latex
+    conversion to make sure that the output latex would compile the string as
+    expected. This is still what happens for all portions of a label outside
+    the '$' pair. Also if you want to use a dollar sign in your label make sure
+    you escape it in the label string (ie ``'\$'``).
+
+    You can mix and match this passthrough with the utf8 to latex conversion to
+    create the exact label you want, for example::
+
+        from qiskit import circuit
+        circ = circuit.QuantumCircuit(2)
+        circ.h([0, 1])
+        circ.append(circuit.Gate(name='α_gate', num_qubits=1, params=[0]), [0])
+        circ.append(circuit.Gate(name='α_gate$_2$', num_qubits=1, params=[0]), [1])
+        circ.append(circuit.Gate(name='\$α\$_gate', num_qubits=1, params=[0]), [1])
+        circ.draw(output='latex')
+
+    will now render the first custom gate's label as ``α_gate``, the second
+    will be ``α_gate`` with a 2 subscript, and the last custom gate's label
+    will be ``$α$_gate``.
