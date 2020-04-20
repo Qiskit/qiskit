@@ -47,6 +47,6 @@ class Creg(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Creg.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return "creg " + self.id.qasm() + ";"

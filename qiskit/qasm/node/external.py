@@ -15,8 +15,10 @@
 """Node for an OPENQASM external function."""
 
 import warnings
+import numpy as np
 
 from .node import Node
+from .nodeexception import NodeException
 
 
 class External(Node):
@@ -33,18 +35,18 @@ class External(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'External.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return self.children[0].qasm() + "(" + self.children[1].qasm() + ")"
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'External.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'External.latex(..., nested_scope)\' is no longer used and '
+                          'is being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError:
@@ -55,21 +57,42 @@ class External(Node):
         return utf8tolatex(self.sym())
 
     def real(self, nested_scope=None):
-        """Return the correspond floating point number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
-        operation = self.children[0].operation()
-        lhs = self.children[1].real()
-        rhs = self.children[2].real()
-        return operation(lhs, rhs)
+        op = self.children[0].name
+        expr = self.children[1]
+        dispatch = {
+            'sin': np.sin,
+            'cos': np.cos,
+            'tan': np.tan,
+            'asin': np.arcsin,
+            'acos': np.arccos,
+            'atan': np.arctan,
+            'exp': np.exp,
+            'ln': np.log,
+            'sqrt': np.sqrt
+        }
+        if op in dispatch:
+            arg = expr.real(nested_scope)
+            return dispatch[op](arg)
+        else:
+            raise NodeException("internal error: undefined external")
 
     def sym(self, nested_scope=None):
-        """Return the correspond symbolic number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
-        operation = self.children[0].operation()
-        lhs = self.children[1].sym()
-        rhs = self.children[2].sym()
-        return operation(lhs, rhs)
+        """Return the corresponding symbolic expression."""
+        op = self.children[0].name
+        expr = self.children[1]
+        dispatch = {
+            'sin': np.sin,
+            'cos': np.cos,
+            'tan': np.tan,
+            'asin': np.arcsin,
+            'acos': np.arccos,
+            'atan': np.arctan,
+            'exp': np.exp,
+            'ln': np.log,
+            'sqrt': np.sqrt
+        }
+        if op in dispatch:
+            arg = expr.sym(nested_scope)
+            return dispatch[op](arg)
+        else:
+            raise NodeException("internal error: undefined external")

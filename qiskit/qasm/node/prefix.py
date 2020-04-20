@@ -33,18 +33,18 @@ class Prefix(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Prefix.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return self.children[0].value + "(" + self.children[1].qasm() + ")"
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Prefix.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Prefix.latex(..., nested_scope)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError:
@@ -57,17 +57,14 @@ class Prefix(Node):
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+            warnings.warn('Parameter \'nested_scope\' (Prefix.real) is no longer '
+                          'used and is being deprecated.', DeprecationWarning)
         operation = self.children[0].operation()
         expr = self.children[1].real()
         return operation(expr)
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
         operation = self.children[0].operation()
-        expr = self.children[1].sym()
+        expr = self.children[1].sym(nested_scope)
         return operation(expr)

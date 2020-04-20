@@ -39,30 +39,26 @@ class Int(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Int.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return "%d" % self.value
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Int.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Int.latex(..., nested_scope)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         return "%d" % self.value
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+        del nested_scope
         return float(self.value)
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+        del nested_scope  # ignored
         return float(self.value)

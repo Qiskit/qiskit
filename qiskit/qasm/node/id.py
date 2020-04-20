@@ -46,17 +46,15 @@ class Id(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'Id.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return self.name
 
     def latex(self, prec=None, nested_scope=None):
         """Return the correspond math mode latex string."""
-
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
-
+            warnings.warn('Parameter \'Id.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         if not nested_scope:
             return "\textrm{" + self.name + "}"
         else:
@@ -74,7 +72,6 @@ class Id(Node):
             raise NodeException("Expected local parameter name: ",
                                 "name=%s, line=%s, file=%s" % (
                                     self.name, self.line, self.file))
-
         return nested_scope[-1][self.name].sym(nested_scope[0:-1])
 
     def real(self, nested_scope=None):

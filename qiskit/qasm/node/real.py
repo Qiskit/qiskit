@@ -40,8 +40,8 @@ class Real(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'prec\' (Real.qasm) is no longer used and'
+                          ' is being deprecated.', DeprecationWarning, 2)
 
         if self.value == np.pi:
             return "pi"
@@ -51,11 +51,11 @@ class Real(Node):
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'prec\' (Real.latex) is no longer used'
+                          ' and is being deprecated.', DeprecationWarning, 2)
         if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
+            warnings.warn('Parameter \'nested_scope\' (Real.latex) is no longer '
+                          'used and is being deprecated.', DeprecationWarning, 2)
 
         try:
             from pylatexenc.latexencode import utf8tolatex
@@ -68,14 +68,10 @@ class Real(Node):
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+        del nested_scope  # unused
         return float(self.value)
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        if nested_scope is not None:
-            warnings.warn('Parameter \'nested_scope\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+        del nested_scope  # unused
         return float(self.value.evalf())

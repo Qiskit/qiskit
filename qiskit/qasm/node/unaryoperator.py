@@ -49,9 +49,7 @@ class UnaryOperator(Node):
 
     def qasm(self, prec=None):
         """Return QASM representation."""
-
         if prec is not None:
-            warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning, 2)
-
+            warnings.warn('Parameter \'UnaryOperator.qasm(..., prec)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         return self.value
