@@ -2338,6 +2338,26 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_open_out_of_order(self):
+        """Out of order CXs
+        See: https://github.com/Qiskit/qiskit-terra/issues/4052#issuecomment-613736911 """
+        expected = '\n'.join(["             ",
+                              "q_0: |0>──■──",
+                              "          │  ",
+                              "q_1: |0>──■──",
+                              "        ┌─┴─┐",
+                              "q_2: |0>┤ X ├",
+                              "        └─┬─┘",
+                              "q_3: |0>──o──",
+                              "             ",
+                              "q_4: |0>─────",
+                              "             "])
+        qr = QuantumRegister(5, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.append(XGate().control(3, ctrl_state='101'), [qr[0], qr[3], qr[1], qr[2]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
