@@ -167,7 +167,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         uni = HamiltonianGate(matrix, theta, label='XIZ')
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
-        qc = qc.bind_parameters({theta: -np.pi / 2})
+        qc = qc.bind_parameters({theta: np.pi / 2})
         qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, 'hamiltonian')
