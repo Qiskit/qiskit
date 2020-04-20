@@ -94,6 +94,7 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 """
 
+from .generalized_gates import Diagonal
 
 from .boolean_logic import (
     Permutation,
@@ -113,4 +114,3 @@ from .arithmetic import (
 )
 from .fourier_checking import FourierChecking
 from .quantum_volume import QuantumVolume
-from .diagonal import Diagonal
