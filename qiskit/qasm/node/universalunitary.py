@@ -33,7 +33,7 @@ class UniversalUnitary(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+                          DeprecationWarning, 2)
 
         return "U(" + self.children[0].qasm() + ") " + \
                self.children[1].qasm() + ";"

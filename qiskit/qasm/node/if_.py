@@ -35,7 +35,7 @@ class If(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+                          DeprecationWarning, 2)
 
         return "if(" + self.children[0].qasm() + "==" \
                + str(self.children[1].value) + ") " + \

@@ -40,6 +40,6 @@ class Format(Node):
 
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+                          DeprecationWarning, 2)
 
         return "%s %s;" % (self.language, self.version())

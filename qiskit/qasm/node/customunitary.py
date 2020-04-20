@@ -48,7 +48,7 @@ class CustomUnitary(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+                          DeprecationWarning, 2)
         string = self.name
         if self.arguments is not None:
             string += "(" + self.arguments.qasm() + ")"

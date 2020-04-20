@@ -48,7 +48,7 @@ class Id(Node):
 
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+                          DeprecationWarning,2 )
 
         return self.name
 
@@ -57,7 +57,7 @@ class Id(Node):
 
         if prec is not None:
             warnings.warn('Parameter \'prec\' is no longer used and is being deprecated.',
-                          DeprecationWarning)
+                          DeprecationWarning, 2)
 
         if not nested_scope:
             return "\textrm{" + self.name + "}"
