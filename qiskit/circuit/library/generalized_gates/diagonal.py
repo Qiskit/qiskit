@@ -76,14 +76,11 @@ class Diagonal(QuantumCircuit):
     """
 
     def __init__(self,
-                 diag: Union[List, np.array]) -> QuantumCircuit:
+                 diag: Union[List, np.array]) -> None:
         """Create a new Diagonal circuit.
 
         Args:
             diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
-
-        Returns:
-            QuantumCircuit: the diagonal gate which was attached to the circuit.
 
         Raises:
             CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
