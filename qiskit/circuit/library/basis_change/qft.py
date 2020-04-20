@@ -100,16 +100,6 @@ class QFT(BlueprintCircuit):
         self._insert_barriers = insert_barriers
         self.num_qubits = num_qubits
 
-    def qasm(self, formatted=False, filename=None):
-        if self._data is None:
-            self._build()
-        return super().qasm(formatted, filename)
-
-    def append(self, instruction, qargs=None, cargs=None):
-        if self._data is None:
-            self._build()
-        return super().append(instruction, qargs, cargs)
-
     @property
     def num_qubits(self) -> int:
         """The number of qubits in the QFT circuit.
