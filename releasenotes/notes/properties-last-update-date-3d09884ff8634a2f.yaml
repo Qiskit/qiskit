@@ -6,5 +6,5 @@ features:
     ``datetime`` object or a datetime string (in ISO format).
 upgrade:
   - |
-    A new package, `python-dateutil`, is now required and has been added to
+    A new package, `python-dateutil <https://pypi.org/project/python-dateutil/>`_, is now required and has been added to
     the requirements list.
