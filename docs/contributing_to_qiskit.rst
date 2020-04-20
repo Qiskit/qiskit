@@ -681,7 +681,7 @@ Installing Terra from Source
 ============================
 
 Installing from source requires that you have a C++ compiler on your system that supports
-C++-11.
+C++11.
 
 .. tabs::
 
