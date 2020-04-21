@@ -22,7 +22,7 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Gaussian, GaussianSquare, ConstantPulse, Drag)
+                                   Gaussian, GaussianSquare, Constant, Drag)
 from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
@@ -101,7 +101,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_constant_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(ConstantPulse(duration=25, amp=1), ControlChannel(2))
+        instruction = Play(Constant(duration=25, amp=1), ControlChannel(2))
 
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
