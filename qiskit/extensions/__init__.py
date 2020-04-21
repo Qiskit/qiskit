@@ -19,45 +19,6 @@ Quantum Circuit Extensions (:mod:`qiskit.extensions`)
 
 .. currentmodule:: qiskit.extensions
 
-Standard Extensions
-===================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Barrier
-   CCXGate
-   CHGate
-   CRXGate
-   CRYGate
-   CRZGate
-   CSwapGate
-   CU1Gate
-   CU3Gate
-   CXGate
-   CYGate
-   CZGate
-   HGate
-   IGate
-   MSGate
-   RXGate
-   RXXGate
-   RYGate
-   RZGate
-   RZZGate
-   RZXGate
-   SGate
-   SdgGate
-   SwapGate
-   iSwapGate
-   DCXGate
-   TdgGate
-   U1Gate
-   U2Gate
-   U3Gate
-   XGate
-   YGate
-   ZGate
 
 Unitary Extensions
 ==================
@@ -84,7 +45,8 @@ Initialization
    Initialize
 """
 
+from qiskit.circuit.gates import *
+
 from .quantum_initializer.initializer import Initialize
-from .standard import *
 from .unitary import UnitaryGate
 from .simulator import Snapshot

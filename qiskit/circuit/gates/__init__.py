@@ -12,7 +12,53 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Standard gates."""
+"""
+============================================
+Standard gates (:mod:`qiskit.circuit.gates`)
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Barrier
+   C3XGate
+   C4XGate
+   CCXGate
+   CHGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSwapGate
+   CU1Gate
+   CU3Gate
+   CXGate
+   CYGate
+   CZGate
+   HGate
+   IGate
+   MSGate
+   RCCXGate
+   RC3XGate
+   RXGate
+   RXXGate
+   RYGate
+   RZGate
+   RZZGate
+   RZXGate
+   SGate
+   SdgGate
+   SwapGate
+   iSwapGate
+   DCXGate
+   TdgGate
+   U1Gate
+   U2Gate
+   U3Gate
+   XGate
+   YGate
+   ZGate
+
+"""
 
 from .barrier import Barrier
 from .h import HGate, CHGate
