@@ -123,7 +123,7 @@ class QuantumVolumeGenerator():
         if seed is None:
             seed = np.random.randint(MAX_INT)
         self.seed = seed
-        self.rnd = np.random.RandomState(self.seed) # pylint: disable=no-member
+        self.rnd = np.random.RandomState(self.seed)  # pylint: disable=no-member
         self.num_qubits = num_qubits
         self.depth = depth or num_qubits
         if self.num_qubits == self.depth:
