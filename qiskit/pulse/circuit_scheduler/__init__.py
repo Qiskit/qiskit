@@ -12,10 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-===========================================
-Circuit Scheduler (:mod:`qiskit.pulse.circuit_scheduler`)
-===========================================
+"""Circuit Scheduler (:mod:`qiskit.pulse.circuit_scheduler`)
 
 .. currentmodule:: qiskit.pulse.circuit_scheduler
 
@@ -26,8 +23,6 @@ A circuit scheduler compiles a circuit program to a pulse program.
 
    schedule_circuit
    ScheduleConfig
-
-.. automodule:: qiskit.pulse.circuit_scheduler.methods
 """
 
 from .config import ScheduleConfig
