@@ -494,7 +494,7 @@ class DAGCircuit:
                       DeprecationWarning)
         self.compose(input_circuit, edge_map)
 
-    def compose(self, other, edge_map=None, front=False, inplace=True):
+    def compose(self, other, edge_map=None, qubits=None, clbits=None, front=False, inplace=True):
         """Compose the ``other`` circuit onto the output of this circuit.
 
         A subset of input wires of ``other`` are mapped
@@ -504,9 +504,11 @@ class DAGCircuit:
 
         Args:
             other (DAGCircuit): circuit to compose with self
-            edge_map (dict): a {Bit: Bit} map from input wires of other
+            edge_map (dict): DEPRECATED - a {Bit: Bit} map from input wires of other
                 to output wires of self (i.e. rhs->lhs).
                 The key, value pairs can be either Qubit or Clbit mappings.
+            qubits (list[Qubit|int]): qubits of self to compose onto.
+            clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet)
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
@@ -524,7 +526,20 @@ class DAGCircuit:
             raise DAGCircuitError("Trying to compose with another DAGCircuit "
                                   "which has more 'in' edges.")
 
-        # if no edge_map given, try to do a 1-1 mapping in order
+        if edge_map is not None:
+            warnings.warn("edge_map arg as a dictionary is deprecated. "
+                          "Use qubits and clbits args to specify a list of "
+                          "self edges to compose onto.", DeprecationWarning)
+        if qubits is None:
+            qubits = []
+        if clbits is None:
+            clbits = []
+        qubit_map = {other.qubits()[i]: (self.qubits()[q] if isinstance(q, int) else q)
+                     for i, q in enumerate(qubits)}
+        clbit_map = {other.clbits()[i]: (self.clbits()[c] if isinstance(c, int) else c)
+                     for i, c in enumerate(clbits)}
+        edge_map = edge_map or {**qubit_map, **clbit_map} or None
+        # if no edge_map, try to do a 1-1 mapping in order
         if edge_map is None:
             identity_qubit_map = dict(zip(other.qubits(), self.qubits()))
             identity_clbit_map = dict(zip(other.clbits(), self.clbits()))

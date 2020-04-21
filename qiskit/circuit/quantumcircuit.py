@@ -365,7 +365,8 @@ class QuantumCircuit:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
-            CircuitError: if ``other`` is wider or there are duplicate edge mappings.
+            CircuitError: if composing on the front.
+            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
         """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -374,16 +375,7 @@ class QuantumCircuit:
 
         dag_self = circuit_to_dag(self)
         dag_other = circuit_to_dag(other)
-        if qubits is None:
-            qubits = []
-        if clbits is None:
-            clbits = []
-        qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
-                     for i, q in enumerate(qubits)}
-        clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
-                     for i, c in enumerate(clbits)}
-        wire_map = {**qubit_map, **clbit_map} or None
-        dag_self.compose(dag_other, edge_map=wire_map, front=front)
+        dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
         composed_circuit = dag_to_circuit(dag_self)
         if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
             self.__dict__.update(composed_circuit.__dict__)
