@@ -29,6 +29,7 @@ from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import HGate, U2Gate, XGate, UnitaryGate, CZGate, ZGate
+from qiskit.extensions.hamiltonian_gate import HamiltonianGate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -2453,6 +2454,40 @@ class TestTextInitialValue(QiskitTestCase):
                               "           "])
 
         self.assertEqual(str(_text_circuit_drawer(self.circuit, initial_state=False)), expected)
+
+
+class TestTextHamiltonianGate(QiskitTestCase):
+    """Testing the Hamiltonian gate drawer"""
+
+    def test_draw_hamiltonian_single(self):
+        """Text Hamiltonian gate with single qubit."""
+        expected = '\n'.join(["      ┌─────────────┐",
+                              "q0_0: ┤ Hamiltonian ├",
+                              "      └─────────────┘"])
+
+        qr = QuantumRegister(1, 'q0')
+        circuit = QuantumCircuit(qr)
+        matrix = numpy.zeros((2, 2))
+        theta = Parameter('theta')
+        circuit.append(HamiltonianGate(matrix, theta), [qr[0]])
+        circuit = circuit.bind_parameters({theta: 1})
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_draw_hamiltonian_multi(self):
+        """Text Hamiltonian gate with mutiple qubits."""
+        expected = '\n'.join(["      ┌──────────────┐",
+                              "q0_0: ┤0             ├",
+                              "      │  Hamiltonian │",
+                              "q0_1: ┤1             ├",
+                              "      └──────────────┘"])
+
+        qr = QuantumRegister(2, 'q0')
+        circuit = QuantumCircuit(qr)
+        matrix = numpy.zeros((4, 4))
+        theta = Parameter('theta')
+        circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
+        circuit = circuit.bind_parameters({theta: 1})
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
 if __name__ == '__main__':
