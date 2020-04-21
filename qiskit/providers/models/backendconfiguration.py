@@ -364,7 +364,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  max_shots: int,
                  coupling_map,
                  n_uchannels: int,
-                 u_channel_lo: List[UchannelLO],
+                 u_channel_lo: List[List[UchannelLO]],
                  meas_levels: List[int],
                  qubit_lo_range: List[List[float]],
                  meas_lo_range: List[List[float]],
@@ -500,9 +500,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Returns:
             GateConfig: The GateConfig from the input dictionary.
         """
-        gates = [GateConfig.from_dict(x) for x in data.pop('gates')]
-        data['gates'] = gates
-        return cls(**data)
+        in_data = copy.copy(data)
+        gates = [GateConfig.from_dict(x) for x in in_data.pop('gates')]
+        in_data['gates'] = gates
+        input_uchannels = in_data.pop('u_channel_lo')
+        u_channels = []
+        for channel in input_uchannels:
+            u_channels.append([UchannelLO.from_dict(x) for x in channel])
+        in_data['u_channel_lo'] = u_channels
+        return cls(**in_data)
 
     def to_dict(self):
         """Return a dictionary format representation of the GateConfig.
@@ -511,9 +517,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             dict: The dictionary form of the GateConfig.
         """
         out_dict = super().to_dict()
+        u_channel_lo = []
+        for x in self.u_channel_lo:
+            channel = []
+            for y in x:
+                channel.append(y.to_dict())
+            u_channel_lo.append(channel)
         out_dict.update({
             'n_uchannels': self.n_uchannels,
-            'u_channel_lo': self.u_channel_lo,
+            'u_channel_lo': u_channel_lo,
             'meas_levels': self.meas_levels,
             'qubit_lo_range': self.qubit_lo_range,
             'meas_lo_range': self.meas_lo_range,
