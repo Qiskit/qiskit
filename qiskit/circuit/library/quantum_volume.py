@@ -100,7 +100,6 @@ class QuantumVolumeGenerator():
     the width x depth of the circuit, the seed used in the random
     number generator, and the offset from this seed, i.e. the
     number of times the random number generator has been called.
-
     """
 
     def __init__(self, num_qubits: int,
@@ -115,7 +114,8 @@ class QuantumVolumeGenerator():
 
         Example:
         .. jupyter-execute::
-            from alexandria.quantum_volume import QuantumVolumeGenerator
+
+            from qiskit.circuit.library import QuantumVolumeGenerator
             qv_gen = QuantumVolumeGenerator(4, seed=9876)
             qv16_circs = qv_gen(5)
             for circ in qv16_circs:
@@ -134,20 +134,22 @@ class QuantumVolumeGenerator():
             self.circ_name = "genQV_{}x{}_{}".format(num_qubits, depth, seed)
         self.count = 0
 
-    def __call__(self, samples: int = None):
+    def __call__(self, samples: Optional[int] = None):
         """Creates a collection of Quantum Volume circuits.
+
         Parameters:
             samples: Number of circuits to generate.
+
         Returns:
             list: A list of QuantumCircuits.
         """
         if samples is None:
             samples = 1
         out = []
-        for _ in range(self.depth):
+        for _ in range(samples):
             qc_name = self.circ_name + '+{}'.format(self.count)
             qc = QuantumCircuit(self.num_qubits, name=qc_name)
-            for _ in range(samples):
+            for _ in range(self.depth):
                 # Generate uniformly random permutation Pj of [0...n-1]
                 perm = self.rnd.permutation(self.num_qubits)
                 # For each pair p in Pj, generate Haar random SU(4)
