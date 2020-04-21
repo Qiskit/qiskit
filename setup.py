@@ -40,6 +40,7 @@ REQUIREMENTS = [
     "dill>=0.3",
     "fastjsonschema>=2.10",
     "python-constraint>=1.4",
+    "python-dateutil>=2.8.0",
 ]
 
 # Add Cython extensions here
@@ -81,7 +82,7 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.13.0",
+    version="0.14.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',

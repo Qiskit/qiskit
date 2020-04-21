@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The ``pass_manager`` kwarg for the :func:`qiskit.compiler.transpile`
+    has been deprecated and will be removed in a future release. Moving forward
+    the preferred way to transpile a circuit with a custom
+    :class:`~qiskit.transpiler.PassManager` object is to use the
+    :meth:`~qiskit.transpiler.PassManager.run` method of the ``PassManager``
+    object.

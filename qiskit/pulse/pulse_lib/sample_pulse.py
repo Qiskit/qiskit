@@ -20,7 +20,6 @@ import numpy as np
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
-from ..instructions import Play
 from .pulse import Pulse
 
 
@@ -144,10 +143,10 @@ class SamplePulse(Pulse):
         return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
                                  ", name='{}'".format(self.name) if self.name is not None else "")
 
-    def __call__(self, channel: PulseChannel) -> Play:
+    def __call__(self, channel: PulseChannel):
         warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
                       "instruction directly with a pulse and a channel. In this case, please "
                       "use: `Play(SamplePulse(samples), {})`."
                       "".format(self.__class__.__name__, channel),
                       DeprecationWarning)
-        return Play(self, channel)
+        return super().__call__(channel)
