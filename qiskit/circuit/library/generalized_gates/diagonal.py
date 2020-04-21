@@ -17,7 +17,7 @@
 
 """Diagonal matrix circuit."""
 
-from typing import Union, List, Optional
+from typing import Union, List
 import cmath
 import numpy as np
 
