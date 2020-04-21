@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
 # -*- coding: utf-8 -*-
 
 # This code is part of Qiskit.
@@ -21,15 +27,13 @@ import numpy as np
 from ..channels import PulseChannel
 from ..exceptions import PulseError
 from .pulse import Pulse
-warnings.warn("the SamplePulse class is deprecated", DeprecationWarning,
-              stacklevel=2)
 
 
-class SamplePulse(Pulse):
-    """Deprecated.
-    A pulse specified completely by complex-valued samples; each sample is played for the
+class WaveForm(Pulse):
+    """A pulse specified completely by complex-valued samples; each sample is played for the
     duration of the backend cycle-time, dt.
     """
+
     def __init__(self, samples: Union[np.ndarray, List[complex]],
                  name: Optional[str] = None,
                  epsilon: float = 1e-7):
@@ -43,8 +47,6 @@ class SamplePulse(Pulse):
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
         """
-        warnings.warn("SamplePule is deprecated. Use WaveForm, instead. " +
-                      "Its in wave_form.py under the same module", DeprecationWarning)
         samples = np.asarray(samples, dtype=np.complex_)
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
