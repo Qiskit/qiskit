@@ -57,6 +57,7 @@ class External(Node):
         return utf8tolatex(self.sym())
 
     def real(self, nested_scope=None):
+        """Return the correspond floating point number."""
         op = self.children[0].name
         expr = self.children[1]
         dispatch = {
