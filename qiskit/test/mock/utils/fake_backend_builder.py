@@ -293,8 +293,7 @@ class FakeBackendBuilder:
                 }).to_dict()
             ]
 
-        for couple in self.cmap:
-            qubit1, qubit2 = couple
+        for qubit1, qubit2 in self.cmap:
             cmd_def += [
                 Command.from_dict({
                     'name': 'cx',
