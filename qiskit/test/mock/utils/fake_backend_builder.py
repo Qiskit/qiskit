@@ -12,9 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Fake backend generation.
-"""
+"""Fake backend generation."""
 import itertools
 from datetime import datetime
 from typing import Optional, List
