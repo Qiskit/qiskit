@@ -3,7 +3,7 @@ features:
   - |
     A new class :py:class:`~qiskit.test.mock.utils.FakeBackendBuilder` has been added
     which allows users to create configurable mock backends.
-    Example:
+    Example::
 
         from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
 
