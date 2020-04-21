@@ -16,28 +16,9 @@
 
 import unittest
 
-from ddt import ddt, data
-
-import networkx as nx
-
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ClassicalRegister, Clbit
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Measure
-from qiskit.circuit import Reset
-from qiskit.circuit import Gate, Instruction
-from qiskit.extensions.standard.iden import IdGate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.x import CnotGate
-from qiskit.extensions.standard.z import CzGate
-from qiskit.extensions.standard.x import XGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.barrier import Barrier
-from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
-from .test_dagcircuit import raise_if_dagcircuit_invalid
 
 
 class TestDagCompose(QiskitTestCase):

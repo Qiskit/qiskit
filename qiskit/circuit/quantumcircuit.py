@@ -349,7 +349,7 @@ class QuantumCircuit:
             self._append(*instruction_context)
         return self
 
-    def compose(self, other, qubits=None, clbits=None, wire_map=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
         """Compose circuit with ``other`` circuit, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -362,15 +362,15 @@ class QuantumCircuit:
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
         Returns:
-            QuantumCircuit: Returns a new QuantumCircuit object.
+            QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
             CircuitError: if ``other`` is wider or there are duplicate edge mappings.
         """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
-        if inplace:
-            raise CircuitError("Inplace composition of QuantumCircuit not supported yet.")
+        if front:
+            raise CircuitError("Front composition of QuantumCircuit not supported yet.")
 
         dag_self = circuit_to_dag(self)
         dag_other = circuit_to_dag(other)
@@ -378,14 +378,18 @@ class QuantumCircuit:
             qubits = []
         if clbits is None:
             clbits = []
-        if not wire_map and (qubits or clbits):
-            qubit_map = {self.qubits[i]: (other.qubits[q] if isinstance(q, int) else q)
-                         for i, q in enumerate(qubits)}
-            clbit_map = {self.clbits[i]: (other.clbits[c] if isinstance(c, int) else c)
-                         for i, c in enumerate(clbits)}
-            wire_map = {**qubit_map, **clbit_map}
+        qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
+                     for i, q in enumerate(qubits)}
+        clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
+                     for i, c in enumerate(clbits)}
+        wire_map = {**qubit_map, **clbit_map} or None
         dag_self.compose(dag_other, edge_map=wire_map, front=front)
-        return dag_to_circuit(dag_self)
+        composed_circuit = dag_to_circuit(dag_self)
+        if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
+            self.__dict__.update(composed_circuit.__dict__)
+            return None
+        else:
+            return dag_to_circuit(dag_self)
 
     @property
     def qubits(self):
