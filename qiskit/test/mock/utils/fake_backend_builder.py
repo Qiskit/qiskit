@@ -29,11 +29,7 @@ from qiskit.test.mock.fake_backend import FakeBackend
 
 
 class FakeBackendBuilder:
-    """FakeBackend builder.
-
-    For example:
-        backend = FakeBackendBuilder("Tashkent", n_qubits=100).build()
-    """
+    """FakeBackend builder."""
 
     def __init__(self,
                  name: str,
@@ -45,7 +41,8 @@ class FakeBackendBuilder:
                  qubit_t2: Optional[float] = None,
                  qubit_frequency: Optional[float] = None,
                  qubit_readout_error: Optional[float] = None,
-                 single_qubit_gates: Optional[List[str]] = None):
+                 single_qubit_gates: Optional[List[str]] = None,
+                 dt: Optional[float] = None):
         """Creates fake backend builder.
 
         Args:
@@ -59,6 +56,7 @@ class FakeBackendBuilder:
             qubit_frequency (float, optional): Frequency of qubit.
             qubit_readout_error (float, optional): Readout error of qubit.
             single_qubit_gates (list, optional): List of single qubit gates for backend properties.
+            dt (float, optional): Discretization of the input time sequences.
         """
         if version is None:
             version = '0.0.0'
@@ -81,6 +79,12 @@ class FakeBackendBuilder:
         if single_qubit_gates is None:
             single_qubit_gates = ['id', 'u1', 'u2', 'u3']
 
+        if dt is None:
+            dt = 1.33e-9
+
+        if coupling_map is None:
+            coupling_map = self._generate_cmap()
+
         self.name = name
         self.version = version
         self.basis_gates = basis_gates
@@ -92,11 +96,7 @@ class FakeBackendBuilder:
         self.single_qubit_gates = single_qubit_gates
         self.coupling_map = coupling_map
         self.now = datetime.now()
-
-    @property
-    def cmap(self):
-        """Returns cmap of provided else generated Almadel like cmap."""
-        return self.coupling_map if self.coupling_map else self._generate_cmap()
+        self.dt = dt  # pylint: disable=invalid-name
 
     def _generate_cmap(self) -> List[List[int]]:
         """Generate default grid-like coupling map."""
@@ -114,8 +114,6 @@ class FakeBackendBuilder:
                     qubit2 = qubit1 + grid_size
                     cmap.append([qubit1, qubit2])
 
-        self.coupling_map = cmap
-
         return cmap
 
     def build_props(self) -> BackendProperties:
@@ -132,8 +130,8 @@ class FakeBackendBuilder:
             ])
 
         for gate in self.basis_gates:
-            parameters = [Nduv(date=self.now, name='gate_error', unit='', value=1.0),
-                          Nduv(date=self.now, name='gate_length', unit='', value=0.)]
+            parameters = [Nduv(date=self.now, name='gate_error', unit='', value=0.01),
+                          Nduv(date=self.now, name='gate_length', unit='second', value=4*self.dt)]
 
             if gate in self.single_qubit_gates:
                 for i in range(self.n_qubits):
@@ -167,14 +165,14 @@ class FakeBackendBuilder:
                       "omegad{i}*X{i}||D{i}]"])
         ]
         variables = []
-        for (qubit1, qubit2) in self.cmap:
+        for (qubit1, qubit2) in self.coupling_map:
             h_str += [
                 "jq{q1}q{q2}*Sp{q1}*Sm{q2}".format(q1=qubit1, q2=qubit2),
                 "jq{q1}q{q2}*Sm{q1}*Sp{q2}".format(q1=qubit1, q2=qubit2)
             ]
 
             variables.append(("jq{q1}q{q2}".format(q1=qubit1, q2=qubit2), 0))
-        for i, (qubit1, qubit2) in enumerate(self.cmap):
+        for i, (qubit1, qubit2) in enumerate(self.coupling_map):
             h_str.append("omegad{0}*X{1}||U{2}".format(qubit1, qubit2, i))
         for i in range(self.n_qubits):
             variables += [
@@ -192,7 +190,7 @@ class FakeBackendBuilder:
         qubit_lo_range = [[self.qubit_frequency - .5, self.qubit_frequency + .5]
                           for _ in range(self.n_qubits)]
         meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
-        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i in range(len(self.cmap))]
+        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i in range(len(self.coupling_map))]
 
         return PulseBackendConfiguration(
             backend_name=self.name,
@@ -207,14 +205,14 @@ class FakeBackendBuilder:
             memory=False,
             max_shots=65536,
             gates=[],
-            coupling_map=self.cmap,
+            coupling_map=self.coupling_map,
             n_registers=self.n_qubits,
             n_uchannels=self.n_qubits,
             u_channel_lo=u_channel_lo,
             meas_level=[1, 2],
             qubit_lo_range=qubit_lo_range,
             meas_lo_range=meas_lo_range,
-            dt=1.3333,
+            dt=self.dt,
             dtm=10.5,
             rep_times=[1000],
             meas_map=meas_map,
@@ -229,9 +227,8 @@ class FakeBackendBuilder:
     def build_defaults(self) -> PulseDefaults:
         """Build backend defaults."""
 
-        qubit_freq_est = np.linspace(4.9, 5.1, self.n_qubits).tolist()
+        qubit_freq_est = [self.qubit_frequency] * self.n_qubits
         meas_freq_est = np.linspace(6.4, 6.6, self.n_qubits).tolist()
-        buffer = 10
         pulse_library = [
             {
                 'name': 'test_pulse_1',
@@ -267,33 +264,19 @@ class FakeBackendBuilder:
 
         cmd_def = [measure_command]
 
-        for i in range(self.n_qubits):
-            cmd_def += [
-                Command.from_dict({
-                    'name': 'u1',
+        for gate in self.single_qubit_gates:
+            for i in range(self.n_qubits):
+                cmd_def.append(Command.from_dict({
+                    'name': gate,
                     'qubits': [i],
                     'sequence': [PulseQobjInstruction(name='fc', ch='d{}'.format(i),
-                                                      t0=0, phase='-P0').to_dict()]
-                }).to_dict(),
-                Command.from_dict({
-                    'name': 'u2',
-                    'qubits': [i],
-                    'sequence': [PulseQobjInstruction(name='fc', ch='d{}'.format(i),
-                                                      t0=0, phase='-P1').to_dict(),
-                                 PulseQobjInstruction(name='test_pulse_4',
-                                                      ch='d{}'.format(i), t0=0).to_dict(),
-                                 PulseQobjInstruction(name='fc', ch='d{}'.format(i),
-                                                      t0=0, phase='-P0').to_dict()]
-                }).to_dict(),
-                Command.from_dict({
-                    'name': 'u3',
-                    'qubits': [i],
-                    'sequence': [PulseQobjInstruction(name='test_pulse_3',
-                                                      ch='d{}'.format(i), t0=0).to_dict()]
-                }).to_dict()
-            ]
+                                                      t0=0, phase='-P0').to_dict(),
+                                 PulseQobjInstruction(name='test_pulse_3',
+                                                      ch='d{}'.format(i),
+                                                      t0=0).to_dict()]
+                }).to_dict())
 
-        for qubit1, qubit2 in self.cmap:
+        for qubit1, qubit2 in self.coupling_map:
             cmd_def += [
                 Command.from_dict({
                     'name': 'cx',
@@ -315,7 +298,7 @@ class FakeBackendBuilder:
         return PulseDefaults.from_dict({
             'qubit_freq_est': meas_freq_est,
             'meas_freq_est': qubit_freq_est,
-            'buffer': buffer,
+            'buffer': 0,
             'pulse_library': pulse_library,
             'cmd_def': cmd_def
         })
