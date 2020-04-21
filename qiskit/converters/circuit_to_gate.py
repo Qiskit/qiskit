@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """Helper function for converting a circuit to a gate"""
 
 from qiskit.circuit.gate import Gate
