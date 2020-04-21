@@ -511,7 +511,7 @@ class DAGCircuit:
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
 
         Returns:
-            DAGCircuit: the composed dag (no return if inplace=True).
+            DAGCircuit: the composed dag (returns None if inplace==True).
 
         Raises:
             DAGCircuitError: if ``other`` is wider or there are duplicate edge mappings.
@@ -539,7 +539,7 @@ class DAGCircuit:
             dag = self
         else:
             dag = copy.deepcopy(self)
-        
+
         for nd in other.topological_nodes():
             if nd.type == "in":
                 # if in edge_map, get new name, else use existing name
@@ -565,6 +565,8 @@ class DAGCircuit:
 
         if not inplace:
             return dag
+        else:
+            return None
 
     def idle_wires(self):
         """Return idle wires.
