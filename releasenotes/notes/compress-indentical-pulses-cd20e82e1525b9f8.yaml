@@ -2,10 +2,9 @@
 features:
   - |
     Schedule transformer :func:`qiskit.pulse.transforms.compress_pulses`
-    performs an optimization pass to replace identical instances of
-    a pulse in a pulse schedule that improves the usage of waveform
-    memory in hardware and reduce confusion of pulse
-    users running into waveform limits on hardware.
+    performs an optimization pass to reduce the usage of waveform
+    memory in hardware by replacing multiple identical instances of
+    a pulse in a pulse schedule with a single pulse.
     For example::
 
         from qiskit.pulse import transforms
