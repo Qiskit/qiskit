@@ -99,7 +99,7 @@ class QuantumVolumeGenerator():
     the Quantum Volume that the circuit corresponds to else it is
     the width x depth of the circuit, the seed used in the random
     number generator, and the offset from this seed, i.e. the
-    number of times the random number generator has been called.
+    number of times the random number generator has been stepped.
     """
 
     def __init__(self, num_qubits: int,
