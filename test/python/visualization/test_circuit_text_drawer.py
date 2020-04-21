@@ -2406,7 +2406,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    def test_open_controlled_swap(self):
+    def test_open_controlled_rzz(self):
         """Controlled RZZ gates."""
         expected = '\n'.join(["                                         ",
                               "qr_0: |0>─o───────o───────o───────o──────",
