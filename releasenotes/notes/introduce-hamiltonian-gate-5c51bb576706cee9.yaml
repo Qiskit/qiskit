@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    New `HamitlotianGate` and `QuantumCircuit.hamltonian()` methods are
+    New `HamiltonianGate` and `QuantumCircuit.hamiltonian()` methods are
     introduced, representing Hamiltonian evolution of the circuit
     wavefunction by a user-specified Hermitian Operator and evolution time.
     The evolution time can be a `Parameter`, allowing the creation of
