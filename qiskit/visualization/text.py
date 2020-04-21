@@ -703,7 +703,7 @@ class TextDrawing():
         op = instruction.op
         if not hasattr(op, 'params'):
             return None
-        if all([isinstance(param, ndarray) for param in op.params]):
+        if any([isinstance(param, ndarray) for param in op.params]):
             return None
 
         ret = []
@@ -1044,8 +1044,15 @@ class Layer:
             clbits = list(clbits)
             cbit_index = sorted([i for i, x in enumerate(self.cregs) if x in clbits])
             qbit_index = sorted([i for i, x in enumerate(self.qregs) if x in qubits])
-            qargs = [str(qubits.index(qbit)) for qbit in self.qregs if qbit in qubits]
-            cargs = [str(clbits.index(cbit)) for cbit in self.cregs if cbit in clbits]
+
+            # Further below, indices are used as wire labels. Here, get the length of
+            # the longest label, and pad all labels with spaces to this length.
+            wire_label_len = max(len(str(len(qubits) - 1)),
+                                 len(str(len(clbits) - 1)))
+            qargs = [str(qubits.index(qbit)).ljust(wire_label_len, ' ')
+                     for qbit in self.qregs if qbit in qubits]
+            cargs = [str(clbits.index(cbit)).ljust(wire_label_len, ' ')
+                     for cbit in self.cregs if cbit in clbits]
 
             box_height = len(self.qregs) - min(qbit_index) + max(cbit_index) + 1
 
@@ -1057,7 +1064,7 @@ class Layer:
                     wire_label = qargs.pop(0)
                 else:
                     named_bit = self.qregs[bit_i]
-                    wire_label = ' ' * len(wire_label)
+                    wire_label = ' ' * wire_label_len
                 self.set_qubit(named_bit, BoxOnQuWireMid(label, box_height, order,
                                                          wire_label=wire_label))
             for order, bit_i in enumerate(range(max(cbit_index)), order + 1):
@@ -1066,7 +1073,7 @@ class Layer:
                     wire_label = cargs.pop(0)
                 else:
                     named_bit = self.cregs[bit_i]
-                    wire_label = ' ' * len(cargs[0])
+                    wire_label = ' ' * wire_label_len
                 self.set_clbit(named_bit, BoxOnClWireMid(label, box_height, order,
                                                          wire_label=wire_label))
             self.set_clbit(clbits.pop(0),
@@ -1075,6 +1082,7 @@ class Layer:
         if qubits is None and clbits is not None:
             bits = list(clbits)
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
+            wire_label_len = len(str(len(bits) - 1))
             bits.sort(key=self.cregs.index)
             qargs = [''] * len(bits)
             set_bit = self.set_clbit
@@ -1085,7 +1093,9 @@ class Layer:
         elif clbits is None and qubits is not None:
             bits = list(qubits)
             bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
-            qargs = [str(bits.index(qbit)) for qbit in self.qregs if qbit in bits]
+            wire_label_len = len(str(len(bits) - 1))
+            qargs = [str(bits.index(qbit)).ljust(wire_label_len, ' ')
+                     for qbit in self.qregs if qbit in bits]
             bits.sort(key=self.qregs.index)
             set_bit = self.set_qubit
             OnWire = BoxOnQuWire
@@ -1112,7 +1122,7 @@ class Layer:
                     wire_label = qargs.pop(0)
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
-                    wire_label = ' ' * len(qargs[0])
+                    wire_label = ' ' * wire_label_len
 
                 control_label = control_index.get(bit_i)
                 set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label,
