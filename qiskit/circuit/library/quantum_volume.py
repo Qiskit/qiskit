@@ -105,21 +105,20 @@ class QuantumVolumeGenerator():
     def __init__(self, num_qubits: int,
                  depth: Optional[int] = None,
                  seed: Optional[int] = None):
-        """A generator for quantum volume circuits.
-
+        """
         Parameters:
             num_qubits: Number of qubits in QV circuit.
             depth: Number of layers of random pairwise unitaries.
             seed: Optional seed at which to start generator
 
         Example:
-        .. jupyter-execute::
+            .. jupyter-execute::
 
-            from qiskit.circuit.library import QuantumVolumeGenerator
-            qv_gen = QuantumVolumeGenerator(4, seed=9876)
-            qv16_circs = qv_gen(5)
-            for circ in qv16_circs:
-                print(circ.name)
+                from qiskit.circuit.library import QuantumVolumeGenerator
+                qv_gen = QuantumVolumeGenerator(4, seed=9876)
+                qv16_circs = qv_gen(5)
+                for circ in qv16_circs:
+                    print(circ.name)
         """
         if seed is None:
             seed = np.random.randint(MAX_INT)
