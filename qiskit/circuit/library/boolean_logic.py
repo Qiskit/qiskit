@@ -21,7 +21,7 @@ from typing import List, Optional
 import numpy as np
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions.standard import MCXGate
+from qiskit.circuit.gates import MCXGate
 
 
 class Permutation(QuantumCircuit):

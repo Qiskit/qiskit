@@ -45,8 +45,6 @@ from .gates.i import IGate
 from .gates.iswap import iSwapGate
 from .gates.ms import MSGate
 from .gates.r import RGate
-from .gates.rccx import RCCXGate
-from .gates.rcccx import RCCCXGate
 from .gates.rx import RXGate, CRXGate
 from .gates.rxx import RXXGate
 from .gates.rzx import RZXGate
@@ -60,7 +58,7 @@ from .gates.t import TGate, TdgGate
 from .gates.u1 import U1Gate, CU1Gate, MCU1Gate
 from .gates.u2 import U2Gate
 from .gates.u3 import U3Gate, CU3Gate
-from .gates.x import XGate, CXGate, CCXGate
+from .gates.x import XGate, CXGate, CCXGate, RCCXGate, RC3XGate
 from .gates.x import MCXGrayCode, MCXRecursive, MCXVChain
 from .gates.y import YGate, CYGate
 from .gates.z import ZGate, CZGate
@@ -1563,16 +1561,16 @@ class QuantumCircuit:
 
     @deprecate_arguments({'q': 'qubit'})
     def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
-        """Apply R to q."""
+        """Apply :class:`~qiskit.circuit.gates.RGate`."""
         return self.append(RGate(theta, phi), [qubit], [])
 
     def rccx(self, control_qubit1, control_qubit2, target_qubit):
-        """Apply the simplified, relative-phase Toffoli gate."""
+        """Apply :class:`~qiskit.circuit.gates.RCCXGate`."""
         return self.append(RCCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
 
     def rcccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
-        """Apply the simplified, relative-phase 3-control Toffoli gate."""
-        return self.append(RCCCXGate(),
+        """Apply :class:`~qiskit.circuit.gates.RC3XGate`."""
+        return self.append(RC3XGate(),
                            [control_qubit1, control_qubit2, control_qubit3, target_qubit],
                            [])
 

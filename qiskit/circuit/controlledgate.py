@@ -71,7 +71,7 @@ class ControlledGate(Gate):
         if not self._definition:
             self._define()
         # pylint: disable=cyclic-import
-        from qiskit.extensions.standard import XGate, CXGate
+        from qiskit.circuit.gates import XGate, CXGate
         bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
         # hacky way to get register assuming single register
         if self._definition:
