@@ -14,7 +14,7 @@
 
 # pylint: disable=arguments-differ,method-hidden
 
-"""Quick program to test the qi tools modules."""
+""" HamiltonianGate tests """
 
 import numpy as np
 from numpy.testing import assert_allclose
