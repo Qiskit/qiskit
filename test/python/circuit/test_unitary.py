@@ -14,7 +14,7 @@
 
 # pylint: disable=arguments-differ,method-hidden
 
-"""Quick program to test the qi tools modules."""
+""" UnitaryGate tests """
 
 import json
 import numpy
