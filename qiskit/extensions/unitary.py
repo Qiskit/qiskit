@@ -109,7 +109,7 @@ class UnitaryGate(Gate):
             theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
             self.definition = [(U3Gate(theta, phi, lam), [q[0]], [])]
         elif self.num_qubits == 2:
-            self.definition = two_qubit_cnot_decompose(self.to_matrix())
+            self.definition = two_qubit_cnot_decompose(self.to_matrix()).data
         else:
             raise NotImplementedError("Not able to generate a subcircuit for "
                                       "a {}-qubit unitary".format(self.num_qubits))
@@ -183,7 +183,7 @@ class UnitaryGate(Gate):
 
 
 def unitary(self, obj, qubits, label=None):
-    """Apply u2 to q."""
+    """Apply unitary gate to q."""
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     return self.append(UnitaryGate(obj, label=label), qubits, [])

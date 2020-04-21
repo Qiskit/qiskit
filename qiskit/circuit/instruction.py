@@ -140,6 +140,8 @@ class Instruction:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, (ParameterExpression)):
                 self._params.append(single_param)
+            elif isinstance(single_param, numpy.number):
+                self._params.append(single_param.item())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
                 self._params.append(single_param)
@@ -155,8 +157,6 @@ class Instruction:
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
