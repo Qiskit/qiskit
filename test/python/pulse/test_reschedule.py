@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
-                          Gaussian, GaussianSquare, ConstantPulse)
+                          Gaussian, GaussianSquare, Constant)
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
@@ -327,8 +327,8 @@ class TestCompressTransform(QiskitTestCase):
                                         sigma=8, width=140), drive_channel)
         schedule += Play(GaussianSquare(duration=150, amp=0.2,
                                         sigma=8, width=140), drive_channel)
-        schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.4j), drive_channel)
-        schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.4j), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
 
@@ -348,8 +348,8 @@ class TestCompressTransform(QiskitTestCase):
                                         sigma=8, width=140), drive_channel)
         schedule += Play(GaussianSquare(duration=150, amp=0.19,
                                         sigma=8, width=140), drive_channel)
-        schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.4j), drive_channel)
-        schedule += Play(ConstantPulse(duration=150, amp=0.1 + 0.41j), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.41j), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.31j, sigma=7.8, beta=4), drive_channel)
 
