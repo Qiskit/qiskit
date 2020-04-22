@@ -19,7 +19,7 @@ from unittest.mock import patch
 import numpy as np
 
 from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
-                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, ConstantPulse,
+                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
                           functional_pulse)
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
@@ -408,7 +408,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = Schedule(name='test_parametric')
         sched += Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         sched += Play(Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(ConstantPulse(duration=25, amp=1), DriveChannel(2))
+        sched += Play(Constant(duration=25, amp=1), DriveChannel(2))
         sched_duration = sched.duration
         sched += Play(GaussianSquare(duration=1500, amp=0.2,
                                      sigma=8, width=140),
