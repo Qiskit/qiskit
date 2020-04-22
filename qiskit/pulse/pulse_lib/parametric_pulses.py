@@ -36,6 +36,7 @@ by following the existing pattern:
         ...
         new_supported_pulse_name = commands.YourPulseCommandClass
 """
+import warnings
 from abc import abstractmethod
 from typing import Any, Callable, Dict, Optional
 import math
@@ -370,7 +371,7 @@ class Drag(ParametricPulse):
                          ", name='{}'".format(self.name) if self.name is not None else "")
 
 
-class ConstantPulse(ParametricPulse):
+class Constant(ParametricPulse):
     """
     A simple constant pulse, with an amplitude value and a duration:
 
@@ -416,3 +417,29 @@ class ConstantPulse(ParametricPulse):
         return "{}(duration={}, amp={}{})" \
                "".format(self.__class__.__name__, self.duration, self.amp,
                          ", name='{}'".format(self.name) if self.name is not None else "")
+
+
+class ConstantPulse(Constant):
+    """
+    Deprecated. A simple constant pulse, with an amplitude value and a duration:
+
+    .. math::
+
+        f(x) = amp    ,  0 <= x < duration
+        f(x) = 0      ,  elsewhere
+    """
+
+    def __init__(self,
+                 duration: int,
+                 amp: complex,
+                 name: Optional[str] = None):
+        """
+        Initialize the constant-valued pulse.
+
+        Args:
+            duration: Pulse length in terms of the the sampling period `dt`.
+            amp: The amplitude of the constant square pulse.
+            name: Display name for this pulse envelope.
+        """
+        super(ConstantPulse, self).__init__(duration, amp, name)
+        warnings.warn("The ConstantPulse is deprecated. Use Constant instead", DeprecationWarning)
