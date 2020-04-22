@@ -274,7 +274,7 @@ class QuantumCircuit:
         return inverse_circ
 
     def combine(self, rhs):
-        """Append rhs to self if self contains compatible registers.
+        """DEPRECATED - Append rhs to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -295,23 +295,13 @@ class QuantumCircuit:
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
-        # Make new circuit with combined registers
-        combined_qregs = copy.deepcopy(self.qregs)
-        combined_cregs = copy.deepcopy(self.cregs)
-
-        for element in rhs.qregs:
-            if element not in self.qregs:
-                combined_qregs.append(element)
-        for element in rhs.cregs:
-            if element not in self.cregs:
-                combined_cregs.append(element)
-        circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
-        for instruction_context in itertools.chain(self.data, rhs.data):
-            circuit._append(*instruction_context)
-        return circuit
+        warnings.warn("The QuantumCircuit.combine() method is being deprecated."
+                      "Use the compose() method which is more flexible w.r.t "
+                      "circuit register compatibility.", DeprecationWarning)
+        return self.compose(rhs)
 
     def extend(self, rhs):
-        """Append QuantumCircuit to the right hand side if it contains compatible registers.
+        """DEPRECATED - Append QuantumCircuit to the RHS if it contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
@@ -332,22 +322,10 @@ class QuantumCircuit:
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
-        # Add new registers
-        for element in rhs.qregs:
-            if element not in self.qregs:
-                self.qregs.append(element)
-        for element in rhs.cregs:
-            if element not in self.cregs:
-                self.cregs.append(element)
-
-        # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
-        # appended to both self and rhs resulting in an infinite loop
-        data = rhs.data.copy() if rhs is self else rhs.data
-
-        # Add new gates
-        for instruction_context in data:
-            self._append(*instruction_context)
-        return self
+        warnings.warn("The QuantumCircuit.extend() method is being deprecated."
+                      "Use the compose() method which is more flexible w.r.t "
+                      "circuit register compatibility.", DeprecationWarning)
+        return self.compose(rhs)
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
         """Compose circuit with ``other`` circuit, optionally permuting wires.
@@ -398,12 +376,13 @@ class QuantumCircuit:
         return [cbit for creg in self.cregs for cbit in creg]
 
     def __add__(self, rhs):
-        """Overload + to implement self.combine."""
-        return self.combine(rhs)
+        """Overload + to compose two circuits and return resulting circuit."""
+        return self.combine(rhs, inplace=False)
 
     def __iadd__(self, rhs):
-        """Overload += to implement self.extend."""
-        return self.extend(rhs)
+        """Overload += to compose with another circuit inplace."""
+        self.compose(rhs, inplace=True)
+        return self
 
     def __len__(self):
         """Return number of operations in circuit."""
