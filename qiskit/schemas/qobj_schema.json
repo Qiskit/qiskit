@@ -162,14 +162,8 @@
                             ]
                         },
                         "duration": {
-                            "OneOf": [
-                            {"items": {
-                                "type": "number"
-                            },
-                            "maxItems": 1,
-                            "minItems": 1,
-                            "type": "array"}
-                        ]}
+                            "type": "integer"
+                        }
                     },
                     "required": [
                         "duration",
