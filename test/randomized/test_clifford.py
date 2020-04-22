@@ -14,7 +14,7 @@
 
 """Randomized tests of Clifford operator class."""
 import unittest
-from hypothesis import given, strategies
+from hypothesis import given, strategies, settings
 
 from qiskit.quantum_info.random import random_clifford
 from qiskit.quantum_info import Clifford
@@ -31,6 +31,7 @@ class TestClifford(unittest.TestCase):
 
     @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1),
            strategies.integers(min_value=1, max_value=211))
+    @settings(deadline=None)
     def test_random_clifford_valid(self, seed, num_qubits):
         """Test random_clifford."""
         value = random_clifford(num_qubits, seed=seed)
