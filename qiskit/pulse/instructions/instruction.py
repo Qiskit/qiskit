@@ -63,6 +63,9 @@ class Instruction(ScheduleComponent, ABC):
             PulseError: If duration is negative.
         """
         self._command = None
+        if isinstance(duration, float):
+            warnings.warn("Instruction duration cannot be a float; casting to int.")
+            duration = int(duration)
         if not isinstance(duration, (int, np.integer)):
             warnings.warn("Commands have been deprecated. Use `qiskit.pulse.instructions` instead.",
                           DeprecationWarning)
