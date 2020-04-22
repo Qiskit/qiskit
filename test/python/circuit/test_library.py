@@ -25,7 +25,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder)
+                                    WeightedAdder, Diagonal)
 from qiskit.quantum_info import Statevector, Operator
 
 
@@ -279,6 +279,21 @@ class TestBasisChanges(QiskitTestCase):
             qft = qft.inverse()
         self.assertQFTIsCorrect(qft, inverse=inverse)
 
+    def test_qft_is_inverse(self):
+        """Test the is_inverse() method."""
+        qft = QFT(2)
+
+        with self.subTest(msg='initial object is not inverse'):
+            self.assertFalse(qft.is_inverse())
+
+        qft = qft.inverse()
+        with self.subTest(msg='inverted'):
+            self.assertTrue(qft.is_inverse())
+
+        qft = qft.inverse()
+        with self.subTest(msg='re-inverted'):
+            self.assertFalse(qft.is_inverse())
+
     def test_qft_mutability(self):
         """Test the mutability of the QFT circuit."""
         qft = QFT()
@@ -299,6 +314,15 @@ class TestBasisChanges(QiskitTestCase):
             qft.num_qubits = 4
             qft.do_swaps = False
             self.assertQFTIsCorrect(qft, add_swaps_at_end=True)
+
+        with self.subTest(msg='inverse'):
+            qft = qft.inverse()
+            qft.do_swaps = True
+            self.assertQFTIsCorrect(qft, inverse=True)
+
+        with self.subTest(msg='double inverse'):
+            qft = qft.inverse()
+            self.assertQFTIsCorrect(qft)
 
         with self.subTest(msg='set approximation'):
             qft.approximation_degree = 2
@@ -781,3 +805,25 @@ class TestWeightedAdder(QiskitTestCase):
             adder.num_state_qubits = 4
             adder.weights = [2, 0, 1, 1]
             self.assertSummationIsCorrect(adder)
+
+
+@ddt
+class TestDiagonalGate(QiskitTestCase):
+    """Test diagonal circuit."""
+    @data(
+        [0, 0],
+        [0, 0.8],
+        [0, 0, 1, 1],
+        [0, 1, 0.5, 1],
+        (2 * np.pi * np.random.rand(2 ** 3)),
+        (2 * np.pi * np.random.rand(2 ** 4)),
+        (2 * np.pi * np.random.rand(2 ** 5))
+    )
+    def test_diag_gate(self, phases):
+        """Test correctness of diagonal decomposition."""
+        diag = [np.exp(1j * ph) for ph in phases]
+        qc = Diagonal(diag)
+        simulated_diag = Statevector(Operator(qc).data.diagonal())
+        ref_diag = Statevector(diag)
+
+        self.assertTrue(simulated_diag.equiv(ref_diag))

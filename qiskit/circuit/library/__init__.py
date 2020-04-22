@@ -27,6 +27,14 @@ Blueprint Circuit
 
    BlueprintCircuit
 
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+
 Boolean Logic Circuits
 ======================
 
@@ -94,8 +102,8 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 """
 
-
 from .blueprintcircuit import BlueprintCircuit
+from .generalized_gates import Diagonal
 from .boolean_logic import (
     Permutation,
     XOR,

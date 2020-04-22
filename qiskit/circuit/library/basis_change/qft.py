@@ -83,6 +83,7 @@ class QFT(BlueprintCircuit):
                  num_qubits: Optional[int] = None,
                  approximation_degree: int = 0,
                  do_swaps: bool = True,
+                 inverse: bool = False,
                  insert_barriers: bool = False,
                  name: str = 'qft') -> None:
         """Construct a new QFT circuit.
@@ -91,6 +92,7 @@ class QFT(BlueprintCircuit):
             num_qubits: The number of qubits on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).
             do_swaps: Whether to include the final swaps in the QFT.
+            inverse: If True, the inverse Fourier transform is constructed.
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
@@ -98,6 +100,8 @@ class QFT(BlueprintCircuit):
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
+        self._inverse = inverse
+        self._data = None
         self.num_qubits = num_qubits
 
     @property
@@ -196,9 +200,27 @@ class QFT(BlueprintCircuit):
             self._invalidate()
             self._do_swaps = do_swaps
 
+    def is_inverse(self) -> bool:
+        """Whether the inverse Fourier transform is implemented.
+
+        Returns:
+            True, if the inverse Fourier transform is implemented, False otherwise.
+        """
+        return self._inverse
+
     def _invalidate(self) -> None:
         """Invalidate the current build of the circuit."""
         self._data = None
+
+    def inverse(self) -> 'QFT':
+        """Invert this circuit.
+
+        Returns:
+            The inverted circuit.
+        """
+        inverted = super().inverse()
+        inverted._inverse = not self._inverse
+        return inverted
 
     def _swap_qubits(self):
         num_qubits = self.num_qubits
@@ -230,3 +252,6 @@ class QFT(BlueprintCircuit):
 
         if self._do_swaps:
             self._swap_qubits()
+
+        if self._inverse:
+            self._data = super().inverse()
