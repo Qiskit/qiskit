@@ -14,15 +14,14 @@
 
 """The n-local circuit class."""
 
-import warnings
 import logging
-from typing import Union, Optional, List, Any, Tuple, Sequence, Set
+from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
 import numpy
 from qiskit import QuantumCircuit, transpile, QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 from qiskit.circuit.parametertable import ParameterTable
 
 logger = logging.getLogger(__name__)
@@ -31,16 +30,35 @@ logger = logging.getLogger(__name__)
 class NLocal(QuantumCircuit):
     """The n-local circuit class.
 
-    The structure of the NLocal are repeated parameterized circuit-blocks (referred to
-    as blocks in the code). For every block, qubit indices indicate on which qubits the block
-    acts on. Which and how blocks are repeated is determined via the ``reps`` argument.
-    If the same block is supposed to be repeated several times with the same qubit indices,
-    it is only stored once.  On circuit construction, copies of the blocks are inserted in the
-    NLocal with new, unique parameters.
-    These "base parameters" do not change. The user modifies "surface parameters" which are
-    bound to the circuit upon requesting the circuit.
+    The structure of the n-local circuit are alternating rotation and entanglement layers.
+    In both layers, parameterized circuit-blocks act on the circuit in a defined way.
+    In the rotation layer, the blocks are applied stacked on top of each other, while in the
+    entanglement layer according to the ``entanglement`` strategy.
+    The circuit blocks can have arbitrary sizes (smaller equal to the number of qubits in the
+    circuit). Each layer is repeated ``reps`` times, and by default a final rotation layer is
+    appended.
+
+    For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
+    ``'linear'`` entanglement yields the following circuit.
+
+    .. parsed-literal::
+
+             ┌──────┐ ░ ┌──────┐                      ░ ┌──────┐
+        q_0: ┤0     ├─░─┤0     ├──────────────── ... ─░─┤0     ├
+             │  Rot │ ░ │      │┌──────┐              ░ │  Rot │
+        q_1: ┤1     ├─░─┤1     ├┤0     ├──────── ... ─░─┤1     ├
+             ├──────┤ ░ │  Ent ││      │┌──────┐      ░ ├──────┤
+        q_2: ┤0     ├─░─┤2     ├┤1     ├┤0     ├ ... ─░─┤0     ├
+             │  Rot │ ░ │      ││  Ent ││      │      ░ │  Rot │
+        q_3: ┤1     ├─░─┤3     ├┤2     ├┤1     ├ ... ─░─┤1     ├
+             ├──────┤ ░ └──────┘│      ││  Ent │      ░ ├──────┤
+        q_4: ┤0     ├─░─────────┤3     ├┤2     ├ ... ─░─┤0     ├
+             │  Rot │ ░         └──────┘│      │      ░ │  Rot │
+        q_5: ┤1     ├─░─────────────────┤3     ├ ... ─░─┤1     ├
+             └──────┘ ░                 └──────┘      ░ └──────┘
+
     If specified, barriers can be inserted in between every block.
-    If an initial state is provided, it is added in front of the NLocal.
+    If an initial state object of Qiskit Aqua is provided, it is added in front of the NLocal.
     """
 
     def __init__(self,
@@ -56,9 +74,9 @@ class NLocal(QuantumCircuit):
                  overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
                  skip_final_rotation_layer: bool = False,
                  skip_unentangled_qubits: bool = False,
-                 initial_state: Optional['InitialState'] = None) -> None:
+                 initial_state: Optional['InitialState'] = None,
+                 name: Optional[str] = 'nlocal') -> None:
         """Create a new n-local circuit.
-
 
         Args:
             num_qubits: The number of qubits of the circuit.
@@ -81,76 +99,102 @@ class NLocal(QuantumCircuit):
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
             initial_state: An ``InitialState`` object to prepend to the NLocal.
-                TODO deprecate this feature in favor of prepend or overloading __add__ in
-                the initial state class
-
-        Raises:
-            TypeError: If ``blocks`` contains an unsupported object.
-            ValueError: If the initial state has less qubits than specified via the blocks or
-                qubit indices.
-            ValueError: If the ``overwrite_block_parameters`` is set to a list of list of
-                Parameters but does not match the total number of blocks in the final circuit.
+            name: The name of the circuit.
 
         Examples:
             TODO
         """
-        super().__init__()
+        super().__init__(name=name)
 
-        # insert barriers in between the blocks?
         self._num_qubits = None
-        self.num_qubits = num_qubits
-
         self._insert_barriers = insert_barriers
-
+        self._reps = reps
         self._entanglement_blocks = []
         self._rotation_blocks = []
         self._prepended_blocks = []
         self._prepended_entanglement = []
         self._appended_blocks = []
         self._appended_entanglement = []
-
-        self.entanglement_blocks = entanglement_blocks or []
-        self.rotation_blocks = rotation_blocks or []
+        self._entanglement = None
+        self._entangler_maps = None
         self._ordered_parameters = ParameterVector(name=parameter_prefix)
         self._overwrite_block_parameters = overwrite_block_parameters
         self._skip_final_rotation_layer = skip_final_rotation_layer
         self._skip_unentangled_qubits = skip_unentangled_qubits
-
-        # get reps in the right format
-        self._reps = reps
-
-        # get entanglement in the right format (i.e. list of lists)
-        self._entanglement, self._entangler_maps = None, None
-        self.entanglement = entanglement
-        # self._entangler_maps = None
-
-        # set the initial state
         self._initial_state, self._initial_state_circuit = None, None
-        if initial_state:
-            self.initial_state = initial_state
-
-        # keep track of the circuit
         self._data = None
-
-        # parameter bounds
         self._bounds = None
 
-    # pylint: disable=unused-argument
-    def parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
-        """If certain blocks should use certain parameters this method can be overriden."""
-        return None
+        if num_qubits is not None:
+            self.num_qubits = num_qubits
 
-    def __str__(self) -> str:
-        """Draw this NLocal in circuit format using the standard gates.
+        if entanglement_blocks is not None:
+            self.entanglement_blocks = entanglement_blocks
+
+        if rotation_blocks is not None:
+            self.rotation_blocks = rotation_blocks
+
+        if entanglement is not None:
+            self.entanglement = entanglement
+
+        if initial_state is not None:
+            self.initial_state = initial_state
+
+    @property
+    def num_qubits(self) -> int:
+        """Returns the number of qubits in this circuit.
 
         Returns:
-            A single string representing this NLocal.
+            The number of qubits.
         """
-        basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
-                       'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
-                       'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
-        return transpile(self, basis_gates=basis_gates,
-                         optimization_level=0).draw().single_string()
+        return self._num_qubits if self._num_qubits is not None else 0
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits: int) -> None:
+        """Set the number of qubits for the NLocal.
+
+        Args:
+            The new number of qubits.
+        """
+        if self._num_qubits != num_qubits:
+            # invalidate the circuit
+            self._invalidate()
+            self._num_qubits = num_qubits
+
+    @property
+    def data(self) -> QuantumCircuitData:
+        if self._data is None:
+            self._build()
+        return super().data
+
+    @property
+    def qregs(self) -> List[QuantumRegister]:
+        """The quantum registers associated with the circuit.
+
+        Returns:
+            The quantum registers associated with this circuit.
+        """
+        if self._data is None:
+            self._build()
+        return self._qregs
+
+    @qregs.setter
+    def qregs(self, qregs: List[QuantumRegister]) -> None:
+        """Set the quantum registers associated with the circuit.
+
+        Args:
+            qregs: The new quantum registers.
+        """
+        self._qregs = qregs
+
+    @property
+    def entanglement_blocks(self) -> List[Instruction]:
+        """The blocks in the NLocal.
+
+        Returns:
+            The blocks that define the NLocal.
+        """
+        return self._entanglement_blocks
 
     def _convert_to_block(self, layer: Any) -> Instruction:
         """Try to convert ``layer`` to an Instruction.
@@ -170,126 +214,6 @@ class NLocal(QuantumCircuit):
             return layer.to_instruction()
         else:
             raise TypeError('Adding a {} to an NLocal is not supported.'.format(type(layer)))
-
-    def _configuration_is_valid(self) -> bool:
-        """Check if the configuration of the NLocal class is valid.
-
-        Returns:
-            True, if the configuration is valid and the circuit can be constructed. Otherwise
-            an ValueError is raised.
-
-        Raises:
-            ValueError: If the blocks are not set.
-            ValueError: If the number of repetitions is not set.
-            ValueError: If the qubit indices are not set.
-            ValueError: If the number of qubit indices does not match the number of blocks.
-            ValueError: If an index in the repetitions list exceeds the number of blocks.
-            ValueError: If the number of repetitions does not match the number of block-wise
-                parameters.
-            ValueError: If a specified qubit index is larger than the (manually set) number of
-                qubits.
-        """
-        if self.num_qubits is None:
-            raise ValueError('No number of qubits specified.')
-
-        # check no needed parameters are None
-        if self.entanglement_blocks is None and self.rotation_blocks is None:
-            raise ValueError('The blocks are not set.')
-
-        if isinstance(self._reps, list):
-            if len(self._reps) > 0:
-                if max(self._reps) >= len(self._blocks):
-                    raise ValueError('Trying to add a non-existing block to the circuit.')
-
-        return True
-
-    def _rotation_reps(self) -> List[int]:
-        """Return the indices of the rotation layers that go in the circuit."""
-        if self.rotation_blocks is None or len(self.rotation_blocks) == 0:
-            return []
-        # + 1 for final rotation layer
-        return [i % len(self.rotation_blocks) for i in range(self._reps + 1)]
-
-    def _entanglement_reps(self) -> List[int]:
-        """Return the indices of the entanglement layers that go in the circuit."""
-        if self.entanglement_blocks is None or len(self.entanglement_blocks) == 0:
-            return []
-        return [i % len(self.entanglement_blocks) for i in range(self._reps)]
-
-    def print_settings(self) -> str:
-        """Returns information about the setting.
-
-        Returns:
-            The class name and the attributes/parameters of the instance as ``str``.
-        """
-        ret = 'NLocal: {}\n'.format(self.__class__.__name__)
-        params = ''
-        for key, value in self.__dict__.items():
-            if key[0] == '_':
-                params += '-- {}: {}\n'.format(key[1:], value)
-        ret += '{}'.format(params)
-        return ret
-
-    @property
-    def setting(self):
-        """Deprecated, moved to __str__."""
-        return self.print_settings()
-
-    @property
-    def preferred_init_points(self):
-        """TODO Deprecate.
-
-        Returns preferred init points."""
-        return None
-
-    @property
-    def support_parameterized_circuit(self):
-        """TODO Deprecate.
-
-        Whether it is supported to bind parameters in this circuit.
-        """
-        return True
-
-    @property
-    def ordered_parameters(self) -> List[Parameter]:
-        """The parameters used in the underlying circuit.
-
-        Returns:
-            The parameters objects used in the circuit.
-
-        Raises:
-            CircuitError: If the length of ordered parameters does not match the number of
-                parameters in the circuit and they are not a ``ParameterVector`` (which could
-                be resized to fit the number of parameters).
-        """
-        if isinstance(self._ordered_parameters, ParameterVector):
-            self._ordered_parameters.resize(self.num_parameters_settable)
-            return list(self._ordered_parameters)
-
-        if len(self._ordered_parameters) != self.num_parameters_settable:
-            raise CircuitError('The number of ordered parameters does not match the number '
-                               'of circuit parameters, {} != {}'.format(
-                                   len(self._ordered_parameters), self.num_parameters_settable
-                               ))
-        return self._ordered_parameters
-
-    @ordered_parameters.setter
-    def ordered_parameters(self, parameters: Union[ParameterVector, List[Parameter]]) -> None:
-        """Set the parameters used in the underlying circuit.
-
-        Args:
-            The parameters to be used in the underlying circuit.
-        """
-        self.assign_parameters(dict(zip(self._ordered_parameters, parameters)))
-
-    @property
-    def entanglement_blocks(self) -> List[Instruction]:
-        """The blocks in the NLocal.
-
-        Returns:
-            The blocks that define the NLocal.
-        """
-        return self._entanglement_blocks
 
     @property
     def rotation_blocks(self) -> List[Instruction]:
@@ -329,6 +253,217 @@ class NLocal(QuantumCircuit):
 
         self._invalidate()
         self._entanglement_blocks = [self._convert_to_block(block) for block in blocks]
+
+    @property
+    def entanglement(self) -> Union[str, List[str], List[List[str]], List[int], List[List[int]],
+                                    List[List[List[int]]], List[List[List[List[int]]]],
+                                    Callable[[int], str], Callable[[int], List[List[int]]]]:
+        """Get the entanglement strategy.
+
+        Returns:
+            The entanglement strategy, see :meth:`get_entangler_map` for more detail on how the
+            format is interpreted.
+        """
+        return self._entanglement
+
+    @entanglement.setter
+    def entanglement(self, entanglement: Optional[Union[str, List[str], List[List[str]], List[int],
+                                                        List[List[int]], List[List[List[int]]],
+                                                        List[List[List[List[int]]]],
+                                                        Callable[[int], str],
+                                                        Callable[[int], List[List[int]]]]]) -> None:
+        """Set the entanglement strategy.
+
+        Args:
+            entanglement: The entanglement strategy. See :meth:`get_entangler_map` for more detail
+                on the supported formats.
+        """
+        self._entanglement = entanglement
+
+    @property
+    def num_layers(self) -> int:
+        """Return the number of layers in the n-local circuit.
+
+        Returns:
+            The number of layers in the circuit.
+        """
+        return 2 * self._reps + int(not self._skip_final_rotation_layer)
+
+    def _check_configuration(self) -> bool:
+        """Check if the configuration of the NLocal class is valid.
+
+        Returns:
+            True, if the configuration is valid and the circuit can be constructed. Otherwise
+            an ValueError is raised.
+
+        Raises:
+            ValueError: If the blocks are not set.
+            ValueError: If the number of repetitions is not set.
+            ValueError: If the qubit indices are not set.
+            ValueError: If the number of qubit indices does not match the number of blocks.
+            ValueError: If an index in the repetitions list exceeds the number of blocks.
+            ValueError: If the number of repetitions does not match the number of block-wise
+                parameters.
+            ValueError: If a specified qubit index is larger than the (manually set) number of
+                qubits.
+        """
+        if self.num_qubits is None:
+            raise ValueError('No number of qubits specified.')
+
+        # check no needed parameters are None
+        if self.entanglement_blocks is None and self.rotation_blocks is None:
+            raise ValueError('The blocks are not set.')
+
+        return True
+
+    @property
+    def ordered_parameters(self) -> List[Parameter]:
+        """The parameters used in the underlying circuit.
+
+        Returns:
+            The parameters objects used in the circuit.
+        """
+        if isinstance(self._ordered_parameters, ParameterVector):
+            self._ordered_parameters.resize(self.num_parameters_settable)
+            return list(self._ordered_parameters)
+
+        return self._ordered_parameters
+
+    @ordered_parameters.setter
+    def ordered_parameters(self, parameters: Union[ParameterVector, List[Parameter]]) -> None:
+        """Set the parameters used in the underlying circuit.
+
+        Args:
+            The parameters to be used in the underlying circuit.
+
+        Raises:
+            ValueError: If the length of ordered parameters does not match the number of
+                parameters in the circuit and they are not a ``ParameterVector`` (which could
+                be resized to fit the number of parameters).
+        """
+        if not isinstance(parameters, ParameterVector) \
+                and len(parameters) != self.num_parameters_settable:
+            raise ValueError('The length of ordered parameters must be equal to the number of '
+                             'settable parameters in the circuit ({}), but is {}'.format(
+                                 self.num_parameters_settable, len(parameters)
+                             ))
+        self._ordered_parameters = parameters
+        self._invalidate()
+
+    @property
+    def insert_barriers(self) -> bool:
+        """Check whether the NLocal inserts barriers or not.
+
+        Returns:
+            True, if barriers are inserted in between the layers, False if not.
+        """
+        return self._insert_barriers
+
+    @insert_barriers.setter
+    def insert_barriers(self, insert_barriers: bool) -> None:
+        """Specify whether barriers should be inserted in between the layers or not.
+
+        Args:
+            insert_barriers: If True, barriers are inserted, if False not.
+        """
+        # if insert_barriers changes, we have to invalidate the circuit definition,
+        # if it is the same as before we can leave the NLocal instance as it is
+        if insert_barriers is not self._insert_barriers:
+            self._invalidate()
+            self._insert_barriers = insert_barriers
+
+    @property
+    def num_parameters_settable(self):
+        """The number of total parameters that can be set to distinct values."""
+        num = 0
+
+        for i in range(self._reps):
+            for j, block in enumerate(self.entanglement_blocks):
+                entangler_map = self.get_entangler_map(i, j, block.num_qubits)
+                num += len(entangler_map) * len(get_parameters(block))
+
+        if self._skip_unentangled_qubits:
+            entangled_qubits = set()
+            for i in range(self._reps):
+                for j, block in enumerate(self.entanglement_blocks):
+                    entangler_map = self.get_entangler_map(i, j, block.num_qubits)
+                    num += len(entangler_map) * len(get_parameters(block))
+                    entangled_qubits.update([idx for indices in entangler_map for idx in indices])
+            unentangled_qubits = set(range(self.num_qubits)) - entangled_qubits
+
+        num_rot = 0
+        for block in self.rotation_blocks:
+            block_indices = [
+                list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
+                for j in range(self.num_qubits // block.num_qubits)
+            ]
+            if self._skip_unentangled_qubits:
+                block_indices = [indices for indices in block_indices
+                                 if set(indices).isdisjoint(unentangled_qubits)]
+            num_rot += len(block_indices) * len(get_parameters(block))
+
+        num += num_rot * (self._reps + int(not self._skip_final_rotation_layer))
+
+        return num
+
+    @property
+    def parameters(self) -> Set[Parameter]:
+        """Get the parameters of the NLocal.
+
+        Only the so-called "surface parameters" of the NLocal are subject to change, these
+        can be modified and re-assigned to new values. Below, the NLocal keeps track of the
+        "base parameters" which remain unique.
+
+        Returns:
+            A list containing the surface parameters.
+        """
+        self._build()
+        return super().parameters
+
+    @property
+    def reps(self) -> Union[int, List[int]]:
+        """Return reps as integer, or if not available, as list.
+
+        Returns:
+            The repetitions. If it is an integer the repetitions specify how often
+            all blocks are repeated. If a list of integers, each element is an index specifying
+            which block is added to the NLocal.
+        """
+        return self._reps
+
+    @reps.setter
+    def reps(self, repetitions: int) -> None:
+        """Set the repetitions.
+
+        Args:
+            repetitions: The new repetitions.
+        """
+        if repetitions != self._reps:
+            self._invalidate()
+            self._reps = repetitions
+
+    def print_settings(self) -> str:
+        """Returns information about the setting.
+
+        Returns:
+            The class name and the attributes/parameters of the instance as ``str``.
+        """
+        ret = 'NLocal: {}\n'.format(self.__class__.__name__)
+        params = ''
+        for key, value in self.__dict__.items():
+            if key[0] == '_':
+                params += '-- {}: {}\n'.format(key[1:], value)
+        ret += '{}'.format(params)
+        return ret
+
+    @property
+    def preferred_init_points(self) -> Optional[List[float]]:
+        """The initial points for the parameters. Can be stored as initial guess in optimization.
+
+        Returns:
+            The initial values for the parameters, or None, if none have been set.
+        """
+        return None
 
     # pylint:disable=too-many-return-statements
     def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
@@ -429,22 +564,6 @@ class NLocal(QuantumCircuit):
         raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
 
     @property
-    def entanglement(self):
-        """Get the entanglement strategy."""
-        return self._entanglement
-
-    @entanglement.setter
-    def entanglement(self, entanglement: Optional[Union[str, List[str], List[List[int]],
-                                                        List[List[List[int]]]]]) -> None:
-        """Set the entanglement strategy."""
-        self._entanglement = entanglement
-
-    @property
-    def num_layers(self):
-        """Return the number of layers in the n-local circuit."""
-        return 2 * self._reps + int(not self._skip_final_rotation_layer)
-
-    @property
     def initial_state(self) -> 'InitialState':
         """Return the initial state that is added in front of the NLocal.
 
@@ -484,61 +603,8 @@ class NLocal(QuantumCircuit):
         self._invalidate()
 
     @property
-    def insert_barriers(self) -> bool:
-        """Check whether the NLocal inserts barriers or not.
-
-        Returns:
-            True, if barriers are inserted in between the layers, False if not.
-        """
-        return self._insert_barriers
-
-    @insert_barriers.setter
-    def insert_barriers(self, insert_barriers: bool) -> None:
-        """Specify whether barriers should be inserted in between the layers or not.
-
-        Args:
-            insert_barriers: If True, barriers are inserted, if False not.
-        """
-        # if insert_barriers changes, we have to invalidate the circuit definition,
-        # if it is the same as before we can leave the NLocal instance as it is
-        if insert_barriers is not self._insert_barriers:
-            self._invalidate()
-            self._insert_barriers = insert_barriers
-
-    @property
-    def num_qubits(self) -> int:
-        """Returns the number of qubits in this NLocal.
-
-        If the number of qubits has not been explicitly set via the setter or the initial state
-        (which dictates the number of qubits), infer the number of qubits from the qubit indices
-        of the blocks.
-
-        Returns:
-            The number of qubits.
-        """
-        # get the maximum number of qubits from the qubit indices
-        return self._num_qubits or 0
-
-    @num_qubits.setter
-    def num_qubits(self, num_qubits: int) -> None:
-        """Set the number of qubits for the NLocal.
-
-        This does not change the qubit indices. If the number of qubits is not sufficient for the
-        blocks in the NLocal, an err will be thrown upon circuit construction.
-
-        Args:
-            The new number of qubits.
-        """
-        if self._num_qubits != num_qubits:
-            # invalidate the circuit
-            self._invalidate()
-            self._num_qubits = num_qubits
-
-    @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:
         """Parameter bounds.
-
-        TODO change to return (-np.inf, np.inf) as unbounded?
 
         Returns:
             A list of pairs indicating the bounds, as (lower, upper).
@@ -556,94 +622,6 @@ class NLocal(QuantumCircuit):
             bounds: The new parameter bounds.
         """
         self._bounds = bounds
-
-    @property
-    def num_parameters_settable(self):
-        """The number of total parameters that can be set to distinct values."""
-        num = 0
-
-        for i in range(self._reps):
-            for j, block in enumerate(self.entanglement_blocks):
-                entangler_map = self.get_entangler_map(i, j, block.num_qubits)
-                num += len(entangler_map) * len(get_parameters(block))
-
-        if self._skip_unentangled_qubits:
-            entangled_qubits = set()
-            for i in range(self._reps):
-                for j, block in enumerate(self.entanglement_blocks):
-                    entangler_map = self.get_entangler_map(i, j, block.num_qubits)
-                    num += len(entangler_map) * len(get_parameters(block))
-                    entangled_qubits.update([idx for indices in entangler_map for idx in indices])
-            unentangled_qubits = set(range(self.num_qubits)) - entangled_qubits
-
-        num_rot = 0
-        for block in self.rotation_blocks:
-            block_indices = [
-                list(range(j * block.num_qubits, (j + 1) * block.num_qubits))
-                for j in range(self.num_qubits // block.num_qubits)
-            ]
-            if self._skip_unentangled_qubits:
-                block_indices = [indices for indices in block_indices
-                                 if set(indices).isdisjoint(unentangled_qubits)]
-            num_rot += len(block_indices) * len(get_parameters(block))
-
-        num += num_rot * (self._reps + int(not self._skip_final_rotation_layer))
-
-        return num
-
-    @property
-    def parameters(self) -> Set[Parameter]:
-        """Get the parameters of the NLocal.
-
-        Only the so-called "surface parameters" of the NLocal are subject to change, these
-        can be modified and re-assigned to new values. Below, the NLocal keeps track of the
-        "base parameters" which remain unique.
-
-        Returns:
-            A list containing the surface parameters.
-        """
-        self._build()
-        return super().parameters
-
-    @property
-    def reps(self) -> Union[int, List[int]]:
-        """Return reps as integer, or if not available, as list.
-
-        Returns:
-            The repetitions. If it is an integer the repetitions specify how often
-            all blocks are repeated. If a list of integers, each element is an index specifying
-            which block is added to the NLocal.
-        """
-        return self._reps
-
-    @reps.setter
-    def reps(self, repetitions: int) -> None:
-        """Set the repetitions.
-
-        Args:
-            repetitions: The new repetitions.
-        """
-        if repetitions != self._reps:
-            self._invalidate()
-            self._reps = repetitions
-
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return self._data
-
-    @property
-    def qregs(self):
-        """The quantum registers associated with the circuit."""
-        if self._data is None:
-            self._build()
-        return self._qregs
-
-    @qregs.setter
-    def qregs(self, qregs):
-        """Set the quantum registers associated with the circuit."""
-        self._qregs = qregs
 
     def _invalidate(self):
         """Invalidate the current circuit build."""
@@ -693,7 +671,7 @@ class NLocal(QuantumCircuit):
         # modify the circuit accordingly
         if self._data and front is False:
             if self._insert_barriers and len(self._data) > 0:
-                self.barrier()
+                self.barrier()  # pylint: disable=no-member
 
             if isinstance(entanglement, str):
                 entangler_map = get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
@@ -744,41 +722,6 @@ class NLocal(QuantumCircuit):
             self._ordered_parameters = new
 
         return super().assign_parameters(param_dict, inplace=inplace)
-
-    def to_circuit(self):
-        """Build and return the circuit."""
-        warnings.warn('Dont use to circuit!')
-        self._build()
-        return self
-
-    def construct_circuit(self,
-                          params: Union[List[float], List[Parameter], ParameterVector],
-                          q: Optional[QuantumRegister] = None,
-                          ) -> QuantumCircuit:
-        """Deprecated, use `to_circuit()`.
-
-        Args:
-            params: The parameters for the NLocal.
-            q: The qubit register to use to build the circuit. If None, a new register with the
-                name 'q' is created.
-
-        Returns:
-            The NLocal as circuit with the specified parameters.
-
-        Raises:
-            ValueError: If the qubit register is provided but the length does not coincide with the
-               number of qubits of the NLocal.
-        """
-        self.parameters = params
-        if q is None:
-            circuit = QuantumCircuit(self.num_qubits)
-        elif len(q) != self.num_qubits:
-            raise ValueError('The size of the register is not equal to the number of qubits.')
-        else:
-            circuit = QuantumCircuit(q)
-
-        circuit += self
-        return circuit
 
     def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
                            params=None):
@@ -875,20 +818,19 @@ class NLocal(QuantumCircuit):
         if self._data:
             return
 
-        _ = self._configuration_is_valid()
+        _ = self._check_configuration()
 
         self._data = []
 
         if self.num_qubits == 0:
             return
 
+        self.qregs = [QuantumRegister(self.num_qubits, name='q')]
         # use the initial state circuit if it is not None
         if self._initial_state:
-            circuit = self._initial_state.construct_circuit('circuit')
+            circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
             self += circuit
-        else:
-            self.qregs = [QuantumRegister(self.num_qubits, name='q')]
-            # circuit = QuantumCircuit(q)
+
         param_iter = iter(self.ordered_parameters)
 
         # build the prepended layers
@@ -919,11 +861,30 @@ class NLocal(QuantumCircuit):
         # add the appended layers
         self._build_additional_layers('appended')
 
+    # pylint: disable=unused-argument
+    def parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
+        """If certain blocks should use certain parameters this method can be overriden."""
+        return None
+
+    def __str__(self) -> str:
+        """Draw this NLocal in circuit format using the standard gates.
+
+        Returns:
+            A single string representing this NLocal.
+        """
+        basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
+                       'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
+                       'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
+        return transpile(self, basis_gates=basis_gates,
+                         optimization_level=0).draw().single_string()
+
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:
-    """Return the list of Parameters inside block.
+    """Return the list of Parameters objects inside a circuit or instruction.
 
-    TODO This functionality will be moved to another location, this is just a helper.
+    This is required since, in a standard gate the parameters are not necessarily Parameter
+    objects (e.g. U3Gate(0.1, 0.2, 0.3).params == [0.1, 0.2, 0.3]) and instructions and
+    circuits do not have the same interface for parameters.
     """
     if isinstance(block, QuantumCircuit):
         return list(block.parameters)
