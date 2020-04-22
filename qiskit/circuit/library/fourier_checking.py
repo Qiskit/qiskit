@@ -56,15 +56,12 @@ class FourierChecking(QuantumCircuit):
 
     def __init__(self,
                  f: List[int],
-                 g: List[int]) -> QuantumCircuit:
+                 g: List[int]) -> None:
         """Create Fourier checking circuit.
 
         Args:
             f: truth table for f, length 2**n list of {1,-1}.
             g: truth table for g, length 2**n list of {1,-1}.
-
-        Returns:
-            QuantumCircuit: Fourier checking circuit for functions f and g.
 
         Raises:
             CircuitError: if the inputs f and g are not valid.

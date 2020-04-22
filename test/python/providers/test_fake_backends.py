@@ -68,3 +68,15 @@ class TestFakeBackends(QiskitTestCase):
             self.assertIsInstance(backend.properties().to_dict(), dict)
         else:
             self.assertTrue(backend.configuration().simulator)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_to_dict_configuration(self, backend):
+        configuration = backend.configuration()
+        self.assertIsInstance(configuration.to_dict(), dict)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_defaults_to_dict(self, backend):
+        if hasattr(backend, 'defaults'):
+            self.assertIsInstance(backend.defaults().to_dict(), dict)
+        else:
+            self.skipTest('Backend %s does not have defaults' % backend)

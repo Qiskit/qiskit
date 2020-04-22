@@ -17,8 +17,8 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.pulse_lib import (SamplePulse, ConstantPulse, Gaussian, GaussianSquare, Drag,
-                                    gaussian)
+from qiskit.pulse.pulse_lib import (SamplePulse, Constant, ConstantPulse, Gaussian,
+                                    GaussianSquare, Drag, gaussian)
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
 
@@ -96,7 +96,7 @@ class TestParametricPulses(QiskitTestCase):
         """Test that parametric pulses can be constructed without error."""
         Gaussian(duration=25, sigma=4, amp=0.5j)
         GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
-        ConstantPulse(duration=150, amp=0.1 + 0.4j)
+        Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
     def test_sampled_pulse(self):
@@ -148,7 +148,7 @@ class TestParametricPulses(QiskitTestCase):
         np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples,
                                        gaus.get_sample_pulse().samples)
         gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=121)
-        const = ConstantPulse(duration=duration, amp=amp)
+        const = Constant(duration=duration, amp=amp)
         np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples[2:-2],
                                        const.get_sample_pulse().samples[2:-2])
 
@@ -205,7 +205,7 @@ class TestParametricPulses(QiskitTestCase):
 
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
-        const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
+        const = Constant(duration=150, amp=0.1 + 0.4j)
         self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_sample_pulse().samples), 150)
 
@@ -214,7 +214,7 @@ class TestParametricPulses(QiskitTestCase):
         attribute."""
         drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
         self.assertEqual(set(drag.parameters.keys()), {'duration', 'amp', 'sigma', 'beta'})
-        const = ConstantPulse(duration=150, amp=1)
+        const = Constant(duration=150, amp=1)
         self.assertEqual(set(const.parameters.keys()), {'duration', 'amp'})
 
     def test_repr(self):
@@ -226,12 +226,12 @@ class TestParametricPulses(QiskitTestCase):
                          'GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=3)')
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
         self.assertEqual(repr(drag), 'Drag(duration=5, amp=(0.5+0j), sigma=7, beta=1)')
-        const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
-        self.assertEqual(repr(const), 'ConstantPulse(duration=150, amp=(0.1+0.4j))')
+        const = Constant(duration=150, amp=0.1 + 0.4j)
+        self.assertEqual(repr(const), 'Constant(duration=150, amp=(0.1+0.4j))')
 
     def test_complex_param_is_complex(self):
         """Check that complex param 'amp' is cast to complex."""
-        const = ConstantPulse(duration=150, amp=1)
+        const = Constant(duration=150, amp=1)
         self.assertIsInstance(const.amp, complex)
 
     def test_param_validation(self):
@@ -241,11 +241,18 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             GaussianSquare(duration=150, amp=0.2, sigma=8, width=160)
         with self.assertRaises(PulseError):
-            ConstantPulse(duration=150, amp=0.9 + 0.8j)
+            Constant(duration=150, amp=0.9 + 0.8j)
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4j)
+
+    def test_deprecated_parametric_pulses(self):
+        """Test deprecated parametric pulses."""
+        with self.assertWarns(DeprecationWarning):
+            const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
+            self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
+            self.assertEqual(len(const.get_sample_pulse().samples), 150)
 
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
