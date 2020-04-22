@@ -85,7 +85,7 @@ class ControlledGate(Gate):
            qc2.append(custom, [0, 3, 1, 2])
            qc2.draw()
         """
-        super().__init__(name, num_qubits, params, label=label)
+        super().__init__(name, num_qubits, params)
         if num_ctrl_qubits < num_qubits:
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
@@ -99,6 +99,7 @@ class ControlledGate(Gate):
                     self.base_gate = base_gate.base_gate
                 else:
                     self.base_gate = base_gate
+                self.base_gate.label = label
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
 
