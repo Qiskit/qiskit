@@ -855,13 +855,13 @@ class MatplotlibDrawer:
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
-                                                 text="|psi>",
+                                                 text=op.op.label or "|psi>",
                                                  subtext=vec)
                 elif op.name == 'unitary':
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
-                                                 text="Unitary")
+                                                 text=op.op.label or "Unitary")
                 elif isinstance(op.op, ControlledGate) and op.name not in [
                         'ccx', 'cx', 'c3x', 'c4x', 'cy', 'cz', 'ch', 'cu1', 'cu3', 'crz',
                         'cswap']:
@@ -998,12 +998,13 @@ class MatplotlibDrawer:
                     # dcx and iswap gate
                     elif op.name in ['dcx', 'iswap']:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     fc=self._style.dispcol[op.name], text=op.name)
+                                                     fc=self._style.dispcol[op.name],
+                                                     text=op.op.label or op.name)
 
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     text=op.name)
+                                                     text=op.op.label or op.name)
                 #
                 # draw multi-qubit gates (n=3)
                 #
@@ -1035,12 +1036,12 @@ class MatplotlibDrawer:
                     # custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     text=op.name)
+                                                     text=op.op.label or op.name)
 
                 # draw custom multi-qubit gate
                 elif len(q_xy) > 5:
                     self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                 text=op.name)
+                                                 text=op.op.label or op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
