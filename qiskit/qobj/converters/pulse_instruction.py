@@ -266,7 +266,7 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': 'sf',
+            'name': 'setf',
             't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
             'frequency': instruction.frequency
