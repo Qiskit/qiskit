@@ -521,7 +521,7 @@ class QobjToInstructionConverter:
 
         return instructions.ShiftPhase(phase, channel) << t0
 
-    @bind_name('sf')
+    @bind_name('setf')
     def convert_set_frequency(self, instruction):
         """Return converted `SetFrequencyInstruction`.
 
