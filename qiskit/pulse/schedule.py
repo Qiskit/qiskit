@@ -21,8 +21,10 @@ import abc
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 import warnings
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
+
+import numpy as np
 
 from qiskit.util import is_main_process
 from .timeslots import Interval, TimeslotCollection
@@ -71,9 +73,15 @@ class Schedule(ScheduleComponent):
             # convert to tuple
             sched_pair = tuple(sched_pair)
             insert_time, sched = sched_pair
+
+            if not isinstance(insert_time, (int, np.integer)):
+                raise PulseError('Instruction scheduled at non-integer')
+
             sched_timeslots = sched.timeslots
+
             if insert_time:
                 sched_timeslots = sched_timeslots.shift(insert_time)
+
             timeslots.append(sched_timeslots)
             _children.append(sched_pair)
 
@@ -83,8 +91,8 @@ class Schedule(ScheduleComponent):
             formatted_schedules = []
             for sched_pair in schedules:
                 sched = sched_pair[1] if isinstance(sched_pair, (List, tuple)) else sched_pair
-                formatted_sched = 'Schedule(name="{0}", duration={1})'.format(sched.name,
-                                                                              sched.duration)
+                formatted_sched = 'Schedule(name="{0}", duration={1})'.format(
+                    sched.name, sched.duration)
                 formatted_schedules.append(formatted_sched)
             formatted_schedules = ", ".join(formatted_schedules)
             raise PulseError('Schedules overlap: {0} for {1}'

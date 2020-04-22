@@ -19,6 +19,8 @@ from collections import defaultdict
 import itertools
 from typing import Tuple, Union, Optional
 
+import numpy as np
+
 from .channels import Channel
 from .exceptions import PulseError
 
@@ -39,12 +41,21 @@ class Interval:
         Raises:
             PulseError: when invalid time or duration is specified
         """
-        if start < 0:
-            raise PulseError("Cannot create Interval with negative starting value")
-        if stop < 0:
-            raise PulseError("Cannot create Interval with negative stopping value")
-        if start > stop:
-            raise PulseError("Cannot create Interval with value start after stop")
+        if not isinstance(start, (int, np.integer)):
+            raise PulseError(
+                "Cannot create Interval with non-integer starting value")
+        elif not isinstance(stop, (int, np.integer)):
+            raise PulseError(
+                "Cannot create Interval with non-integer stopping value")
+        elif start < 0:
+            raise PulseError(
+                "Cannot create Interval with negative starting value")
+        elif stop < 0:
+            raise PulseError(
+                "Cannot create Interval with negative stopping value")
+        elif start > stop:
+            raise PulseError(
+                "Cannot create Interval with value start after stop")
         self._start = start
         self._stop = stop
 
