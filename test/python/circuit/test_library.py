@@ -12,21 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
-                                               IntegerComparator, PiecewiseLinearPauliRotations,
-                                               WeightedAdder)
-from qiskit.circuit.library.n_local import NLocal, TwoLocal
-from qiskit.circuit.library.basis_change import QFT
-from qiskit.circuit.library import Permutation, XOR, InnerProduct
-from qiskit.quantum_info import Statevector, Operator
-from qiskit.circuit.library import (Permutation, XOR, InnerProduct, OR, AND, QFT,
-                                    LinearPauliRotations, PolynomialPauliRotations,
-                                    IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal)
-from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate, SwapGate
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.circuit.random.utils import random_circuit
 """Test library of quantum circuits."""
 
 import unittest
@@ -39,9 +24,14 @@ from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
-<< << << < HEAD
-== == == =
->>>>>> > master
+from qiskit.circuit.library import (Permutation, XOR, InnerProduct, OR, AND, QFT,
+                                    LinearPauliRotations, PolynomialPauliRotations,
+                                    IntegerComparator, PiecewiseLinearPauliRotations,
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal)
+from qiskit.circuit.random.utils import random_circuit
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate, SwapGate
+from qiskit.quantum_info import Statevector, Operator
 
 
 @ddt
@@ -1240,12 +1230,10 @@ class TestTwoLocal(QiskitTestCase):
         self.assertCircuitEqual(reference, circuit)
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
+@ddt
 class TestDiagonalGate(QiskitTestCase):
     """Test diagonal circuit."""
+
     @data(
         [0, 0],
         [0, 0.8],
@@ -1263,3 +1251,7 @@ class TestDiagonalGate(QiskitTestCase):
         ref_diag = Statevector(diag)
 
         self.assertTrue(simulated_diag.equiv(ref_diag))
+
+
+if __name__ == '__main__':
+    unittest.main()
