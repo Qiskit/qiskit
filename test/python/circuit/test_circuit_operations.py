@@ -18,6 +18,7 @@
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
+from qiskit import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
@@ -60,24 +61,6 @@ class TestCircuitOperations(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_combine_circuit_different(self):
-        """Test combining two circuits with different registers.
-        """
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc1 = QuantumCircuit(qr)
-        qc1.x(qr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
-        new_circuit = qc1 + qc2
-        backend = BasicAer.get_backend('qasm_simulator')
-        shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots,
-                         seed_simulator=78).result()
-        counts = result.get_counts()
-        target = {'11': shots}
-        self.assertEqual(counts, target)
-
     def test_combine_circuit_fail(self):
         """Test combining two circuits fails if registers incompatible.
 
@@ -91,8 +74,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(CircuitError, qc1.__add__, qc2)
-        self.assertRaises(CircuitError, qc1.__add__, qcr3)
+        self.assertRaises(QiskitError, qc1.__add__, qc2)
+        self.assertRaises(QiskitError, qc1.__add__, qcr3)
 
     def test_extend_circuit(self):
         """Test extending a circuit with same registers.
@@ -114,24 +97,6 @@ class TestCircuitOperations(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_extend_circuit_different_registers(self):
-        """Test extending a circuit with different registers.
-        """
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
-        qc1 = QuantumCircuit(qr)
-        qc1.x(qr)
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
-        qc1 += qc2
-        backend = BasicAer.get_backend('qasm_simulator')
-        shots = 1024
-        result = execute(qc1, backend=backend, shots=shots,
-                         seed_simulator=78).result()
-        counts = result.get_counts()
-        target = {'11': shots}
-        self.assertEqual(counts, target)
-
     def test_extend_circuit_fail(self):
         """Test extending a circuits fails if registers incompatible.
 
@@ -145,8 +110,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(CircuitError, qc1.__iadd__, qc2)
-        self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
+        self.assertRaises(QiskitError, qc1.__iadd__, qc2)
+        self.assertRaises(QiskitError, qc1.__iadd__, qcr3)
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.

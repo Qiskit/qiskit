@@ -255,7 +255,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
-        qc1 = QuantumCircuit(qr)
+        qc1 = QuantumCircuit(qr, cr)
         qc1.rx(theta, qr)
 
         phi = Parameter('phi')

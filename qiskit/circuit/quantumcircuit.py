@@ -377,7 +377,7 @@ class QuantumCircuit:
 
     def __add__(self, rhs):
         """Overload + to compose two circuits and return resulting circuit."""
-        return self.combine(rhs, inplace=False)
+        return self.compose(rhs, inplace=False)
 
     def __iadd__(self, rhs):
         """Overload += to compose with another circuit inplace."""
