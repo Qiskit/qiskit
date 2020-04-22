@@ -24,6 +24,7 @@ import numpy as np
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -449,21 +450,35 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, label=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction): Instruction instance to append
-            qargs (list(argument)): qubits to attach instruction to
-            cargs (list(argument)): clbits to attach instruction to
+            instruction (Instruction or QuantumCircuit or BaseOperator): instruction to append.
+            qargs (list(argument)): qubits to attach instruction to.
+            cargs (list(argument)): clbits to attach instruction to.
+            label (str): An optional label for the appended instruction (will override
+                any existing gate label).
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
         """
-        # Convert input to instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
-            instruction = instruction.to_instruction()
+        from qiskit.quantum_info.operators.base_operator import BaseOperator
+        # Convert input to Instruction
+        if isinstance(instruction, QuantumCircuit):
+            try:
+                instruction = instruction.to_gate()
+            except QiskitError:
+                instruction = instruction.to_instruction()
+        elif isinstance(instruction, BaseOperator):
+            try:
+                instruction = instruction.to_instruction()
+            except AttributeError:
+                raise CircuitError('Unable to append operator to circuit.')
+
+        if label is not None:
+            instruction.label = label
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
