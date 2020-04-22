@@ -161,13 +161,31 @@
                                 "delay"
                             ]
                         },
-                        "val": {
+                        "duration": {
                             "OneOf": [
                             {"items": {
                                 "type": "number"
                             },
-                            "maxItems": 2,
-                            "minItems": 2,
+                            "maxItems": 1,
+                            "minItems": 1,
+                            "type": "array"}
+                        ]},
+                        "t0": {
+                            "OneOf": [
+                            {"items": {
+                                "type": "number"
+                            },
+                            "maxItems": 1,
+                            "minItems": 1,
+                            "type": "array"}
+                        ]},
+                        "ch": {
+                            "OneOf": [
+                            {"items": {
+                                "type": "string"
+                            },
+                            "maxItems": 1,
+                            "minItems": 1,
                             "type": "array"}
                         ]}
                     },
