@@ -21,7 +21,7 @@ The :py:mod:`~qiskit.pulse.pulse_lib.discrete` module will generate
 
 The parametric pulses, :py:class:`~qiskit.pulse.pulse_lib.Gaussian`,
 :py:class:`~qiskit.pulse.pulse_lib.GaussianSquare`, :py:class:`~qiskit.pulse.pulse_lib.Drag` and
-:py:class:`~qiskit.pulse.pulse_lib.ConstantPulse` will generate parameterized descriptions of
+:py:class:`~qiskit.pulse.pulse_lib.Constant` will generate parameterized descriptions of
 those pulses, which can greatly reduce the size of the job sent to the backend.
 
 .. autosummary::
@@ -29,7 +29,7 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 
    ~qiskit.pulse.pulse_lib.discrete
    SamplePulse
-   ConstantPulse
+   Constant
    Drag
    Gaussian
    GaussianSquare
@@ -37,6 +37,7 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 """
 
 from .discrete import *
-from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, ConstantPulse
+from .parametric_pulses import (ParametricPulse, Gaussian, GaussianSquare,
+                                Drag, Constant, ConstantPulse)
 from .pulse import Pulse
 from .sample_pulse import SamplePulse

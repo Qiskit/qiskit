@@ -12,6 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
+                                               IntegerComparator, PiecewiseLinearPauliRotations,
+                                               WeightedAdder)
+from qiskit.circuit.library.n_local import NLocal, TwoLocal
+from qiskit.circuit.library.basis_change import QFT
+from qiskit.circuit.library import Permutation, XOR, InnerProduct
+from qiskit.quantum_info import Statevector, Operator
+from qiskit.circuit.library import (Permutation, XOR, InnerProduct, OR, AND, QFT,
+                                    LinearPauliRotations, PolynomialPauliRotations,
+                                    IntegerComparator, PiecewiseLinearPauliRotations,
+                                    WeightedAdder, Diagonal)
+from qiskit.quantum_info import Operator
+from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate, SwapGate
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.circuit.random.utils import random_circuit
 """Test library of quantum circuits."""
 
 import unittest
@@ -24,24 +39,47 @@ from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.random.utils import random_circuit
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate, SwapGate
-from qiskit.quantum_info import Operator
-
-from qiskit.circuit.library import Permutation, XOR, InnerProduct
-from qiskit.circuit.library.basis_change import QFT
-from qiskit.circuit.library.n_local import NLocal, TwoLocal
-from qiskit.circuit.library.arithmetic import (LinearPauliRotations, PolynomialPauliRotations,
-                                               IntegerComparator, PiecewiseLinearPauliRotations,
-                                               WeightedAdder)
+<< << << < HEAD
+== == == =
+>>>>>> > master
 
 
+@ddt
 class TestBooleanLogicLibrary(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
 
+    def assertBooleanFunctionIsCorrect(self, boolean_circuit, reference):
+        """Assert that ``boolean_circuit`` implements the reference boolean function correctly."""
+        circuit = QuantumCircuit(boolean_circuit.num_qubits)
+        circuit.h(list(range(boolean_circuit.num_variable_qubits)))
+        circuit.append(boolean_circuit.to_instruction(), list(range(boolean_circuit.num_qubits)))
+
+        # compute the statevector of the circuit
+        statevector = Statevector.from_label('0' * circuit.num_qubits)
+        statevector = statevector.evolve(circuit)
+
+        # trace out ancillas
+        probabilities = statevector.probabilities(
+            qargs=list(range(boolean_circuit.num_variable_qubits + 1))
+        )
+
+        # compute the expected outcome by computing the entries of the statevector that should
+        # have a 1 / sqrt(2**n) factor
+        expectations = np.zeros_like(probabilities)
+        for x in range(2 ** boolean_circuit.num_variable_qubits):
+            bits = np.array(list(bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)), dtype=int)
+            result = reference(bits[::-1])
+
+            entry = int(str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits), 2)
+            expectations[entry] = 1 / 2 ** boolean_circuit.num_variable_qubits
+
+        np.testing.assert_array_almost_equal(probabilities, expectations)
+
     def test_permutation(self):
-        """Test permutation circuit."""
+        """Test permutation circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
@@ -49,24 +87,81 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         self.assertEqual(circuit, expected)
 
     def test_permutation_bad(self):
-        """Test that [0,..,n-1] permutation is required (no -1 for last element)"""
+        """Test that [0,..,n-1] permutation is required (no -1 for last element).
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
     def test_xor(self):
-        """Test xor circuit."""
+        """Test xor circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = XOR(num_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit, expected)
 
     def test_inner_product(self):
-        """Test inner product circuit."""
+        """Test inner product circuit.
+
+        TODO add a test using assertBooleanFunctionIsCorrect
+        """
         circuit = InnerProduct(num_qubits=3)
         expected = QuantumCircuit(*circuit.qregs)
         expected.cz(0, 3)
         expected.cz(1, 4)
         expected.cz(2, 5)
         self.assertEqual(circuit, expected)
+
+    @data(
+        (2, None, 'noancilla'),
+        (5, None, 'noancilla'),
+        (2, [-1, 1], 'v-chain'),
+        (2, [-1, 1], 'noancilla'),
+        (5, [0, 0, -1, 1, -1], 'noancilla'),
+        (5, [-1, 0, 0, 1, 1], 'v-chain'),
+    )
+    @unpack
+    def test_or(self, num_variables, flags, mcx_mode):
+        """Test the or circuit."""
+        or_circuit = OR(num_variables, flags, mcx_mode=mcx_mode)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.any(flagged)
+
+        self.assertBooleanFunctionIsCorrect(or_circuit, reference)
+
+    @data(
+        (2, None, 'noancilla'),
+        (2, [-1, 1], 'v-chain'),
+        (5, [0, 0, -1, 1, -1], 'noancilla'),
+        (5, [-1, 0, 0, 1, 1], 'v-chain'),
+    )
+    @unpack
+    def test_and(self, num_variables, flags, mcx_mode):
+        """Test the and circuit."""
+        and_circuit = AND(num_variables, flags, mcx_mode=mcx_mode)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.all(flagged)
+
+        self.assertBooleanFunctionIsCorrect(and_circuit, reference)
 
 
 @ddt
@@ -115,6 +210,21 @@ class TestBasisChanges(QiskitTestCase):
             qft = qft.inverse()
         self.assertQFTIsCorrect(qft, inverse=inverse)
 
+    def test_qft_is_inverse(self):
+        """Test the is_inverse() method."""
+        qft = QFT(2)
+
+        with self.subTest(msg='initial object is not inverse'):
+            self.assertFalse(qft.is_inverse())
+
+        qft = qft.inverse()
+        with self.subTest(msg='inverted'):
+            self.assertTrue(qft.is_inverse())
+
+        qft = qft.inverse()
+        with self.subTest(msg='re-inverted'):
+            self.assertFalse(qft.is_inverse())
+
     def test_qft_mutability(self):
         """Test the mutability of the QFT circuit."""
         qft = QFT()
@@ -135,6 +245,15 @@ class TestBasisChanges(QiskitTestCase):
             qft.num_qubits = 4
             qft.do_swaps = False
             self.assertQFTIsCorrect(qft, add_swaps_at_end=True)
+
+        with self.subTest(msg='inverse'):
+            qft = qft.inverse()
+            qft.do_swaps = True
+            self.assertQFTIsCorrect(qft, inverse=True)
+
+        with self.subTest(msg='double inverse'):
+            qft = qft.inverse()
+            self.assertQFTIsCorrect(qft)
 
         with self.subTest(msg='set approximation'):
             qft.approximation_degree = 2
@@ -1123,3 +1242,24 @@ class TestTwoLocal(QiskitTestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestDiagonalGate(QiskitTestCase):
+    """Test diagonal circuit."""
+    @data(
+        [0, 0],
+        [0, 0.8],
+        [0, 0, 1, 1],
+        [0, 1, 0.5, 1],
+        (2 * np.pi * np.random.rand(2 ** 3)),
+        (2 * np.pi * np.random.rand(2 ** 4)),
+        (2 * np.pi * np.random.rand(2 ** 5))
+    )
+    def test_diag_gate(self, phases):
+        """Test correctness of diagonal decomposition."""
+        diag = [np.exp(1j * ph) for ph in phases]
+        qc = Diagonal(diag)
+        simulated_diag = Statevector(Operator(qc).data.diagonal())
+        ref_diag = Statevector(diag)
+
+        self.assertTrue(simulated_diag.equiv(ref_diag))
