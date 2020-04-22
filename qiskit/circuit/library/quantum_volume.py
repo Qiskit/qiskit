@@ -41,16 +41,13 @@ class QuantumVolume(QuantumCircuit):
     def __init__(self,
                  num_qubits: int,
                  depth: Optional[int] = None,
-                 seed: Optional[int] = None) -> QuantumCircuit:
+                 seed: Optional[int] = None) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
             seed: randomization seed.
-
-        Returns:
-            QuantumCircuit: a randomly constructed quantum volume model circuit.
 
         Reference Circuit:
             .. jupyter-execute::
