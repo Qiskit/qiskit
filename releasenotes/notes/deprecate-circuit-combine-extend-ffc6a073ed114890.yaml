@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Two ``QuantumCircuit`` methods ``combine()`` and ``extend()`` are deprecated,
+    in favor of ``QuantumCircuit.compose()``. The latter allows more flexibility
+    in composing two circuits that do not have matching registers. It does not,
+    however, automatically add qubits/clbits unlike the deprecated methods.
