@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,14 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The two-local gate circuit.
-
-TODO
-    * remove the temporary param substitution fix and move to circuits away from gates
-    * if entanglement is not a callable, store only 2 blocks, not all of them
-    * let identify gate return a type if possible to avoid substitution, handle the circuit
-        case differently
-"""
+"""The two-local gate circuit."""
 
 from typing import Union, Optional, List, Callable
 
@@ -37,13 +30,50 @@ from .n_local import NLocal
 class TwoLocal(NLocal):
     """The two-local gate circuit.
 
-    TODO
+    The two-local circuit is a parameterized circuit consisting of alternating rotation layers and
+    entanglement layers. The rotation layers are single qubit gates applied on all qubits.
+    The entanglement layer uses two-qubit gates to entangle the qubits according to a strategy set
+    using ``entanglement``. Both, the rotation and entanglement gates can be specified as
+    string (e.g. ``'ry'`` or ``'cx'``), as gate-type (e.g. ``RYGate`` or ``CXGate``) or
+    as QuantumCircuit (e.g. a 1-qubit circuit or 2-qubit circuit).
+
+    A set of default entanglement strategies is provided:
+
+    * ``'full'`` entanglement is each qubit is entangled with all the others.
+    * ``'linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+      for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
+    * ``'circular'`` entanglement is linear entanglement but with an additional entanglement of the
+      first and last qubit before the linear part.
+    * ``'sca'`` (shifted-circular-alternating) entanglement it is a generalized and modified version
+      of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
+      It consists of circular entanglement where the 'long' entanglement connecting the first with
+      the last qubit is shifted by one each block.  Furthermore the role of control and target
+      qubits are swapped every block (therefore alternating).
+
+    The entanglement can further be specified using an entangler map, which is a list of index
+    pairs, such as
+
+    >>> entangler_map = [(0, 1), (1, 2), (2, 0)]
+
+    If different entanglements per block should be used, provide a list of entangler maps.
+    See the examples below on how this can be used.
+
+    >>> entanglement = [entangler_map_layer_1, entangler_map_layer_2, ... ]
+
+    Barriers can be inserted in between the different layers for better visualization using the
+    ``insert_barriers`` attribute.
+
+    For each parameterized gate a new parameter is generated using a
+    :class:`~qiskit.circuit.library.ParameterVector`. The name of these parameters can be chosen
+    using the ``parameter_prefix``.
     """
 
     def __init__(self,
                  num_qubits: Optional[int] = None,
-                 rotation_blocks: Optional[Union[str, List[str], type, List[type]]] = None,
-                 entanglement_blocks: Optional[Union[str, List[str], type, List[type]]] = None,
+                 rotation_blocks: Optional[Union[str, List[str], type, List[type],
+                                                 QuantumCircuit, List[QuantumCircuit]]] = None,
+                 entanglement_blocks: Optional[Union[str, List[str], type, List[type],
+                                                     QuantumCircuit, List[QuantumCircuit]]] = None,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  reps: int = 3,
                  skip_unentangled_qubits: bool = False,
@@ -52,10 +82,10 @@ class TwoLocal(NLocal):
                  insert_barriers: bool = False,
                  initial_state: Optional['InitialState'] = None,
                  ) -> None:
-        """Initializer. Assumes that the type hints are obeyed for now.
+        """Construct a new two-local circuit.
 
         Args:
-            num_qubits: The number of qubits of the Ansatz.
+            num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
                 a gate (e.g. 'ry') or the gate type itself (e.g. RYGate).
                 If only one gate is provided, the gate same gate is applied to each qubit.
@@ -82,11 +112,10 @@ class TwoLocal(NLocal):
                 number of its occurrence with this specified prefix.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted. Defaults to False.
-            initial_state: An `'InitialState'` object to prepend to the Ansatz.
-                TODO deprecate this feature in favor of prepend or overloading __add__ in
-                the initial state class
+            initial_state: An `'InitialState'` object to prepend to the circuit.
 
         Examples:
+
             >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
             >>> print(two)  # decompose the layers into standard gates
                  ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
@@ -131,7 +160,19 @@ class TwoLocal(NLocal):
             q_2: ─────┼──────┤ Ry(θ[1]) ├─────┼──────┤ Ry(θ[1]) ├
                  ┌────┴─────┐└──────────┘┌────┴─────┐└──────────┘
             q_3: ┤ Ry(θ[0]) ├────────────┤ Ry(θ[0]) ├────────────
-                 └──────────┘            └──────────┘
+                 └──────────┘            └─────────
+
+            >>> layer_1 = [(0, 1), (0, 2)]
+            >>> layer_2 = [(1, 2)]
+            >>> two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True)
+            >>> print(two)
+                 ┌───┐ ░            ░ ┌───┐ ░       ░ ┌───┐
+            q_0: ┤ X ├─░───■────■───░─┤ X ├─░───────░─┤ X ├
+                 ├───┤ ░ ┌─┴─┐  │   ░ ├───┤ ░       ░ ├───┤
+            q_1: ┤ X ├─░─┤ X ├──┼───░─┤ X ├─░───■───░─┤ X ├
+                 ├───┤ ░ └───┘┌─┴─┐ ░ ├───┤ ░ ┌─┴─┐ ░ ├───┤
+            q_2: ┤ X ├─░──────┤ X ├─░─┤ X ├─░─┤ X ├─░─┤ X ├
+                 └───┘ ░      └───┘ ░ └───┘ ░ └───┘ ░ └───┘
         """
         super().__init__(num_qubits=num_qubits,
                          insert_barriers=insert_barriers, initial_state=initial_state,

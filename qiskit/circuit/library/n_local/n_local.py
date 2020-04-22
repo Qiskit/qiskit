@@ -12,17 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The NLocal class.
+"""The n-local circuit class."""
 
-TODO
-    * store circuits instead of gates?
-        - Reverting to circuits in future anyways
-        - Performance difference?
-    * add transpile feature
-    * rename append to combine(after=True) with to support after/before
-"""
-
-# import copy
 import warnings
 import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set
@@ -38,7 +29,19 @@ logger = logging.getLogger(__name__)
 
 
 class NLocal(QuantumCircuit):
-    """The n-local circuit class."""
+    """The n-local circuit class.
+
+    The structure of the NLocal are repeated parameterized circuit-blocks (referred to
+    as blocks in the code). For every block, qubit indices indicate on which qubits the block
+    acts on. Which and how blocks are repeated is determined via the ``reps`` argument.
+    If the same block is supposed to be repeated several times with the same qubit indices,
+    it is only stored once.  On circuit construction, copies of the blocks are inserted in the
+    NLocal with new, unique parameters.
+    These "base parameters" do not change. The user modifies "surface parameters" which are
+    bound to the circuit upon requesting the circuit.
+    If specified, barriers can be inserted in between every block.
+    If an initial state is provided, it is added in front of the NLocal.
+    """
 
     def __init__(self,
                  num_qubits: Optional[int] = None,
@@ -56,16 +59,6 @@ class NLocal(QuantumCircuit):
                  initial_state: Optional['InitialState'] = None) -> None:
         """Create a new n-local circuit.
 
-        The structure of the NLocal are repeated parameterized circuit-blocks (referred to
-        as blocks in the code). For every block, qubit indices indicate on which qubits the block
-        acts on. Which and how blocks are repeated is determined via the ``reps`` argument.
-        If the same block is supposed to be repeated several times with the same qubit indices,
-        it is only stored once.  On circuit construction, copies of the blocks are inserted in the
-        NLocal with new, unique parameters.
-        These "base parameters" do not change. The user modifies "surface parameters" which are
-        bound to the circuit upon requesting the circuit.
-        If specified, barriers can be inserted in between every block.
-        If an initial state is provided, it is added in front of the NLocal.
 
         Args:
             num_qubits: The number of qubits of the circuit.
