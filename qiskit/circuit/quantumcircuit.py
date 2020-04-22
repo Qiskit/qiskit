@@ -489,8 +489,7 @@ class QuantumCircuit:
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator): instruction
-                to append.
+            instruction (Instruction or QuantumCircuit or BaseOperator): instruction to append.
             qargs (list(argument)): qubits to attach instruction to.
             cargs (list(argument)): clbits to attach instruction to.
             label (str): An optional label for the appended instruction (will override
