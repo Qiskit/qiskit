@@ -195,6 +195,21 @@ class TestBasisChanges(QiskitTestCase):
             qft = qft.inverse()
         self.assertQFTIsCorrect(qft, inverse=inverse)
 
+    def test_qft_is_inverse(self):
+        """Test the is_inverse() method."""
+        qft = QFT(2)
+
+        with self.subTest(msg='initial object is not inverse'):
+            self.assertFalse(qft.is_inverse())
+
+        qft = qft.inverse()
+        with self.subTest(msg='inverted'):
+            self.assertTrue(qft.is_inverse())
+
+        qft = qft.inverse()
+        with self.subTest(msg='re-inverted'):
+            self.assertFalse(qft.is_inverse())
+
     def test_qft_mutability(self):
         """Test the mutability of the QFT circuit."""
         qft = QFT()
@@ -215,6 +230,15 @@ class TestBasisChanges(QiskitTestCase):
             qft.num_qubits = 4
             qft.do_swaps = False
             self.assertQFTIsCorrect(qft, add_swaps_at_end=True)
+
+        with self.subTest(msg='inverse'):
+            qft = qft.inverse()
+            qft.do_swaps = True
+            self.assertQFTIsCorrect(qft, inverse=True)
+
+        with self.subTest(msg='double inverse'):
+            qft = qft.inverse()
+            self.assertQFTIsCorrect(qft)
 
         with self.subTest(msg='set approximation'):
             qft.approximation_degree = 2
