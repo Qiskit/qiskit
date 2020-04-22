@@ -18,7 +18,7 @@ import warnings
 from typing import Optional
 
 from ..channels import PulseChannel
-from ..pulse_lib import SamplePulse
+from ..library import SamplePulse
 from ..instructions import Instruction
 
 

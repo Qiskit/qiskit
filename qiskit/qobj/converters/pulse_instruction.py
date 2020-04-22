@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels, instructions, pulse_lib
+from qiskit.pulse import commands, channels, instructions, library
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
@@ -357,7 +357,7 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        if isinstance(instruction.pulse, pulse_lib.ParametricPulse):
+        if isinstance(instruction.pulse, library.ParametricPulse):
             command_dict = {
                 'name': 'parametric_pulse',
                 'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
@@ -577,7 +577,7 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = pulse_lib.SamplePulse(pulse.samples, pulse.name)
+        pulse = library.SamplePulse(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):

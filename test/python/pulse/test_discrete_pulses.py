@@ -18,8 +18,8 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.pulse import SamplePulse, PulseError
-import qiskit.pulse.pulse_lib as pulse_lib
-import qiskit.pulse.pulse_lib.continuous as continuous
+import qiskit.pulse.library as library
+import qiskit.pulse.library.continuous as continuous
 
 
 class TestDiscretePulses(QiskitTestCase):
@@ -31,7 +31,7 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5  # to match default midpoint sampling strategy
         constant_ref = continuous.constant(times, amp=amp)
-        constant_pulse = pulse_lib.constant(duration, amp=amp)
+        constant_pulse = library.constant(duration, amp=amp)
         self.assertIsInstance(constant_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(constant_pulse.samples, constant_ref)
 
@@ -40,7 +40,7 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5
         zero_ref = continuous.zero(times)
-        zero_pulse = pulse_lib.zero(duration)
+        zero_pulse = library.zero(duration)
         self.assertIsInstance(zero_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(zero_pulse.samples, zero_ref)
 
@@ -51,14 +51,14 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5
         square_ref = continuous.square(times, amp=amp, freq=freq)
-        square_pulse = pulse_lib.square(duration, amp=amp, freq=freq)
+        square_pulse = library.square(duration, amp=amp, freq=freq)
         self.assertIsInstance(square_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(square_pulse.samples, square_ref)
 
         # test single cycle
         cycle_freq = 1./duration
         square_cycle_ref = continuous.square(times, amp=amp, freq=cycle_freq)
-        square_cycle_pulse = pulse_lib.square(duration, amp=amp)
+        square_cycle_pulse = library.square(duration, amp=amp)
         np.testing.assert_array_almost_equal(square_cycle_pulse.samples, square_cycle_ref)
 
     def test_sawtooth(self):
@@ -68,14 +68,14 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5
         sawtooth_ref = continuous.sawtooth(times, amp=amp, freq=freq)
-        sawtooth_pulse = pulse_lib.sawtooth(duration, amp=amp, freq=freq)
+        sawtooth_pulse = library.sawtooth(duration, amp=amp, freq=freq)
         self.assertIsInstance(sawtooth_pulse, SamplePulse)
         np.testing.assert_array_equal(sawtooth_pulse.samples, sawtooth_ref)
 
         # test single cycle
         cycle_freq = 1./duration
         sawtooth_cycle_ref = continuous.sawtooth(times, amp=amp, freq=cycle_freq)
-        sawtooth_cycle_pulse = pulse_lib.sawtooth(duration, amp=amp)
+        sawtooth_cycle_pulse = library.sawtooth(duration, amp=amp)
         np.testing.assert_array_almost_equal(sawtooth_cycle_pulse.samples, sawtooth_cycle_ref)
 
     def test_triangle(self):
@@ -85,14 +85,14 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5
         triangle_ref = continuous.triangle(times, amp=amp, freq=freq)
-        triangle_pulse = pulse_lib.triangle(duration, amp=amp, freq=freq)
+        triangle_pulse = library.triangle(duration, amp=amp, freq=freq)
         self.assertIsInstance(triangle_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(triangle_pulse.samples, triangle_ref)
 
         # test single cycle
         cycle_freq = 1./duration
         triangle_cycle_ref = continuous.triangle(times, amp=amp, freq=cycle_freq)
-        triangle_cycle_pulse = pulse_lib.triangle(duration, amp=amp)
+        triangle_cycle_pulse = library.triangle(duration, amp=amp)
         np.testing.assert_array_equal(triangle_cycle_pulse.samples, triangle_cycle_ref)
 
     def test_cos(self):
@@ -103,14 +103,14 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5
         cos_ref = continuous.cos(times, amp=amp, freq=freq)
-        cos_pulse = pulse_lib.cos(duration, amp=amp, freq=freq)
+        cos_pulse = library.cos(duration, amp=amp, freq=freq)
         self.assertIsInstance(cos_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(cos_pulse.samples, cos_ref)
 
         # test single cycle
         cycle_freq = 1/duration
         cos_cycle_ref = continuous.cos(times, amp=amp, freq=cycle_freq)
-        cos_cycle_pulse = pulse_lib.cos(duration, amp=amp)
+        cos_cycle_pulse = library.cos(duration, amp=amp)
         np.testing.assert_array_almost_equal(cos_cycle_pulse.samples, cos_cycle_ref)
 
     def test_sin(self):
@@ -121,14 +121,14 @@ class TestDiscretePulses(QiskitTestCase):
         duration = 10
         times = np.arange(0, duration) + 0.5
         sin_ref = continuous.sin(times, amp=amp, freq=freq)
-        sin_pulse = pulse_lib.sin(duration, amp=amp, freq=freq)
+        sin_pulse = library.sin(duration, amp=amp, freq=freq)
         self.assertIsInstance(sin_pulse, SamplePulse)
         np.testing.assert_array_equal(sin_pulse.samples, sin_ref)
 
         # test single cycle
         cycle_freq = 1/duration
         sin_cycle_ref = continuous.sin(times, amp=amp, freq=cycle_freq)
-        sin_cycle_pulse = pulse_lib.sin(duration, amp=amp)
+        sin_cycle_pulse = library.sin(duration, amp=amp)
         np.testing.assert_array_almost_equal(sin_cycle_pulse.samples, sin_cycle_ref)
 
     def test_gaussian(self):
@@ -140,7 +140,7 @@ class TestDiscretePulses(QiskitTestCase):
         times = np.arange(0, duration) + 0.5
         gaussian_ref = continuous.gaussian(times, amp, center, sigma,
                                            zeroed_width=2*center, rescale_amp=True)
-        gaussian_pulse = pulse_lib.gaussian(duration, amp, sigma)
+        gaussian_pulse = library.gaussian(duration, amp, sigma)
         self.assertIsInstance(gaussian_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_pulse.samples, gaussian_ref)
 
@@ -152,7 +152,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration) + 0.5
         gaussian_deriv_ref = continuous.gaussian_deriv(times, amp, center, sigma)
-        gaussian_deriv_pulse = pulse_lib.gaussian_deriv(duration, amp, sigma)
+        gaussian_deriv_pulse = library.gaussian_deriv(duration, amp, sigma)
         self.assertIsInstance(gaussian_deriv_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_deriv_pulse.samples, gaussian_deriv_ref)
 
@@ -165,7 +165,7 @@ class TestDiscretePulses(QiskitTestCase):
         times = np.arange(0, duration) + 0.5
         sech_ref = continuous.sech(times, amp, center, sigma,
                                    zeroed_width=2*center, rescale_amp=True)
-        sech_pulse = pulse_lib.sech(duration, amp, sigma)
+        sech_pulse = library.sech(duration, amp, sigma)
         self.assertIsInstance(sech_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(sech_pulse.samples, sech_ref)
 
@@ -177,7 +177,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration) + 0.5
         sech_deriv_ref = continuous.sech_deriv(times, amp, center, sigma)
-        sech_deriv_pulse = pulse_lib.sech_deriv(duration, amp, sigma)
+        sech_deriv_pulse = library.sech_deriv(duration, amp, sigma)
         self.assertIsInstance(sech_deriv_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(sech_deriv_pulse.samples, sech_deriv_ref)
 
@@ -192,7 +192,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration) + 0.5
         gaussian_square_ref = continuous.gaussian_square(times, amp, center, width, sigma)
-        gaussian_square_pulse = pulse_lib.gaussian_square(duration, amp, sigma, risefall)
+        gaussian_square_pulse = library.gaussian_square(duration, amp, sigma, risefall)
         self.assertIsInstance(gaussian_square_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_square_pulse.samples, gaussian_square_ref)
 
@@ -202,13 +202,13 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 0.1
         duration = 10
         # risefall and width consistent: no error
-        pulse_lib.gaussian_square(duration, amp, sigma, 2, width=6)
+        library.gaussian_square(duration, amp, sigma, 2, width=6)
         # supply width instead: no error
-        pulse_lib.gaussian_square(duration, amp, sigma, width=6)
+        library.gaussian_square(duration, amp, sigma, width=6)
         with self.assertRaises(PulseError):
-            pulse_lib.gaussian_square(duration, amp, sigma, width=2, risefall=2)
+            library.gaussian_square(duration, amp, sigma, width=2, risefall=2)
         with self.assertRaises(PulseError):
-            pulse_lib.gaussian_square(duration, amp, sigma)
+            library.gaussian_square(duration, amp, sigma)
 
     def test_drag(self):
         """Test discrete sampled drag pulse."""
@@ -221,7 +221,7 @@ class TestDiscretePulses(QiskitTestCase):
         # reference drag pulse
         drag_ref = continuous.drag(times, amp, center, sigma, beta=beta,
                                    zeroed_width=2*(center+1), rescale_amp=True)
-        drag_pulse = pulse_lib.drag(duration, amp, sigma, beta=beta)
+        drag_pulse = library.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)
 
@@ -231,8 +231,8 @@ class TestDiscretePulses(QiskitTestCase):
         period = 5.
         duration = 10
         self.assertWarns(DeprecationWarning,
-                         lambda: pulse_lib.triangle(duration, amp=amp, period=period))
+                         lambda: library.triangle(duration, amp=amp, period=period))
         self.assertWarns(DeprecationWarning,
-                         lambda: pulse_lib.sawtooth(duration, amp=amp, period=period))
+                         lambda: library.sawtooth(duration, amp=amp, period=period))
         self.assertWarns(DeprecationWarning,
-                         lambda: pulse_lib.square(duration, amp=amp, period=period))
+                         lambda: library.square(duration, amp=amp, period=period))

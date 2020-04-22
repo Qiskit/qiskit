@@ -16,8 +16,8 @@
 
 Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` s.
 
-The :py:mod:`~qiskit.pulse.pulse_lib.discrete` module will generate
-:py:class:`~qiskit.pulse.pulse_lib.SamplePulse` s for common waveform envelopes.
+The :py:mod:`~qiskit.pulse.library.discrete` module will generate
+:py:class:`~qiskit.pulse.library.SamplePulse` s for common waveform envelopes.
 
 The parametric pulses, :py:class:`~qiskit.pulse.pulse_lib.Gaussian`,
 :py:class:`~qiskit.pulse.pulse_lib.GaussianSquare`, :py:class:`~qiskit.pulse.pulse_lib.Drag` and
@@ -35,10 +35,8 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
    GaussianSquare
 
 """
-import warnings
+
 from .discrete import *
 from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, ConstantPulse
 from .pulse import Pulse
 from .sample_pulse import SamplePulse
-warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
-              DeprecationWarning, stacklevel=2)

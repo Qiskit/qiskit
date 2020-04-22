@@ -12,10 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-doc, missing-return-type-doc,unused-import
+"""Module for methods which sample continuous functions."""
 
-"""
-Pulse decorators.
-"""
-
-from qiskit.pulse.library.samplers.decorators import functional_pulse
+from .decorators import left, right, midpoint

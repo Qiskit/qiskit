@@ -50,15 +50,15 @@ Instructions (:mod:`~qiskit.pulse.instructions`)
    ShiftPhase
    Snapshot
 
-Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
+Pulse Library (waveforms :mod:`~qiskit.pulse.library`)
 ========================================================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   ~qiskit.pulse.pulse_lib
+   ~qiskit.pulse.library
 
-   ~qiskit.pulse.pulse_lib.discrete
+   ~qiskit.pulse.library.discrete
    SamplePulse
    ConstantPulse
    Drag
@@ -140,4 +140,6 @@ from .instructions import Acquire, Instruction, Delay, Play, ShiftPhase, Snapsho
 from .interfaces import ScheduleComponent
 from .pulse_lib import SamplePulse, Gaussian, GaussianSquare, Drag, ConstantPulse, ParametricPulse
 from .pulse_lib.samplers.decorators import functional_pulse
+from .library import SamplePulse, Gaussian, GaussianSquare, Drag, ConstantPulse, ParametricPulse
+from .library.samplers.decorators import functional_pulse
 from .schedule import Schedule

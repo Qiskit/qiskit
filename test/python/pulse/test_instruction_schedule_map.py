@@ -17,7 +17,7 @@
 """Test the InstructionScheduleMap."""
 import numpy as np
 
-import qiskit.pulse.pulse_lib as pulse_lib
+import qiskit.pulse.library as library
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -215,11 +215,11 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         def test_func(x):
             sched = Schedule()
-            sched += Play(pulse_lib.constant(int(x), amp_test), DriveChannel(0))
+            sched += Play(library.constant(int(x), amp_test), DriveChannel(0))
             return sched
 
         ref_sched = Schedule()
-        ref_sched += Play(pulse_lib.constant(x_test, amp_test), DriveChannel(0))
+        ref_sched += Play(library.constant(x_test, amp_test), DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add('f', (0,), test_func)

@@ -15,7 +15,7 @@
 """Unit tests for pulse instructions."""
 
 import numpy as np
-from qiskit.pulse import DriveChannel, AcquireChannel, MemorySlot, pulse_lib
+from qiskit.pulse import DriveChannel, AcquireChannel, MemorySlot, library
 from qiskit.pulse import Delay, Play, ShiftPhase, Snapshot, SetFrequency, Acquire
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.test import QiskitTestCase
@@ -153,7 +153,7 @@ class TestPlay(QiskitTestCase):
     def test_play(self):
         """Test basic play instruction."""
         duration = 4
-        pulse = pulse_lib.SamplePulse([1.0] * duration, name='test')
+        pulse = library.SamplePulse([1.0] * duration, name='test')
         play = Play(pulse, DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
