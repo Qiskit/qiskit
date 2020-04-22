@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+
 Boolean Logic Circuits
 ======================
 
@@ -86,6 +94,7 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 """
 
+from .generalized_gates import Diagonal
 
 from .boolean_logic import (
     Permutation,
