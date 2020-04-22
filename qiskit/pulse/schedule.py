@@ -75,7 +75,7 @@ class Schedule(ScheduleComponent):
             insert_time, sched = sched_pair
 
             if not isinstance(insert_time, (int, np.integer)):
-                raise PulseError('Instruction scheduled at non-integer')
+                raise PulseError('Instruction scheduled at non-integer time')
 
             sched_timeslots = sched.timeslots
 
