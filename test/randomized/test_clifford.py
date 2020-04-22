@@ -26,70 +26,15 @@ class TestClifford(unittest.TestCase):
     def assertValidClifford(self, value, num_qubits):
         """Assertion from test/python/quantum_info/operators/test_random.py:
         TestRandomClifford:test_valid"""
-        with self.subTest(msg='Test type'):
-            self.assertIsInstance(value, Clifford)
-        with self.subTest(msg='Test num_qubits'):
-            self.assertEqual(value.num_qubits, num_qubits)
+        self.assertIsInstance(value, Clifford)
+        self.assertEqual(value.num_qubits, num_qubits)
 
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_1q_random_clifford_valid(self, seed):
-        """Test random_clifford 1-qubits."""
-        value = random_clifford(1, seed=seed)
-        self.assertValidClifford(value, num_qubits=1)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_2q_random_clifford_valid(self, seed):
-        """Test random_clifford 2-qubits."""
-        value = random_clifford(2, seed=seed)
-        self.assertValidClifford(value, num_qubits=2)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_3q_random_clifford_valid(self, seed):
-        """Test random_clifford 3-qubits."""
-        value = random_clifford(3, seed=seed)
-        self.assertValidClifford(value, num_qubits=3)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_4q_random_clifford_valid(self, seed):
-        """Test random_clifford 4-qubits."""
-        value = random_clifford(4, seed=seed)
-        self.assertValidClifford(value, num_qubits=4)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_5q_random_clifford_valid(self, seed):
-        """Test random_clifford 5-qubits."""
-        value = random_clifford(5, seed=seed)
-        self.assertValidClifford(value, num_qubits=5)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_10q_random_clifford_valid(self, seed):
-        """Test random_clifford 10-qubits."""
-        value = random_clifford(10, seed=seed)
-        self.assertValidClifford(value, num_qubits=10)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_50q_random_clifford_valid(self, seed):
-        """Test random_clifford 50-qubits."""
-        value = random_clifford(50, seed=seed)
-        self.assertValidClifford(value, num_qubits=50)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_100q_random_clifford_valid(self, seed):
-        """Test random_clifford 100-qubits."""
-        value = random_clifford(100, seed=seed)
-        self.assertValidClifford(value, num_qubits=100)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_150q_random_clifford_valid(self, seed):
-        """Test random_clifford 150-qubits."""
-        value = random_clifford(150, seed=seed)
-        self.assertValidClifford(value, num_qubits=150)
-
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
-    def test_211q_random_clifford_valid(self, seed):
-        """Test random_clifford 211-qubits."""
-        value = random_clifford(211, seed=seed)
-        self.assertValidClifford(value, num_qubits=211)
+    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1),
+           strategies.integers(min_value=1, max_value=211))
+    def test_random_clifford_valid(self, seed, num_qubits):
+        """Test random_clifford."""
+        value = random_clifford(num_qubits, seed=seed)
+        self.assertValidClifford(value, num_qubits=num_qubits)
 
 
 if __name__ == '__main__':
