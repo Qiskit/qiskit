@@ -426,13 +426,19 @@ class TestScheduleBuilding(BaseTestSchedule):
         with self.assertRaises(PulseError):
             sched.shift(-10)
 
-    def test_float_time_raises(self):
-        """Test that a floating time will raise an error."""
+    def test_shift_float_time_raises(self):
+        """Test that a floating time will raise an error with shift."""
         sched = Schedule()
         sched += Delay(1, DriveChannel(0))
-
         with self.assertRaises(PulseError):
             sched.shift(0.1)
+
+    def test_insert_float_time_raises(self):
+        """Test that a floating time will raise an error with insert."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.insert(10.1, sched)
 
     def test_shift_unshift(self):
         """Test shift and then unshifting of schedule"""

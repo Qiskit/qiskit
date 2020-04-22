@@ -236,6 +236,8 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to insert.
             name: Name of the new schedule. Defaults to the name of self.
         """
+        if not isinstance(start_time, int):
+            raise PulseError("Schedules can only be inserted at integer times.")
         if name is None:
             name = self.name
         new_sched = Schedule(name=name)
