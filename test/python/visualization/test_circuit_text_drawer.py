@@ -2960,6 +2960,7 @@ class TestTextInitialValue(QiskitTestCase):
     """Testing the initial_state parameter"""
 
     def setUp(self) -> None:
+        super().setUp()
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(2, 'c')
         self.circuit = QuantumCircuit(qr, cr)

@@ -1221,6 +1221,7 @@ class TestLogAssembler(QiskitTestCase):
     """Testing the log_assembly option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
