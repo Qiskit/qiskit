@@ -19,11 +19,12 @@ Arbitrary unitary circuit instruction.
 from collections import OrderedDict
 import numpy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.extensions.standard import U3Gate
+from qiskit.extensions.quantum_initializer.isometry import Isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
@@ -130,7 +131,9 @@ class UnitaryGate(Gate):
             QiskitError: invalid ctrl_state
         """
         cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
-        return UnitaryGate(cmat, label=label)
+        iso = Isometry(_compute_control_matrix(cmat, num_ctrl_qubits, ctrl_state), 0, 0)
+        return ControlledGate('c-unitary', self.num_qubits + num_ctrl_qubits, cmat,
+                              definition=iso.definition, label=label)
 
     def qasm(self):
         """ The qasm for a custom unitary gate
