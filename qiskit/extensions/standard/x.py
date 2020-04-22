@@ -106,16 +106,16 @@ class XGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CXGate()
+                return CXGate(label=label, base_gate_label=self.label)
             if num_ctrl_qubits == 2:
-                return CCXGate()
+                return CCXGate(label=label, base_gate_label=self.label)
             if num_ctrl_qubits == 3:
-                return C3XGate()
+                return C3XGate(label=label, base_gate_label=self.label)
             if num_ctrl_qubits == 4:
-                return C4XGate()
-            return MCXGate(num_ctrl_qubits)
+                return C4XGate(label=label, base_gate_label=self.label)
+            return MCXGate(num_ctrl_qubits, label=label, base_gate_label=self.label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+                               ctrl_state=ctrl_state, base_gate_label=self.label)
 
     def inverse(self):
         r"""Return inverted X gate (itself)"""
@@ -205,10 +205,10 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
-    def __init__(self):
+    def __init__(self, label=None, base_gate_label=None):
         """Create new CX gate."""
-        super().__init__('cx', 2, [], num_ctrl_qubits=1)
-        self.base_gate = XGate()
+        super().__init__('cx', 2, [], label=label, num_ctrl_qubits=1)
+        self.base_gate = XGate(label=base_gate_label)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a controlled-X gate with more control lines.
@@ -224,17 +224,18 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 0:
-                return CXGate()
+                return CXGate(label=label, base_gate_label=self.label)
             if num_ctrl_qubits == 1:
-                return CCXGate()
+                return CCXGate(label=label, base_gate_label=self.label)
             if num_ctrl_qubits == 2:
-                return C3XGate()
+                return C3XGate(label=label, base_gate_label=self.label)
             if num_ctrl_qubits == 3:
-                return C4XGate()
-            return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1)
+                return C4XGate(label=label, base_gate_label=self.label)
+            return MCXGate(label=label, num_ctrl_qubits=num_ctrl_qubits + 1,
+                           base_gate_label=self.label)
 
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+                               ctrl_state=ctrl_state, base_gate_label=self.label)
 
     def inverse(self):
         """Return inverted CX gate (itself)."""

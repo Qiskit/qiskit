@@ -98,7 +98,7 @@ class YGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CYGate()
+                return CYGate(label=label, base_gate_label=self.label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -183,10 +183,10 @@ class CYGate(ControlledGate, metaclass=CYMeta):
                 \end{pmatrix}
 
     """
-    def __init__(self):
+    def __init__(self, label=None, base_gate_label=None):
         """Create new CY gate."""
-        super().__init__('cy', 2, [], num_ctrl_qubits=1)
-        self.base_gate = YGate()
+        super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label)
+        self.base_gate = YGate(label=base_gate_label)
 
     def _define(self):
         """

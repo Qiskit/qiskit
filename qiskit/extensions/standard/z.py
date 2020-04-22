@@ -98,9 +98,9 @@ class ZGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CZGate()
+                return CZGate(label=label, base_gate_label=self.label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+                               ctrl_state=ctrl_state, base_gate_label=self.label)
 
     def inverse(self):
         r"""Return inverted Z gate (itself)."""
@@ -162,10 +162,10 @@ class CZGate(ControlledGate, metaclass=CZMeta):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, base_gate_label=None):
         """Create new CZ gate."""
         super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1)
-        self.base_gate = ZGate()
+        self.base_gate = ZGate(label=base_gate_label)
 
     def _define(self):
         """

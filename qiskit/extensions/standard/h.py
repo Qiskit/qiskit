@@ -87,9 +87,9 @@ class HGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CHGate()
+                return CHGate(label=label, base_gate_label=self.label)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+                               ctrl_state=ctrl_state, base_gate_label=self.label)
 
     def inverse(self):
         r"""Return inverted H gate (itself)."""
@@ -165,10 +165,10 @@ class CHGate(ControlledGate):
 
     """
 
-    def __init__(self):
+    def __init__(self, label=None, base_gate_label=None):
         """Create new CH gate."""
-        super().__init__('ch', 2, [], num_ctrl_qubits=1)
-        self.base_gate = HGate()
+        super().__init__('ch', 2, [], num_ctrl_qubits=1, label=label)
+        self.base_gate = HGate(label=base_gate_label)
 
     def _define(self):
         """
