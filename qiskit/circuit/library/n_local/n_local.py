@@ -124,6 +124,7 @@ class NLocal(QuantumCircuit):
         self._initial_state, self._initial_state_circuit = None, None
         self._data = None
         self._bounds = None
+        self._qregs = []
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
