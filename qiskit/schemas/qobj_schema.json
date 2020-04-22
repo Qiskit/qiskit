@@ -97,6 +97,7 @@
                                     "pv",
                                     "fc",
                                     "acquire",
+                                    "delay",
                                     "parametric_pulse"
                                 ]
                             }
@@ -152,6 +153,30 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "delay"
+                            ]
+                        },
+                        "val": {
+                            "OneOf": [
+                            {"items": {
+                                "type": "number"
+                            },
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "type": "array"}
+                        ]}
+                    },
+                    "required": [
+                        "duration",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Delay in pulse"
                 },
                 {
                     "properties": {
