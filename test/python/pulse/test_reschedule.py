@@ -370,19 +370,6 @@ class TestCompressTransform(QiskitTestCase):
         self.assertEqual(len(original_pulse_ids), 2)
         self.assertEqual(len(compressed_pulse_ids), 1)
 
-    def test_with_by_channel_compression(self):
-        """Test by channel compression."""
-        schedule = Schedule()
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
-
-        compressed_schedule = compress_pulses([schedule], by_channel=True)
-        original_pulse_ids = get_pulse_ids([schedule])
-        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
-        self.assertEqual(len(original_pulse_ids), 3)
-        self.assertEqual(len(compressed_pulse_ids), 2)
-
     def test_sample_pulses_with_tolerance(self):
         """Test sample pulses with tolerance."""
         schedule = Schedule()
@@ -411,23 +398,6 @@ class TestCompressTransform(QiskitTestCase):
         compressed_pulse_ids = get_pulse_ids(compressed_schedule)
         self.assertEqual(len(original_pulse_ids), 6)
         self.assertEqual(len(compressed_pulse_ids), 2)
-
-    def test_multiple_schedules_by_schedule(self):
-        """Test multiple schedules by schedule compression."""
-        schedules = []
-        for _ in range(2):
-            schedule = Schedule()
-            drive_channel = DriveChannel(0)
-            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
-            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
-            schedule += Play(SamplePulse([0.0, 0.2]), drive_channel)
-            schedules.append(schedule)
-
-        compressed_schedule = compress_pulses(schedules, by_schedule=True)
-        original_pulse_ids = get_pulse_ids(schedules)
-        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
-        self.assertEqual(len(original_pulse_ids), 6)
-        self.assertEqual(len(compressed_pulse_ids), 4)
 
 
 if __name__ == '__main__':

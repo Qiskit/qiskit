@@ -16,7 +16,6 @@
 a new Schedule.
 """
 import warnings
-from collections import defaultdict
 
 from typing import List, Optional, Iterable
 
@@ -202,28 +201,17 @@ def pad(schedule: Schedule,
     return schedule
 
 
-def compress_pulses(schedules: List[Schedule],
-                    by_schedule: bool = False,
-                    by_channel: bool = False) -> List[Schedule]:
+def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     """Optimization pass to replace identical pulses.
 
     Args:
         schedules (list): Schedules to compress.
-        by_schedule (bool): Compress pulses by schedule.
-        by_channel (bool): Compress pulses by channel.
 
     Returns:
         Compressed schedules.
     """
 
-    def _identifier(sched: str, chan: str) -> str:
-        if not by_channel and not by_schedule:
-            return '__all__'
-
-        pairs = [(chan, by_channel), (sched, by_schedule)]
-        return '_'.join([p[0] for p in pairs if p[1]])
-
-    existing_pulses = defaultdict(list)
+    existing_pulses = []
     new_schedules = []
 
     for schedule in schedules:
@@ -231,13 +219,12 @@ def compress_pulses(schedules: List[Schedule],
 
         for time, inst in schedule.instructions:
             if isinstance(inst, Play):
-                identifier = _identifier(schedule.name, inst.channel.name)
-                if inst.pulse in existing_pulses[identifier]:
-                    idx = existing_pulses[identifier].index(inst.pulse)
-                    identical_pulse = existing_pulses[identifier][idx]
+                if inst.pulse in existing_pulses:
+                    idx = existing_pulses.index(inst.pulse)
+                    identical_pulse = existing_pulses[idx]
                     new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
                 else:
-                    existing_pulses[identifier].append(inst.pulse)
+                    existing_pulses.append(inst.pulse)
                     new_schedule |= inst << time
             else:
                 new_schedule |= inst << time
