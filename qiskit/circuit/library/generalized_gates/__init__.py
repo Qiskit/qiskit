@@ -12,6 +12,5 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The circuit library module on generalized gates."""
-
 from .mcmt import MCMT, MCMTVChain
+from .diagonal import Diagonal

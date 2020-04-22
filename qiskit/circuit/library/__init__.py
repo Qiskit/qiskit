@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+
 Boolean Logic Circuits
 ======================
 
@@ -97,6 +105,7 @@ Generalized Gates
 
 """
 
+from .generalized_gates import Diagonal
 
 from .arithmetic import (
     FunctionalPauliRotations,
