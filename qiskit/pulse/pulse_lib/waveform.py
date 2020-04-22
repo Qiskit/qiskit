@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 # -*- coding: utf-8 -*-
 
 # This code is part of Qiskit.
@@ -29,7 +23,7 @@ from ..exceptions import PulseError
 from .pulse import Pulse
 
 
-class WaveForm(Pulse):
+class Waveform(Pulse):
     """A pulse specified completely by complex-valued samples; each sample is played for the
     duration of the backend cycle-time, dt.
     """
