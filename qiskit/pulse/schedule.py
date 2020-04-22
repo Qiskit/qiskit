@@ -71,6 +71,9 @@ class Schedule(ScheduleComponent):
             # convert to tuple
             sched_pair = tuple(sched_pair)
             insert_time, sched = sched_pair
+            if not isinstance(insert_time, int):
+                raise PulseError("Schedule start time was a non-integer. Please cast times to "
+                                 "integers.")
             sched_timeslots = sched.timeslots
             if insert_time:
                 sched_timeslots = sched_timeslots.shift(insert_time)
