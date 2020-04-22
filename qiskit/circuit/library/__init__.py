@@ -100,6 +100,7 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+   GraphState
 """
 
 from .blueprintcircuit import BlueprintCircuit
@@ -121,4 +122,5 @@ from .arithmetic import (
     WeightedAdder,
 )
 from .fourier_checking import FourierChecking
+from .graph_state import GraphState
 from .quantum_volume import QuantumVolume
