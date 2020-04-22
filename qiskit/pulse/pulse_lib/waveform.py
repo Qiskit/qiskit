@@ -146,7 +146,7 @@ class Waveform(Pulse):
     def __call__(self, channel: PulseChannel):
         warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
                       "instruction directly with a pulse and a channel. In this case, please "
-                      "use: `Play(SamplePulse(samples), {})`."
+                      "use: `Play(Waveform(samples), {})`."
                       "".format(self.__class__.__name__, channel),
                       DeprecationWarning)
         return super().__call__(channel)
