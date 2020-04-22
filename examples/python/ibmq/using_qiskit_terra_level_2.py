@@ -22,7 +22,7 @@ It builds some circuits and transpiles them with the pass_manager.
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.gates import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.compiler import assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor

@@ -16,7 +16,7 @@
 
 import warnings
 import numpy
-from ..gate import Gate
+from qiskit.circuit.gate import Gate
 
 
 class IMeta(type):

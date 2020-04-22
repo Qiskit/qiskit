@@ -21,9 +21,9 @@ Decomposition methods for trapped-ion basis gates RXXGate, RXGate, RYGate.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.gates.ry import RYGate
-from qiskit.circuit.gates.rx import RXGate
-from qiskit.circuit.gates.rxx import RXXGate
+from qiskit.circuit.library.standard_gates.ry import RYGate
+from qiskit.circuit.library.standard_gates.rx import RXGate
+from qiskit.circuit.library.standard_gates.rxx import RXXGate
 
 
 def cnot_rxx_decompose(plus_ry=True, plus_rxx=True):

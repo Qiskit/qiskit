@@ -16,7 +16,7 @@
 Controlled-rz gate.
 """
 import warnings
-from qiskit.circuit.gates.rz import CrzGate
+from qiskit.circuit.library.standard_gates.rz import CrzGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

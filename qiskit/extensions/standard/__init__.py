@@ -61,5 +61,5 @@ from .rz import CrzGate
 
 warnings.warn('The module qiskit.extensions.standard is deprecated as of 0.14.0 and will be '
               'removed no earlier than 3 months after the release. You should import the '
-              'standard gates from qiskit.circuit.gates instead.',
+              'standard gates from qiskit.circuit.library.standard_gates instead.',
               DeprecationWarning, stacklevel=2)

@@ -15,8 +15,8 @@
 """Double-CNOT gate."""
 
 import numpy as np
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class DCXGate(Gate):

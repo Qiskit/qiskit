@@ -14,11 +14,11 @@
 
 """Two-qubit ZX-rotation gate."""
 
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 from .rz import RZGate
 from .h import HGate
 from .x import CXGate
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
 
 
 class RZXGate(Gate):

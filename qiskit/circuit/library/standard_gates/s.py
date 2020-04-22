@@ -16,8 +16,8 @@
 
 import numpy
 from qiskit.qasm import pi
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class SGate(Gate):

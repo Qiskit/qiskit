@@ -15,15 +15,14 @@
 """Hadamard gate."""
 
 import numpy
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import pi
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
-from ..controlledgate import ControlledGate
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
 
 
-# pylint: disable=cyclic-import
 class HGate(Gate):
     r"""Single-qubit Hadamard gate.
 
@@ -170,7 +169,7 @@ class CHGate(ControlledGate):
             sdg b;
         }
         """
-        from .x import CXGate
+        from .x import CXGate  # pylint: disable=cyclic-import
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [

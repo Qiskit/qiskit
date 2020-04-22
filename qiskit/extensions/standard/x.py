@@ -14,7 +14,7 @@
 
 """The standard gates moved to qiskit/circuit/gates."""
 
-from qiskit.circuit.gates.x import (
+from qiskit.circuit.library.standard_gates.x import (
     XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate, CnotGate, ToffoliGate,
     MCXGate, MCXGrayCode, MCXVChain, MCXRecursive
 )

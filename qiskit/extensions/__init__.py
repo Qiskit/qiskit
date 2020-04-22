@@ -45,7 +45,7 @@ Initialization
    Initialize
 """
 
-from qiskit.circuit.gates import *
+from qiskit.circuit.library.standard_gates import *
 
 from .quantum_initializer.initializer import Initialize
 from .unitary import UnitaryGate

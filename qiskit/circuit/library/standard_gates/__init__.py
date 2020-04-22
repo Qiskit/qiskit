@@ -20,7 +20,6 @@ Standard gates (:mod:`qiskit.circuit.gates`)
 .. autosummary::
    :toctree: ../stubs/
 
-   Barrier
    C3XGate
    C4XGate
    CCXGate
@@ -60,7 +59,6 @@ Standard gates (:mod:`qiskit.circuit.gates`)
 
 """
 
-from .barrier import Barrier
 from .h import HGate, CHGate
 from .i import IGate
 from .ms import MSGate
@@ -84,3 +82,6 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
+
+from .boolean_logical_gates import logical_and, logical_or
+from .multi_control_rotation_gates import mcrx, mcry, mcrz

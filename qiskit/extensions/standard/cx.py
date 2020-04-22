@@ -16,7 +16,7 @@
 Controlled-not gate.
 """
 import warnings
-from qiskit.circuit.gates.x import CnotGate
+from qiskit.circuit.library.standard_gates.x import CnotGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

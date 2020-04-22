@@ -18,7 +18,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit.gates import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 
 
 class BasicSwap(TransformationPass):

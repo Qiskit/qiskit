@@ -17,13 +17,13 @@
 from math import ceil
 import numpy
 from qiskit.qasm import pi
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
 from .u2 import U2Gate
-from ..controlledgate import ControlledGate
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
 
 
 class XGate(Gate):

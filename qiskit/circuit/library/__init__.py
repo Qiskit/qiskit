@@ -86,7 +86,6 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 """
 
-
 from .boolean_logic import (
     Permutation,
     XOR,

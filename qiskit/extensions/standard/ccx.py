@@ -17,7 +17,7 @@ Controlled-Controlled-X (or Toffoli) Gate.
 """
 
 import warnings
-from qiskit.circuit.gates.x import ToffoliGate
+from qiskit.circuit.library.standard_gates.x import ToffoliGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

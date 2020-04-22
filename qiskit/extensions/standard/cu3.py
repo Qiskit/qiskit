@@ -16,7 +16,7 @@
 Controlled-u3 gate.
 """
 import warnings
-from qiskit.circuit.gates.u3 import Cu3Gate
+from qiskit.circuit.library.standard_gates.u3 import Cu3Gate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

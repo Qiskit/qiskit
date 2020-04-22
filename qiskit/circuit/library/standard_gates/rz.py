@@ -14,9 +14,9 @@
 
 """Rotation around the Z axis."""
 
-from ..gate import Gate
-from ..controlledgate import ControlledGate
-from ..quantumregister import QuantumRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RZGate(Gate):

@@ -15,9 +15,9 @@
 """Swap gate."""
 
 import numpy
-from ..controlledgate import ControlledGate
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class SwapGate(Gate):

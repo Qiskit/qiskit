@@ -15,7 +15,7 @@
 """Barrier instruction."""
 
 from qiskit.exceptions import QiskitError
-from ..instruction import Instruction
+from .instruction import Instruction
 
 
 class Barrier(Instruction):

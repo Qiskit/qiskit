@@ -16,7 +16,7 @@
 Controlled-ry gate.
 """
 import warnings
-from qiskit.circuit.gates.ry import CryGate
+from qiskit.circuit.library.standard_gates.ry import CryGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

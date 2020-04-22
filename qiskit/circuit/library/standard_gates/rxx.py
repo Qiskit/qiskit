@@ -14,8 +14,8 @@
 
 """Two-qubit XX-rotation gate."""
 
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RXXGate(Gate):

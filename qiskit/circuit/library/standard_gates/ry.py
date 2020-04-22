@@ -12,25 +12,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Rotation around the X axis."""
+"""Rotation around the Y axis."""
 
 import math
 import numpy
 from qiskit.qasm import pi
-from ..controlledgate import ControlledGate
-from ..gate import Gate
-from ..quantumregister import QuantumRegister
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
-class RXGate(Gate):
-    r"""Single-qubit rotation about the X axis.
+class RYGate(Gate):
+    r"""Single-qubit rotation about the Y axis.
 
     **Circuit symbol:**
 
     .. parsed-literal::
 
              ┌───────┐
-        q_0: ┤ Rx(ϴ) ├
+        q_0: ┤ Ry(ϴ) ├
              └───────┘
 
     **Matrix Representation:**
@@ -39,33 +39,33 @@ class RXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th X) =
+        RX(\theta) = exp(-i \th Y) =
             \begin{pmatrix}
-                \cos{\th}   & -i\sin{\th} \\
-                -i\sin{\th} & \cos{\th}
+                \cos{\th} & -\sin{\th} \\
+                \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
 
     def __init__(self, theta):
-        """Create new RX gate."""
-        super().__init__('rx', 1, [theta])
+        """Create new RY gate."""
+        super().__init__('ry', 1, [theta])
 
     def _define(self):
         """
-        gate rx(theta) a {r(theta, 0) a;}
+        gate ry(theta) a { r(theta, pi/2) a; }
         """
         from .r import RGate
         definition = []
         q = QuantumRegister(1, 'q')
         rule = [
-            (RGate(self.params[0], 0), [q[0]], [])
+            (RGate(self.params[0], pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RX gate.
+        """Return a (mutli-)controlled-RY gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -78,45 +78,43 @@ class RXGate(Gate):
         """
         if ctrl_state is None:
             if num_ctrl_qubits == 1:
-                return CRXGate(self.params[0])
+                return CRYGate(self.params[0])
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
     def inverse(self):
-        r"""Return inverted RX gate.
+        r"""Return inverted RY gate.
 
-        :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
+        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
-        return RXGate(-self.params[0])
+        return RYGate(-self.params[0])
 
     def to_matrix(self):
-        """Return a numpy.array for the RX gate."""
+        """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -1j * sin],
-                            [-1j * sin, cos]], dtype=complex)
+        return numpy.array([[cos, -sin],
+                            [sin, cos]], dtype=complex)
 
 
-class CRXMeta(type):
-    """A metaclass to ensure that CrxGate and CRXGate are of the same type.
+class CRYMeta(type):
+    """A metaclass to ensure that CryGate and CRYGate are of the same type.
 
-    Can be removed when CrxGate gets removed.
+    Can be removed when CryGate gets removed.
     """
     @classmethod
     def __instancecheck__(mcs, inst):
-        return type(inst) in {CRXGate, CrxGate}  # pylint: disable=unidiomatic-typecheck
+        return type(inst) in {CRYGate, CryGate}  # pylint: disable=unidiomatic-typecheck
 
 
-class CRXGate(ControlledGate, metaclass=CRXMeta):
-    r"""Controlled-RX gate.
+class CRYGate(ControlledGate, metaclass=CRYMeta):
+    r"""Controlled-RY gate.
 
     **Circuit symbol:**
 
-    .. parsed-literal::
-
         q_0: ────■────
              ┌───┴───┐
-        q_1: ┤ Rx(ϴ) ├
+        q_1: ┤ Ry(ϴ) ├
              └───────┘
 
     **Matrix representation:**
@@ -125,13 +123,13 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\lambda)\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
+        CRY(\theta)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0 & 0 & 0 \\
-                0 & \cos{\th} & 0 & -i\sin{\th} \\
-                0 & 0 & 1 & 0 \\
-                0 & -i\sin{\th} & 0 & \cos{\th}
+                1 & 0         & 0 & 0 \\
+                0 & \cos{\th} & 0 & -\sin{\th} \\
+                0 & 0         & 1 & 0 \\
+                0 & \sin{\th} & 0 & \cos{\th}
             \end{pmatrix}
 
     .. note::
@@ -144,7 +142,7 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
         .. parsed-literal::
                  ┌───────┐
-            q_0: ┤ Rx(ϴ) ├
+            q_0: ┤ Ry(ϴ) ├
                  └───┬───┘
             q_1: ────■────
 
@@ -152,59 +150,54 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            CRX(\theta)\ q_1, q_0 =
-            |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
+            CRY(\theta)\ q_1, q_0 =
+            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos{\th}   & -i\sin{\th} \\
-                    0 & 0 & -i\sin{\th} & \cos{\th}
+                    0 & 0 & \cos{\th} & -\sin{\th} \\
+                    0 & 0 & \sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
 
     def __init__(self, theta):
-        """Create new CRX gate."""
-        super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = RXGate(theta)
+        """Create new CRY gate."""
+        super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
+        self.base_gate = RYGate(theta)
 
     def _define(self):
         """
-        gate cu3(theta,phi,lambda) c, t
-        { u1(pi/2) t;
-          cx c,t;
-          u3(-theta/2,0,0) t;
-          cx c,t;
-          u3(theta/2,-pi/2,0) t;
+        gate cry(lambda) a,b
+        { u3(lambda/2,0,0) b; cx a,b;
+          u3(-lambda/2,0,0) b; cx a,b;
         }
         """
-        from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
-            (U1Gate(pi / 2), [q[1]], []),
+            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
+            (CXGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
 
     def inverse(self):
-        """Return inverse RX gate (i.e. with the negative rotation angle)."""
-        return CRXGate(-self.params[0])
+        """Return inverse RY gate (i.e. with the negative rotation angle)."""
+        return CRYGate(-self.params[0])
 
 
-class CrxGate(CRXGate, metaclass=CRXMeta):
-    """The deprecated CRXGate class."""
+class CryGate(CRYGate, metaclass=CRYMeta):
+    """The deprecated CRYGate class."""
 
     def __init__(self, theta):
         import warnings
-        warnings.warn('The class CrxGate is deprecated as of 0.14.0, and '
+        warnings.warn('The class CryGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRXGate instead.',
+                      'You should use the class CRYGate instead.',
                       DeprecationWarning, stacklevel=2)
         super().__init__(theta)

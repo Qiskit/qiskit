@@ -16,7 +16,7 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.gates.barrier import Barrier
+from qiskit.circuit.barrier import Barrier
 
 
 class MergeAdjacentBarriers(TransformationPass):

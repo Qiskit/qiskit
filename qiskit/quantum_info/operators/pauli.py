@@ -323,7 +323,7 @@ class Pauli:
     def to_instruction(self):
         """Convert to Pauli circuit instruction."""
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from qiskit.circuit.gates import IGate, XGate, YGate, ZGate
+        from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
         gates = {'I': IGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
         label = self.to_label()
         num_qubits = self.num_qubits

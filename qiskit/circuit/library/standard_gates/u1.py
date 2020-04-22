@@ -20,7 +20,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
-# pylint: disable=cyclic-import
 class U1Gate(Gate):
     r"""Single-qubit rotation about the Z axis.
 
@@ -81,7 +80,7 @@ class U1Gate(Gate):
         super().__init__('u1', 1, [theta], label=label)
 
     def _define(self):
-        from .u3 import U3Gate
+        from .u3 import U3Gate  # pylint: disable=cyclic-import
         definition = []
         q = QuantumRegister(1, 'q')
         rule = [
@@ -180,7 +179,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
           u1(lambda/2) b;
         }
         """
-        from .x import CXGate
+        from .x import CXGate  # pylint: disable=cyclic-import
         definition = []
         q = QuantumRegister(2, 'q')
         rule = [
