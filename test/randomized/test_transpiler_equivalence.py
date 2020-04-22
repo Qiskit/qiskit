@@ -29,7 +29,7 @@ from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import (FakeYorktown, FakeTenerife, FakeOurense, FakeVigo,
                               FakeMelbourne, FakeRueschlikon,
                               FakeTokyo, FakePoughkeepsie, FakeAlmaden, FakeSingapore,
-                              FakeJohannesburg, FakeBoeblingen, FakeRochester)
+                              FakeJohannesburg, FakeBoeblingen)
 from qiskit.test.base import dicts_almost_equal
 
 
@@ -53,7 +53,9 @@ variadic_gates = [Barrier]
 mock_backends = [FakeYorktown(), FakeTenerife(), FakeOurense(), FakeVigo(),
                  FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie(), FakeAlmaden(), FakeSingapore(),
-                 FakeJohannesburg(), FakeBoeblingen(), FakeRochester()]
+                 FakeJohannesburg(), FakeBoeblingen()]
+
+# FakeRochester disabled until https://github.com/Qiskit/qiskit-aer/pull/693 is released.
 
 
 @settings(report_multiple_bugs=False,
