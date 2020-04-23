@@ -19,13 +19,23 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+
 Boolean Logic Circuits
 ======================
 
 .. autosummary::
    :toctree: ../stubs/
 
+   AND
    InnerProduct
+   OR
    Permutation
    XOR
 
@@ -84,8 +94,15 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 """
 
+from .generalized_gates import Diagonal
 
-from .boolean_logic import Permutation, XOR, InnerProduct
+from .boolean_logic import (
+    Permutation,
+    XOR,
+    InnerProduct,
+    OR,
+    AND,
+)
 from .basis_change import QFT
 from .arithmetic import (
     FunctionalPauliRotations,
@@ -93,7 +110,7 @@ from .arithmetic import (
     PiecewiseLinearPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
-    WeightedAdder
+    WeightedAdder,
 )
-from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
+from .quantum_volume import QuantumVolume
