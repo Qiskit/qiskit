@@ -664,6 +664,32 @@ class TestParameterExpressions(QiskitTestCase):
 
     supported_operations = [add, sub, mul, truediv]
 
+    def test_raise_if_sub_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter('x')
+        expr = x + 2
+
+        y = Parameter('y')
+        z = Parameter('z')
+
+        with self.assertRaisesRegex(CircuitError, 'not present'):
+            expr.subs({y: z})
+
+    def test_raise_if_subbing_in_parameter_name_conflict(self):
+        """Verify we raise if substituting in conflicting parameter names."""
+        x = Parameter('x')
+        y_first = Parameter('y')
+
+        expr = x + y_first
+
+        y_second = Parameter('y')
+
+        # Replacing an existing name is okay.
+        expr.subs({y_first: y_second})
+
+        with self.assertRaisesRegex(CircuitError, 'Name conflict'):
+            expr.subs({x: y_second})
+
     def test_expressions_of_parameter_with_constant(self):
         """Verify operating on a Parameter with a constant."""
 
