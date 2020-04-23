@@ -542,7 +542,7 @@ class QuantumCircuit:
     def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
-                current_parameters = self.parameters
+                current_parameters = self._parameter_table
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
@@ -550,7 +550,7 @@ class QuantumCircuit:
                                                           instruction, param_index):
                             self._parameter_table[parameter].append((instruction, param_index))
                     else:
-                        if parameter.name in {p.name for p in current_parameters}:
+                        if parameter.name in current_parameters:
                             raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
@@ -1423,9 +1423,9 @@ class QuantumCircuit:
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self.parameters:
+        if unrolled_param_dict.keys() > self._parameter_table.keys():
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self.parameters]))
+                [str(p) for p in param_dict.keys() - self._parameter_table]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
@@ -1459,9 +1459,9 @@ class QuantumCircuit:
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_value_dict.keys() > self.parameters:
+        if len(unrolled_value_dict) > len(self._parameter_table):
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in value_dict.keys() - self.parameters]))
+                [str(p) for p in value_dict.keys() - self._parameter_table.keys()]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_value_dict.items():
