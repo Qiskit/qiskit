@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,17 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test for the DAGCircuit object"""
+"""Test QuantumCircuit.compose()."""
 
 import unittest
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 
 
-class TestDagCompose(QiskitTestCase):
-    """Test composition of two dags"""
+class TestCircuitCompose(QiskitTestCase):
+    """Test composition of two circuits."""
 
     def setUp(self):
         qreg1 = QuantumRegister(3, 'lqr_1')
@@ -45,7 +44,7 @@ class TestDagCompose(QiskitTestCase):
         self.condition = (creg, 3)
 
     def test_compose_inorder(self):
-        """Composing two dags of the same width, default order.
+        """Composing two circuits of the same width, default order.
 
                        ┌───┐
         lqr_1_0: |0>───┤ H ├───     rqr_0: |0>──■───────
@@ -80,24 +79,11 @@ class TestDagCompose(QiskitTestCase):
 
         """
         qreg = QuantumRegister(5, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
-        right_qubit2 = qreg[2]
-        right_qubit3 = qreg[3]
-        right_qubit4 = qreg[4]
-
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[3])
         circuit_right.x(qreg[1])
         circuit_right.y(qreg[2])
         circuit_right.z(qreg[4])
-
-        dag_left = circuit_to_dag(self.circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
-        # default wiring: i <- i
-        dag_left.compose(dag_right)
-        circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.cx(self.left_qubit0, self.left_qubit3)
@@ -105,7 +91,61 @@ class TestDagCompose(QiskitTestCase):
         circuit_expected.y(self.left_qubit2)
         circuit_expected.z(self.left_qubit4)
 
+        circuit_composed = self.circuit_left.compose(circuit_right, inplace=False)
         self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_inorder_inplace(self):
+        """Composing two circuits of the same width, default order, inplace.
+
+                       ┌───┐
+        lqr_1_0: |0>───┤ H ├───     rqr_0: |0>──■───────
+                       ├───┤                    │  ┌───┐
+        lqr_1_1: |0>───┤ X ├───     rqr_1: |0>──┼──┤ X ├
+                    ┌──┴───┴──┐                 │  ├───┤
+        lqr_1_2: |0>┤ U1(0.1) ├  +  rqr_2: |0>──┼──┤ Y ├  =
+                    └─────────┘               ┌─┴─┐└───┘
+        lqr_2_0: |0>─────■─────     rqr_3: |0>┤ X ├─────
+                       ┌─┴─┐                  └───┘┌───┐
+        lqr_2_1: |0>───┤ X ├───     rqr_4: |0>─────┤ Z ├
+                       └───┘                       └───┘
+        lcr_0: 0 ═══════════
+
+        lcr_1: 0 ═══════════
+
+
+                        ┌───┐
+         lqr_1_0: |0>───┤ H ├─────■───────
+                        ├───┤     │  ┌───┐
+         lqr_1_1: |0>───┤ X ├─────┼──┤ X ├
+                     ┌──┴───┴──┐  │  ├───┤
+         lqr_1_2: |0>┤ U1(0.1) ├──┼──┤ Y ├
+                     └─────────┘┌─┴─┐└───┘
+         lqr_2_0: |0>─────■─────┤ X ├─────
+                        ┌─┴─┐   └───┘┌───┐
+         lqr_2_1: |0>───┤ X ├────────┤ Z ├
+                        └───┘        └───┘
+         lcr_0: 0 ════════════════════════
+
+         lcr_1: 0 ════════════════════════
+
+        """
+        qreg = QuantumRegister(5, 'rqr')
+        circuit_right = QuantumCircuit(qreg)
+        circuit_right.cx(qreg[0], qreg[3])
+        circuit_right.x(qreg[1])
+        circuit_right.y(qreg[2])
+        circuit_right.z(qreg[4])
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.cx(self.left_qubit0, self.left_qubit3)
+        circuit_expected.x(self.left_qubit1)
+        circuit_expected.y(self.left_qubit2)
+        circuit_expected.z(self.left_qubit4)
+
+        # inplace
+        circuit_left = self.circuit_left.copy()
+        circuit_left.compose(circuit_right, inplace=True)
+        self.assertEqual(circuit_left, circuit_expected)
 
     def test_compose_inorder_smaller(self):
         """Composing with a smaller RHS dag, default order.
@@ -142,24 +182,16 @@ class TestDagCompose(QiskitTestCase):
 
         """
         qreg = QuantumRegister(2, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
 
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[1])
         circuit_right.tdg(qreg[0])
 
-        dag_left = circuit_to_dag(self.circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
-        # default wiring: i <- i
-        dag_left.compose(dag_right)
-        circuit_composed = dag_to_circuit(dag_left)
-
         circuit_expected = self.circuit_left.copy()
         circuit_expected.cx(self.left_qubit0, self.left_qubit1)
         circuit_expected.tdg(self.left_qubit0)
 
+        circuit_composed = self.circuit_left.compose(circuit_right)
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_permuted(self):
@@ -195,11 +227,6 @@ class TestDagCompose(QiskitTestCase):
          lcr_1: 0 ═══════════════════
         """
         qreg = QuantumRegister(5, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
-        right_qubit2 = qreg[2]
-        right_qubit3 = qreg[3]
-        right_qubit4 = qreg[4]
 
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[3])
@@ -207,27 +234,25 @@ class TestDagCompose(QiskitTestCase):
         circuit_right.y(qreg[2])
         circuit_right.z(qreg[4])
 
-        dag_left = circuit_to_dag(self.circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
-        # permuted wiring
-        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit3,
-                                              right_qubit1: self.left_qubit1,
-                                              right_qubit2: self.left_qubit2,
-                                              right_qubit3: self.left_qubit4,
-                                              right_qubit4: self.left_qubit0})
-        circuit_composed = dag_to_circuit(dag_left)
-
         circuit_expected = self.circuit_left.copy()
         circuit_expected.z(self.left_qubit0)
         circuit_expected.x(self.left_qubit1)
         circuit_expected.y(self.left_qubit2)
         circuit_expected.cx(self.left_qubit3, self.left_qubit4)
 
+        # permuted wiring
+        circuit_composed = self.circuit_left.compose(circuit_right,
+                                                     qubits=[self.left_qubit3,
+                                                             self.left_qubit1,
+                                                             self.left_qubit2,
+                                                             self.left_qubit4,
+                                                             self.left_qubit0],
+                                                     inplace=False)
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_permuted_smaller(self):
         """Composing with a smaller RHS dag, and permuted wires.
+        Compose using indices.
 
                        ┌───┐                       ┌─────┐
         lqr_1_0: |0>───┤ H ├───     rqr_0: |0>──■──┤ Tdg ├
@@ -260,20 +285,12 @@ class TestDagCompose(QiskitTestCase):
          lcr_1: 0 ══════════════════════════
         """
         qreg = QuantumRegister(2, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
-
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[1])
         circuit_right.tdg(qreg[0])
 
-        dag_left = circuit_to_dag(self.circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
         # permuted wiring of subset
-        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit3,
-                                              right_qubit1: self.left_qubit2})
-        circuit_composed = dag_to_circuit(dag_left)
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[3, 2])
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.cx(self.left_qubit3, self.left_qubit2)
@@ -316,25 +333,14 @@ class TestDagCompose(QiskitTestCase):
         """
         qreg = QuantumRegister(2, 'rqr')
         creg = ClassicalRegister(2, 'rcr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
-        right_clbit0 = creg[0]
-        right_clbit1 = creg[1]
 
         circuit_right = QuantumCircuit(qreg, creg)
         circuit_right.cx(qreg[0], qreg[1])
         circuit_right.tdg(qreg[0])
         circuit_right.measure(qreg, creg)
 
-        dag_left = circuit_to_dag(self.circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
         # permuted subset of qubits and clbits
-        dag_left.compose(dag_right, edge_map={right_qubit0: self.left_qubit1,
-                                              right_qubit1: self.left_qubit4,
-                                              right_clbit0: self.left_clbit1,
-                                              right_clbit1: self.left_clbit0})
-        circuit_composed = dag_to_circuit(dag_left)
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.cx(self.left_qubit1, self.left_qubit4)
