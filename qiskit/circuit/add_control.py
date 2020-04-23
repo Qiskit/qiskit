@@ -51,7 +51,7 @@ def add_control(operation: Union[Gate, ControlledGate],
         Controlled version of gate.
 
     """
-    import qiskit.extensions.standard as standard
+    import qiskit.circuit.library.standard_gates as standard
     if isinstance(operation, standard.RZGate) or operation.name == 'rz':
         # num_ctrl_qubits > 1
         # the condition matching 'name' above is to catch a test case,
@@ -95,7 +95,7 @@ def control(operation: Union[Gate, ControlledGate],
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
-    import qiskit.extensions.standard.multi_control_rotation_gates
+    import qiskit.circuit.library.standard_gates.multi_control_rotation_gates
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')

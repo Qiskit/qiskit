@@ -60,7 +60,7 @@ class ControlledGate(Gate):
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit, QuantumRegister
-           from qiskit.extensions.standard import HGate
+           from qiskit.circuit.library.standard_gates import HGate
 
            qr = QuantumRegister(3)
            qc = QuantumCircuit(qr)
@@ -73,7 +73,7 @@ class ControlledGate(Gate):
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit, QuantumRegister
-           from qiskit.extensions.standard import HGate
+           from qiskit.circuit.library.standard_gates import HGate
 
            qc1 = QuantumCircuit(2)
            qc1.x(0)

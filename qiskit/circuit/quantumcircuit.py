@@ -1720,7 +1720,7 @@ class QuantumCircuit:
         return self.append(CU1Gate(theta), [control_qubit, target_qubit], [])
 
     def mcu1(self, lam, control_qubits, target_qubit):
-        """Apply :class:`~qiskit.extensions.standard.CU1Gate`."""
+        """Apply :class:`~qiskit.circuit.library.standard_gates.CU1Gate`."""
         from .library.standard_gates.u1 import MCU1Gate
         num_ctrl_qubits = len(control_qubits)
         return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
@@ -1790,7 +1790,7 @@ class QuantumCircuit:
         self.ccx(control_qubit1, control_qubit2, target_qubit)
 
     def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla'):
-        """Apply :class:`~qiskit.extensions.standard.MCXGate`.
+        """Apply :class:`~qiskit.circuit.library.standard_gates.MCXGate`.
 
         The multi-cX gate can be implemented using different techniques, which use different numbers
         of ancilla qubits and have varying circuit depth. These modes are:
@@ -1845,7 +1845,7 @@ class QuantumCircuit:
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
     def mct(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla'):
-        """Apply :class:`~qiskit.extensions.standard.MCXGate`."""
+        """Apply :class:`~qiskit.circuit.library.standard_gates.MCXGate`."""
         return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode)
 
     @deprecate_arguments({'q': 'qubit'})

@@ -45,7 +45,7 @@ class RZGate(Gate):
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.U1Gate`
+        :class:`~qiskit.circuit.library.standard_gates.U1Gate`
         This gate is equivalent to U1 up to a phase factor.
 
             .. math::
@@ -173,7 +173,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.CU1Gate`:
+        :class:`~qiskit.circuit.library.standard_gates.CU1Gate`:
         Due to the global phase difference in the matrix definitions
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.

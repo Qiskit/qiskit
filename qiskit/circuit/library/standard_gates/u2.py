@@ -54,7 +54,7 @@ class U2Gate(Gate):
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.U3Gate`:
+        :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
         U3 is a generalization of U2 that covers all single-qubit rotations,
         using two X90 pulses.
     """

@@ -60,14 +60,14 @@ class U1Gate(Gate):
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.RZGate`:
+        :class:`~qiskit.circuit.library.standard_gates.RZGate`:
         This gate is equivalent to RZ up to a phase factor.
 
             .. math::
 
                 U1(\lambda) = e^{i{\lambda}/2} RZ(\lambda)
 
-        :class:`~qiskit.extensions.standard.U3Gate`:
+        :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
         U3 is a generalization of U2 that covers all single-qubit rotations,
         using two X90 pulses.
 
@@ -160,7 +160,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.CRZGate`:
+        :class:`~qiskit.circuit.library.standard_gates.CRZGate`:
         Due to the global phase difference in the matrix definitions
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
@@ -231,7 +231,7 @@ class MCU1Gate(ControlledGate):
 
     .. seealso::
 
-        :class:`~qiskit.extensions.standard.CU1Gate`:
+        :class:`~qiskit.circuit.library.standard_gates.CU1Gate`:
         The singly-controlled-version of this gate.
     """
 
