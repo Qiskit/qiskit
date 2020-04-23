@@ -1356,7 +1356,7 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return set(self._parameter_table.keys())
+        return self._parameter_table.get_keys()
 
     @property
     def num_parameters(self):

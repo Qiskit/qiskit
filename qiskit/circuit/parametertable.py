@@ -22,12 +22,15 @@ from .instruction import Instruction
 class ParameterTable(MutableMapping):
     """Class for managing and setting circuit parameters"""
 
+    __slots__ = ['_table', '_keys']
+
     def __init__(self, *args, **kwargs):
         """
         the structure of _table is,
            {var_object: [(instruction_object, parameter_index), ...]}
         """
         self._table = dict(*args, **kwargs)
+        self._keys = set()
 
     def __getitem__(self, key):
         return self._table[key]
@@ -45,6 +48,15 @@ class ParameterTable(MutableMapping):
             assert isinstance(instruction, Instruction)
             assert isinstance(param_index, int)
         self._table[parameter] = instr_params
+        self._keys.add(parameter)
+
+    def get_keys(self):
+        """Return a set of all keys in the parameter table
+
+        Returns:
+            set: A set of all the keys in the parameter table
+        """
+        return self._keys
 
     def __delitem__(self, key):
         del self._table[key]
