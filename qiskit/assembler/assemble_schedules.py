@@ -204,9 +204,6 @@ def _assemble_instructions(
         if isinstance(instruction, DelayInstruction):  # deprecated
             instruction = Delay(instruction.duration, instruction.channels[0])
 
-        if isinstance(instruction, Delay):
-            continue  # The instruction is of the form Delay(duration, channel)
-
         qobj_instructions.append(instruction_converter(time, instruction))
 
     if acquire_instruction_map:
