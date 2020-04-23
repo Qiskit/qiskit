@@ -48,14 +48,14 @@ class Gate(Instruction):
         """
         raise CircuitError("to_matrix not defined for this {}".format(type(self)))
 
-    def power(self, exponent: float) -> 'UnitaryGate':
+    def power(self, exponent: float):
         """Creates a unitary gate as `gate^exponent`.
 
         Args:
             exponent (float): Gate^exponent
 
         Returns:
-            UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+            qiskit.extensions.UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
 
         Raises:
             CircuitError: If Gate is not unitary
@@ -110,7 +110,7 @@ class Gate(Instruction):
             raise TypeError('label expects a string or None')
 
     def control(self, num_ctrl_qubits: Optional[int] = 1, label: Optional[str] = None,
-                ctrl_state: Optional[Union[int, str]] = None) -> 'ControlledGate':
+                ctrl_state: Optional[Union[int, str]] = None):
         """Return controlled version of gate. See :class:`.ControlledGate` for usage.
 
         Args:
@@ -120,7 +120,7 @@ class Gate(Instruction):
                 (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 
         Returns:
-            Controlled version of gate. This default algorithm
+            qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
             uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
             num_qubits + 2*num_ctrl_qubits - 1.
 

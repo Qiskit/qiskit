@@ -20,6 +20,8 @@ from qiskit.circuit.exceptions import CircuitError
 
 from .gate import Gate
 from . import QuantumRegister
+from .quantumregister import Qubit
+from .quantumcircuit import Clbit
 
 # pylint: disable=missing-return-doc
 
@@ -29,15 +31,10 @@ class ControlledGate(Gate):
 
     def __init__(self, name: str, num_qubits: int, params: List,
                  label: Optional[str] = None, num_ctrl_qubits: Optional[int] = 1,
-                 definition: Optional[List[Tuple[Gate, List['Qubit'], List['Clbit']]]] = None,
+                 definition: Optional[List[Tuple[Gate, List[Qubit], List[Clbit]]]] = None,
                  ctrl_state: Optional[Union[int, str]] = None):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
-
-        Attributes:
-            num_ctrl_qubits (int): The number of control qubits.
-            base_gate (Gate): An instance of the target unitary to control.
-            ctrl_state (int): The control state in decimal notation.
 
         Args:
             name: The name of the gate.
@@ -171,7 +168,7 @@ class ControlledGate(Gate):
         else:
             raise CircuitError('invalid control state specification')
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (isinstance(other, ControlledGate) and
                 self.num_ctrl_qubits == other.num_ctrl_qubits and
                 self.ctrl_state == other.ctrl_state and
