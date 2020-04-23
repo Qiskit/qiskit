@@ -497,6 +497,9 @@ class QuantumCircuit:
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
+
+        Raises:
+            CircuitError: If it is not possible to append the operator.
         """
         from qiskit.quantum_info.operators.base_operator import BaseOperator
         # Convert input to Instruction
