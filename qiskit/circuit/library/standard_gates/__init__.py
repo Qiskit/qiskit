@@ -13,9 +13,9 @@
 # that they have been altered from the originals.
 
 """
-============================================
-Standard gates (:mod:`qiskit.circuit.gates`)
-============================================
+=============================================================
+Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
+=============================================================
 
 .. autosummary::
    :toctree: ../stubs/

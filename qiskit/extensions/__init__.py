@@ -45,6 +45,7 @@ Initialization
    Initialize
 """
 
+# import all standard gates
 from qiskit.circuit.library.standard_gates import *
 
 from .quantum_initializer.initializer import Initialize
