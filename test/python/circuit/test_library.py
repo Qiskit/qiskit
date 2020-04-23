@@ -853,6 +853,7 @@ class TestMCMT(QiskitTestCase):
             self.assertAlmostEqual(f_i, 1)
 
 
+@ddt
 class TestDiagonalGate(QiskitTestCase):
     """Test diagonal circuit."""
     @data(
