@@ -87,4 +87,5 @@ Initialization
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from .standard import *
 from .unitary import UnitaryGate
+from .hamiltonian_gate import HamiltonianGate
 from .simulator import Snapshot
