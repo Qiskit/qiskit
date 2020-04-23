@@ -82,10 +82,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().qasm(formatted, filename)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, label=None):
         if self._data is None:
             self._build()
-        return super().append(instruction, qargs, cargs)
+        return super().append(instruction, qargs, cargs, label)
 
     def __len__(self):
         return len(self.data)
