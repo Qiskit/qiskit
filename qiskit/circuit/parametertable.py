@@ -30,7 +30,7 @@ class ParameterTable(MutableMapping):
            {var_object: [(instruction_object, parameter_index), ...]}
         """
         self._table = dict(*args, **kwargs)
-        self._keys = set()
+        self._keys = set(self._table.keys())
 
     def __getitem__(self, key):
         return self._table[key]
@@ -60,6 +60,7 @@ class ParameterTable(MutableMapping):
 
     def __delitem__(self, key):
         del self._table[key]
+        self._keys.discard(key)
 
     def __iter__(self):
         return iter(self._table)
