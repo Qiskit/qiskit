@@ -205,7 +205,7 @@ def _assemble_instructions(
             instruction = Delay(instruction.duration, instruction.channels[0])
 
         if isinstance(instruction, Delay):
-            instruction = Delay(instruction.duration, instruction.channels[0])
+            continue  # The instruction is of the form Delay(duration, channel)
 
         qobj_instructions.append(instruction_converter(time, instruction))
 
