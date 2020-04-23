@@ -48,19 +48,19 @@ class FakeBackendBuilder:
         """Creates fake backend builder.
 
         Args:
-            name (str): Name of the backend.
-            n_qubits (int): Number of qubits in the backend.
-            version (str, optional): Version of the fake backend.
-            coupling_map (list, optional): Coupling map.
-            basis_gates (list, optional): Basis gates of the backend.
-            qubit_t1 (float, list, optional): Longitudinal coherence times.
-            qubit_t2 (float, list, optional): Transverse coherence times.
-            qubit_frequency (float, list, optional): Frequency of qubits.
-            qubit_readout_error (float, list, optional): Readout error of qubits.
-            single_qubit_gates (list, optional): List of single qubit gates for backend properties.
-            dt (float, optional): Discretization of the input time sequences.
-            std (float, optional): Standard deviation of the generated distributions.
-            seed (int, optional): Random seed.
+            name: Name of the backend.
+            n_qubits: Number of qubits in the backend.
+            version: Version of the fake backend.
+            coupling_map: Coupling map.
+            basis_gates: Basis gates of the backend.
+            qubit_t1: Longitudinal coherence times.
+            qubit_t2: Transverse coherence times.
+            qubit_frequency: Frequency of qubits.
+            qubit_readout_error: Readout error of qubits.
+            single_qubit_gates: List of single qubit gates for backend properties.
+            dt: Discretization of the input time sequences.
+            std: Standard deviation of the generated distributions.
+            seed: Random seed.
         """
         np.random.seed(seed)
 
