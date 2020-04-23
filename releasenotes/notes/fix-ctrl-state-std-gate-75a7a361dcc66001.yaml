@@ -20,5 +20,5 @@ fixes:
       cgate = gate.control(1)
       c3gate = cgate.control(2, ctrl_state=0)
 
-    would apply ctrl_state to all three control qubits instead of just
+    would apply ``ctrl_state`` to all three control qubits instead of just
     the two control qubits being added.
