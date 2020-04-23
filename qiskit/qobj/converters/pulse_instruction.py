@@ -266,7 +266,7 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': 'sf',
+            'name': 'setf',
             't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
             'frequency': instruction.frequency
@@ -521,7 +521,7 @@ class QobjToInstructionConverter:
 
         return instructions.ShiftPhase(phase, channel) << t0
 
-    @bind_name('sf')
+    @bind_name('setf')
     def convert_set_frequency(self, instruction):
         """Return converted `SetFrequencyInstruction`.
 
