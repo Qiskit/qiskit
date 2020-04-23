@@ -105,19 +105,7 @@ class XGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-
-        if num_ctrl_qubits == 1:
-            return CXGate(label=label, ctrl_state=ctrl_state)
-        elif num_ctrl_qubits == 2:
-            return CCXGate(label=label, ctrl_state=ctrl_state)
-        elif ctrl_state is None:
-            if num_ctrl_qubits == 3:
-                return C3XGate()
-            if num_ctrl_qubits == 4:
-                return C4XGate()
-            return MCXGate(num_ctrl_qubits)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+        return MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted X gate (itself)"""
@@ -228,16 +216,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         if ctrl_state is None:
             ctrl_state = 2**num_ctrl_qubits - 1
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-
-        if num_ctrl_qubits == 1:
-            return CCXGate(label=label, ctrl_state=new_ctrl_state)
-        elif num_ctrl_qubits == 2:
-            return C3XGate(label=label, ctrl_state=new_ctrl_state)
-        elif num_ctrl_qubits == 3:
-            return C4XGate(label=label, ctrl_state=new_ctrl_state)
-        else:
-            return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label,
-                           ctrl_state=new_ctrl_state)
+        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
 
     def inverse(self):
         """Return inverted CX gate (itself)."""
@@ -408,13 +387,9 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return C3XGate()
-            if num_ctrl_qubits == 2:
-                return C4XGate()
-            return MCXGate(num_ctrl_qubits + 2)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            ctrl_state = 2**num_ctrl_qubits - 1
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
 
     def inverse(self):
         """Return an inverted CCX gate (also a CCX)."""
@@ -607,12 +582,9 @@ class C3XGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            if self._angle == numpy.pi / 4:
-                if num_ctrl_qubits == 1:
-                    return C4XGate()
-                return MCXGate(num_ctrl_qubits + 3)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            ctrl_state = 2**num_ctrl_qubits - 1
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
 
     def inverse(self):
         """Invert this gate. The C3X is its own inverse."""
@@ -799,9 +771,9 @@ class C4XGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            return MCXGate(num_ctrl_qubits + 4)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            ctrl_state = 2**num_ctrl_qubits - 1
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
 
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
@@ -820,14 +792,21 @@ class MCXGate(ControlledGate):
         # these gates will always be implemented for all modes of the MCX if the number of control
         # qubits matches this
         explicit = {
-            0: XGate,
             1: CXGate,
             2: CCXGate,
+            3: C3XGate,
+            4: C4XGate
         }
+        if num_ctrl_qubits == 0:
+            gate = XGate.__new__()
+            # if __new__ does not return the same type as cls, init is not called
+            gate.__init__(label=label)
+            return gate
         if num_ctrl_qubits in explicit.keys():
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
-            gate.__init__()  # if __new__ does not return the same type as cls, init is not called
+            # if __new__ does not return the same type as cls, init is not called
+            gate.__init__(label=label, ctrl_state=ctrl_state)
             return gate
         return super().__new__(cls)
 
