@@ -273,6 +273,25 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(instructions.Delay)
+    def convert_delay(self, shift, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (Delay): Delay instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'delay',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'duration': instruction.duration
+        }
+        return self._qobj_model(**command_dict)
+
     @bind_instruction(instructions.ShiftPhase)
     def convert_shift_phase(self, shift, instruction):
         """Return converted `ShiftPhase`.
@@ -544,6 +563,21 @@ class QobjToInstructionConverter:
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
         return instructions.SetFrequency(frequency, channel) << t0
+
+    @bind_name('delay')
+    def convert_delay(self, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            instruction (Delay): Delay qobj instruction
+
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        duration = instruction.duration
+        return instructions.Delay(duration, channel) << t0
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):

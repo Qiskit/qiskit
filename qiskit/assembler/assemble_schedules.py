@@ -201,9 +201,11 @@ def _assemble_instructions(
             acquire_instruction_map[(time, instruction.command)].append(instruction)
             continue
 
-        if isinstance(instruction, (DelayInstruction, Delay)):
-            # delay instructions are ignored as timing is explicit within qobj
-            continue
+        if isinstance(instruction, DelayInstruction):  # deprecated
+            instruction = Delay(instruction.duration, instruction.channels[0])
+
+        if isinstance(instruction, Delay):
+            instruction = Delay(instruction.duration, instruction.channels[0])
 
         qobj_instructions.append(instruction_converter(time, instruction))
 

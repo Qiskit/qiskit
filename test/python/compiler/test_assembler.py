@@ -641,8 +641,11 @@ class TestPulseAssembler(QiskitTestCase):
         delay_qobj = assemble(delay_schedule, backend)
         validate_qobj_against_schema(delay_qobj)
 
-        self.assertEqual(orig_qobj.experiments[0].to_dict(),
-                         delay_qobj.experiments[0].to_dict())
+        for instr in delay_qobj.experiments[0].to_dict()['instructions']:
+            if instr['name'] == 'delay':
+                self.assertTrue(instr['duration'], 10)
+            else:
+                self.assertIn(instr, orig_qobj.experiments[0].to_dict()['instructions'])
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
