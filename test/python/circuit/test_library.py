@@ -27,10 +27,13 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (Permutation, XOR, InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal, NLocal, TwoLocal)
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
+                                    SwapRZ, PauliExpansion, FirstOrderExpansion,
+                                    SecondOrderExpansion)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.extensions.standard import XGate, RXGate, CRXGate, CCXGate, SwapGate
+from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
+                                        RXXGate, RYYGate, HGate)
 from qiskit.quantum_info import Statevector, Operator
 
 
@@ -1228,6 +1231,142 @@ class TestTwoLocal(QiskitTestCase):
             reference.cry(params[1], 0, 2)
 
         self.assertCircuitEqual(reference, circuit)
+
+    def test_ry(self):
+        """Test that the RY circuit is instantiated correctly."""
+        two = RY(4)
+        with self.subTest(msg='test rotation gate'):
+            self.assertEqual(len(two.rotation_blocks), 1)
+            self.assertIsInstance(two.rotation_blocks[0], RYGate)
+
+        with self.subTest(msg='test parameter bounds'):
+            expected = [(-np.pi, np.pi)] * two.num_parameters
+            np.testing.assert_almost_equal(two.parameter_bounds, expected)
+
+    def test_ryrz(self):
+        """Test that the RYRZ circuit is instantiated correctly."""
+        two = RYRZ(3)
+        with self.subTest(msg='test rotation gate'):
+            self.assertEqual(len(two.rotation_blocks), 2)
+            self.assertIsInstance(two.rotation_blocks[0], RYGate)
+            self.assertIsInstance(two.rotation_blocks[1], RZGate)
+
+        with self.subTest(msg='test parameter bounds'):
+            expected = [(-np.pi, np.pi)] * two.num_parameters
+            np.testing.assert_almost_equal(two.parameter_bounds, expected)
+
+    def test_swaprz(self):
+        """Test that the SwapRZ circuit is instantiated correctly."""
+        two = SwapRZ(5)
+        with self.subTest(msg='test rotation gate'):
+            self.assertEqual(len(two.rotation_blocks), 1)
+            self.assertIsInstance(two.rotation_blocks[0], RZGate)
+
+        with self.subTest(msg='test entanglement gate'):
+            self.assertEqual(len(two.entanglement_blocks), 1)
+            block = two.entanglement_blocks[0]
+            self.assertEqual(len(block.definition), 2)
+            self.assertIsInstance(block.definition[0][0], RXXGate)
+            self.assertIsInstance(block.definition[1][0], RYYGate)
+
+        with self.subTest(msg='test parameter bounds'):
+            expected = [(-np.pi, np.pi)] * two.num_parameters
+            np.testing.assert_almost_equal(two.parameter_bounds, expected)
+
+
+@ddt
+class TestDataEncoding(QiskitTestCase):
+    """Test the data encoding circuits."""
+
+    def test_pauli_empty(self):
+        """Test instantiating an empty Pauli expansion."""
+        encoding = PauliExpansion()
+
+        with self.subTest(msg='equal to empty circuit'):
+            self.assertTrue(Operator(encoding).equiv(QuantumCircuit()))
+
+        with self.subTest(msg='rotation blocks is H gate'):
+            self.assertEqual(len(encoding.rotation_blocks), 1)
+            self.assertIsInstance(encoding.rotation_blocks[0], HGate)
+
+    @data((2, 3, ['X', 'YY']), (5, 2, ['ZZZXZ', 'XZ']))
+    @unpack
+    def test_num_parameters(self, num_qubits, reps, pauli_strings):
+        """Test the number of parameters equals the number of qubits, independent of reps."""
+        encoding = PauliExpansion(num_qubits, paulis=pauli_strings, reps=reps)
+        self.assertEqual(encoding.num_parameters, num_qubits)
+        self.assertEqual(encoding.num_parameters_settable, num_qubits)
+
+    def test_pauli_evolution(self):
+        """Test the generation of Pauli blocks."""
+        encoding = PauliExpansion()
+        time = 1.4
+        with self.subTest(pauli_string='ZZ'):
+            evo = QuantumCircuit(2)
+            evo.cx(0, 1)
+            evo.u1(2 * time, 1)
+            evo.cx(0, 1)
+
+            pauli = encoding.pauli_evolution('ZZ', time)
+            self.assertTrue(Operator(pauli).equiv(evo))
+
+        with self.subTest(pauli_string='XYZ'):
+            evo = QuantumCircuit(3)
+            # X on the most-significant, bottom qubit, Z on the top
+            evo.h(2)
+            evo.rx(np.pi / 2, 1)
+            evo.cx(0, 1)
+            evo.cx(1, 2)
+            evo.u1(2 * time, 2)
+            evo.cx(1, 2)
+            evo.cx(0, 1)
+            evo.rx(-np.pi / 2, 1)
+            evo.h(2)
+
+            pauli = encoding.pauli_evolution('XYZ', time)
+            self.assertTrue(Operator(pauli).equiv(evo))
+
+        with self.subTest(pauli_string='I'):
+            evo = QuantumCircuit(1)
+            pauli = encoding.pauli_evolution('I', time)
+            self.assertTrue(Operator(pauli).equiv(evo))
+
+    def test_first_order_circuit(self):
+        """Test a first order expansion circuit."""
+        times = [0.2, 1, np.pi, -1.2]
+        encoding = FirstOrderExpansion(4, reps=3).assign_parameters(times)
+
+        ref = QuantumCircuit(4)
+        for _ in range(3):
+            ref.h([0, 1, 2, 3])
+            for i in range(4):
+                ref.u1(2 * times[i], i)
+        ref.h([0, 1, 2, 3])
+
+        self.assertTrue(Operator(encoding).equiv(ref))
+
+    def test_second_order_circuit(self):
+        """Test a second order expansion circuit."""
+        times = [0.2, 1, np.pi]
+        encoding = SecondOrderExpansion(3, reps=2).assign_parameters(times)
+
+        def zz_evolution(circuit, qubit1, qubit2):
+            time = (np.pi - times[qubit1]) * (np.pi - times[qubit2])
+            circuit.cx(qubit1, qubit2)
+            circuit.u1(2 * time, qubit2)
+            circuit.cx(qubit1, qubit2)
+
+        ref = QuantumCircuit(3)
+        for _ in range(2):
+            ref.h([0, 1, 2])
+            for i in range(3):
+                ref.u1(2 * times[i], i)
+            zz_evolution(ref, 0, 1)
+            zz_evolution(ref, 0, 2)
+            zz_evolution(ref, 1, 2)
+        ref.h([0, 1, 2])
+
+        self.assertTrue(Operator(encoding).equiv(ref))
 
 
 @ddt

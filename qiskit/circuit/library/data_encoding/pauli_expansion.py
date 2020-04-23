@@ -60,7 +60,7 @@ class PauliExpansion(NLocal):
 
     @deprecate_arguments({'depth': 'reps'})
     def __init__(self,
-                 feature_dimension: int,
+                 feature_dimension: Optional[int] = None,
                  reps: int = 2,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  paulis: Optional[List[str]] = None,
