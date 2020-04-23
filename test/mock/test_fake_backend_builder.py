@@ -111,7 +111,7 @@ class TestFakeBackendBuilder(QiskitTestCase):
         fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
         defaults = fake_backend.defaults()
 
-        self.assertEqual(len(defaults.cmd_def), 44)
+        self.assertEqual(len(defaults.cmd_def), 54)
         self.assertEqual(len(defaults.meas_freq_est), 10)
         self.assertEqual(len(defaults.qubit_freq_est), 10)
 

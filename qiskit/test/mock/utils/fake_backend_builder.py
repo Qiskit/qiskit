@@ -15,7 +15,7 @@
 """Fake backend generation."""
 import itertools
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import numpy as np
 
@@ -37,12 +37,14 @@ class FakeBackendBuilder:
                  version: Optional[str] = None,
                  coupling_map: Optional[List[List[int]]] = None,
                  basis_gates: Optional[List[str]] = None,
-                 qubit_t1: Optional[float] = None,
-                 qubit_t2: Optional[float] = None,
-                 qubit_frequency: Optional[float] = None,
-                 qubit_readout_error: Optional[float] = None,
+                 qubit_t1: Optional[Union[float, List[float]]] = None,
+                 qubit_t2: Optional[Union[float, List[float]]] = None,
+                 qubit_frequency: Optional[Union[float, List[float]]] = None,
+                 qubit_readout_error: Optional[Union[float, List[float]]] = None,
                  single_qubit_gates: Optional[List[str]] = None,
-                 dt: Optional[float] = None):
+                 dt: Optional[float] = None,
+                 std: Optional[float] = None,
+                 seed: Optional[int] = None):
         """Creates fake backend builder.
 
         Args:
@@ -51,39 +53,51 @@ class FakeBackendBuilder:
             version (str, optional): Version of the fake backend.
             coupling_map (list, optional): Coupling map.
             basis_gates (list, optional): Basis gates of the backend.
-            qubit_t1 (float, optional): Longitudinal coherence time.
-            qubit_t2 (float, optional): Transverse coherence time.
-            qubit_frequency (float, optional): Frequency of qubit.
-            qubit_readout_error (float, optional): Readout error of qubit.
+            qubit_t1 (float, list, optional): Longitudinal coherence times.
+            qubit_t2 (float, list, optional): Transverse coherence times.
+            qubit_frequency (float, list, optional): Frequency of qubits.
+            qubit_readout_error (float, list, optional): Readout error of qubits.
             single_qubit_gates (list, optional): List of single qubit gates for backend properties.
             dt (float, optional): Discretization of the input time sequences.
+            std (float, optional): Standard deviation of the generated distributions.
+            seed (int, optional): Random seed.
         """
+        np.random.seed(seed)
+
         if version is None:
             version = '0.0.0'
 
         if basis_gates is None:
             basis_gates = ['id', 'u1', 'u2', 'u3', 'cx']
 
-        if qubit_t1 is None:
-            qubit_t1 = 113.3
+        if std is None:
+            std = 0.01
 
-        if qubit_t2 is None:
-            qubit_t2 = 150.2
+        if not isinstance(qubit_t1, list):
+            qubit_t1 = np.random.normal(loc=qubit_t1 or 113.,
+                                        scale=std,
+                                        size=n_qubits).tolist()
 
-        if qubit_frequency is None:
-            qubit_frequency = 4.8
+        if not isinstance(qubit_t2, list):
+            qubit_t2 = np.random.normal(loc=qubit_t1 or 150.2,
+                                        scale=std,
+                                        size=n_qubits).tolist()
 
-        if qubit_readout_error is None:
-            qubit_readout_error = 0.04
+        if not isinstance(qubit_frequency, list):
+            qubit_frequency = np.random.normal(loc=qubit_frequency or 4.8,
+                                               scale=std,
+                                               size=n_qubits).tolist()
+
+        if not isinstance(qubit_readout_error, list):
+            qubit_readout_error = np.random.normal(loc=qubit_readout_error or 0.04,
+                                                   scale=std,
+                                                   size=n_qubits).tolist()
 
         if single_qubit_gates is None:
             single_qubit_gates = ['id', 'u1', 'u2', 'u3']
 
         if dt is None:
-            dt = 1.33e-9
-
-        if coupling_map is None:
-            coupling_map = self._generate_cmap()
+            dt = 1.33
 
         self.name = name
         self.version = version
@@ -94,9 +108,13 @@ class FakeBackendBuilder:
         self.qubit_readout_error = qubit_readout_error
         self.n_qubits = n_qubits
         self.single_qubit_gates = single_qubit_gates
-        self.coupling_map = coupling_map
         self.now = datetime.now()
         self.dt = dt  # pylint: disable=invalid-name
+        self.std = std
+
+        if coupling_map is None:
+            coupling_map = self._generate_cmap()
+        self.coupling_map = coupling_map
 
     def _generate_cmap(self) -> List[List[int]]:
         """Generate default grid-like coupling map."""
@@ -121,17 +139,20 @@ class FakeBackendBuilder:
         qubits = []
         gates = []
 
-        for i in range(self.n_qubits):
+        for (qubit_t1, qubit_t2, freq, read_err) in zip(self.qubit_t1,
+                                                        self.qubit_t2,
+                                                        self.qubit_frequency,
+                                                        self.qubit_readout_error):
             qubits.append([
-                Nduv(date=self.now, name='T1', unit='µs', value=self.qubit_t1),
-                Nduv(date=self.now, name='T2', unit='µs', value=self.qubit_t2),
-                Nduv(date=self.now, name='frequency', unit='GHz', value=self.qubit_frequency),
-                Nduv(date=self.now, name='readout_error', unit='', value=self.qubit_readout_error)
+                Nduv(date=self.now, name='T1', unit='µs', value=qubit_t1),
+                Nduv(date=self.now, name='T2', unit='µs', value=qubit_t2),
+                Nduv(date=self.now, name='frequency', unit='GHz', value=freq),
+                Nduv(date=self.now, name='readout_error', unit='', value=read_err)
             ])
 
         for gate in self.basis_gates:
             parameters = [Nduv(date=self.now, name='gate_error', unit='', value=0.01),
-                          Nduv(date=self.now, name='gate_length', unit='second', value=4*self.dt)]
+                          Nduv(date=self.now, name='gate_length', unit='ns', value=4*self.dt)]
 
             if gate in self.single_qubit_gates:
                 for i in range(self.n_qubits):
@@ -187,10 +208,9 @@ class FakeBackendBuilder:
         }
 
         meas_map = [list(range(self.n_qubits))]
-        qubit_lo_range = [[self.qubit_frequency - .5, self.qubit_frequency + .5]
-                          for _ in range(self.n_qubits)]
+        qubit_lo_range = [[freq - 0.5, freq + 0.5] for freq in self.qubit_frequency]
         meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
-        u_channel_lo = [[UchannelLO(q=i, scale=1. + 0.j)] for i in range(len(self.coupling_map))]
+        u_channel_lo = [[UchannelLO(q=i, scale=[1.0, 0])] for i in range(len(self.coupling_map))]
 
         return PulseBackendConfiguration(
             backend_name=self.name,
@@ -227,7 +247,7 @@ class FakeBackendBuilder:
     def build_defaults(self) -> PulseDefaults:
         """Build backend defaults."""
 
-        qubit_freq_est = [self.qubit_frequency] * self.n_qubits
+        qubit_freq_est = self.qubit_frequency
         meas_freq_est = np.linspace(6.4, 6.6, self.n_qubits).tolist()
         pulse_library = [
             {
@@ -296,8 +316,8 @@ class FakeBackendBuilder:
             ]
 
         return PulseDefaults.from_dict({
-            'qubit_freq_est': meas_freq_est,
-            'meas_freq_est': qubit_freq_est,
+            'qubit_freq_est': qubit_freq_est,
+            'meas_freq_est': meas_freq_est,
             'buffer': 0,
             'pulse_library': pulse_library,
             'cmd_def': cmd_def
