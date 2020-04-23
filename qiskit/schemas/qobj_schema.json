@@ -96,7 +96,9 @@
                                 "enum": [
                                     "pv",
                                     "fc",
+                                    "setf",
                                     "acquire",
+                                    "delay",
                                     "parametric_pulse"
                                 ]
                             }
@@ -152,6 +154,44 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "setf"
+                            ]
+                        },
+                        "frequency": {
+                            "OneOf":[
+                            {"type": "number"},
+                            {"type": "string"}]
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "delay"
+                            ]
+                        },
+                        "duration": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "duration",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Delay in pulse"
                 },
                 {
                     "properties": {
