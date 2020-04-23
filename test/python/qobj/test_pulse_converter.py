@@ -22,7 +22,7 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Gaussian, GaussianSquare, ConstantPulse, Drag)
+                                   Gaussian, GaussianSquare, Constant, Drag)
 from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
@@ -101,7 +101,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_constant_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(ConstantPulse(duration=25, amp=1), ControlChannel(2))
+        instruction = Play(Constant(duration=25, amp=1), ControlChannel(2))
 
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
@@ -149,7 +149,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         instruction = SetFrequency(8.0, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
-            name='sf',
+            name='setf',
             ch='d0',
             t0=0,
             frequency=8.0
@@ -302,7 +302,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         """Test converted qobj from FrameChangeInstruction."""
         instruction = SetFrequency(8.0, DriveChannel(0))
 
-        qobj = PulseQobjInstruction(name='sf', ch='d0', t0=0, frequency=8.0)
+        qobj = PulseQobjInstruction(name='setf', ch='d0', t0=0, frequency=8.0)
         converted_instruction = self.converter(qobj)
 
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
