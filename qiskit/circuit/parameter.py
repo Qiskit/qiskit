@@ -35,6 +35,7 @@ class Parameter(ParameterExpression):
         else:
             obj._uuid = uuid
 
+        obj._hash = hash(obj._uuid)
         return obj
 
     def __getnewargs__(self):
@@ -80,4 +81,4 @@ class Parameter(ParameterExpression):
             return False
 
     def __hash__(self):
-        return hash(self._uuid)
+        return self._hash
