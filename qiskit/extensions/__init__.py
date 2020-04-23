@@ -49,4 +49,5 @@ from qiskit.circuit.library.standard_gates import *
 
 from .quantum_initializer.initializer import Initialize
 from .unitary import UnitaryGate
+from .hamiltonian_gate import HamiltonianGate
 from .simulator import Snapshot

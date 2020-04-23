@@ -31,16 +31,13 @@ class Permutation(QuantumCircuit):
                  num_qubits: int,
                  pattern: Optional[List[int]] = None,
                  seed: Optional[int] = None,
-                 ) -> QuantumCircuit:
+                 ) -> None:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
         Args:
             num_qubits: circuit width.
             pattern: permutation pattern. If None, permute randomly.
             seed: random seed in case a random permutation is requested.
-
-        Returns:
-            A permutation circuit.
 
         Raises:
             CircuitError: if permutation pattern is malformed.
@@ -85,16 +82,13 @@ class XOR(QuantumCircuit):
                  num_qubits: int,
                  amount: Optional[int] = None,
                  seed: Optional[int] = None,
-                 ) -> QuantumCircuit:
+                 ) -> None:
         """Return a circuit implementing bitwise xor.
 
         Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
             seed: random seed in case a random xor is requested.
-
-        Returns:
-            A circuit for bitwise XOR.
 
         Raises:
             CircuitError: if the xor bitstring exceeds available qubits.
@@ -127,16 +121,13 @@ class XOR(QuantumCircuit):
 class InnerProduct(QuantumCircuit):
     """An n_qubit circuit that computes the inner product of two registers."""
 
-    def __init__(self, num_qubits: int) -> QuantumCircuit:
+    def __init__(self, num_qubits: int) -> None:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
 
         This implementation uses CZ gates.
 
         Args:
             num_qubits: width of top and bottom registers (half total circuit width)
-
-        Returns:
-            A circuit computing inner product of two registers.
 
         Reference Circuit:
             .. jupyter-execute::
