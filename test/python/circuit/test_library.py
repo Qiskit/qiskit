@@ -735,33 +735,12 @@ class TestWeightedAdder(QiskitTestCase):
 class TestNLocal(QiskitTestCase):
     """Test the n-local circuit class."""
 
-    def assertCircuitEqual(self, qc1, qc2, visual=False, verbosity=0, transpiled=True):
+    def assertCircuitEqual(self, qc1, qc2, visual=False, transpiled=True):
         """An equality test specialized to circuits."""
-        basis_gates = ['id', 'u1', 'u3', 'cx']
-        qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
-        qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
-
-        if verbosity > 0:
-            print('-- circuit 1:')
-            print(qc1)
-            print('-- circuit 2:')
-            print(qc2)
-            print('-- transpiled circuit 1:')
-            print(qc1_transpiled)
-            print('-- transpiled circuit 2:')
-            print(qc2_transpiled)
-
-        if verbosity > 1:
-            print('-- dict:')
-            for key in qc1.__dict__.keys():
-                if key == '_data':
-                    print(key)
-                    print(qc1.__dict__[key])
-                    print(qc2.__dict__[key])
-                else:
-                    print(key, qc1.__dict__[key], qc2.__dict__[key])
-
         if transpiled:
+            basis_gates = ['id', 'u1', 'u3', 'cx']
+            qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
+            qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
             qc1, qc2 = qc1_transpiled, qc2_transpiled
 
         if visual:
@@ -799,7 +778,7 @@ class TestNLocal(QiskitTestCase):
             nlocal.compose(gate, indices)
             reference.append(gate, indices)
 
-        self.assertCircuitEqual(nlocal, reference, verbosity=0)
+        self.assertCircuitEqual(nlocal, reference)
 
     @data(
         [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
@@ -871,7 +850,7 @@ class TestNLocal(QiskitTestCase):
             nlocal = NLocal(num_qubits, entanglement_blocks=first_circuit, reps=1)
             nlocal += other
             with self.subTest(msg='type: {}'.format(type(other))):
-                self.assertCircuitEqual(nlocal, reference, verbosity=0)
+                self.assertCircuitEqual(nlocal, reference)
 
     def test_parameter_getter_from_automatic_repetition(self):
         """Test getting and setting of the nlocal parameters."""
@@ -885,12 +864,9 @@ class TestNLocal(QiskitTestCase):
         self.assertTrue(nlocal.num_parameters, 6)
         self.assertTrue(len(nlocal.parameters), 6)
 
-    @data(list(range(6)), ParameterVector('θ', length=6))
+    @data(list(range(6)), ParameterVector('θ', length=6), [0, 1, Parameter('theta'), 3, 4, 5])
     def test_parameter_setter_from_automatic_repetition(self, params):
-        """Test getting and setting of the nlocal parameters.
-
-        TODO Test the input ``[0, 1, Parameter('theta'), 3, 4, 5]`` once that's supported.
-        """
+        """Test getting and setting of the nlocal parameters."""
         circuit = QuantumCircuit(2)
         circuit.ry(Parameter('a'), 0)
         circuit.crx(Parameter('b'), 0, 1)
@@ -1068,33 +1044,12 @@ class TestNLocal(QiskitTestCase):
 class TestTwoLocal(QiskitTestCase):
     """Tests for the TwoLocal circuit."""
 
-    def assertCircuitEqual(self, qc1, qc2, visual=False, verbosity=0, transpiled=True):
+    def assertCircuitEqual(self, qc1, qc2, visual=False, transpiled=True):
         """An equality test specialized to circuits."""
-        basis_gates = ['id', 'u1', 'u3', 'cx']
-        qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
-        qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
-
-        if verbosity > 0:
-            print('-- circuit 1:')
-            print(qc1)
-            print('-- circuit 2:')
-            print(qc2)
-            print('-- transpiled circuit 1:')
-            print(qc1_transpiled)
-            print('-- transpiled circuit 2:')
-            print(qc2_transpiled)
-
-        if verbosity > 1:
-            print('-- dict:')
-            for key in qc1.__dict__.keys():
-                if key == '_data':
-                    print(key)
-                    print(qc1.__dict__[key])
-                    print(qc2.__dict__[key])
-                else:
-                    print(key, qc1.__dict__[key], qc2.__dict__[key])
-
         if transpiled:
+            basis_gates = ['id', 'u1', 'u3', 'cx']
+            qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
+            qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
             qc1, qc2 = qc1_transpiled, qc2_transpiled
 
         if visual:
