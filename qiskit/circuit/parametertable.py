@@ -22,7 +22,7 @@ from .instruction import Instruction
 class ParameterTable(MutableMapping):
     """Class for managing and setting circuit parameters"""
 
-    __slots__ = ['_table', '_keys']
+    __slots__ = ['_table', '_keys', '_names']
 
     def __init__(self, *args, **kwargs):
         """
@@ -31,6 +31,7 @@ class ParameterTable(MutableMapping):
         """
         self._table = dict(*args, **kwargs)
         self._keys = set(self._table.keys())
+        self._names = set(x.name for x in self._table)
 
     def __getitem__(self, key):
         return self._table[key]
@@ -49,6 +50,7 @@ class ParameterTable(MutableMapping):
             assert isinstance(param_index, int)
         self._table[parameter] = instr_params
         self._keys.add(parameter)
+        self._names.add(parameter.name)
 
     def get_keys(self):
         """Return a set of all keys in the parameter table
@@ -58,11 +60,26 @@ class ParameterTable(MutableMapping):
         """
         if len(self._keys) != len(self._table):
             self._keys = set(self._table.keys())
+        if len(self._names) != len(self._keys):
+            self._names = set(x.name for x in self._table)
         return self._keys
+
+    def get_names(self):
+        """Return a set of all parameter names in the parameter table
+
+        Returns:
+            set: A set of all the names in the parameter table
+        """
+        if len(self._keys) != len(self._table):
+            self._keys = set(self._table.keys())
+        if len(self._names) != len(self._keys):
+            self._names = set(x.name for x in self._table)
+        return self._names
 
     def __delitem__(self, key):
         del self._table[key]
         self._keys.discard(key)
+        self._names.discard(key.name)
 
     def __iter__(self):
         return iter(self._table)
