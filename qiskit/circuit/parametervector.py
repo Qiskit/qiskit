@@ -37,10 +37,14 @@ class ParameterVector:
         """Returns the list of parameters in the ParameterVector."""
         return self._params
 
-    def __getitem__(self, offset):
-        if offset > self._size:
-            raise IndexError('Index out of range: {} > {}'.format(offset, self._size))
-        return self.params[offset]
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            start, stop, step = key.indices(self._size)
+            return self.params[start:stop:step]
+
+        if key > self._size:
+            raise IndexError('Index out of range: {} > {}'.format(key, self._size))
+        return self.params[key]
 
     def __iter__(self):
         return iter(self.params[:self._size])
