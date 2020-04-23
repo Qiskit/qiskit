@@ -559,6 +559,7 @@ class QuantumCircuit:
         return instruction
 
     def _update_parameter_table(self, instruction):
+        parameter_names = {p.name for p in self._parameter_table}
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
                 current_parameters = self._parameter_table
@@ -569,7 +570,7 @@ class QuantumCircuit:
                                                           instruction, param_index):
                             self._parameter_table[parameter].append((instruction, param_index))
                     else:
-                        if parameter.name in current_parameters:
+                        if parameter.name in parameter_names:
                             raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
