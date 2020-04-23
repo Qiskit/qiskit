@@ -77,7 +77,7 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(rxg.is_parameterized())
         theta_bound = theta.bind({theta: 3.14})
         rxg = RXGate(theta_bound)
-        self.assertTrue(rxg.is_parameterized())
+        self.assertFalse(rxg.is_parameterized())
         h_gate = HGate()
         self.assertFalse(h_gate.is_parameterized())
 
