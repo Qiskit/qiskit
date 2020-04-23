@@ -798,10 +798,7 @@ class MCXGate(ControlledGate):
             4: C4XGate
         }
         if num_ctrl_qubits == 0:
-            gate = XGate.__new__()
-            # if __new__ does not return the same type as cls, init is not called
-            gate.__init__(label=label)
-            return gate
+            return XGate(label=label)
         if num_ctrl_qubits in explicit.keys():
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
