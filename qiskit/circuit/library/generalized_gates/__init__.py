@@ -14,4 +14,5 @@
 
 """The circuit library module on generalized gates."""
 
+from .diagonal import Diagonal
 from .mcmt import MCMT, MCMTVChain
