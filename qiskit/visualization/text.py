@@ -703,7 +703,7 @@ class TextDrawing():
         op = instruction.op
         if not hasattr(op, 'params'):
             return None
-        if any([isinstance(param, ndarray) for param in op.params]):
+        if all([isinstance(param, ndarray) for param in op.params]):
             return None
 
         ret = []
@@ -919,23 +919,16 @@ class TextDrawing():
             label = TextDrawing.label_for_box(instruction, controlled=True)
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
-            gates = self._set_ctrl_state(instruction, conditional)
-            if instruction.op.base_gate.name == 'z':
-                # cz
-                gates.append(Bullet(conditional=conditional))
-            elif instruction.op.base_gate.name == 'u1':
-                # cu1
-                connection_label = TextDrawing.params_for_label(instruction)[0]
-                gates.append(Bullet(conditional=conditional))
-            elif instruction.op.base_gate.name == 'swap':
-                # cswap
-                gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
-                add_connected_gate(instruction, gates, layer, current_cons)
-            elif instruction.op.base_gate.name == 'rzz':
-                # crzz
-                connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
-                gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            elif len(rest) > 1:
+
+            # For multibox gates
+            if (len(rest) > 1 and instruction.op.base_gate.name != 'swap'
+                    and instruction.op.base_gate.name != 'rzz'):
+                gates = []
+                for i in controlled_top + controlled_bot + controlled_edge:
+                    if i[1] == '1':
+                        gates.append(Bullet(conditional=conditional))
+                    else:
+                        gates.append(OpenBullet(conditional=conditional))
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
                 indexes = layer.set_qu_multibox(rest, label,
@@ -945,10 +938,25 @@ class TextDrawing():
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
-            elif instruction.op.base_gate.name == 'z':
-                gates.append(Bullet(conditional=conditional))
             else:
-                gates.append(BoxOnQuWire(label, conditional=conditional))
+                gates = self._set_ctrl_state(instruction, conditional)
+                if instruction.op.base_gate.name == 'z':
+                    # cz
+                    gates.append(Bullet(conditional=conditional))
+                elif instruction.op.base_gate.name == 'u1':
+                    # cu1
+                    connection_label = TextDrawing.params_for_label(instruction)[0]
+                    gates.append(Bullet(conditional=conditional))
+                elif instruction.op.base_gate.name == 'swap':
+                    # cswap
+                    gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
+                elif instruction.op.base_gate.name == 'rzz':
+                    # crzz
+                    connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+                    gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
+                else:
+                    # all other ControlledGates
+                    gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) >= 2 and not instruction.cargs:
@@ -1044,15 +1052,8 @@ class Layer:
             clbits = list(clbits)
             cbit_index = sorted([i for i, x in enumerate(self.cregs) if x in clbits])
             qbit_index = sorted([i for i, x in enumerate(self.qregs) if x in qubits])
-
-            # Further below, indices are used as wire labels. Here, get the length of
-            # the longest label, and pad all labels with spaces to this length.
-            wire_label_len = max(len(str(len(qubits) - 1)),
-                                 len(str(len(clbits) - 1)))
-            qargs = [str(qubits.index(qbit)).ljust(wire_label_len, ' ')
-                     for qbit in self.qregs if qbit in qubits]
-            cargs = [str(clbits.index(cbit)).ljust(wire_label_len, ' ')
-                     for cbit in self.cregs if cbit in clbits]
+            qargs = [str(qubits.index(qbit)) for qbit in self.qregs if qbit in qubits]
+            cargs = [str(clbits.index(cbit)) for cbit in self.cregs if cbit in clbits]
 
             box_height = len(self.qregs) - min(qbit_index) + max(cbit_index) + 1
 
@@ -1064,7 +1065,7 @@ class Layer:
                     wire_label = qargs.pop(0)
                 else:
                     named_bit = self.qregs[bit_i]
-                    wire_label = ' ' * wire_label_len
+                    wire_label = ' ' * len(wire_label)
                 self.set_qubit(named_bit, BoxOnQuWireMid(label, box_height, order,
                                                          wire_label=wire_label))
             for order, bit_i in enumerate(range(max(cbit_index)), order + 1):
@@ -1073,7 +1074,7 @@ class Layer:
                     wire_label = cargs.pop(0)
                 else:
                     named_bit = self.cregs[bit_i]
-                    wire_label = ' ' * wire_label_len
+                    wire_label = ' ' * len(cargs[0])
                 self.set_clbit(named_bit, BoxOnClWireMid(label, box_height, order,
                                                          wire_label=wire_label))
             self.set_clbit(clbits.pop(0),
@@ -1082,7 +1083,6 @@ class Layer:
         if qubits is None and clbits is not None:
             bits = list(clbits)
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
-            wire_label_len = len(str(len(bits) - 1))
             bits.sort(key=self.cregs.index)
             qargs = [''] * len(bits)
             set_bit = self.set_clbit
@@ -1093,9 +1093,7 @@ class Layer:
         elif clbits is None and qubits is not None:
             bits = list(qubits)
             bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
-            wire_label_len = len(str(len(bits) - 1))
-            qargs = [str(bits.index(qbit)).ljust(wire_label_len, ' ')
-                     for qbit in self.qregs if qbit in bits]
+            qargs = [str(bits.index(qbit)) for qbit in self.qregs if qbit in bits]
             bits.sort(key=self.qregs.index)
             set_bit = self.set_qubit
             OnWire = BoxOnQuWire
@@ -1122,7 +1120,7 @@ class Layer:
                     wire_label = qargs.pop(0)
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
-                    wire_label = ' ' * wire_label_len
+                    wire_label = ' ' * len(qargs[0])
 
                 control_label = control_index.get(bit_i)
                 set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label,

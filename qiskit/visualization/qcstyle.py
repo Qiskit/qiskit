@@ -60,10 +60,15 @@ class DefaultStyle:
             'sdg': 'S^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
+            'iswap': 'Iswap',
+            'dcx': 'Dcx',
             'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
+            'rxx': 'R_{xx}',
+            'ryy': 'R_{yy}',
+            'rzx': 'R_{zx}',
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
@@ -90,6 +95,9 @@ class DefaultStyle:
             'rx': other_color,
             'ry': other_color,
             'rz': other_color,
+            'rxx': other_color,
+            'ryy': other_color,
+            'rzx': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
             'multi': other_color,
