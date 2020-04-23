@@ -52,4 +52,7 @@ except ImportError:
     HAS_PYGMENTS = False
 
 if HAS_PYGMENTS:
-    from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
+    try:
+        from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
+    except Exception:
+        HAS_PYGMENTS = False

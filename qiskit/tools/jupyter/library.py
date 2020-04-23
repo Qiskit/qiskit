@@ -25,7 +25,7 @@ try:
     from pygments.formatters import HtmlFormatter
     from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
     HAS_PYGMENTS = True
-except ImportError:
+except Exception:
     HAS_PYGMENTS = False
 
 
@@ -123,7 +123,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
         ImportError: If pygments is not installed
     """
     if not HAS_PYGMENTS:
-        raise ImportError("pygments must be installed for to use the qasm "
+        raise ImportError("pygments>2.4 must be installed for to use the qasm "
                           'widget. To install run "pip install pygments"')
     qasm_code = circuit.qasm()
     code = pygments.highlight(qasm_code, OpenQASMLexer(),
