@@ -56,6 +56,8 @@ class ParameterTable(MutableMapping):
         Returns:
             set: A set of all the keys in the parameter table
         """
+        if len(self._keys) != len(self._table):
+            self._keys = set(self._table.keys())
         return self._keys
 
     def __delitem__(self, key):
