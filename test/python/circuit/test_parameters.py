@@ -32,7 +32,6 @@ from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
-from qiskit.circuit.exceptions import CircuitError
 
 
 @ddt
@@ -57,6 +56,7 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, qc_aer.parameters)
 
     def test_duplicate_name_on_append(self):
+        """Test adding a second parameter object with the same name fails."""
         param_a = Parameter('a')
         param_a_again = Parameter('a')
         qc = QuantumCircuit(1)
