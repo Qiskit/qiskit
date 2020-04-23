@@ -514,6 +514,8 @@ class QuantumCircuit:
                 instruction = instruction.to_instruction()
             except AttributeError:
                 raise CircuitError('Unable to append operator to circuit.')
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
 
         if label is not None:
             instruction.label = label
