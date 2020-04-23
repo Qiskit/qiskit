@@ -104,6 +104,7 @@ N-local circuits
    TwoLocal
    RY
    RYRZ
+   SwapRZ
 
 
 Data encoding circuits
@@ -140,7 +141,8 @@ from .n_local import (
     NLocal,
     TwoLocal,
     RY,
-    RYRZ
+    RYRZ,
+    SwapRZ,
 )
 from .data_encoding import (
     PauliExpansion,
