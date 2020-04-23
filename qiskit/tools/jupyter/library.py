@@ -25,7 +25,7 @@ try:
     from pygments.formatters import HtmlFormatter
     from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
     HAS_PYGMENTS = True
-except Exception:
+except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 

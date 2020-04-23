@@ -42,7 +42,7 @@ try:
     from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
     from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
     HAS_PYGMENTS = True
-except Exception:
+except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 
