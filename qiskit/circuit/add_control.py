@@ -35,12 +35,15 @@ def add_control(operation: Union[Gate, ControlledGate],
     Open controls are implemented by conjugating the control line with
     X gates. Adds num_ctrl_qubits controls to operation.
 
+    This function is meant to be called from the
+    :method:`qiskit.circuit.gate.Gate.control()` method.
+
     Args:
-        operation: Operation for which control will be added.
-        num_ctrl_qubits: The number of controls to add to gate (default=1).
-        label: Optional gate label.
-        ctrl_state (int or str or None): The control state in decimal or as
-            a bitstring (e.g. '111'). If specified as a bitstring the length
+        operation: The operation to be controlled.
+        num_ctrl_qubits: The number of controls to add to gate.
+        label: An optional gate label.
+        ctrl_state: The control state in decimal or as a bitstring
+            (e.g. '111'). If specified as a bitstring the length
             must equal num_ctrl_qubits, MSB on left. If None, use
             2**num_ctrl_qubits-1.
 
@@ -67,12 +70,16 @@ def control(operation: Union[Gate, ControlledGate],
             num_ctrl_qubits: Optional[int] = 1,
             label: Optional[Union[None, str]] = None,
             ctrl_state: Optional[Union[None, int, str]] = None) -> ControlledGate:
-    """Return controlled version of gate using controlled rotations
+    """Return controlled version of gate using controlled rotations. This function
+    first checks the name of the operation to see if it knows of a method from which
+    to generate a controlled version. Currently these are `x`, `rx`, `ry`, and `rz`.
+    If a method is not directly known, it calls the unroller to convert to `u1`, `u3`,
+    and `cx` gates.
 
     Args:
-        operation: gate to create ControlledGate from
-        num_ctrl_qubits: number of controls to add to gate (default=1)
-        label: optional gate label
+        operation: The gate used to create the ControlledGate.
+        num_ctrl_qubits: The number of controls to add to gate (default=1).
+        label: An optional gate label.
         ctrl_state: The control state in decimal or as
             a bitstring (e.g. '111'). If specified as a bitstring the length
             must equal num_ctrl_qubits, MSB on left. If None, use
