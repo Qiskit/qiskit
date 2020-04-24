@@ -24,6 +24,7 @@ import numpy as np
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -42,7 +43,7 @@ try:
     from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
     from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
     HAS_PYGMENTS = True
-except ImportError:
+except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 
@@ -349,6 +350,40 @@ class QuantumCircuit:
             self._append(*instruction_context)
         return self
 
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+        """Compose circuit with ``other`` circuit, optionally permuting wires.
+
+        ``other`` can be narrower or of equal width to ``self``.
+
+        Args:
+            other (QuantumCircuit): circuit to compose with self.
+            qubits (list[Qubit|int]): qubits of self to compose onto.
+            clbits (list[Clbit|int]): clbits of self to compose onto.
+            front (bool): If True, front composition will be performed (not implemented yet).
+            inplace (bool): If True, modify the object. Otherwise return composed circuit.
+
+        Returns:
+            QuantumCircuit: the composed circuit (returns None if inplace==True).
+
+        Raises:
+            CircuitError: if composing on the front.
+            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+        """
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        from qiskit.converters.dag_to_circuit import dag_to_circuit
+        if front:
+            raise CircuitError("Front composition of QuantumCircuit not supported yet.")
+
+        dag_self = circuit_to_dag(self)
+        dag_other = circuit_to_dag(other)
+        dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
+        composed_circuit = dag_to_circuit(dag_self)
+        if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
+            self.__dict__.update(composed_circuit.__dict__)
+            return None
+        else:
+            return dag_to_circuit(dag_self)
+
     @property
     def qubits(self):
         """
@@ -449,21 +484,41 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, label=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction): Instruction instance to append
-            qargs (list(argument)): qubits to attach instruction to
-            cargs (list(argument)): clbits to attach instruction to
+            instruction (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator): instruction
+                to append.
+            qargs (list(argument)): qubits to attach instruction to.
+            cargs (list(argument)): clbits to attach instruction to.
+            label (str): An optional label for the appended instruction (will override
+                any existing gate label).
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
+
+        Raises:
+            CircuitError: If it is not possible to append the operator.
         """
-        # Convert input to instruction
+        from qiskit.quantum_info.operators.base_operator import BaseOperator
+        # Convert input to Instruction
+        if isinstance(instruction, QuantumCircuit):
+            try:
+                instruction = instruction.to_gate()
+            except QiskitError:
+                instruction = instruction.to_instruction()
+        elif isinstance(instruction, BaseOperator):
+            try:
+                instruction = instruction.to_instruction()
+            except AttributeError:
+                raise CircuitError('Unable to append operator to circuit.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
+
+        if label is not None:
+            instruction.label = label
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -680,9 +735,9 @@ class QuantumCircuit:
 
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError("To use the formatted output pygments must "
-                                  'be installed. To install run "pip install '
-                                  'pygments".')
+                raise ImportError("To use the formatted output pygments>2.4 "
+                                  "must be installed. To install pygments run "
+                                  '"pip install pygments".')
             code = pygments.highlight(string_temp,
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))
