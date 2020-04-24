@@ -3,6 +3,27 @@ upgrade:
   - |
     The marshmallow schema objects in :mod:`qiskit.providers.models` have been
     removed since they are no longer used by the BackendObjects.
+  - |
+    The output of ``to_dict()`` method for the classes in
+    :mod:`qiskit.providers.models` is no longer in a format for direct json
+    serialization. Depending on the content contained in instances of these
+    class there may be numpy arrays and/or complex in the fields of the dict.
+    If you're JSON serializing the output of the to_dict methods you should
+    ensure your json encoder can handle numpy arrays and complex. This
+    includes:
+
+    * :meth:`qiskit.providers.models.BackendConfiguration.to_dict`
+    * :meth:`qiskit.providers.models.BackendProperties.to_dict`
+    * :meth:`qiskit.providers.models.BackendStatus.to_dict`
+    * :meth:`qiskit.providers.models.QasmBackendConfiguration.to_dict`
+    * :meth:`qiskit.providers.models.PulseBackendConfiguration.to_dict`
+    * :meth:`qiskit.providers.models.UchannelLO.to_dict`
+    * :meth:`qiskit.providers.models.GateConfig.to_dict`
+    * :meth:`qiskit.providers.models.PulseDefaults.to_dict`
+    * :meth:`qiskit.providers.models.Command.to_dict`
+    * :meth:`qiskit.providers.models.JobStatus.to_dict`
+    * :meth:`qiskit.providers.models.Nduv.to_dict`
+    * :meth:`qiskit.providers.models.Gate.to_dict`
 
 other:
   - |
