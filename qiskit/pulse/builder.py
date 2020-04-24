@@ -517,11 +517,11 @@ def active_backend():
         BaseBackend: The active backend in the currently active builder context.
 
     Raises:
-        exceptions.PulseError: If the builder does not have a backend set.
+        exceptions.BackendNotSet: If the builder does not have a backend set.
     """
     builder = _active_builder().backend
     if builder is None:
-        raise  BackendNotSet(
+        raise BackendNotSet(
             'This function requires the active builder to '
             'have a "backend" set.')
     return builder
