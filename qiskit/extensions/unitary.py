@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.extensions.standard import U3Gate
+from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
@@ -111,8 +112,9 @@ class UnitaryGate(Gate):
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix()).data
         else:
-            raise NotImplementedError("Not able to generate a subcircuit for "
-                                      "a {}-qubit unitary".format(self.num_qubits))
+            q = QuantumRegister(self.num_qubits, "q")
+            self.definition = [(isometry.Isometry(self.to_matrix(), 0, 0),
+                                [q[x] for x in range(self.num_qubits)], [])]
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         r"""Return controlled version of gate
