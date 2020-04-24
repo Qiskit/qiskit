@@ -631,7 +631,7 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_with_delay(self):
         """Test that delay instruction in assembly."""
         backend = FakeOpenPulse2Q()
-        delay_schedule = pulse.Delay(10)(self.backend_config.drive(0))
+        delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
 
         delay_qobj = assemble(delay_schedule, backend)
         validate_qobj_against_schema(delay_qobj)
