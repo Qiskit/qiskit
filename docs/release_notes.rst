@@ -21,6 +21,105 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
 Notable Changes
 ###############
 
+
+*************
+Qiskit 0.18.3
+*************
+
+Terra 0.13.0
+============
+
+No Change
+
+Aer 0.5.1
+==========
+
+.. _Release Notes_0.5.1_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- Changes how transpilation passes are handled in the C++ Controller classes
+  so that each pass must be explicitly called. This allows for greater
+  customization on when each pass should be called, and with what parameters.
+  In particular this enables setting different parameters for the gate
+  fusion optimization pass depending on the QasmController simulation method.
+
+- Add ``gate_length_units`` kwarg to
+  :meth:`qiskit.providers.aer.noise.NoiseModel.from_device`
+  for specifying custom ``gate_lengths`` in the device noise model function
+  to handle unit conversions for internal code.
+
+- Add Controlled-Y ("cy") gate to the Stabilizer simulator methods supported
+  gateset.
+
+- For Aer's backend the jsonschema validation of input qobj objects from
+  terra is now opt-in instead of being enabled by default. If you want
+  to enable jsonschema validation of qobj set the ``validate`` kwarg on
+  the :meth:`qiskit.providers.aer.QasmSimualtor.run` method for the backend
+  object to ``True``.
+
+
+.. _Release Notes_0.5.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Remove "extended_stabilizer" from the automatically selected simulation
+  methods. This is needed as the extended stabilizer method is not exact
+  and may give incorrect results for certain circuits unless the user
+  knows how to optimize its configuration parameters.
+
+  The automatic method now only selects from "stabilizer", "density_matrix",
+  and "statevector" methods. If a non-Clifford circuit that is too large for
+  the statevector method is executed an exception will be raised suggesting
+  you could try explicitly using the "extended_stabilizer" or
+  "matrix_product_state" methods instead.
+
+- Fixes Controller classes so that the ReduceBarrier transpilation pass is
+  applied first. This prevents barrier instructions from preventing truncation
+  of unused qubits if the only instruction defined on them was a barrier.
+
+- Disables gate fusion for the matrix product state simulation method as this
+  was causing issues with incorrect results being returned in some cases.
+
+- Fix error in gate time unit conversion for device noise model with thermal
+  relaxation errors and gate errors. The error probability the depolarizing
+  error was being  calculated with gate time in microseconds, while for
+  thermal relaxation it was being calculated in nanoseconds. This resulted
+  in no depolarizing error being applied as the incorrect units would make
+  the device seem to be coherence limited.
+
+- Fix bug in incorrect composition of QuantumErrors when the qubits of
+  composed instructions differ.
+
+- Fix issue where the "diagonal" gate is checked to be unitary with too
+  high a tolerance. This was causing diagonals generated from Numpy functions
+  to often fail the test.
+
+- Fix remove-barrier circuit optimization pass to be applied before qubit
+  trucation. This fixes an issue where barriers inserted by the Terra
+  transpiler across otherwise inactive qubits would prevent them from being
+  truncated.
+
+Ignis 0.3.0
+===========
+
+No Change
+
+
+Aqua 0.6.6
+==========
+
+No Change
+
+
+IBM Q Provider 0.6.1
+====================
+
+No Change
+
+
 *************
 Qiskit 0.18.0
 *************
