@@ -26,6 +26,9 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import CXCancellation
 
 
@@ -267,3 +270,8 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "custom_gate q0[0],q0[1];\n" \
                         "custom_gate q0[1],q0[0];\n"
         self.assertEqual(expected_qasm, qc.qasm())
+
+    def test_unitary_decomposition(self):
+        qc = QuantumCircuit(3)
+        qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
+        matrix_equal(Operator(qc).data, Operator(qc.decompose()).data)
