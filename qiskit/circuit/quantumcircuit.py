@@ -24,6 +24,7 @@ import numpy as np
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -42,7 +43,7 @@ try:
     from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
     from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
     HAS_PYGMENTS = True
-except ImportError:
+except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 
@@ -483,21 +484,41 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, label=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction): Instruction instance to append
-            qargs (list(argument)): qubits to attach instruction to
-            cargs (list(argument)): clbits to attach instruction to
+            instruction (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator): instruction
+                to append.
+            qargs (list(argument)): qubits to attach instruction to.
+            cargs (list(argument)): clbits to attach instruction to.
+            label (str): An optional label for the appended instruction (will override
+                any existing gate label).
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
+
+        Raises:
+            CircuitError: If it is not possible to append the operator.
         """
-        # Convert input to instruction
+        from qiskit.quantum_info.operators.base_operator import BaseOperator
+        # Convert input to Instruction
+        if isinstance(instruction, QuantumCircuit):
+            try:
+                instruction = instruction.to_gate()
+            except QiskitError:
+                instruction = instruction.to_instruction()
+        elif isinstance(instruction, BaseOperator):
+            try:
+                instruction = instruction.to_instruction()
+            except AttributeError:
+                raise CircuitError('Unable to append operator to circuit.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
+
+        if label is not None:
+            instruction.label = label
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -714,9 +735,9 @@ class QuantumCircuit:
 
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError("To use the formatted output pygments must "
-                                  'be installed. To install run "pip install '
-                                  'pygments".')
+                raise ImportError("To use the formatted output pygments>2.4 "
+                                  "must be installed. To install pygments run "
+                                  '"pip install pygments".')
             code = pygments.highlight(string_temp,
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))
