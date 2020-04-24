@@ -27,8 +27,7 @@ from qiskit.dagcircuit import DAGNode
 from qiskit.quantum_info import Statevector
 
 
-@unittest.skipUnless(HAS_Z3,
-                     'z3-solver needs to be installed to run these tests')
+@unittest.skipUnless(HAS_Z3, 'z3-solver needs to be installed to run these tests')
 class TestHoareOptimizer(QiskitTestCase):
     """Test the HoareOptimizer pass"""
 
