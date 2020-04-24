@@ -114,7 +114,7 @@ class UnitaryGate(Gate):
         else:
             q = QuantumRegister(self.num_qubits, "q")
             self.definition = [(isometry.Isometry(self.to_matrix(), 0, 0),
-                                [q[x] for x in range(self.num_qubits)], [])]
+                                q[:], [])]
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         r"""Return controlled version of gate
