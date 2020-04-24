@@ -20,6 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.extensions.standard.t import TGate, TdgGate
 from qiskit.extensions.standard.s import SGate, SdgGate
 from qiskit.qasm import pi
@@ -85,9 +86,8 @@ class HGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CHGate()
+        if num_ctrl_qubits == 1:
+            return CHGate(label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -165,9 +165,10 @@ class CHGate(ControlledGate):
 
     """
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CH gate."""
-        super().__init__('ch', 2, [], num_ctrl_qubits=1)
+        super().__init__('ch', 2, [], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = HGate()
 
     def _define(self):
@@ -204,18 +205,17 @@ class CHGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 1 / numpy.sqrt(2), 0, 1 / numpy.sqrt(2)],
-                            [0, 0, 1, 0],
-                            [0, 1 / numpy.sqrt(2), 0, -1 / numpy.sqrt(2)]],
-                           dtype=complex)
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
-       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+       *, label=None, ctrl_state=None, ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CHGate`."""
-    return self.append(CHGate(), [control_qubit, target_qubit], [])
+    return self.append(CHGate(label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.ch = ch
