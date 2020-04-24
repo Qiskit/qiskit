@@ -14,7 +14,7 @@
 
 """The RY 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable
+from typing import Union, Optional, List, Tuple, Callable, Any
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
@@ -80,7 +80,7 @@ class RY(TwoLocal):
                  skip_final_rotation_layer: bool = False,
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
-                 initial_state: Optional['InitialState'] = None,
+                 initial_state: Optional[Any] = None,
                  depth: Optional[int] = None,  # pylint: disable=unused-argument
                  entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
                  skip_final_ry: Optional[bool] = None,  # pylint: disable=unused-argument
@@ -105,6 +105,9 @@ class RY(TwoLocal):
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
             initial_state: An `InitialState` object to prepend to the circuit.
+            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
+                that are entangled with another qubit. If False, the single qubit gates are applied
+                to each qubit in the Ansatz. Defaults to False.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.

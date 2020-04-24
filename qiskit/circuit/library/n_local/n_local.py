@@ -74,7 +74,7 @@ class NLocal(QuantumCircuit):
                  overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
                  skip_final_rotation_layer: bool = False,
                  skip_unentangled_qubits: bool = False,
-                 initial_state: Optional['InitialState'] = None,
+                 initial_state: Optional[Any] = None,
                  name: Optional[str] = 'nlocal') -> None:
         """Create a new n-local circuit.
 
@@ -98,7 +98,10 @@ class NLocal(QuantumCircuit):
             skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
-            initial_state: An ``InitialState`` object to prepend to the NLocal.
+            initial_state: A `qiskit.aqua.components.initial_states.InitialState` object which can
+                be used to describe an initial state prepended to the NLocal circuit. This
+                is primarily for compatibility with algorithms in Qiskit Aqua, which leverage
+                this object to prepare input states.
             name: The name of the circuit.
 
         Examples:
@@ -139,6 +142,15 @@ class NLocal(QuantumCircuit):
             self.entanglement = entanglement
 
         if initial_state is not None:
+            try:
+                from qiskit.aqua.components.initial_states import InitialState
+                if not isinstance(initial_state, InitialState):
+                    raise AttributeError('initial_state must be of type InitialState, but is '
+                                         '{}.'.format(type(initial_state)))
+            except ImportError:
+                raise ImportError('Could not import the qiskit.aqua.components.initial_states.'
+                                  'InitialState. To use this feature Qiskit Aqua must be installed.'
+                                  )
             self.initial_state = initial_state
 
     @property
@@ -565,7 +577,7 @@ class NLocal(QuantumCircuit):
         raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
 
     @property
-    def initial_state(self) -> 'InitialState':
+    def initial_state(self) -> Any:
         """Return the initial state that is added in front of the NLocal.
 
         Returns:
@@ -574,7 +586,7 @@ class NLocal(QuantumCircuit):
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state: 'InitialState') -> None:
+    def initial_state(self, initial_state: Any) -> None:
         """Set the initial state.
 
         Note that this sets the number of qubits to the width of the initial state.

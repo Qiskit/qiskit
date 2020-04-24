@@ -14,7 +14,7 @@
 
 """The two-local gate circuit."""
 
-from typing import Union, Optional, List, Callable
+from typing import Union, Optional, List, Callable, Any
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
@@ -80,7 +80,7 @@ class TwoLocal(NLocal):
                  skip_final_rotation_layer: bool = False,
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
-                 initial_state: Optional['InitialState'] = None,
+                 initial_state: Optional[Any] = None,
                  ) -> None:
         """Construct a new two-local circuit.
 
@@ -112,7 +112,10 @@ class TwoLocal(NLocal):
                 number of its occurrence with this specified prefix.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted. Defaults to False.
-            initial_state: An `'InitialState'` object to prepend to the circuit.
+            initial_state: An `InitialState` object to prepend to the circuit.
+            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
+                that are entangled with another qubit. If False, the single qubit gates are applied
+                to each qubit in the Ansatz. Defaults to False.
 
         Examples:
 
