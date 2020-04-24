@@ -629,17 +629,22 @@ class NLocal(QuantumCircuit):
         self._data = None
         self._parameter_table = ParameterTable()
 
-    def compose(self,
-                other: Union['NLocal', Instruction, QuantumCircuit],
-                indices: Optional[Union[List[int], str, List[List[int]]]] = None,
-                front: bool = False,
-                ) -> 'NLocal':
+    def append(self, instruction, qargs=None, cargs=None, label=None):
+        if self._data is None:
+            self._build()
+        return super().append(instruction, qargs, cargs, label)
+
+    def add_layer(self,
+                  other: Union['NLocal', Instruction, QuantumCircuit],
+                  entanglement: Optional[Union[List[int], str, List[List[int]]]] = None,
+                  front: bool = False,
+                  ) -> 'NLocal':
         """Append another layer to the NLocal.
 
         Args:
             other: The layer to compose, can be another NLocal, an Instruction or Gate,
                 or a QuantumCircuit.
-            indices: The qubit indices or entanglement.
+            entanglement: The entanglement or qubit indices.
             front: If True, ``other`` is appended to the front, else to the back.
 
         Returns:
@@ -651,10 +656,10 @@ class NLocal(QuantumCircuit):
         """
         block = self._convert_to_block(other)
 
-        if isinstance(indices, list) and not isinstance(indices[0], list):
-            entanglement = [indices]
-        else:
-            entanglement = indices or [list(range(block.num_qubits))]
+        if entanglement is None:
+            entanglement = [list(range(block.num_qubits))]
+        elif isinstance(entanglement, list) and not isinstance(entanglement[0], list):
+            entanglement = [entanglement]
 
         if front:
             self._prepended_blocks += [block]

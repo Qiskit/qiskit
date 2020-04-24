@@ -775,7 +775,7 @@ class TestNLocal(QiskitTestCase):
 
         reference = QuantumCircuit(max_num_qubits + 1)
         for (gate, indices) in gate_data:
-            nlocal.compose(gate, indices)
+            nlocal.append(gate, indices)
             reference.append(gate, indices)
 
         self.assertCircuitEqual(nlocal, reference)
@@ -800,7 +800,7 @@ class TestNLocal(QiskitTestCase):
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth)
-            nlocal.compose(circuit)
+            nlocal.append(circuit)
             reference.append(circuit, list(range(num)))
 
         self.assertCircuitEqual(nlocal, reference)
@@ -825,7 +825,7 @@ class TestNLocal(QiskitTestCase):
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth)
-            nlocal.compose(NLocal(num, entanglement_blocks=circuit, reps=1))
+            nlocal.add_layer(NLocal(num, entanglement_blocks=circuit, reps=1))
             reference.append(circuit, list(range(num)))
 
         self.assertCircuitEqual(nlocal, reference)
