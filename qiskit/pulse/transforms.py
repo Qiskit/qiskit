@@ -209,7 +209,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     """Optimization pass to replace identical pulses.
 
     Args:
-        schedules (list): Schedules to compress.
+        schedules: Schedules to compress.
 
     Returns:
         Compressed schedules.
