@@ -41,8 +41,9 @@ class SamplePulse(Pulse):
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
         """
-        warnings.warn("SamplePulse is deprecated. SamplePulse has been renamed to Waveform " +
-                      "Its in waveform.py under the same module", DeprecationWarning)
+        warnings.warn("SamplePulse has been renamed to Waveform and is deprecated. " +
+                      "Please replace SamplePulse(samples, channel) with "
+                      "Waveform(samples, channel).", DeprecationWarning)
         samples = np.asarray(samples, dtype=np.complex_)
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
