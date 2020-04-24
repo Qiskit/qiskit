@@ -90,7 +90,8 @@ class PauliExpansion(NLocal):
                          rotation_blocks=HGate(),
                          entanglement=entanglement,
                          parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers)
+                         insert_barriers=insert_barriers,
+                         skip_final_rotation_layer=True)
 
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ['Z', 'ZZ']
@@ -195,7 +196,7 @@ class PauliExpansion(NLocal):
 
         basis_change(evo)
         cx_chain(evo)
-        evo.u1(2 * time, indices[-1])
+        evo.u1(2.0 * time, indices[-1])
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo

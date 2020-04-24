@@ -1294,7 +1294,6 @@ class TestDataEncoding(QiskitTestCase):
             ref.h([0, 1, 2, 3])
             for i in range(4):
                 ref.u1(2 * times[i], i)
-        ref.h([0, 1, 2, 3])
 
         self.assertTrue(Operator(encoding).equiv(ref))
 
@@ -1317,7 +1316,6 @@ class TestDataEncoding(QiskitTestCase):
             zz_evolution(ref, 0, 1)
             zz_evolution(ref, 0, 2)
             zz_evolution(ref, 1, 2)
-        ref.h([0, 1, 2])
 
         self.assertTrue(Operator(encoding).equiv(ref))
 
