@@ -230,6 +230,8 @@ stages:
           inputs:
             pathtoPublish: 'docs/_build/html'
             artifactName: 'html_docs'
+            Parallel: true
+            ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
