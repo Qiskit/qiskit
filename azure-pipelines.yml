@@ -225,11 +225,19 @@ stages:
         - bash: |
             tox -edocs
           displayName: 'Run Docs build'
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'docs/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
+            verbose: true
         - task: PublishBuildArtifacts@1
           displayName: 'Publish docs'
           inputs:
-            pathtoPublish: 'docs/_build/html'
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'html_docs'
+            Parallel: true
+            ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
