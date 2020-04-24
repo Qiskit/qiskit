@@ -312,11 +312,6 @@ class TestHoareOptimizer(QiskitTestCase):
                DAGNode({'type': 'op', 'op': SwapGate()})]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode({'type': 'op', 'op': UnitaryGate([[1, 0],
-                                                         [0, 1j]]).control()}),
-               DAGNode({'type': 'op', 'op': UnitaryGate([[1, 0],
-                                                         [0, -1j]])})]
-
 
 if __name__ == '__main__':
     unittest.main()
