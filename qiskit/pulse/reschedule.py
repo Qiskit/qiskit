@@ -196,7 +196,7 @@ def pad(schedule: Schedule,
                 break
             if interval[0] != curr_time:
                 end_time = min(interval[0], until)
-                schedule |= Delay(end_time - curr_time, channel).shift(curr_time)
+                schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
             curr_time = interval[1]
         if curr_time < until:
             schedule |= Delay(until - curr_time, channel).shift(curr_time)
