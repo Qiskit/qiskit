@@ -19,8 +19,9 @@
 import re
 
 import numpy as np
-
 from qiskit.converters import circuit_to_dag
+from qiskit.quantum_info.states import DensityMatrix
+from qiskit.quantum_info.operators import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 
 try:
@@ -58,30 +59,6 @@ def generate_latex_label(label):
         after_match = after_match.replace(r'\$', '$')
         return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
             after_match)
-
-
-def _validate_input_state(quantum_state):
-    """Validates the input to state visualization functions.
-
-    Args:
-        quantum_state (ndarray): Input state / density matrix.
-    Returns:
-        rho: A 2d numpy array for the density matrix.
-    Raises:
-        VisualizationError: Invalid input.
-    """
-    rho = np.asarray(quantum_state)
-    if rho.ndim == 1:
-        rho = np.outer(rho, np.conj(rho))
-    # Check the shape of the input is a square matrix
-    shape = np.shape(rho)
-    if len(shape) != 2 or shape[0] != shape[1]:
-        raise VisualizationError("Input is not a valid quantum state.")
-    # Check state is an n-qubit state
-    num = int(np.log2(rho.shape[0]))
-    if 2 ** num != rho.shape[0]:
-        raise VisualizationError("Input is not a multi-qubit quantum state.")
-    return rho
 
 
 def _trim(image):
@@ -311,3 +288,41 @@ class _LayerSpooler(list):
             self.slide_from_left(node, index)
         else:
             self.slide_from_right(node, index)
+
+
+def _bloch_multivector_data(state):
+    """Return list of bloch vectors for each qubit
+
+    Args:
+        state (DensityMatrix or Statevector): an N-qubit state.
+
+    Returns:
+        list: list of bloch vectors (x, y, z) for each qubit.
+    """
+    rho = DensityMatrix(state)
+    num = rho.num_qubits
+    if num is None:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    pauli_singles = PauliTable.from_labels(['X', 'Y', 'Z'])
+    bloch_data = []
+    for i in range(num):
+        paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=np.bool)).insert(
+            i, pauli_singles, qubit=True)
+        bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]
+        bloch_data.append(bloch_state)
+    return bloch_data
+
+
+def _paulivec_data(state):
+    """Return paulivec data for plotting.
+
+    Args:
+        state (DensityMatrix or Statevector): an N-qubit state.
+
+    Returns:
+        tuple: (labels, values) for Pauli vec
+    """
+    rho = SparsePauliOp.from_operator(DensityMatrix(state))
+    if rho.num_qubits is None:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    return rho.table.to_labels(), np.real(rho.coeffs)

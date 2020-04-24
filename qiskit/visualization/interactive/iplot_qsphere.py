@@ -26,14 +26,15 @@ def iplot_state_qsphere(rho, figsize=None):
         Graphical representation of the input array, using a Q sphere for each
         eigenvalue.
         Args:
-            rho (array): State vector or density matrix.
+            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
             figsize (tuple): Figure size in pixels.
         Returns:
             Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
 
-                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit import QuantumCircuit
+                from qiskit.quantum_info import Statevector
                 from qiskit.visualization import iplot_state_qsphere
                 %matplotlib inline
                 qc = QuantumCircuit(2, 2)

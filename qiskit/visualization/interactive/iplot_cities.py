@@ -25,14 +25,15 @@ def iplot_state_city(rho, figsize=None):
     """ Create a cities representation.
         Graphical representation of the input array using a city style graph.
         Args:
-            rho (array): State vector or density matrix.
+            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
             figsize (tuple): The figure size in pixels.
         Returns:
             Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
 
-                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit import QuantumCircuit
+                from qiskit.quantum_info import DensityMatrix
                 from qiskit.visualization import iplot_state_city
                 %matplotlib inline
                 qc = QuantumCircuit(2, 2)
