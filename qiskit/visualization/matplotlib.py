@@ -695,7 +695,7 @@ class MatplotlibDrawer:
                     continue
 
                 # If one of the standard wide gates
-                elif op.name in _wide_gate or base_name in _wide_gate:
+                if op.name in _wide_gate or base_name in _wide_gate:
 
                     if op.name in ['rzz', 'cu1'] or base_name in ['rzz', 'u3']:
                         layer_width = 2
@@ -715,7 +715,7 @@ class MatplotlibDrawer:
                 # if custom gate with a longer than standard name determine
                 # width
                 elif (op.name not in _narrow_gate+_wide_gate+_other_gate+_special_gate
-                        or (op.name not in _special_gate and len(op.name) >= 4)):
+                      or (op.name not in _special_gate and len(op.name) >= 4)):
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
@@ -1004,8 +1004,6 @@ class MatplotlibDrawer:
                         else:
                             self._gate(q_xy[num_ctrl_qubits], wide=_iswide, text=disp, fc=color)
                     else:
-                        #if len(disp) < 4:
-                        #    _iswide = False
                         self._custom_multiqubit_gate(
                             q_xy[num_ctrl_qubits:], wide=True, fc=color, text=disp)
 
