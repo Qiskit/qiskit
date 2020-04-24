@@ -629,23 +629,16 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(qobj.config.pulse_library), 3)
 
     def test_assemble_with_delay(self):
-        """Test that delay instruction is ignored in assembly."""
+        """Test that delay instruction in assembly."""
         backend = FakeOpenPulse2Q()
+        delay_schedule = pulse.Delay(10)(self.backend_config.drive(0))
 
-        orig_schedule = self.schedule
-        with self.assertWarns(DeprecationWarning):
-            delay_schedule = orig_schedule + pulse.Delay(10)(self.backend_config.drive(0))
-
-        orig_qobj = assemble(orig_schedule, backend)
-        validate_qobj_against_schema(orig_qobj)
         delay_qobj = assemble(delay_schedule, backend)
         validate_qobj_against_schema(delay_qobj)
 
-        for instr in delay_qobj.experiments[0].to_dict()['instructions']:
-            if instr['name'] == 'delay':
-                self.assertTrue(instr['duration'], 10)
-            else:
-                self.assertIn(instr, orig_qobj.experiments[0].to_dict()['instructions'])
+        test_dict = delay_qobj.experiments[0].to_dict()
+        self.assertTrue(test_dict['instructions'][0]['name'], 'delay')
+        self.assertTrue(test_dict['instructions'][0]['duration'], 10)
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
