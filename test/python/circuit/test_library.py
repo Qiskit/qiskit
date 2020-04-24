@@ -761,22 +761,20 @@ class TestNLocal(QiskitTestCase):
             self.assertEqual(len(attribute), 0)
 
     @data(
-        [(XGate(), [0])],
-        [(XGate(), [0]), (XGate(), [2])],
-        [(RXGate(0.2), [2]), (CRXGate(-0.2), [1, 3])],
+        (XGate(), [[0], [2], [1]]),
+        (XGate(), [[0]]),
+        (CRXGate(-0.2), [[2, 0], [1, 3]]),
     )
-    def test_append_gates_to_empty_nlocal(self, gate_data):
+    @unpack
+    def test_add_layer_to_empty_nlocal(self, block, entangler_map):
         """Test appending gates to an empty nlocal."""
         nlocal = NLocal()
+        nlocal.add_layer(block, entangler_map)
 
-        max_num_qubits = 0
-        for (_, indices) in gate_data:
-            max_num_qubits = max(max_num_qubits, max(indices))
-
+        max_num_qubits = max(max(indices) for indices in entangler_map)
         reference = QuantumCircuit(max_num_qubits + 1)
-        for (gate, indices) in gate_data:
-            nlocal.append(gate, indices)
-            reference.append(gate, indices)
+        for indices in entangler_map:
+            reference.append(block, indices)
 
         self.assertCircuitEqual(nlocal, reference)
 
@@ -784,7 +782,7 @@ class TestNLocal(QiskitTestCase):
         [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
     )
     def test_append_circuit(self, num_qubits):
-        """Test appending circuits to an nlocal."""
+        """Test appending circuits to an nlocal works normally."""
         # fixed depth of 3 gates per circuit
         depth = 3
 
@@ -800,7 +798,7 @@ class TestNLocal(QiskitTestCase):
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth)
-            nlocal.append(circuit)
+            nlocal.append(circuit, list(range(num)))
             reference.append(circuit, list(range(num)))
 
         self.assertCircuitEqual(nlocal, reference)
@@ -808,8 +806,8 @@ class TestNLocal(QiskitTestCase):
     @data(
         [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
     )
-    def test_compose_nlocal(self, num_qubits):
-        """Test composeing an nlocal to an nlocal."""
+    def test_add_nlocal(self, num_qubits):
+        """Test adding an nlocal to an nlocal (using add_layer)."""
         # fixed depth of 3 gates per circuit
         depth = 3
 
