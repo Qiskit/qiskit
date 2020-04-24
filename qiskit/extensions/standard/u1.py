@@ -106,9 +106,9 @@ class U1Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CU1Gate(self.params[0])
+        if num_ctrl_qubits == 1:
+            return CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
+        if ctrl_state is None and num_ctrl_qubits > 1:
             return MCU1Gate(self.params[0], num_ctrl_qubits)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
@@ -180,9 +180,10 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         phase difference.
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CU1 gate."""
-        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = U1Gate(theta)
 
     def _define(self):
@@ -193,9 +194,9 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
           u1(lambda/2) b;
         }
         """
+        from qiskit.extensions.standard.x import CXGate
         definition = []
         q = QuantumRegister(2, 'q')
-        from qiskit.extensions.standard.x import CXGate
         rule = [
             (U1Gate(self.params[0] / 2), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
@@ -233,21 +234,23 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
 class Cu1Gate(CU1Gate, metaclass=CU1Meta):
     """The deprecated CU1Gate class."""
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class Cu1Gate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CU1Gate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
+        super().__init__(theta, label=label, ctrl_state=ctrl_state)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cu1(self, theta, control_qubit, target_qubit,
-        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        *, label=None, ctrl_state=None,
+        ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CU1Gate`."""
-    return self.append(CU1Gate(theta), [control_qubit, target_qubit], [])
+    return self.append(CU1Gate(theta, label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cu1 = cu1
