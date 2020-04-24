@@ -1767,7 +1767,7 @@ class QuantumCircuit:
 
     @deprecate_arguments({'ctl': 'control_qubit',
                           'tgt': 'target_qubit'})
-    def cu3(self, theta, phi, lam, control_qubit, target_qubit, *, label=label, ctrl_state=None,
+    def cu3(self, theta, phi, lam, control_qubit, target_qubit, *, label=None, ctrl_state=None,
             ctl=None, tgt=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.gates.CU3Gate`."""
         from .library.standard_gates.u3 import CU3Gate
@@ -1775,7 +1775,7 @@ class QuantumCircuit:
                            [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
-    def x(self, qubit, *, q=None, label=None):  # pylint: disable=unused-argument
+    def x(self, qubit, *, label=None, ctrl_state=None, q=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.gates.XGate`."""
         from .library.standard_gates.x import XGate
         return self.append(XGate(label=label), [qubit], [])
