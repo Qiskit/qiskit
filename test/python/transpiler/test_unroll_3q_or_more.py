@@ -16,7 +16,9 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 
@@ -81,4 +83,5 @@ class TestUnroll3qOrMore(QiskitTestCase):
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
-        self.assertEqual(len(op_nodes), 459)
+        after_circ = dag_to_circuit(after_dag)
+        matrix_equal(Operator(circuit).data, Operator(after_circ).data)
