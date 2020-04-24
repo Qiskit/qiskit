@@ -82,6 +82,5 @@ class TestUnroll3qOrMore(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes()
         after_circ = dag_to_circuit(after_dag)
         matrix_equal(Operator(circuit).data, Operator(after_circ).data)
