@@ -30,7 +30,7 @@ class ParameterTable(MutableMapping):
            {var_object: [(instruction_object, parameter_index), ...]}
         """
         self._table = dict(*args, **kwargs)
-        self._keys = set(self._table.keys())
+        self._keys = set(self._table)
         self._names = set(x.name for x in self._table)
 
     def __getitem__(self, key):
@@ -59,7 +59,7 @@ class ParameterTable(MutableMapping):
             set: A set of all the keys in the parameter table
         """
         if len(self._keys) != len(self._table):
-            self._keys = set(self._table.keys())
+            self._keys = set(self._table)
         if len(self._names) != len(self._keys):
             self._names = set(x.name for x in self._table)
         return self._keys
@@ -71,7 +71,7 @@ class ParameterTable(MutableMapping):
             set: A set of all the names in the parameter table
         """
         if len(self._keys) != len(self._table):
-            self._keys = set(self._table.keys())
+            self._keys = set(self._table)
         if len(self._names) != len(self._keys):
             self._names = set(x.name for x in self._table)
         return self._names
