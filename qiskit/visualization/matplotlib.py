@@ -224,10 +224,12 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
-            if text in self._style.dispcol:
+            if text in self._style.disptex:
                 disp_text = "${}$".format(self._style.disptex[text])
             else:
                 disp_text = text
+            if disp_text[0].islower():
+                disp_text = disp_text.title()
             if subtext:
                 self.ax.text(xpos+.07, ypos + 0.4 * height, disp_text, ha='center',
                              va='center', fontsize=self._style.fs,
@@ -658,7 +660,11 @@ class MatplotlibDrawer:
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'unitary', 'r', 'cu1', 'rzz']
+        _narrow_gate = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
+                        'rxx', 'ryy', 'rzx', 'u1', 'swap']
+        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'cu1', 'rzz']
+        _other_gate = ['iswap', 'unitary', 'hamiltonian']
+        _special_gate = ['barrier', 'snapshot', 'load', 'save', 'noise', 'measure']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -683,34 +689,18 @@ class MatplotlibDrawer:
 
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                # If one of the standard wide gates
-                if op.name in _wide_gate:
-                    if layer_width < 2:
-                        layer_width = 2
-                    if op.type == 'op' and hasattr(op.op, 'params'):
-                        param = self.param_parse(op.op.params)
-                        if '$\\pi$' in param:
-                            pi_count = param.count('pi')
-                            len_param = len(param) - (4 * pi_count)
-                        else:
-                            len_param = len(param)
-                        if len_param > len(op.name):
-                            box_width = math.floor(len(param) / 10)
-                            if op.name == 'unitary':
-                                box_width = 2
-                            # If more than 4 characters min width is 2
-                            if box_width <= 1:
-                                box_width = 2
-                            if layer_width < box_width:
-                                if box_width > 2:
-                                    layer_width = box_width
-                                else:
-                                    layer_width = 2
-                            continue
 
-                # If ControlledGate
-                elif isinstance(op.op, ControlledGate):
-                    if op.type == 'op' and hasattr(op.op, 'params'):
+                # Narrow gates are all layer_width 1
+                if op.name in _narrow_gate or (base_name != 'u1' and base_name in _narrow_gate):
+                    continue
+
+                # If one of the standard wide gates
+                elif op.name in _wide_gate or base_name in _wide_gate:
+
+                    if op.name in ['rzz', 'cu1'] or base_name in ['rzz', 'u3']:
+                        layer_width = 2
+
+                    elif op.type == 'op' and hasattr(op.op, 'params'):
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
@@ -724,8 +714,8 @@ class MatplotlibDrawer:
 
                 # if custom gate with a longer than standard name determine
                 # width
-                elif op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                     'noise', 'cswap', 'swap', 'measure'] and len(op.name) >= 4:
+                elif (op.name not in _narrow_gate+_wide_gate+_other_gate+_special_gate
+                        or (op.name not in _special_gate and len(op.name) >= 4)):
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
@@ -753,6 +743,7 @@ class MatplotlibDrawer:
             this_anc = prev_anc + 1
 
             for op in layer:
+                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
                                    'noise', 'cswap', 'swap', 'measure',
@@ -843,12 +834,10 @@ class MatplotlibDrawer:
                 # draw special gates
                 #
 
-                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 if op.name == 'measure':
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv)
-                elif op.name in ['barrier', 'snapshot', 'load', 'save',
-                                 'noise']:
+                elif op.name in ['barrier', 'snapshot', 'load', 'save', 'noise']:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
                         q_group = self._qreg_dict[qbit]['group']
@@ -861,13 +850,13 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
-                    self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                    self._custom_multiqubit_gate(q_xy, wide=True,
                                                  text=op.op.label or "|psi>",
                                                  subtext=vec)
                 elif op.name == 'unitary':
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
-                    self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                    self._custom_multiqubit_gate(q_xy, wide=True,
                                                  text=op.op.label or "Unitary")
                 #
                 # draw single qubit gates
@@ -982,9 +971,14 @@ class MatplotlibDrawer:
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=color)
 
+                # rxx, ryy, rzx
+                elif op.name in ['rxx', 'ryy', 'rzx']:
+                    self._custom_multiqubit_gate(q_xy, c_xy, wide=False,
+                                                 fc=self._style.dispcol[op.name], text=op.name)
+
                 # dcx and iswap gate
                 elif op.name in ['dcx', 'iswap']:
-                    self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
+                    self._custom_multiqubit_gate(q_xy, c_xy, wide=True,
                                                  fc=self._style.dispcol[op.name], text=op.name)
 
                 elif isinstance(op.op, ControlledGate):
@@ -1010,17 +1004,17 @@ class MatplotlibDrawer:
                         else:
                             self._gate(q_xy[num_ctrl_qubits], wide=_iswide, text=disp, fc=color)
                     else:
-                        if len(disp) < 4:
-                            _iswide = False
+                        #if len(disp) < 4:
+                        #    _iswide = False
                         self._custom_multiqubit_gate(
-                            q_xy[num_ctrl_qubits:], wide=_iswide, fc=color, text=disp)
+                            q_xy[num_ctrl_qubits:], wide=True, fc=color, text=disp)
 
                 # draw custom multi-qubit gate
                 else:
                     subt = ""
                     if param:
                         subt = '{}'.format(param)
-                    self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
+                    self._custom_multiqubit_gate(q_xy, c_xy, wide=True,
                                                  text=op.name, subtext=subt)
 
             # adjust the column if there have been barriers encountered, but not plotted
