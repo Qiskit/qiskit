@@ -141,7 +141,7 @@ class Schedule(ScheduleComponent):
         """
         chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
         if chan_intervals:
-            return min([intervals[0][0] for intervals in chan_intervals])
+            return min(intervals[0][0] for intervals in chan_intervals)
         return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
