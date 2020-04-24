@@ -646,16 +646,18 @@ class ParameterizedSchedule:
 
 
 def _insertion_index(intervals: List[Interval], new_interval: Interval, index: int = 0) -> int:
-    """
-    Using binary search on start times, return the index into `intervals` where the new interval
+    """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
+
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         new_interval: The interval for which the index into intervals will be found.
         index: A running tally of the index, for recursion. The user should not pass a value.
+
     Returns:
         The index into intervals that new_interval should be inserted to maintain a sorted list
         of intervals.
+
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
@@ -674,8 +676,8 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
 
 
 def _overlaps(first: Interval, second: Interval) -> bool:
-    """
-    Return True iff first and second overlap.
+    """Return True iff first and second overlap.
+
     Note: first.stop may equal second.start, since Interval stop times are exclusive.
     """
     if first[0] == second[0] == second[1]:
