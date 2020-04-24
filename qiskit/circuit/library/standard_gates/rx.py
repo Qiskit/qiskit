@@ -46,9 +46,9 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None):
         """Create new RX gate."""
-        super().__init__('rx', 1, [theta])
+        super().__init__('rx', 1, [theta], label=label)
 
     def _define(self):
         """
@@ -76,9 +76,8 @@ class RXGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CRXGate(self.params[0])
+        if num_ctrl_qubits == 1:
+            return CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -162,9 +161,10 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRX gate."""
-        super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('crx', 2, [theta], num_ctrl_qubits=1,
+                         label=label, ctrl_state=ctrl_state)
         self.base_gate = RXGate(theta)
 
     def _define(self):

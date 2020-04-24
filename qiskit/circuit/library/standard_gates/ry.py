@@ -46,9 +46,9 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None):
         """Create new RY gate."""
-        super().__init__('ry', 1, [theta])
+        super().__init__('ry', 1, [theta], label=label)
 
     def _define(self):
         """
@@ -76,9 +76,8 @@ class RYGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CRYGate(self.params[0])
+        if num_ctrl_qubits == 1:
+            return CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -160,9 +159,10 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRY gate."""
-        super().__init__('cry', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('cry', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = RYGate(theta)
 
     def _define(self):

@@ -82,9 +82,8 @@ class U3Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CU3Gate(*self.params)
+        if num_ctrl_qubits == 1:
+            return CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -173,9 +172,10 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam):
+    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""
-        super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
+        super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1,
+                         label=label, ctrl_state=ctrl_state)
         self.base_gate = U3Gate(theta, phi, lam)
 
     def _define(self):

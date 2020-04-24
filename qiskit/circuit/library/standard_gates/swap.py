@@ -18,6 +18,7 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import _compute_control_matrix
 
 
 class SwapGate(Gate):
@@ -86,9 +87,8 @@ class SwapGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CSwapGate()
+        if num_ctrl_qubits == 1:
+            return CSwapGate(label=None, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -187,9 +187,10 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""
-        super().__init__('cswap', 3, [], num_ctrl_qubits=1)
+        super().__init__('cswap', 3, [], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = SwapGate()
 
     def _define(self):
@@ -218,14 +219,9 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class FredkinGate(CSwapGate, metaclass=CSwapMeta):

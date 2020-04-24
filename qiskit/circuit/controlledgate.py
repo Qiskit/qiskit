@@ -89,6 +89,7 @@ class ControlledGate(Gate):
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
             raise CircuitError('number of control qubits must be less than the number of qubits')
+        self.base_gate = None
         if definition:
             self.definition = definition
             if len(definition) == 1:
@@ -165,7 +166,8 @@ class ControlledGate(Gate):
         elif ctrl_state is None:
             self._ctrl_state = 2**self.num_ctrl_qubits - 1
         else:
-            raise CircuitError('invalid control state specification')
+            raise CircuitError('invalid control state specification: {}'.format(
+                repr(ctrl_state)))
 
     def __eq__(self, other) -> bool:
         return (isinstance(other, ControlledGate) and

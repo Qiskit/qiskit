@@ -93,9 +93,8 @@ class ZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CZGate()
+        if num_ctrl_qubits == 1:
+            return CZGate(label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -149,9 +148,10 @@ class CZGate(ControlledGate, metaclass=CZMeta):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CZ gate."""
-        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1)
+        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1,
+                         ctrl_state=ctrl_state)
         self.base_gate = ZGate()
 
     def _define(self):
@@ -175,21 +175,21 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         """Return inverted CZ gate (itself)."""
         return CZGate()  # self-inverse
 
-    def to_matrix(self):
-        """Return a numpy.array for the CZ gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 1, 0, 0],
-                            [0, 0, 1, 0],
-                            [0, 0, 0, -1]], dtype=complex)
+    # def to_matrix(self):
+    #     """Return a numpy.array for the CZ gate."""
+    #     return numpy.array([[1, 0, 0, 0],
+    #                         [0, 1, 0, 0],
+    #                         [0, 0, 1, 0],
+    #                         [0, 0, 0, -1]], dtype=complex)
 
 
 class CzGate(CZGate, metaclass=CZMeta):
     """The deprecated CZGate class."""
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class CzGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CZGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(label=label, ctrl_state=ctrl_state)

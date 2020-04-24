@@ -19,6 +19,7 @@ from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import _compute_control_matrix
 
 
 class YGate(Gate):
@@ -93,9 +94,8 @@ class YGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CYGate()
+        if num_ctrl_qubits == 1:
+            return CYGate(label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -172,9 +172,10 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     """
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
-        super().__init__('cy', 2, [], num_ctrl_qubits=1)
+        super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = YGate()
 
     def _define(self):
@@ -200,19 +201,18 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, -1j],
-                            [0, 0, 1, 0],
-                            [0, 1j, 0, 0]], dtype=complex)
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class CyGate(CYGate, metaclass=CYMeta):
     """A deprecated CYGate class."""
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class CyGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CYGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(label=label, ctrl_state=ctrl_state)

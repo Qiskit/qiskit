@@ -102,9 +102,10 @@ class U1Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CU1Gate(*self.params)
+        if num_ctrl_qubits == 1:
+            return CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
+        if ctrl_state is None and num_ctrl_qubits > 1:
+            return MCU1Gate(self.params[0], num_ctrl_qubits)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -166,9 +167,10 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         phase difference.
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CU1 gate."""
-        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = U1Gate(theta)
 
     def _define(self):
@@ -192,6 +194,23 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            return MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                               ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""

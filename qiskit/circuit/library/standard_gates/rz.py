@@ -56,9 +56,9 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi):
+    def __init__(self, phi, label=None):
         """Create new RZ gate."""
-        super().__init__('rz', 1, [phi])
+        super().__init__('rz', 1, [phi], label=label)
 
     def _define(self):
         """
@@ -86,9 +86,8 @@ class RZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CRZGate(self.params[0])
+        if num_ctrl_qubits == 1:
+            return CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -179,9 +178,10 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         phase difference.
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRZ gate."""
-        super().__init__('crz', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('crz', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = RZGate(theta)
 
     def _define(self):
