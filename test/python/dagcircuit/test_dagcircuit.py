@@ -845,6 +845,12 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
+    def test_dag_from_networkx(self):
+        """Test DAG from networkx creates an expected DAGCircuit object."""
+        nx_graph = self.dag1.to_networkx()
+        from_nx_dag = DAGCircuit.from_networkx(nx_graph)
+        self.assertEqual(self.dag1, from_nx_dag)
+
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substituting a dag node with a sub-dag"""
