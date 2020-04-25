@@ -60,10 +60,12 @@ class IQPCircuit(QuantumCircuit):
 
                 from qiskit.circuit.library import IQPCircuit
                 import qiskit.tools.jupyter
-                circuit = IQPCircuit([[6, 5, 3], [5, 4, 5], [3, 5, 1]])
+                A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+                circuit = IQPCircuit(A)
                 %circuit_library_info circuit
         """
         num_qubits = len(interactions)
+        interactions = np.array(interactions)
         if not np.allclose(interactions, interactions.transpose()):
             raise CircuitError("The interactions matrix is not symetric")
 
