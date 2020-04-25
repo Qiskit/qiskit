@@ -800,6 +800,32 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
+class TestTextDrawerLabels(QiskitTestCase):
+    """ Gates with labels."""
+
+    def test_label(self):
+        """ Test a gate with a label. """
+        expected = '\n'.join(["        ┌───────────┐",
+                              "q_0: |0>┤ an H gate ├",
+                              "        └───────────┘"])
+        circuit = QuantumCircuit(1)
+        circuit.append(HGate(label='an H gate'), [0])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_controlled_label(self):
+        """ Test a gate with a label. """
+        expected = '\n'.join(["                     ",
+                              "q_0: |0>──────■──────",
+                              "        ┌─────┴─────┐",
+                              "q_1: |0>┤ an H gate ├",
+                              "        └───────────┘"])
+        circuit = QuantumCircuit(2)
+        circuit.append(HGate(label='an H gate').control(1), [0, 1])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """ Gates implying multiple qubits."""
 
