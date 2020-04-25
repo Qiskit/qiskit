@@ -28,7 +28,6 @@ from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import CXCancellation
 
 
