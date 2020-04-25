@@ -198,9 +198,9 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
 
     top = circuit_diagram_widget()
 
+    with top.children[0]:
+        display(circuit.draw(output='mpl'))
+
     display(wid.VBox(children=[top, bottom],
                      layout=wid.Layout(width='100%',
                                        height='auto')))
-
-    with top.children[0]:
-        display(circuit.draw(output='mpl'))
