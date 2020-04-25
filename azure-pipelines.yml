@@ -488,7 +488,7 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
             restoreKeys: |
               pip | "$(Agent.OS)"
               pip
