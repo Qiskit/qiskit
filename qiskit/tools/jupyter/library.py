@@ -41,9 +41,7 @@ def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
 
     ops = circuit.count_ops()
 
-    num_cx = None
-    if 'cx' in ops.keys():
-        num_cx = ops['cx']
+    num_nl = circuit.num_nonlocal_gates()
 
     html = "<table>"
     html += """<style>
@@ -76,11 +74,10 @@ td {
 tr:nth-child(even) {background-color: #f6f6f6;}
 </style>"""
     html += "<tr><th>{}</th><th></tr>".format(circuit.name)
-
     html += "<tr><td>Width</td><td>{}</td></tr>".format(circuit.width())
     html += "<tr><td>Depth</td><td>{}</td></tr>".format(circuit.depth())
-    html += "<tr><td>Gate Count</td><td>{}</td></tr>".format(sum(ops.values()))
-    html += "<tr><td>CX Count</td><td>{}</td></tr>".format(num_cx)
+    html += "<tr><td>Total Gates</td><td>{}</td></tr>".format(sum(ops.values()))
+    html += "<tr><td>Non-local Gates</td><td>{}</td></tr>".format(num_nl)
     html += "</table>"
 
     out_wid = wid.HTML(html)
@@ -90,7 +87,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 head_style = 'font-family: IBM Plex Sans, Arial, Helvetica, sans-serif;' \
              ' font-size: 22px; font-weight: medium;'
 
-detail_label = wid.HTML("<p style='{}'>Circuit Details</p>".format(head_style),
+detail_label = wid.HTML("<p style='{}'>Circuit Properties</p>".format(head_style),
                         layout=wid.Layout(margin='0px 0px 10px 0px'))
 
 
@@ -147,7 +144,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     out = wid.HTML(code_style+code,
                    layout=wid.Layout(max_height='500px',
                                      height='auto',
-                                     overflow='hidden scroll'))
+                                     overflow='scroll scroll'))
 
     out_label = wid.HTML("<p style='{}'>Circuit QASM</p>".format(head_style),
                          layout=wid.Layout(margin='0px 0px 10px 0px'))
@@ -160,11 +157,8 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     return qasm
 
 
-def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.Box:
+def circuit_diagram_widget() -> wid.Box:
     """Create a circuit diagram widget.
-
-    Args:
-        circuit: Input quantum circuit.
 
     Returns:
         Output widget.
@@ -175,8 +169,6 @@ def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.Box:
                                            height='auto',
                                            max_height='1000px',
                                            overflow='hidden scroll',))
-    with top_out:
-        display(circuit.draw(output='mpl'))
 
     top = wid.Box(children=[top_out], layout=wid.Layout(width='100%', height='auto'))
 
@@ -201,10 +193,13 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
     bottom = wid.HBox(children=[details_widget(circuit),
                                 sep,
                                 qasm_widget(circuit)],
-                      layout=wid.Layout(max_height='500px',
+                      layout=wid.Layout(max_height='550px',
                                         height='auto'))
 
-    top = circuit_diagram_widget(circuit)
+    top = circuit_diagram_widget()
+
+    with top.children[0]:
+        display(circuit.draw(output='mpl'))
 
     display(wid.VBox(children=[top, bottom],
                      layout=wid.Layout(width='100%',
