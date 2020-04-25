@@ -15,7 +15,10 @@
 # pylint: disable=missing-docstring,invalid-name,no-member
 # pylint: disable=attribute-defined-outside-init
 
+import itertools
+
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import Parameter
 
 
 def build_circuit(width, gates):
@@ -48,3 +51,52 @@ class CircuitConstructionBench:
 
     def time_circuit_copy(self, _, __):
         self.sample_circuit.copy()
+
+
+def build_parameterized_circuit(width, gates, param_count):
+    params = [Parameter('param-%s' % x) for x in range(param_count)]
+    param_iter = itertools.cycle(params)
+
+    qr = QuantumRegister(width)
+    qc = QuantumCircuit(qr)
+
+    while len(qc) < gates:
+        for k in range(width):
+            param = next(param_iter)
+            qc.u2(0, param, qr[k])
+        for k in range(width-1):
+            param = next(param_iter)
+            qc.crx(param, qr[k], qr[k+1])
+
+    return qc, params
+
+
+class ParameterizedCircuitConstructionBench:
+    params = ([20], [8, 128, 2048, 8192, 32768, 131072],
+              [8, 128, 2048, 8192, 32768, 131072])
+    param_names = ['width', 'gates', 'number of params']
+    timeout = 600
+
+    def setup(self, _, gates, params):
+        if params > gates:
+            raise NotImplementedError
+
+    def time_build_parameterized_circuit(self, width, gates, params):
+        build_parameterized_circuit(width, gates, params)
+
+
+class ParameterizedCircuitBindBench:
+    params = ([20], [8, 128, 2048, 8192, 32768, 131072],
+              [8, 128, 2048, 8192, 32768, 131072])
+    param_names = ['width', 'gates', 'number of params']
+    timeout = 600
+
+    def setup(self, width, gates, params):
+        if params > gates:
+            raise NotImplementedError
+        self.circuit, self.params = build_parameterized_circuit(width,
+                                                                gates,
+                                                                params)
+
+    def time_bind_params(self, _, __, ___):
+        self.circuit.bind_parameters({x: 3.14 for x in self.params})
