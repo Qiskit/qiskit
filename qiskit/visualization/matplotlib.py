@@ -187,10 +187,12 @@ class MatplotlibDrawer:
         if cxy:
             ypos = min([y[1] for y in cxy])
         if wide:
+            tlen = (len(text) + 3.0) / 7.0
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 7) or 1
+                slen = (len(subtext) + 8.0) / 13.0
+                boxes_length = math.floor(max(tlen, slen)) or 1
             else:
-                boxes_length = math.ceil(len(text) / 7) or 1
+                boxes_length = math.floor(tlen) or 1
             wid = WID * 2.5 * boxes_length
         else:
             wid = WID
@@ -663,7 +665,7 @@ class MatplotlibDrawer:
         _narrow_gate = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
                         'rxx', 'ryy', 'rzx', 'u1', 'swap']
         _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'cu1', 'rzz']
-        _other_gate = ['iswap', 'unitary', 'hamiltonian']
+        _other_gate = ['iswap', 'initialize', 'unitary', 'hamiltonian']
         _special_gate = ['barrier', 'snapshot', 'load', 'save', 'noise', 'measure']
         _barriers = {'coord': [], 'group': []}
 
@@ -710,7 +712,9 @@ class MatplotlibDrawer:
                         if len_param > len(op.name):
                             box_width = math.floor(len_param / 5.5)
                             layer_width = box_width
+                            print("name1, layer", op.name, layer_width)
                             continue
+                    print("name2, layer", op.name, layer_width)
 
                 # if custom gate with a longer than standard name determine
                 # width
@@ -719,7 +723,7 @@ class MatplotlibDrawer:
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
-                    if op.type == 'op' and hasattr(op.op, 'params'):
+                    if op.type == 'op' and hasattr(op.op, 'params') and op.name != 'unitary':
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
@@ -727,7 +731,7 @@ class MatplotlibDrawer:
                         else:
                             len_param = len(param)
                         if len_param > len(op.name):
-                            box_width = math.floor(len(param) / 8)
+                            box_width = math.floor((len(param) + 4.0) / 11.0)
                             # If more than 4 characters min width is 2
                             if box_width <= 1:
                                 box_width = 2
@@ -736,9 +740,11 @@ class MatplotlibDrawer:
                                     layer_width = box_width * 2
                                 else:
                                     layer_width = 2
+                            print("name3, layer", op.name, layer_width)
                             continue
                     # If more than 4 characters min width is 2
                     layer_width = math.ceil(box_width * WID * 2.5)
+                    print("name4, layer", op.name, layer_width)
 
             this_anc = prev_anc + 1
 
@@ -850,14 +856,16 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
+                    label = None if not hasattr(op.op, 'label') else op.op.label
                     self._custom_multiqubit_gate(q_xy, wide=True,
-                                                 text=op.op.label or "|psi>",
+                                                 text=label or "|psi>",
                                                  subtext=vec)
                 elif op.name == 'unitary':
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
+                    label = None if not hasattr(op.op, 'label') else op.op.label
                     self._custom_multiqubit_gate(q_xy, wide=True,
-                                                 text=op.op.label or "Unitary")
+                                                 text=label or "Unitary")
                 #
                 # draw single qubit gates
                 #
