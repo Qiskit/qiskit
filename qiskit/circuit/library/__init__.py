@@ -152,6 +152,7 @@ Quantum Complexity Advantage Circuits
    FourierChecking
    GraphState
    HiddenLinearFunction
+   IQPCircuit
 
 
 N-local circuits
@@ -222,3 +223,4 @@ from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
+from .iqp_circuit import IQPCircuit
