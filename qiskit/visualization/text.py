@@ -731,7 +731,7 @@ class TextDrawing():
             label = 'i'
         label = label.capitalize()
 
-        if params:
+        if params and label != 'Hamiltonian':
             label += "(%s)" % ','.join(params)
         return label
 
@@ -910,7 +910,7 @@ class TextDrawing():
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) == 1 and not instruction.cargs:
-            # unitary gate
+            # All single qubit gates
             layer.set_qubit(instruction.qargs[0],
                             BoxOnQuWire(TextDrawing.label_for_box(instruction),
                                         conditional=conditional))

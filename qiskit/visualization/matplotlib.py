@@ -712,9 +712,7 @@ class MatplotlibDrawer:
                         if len_param > len(op.name):
                             box_width = math.floor(len_param / 5.5)
                             layer_width = box_width
-                            print("name1, layer", op.name, layer_width)
                             continue
-                    print("name2, layer", op.name, layer_width)
 
                 # if custom gate with a longer than standard name determine
                 # width
@@ -723,7 +721,8 @@ class MatplotlibDrawer:
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
-                    if op.type == 'op' and hasattr(op.op, 'params') and op.name != 'unitary':
+                    if (op.type == 'op' and hasattr(op.op, 'params')
+                            and op.name != 'unitary' and op.name != 'hamiltonian'):
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
@@ -740,11 +739,9 @@ class MatplotlibDrawer:
                                     layer_width = box_width * 2
                                 else:
                                     layer_width = 2
-                            print("name3, layer", op.name, layer_width)
                             continue
                     # If more than 4 characters min width is 2
                     layer_width = math.ceil(box_width * WID * 2.5)
-                    print("name4, layer", op.name, layer_width)
 
             this_anc = prev_anc + 1
 
@@ -866,6 +863,10 @@ class MatplotlibDrawer:
                     label = None if not hasattr(op.op, 'label') else op.op.label
                     self._custom_multiqubit_gate(q_xy, wide=True,
                                                  text=label or "Unitary")
+                elif op.name == 'hamiltonian':
+                    label = None if not hasattr(op.op, 'label') else op.op.label
+                    self._custom_multiqubit_gate(q_xy, wide=True,
+                                                 text=label or "Hamiltonian")
                 #
                 # draw single qubit gates
                 #
