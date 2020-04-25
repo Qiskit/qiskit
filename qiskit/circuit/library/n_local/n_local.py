@@ -21,13 +21,14 @@ from itertools import combinations
 import numpy
 from qiskit import QuantumCircuit, transpile, QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
-from qiskit.circuit.quantumcircuitdata import QuantumCircuitData
 from qiskit.circuit.parametertable import ParameterTable
+
+from ..blueprintcircuit import BlueprintCircuit
 
 logger = logging.getLogger(__name__)
 
 
-class NLocal(QuantumCircuit):
+class NLocal(BlueprintCircuit):
     """The n-local circuit class.
 
     The structure of the n-local circuit are alternating rotation and entanglement layers.
@@ -133,7 +134,6 @@ class NLocal(QuantumCircuit):
         self._initial_state, self._initial_state_circuit = None, None
         self._data = None
         self._bounds = None
-        self._qregs = []
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
@@ -179,32 +179,7 @@ class NLocal(QuantumCircuit):
             # invalidate the circuit
             self._invalidate()
             self._num_qubits = num_qubits
-
-    @property
-    def data(self) -> QuantumCircuitData:
-        if self._data is None:
-            self._build()
-        return super().data
-
-    @property
-    def qregs(self) -> List[QuantumRegister]:
-        """The quantum registers associated with the circuit.
-
-        Returns:
-            The quantum registers associated with this circuit.
-        """
-        if self._data is None:
-            self._build()
-        return self._qregs
-
-    @qregs.setter
-    def qregs(self, qregs: List[QuantumRegister]) -> None:
-        """Set the quantum registers associated with the circuit.
-
-        Args:
-            qregs: The new quantum registers.
-        """
-        self._qregs = qregs
+            self.qregs = [QuantumRegister(num_qubits, name='q')]
 
     @property
     def entanglement_blocks(self) -> List[Instruction]:
@@ -308,8 +283,11 @@ class NLocal(QuantumCircuit):
         """
         return 2 * self._reps + int(not self._skip_final_rotation_layer)
 
-    def _check_configuration(self) -> bool:
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         """Check if the configuration of the NLocal class is valid.
+
+        Args:
+            raise_on_failure: Whether to raise on failure.
 
         Returns:
             True, if the configuration is valid and the circuit can be constructed. Otherwise
@@ -326,14 +304,19 @@ class NLocal(QuantumCircuit):
             ValueError: If a specified qubit index is larger than the (manually set) number of
                 qubits.
         """
+        valid = True
         if self.num_qubits is None:
-            raise ValueError('No number of qubits specified.')
+            valid = False
+            if raise_on_failure:
+                raise ValueError('No number of qubits specified.')
 
         # check no needed parameters are None
         if self.entanglement_blocks is None and self.rotation_blocks is None:
-            raise ValueError('The blocks are not set.')
+            valid = False
+            if raise_on_failure:
+                raise ValueError('The blocks are not set.')
 
-        return True
+        return valid
 
     @property
     def ordered_parameters(self) -> List[Parameter]:
@@ -849,7 +832,6 @@ class NLocal(QuantumCircuit):
         if self.num_qubits == 0:
             return
 
-        self.qregs = [QuantumRegister(self.num_qubits, name='q')]
         # use the initial state circuit if it is not None
         if self._initial_state:
             circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])

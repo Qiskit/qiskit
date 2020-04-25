@@ -52,6 +52,7 @@ class MockBlueprint(BlueprintCircuit):
     def num_qubits(self, num_qubits):
         self._invalidate()
         self._num_qubits = num_qubits
+        self.qregs = [QuantumRegister(self.num_qubits, name='q')]
 
     def _check_configuration(self, raise_on_failure=True):
         valid = True
@@ -69,7 +70,6 @@ class MockBlueprint(BlueprintCircuit):
 
     def _build(self):
         super()._build()
-        self.qregs = [QuantumRegister(self.num_qubits, name='q')]
 
         # pylint: disable=no-member
         self.rx(Parameter('angle'), 0)
