@@ -33,14 +33,11 @@ class GraphState(QuantumCircuit):
     """
 
     def __init__(self,
-                 adjacency_matrix: Union[List, np.array],
-                 measurement_angles: List[float]) -> None:
+                 adjacency_matrix: Union[List, np.array]) -> None:
         """Make graph state and measure in product basis.
 
         Args:
             adjacency_matrix: input graph as n-by-n list of 0-1 lists
-            measurement_angles: product measurement basis given as a
-                list of 3*n floating point angles (radians)
 
         The circuit prepares a graph state with the given adjacency
         matrix and measures the state in the product basis specified
@@ -52,17 +49,17 @@ class GraphState(QuantumCircuit):
             .. jupyter-execute::
                 :hide-code:
 
-                from qiskit.circuit.library import FourierChecking
+                from qiskit.circuit.library import GraphState
                 import qiskit.tools.jupyter
-                f = [1, -1, -1, -1]
-                g = [1, 1, -1, -1]
-                circuit = FourierChecking(f, g)
+                import networkx as nx
+                G = nx.Graph()
+                G.add_edges_from([(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+                adjmat = nx.adjacency_matrix(G)
+                circuit = GraphState(adjmat.toarray())
                 %circuit_library_info circuit
         """
         num_qubits = len(adjacency_matrix)
-        super().__init__(num_qubits,
-                         name=f"graph: %s, %s" % (adjacency_matrix,
-                                                  measurement_angles))
+        super().__init__(num_qubits, name=f"graph: %s" % (adjacency_matrix)
 
         self.h(range(num_qubits))
         for i in range(num_qubits):
