@@ -1030,33 +1030,5 @@ class TestControlledGateLabel(QiskitTestCase):
         self.assertEqual(cgate.base_gate.label, 'a gate')
 
 
-class TestControlledGateNameLabel(QiskitTestCase):
-    """Tests for controlled gate labels."""
-
-    def test_controlled_x(self):
-        """Test controlled x gate labels"""
-        cgate = XGate(label='a gate').control(label='a controlled gate')
-        self.assertEqual(cgate.label, 'a controlled gate')
-        self.assertEqual(cgate.base_gate.label, 'a gate')
-
-    def test_controlled_y(self):
-        """Test controlled y gate labels"""
-        cgate = YGate(label='a gate').control(label='a controlled gate')
-        self.assertEqual(cgate.label, 'a controlled gate')
-        self.assertEqual(cgate.base_gate.label, 'a gate')
-
-    def test_controlled_z(self):
-        """Test controlled z gate labels"""
-        cgate = ZGate(label='a gate').control(label='a controlled gate')
-        self.assertEqual(cgate.label, 'a controlled gate')
-        self.assertEqual(cgate.base_gate.label, 'a gate')
-
-    def test_controlled_h(self):
-        """Test controlled h gate labels"""
-        cgate = HGate(label='a gate').control(label='a controlled gate')
-        self.assertEqual(cgate.label, 'a controlled gate')
-        self.assertEqual(cgate.base_gate.label, 'a gate')
-
-
 if __name__ == '__main__':
     unittest.main()
