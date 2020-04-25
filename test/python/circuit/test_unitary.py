@@ -275,4 +275,4 @@ class TestUnitaryCircuit(QiskitTestCase):
         """Test decomposition for unitary gates over 2 qubits."""
         qc = QuantumCircuit(3)
         qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
-        matrix_equal(Operator(qc).data, Operator(qc.decompose()).data)
+        self.assertTrue(Operator(qc).equiv(Operator(qc.decompose())))
