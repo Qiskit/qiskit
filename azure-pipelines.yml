@@ -139,7 +139,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
@@ -198,7 +201,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS) | | $(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
@@ -232,7 +238,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS)" | | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
@@ -275,7 +284,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
@@ -343,7 +355,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
@@ -406,7 +421,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
@@ -470,7 +488,10 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
