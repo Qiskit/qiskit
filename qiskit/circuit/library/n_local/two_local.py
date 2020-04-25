@@ -184,7 +184,7 @@ class TwoLocal(NLocal):
                          initial_state=initial_state,
                          parameter_prefix=parameter_prefix)
 
-    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> Instruction:
+    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
         """For a layer provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
         according layer type along with the number of parameters (e.g. (RYGate, 1)).
 
@@ -195,7 +195,7 @@ class TwoLocal(NLocal):
             The specified layer with the required number of parameters.
 
         Raises:
-            ValueError: The type of `layer` is invalid.
+            TypeError: The type of `layer` is invalid.
             ValueError: The type of `layer` is str but the name is unknown.
             ValueError: The type of `layer` is type but the layer type is unknown.
 
@@ -203,14 +203,8 @@ class TwoLocal(NLocal):
             Outlook: If layers knew their number of parameters as static property, we could also
             allow custom layer types.
         """
-        if isinstance(layer, Instruction):
+        if isinstance(layer, QuantumCircuit):
             return layer
-
-        if hasattr(layer, 'to_gate'):
-            return layer.to_gate()
-
-        if hasattr(layer, 'to_instruction'):
-            return layer.to_instruction()
 
         # check the list of valid layers
         # this could be a lot easier if the standard layers would have `name` and `num_params`
@@ -243,22 +237,31 @@ class TwoLocal(NLocal):
             'tdg': gates.TdgGate(),
         }
 
+        # try to exchange `layer` from a string to a gate instance
         if isinstance(layer, str):
-            # iterate over the layer names and look for the specified layer
-            for identifier, standard_gate in valid_layers.items():
-                if layer == identifier:
-                    return standard_gate
-            raise ValueError('Unknown layer name `{}`.'.format(layer))
+            try:
+                layer = valid_layers[layer]
+            except KeyError:
+                raise ValueError('Unknown layer name `{}`.'.format(layer))
 
+        # try to exchange `layer` from a type to a gate instance
         if isinstance(layer, type):
             # iterate over the layer types and look for the specified layer
-            for _, standard_gate in valid_layers.items():
-                if isinstance(standard_gate, layer):
-                    return standard_gate
-            raise ValueError('Unknown layer type`{}`.'.format(layer))
+            instance = None
+            for gate in valid_layers.values():
+                if isinstance(gate, layer):
+                    instance = gate
+            if instance is None:
+                raise ValueError('Unknown layer type`{}`.'.format(layer))
+            layer = instance
 
-        raise ValueError('Invalid input type {}. '.format(type(layer))
-                         + '`layer` must be a type, str or QuantumCircuit.')
+        if isinstance(layer, Instruction):
+            circuit = QuantumCircuit(layer.num_qubits)
+            circuit.append(layer, list(range(layer.num_qubits)))
+            return circuit
+
+        raise TypeError('Invalid input type {}. '.format(type(layer))
+                        + '`layer` must be a type, str or QuantumCircuit.')
 
     def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
                           ) -> List[List[int]]:

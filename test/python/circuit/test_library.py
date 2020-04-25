@@ -1186,11 +1186,8 @@ class TestTwoLocal(QiskitTestCase):
         self.assertEqual(len(two.rotation_blocks), 1)
         rotation = two.rotation_blocks[0]
 
-        if isinstance(rot, QuantumCircuit):
-            # decompose
-            rotation = rotation.definition[0][0]
-
-        self.assertIsInstance(rotation, RXGate)
+        # decompose
+        self.assertIsInstance(rotation.data[0][0], RXGate)
 
     def test_parameter_setters(self):
         """Test different possibilities to set parameters."""
@@ -1274,7 +1271,7 @@ class TestTwoLocal(QiskitTestCase):
         two = RY(4)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
-            self.assertIsInstance(two.rotation_blocks[0], RYGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
 
         with self.subTest(msg='test parameter bounds'):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -1285,8 +1282,8 @@ class TestTwoLocal(QiskitTestCase):
         two = RYRZ(3)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 2)
-            self.assertIsInstance(two.rotation_blocks[0], RYGate)
-            self.assertIsInstance(two.rotation_blocks[1], RZGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
+            self.assertIsInstance(two.rotation_blocks[1].data[0][0], RZGate)
 
         with self.subTest(msg='test parameter bounds'):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -1297,14 +1294,14 @@ class TestTwoLocal(QiskitTestCase):
         two = SwapRZ(5)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
-            self.assertIsInstance(two.rotation_blocks[0], RZGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RZGate)
 
         with self.subTest(msg='test entanglement gate'):
             self.assertEqual(len(two.entanglement_blocks), 1)
             block = two.entanglement_blocks[0]
-            self.assertEqual(len(block.definition), 2)
-            self.assertIsInstance(block.definition[0][0], RXXGate)
-            self.assertIsInstance(block.definition[1][0], RYYGate)
+            self.assertEqual(len(block.data), 2)
+            self.assertIsInstance(block.data[0][0], RXXGate)
+            self.assertIsInstance(block.data[1][0], RYYGate)
 
         with self.subTest(msg='test parameter bounds'):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -1324,7 +1321,7 @@ class TestDataEncoding(QiskitTestCase):
 
         with self.subTest(msg='rotation blocks is H gate'):
             self.assertEqual(len(encoding.rotation_blocks), 1)
-            self.assertIsInstance(encoding.rotation_blocks[0], HGate)
+            self.assertIsInstance(encoding.rotation_blocks[0].data[0][0], HGate)
 
     @data((2, 3, ['X', 'YY']), (5, 2, ['ZZZXZ', 'XZ']))
     @unpack

@@ -183,24 +183,34 @@ class NLocal(BlueprintCircuit):
             self._num_qubits = num_qubits
             self.qregs = [QuantumRegister(num_qubits, name='q')]
 
-    def _convert_to_block(self, layer: Any) -> Instruction:
-        """Try to convert ``layer`` to an Instruction.
+    def _convert_to_block(self, layer: Any) -> QuantumCircuit:
+        """Try to convert ``layer`` to a QuantumCircuit.
 
         Args:
             layer: The object to be converted to an NLocal block / Instruction.
 
         Returns:
-            The layer converted to an Instruction.
+            The layer converted to a circuit.
 
         Raises:
-            TypeError: If the input cannot be converted to an Instruction.
+            TypeError: If the input cannot be converted to a circuit.
         """
-        if isinstance(layer, Instruction):
+        if isinstance(layer, QuantumCircuit):
             return layer
-        elif hasattr(layer, 'to_instruction'):
-            return layer.to_instruction()
-        else:
-            raise TypeError('Adding a {} to an NLocal is not supported.'.format(type(layer)))
+
+        if isinstance(layer, Instruction):
+            circuit = QuantumCircuit(layer.num_qubits)
+            circuit.append(layer, list(range(layer.num_qubits)))
+            return circuit
+
+        try:
+            circuit = QuantumCircuit(layer.num_qubits)
+            circuit.append(layer.to_instruction(), list(range(layer.num_qubits)))
+            return circuit
+        except AttributeError:
+            pass
+
+        raise TypeError('Adding a {} to an NLocal is not supported.'.format(type(layer)))
 
     @property
     def rotation_blocks(self) -> List[Instruction]:
@@ -712,7 +722,7 @@ class NLocal(BlueprintCircuit):
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)):]
                 parametrized_block = self._parametrize_block(block, params=params)
-                layer.append(parametrized_block.to_instruction(), i)
+                layer.compose(parametrized_block, i)
 
             self += layer
         else:
@@ -766,8 +776,6 @@ class NLocal(BlueprintCircuit):
     def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
                            params=None):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
-        circuit = QuantumCircuit(block.num_qubits)
-        circuit.append(block, list(range(block.num_qubits)))
         if self._overwrite_block_parameters:
             # check if special parameters should be used
             # pylint: disable=assignment-from-none
@@ -776,10 +784,10 @@ class NLocal(BlueprintCircuit):
             if params is None:
                 params = [next(param_iter) for _ in range(len(get_parameters(block)))]
 
-            update = dict(zip(circuit.parameters, params))
-            circuit = circuit.assign_parameters(update)
+            update = dict(zip(block.parameters, params))
+            return block.assign_parameters(update)
 
-        return circuit
+        return block.copy()
 
     def _build_rotation_layer(self, param_iter, i):
         """Build a rotation layer."""
@@ -808,7 +816,7 @@ class NLocal(BlueprintCircuit):
             # apply the operations in the layer
             for indices in block_indices:
                 parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
-                layer.append(parametrized_block, indices)
+                layer.compose(parametrized_block, indices, inplace=True)
 
             # add the layer to the circuit
             self += layer
@@ -824,7 +832,7 @@ class NLocal(BlueprintCircuit):
             # apply the operations in the layer
             for indices in entangler_map:
                 parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
-                layer.append(parametrized_block, indices)
+                layer.compose(parametrized_block, indices, inplace=True)
 
             # add the layer to the circuit
             self += layer
@@ -844,7 +852,8 @@ class NLocal(BlueprintCircuit):
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
             for indices in ent:
-                layer.append(block, indices)
+                layer.compose(block, indices, inplace=True)
+
             self += layer
 
     def _build(self) -> None:
