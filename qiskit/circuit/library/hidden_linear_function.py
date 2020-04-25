@@ -28,14 +28,14 @@ class HiddenLinearFunction(QuantumCircuit):
     The 2D Hidden Linear Function problem is determined by a 2D adjacency
     matrix A, where only elements that are nearest-neighbor on a grid have
     non-zero entries. Each row/column corresponds to one binary variable
-    :math:`x_i`. 
+    :math:`x_i`.
 
     The hidden linear function problem is as follows:
 
     Consider the quadratic form
 
     .. math::
-        
+
         q(x) = \sum_{i,j=1}^{n}{x_i.x_j} (mod 4)
 
     and restrict q(x) onto the nullspace of A. This results in a linear
@@ -43,7 +43,7 @@ class HiddenLinearFunction(QuantumCircuit):
 
     .. math::
 
-        2 \sum_{i=1}^{n}{z_i.x_i} (mod 4)  for all  x \in Ker(A)
+        2 \sum_{i=1}^{n}{z_i.x_i} (mod 4)  \forall  x \in Ker(A)
 
     and the goal is to recover this linear function (equivalently a vector
     :math:`[z[0], ..., z[n-1]]`). There can be multiple solutions.
@@ -89,7 +89,7 @@ class HiddenLinearFunction(QuantumCircuit):
         for i in range(num_qubits):
             for j in range(i+1, num_qubits):
                 if adjacency_matrix[i][j]:
-                    self.cz(i,j)
+                    self.cz(i, j)
         for i in range(num_qubits):
             if adjacency_matrix[i][i]:
                 self.s(i)

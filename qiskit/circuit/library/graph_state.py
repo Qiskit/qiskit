@@ -30,7 +30,7 @@ class GraphState(QuantumCircuit):
 
     .. math::
 
-        |G\rangle = \product_{(a,b) \in E} CZ_{(a,b)} {|+\rangle}^{\optimes V}
+        |G\rangle = \prod_{(a,b) \in E} CZ_{(a,b)} {|+\rangle}^{\otimes V}
 
     Such a state can be prepared by first preparing all qubits in the :math:`+`
     state, then applying a :math:`CZ` gate for each corresponding graph edge.
@@ -53,13 +53,12 @@ class GraphState(QuantumCircuit):
         adjmat = nx.adjacency_matrix(G)
         circuit = GraphState(adjmat.toarray())
         %circuit_library_info circuit
-    
+
     **References:**
 
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
         `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
-    [2] D. Koh, Further Extensions of Clifford Circuits and their Classical
-        Simulation Complexities, 2015.
+    [2] D. Koh, Further Extensions of Clifford Circuits & their Classical Simulation Complexities.
         `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
@@ -74,7 +73,7 @@ class GraphState(QuantumCircuit):
         matrix.
         """
         num_qubits = len(adjacency_matrix)
-        super().__init__(num_qubits, name=f"graph: %s" % (adjacency_matrix)
+        super().__init__(num_qubits, name=f"graph: %s" % (adjacency_matrix))
 
         self.h(range(num_qubits))
         for i in range(num_qubits):
