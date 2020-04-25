@@ -53,6 +53,15 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
 
+    @combine(level=[0, 1, 2, 3],
+             name='basis_gates_none_level{level}')
+    def test_no_basis_gates(self, level):
+        """Test that basis_gates can be None (level={level})"""
+        q = QuantumRegister(2, name='q')
+        circuit = QuantumCircuit(q)
+        circuit.cz(q[0], q[1])
+        result = transpile(circuit, basis_gates=None, optimization_level=level)
+        self.assertEqual(result, circuit)
 
 @ddt
 class TestTranspileLevels(QiskitTestCase):

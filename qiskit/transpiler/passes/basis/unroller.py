@@ -48,6 +48,9 @@ class Unroller(TransformationPass):
         Returns:
             DAGCircuit: output unrolled dag
         """
+        if self.basis is None:
+            return dag
+
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
