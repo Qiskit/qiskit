@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Blueprint Circuit
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlueprintCircuit
+
 Generalized Gates
 =================
 
@@ -119,6 +127,7 @@ Data encoding circuits
 
 """
 
+from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import Diagonal
 from .boolean_logic import (
     Permutation,
