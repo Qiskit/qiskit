@@ -22,10 +22,6 @@ import qiskit.extensions.standard as gates
 
 from .n_local import NLocal
 
-# disable check for overriding getter and setter because of pylint bug
-# pylint: disable=no-member
-# pylint:disable=invalid-overridden-method
-
 
 class TwoLocal(NLocal):
     r"""The two-local gate circuit.
@@ -178,13 +174,14 @@ class TwoLocal(NLocal):
                  └───┘ ░      └───┘ ░ └───┘ ░ └───┘ ░ └───┘
         """
         super().__init__(num_qubits=num_qubits,
-                         insert_barriers=insert_barriers, initial_state=initial_state,
                          rotation_blocks=rotation_blocks,
                          entanglement_blocks=entanglement_blocks,
                          entanglement=entanglement,
                          reps=reps,
                          skip_final_rotation_layer=skip_final_rotation_layer,
                          skip_unentangled_qubits=skip_unentangled_qubits,
+                         insert_barriers=insert_barriers,
+                         initial_state=initial_state,
                          parameter_prefix=parameter_prefix)
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> Instruction:
@@ -262,3 +259,10 @@ class TwoLocal(NLocal):
 
         raise ValueError('Invalid input type {}. '.format(type(layer))
                          + '`layer` must be a type, str or QuantumCircuit.')
+
+    def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
+                          ) -> List[List[int]]:
+        """Overloading to handle the special case of 1 qubit where the entanglement are ignored."""
+        if self.num_qubits <= 1:
+            return []
+        return super().get_entangler_map(rep_num, block_num, num_block_qubits)
