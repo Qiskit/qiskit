@@ -35,7 +35,6 @@ Qiskit consists of four foundational elements:
   contributing_to_qiskit
   release_notes
   faq
-  IBM Quantum Cloud Error Codes <errors/errors>
 
 .. toctree::
   :maxdepth: 1
@@ -62,6 +61,13 @@ Qiskit consists of four foundational elements:
   Qiskit Ignis <apidoc/ignis>
   Qiskit Aqua <apidoc/index>
   Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
+
+.. toctree::
+  :maxdepth: 1
+  :caption: Troubleshooting
+  :hidden:
+
+  Quantum Experience API error codes <https://quantum-computing.ibm.com/docs/cloud/errors>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
