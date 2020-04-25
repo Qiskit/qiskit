@@ -30,7 +30,8 @@ class Unroller(TransformationPass):
         """Unroller initializer.
 
         Args:
-            basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']` .
+            basis (list[str] or None): Target basis names to unroll to, e.g. `['u3', 'cx']` . If
+                None, does not unroll any gate.
         """
         super().__init__()
         self.basis = basis
