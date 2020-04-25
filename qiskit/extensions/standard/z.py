@@ -96,11 +96,11 @@ class ZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CZGate(label=label, base_gate_label=self.label)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state, base_gate_label=self.label)
+        if num_ctrl_qubits == 1:
+            gate = CZGate(label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted Z gate (itself)."""
@@ -162,10 +162,11 @@ class CZGate(ControlledGate, metaclass=CZMeta):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label=None, base_gate_label=None):
+    def __init__(self, label=None, ctrl_state=None):
         """Create new CZ gate."""
-        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1)
-        self.base_gate = ZGate(label=base_gate_label)
+        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1,
+                         ctrl_state=ctrl_state)
+        self.base_gate = ZGate()
 
     def _define(self):
         """
@@ -188,32 +189,34 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         """Return inverted CZ gate (itself)."""
         return CZGate()  # self-inverse
 
-    def to_matrix(self):
-        """Return a numpy.array for the CZ gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 1, 0, 0],
-                            [0, 0, 1, 0],
-                            [0, 0, 0, -1]], dtype=complex)
+    # def to_matrix(self):
+    #     """Return a numpy.array for the CZ gate."""
+    #     return numpy.array([[1, 0, 0, 0],
+    #                         [0, 1, 0, 0],
+    #                         [0, 0, 1, 0],
+    #                         [0, 0, 0, -1]], dtype=complex)
 
 
 class CzGate(CZGate, metaclass=CZMeta):
     """The deprecated CZGate class."""
 
-    def __init__(self):
+    def __init__(self, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class CzGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CZGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__()
+        super().__init__(label=label, ctrl_state=ctrl_state)
 
 
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cz(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
-       *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+       *, label=None, ctrl_state=None,
+       ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CZGate`."""
-    return self.append(CZGate(), [control_qubit, target_qubit], [])
+    return self.append(CZGate(label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cz = cz

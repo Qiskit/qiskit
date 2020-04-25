@@ -58,9 +58,9 @@ class RZGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
-    def __init__(self, phi):
+    def __init__(self, phi, label=None):
         """Create new RZ gate."""
-        super().__init__('rz', 1, [phi])
+        super().__init__('rz', 1, [phi], label=label)
 
     def _define(self):
         """
@@ -88,11 +88,11 @@ class RZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CRZGate(self.params[0])
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+        if num_ctrl_qubits == 1:
+            gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted RZ gate
@@ -189,9 +189,10 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRZ gate."""
-        super().__init__('crz', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('crz', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state)
         self.base_gate = RZGate(theta)
 
     def _define(self):
@@ -223,20 +224,22 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
 class CrzGate(CRZGate, metaclass=CRZMeta):
     """The deprecated CRZGate class."""
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class CrzGate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
                       'You should use the class CRZGate instead.',
                       DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
+        super().__init__(theta, label=label, ctrl_state=ctrl_state)
 
 
 @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
 def crz(self, theta, control_qubit, target_qubit,
-        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        *, label=None, ctrl_state=None,
+        ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CRZGate`."""
-    return self.append(CRZGate(theta), [control_qubit, target_qubit], [])
+    return self.append(CRZGate(theta, label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.crz = crz
