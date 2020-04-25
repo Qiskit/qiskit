@@ -19,7 +19,7 @@ from unittest.mock import patch
 import numpy as np
 
 from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
-                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, ConstantPulse,
+                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
                           functional_pulse)
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
@@ -408,7 +408,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = Schedule(name='test_parametric')
         sched += Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         sched += Play(Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(ConstantPulse(duration=25, amp=1), DriveChannel(2))
+        sched += Play(Constant(duration=25, amp=1), DriveChannel(2))
         sched_duration = sched.duration
         sched += Play(GaussianSquare(duration=1500, amp=0.2,
                                      sigma=8, width=140),
@@ -418,6 +418,34 @@ class TestScheduleBuilding(BaseTestSchedule):
             sched += Acquire(1500, AcquireChannel(0), [MemorySlot(0)]) << sched_duration
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
+
+    def test_negative_time_raises(self):
+        """Test that a negative time will raise an error."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.shift(-10)
+
+    def test_shift_float_time_raises(self):
+        """Test that a floating time will raise an error with shift."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.shift(0.1)
+
+    def test_insert_float_time_raises(self):
+        """Test that a floating time will raise an error with insert."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.insert(10.1, sched)
+
+    def test_shift_unshift(self):
+        """Test shift and then unshifting of schedule"""
+        reference_sched = Schedule()
+        reference_sched += Delay(10, DriveChannel(0))
+        shifted_sched = reference_sched.shift(10).shift(-10)
+        self.assertEqual(shifted_sched, reference_sched)
 
 
 class TestDelay(BaseTestSchedule):
