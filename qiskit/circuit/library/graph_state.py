@@ -16,8 +16,9 @@
 
 """Graph State circuit."""
 
-import numpy as np
 from typing import Union, List
+
+import numpy as np
 from qiskit import QuantumCircuit
 
 

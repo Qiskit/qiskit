@@ -721,10 +721,7 @@ class TextDrawing():
         if getattr(instruction.op, 'label', None) is not None:
             return instruction.op.label
         if controlled:
-            if getattr(instruction.op.base_gate, 'label', None) is not None:
-                return instruction.op.base_gate.label
-            else:
-                label = instruction.op.base_gate.name
+            label = instruction.op.base_gate.name
         else:
             label = instruction.name
         params = TextDrawing.params_for_label(instruction)
