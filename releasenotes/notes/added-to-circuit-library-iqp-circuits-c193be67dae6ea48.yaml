@@ -1,0 +1,10 @@
+---
+prelude: >
+    Added IQP circuits to the circuit library. 
+features:
+  - |
+    Introduced IQP circuits. It can be used by
+      from qiskit.circuit.library.iqp_circuit import IQPCircuit
+      A = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])
+      my_circuit = IQPCircuit(A)
+      my_circuit.draw()
