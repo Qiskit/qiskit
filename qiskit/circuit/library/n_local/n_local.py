@@ -106,6 +106,12 @@ class NLocal(QuantumCircuit):
 
         Examples:
             TODO
+
+        Raises:
+            ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
+            TypeError: If an ``initial_state`` is specified but not of the correct type,
+                ``qiskit.aqua.components.initial_states.InitialState``.
+
         """
         super().__init__(name=name)
 
@@ -145,8 +151,8 @@ class NLocal(QuantumCircuit):
             try:
                 from qiskit.aqua.components.initial_states import InitialState
                 if not isinstance(initial_state, InitialState):
-                    raise AttributeError('initial_state must be of type InitialState, but is '
-                                         '{}.'.format(type(initial_state)))
+                    raise TypeError('initial_state must be of type InitialState, but is '
+                                    '{}.'.format(type(initial_state)))
             except ImportError:
                 raise ImportError('Could not import the qiskit.aqua.components.initial_states.'
                                   'InitialState. To use this feature Qiskit Aqua must be installed.'
