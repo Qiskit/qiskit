@@ -23,40 +23,55 @@ from qiskit import QuantumCircuit
 
 
 class GraphState(QuantumCircuit):
-    r"""Graph state circuit.
+    r"""Circuit to prepare a graph state.
 
-    The circuit prepares a graph state with the given adjacency
-    matrix and measures the state in the product basis specified
-    by the list of measurement angles. The angles specify the
-    theta, phi, and lambda parameters of u3 gates acting before
-    each measurement.
+    Given a graph G = (V, E), with the set of vertices V and the set of edges E,
+    the corresponding graph state is defined as
+
+    .. math::
+
+        |G\rangle = \product_{(a,b) \in E} CZ_{(a,b)} {|+\rangle}^{\optimes V}
+
+    Such a state can be prepared by first preparing all qubits in the :math:`+`
+    state, then applying a :math:`CZ` gate for each corresponding graph edge.
+
+    Graph state preparation circuits are Clifford circuits, and thus
+    easy to simulate classically. However, by adding a layer of measurements
+    in a product basis at the end, there is evidence that the circuit becomes
+    hard to simulate [2].
+
+    **Reference Circuit:**
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import GraphState
+        import qiskit.tools.jupyter
+        import networkx as nx
+        G = nx.Graph()
+        G.add_edges_from([(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
+        adjmat = nx.adjacency_matrix(G)
+        circuit = GraphState(adjmat.toarray())
+        %circuit_library_info circuit
+    
+    **References:**
+
+    [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
+        `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
+    [2] D. Koh, Further Extensions of Clifford Circuits and their Classical
+        Simulation Complexities, 2015.
+        `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
     def __init__(self,
                  adjacency_matrix: Union[List, np.array]) -> None:
-        """Make graph state and measure in product basis.
+        """Create graph state preparation circuit.
 
         Args:
             adjacency_matrix: input graph as n-by-n list of 0-1 lists
 
         The circuit prepares a graph state with the given adjacency
-        matrix and measures the state in the product basis specified
-        by the list of measurement angles. The angles specify the
-        theta, phi, and lambda parameters of u3 gates acting before
-        each measurement.
-
-        Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
-
-                from qiskit.circuit.library import GraphState
-                import qiskit.tools.jupyter
-                import networkx as nx
-                G = nx.Graph()
-                G.add_edges_from([(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
-                adjmat = nx.adjacency_matrix(G)
-                circuit = GraphState(adjmat.toarray())
-                %circuit_library_info circuit
+        matrix.
         """
         num_qubits = len(adjacency_matrix)
         super().__init__(num_qubits, name=f"graph: %s" % (adjacency_matrix)
@@ -66,8 +81,3 @@ class GraphState(QuantumCircuit):
             for j in range(i+1, num_qubits):
                 if adjacency_matrix[i][j] == 1:
                     self.cz(i, j)
-        for i in range(num_qubits):
-            self.u3(measurement_angles[3*i],
-                    measurement_angles[3*i+1],
-                    measurement_angles[3*i+2],
-                    i)
