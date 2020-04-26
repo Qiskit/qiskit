@@ -50,7 +50,7 @@ class Permutation(QuantumCircuit):
                 A = [2,4,3,0,1]
                 circuit = Permutation(5, A)
                 circuit.draw('mpl')
-         
+
         Expanded Circuit:
             .. jupyter-execute::
                 :hide-code:
@@ -71,8 +71,8 @@ class Permutation(QuantumCircuit):
             rng = np.random.RandomState(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
-        
-        name = "permutation:" + np.array_str(pattern)
+
+        name = "Permutation:" + np.array_str(pattern)
         super().__init__(num_qubits, name=name)
         for i in range(num_qubits):
             if (pattern[i] != -1) and (pattern[i] != i):

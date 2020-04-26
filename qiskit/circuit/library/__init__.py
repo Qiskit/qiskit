@@ -34,6 +34,7 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   Permutation
 
 Boolean Logic Circuits
 ======================
@@ -42,10 +43,9 @@ Boolean Logic Circuits
    :toctree: ../stubs/
 
    AND
-   InnerProduct
    OR
-   Permutation
    XOR
+   InnerProduct
 
 Basis Change Circuits
 =====================
