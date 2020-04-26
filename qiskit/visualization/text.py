@@ -897,7 +897,10 @@ class TextDrawing():
         elif instruction.name == 'measure':
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
-            layer.set_clbit(instruction.cargs[0], MeasureTo())
+            if self.cregbundle:
+                layer.set_clbit(instruction.cargs[0], MeasureTo(str(instruction.cargs[0].index)))
+            else:
+                layer.set_clbit(instruction.cargs[0], MeasureTo())
 
         elif instruction.name in ['barrier', 'snapshot', 'save', 'load', 'noise']:
             # barrier
@@ -999,7 +1002,7 @@ class TextDrawing():
         layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
-            layer = Layer(self.qregs, self.cregs)
+            layer = Layer(self.qregs, self.cregs, self.cregbundle)
 
             for instruction in instruction_layer:
                 layer, current_connections, connection_label = \
@@ -1015,12 +1018,21 @@ class TextDrawing():
 class Layer:
     """ A layer is the "column" of the circuit. """
 
-    def __init__(self, qregs, cregs):
+    def __init__(self, qregs, cregs, cregbundle=False):
         self.qregs = qregs
-        self.cregs = cregs
+        if cregbundle:
+            self.cregs = []
+            previous_creg = None
+            for bit in cregs:
+                if previous_creg == bit.register:
+                    continue
+                self.cregs.append(bit.register)
+        else:
+            self.cregs = cregs
         self.qubit_layer = [None] * len(qregs)
         self.connections = []
         self.clbit_layer = [None] * len(cregs)
+        self.cregbundle = cregbundle
 
     @property
     def full_layer(self):
@@ -1047,7 +1059,10 @@ class Layer:
             clbit (cbit): Element of self.cregs.
             element (DrawElement): Element to set in the clbit
         """
-        self.clbit_layer[self.cregs.index(clbit)] = element
+        if self.cregbundle:
+            self.clbit_layer[self.cregs.index(clbit.register)] = element
+        else:
+            self.clbit_layer[self.cregs.index(clbit)] = element
 
     def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None,
                       bot_connect=None, conditional=False, controlled_edge=None):
