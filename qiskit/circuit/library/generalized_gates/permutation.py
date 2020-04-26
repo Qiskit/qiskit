@@ -49,10 +49,18 @@ class Permutation(QuantumCircuit):
                 import qiskit.tools.jupyter
                 A = [2,4,3,0,1]
                 circuit = Permutation(5, A)
-                %circuit_library_info circuit
+                circuit.draw('mpl')
+         
+        Expanded Circuit:
+            .. jupyter-execute::
+                :hide-code:
 
+                from qiskit.circuit.library import Permutation
+                import qiskit.tools.jupyter
+                A = [2,4,3,0,1]
+                circuit = Permutation(5, A)
+                %circuit_library_info circuit.decompose()
         """
-        super().__init__(num_qubits, name="permutation")
         inner = QuantumCircuit(num_qubits)
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
@@ -63,10 +71,12 @@ class Permutation(QuantumCircuit):
             rng = np.random.RandomState(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
-
+        
+        name = "permutation:" + np.array_str(pattern)
+        super().__init__(num_qubits, name=name)
         for i in range(num_qubits):
             if (pattern[i] != -1) and (pattern[i] != i):
                 inner.swap(i, int(pattern[i]))
                 pattern[pattern[i]] = -1
         all_qubits = self.qubits
-        self.append(inner, all_qubits, label='name')
+        self.append(inner, all_qubits, label=name)
