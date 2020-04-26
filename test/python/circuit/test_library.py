@@ -140,7 +140,7 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
     def test_qv(self):
         """Test qv circuit."""
-        circuit = QuantumVolume(2, 2, seed=2)
+        circuit = QuantumVolume(2, 2, seed=2, do_permutations=False)
         expected = QuantumCircuit(2)
         expected.append(random_unitary(4, seed=169), [0, 1])
         expected.swap(0, 1)

@@ -42,13 +42,15 @@ class QuantumVolume(QuantumCircuit):
     def __init__(self,
                  num_qubits: int,
                  depth: Optional[int] = None,
-                 seed: Optional[int] = None) -> None:
+                 seed: Optional[int] = None,
+                 do_permutations: bool = True) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
             seed: randomization seed.
+            do_permutations: do permuations by hand
 
         Reference Circuit:
             .. jupyter-execute::
@@ -65,10 +67,9 @@ class QuantumVolume(QuantumCircuit):
 
                 from qiskit.circuit.library import QuantumVolume
                 import qiskit.tools.jupyter
-                circuit = QuantumVolume(5,6,seed=10)
+                circuit = QuantumVolume(5,6,seed=10, do_permutations=False)
                 %circuit_library_info circuit.decompose()
         """
-        inner = QuantumCircuit(num_qubits)
         depth = depth or num_qubits  # how many layers of SU(4)
         width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
         if seed is None:
@@ -83,16 +84,22 @@ class QuantumVolume(QuantumCircuit):
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
+        inner = QuantumCircuit(num_qubits)
         perm_0 = list(range(num_qubits))
         all_qubits = self.qubits
         for d in range(depth):
             perm = rng.permutation(perm_0)
-            insert_circuit = Permutation(num_qubits, perm)
-            inner.append(insert_circuit.decompose(), all_qubits,
-                         label=insert_circuit.name)
+            if not do_permutations:
+                insert_circuit = Permutation(num_qubits, perm)
+                inner.append(insert_circuit.decompose(), all_qubits,
+                             label=insert_circuit.name)
             for w in range(width):
                 seed_u = unitary_seeds[d][w]
                 su4 = random_unitary(4, seed=seed_u)
                 uname = 'su4_' + str(seed_u)
-                inner.append(su4, [2*w, 2*w+1], label=uname)
+                if do_permutations:
+                    physical_qubits = int(perm[2*w]), int(perm[2*w+1])
+                    inner.append(su4, [physical_qubits[0], physical_qubits[1]], label=uname)
+                else:
+                    inner.append(su4, [2*w, 2*w+1], label=uname)
         self.append(inner, all_qubits, label=name)
