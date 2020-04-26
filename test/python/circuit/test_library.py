@@ -112,6 +112,7 @@ class TestBlueprintCircuit(QiskitTestCase):
             _ = circuit[2]
             self.assertGreater(len(circuit._data), 0)
 
+
 @ddt
 class TestPermutationLibrary(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
