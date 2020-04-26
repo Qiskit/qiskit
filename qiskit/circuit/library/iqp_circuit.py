@@ -45,7 +45,7 @@ class IQPCircuit(QuantumCircuit):
                  interactions: Union[List, np.array]) -> None:
         """Create IQP circuit.
 
-         Args:
+        Args:
             interactions: input n-by-n symetric matrix.
 
         Raises:
