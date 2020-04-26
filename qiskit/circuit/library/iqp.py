@@ -21,17 +21,40 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 
-class IQPCircuit(QuantumCircuit):
-    """A quantum volume model circuit.
+class IQP(QuantumCircuit):
+    """Instantaneous quantum polynomial (IQP) circuit.
 
-    The model circuits consists of a column of Hadamard gates,
+    The circuit consists of a column of Hadamard gates,
     a column of powers of T gates,
-    a sequence of powers of CS gates (up to (n**2-n)/2 of them),
-    a final column of Hadamard gates, as introduced in [1].
+    a sequence of powers of CS gates (up to
+    :math:`\frac{n^2-n}{2}` of them),
+    and a final column of Hadamard gates, as introduced in [1].
 
+    The circuit is parameterized by an n x n interactions matrix.
     The powers of each T gate are given by the diagonal elements
     of the interactions matrix. The powers of the CS gates are
     given by the upper triangle of the interactions matrix.
+
+    **Reference Circuit:**
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import IQPCircuit
+        import qiskit.tools.jupyter
+        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+        circuit = IQPCircuit(A)
+        circuit.draw('mpl')
+
+    Expanded Circuit:
+        .. jupyter-execute::
+            :hide-code:
+
+            from qiskit.circuit.library import IQPCircuit
+            import qiskit.tools.jupyter
+            A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+            circuit = IQPCircuit(A)
+            %circuit_library_info circuit.decompose()
 
     **References:**
 
@@ -49,32 +72,6 @@ class IQPCircuit(QuantumCircuit):
 
         Raises:
             CircuitError: if the inputs is not as symetric matrix.
-
-        The circuit prepares a IQP circuit with the given interaction
-        matrix. For example
-            ``from qiskit.circuit.library.iqp_circuit import IQPCircuit``
-            ``a_mat = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])``
-            ``my_circuit = IQPCircuit(a_mat)``
-
-        Reference Circuit
-            .. jupyter-execute::
-                :hide-code:
-
-                from qiskit.circuit.library import IQPCircuit
-                import qiskit.tools.jupyter
-                A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-                circuit = IQPCircuit(A)
-                circuit.draw('mpl')
-
-        Expanded Circuit:
-            .. jupyter-execute::
-                :hide-code:
-
-                from qiskit.circuit.library import IQPCircuit
-                import qiskit.tools.jupyter
-                A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-                circuit = IQPCircuit(A)
-                %circuit_library_info circuit.decompose()
         """
         num_qubits = len(interactions)
         inner = QuantumCircuit(num_qubits)
