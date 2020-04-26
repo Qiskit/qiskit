@@ -736,9 +736,7 @@ class MCXGate(ControlledGate):
         # qubits matches this
         explicit = {
             1: CXGate,
-            2: CCXGate,
-            3: C3XGate,
-            4: C4XGate
+            2: CCXGate
         }
         if num_ctrl_qubits == 0:
             return XGate(label=label)
