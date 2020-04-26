@@ -66,7 +66,7 @@ class IQPCircuit(QuantumCircuit):
                 A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
                 circuit = IQPCircuit(A)
                 %circuit_library_info circuit.decompose()
-            
+
             .. jupyter-execute::
                 :hide-code:
 
@@ -84,7 +84,7 @@ class IQPCircuit(QuantumCircuit):
 
         a_str = np.array_str(interactions)
         a_str.replace('\n', ';')
-        name = "iqp:" +  a_str.replace('\n', ';')
+        name = "iqp:" + a_str.replace('\n', ';')
         super().__init__(num_qubits, name=name)
 
         inner.h(range(num_qubits))
@@ -98,5 +98,5 @@ class IQPCircuit(QuantumCircuit):
                 inner.u1(interactions[i][i]*np.pi/8, i)
 
         inner.h(range(num_qubits))
-        all_qubits = self.qubits # i dont like this line
+        all_qubits = self.qubits  #i dont like this line
         self.append(inner, all_qubits, label=name)
