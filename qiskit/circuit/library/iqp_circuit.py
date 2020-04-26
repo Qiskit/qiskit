@@ -52,7 +52,14 @@ class IQPCircuit(QuantumCircuit):
             CircuitError: if the inputs is not as symetric matrix.
 
         The circuit prepares a IQP circuit with the given interaction
-        matrix.
+        matrix. For example
+            from qiskit.circuit.library.iqp_circuit import IQPCircuit
+            a_mat = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])
+            my_circuit = IQPCircuit(a_mat)
+            my_circuit.draw()
+
+        To display the components of the IQP circuit use
+            my_circuit.decompose().draw()
 
         Reference Circuit:
             .. jupyter-execute::
