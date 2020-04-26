@@ -43,6 +43,7 @@ Standard Extensions
    RXGate
    RXXGate
    RYGate
+   RYYGate
    RZGate
    RZZGate
    RZXGate
