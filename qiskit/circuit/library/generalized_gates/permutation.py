@@ -14,6 +14,7 @@
 
 # pylint: disable=no-member
 
+"""Permutation circuit."""
 
 from typing import List, Optional
 
@@ -52,7 +53,7 @@ class Permutation(QuantumCircuit):
 
         """
         super().__init__(num_qubits, name="permutation")
-
+        inner = QuantumCircuit(num_qubits)
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
                 raise CircuitError("Permutation pattern must be some "
@@ -65,5 +66,7 @@ class Permutation(QuantumCircuit):
 
         for i in range(num_qubits):
             if (pattern[i] != -1) and (pattern[i] != i):
-                self.swap(i, int(pattern[i]))
+                inner.swap(i, int(pattern[i]))
                 pattern[pattern[i]] = -1
+        all_qubits = self.qubits
+        self.append(inner, all_qubits, label='name')
