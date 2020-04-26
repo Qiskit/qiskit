@@ -638,9 +638,19 @@ class TextDrawing():
                                                  index=self.layout[bit.index].index,
                                                  physical=bit.index))
         clbit_labels = []
+        previous_creg = None
         for bit in self.cregs:
-            label = '{name}_{index}: ' + initial_clbit_value
-            clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
+            if self.cregbundle:
+                if previous_creg == bit.register:
+                    continue
+                previous_creg = bit.register
+                label = '{name}: {initial_value} {size}/'
+                clbit_labels.append(label.format(name=bit.register.name,
+                                                 initial_value=initial_clbit_value,
+                                                 size=bit.register.size))
+            else:
+                label = '{name}_{index}: ' + initial_clbit_value
+                clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
@@ -986,7 +996,7 @@ class TextDrawing():
         if not wire_names:
             return []
 
-        layers = [InputWire.fillup_layer(wire_names, cregbundle=self.cregbundle)]
+        layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)

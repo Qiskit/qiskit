@@ -143,7 +143,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               '         ║  ║ └╥┘',
                               ' c: 0 3/═╩══╩══╩═',
                               '         1  2  3 '])
-
+        expected = ''
         qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(qr, cr)
