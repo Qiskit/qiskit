@@ -1616,7 +1616,8 @@ class QuantumCircuit:
                            [])
 
     @deprecate_arguments({'q': 'qubit'})
-    def rx(self, theta, qubit, *, label=None, q=None):  # pylint: disable=invalid-name,unused-argument
+    # pylint: disable=invalid-name,unused-argument
+    def rx(self, theta, qubit, *, label=None, q=None): 
         """Apply :class:`~qiskit.circuit.gates.RXGate`."""
         from .library.standard_gates.rx import RXGate
         return self.append(RXGate(theta, label=label), [qubit], [])
