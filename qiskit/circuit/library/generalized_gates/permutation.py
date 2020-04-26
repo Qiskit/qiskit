@@ -23,6 +23,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
+
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
