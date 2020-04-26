@@ -21,6 +21,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates.permutation import Permutation
 
+
 class QuantumVolume(QuantumCircuit):
     """A quantum volume model circuit.
 
