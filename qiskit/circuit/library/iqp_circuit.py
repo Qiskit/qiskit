@@ -46,7 +46,7 @@ class IQPCircuit(QuantumCircuit):
         """Create IQP circuit.
 
          Args:
-             interactions: input n-by-n symetric matrix.
+            interactions: input n-by-n symetric matrix.
 
         Raises:
             CircuitError: if the inputs is not as symetric matrix.
