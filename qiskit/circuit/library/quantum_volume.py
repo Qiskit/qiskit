@@ -19,7 +19,7 @@ from typing import Optional
 import numpy as np
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit import QuantumCircuit
-
+from qiskit.circuit.library.generalized_gates.permutation import Permutation
 
 class QuantumVolume(QuantumCircuit):
     """A quantum volume model circuit.
@@ -58,20 +58,29 @@ class QuantumVolume(QuantumCircuit):
                 circuit = QuantumVolume(5, seed=42)
                 %circuit_library_info circuit
         """
-        super().__init__(num_qubits, name="volume")
-
+        inner = QuantumCircuit(num_qubits)
         depth = depth or num_qubits  # how many layers of SU(4)
         width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
+        if seed is None:
+            rng_set = np.random.RandomState()
+            seed=rng_set.randint(low=1, high=1000)
+        name = "Quantum Volume:" + str([num_qubits, depth, seed])
+        super().__init__(num_qubits, name=name)
         rng = np.random.RandomState(seed)
 
-        unitary_seeds = rng.randint(low=1, high=1000, size=[depth, width])
+        unitary_seeds = rng.randint(low=1, high=1000, 
+                                    size=[depth, width])
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
         perm_0 = list(range(num_qubits))
+        all_qubits = self.qubits
         for d in range(depth):
             perm = rng.permutation(perm_0)
+            inner.append(Permutation(num_qubits, perm), all_qubits)
             for w in range(width):
-                physical_qubits = int(perm[2*w]), int(perm[2*w+1])
-                su4 = random_unitary(4, seed=unitary_seeds[d][w])
-                self.append(su4, [physical_qubits[0], physical_qubits[1]])
+                seed_u=unitary_seeds[d][w]
+                su4 = random_unitary(4, seed=seed_u)
+                uname='SU4: ' + str(seed_u)
+                inner.append(su4, [2*w, 2*w+1], label=uname)
+        self.append(inner, all_qubits, label=name)
