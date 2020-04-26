@@ -47,6 +47,7 @@ Initialization
 
 # import all standard gates
 from qiskit.circuit.library.standard_gates import *
+from qiskit.circuit.barrier import Barrier
 
 from .quantum_initializer.initializer import Initialize
 from .unitary import UnitaryGate
