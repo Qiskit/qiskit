@@ -74,7 +74,7 @@ class QuantumVolume(QuantumCircuit):
         if seed is None:
             rng_set = np.random.RandomState()
             seed = rng_set.randint(low=1, high=1000)
-        name = "Quantum Volume:" + str([num_qubits, depth, seed])
+        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
         super().__init__(num_qubits, name=name)
         rng = np.random.RandomState(seed)
 
@@ -93,6 +93,6 @@ class QuantumVolume(QuantumCircuit):
             for w in range(width):
                 seed_u = unitary_seeds[d][w]
                 su4 = random_unitary(4, seed=seed_u)
-                uname = 'SU4: ' + str(seed_u)
+                uname = 'su4_' + str(seed_u)
                 inner.append(su4, [2*w, 2*w+1], label=uname)
         self.append(inner, all_qubits, label=name)

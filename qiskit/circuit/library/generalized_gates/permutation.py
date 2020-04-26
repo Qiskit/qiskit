@@ -73,7 +73,7 @@ class Permutation(QuantumCircuit):
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
-        name = "Permutation:" + np.array_str(pattern)
+        name = "permutation_" + np.array_str(pattern).replace(' ', ',')
         super().__init__(num_qubits, name=name)
         for i in range(num_qubits):
             if (pattern[i] != -1) and (pattern[i] != i):
