@@ -8,3 +8,6 @@ features:
       A = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])
       my_circuit = IQPCircuit(A)
       my_circuit.draw()
+
+    To show inside the circuit you can use decompose method
+      my_circuit.decompose().draw()

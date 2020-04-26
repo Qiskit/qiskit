@@ -53,13 +53,9 @@ class IQPCircuit(QuantumCircuit):
 
         The circuit prepares a IQP circuit with the given interaction
         matrix. For example
-            from qiskit.circuit.library.iqp_circuit import IQPCircuit
-            a_mat = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])
-            my_circuit = IQPCircuit(a_mat)
-            my_circuit.draw()
-
-        To display the components of the IQP circuit use
-            my_circuit.decompose().draw()
+            ``from qiskit.circuit.library.iqp_circuit import IQPCircuit``
+            ``a_mat = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])``
+            ``my_circuit = IQPCircuit(a_mat)``
 
         Reference Circuit:
             .. jupyter-execute::
@@ -70,6 +66,15 @@ class IQPCircuit(QuantumCircuit):
                 A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
                 circuit = IQPCircuit(A)
                 %circuit_library_info circuit.decompose()
+            
+            .. jupyter-execute::
+                :hide-code:
+
+                from qiskit.circuit.library import IQPCircuit
+                import qiskit.tools.jupyter
+                A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+                circuit = IQPCircuit(A)
+                %circuit_library_info circuit
         """
         num_qubits = len(interactions)
         inner = QuantumCircuit(num_qubits)
