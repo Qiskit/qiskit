@@ -4,10 +4,9 @@ prelude: >
 features:
   - |
     Introduced IQP circuits. It can be used by
-      from qiskit.circuit.library.iqp_circuit import IQPCircuit
-      A = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])
-      my_circuit = IQPCircuit(A)
-      my_circuit.draw()
-
+    ``from qiskit.circuit.library.iqp_circuit import IQPCircuit``
+    ``A = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])``
+    ``my_circuit = IQPCircuit(A)``
+    ``my_circuit.draw()``
     To show inside the circuit you can use decompose method
-      my_circuit.decompose().draw()
+    ``my_circuit.decompose().draw()``
