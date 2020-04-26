@@ -56,7 +56,17 @@ class IQPCircuit(QuantumCircuit):
             ``a_mat = np.array([[6, 5, 3], [5, 4, 5], [3, 5, 1]])``
             ``my_circuit = IQPCircuit(a_mat)``
 
-        Reference Circuit:
+        Reference Circuit
+            .. jupyter-execute::
+                :hide-code:
+
+                from qiskit.circuit.library import IQPCircuit
+                import qiskit.tools.jupyter
+                A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+                circuit = IQPCircuit(A)
+                circuit.draw('mpl')
+        
+        Expanded Circuit:
             .. jupyter-execute::
                 :hide-code:
 
