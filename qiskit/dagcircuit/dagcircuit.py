@@ -153,7 +153,7 @@ class DAGCircuit:
         return G
 
     @classmethod
-    def from_networkx(self, graph):
+    def from_networkx(cls, graph):
         """Take a networkx MultiDigraph and create a new DAGCircuit.
 
         Args:
@@ -170,7 +170,7 @@ class DAGCircuit:
         for node in nx.topological_sort(graph):
             if node.type == 'out':
                 continue
-            elif node.type == 'in':
+            if node.type == 'in':
                 dag._add_wire(node.wire)
             elif node.type == 'op':
                 dag.apply_operation_back(node.op.copy(), node.qargs,
