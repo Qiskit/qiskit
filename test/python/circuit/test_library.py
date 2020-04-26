@@ -1266,7 +1266,7 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertCircuitEqual(reference, circuit)
 
-    def test_ry(self):
+    def test_ry_blocks(self):
         """Test that the RY circuit is instantiated correctly."""
         two = RY(4)
         with self.subTest(msg='test rotation gate'):
@@ -1277,7 +1277,31 @@ class TestTwoLocal(QiskitTestCase):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
-    def test_ryrz(self):
+    def test_ry_circuit(self):
+        """Test an RY circuit."""
+        num_qubits = 3
+        reps = 2
+        entanglement = 'full'
+        entanglement_gate = 'cx'
+        parameters = ParameterVector('theta', num_qubits * (reps + 1))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.ry(next(param_iter), i)
+            expected.cx(0, 1)
+            expected.cx(0, 2)
+            expected.cx(1, 2)
+        for i in range(num_qubits):
+            expected.ry(next(param_iter), i)
+
+        library = RY(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
+                     entanglement=entanglement).assign_parameters(parameters)
+
+        self.assertCircuitEqual(library, expected)
+
+    def test_ryrz_blocks(self):
         """Test that the RYRZ circuit is instantiated correctly."""
         two = RYRZ(3)
         with self.subTest(msg='test rotation gate'):
@@ -1289,7 +1313,35 @@ class TestTwoLocal(QiskitTestCase):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
-    def test_swaprz(self):
+    def test_ryrz_circuit(self):
+        """Test an RYRZ circuit."""
+        num_qubits = 3
+        reps = 2
+        entanglement = 'circular'
+        entanglement_gate = 'cz'
+        parameters = ParameterVector('theta', 2 * num_qubits * (reps + 1))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.ry(next(param_iter), i)
+            for i in range(num_qubits):
+                expected.rz(next(param_iter), i)
+            expected.cz(2, 0)
+            expected.cz(0, 1)
+            expected.cz(1, 2)
+        for i in range(num_qubits):
+            expected.ry(next(param_iter), i)
+        for i in range(num_qubits):
+            expected.rz(next(param_iter), i)
+
+        library = RYRZ(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
+                       entanglement=entanglement).assign_parameters(parameters)
+
+        self.assertCircuitEqual(library, expected)
+
+    def test_swaprz_blocks(self):
         """Test that the SwapRZ circuit is instantiated correctly."""
         two = SwapRZ(5)
         with self.subTest(msg='test rotation gate'):
@@ -1306,6 +1358,32 @@ class TestTwoLocal(QiskitTestCase):
         with self.subTest(msg='test parameter bounds'):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
+
+    def test_swaprz_circuit(self):
+        """Test a SwapRZ circuit."""
+        num_qubits = 3
+        reps = 2
+        entanglement = 'linear'
+        parameters = ParameterVector('theta', num_qubits * (reps + 1) + reps * (num_qubits - 1))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.rz(next(param_iter), i)
+            shared_param = next(param_iter)
+            expected.rxx(shared_param, 0, 1)
+            expected.ryy(shared_param, 0, 1)
+            shared_param = next(param_iter)
+            expected.rxx(shared_param, 1, 2)
+            expected.ryy(shared_param, 1, 2)
+        for i in range(num_qubits):
+            expected.rz(next(param_iter), i)
+
+        library = SwapRZ(num_qubits, reps=reps,
+                         entanglement=entanglement).assign_parameters(parameters)
+
+        self.assertCircuitEqual(library, expected)
 
 
 @ddt
