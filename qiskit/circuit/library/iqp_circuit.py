@@ -38,7 +38,7 @@ class IQPCircuit(QuantumCircuit):
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
     Phys. Rev. Lett. 117, 080501 (2016).
-    `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
+    [`arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_]
     """
 
     def __init__(self,
@@ -65,20 +65,23 @@ class IQPCircuit(QuantumCircuit):
                 %circuit_library_info circuit
         """
         num_qubits = len(interactions)
+        inner = QuantumCircuit(num_qubits)
         interactions = np.array(interactions)
         if not np.allclose(interactions, interactions.transpose()):
             raise CircuitError("The interactions matrix is not symetric")
+        name = "iqp:\n" + np.array_str(interactions)
+        super().__init__(num_qubits, name=name)
 
-        super().__init__(num_qubits, name=f"iqp: %s" % (interactions))
-
-        self.h(range(num_qubits))
+        inner.h(range(num_qubits))
         for i in range(num_qubits):
             for j in range(i+1, num_qubits):
                 if interactions[i][j] % 4 != 0:
-                    self.cu1(interactions[i][j]*np.pi/2, i, j)
+                    inner.cu1(interactions[i][j]*np.pi/2, i, j)
 
         for i in range(num_qubits):
             if interactions[i][i] % 8 != 0:
-                self.u1(interactions[i][i]*np.pi/8, i)
+                inner.u1(interactions[i][i]*np.pi/8, i)
 
-        self.h(range(num_qubits))
+        inner.h(range(num_qubits))
+        all_qubits = self.qubits # i dont like this line
+        self.append(inner, all_qubits, label=name)
