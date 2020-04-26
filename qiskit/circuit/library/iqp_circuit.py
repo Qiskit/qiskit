@@ -98,5 +98,5 @@ class IQPCircuit(QuantumCircuit):
                 inner.u1(interactions[i][i]*np.pi/8, i)
 
         inner.h(range(num_qubits))
-        all_qubits = self.qubits  #i dont like this line
+        all_qubits = self.qubits  # i dont like this line
         self.append(inner, all_qubits, label=name)
