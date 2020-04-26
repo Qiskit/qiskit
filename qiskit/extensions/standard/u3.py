@@ -87,9 +87,8 @@ class U3Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CU3Gate(*self.params)
+        if num_ctrl_qubits == 1:
+            return CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -187,9 +186,10 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam):
+    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""
-        super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1)
+        super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1,
+                         label=label, ctrl_state=ctrl_state)
         self.base_gate = U3Gate(theta, phi, lam)
 
     def _define(self):
@@ -230,7 +230,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):
     """The deprecated CU3Gate class."""
 
-    def __init__(self, theta, phi, lam):
+    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         import warnings
         warnings.warn('The class Cu3Gate is deprecated as of 0.14.0, and '
                       'will be removed no earlier than 3 months after that release date. '
@@ -242,9 +242,11 @@ class Cu3Gate(CU3Gate, metaclass=CU3Meta):
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def cu3(self, theta, phi, lam, control_qubit, target_qubit,
-        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        *, label=None, ctrl_state=None,
+        ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.U3Gate`."""
-    return self.append(CU3Gate(theta, phi, lam), [control_qubit, target_qubit], [])
+    return self.append(CU3Gate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.cu3 = cu3

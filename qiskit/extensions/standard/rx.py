@@ -49,9 +49,9 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None):
         """Create new RX gate."""
-        super().__init__('rx', 1, [theta])
+        super().__init__('rx', 1, [theta], label=label)
 
     def _define(self):
         """
@@ -79,9 +79,8 @@ class RXGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            if num_ctrl_qubits == 1:
-                return CRXGate(self.params[0])
+        if num_ctrl_qubits == 1:
+            return CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
@@ -101,9 +100,10 @@ class RXGate(Gate):
 
 
 @deprecate_arguments({'q': 'qubit'})
-def rx(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+def rx(self, theta, qubit, *, label=None, q=None):  # pylint: disable=invalid-name,unused-argument
     """Apply :class:`~qiskit.extensions.standard.RXGate`."""
-    return self.append(RXGate(theta), [qubit], [])
+    return self.append(RXGate(theta, label=label),
+                       [qubit], [])
 
 
 QuantumCircuit.rx = rx
@@ -173,9 +173,10 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
                     0 & 0 & -i\sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
-    def __init__(self, theta):
+    def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRX gate."""
-        super().__init__('crx', 2, [theta], num_ctrl_qubits=1)
+        super().__init__('crx', 2, [theta], num_ctrl_qubits=1,
+                         label=label, ctrl_state=ctrl_state)
         self.base_gate = RXGate(theta)
 
     def _define(self):
@@ -224,9 +225,11 @@ class CrxGate(CRXGate, metaclass=CRXMeta):
 @deprecate_arguments({'ctl': 'control_qubit',
                       'tgt': 'target_qubit'})
 def crx(self, theta, control_qubit, target_qubit,
-        *, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        *, label=None, ctrl_state=None,
+        ctl=None, tgt=None):  # pylint: disable=unused-argument
     """Apply :class:`~qiskit.extensions.standard.CRXGate`."""
-    return self.append(CRXGate(theta), [control_qubit, target_qubit], [])
+    return self.append(CRXGate(theta, label=label, ctrl_state=ctrl_state),
+                       [control_qubit, target_qubit], [])
 
 
 QuantumCircuit.crx = crx
