@@ -25,17 +25,14 @@ This provides a single function entrypoint to drawing a circuit object with
 any of the backends.
 """
 
-import errno
+import traceback
 import logging
 import os
-import subprocess
 import tempfile
-
-try:
-    from PIL import Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
+from warnings import warn
+from pylatex.errors import PyLaTeXError
+from pdf2image import convert_from_path
+from pdf2image.exceptions import PDFInfoNotInstalledError, PopplerNotInstalledError
 
 from qiskit import user_config
 from qiskit.visualization import exceptions
@@ -46,6 +43,7 @@ from qiskit.visualization import matplotlib as _matplotlib
 
 logger = logging.getLogger(__name__)
 
+SCALE = 0.7
 
 def circuit_drawer(circuit,
                    scale=None,
@@ -435,16 +433,19 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
 # -----------------------------------------------------------------------------
 
 
-def _latex_circuit_drawer(circuit,
-                          scale=0.7,
-                          filename=None,
-                          plot_barriers=True,
-                          reverse_bits=False,
-                          justify=None,
-                          idle_wires=True,
-                          with_layout=True,
-                          initial_state=False,
-                          cregbundle=False):
+def _latex_circuit_drawer(
+    circuit,
+    scale=SCALE,
+    filename=None,
+    style=None,
+    plot_barriers=True,
+    reverse_bits=False,
+    justify=None,
+    idle_wires=True,
+    with_layout=True,
+    initial_state=False,
+    cregbundle=False,
+):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -471,72 +472,69 @@ def _latex_circuit_drawer(circuit,
         PIL.Image: an in-memory representation of the circuit diagram
 
     Raises:
-        OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
-                 missing.
-        CalledProcessError: usually points to errors during diagram creation.
-        ImportError: if pillow is not installed
+        PyLaTeXError: when there is a problem with Document.generate_pdf()
+        PDFInfoNotInstalledError: if PDFInfo is not installed
+        PopplerNotInstalledError: if poppler is not installed
     """
-    tmpfilename = 'circuit'
+    tmpfilename = "circuit"
+    pdf2image_warning = "WARNING: Unable to convert pdf to image. "\
+        "Is %s installed? Skipping circuit drawing..."
     with tempfile.TemporaryDirectory() as tmpdirname:
-        tmppath = os.path.join(tmpdirname, tmpfilename + '.tex')
-        _generate_latex_source(circuit, filename=tmppath, scale=scale,
-                               plot_barriers=plot_barriers,
-                               reverse_bits=reverse_bits, justify=justify,
-                               idle_wires=idle_wires, with_layout=with_layout,
-                               initial_state=initial_state,
-                               cregbundle=cregbundle)
+        tmppath = os.path.join(tmpdirname, tmpfilename)
+        doc = _generate_document(
+            circuit,
+            reverse_bits=reverse_bits,
+            justify=justify,
+            idle_wires=idle_wires,
+            scale=scale,
+            style=style,
+            plot_barriers=plot_barriers,
+            initial_state=initial_state,
+            with_layout=with_layout,
+            cregbundle=cregbundle
+        )
         try:
-
-            subprocess.run(["pdflatex", "-halt-on-error",
-                            "-output-directory={}".format(tmpdirname),
-                            "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                           check=True)
-        except OSError as ex:
-            if ex.errno == errno.ENOENT:
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Is `pdflatex` installed? '
-                               'Skipping latex circuit drawing...')
-            raise
-        except subprocess.CalledProcessError as ex:
+            doc.generate_pdf(filepath=tmppath)
+        except PyLaTeXError:
             with open('latex_error.log', 'wb') as error_file:
-                error_file.write(ex.stdout)
-            logger.warning('WARNING Unable to compile latex. '
-                           'The output from the pdflatex command can '
-                           'be found in latex_error.log')
+               traceback.print_exc(file=error_file)
+            logger.warning(
+                "WARNING Unable to compile latex. "
+                "The output from the pylatex command can "
+                "be found in latex_error.log"
+            )
             raise
         else:
-            if not HAS_PIL:
-                raise ImportError('The latex drawer needs pillow installed. '
-                                  'Run "pip install pillow" before using the '
-                                  'latex drawer.')
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
-                subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
-                                base + '.pdf', base], check=True)
-                image = Image.open(base + '.png')
+                images_from_path = convert_from_path(
+                    base + ".pdf",
+                    output_folder=tmpdirname,
+                    single_file=True,
+                    grayscale=True,
+                )
+                image = images_from_path[0]
                 image = utils._trim(image)
-                os.remove(base + '.png')
                 if filename:
-                    image.save(filename, 'PNG')
-            except (OSError, subprocess.CalledProcessError) as ex:
-                logger.warning('WARNING: Unable to convert pdf to image. '
-                               'Is `poppler` installed? '
-                               'Skipping circuit drawing...')
+                    image.save(filename, "PNG")
+            except PDFInfoNotInstalledError:
+                logger.warning(pdf2image_warning, "`PDFInfo`")
+                raise
+            except PopplerNotInstalledError:
+                logger.warning(pdf2image_warning, "`poppler`")
                 raise
         return image
 
 
-def _generate_latex_source(circuit, filename=None,
-                           scale=0.7, reverse_bits=False,
-                           plot_barriers=True, justify=None, idle_wires=True,
-                           with_layout=True, initial_state=False, cregbundle=False):
-    """Convert QuantumCircuit to LaTeX string.
+def _generate_document(circuit, reverse_bits=False, justify=None, idle_wires=True,
+                       scale=SCALE, style=None, plot_barriers=True,
+                       initial_state=False, with_layout=True, cregbundle=False):
+    """Convert QuantumCircuit to pylatex document.
 
     Args:
-        circuit (QuantumCircuit): a quantum circuit
-        scale (float): scaling factor
-        filename (str): optional filename to write latex
+        circuit (QuantumCircuit): input circuit
+        scale (float): image scaling
+        style (dict or str): dictionary of style or file name of style file
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
@@ -552,28 +550,84 @@ def _generate_latex_source(circuit, filename=None,
             Default: ``False``.
 
     Returns:
-        str: Latex string appropriate for writing to file.
+        pylatex.Document: Class with methods for writing source or generating visualization.
     """
-    qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                        reverse_bits=reverse_bits,
-                                                        justify=justify, idle_wires=idle_wires)
+    qregs, cregs, ops = utils._get_layered_instructions(
+        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+    )
     if with_layout:
         layout = circuit._layout
     else:
         layout = None
+    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
+    qcimg = _latex.QCircuitImage(
+        qregs,
+        cregs,
+        ops,
+        scale,
+        style=style,
+        plot_barriers=plot_barriers,
+        reverse_bits=reverse_bits,
+        layout=layout,
+        initial_state=initial_state,
+        cregbundle=cregbundle,
+        global_phase=global_phase,
+    )
+    return qcimg.latex()
 
-    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
-    qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale,
-                                 plot_barriers=plot_barriers, layout=layout,
-                                 initial_state=initial_state,
-                                 cregbundle=cregbundle,
-                                 global_phase=global_phase)
-    latex = qcimg.latex()
+
+def _generate_latex_source(
+    circuit,
+    filename=None,
+    scale=SCALE,
+    style=None,
+    reverse_bits=False,
+    plot_barriers=True,
+    justify=None,
+    idle_wires=True,
+    with_layout=True,
+    initial_state=False,
+    cregbundle=False,
+):
+    """Convert QuantumCircuit to LaTeX string.
+
+    Args:
+        circuit (QuantumCircuit): input circuit
+        scale (float): image scaling
+        filename (str): optional filename to write latex
+        style (dict or str): dictionary of style or file name of style file
+        reverse_bits (bool): When set to True reverse the bit order inside
+            registers for the output visualization.
+        plot_barriers (bool): Enable/disable drawing barriers in the output
+            circuit. Defaults to True.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+                        the circuit should be justified.
+        idle_wires (bool): Include idle wires. Default is True.
+        with_layout (bool): Include layout information, with labels on the physical
+            layout. Default: True
+        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
+
+    Returns:
+        str: Latex string appropriate for writing to file.
+    """
+    doc = _generate_document(
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        scale=scale,
+        style=style,
+        plot_barriers=plot_barriers,
+        initial_state=initial_state,
+        with_layout=with_layout,
+        cregbundle=cregbundle
+    )
     if filename:
-        with open(filename, 'w') as latex_file:
-            latex_file.write(latex)
-
-    return latex
+        (filepath, sep, fileformat) = filename.rpartition(".")
+        if fileformat == "tex" and filepath and sep:
+            filename = filepath
+        doc.generate_tex(filepath=filename)
+    return doc.dumps()
 
 
 # -----------------------------------------------------------------------------

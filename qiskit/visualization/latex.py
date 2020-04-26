@@ -23,6 +23,8 @@ import numpy as np
 
 from pylatex import Document, Package, Math
 from pylatex.base_classes import ContainerCommand
+from pylatex.basic import SmallText
+from pylatex.utils import NoEscape
 
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -145,24 +147,29 @@ class QCircuitImage:
         self.cregbundle = cregbundle
         self.global_phase = global_phase
 
-    def latex(self):
-        """Return LaTeX string representation of circuit.
+    def latex(self, aliases=None):
+        """Return pylatex Document representation of circuit.
 
         This method uses the LaTeX Qconfig package to create a graphical
         representation of the circuit.
 
         Returns:
-            string: for writing to a LaTeX file.
+            pylatex.Document: for writing to a LaTeX file.
         """
         self._initialize_latex_array(aliases)
         self._build_latex_array(aliases)
         doc = Document(documentclass="beamer", document_options="draft")
-        doc.packages.append(
-            Package(
-                "beamerposter",
-                options=["size=custom", "height=10", "width=99", "scale=0.7"],
+        doc.packages.append(Package("beamerposter", options=self._get_beamer_page(),))
+        if self.global_phase:
+            doc.append(SmallText("Global Phase: "))
+            doc.append(
+                SmallText(
+                    Math(
+                        inline=True,
+                        data=[NoEscape(pi_check(self.global_phase, output="latex"))],
+                    )
+                )
             )
-        )
         qcircuit = QCircuit(self.column_separation, self.row_separation)
         for i in range(self.img_width):
             for j in range(self.img_depth + 1):
@@ -180,9 +187,9 @@ class QCircuitImage:
                 else:
                     qcircuit.append(r"\\")
         doc.append(Math(data=qcircuit))
-        return doc.dumps()
+        return doc
 
-    def _initialize_latex_array(self):
+    def _initialize_latex_array(self, aliases=None):
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
@@ -359,7 +366,12 @@ class QCircuitImage:
         height = max(height, 10)
         width = max(width, 10)
 
-        return (height, width, self.scale)
+        return [
+            "size=custom",
+            "height=" + str(height),
+            "width=" + str(width),
+            "scale=" + str(self.scale),
+        ]
 
     def _get_mask(self, creg_name):
         mask = 0
@@ -425,6 +437,7 @@ class QCircuitImage:
                         temp.sort(key=int)
                         bottom = temp[len(pos_array) - 1]
                         _assign_cregs(
+                            self.cregbundle,
                             self.cregs[if_reg],
                             if_value,
                             self._latex,
@@ -509,6 +522,7 @@ class QCircuitImage:
                                 nm, op.op.params
                             )
                             _assign_cregs(
+                                self.cregbundle,
                                 self.cregs[if_reg],
                                 if_value,
                                 self._latex,
@@ -537,6 +551,7 @@ class QCircuitImage:
                             bottom = temp[1]
 
                             _assign_cregs(
+                                self.cregbundle,
                                 self.cregs[if_reg],
                                 if_value,
                                 self._latex,
@@ -601,6 +616,7 @@ class QCircuitImage:
                             temp.sort(key=int)
                             bottom = temp[2]
                             _assign_cregs(
+                                self.cregbundle,
                                 self.cregs[if_reg],
                                 if_value,
                                 self._latex,
@@ -681,9 +697,14 @@ class QCircuitImage:
 
                     try:
                         self._latex[pos_1][column] = "\\meter"
-                        self._latex[pos_2][column] = (
-                            "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
-                        )
+                        if self.cregbundle:
+                            self._latex[pos_2][column] = \
+                                "\\dstick{" + str(cregindex) + "} " + \
+                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                        else:
+                            self._latex[pos_2][column] = (
+                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                            )
                     except Exception as e:
                         raise exceptions.VisualizationError(
                             "Error during Latex building: %s" % str(e)
@@ -774,11 +795,16 @@ def _assign_multigate(number, gate, latex_array, pos_array, column, special_gate
             latex_array[pos][column] = "\\ghost{%s}" % gate
 
 
-def _assign_cregs(cregs, if_value, latex_array, hipos, lopos, column):
+def _assign_cregs(cregbundle, cregs, if_value, latex_array, hipos, lopos, column):
+    if cregbundle:
+        cregs = 1
     gap = hipos - lopos
     for i in range(cregs):
+        gate = 'controlo'
+        if (if_value[i] == '1' or (cregbundle and int(if_value[i]) > 0)):
+            gate = 'control'
         latex_array[hipos + i][column] = _generate_latex_gate(
-            "controlo", [], gap=gap, if_value=if_value[i]
+            gate, [], gap=gap, if_value=if_value[i]
         )
         gap = 1
 
@@ -829,7 +855,7 @@ def _assign_cgate(gate, params, cond, latex_array, column, pos_1, pos_2, pos_3=0
 
 def _generate_latex_gate(gate, params, gap=0, if_value=""):
     common_gates = ["x", "y", "z", "h", "s", "t", "cy", "ch"]
-    if if_value == "1":
+    if if_value == "1" and gate != "control":
         gate = gate[:-1]
     if gate in common_gates:
         gate = gate.upper()

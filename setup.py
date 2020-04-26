@@ -37,6 +37,7 @@ REQUIREMENTS = [
     "python-constraint>=1.4",
     "python-dateutil>=2.8.0",
     "pylatex>=1.3.1",
+    "pdf2image>=1.12.1"
 ]
 
 # Add Cython extensions here
