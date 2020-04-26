@@ -65,7 +65,7 @@ class IQPCircuit(QuantumCircuit):
                 A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
                 circuit = IQPCircuit(A)
                 circuit.draw('mpl')
-        
+
         Expanded Circuit:
             .. jupyter-execute::
                 :hide-code:
