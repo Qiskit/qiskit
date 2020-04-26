@@ -87,11 +87,11 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 head_style = 'font-family: IBM Plex Sans, Arial, Helvetica, sans-serif;' \
              ' font-size: 22px; font-weight: medium;'
 
-detail_label = wid.HTML("<p style='{}'>Circuit Properties</p>".format(head_style),
-                        layout=wid.Layout(margin='0px 0px 10px 0px'))
+property_label = wid.HTML("<p style='{}'>Circuit Properties</p>".format(head_style),
+                          layout=wid.Layout(margin='0px 0px 10px 0px'))
 
 
-def details_widget(circuit: QuantumCircuit) -> wid.VBox:
+def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Create a HTML table widget with header for a given quantum circuit.
 
     Args:
@@ -100,11 +100,11 @@ def details_widget(circuit: QuantumCircuit) -> wid.VBox:
     Returns:
         Output widget.
     """
-    details = wid.VBox(children=[detail_label,
-                                 circuit_data_table(circuit)],
-                       layout=wid.Layout(width='30%',
-                                         height='auto'))
-    return details
+    properties = wid.VBox(children=[property_label,
+                                    circuit_data_table(circuit)],
+                          layout=wid.Layout(width='30%',
+                                            height='auto'))
+    return properties
 
 
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
@@ -146,7 +146,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
                                      height='auto',
                                      overflow='scroll scroll'))
 
-    out_label = wid.HTML("<p style='{}'>Circuit QASM</p>".format(head_style),
+    out_label = wid.HTML("<p style='{}'>OpenQASM</p>".format(head_style),
                          layout=wid.Layout(margin='0px 0px 10px 0px'))
 
     qasm = wid.VBox(children=[out_label, out],
@@ -190,7 +190,7 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
                    layout=wid.Layout(height='auto',
                                      max_height='495px',
                                      margin='40px 0px 0px 20px'))
-    bottom = wid.HBox(children=[details_widget(circuit),
+    bottom = wid.HBox(children=[properties_widget(circuit),
                                 sep,
                                 qasm_widget(circuit)],
                       layout=wid.Layout(max_height='550px',
