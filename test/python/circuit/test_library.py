@@ -22,11 +22,13 @@ from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerProduct, OR, AND, QFT,
+from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume, XOR,
+                                    InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal)
 from qiskit.quantum_info import Statevector, Operator
+from qiskit.quantum_info.random import random_unitary
 
 
 class MockBlueprint(BlueprintCircuit):
@@ -115,7 +117,7 @@ class TestBlueprintCircuit(QiskitTestCase):
 
 @ddt
 class TestPermutationLibrary(QiskitTestCase):
-    """Test library of boolean logic quantum circuits."""
+    """Test library of permutation logic quantum circuits."""
 
     def test_permutation(self):
         """Test permutation circuit."""
@@ -130,6 +132,22 @@ class TestPermutationLibrary(QiskitTestCase):
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+@ddt
+class TestQuantumVolumeLibrary(QiskitTestCase):
+    """Test library of quantum volume quantum circuits."""
+
+    def test_qv(self):
+        """Test qv circuit."""
+        circuit = QuantumVolume(2, 2, seed=2)
+        expected = QuantumCircuit(2)
+        expected.append(random_unitary(4, seed=169), [0, 1])
+        expected.swap(0, 1)
+        expected.append(random_unitary(4, seed=528), [0, 1])
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
 
 
 @ddt

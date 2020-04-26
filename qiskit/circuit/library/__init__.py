@@ -85,21 +85,14 @@ Comparators
 
    IntegerComparator
 
-Characterization and Validation Circuits
-========================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   QuantumVolume
-
-Quantum Complexity Advantage Circuits
-=====================================
+Particular Quantum Circuits
+===========================
 
 .. autosummary::
    :toctree: ../stubs/
 
    FourierChecking
+   QuantumVolume
 """
 
 from .blueprintcircuit import BlueprintCircuit
