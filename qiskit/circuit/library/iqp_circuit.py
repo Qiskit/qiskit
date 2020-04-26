@@ -65,15 +65,7 @@ class IQPCircuit(QuantumCircuit):
                 import qiskit.tools.jupyter
                 A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
                 circuit = IQPCircuit(A)
-                %circuit_library_info circuit
-
-            .. jupyter-execute::
-                :hide-code:
-
-                from qiskit.circuit.library import IQPCircuit
-                import qiskit.tools.jupyter
-                A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-                circuit = IQPCircuit(A)
+                circuit.draw('mpl')
                 %circuit_library_info circuit.decompose()
         """
         num_qubits = len(interactions)
