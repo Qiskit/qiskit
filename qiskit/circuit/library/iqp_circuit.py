@@ -69,7 +69,10 @@ class IQPCircuit(QuantumCircuit):
         interactions = np.array(interactions)
         if not np.allclose(interactions, interactions.transpose()):
             raise CircuitError("The interactions matrix is not symetric")
-        name = "iqp:\n" + np.array_str(interactions)
+        
+        A_str = np.array_str(interactions)
+        A_str.replace('\n', ';')
+        name = "iqp:" +  A_str.replace('\n', ';')
         super().__init__(num_qubits, name=name)
 
         inner.h(range(num_qubits))
