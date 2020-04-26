@@ -406,7 +406,8 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
-                         idle_wires=True, with_layout=True, fold=None, initial_state=True):
+                         idle_wires=True, with_layout=True, fold=None, initial_state=True,
+                         cregbundle=False):
     """Draws a circuit using ascii art.
 
     Args:
@@ -442,7 +443,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     if line_length:
         warn('The parameter "line_length" is being replaced by "fold"', DeprecationWarning, 3)
         fold = line_length
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
+                                     cregbundle=cregbundle)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression

@@ -60,6 +60,14 @@ class TestTextDrawerElement(QiskitTestCase):
                     "   "]
         self.assertEqualElement(expected, element)
 
+    def test_measure_to_label(self):
+        """ MeasureTo element with cregbundle """
+        element = elements.MeasureTo('1')
+        expected = [" ║ ",
+                    "═╩═",
+                    " 1 "]
+        self.assertEqualElement(expected, element)
+
     def test_measure_from(self):
         """ MeasureFrom element. """
         element = elements.MeasureFrom()
@@ -123,6 +131,24 @@ class TestTextDrawerElement(QiskitTestCase):
 
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """ Gate by gate checks in different settings."""
+
+    def test_text_measure_cregbundle(self):
+        """ The measure operator, using 3-bit-length registers with cregbundle=True. """
+        expected = '\n'.join(['        ┌─┐      ',
+                              'q_0: |0>┤M├──────',
+                              '        └╥┘┌─┐   ',
+                              'q_1: |0>─╫─┤M├───',
+                              '         ║ └╥┘┌─┐',
+                              'q_2: |0>─╫──╫─┤M├',
+                              '         ║  ║ └╥┘',
+                              ' c: 0 3/═╩══╩══╩═',
+                              '         1  2  3 '])
+
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_measure_1(self):
         """ The measure operator, using 3-bit-length registers. """

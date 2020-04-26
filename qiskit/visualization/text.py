@@ -166,11 +166,11 @@ class MeasureTo(DrawElement):
         bot:
     """
 
-    def __init__(self):
+    def __init__(self, label=''):
         super().__init__()
         self.top_connect = " ║ "
         self.mid_content = "═╩═"
-        self.bot_connect = "   "
+        self.bot_connect = label
         self.mid_bck = "═"
 
 
@@ -495,13 +495,15 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertical_compression='high', layout=None, initial_state=True):
+                 line_length=None, vertical_compression='high', layout=None, initial_state=True,
+                 cregbundle=False):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
         self.initial_state = initial_state
 
+        self.cregbundle = cregbundle
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
@@ -984,7 +986,7 @@ class TextDrawing():
         if not wire_names:
             return []
 
-        layers = [InputWire.fillup_layer(wire_names)]
+        layers = [InputWire.fillup_layer(wire_names, cregbundle=self.cregbundle)]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs)
