@@ -34,6 +34,7 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   Permutation
 
 Boolean Logic Circuits
 ======================
@@ -42,10 +43,9 @@ Boolean Logic Circuits
    :toctree: ../stubs/
 
    AND
-   InnerProduct
    OR
-   Permutation
    XOR
+   InnerProduct
 
 Basis Change Circuits
 =====================
@@ -104,12 +104,12 @@ Quantum Complexity Advantage Circuits
 
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import Diagonal
+from .generalized_gates import Permutation
 from .boolean_logic import (
-    Permutation,
+    AND,
+    OR,
     XOR,
     InnerProduct,
-    OR,
-    AND,
 )
 from .basis_change import QFT
 from .arithmetic import (
