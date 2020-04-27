@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module is deprecated, the gates moved to qiskit/circuit/gates."""
+"""This module is deprecated, the gates moved to qiskit/circuit/library."""
 
 import warnings
 from .barrier import Barrier

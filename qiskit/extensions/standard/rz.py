@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The standard gates moved to qiskit/circuit/gates."""
+"""The standard gates moved to qiskit/circuit/library."""
 
 from qiskit.circuit.library.standard_gates.rz import RZGate, CRZGate, CrzGate
 
