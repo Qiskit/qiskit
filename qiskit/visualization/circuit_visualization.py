@@ -79,7 +79,8 @@ def circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        scale (float): scale of image to draw (shrink if < 1)
+        scale (float): scale of image to draw (shrink if < 1). Only used by the ``mpl``,
+            ``latex``, and ``latex_source`` outputs.
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file.
             This option is only used by the ``mpl`` output type. If a str is
