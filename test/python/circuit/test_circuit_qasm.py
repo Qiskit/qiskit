@@ -16,6 +16,7 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import random_unitary
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -66,3 +67,13 @@ measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_pi(self):
+        """Test circuit qasm() method with pi params.
+        """
+        circuit = QuantumCircuit(2)
+        circuit.append(random_unitary(4, seed=1234), [0, 1])
+        circuit = circuit.decompose()
+        qasm_str = circuit.qasm()
+        circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
+        self.assertEqual(circuit, circuit2)
