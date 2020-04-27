@@ -40,7 +40,7 @@ class TwoLocal(NLocal):
       for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
     * ``'circular'`` entanglement is linear entanglement but with an additional entanglement of the
       first and last qubit before the linear part.
-    * ``'sca'`` (shifted-circular-alternating) entanglement it is a generalized and modified version
+    * ``'sca'`` (shifted-circular-alternating) entanglement is a generalized and modified version
       of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
       It consists of circular entanglement where the 'long' entanglement connecting the first with
       the last qubit is shifted by one each block.  Furthermore the role of control and target
