@@ -91,7 +91,7 @@ class TwoLocal(NLocal):
             entanglement_blocks: The gates used in the entanglement layer. Can be specified in
                 the same format as `rotation_blocks`.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                or 'sca'), a list of integer-pairs specifying the indices of qubits
+                , 'circular' or 'sca'), a list of integer-pairs specifying the indices of qubits
                 entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
                 Default to 'full' entanglement.
