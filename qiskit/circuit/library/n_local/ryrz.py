@@ -26,7 +26,8 @@ from .two_local import TwoLocal
 class RYRZ(TwoLocal):
     r"""The RYRZ 2-local circuit.
 
-    The RYRZ trial wave function is layers of :math:`Y` plus :math:`Z` rotations with entanglements.
+    The RYRZ circuit consists of layers of :math:`Y` plus :math:`Z` rotations with entanglements.
+    It can be used to prepare trial wave functions for variational quantum algorithms.
 
     .. parsed-literal::
 
