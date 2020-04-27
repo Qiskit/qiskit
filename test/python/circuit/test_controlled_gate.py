@@ -756,7 +756,6 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state = 0
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        np.set_printoptions(linewidth=200,)
         self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = 7
