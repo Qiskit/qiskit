@@ -46,7 +46,7 @@ class RXXGate(Gate):
                 \cos(\th)   & 0           & 0           & -i\sin(\th) \\
                 0           & \cos(\th)   & -i\sin(\th) & 0 \\
                 0           & -i\sin(\th) & \cos(\th)   & 0 \\
-                -i\sin(\th) & 0           & 0           & \cos(\th)}
+                -i\sin(\th) & 0           & 0           & \cos(\th)
             \end{pmatrix}
 
     **Examples:**
