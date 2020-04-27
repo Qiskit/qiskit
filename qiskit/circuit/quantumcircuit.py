@@ -644,6 +644,8 @@ class QuantumCircuit:
 
     def qasm(self):
         """Return OpenQASM string."""
+        composite_circuits = []
+
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
@@ -663,9 +665,15 @@ class QuantumCircuit:
                                                                                  'reset']):
                 qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
 
-                # Insert composite circuit qasm definition right after header and extension lib
-                string_temp = string_temp.replace(self.extension_lib,
-                                                  "%s\n%s" % (self.extension_lib, qasm_string))
+                # Insert composite circuit qasm definition right after header
+                # and extension lib if it does not already exist
+                # print("THIS IS THE NAME: {}".format(instruction.name))
+                if instruction.name not in composite_circuits:
+                    string_temp = string_temp.replace(self.extension_lib,
+                                                      "%s\n%s" % (self.extension_lib,
+                                                                  qasm_string))
+
+                    composite_circuits.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
                 string_temp += "%s %s;\n" % (instruction.qasm(),
