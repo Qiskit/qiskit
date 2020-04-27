@@ -74,3 +74,9 @@ class FakeProvider(BaseProvider):
                           FakeRochester()]
 
         super().__init__()
+
+    def load_account(self):
+        pass
+
+    def providers(self):
+        return [self]

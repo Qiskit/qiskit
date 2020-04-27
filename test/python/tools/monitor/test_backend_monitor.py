@@ -14,24 +14,62 @@
 
 """Tests for the wrapper functionality."""
 
+import sys
 import unittest
 from unittest.mock import patch
+from unittest.mock import MagicMock
 from io import StringIO
 
+import qiskit
+from qiskit import providers
 from qiskit.tools.monitor import backend_overview, backend_monitor
-from qiskit.test import QiskitTestCase, online_test
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeProvider
+from qiskit.test.mock import FakeBackend
+from qiskit.test.mock import FakeVigo
+
+
+FAKE_PROV = FakeProvider()
 
 
 class TestBackendOverview(QiskitTestCase):
     """Tools test case."""
 
-    @online_test
-    def test_backend_overview(self, qe_token, qe_url):
-        """Test backend_overview"""
-        from qiskit import IBMQ  # pylint: disable: import-error
-        IBMQ.enable_account(qe_token, qe_url)
-        self.addCleanup(IBMQ.disable_account)
+    def _restore_ibmq(self):
+        if not self.import_error:
+            qiskit.IBMQ = self.ibmq_back
+        else:
+            del qiskit.IBMQ
+        if self.prov_backup:
+            providers.ibmq = self.prov_backup
+        else:
+            del providers.ibmq
 
+    def setUp(self):
+        super().setUp()
+        ibmq_mock = MagicMock()
+        ibmq_mock.IBMQBackend = FakeBackend
+        sys.modules['qiskit.providers.ibmq'] = ibmq_mock
+
+        import qiskit
+        if hasattr(qiskit, 'IBMQ'):
+            self.import_error = False
+        else:
+            self.import_error = True
+            qiskit.IBMQ = None
+        self.ibmq_back = qiskit.IBMQ
+        IBMQ = FakeProvider()
+        self.addCleanup(self._restore_ibmq)
+        if hasattr(providers, 'ibmq'):
+            self.prov_backup = providers.ibmq
+        else:
+            self.prov_backup = None
+        providers.ibmq = MagicMock()
+
+    @patch('qiskit.tools.monitor.overview.get_unique_backends',
+           return_value=[FakeVigo()])
+    def test_backend_overview(self, _):
+        """Test backend_overview"""
         with patch('sys.stdout', new=StringIO()) as fake_stdout:
             backend_overview()
         stdout = fake_stdout.getvalue()
@@ -39,18 +77,14 @@ class TestBackendOverview(QiskitTestCase):
         self.assertIn('Avg. T1:', stdout)
         self.assertIn('Num. Qubits:', stdout)
 
-    @online_test
-    def test_backend_monitor(self, qe_token, qe_url):
+    @patch('qiskit.tools.monitor.overview.get_unique_backends',
+           return_value=[FakeVigo()])
+    def test_backend_monitor(self, _):
         """Test backend_monitor"""
-        from qiskit import IBMQ  # pylint: disable: import-error
-        IBMQ.enable_account(qe_token, qe_url)
-        self.addCleanup(IBMQ.disable_account)
-
-        for provider in IBMQ.providers():
-            for back in provider.backends():
-                if not back.configuration().simulator:
-                    backend = back
-                    break
+        for back in [FakeVigo()]:
+            if not back.configuration().simulator:
+                backend = back
+                break
         with patch('sys.stdout', new=StringIO()) as fake_stdout:
             backend_monitor(backend)
 
