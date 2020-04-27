@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    New :class:`qiskit.extensions.HamiltonianGate` and :meth:`qiskit.circuit.QuantumCircuit.hamiltonian()` methods are
+    New :class:`qiskit.extensions.HamiltonianGate` and 
+    :meth:`qiskit.circuit.QuantumCircuit.hamiltonian()` methods are
     introduced, representing Hamiltonian evolution of the circuit
     wavefunction by a user-specified Hermitian Operator and evolution time.
     The evolution time can be a :class:`~qiskit.circuit.Parameter`, allowing the creation of
