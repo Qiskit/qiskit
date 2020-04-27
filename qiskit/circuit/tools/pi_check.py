@@ -17,7 +17,6 @@
 """
 
 import numpy as np
-
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
@@ -34,7 +33,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         inpt (float): Number to check.
         eps (float): EPS to check against.
         output (str): Options are 'text' (default),
-                      'latex', and 'mpl'.
+                      'latex', 'mpl', and 'qasm'.
         ndigits (int): Number of digits to print
                        if returning raw inpt.
 
@@ -47,7 +46,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     if isinstance(inpt, ParameterExpression):
         try:
             return pi_check(float(inpt), eps=eps, output=output, ndigits=ndigits)
-        except ValueError:
+        except (ValueError, TypeError):
             return str(inpt)
     elif isinstance(inpt, str):
         return inpt
@@ -56,14 +55,15 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         if abs(single_inpt) < 1e-14:
             return '0'
         val = single_inpt / np.pi
-        if output == 'text':
+        if output in ['text', 'qasm']:
             pi = 'pi'
         elif output == 'latex':
             pi = '\\pi'
         elif output == 'mpl':
             pi = '$\\pi$'
         else:
-            raise QiskitError('pi_check parameter output should be text, latex, or mpl')
+            raise QiskitError('pi_check parameter output should be text, '
+                              'latex, mpl, or qasm.')
         if abs(val) >= 1 - eps:
             if abs(abs(val) - abs(round(val))) < eps:
                 val = int(round(val))
@@ -121,6 +121,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             else:
                 if output == 'latex':
                     str_out = '\\frac{%s%s}{%s}' % (numer, pi, denom)
+                elif output == 'qasm':
+                    str_out = '{}*{}/{}'.format(numer, pi, denom)
                 else:
                     str_out = '{}{}/{}'.format(numer, pi, denom)
 
