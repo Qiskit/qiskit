@@ -50,7 +50,7 @@ class ApproximateTokenSwapper(Generic[_V]):
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(self, graph: nx.Graph, seed: Union[int, np.random.default_rng] = None) -> None:
+    def __init__(self, graph: nx.Graph, seed: Union[int, np.random.Generator] = None) -> None:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
@@ -63,7 +63,7 @@ class ApproximateTokenSwapper(Generic[_V]):
         nodelist = list(graph.nodes())
         self.node_map = {node: i for i, node in enumerate(nodelist)}
         self.shortest_paths = nx.floyd_warshall_numpy(graph, nodelist=nodelist)
-        if isinstance(seed, np.random.default_rng):
+        if isinstance(seed, np.random.Generator):
             self.seed = seed
         else:
             self.seed = np.random.default_rng(seed)

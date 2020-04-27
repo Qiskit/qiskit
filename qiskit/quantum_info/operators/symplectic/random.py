@@ -37,12 +37,12 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = default_rng(seed)
 
-    table = rng.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
     return PauliTable(table)
 
 
@@ -60,13 +60,13 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = default_rng(seed)
 
-    table = rng.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
-    phase = rng.randint(2, size=size).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    phase = rng.integers(2, size=size).astype(np.bool)
     return StabilizerTable(table, phase)
 
 
@@ -90,15 +90,15 @@ def random_clifford(num_qubits, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = default_rng(seed)
 
     had, perm = _sample_qmallows(num_qubits, rng)
 
-    gamma1 = np.diag(rng.randint(2, size=num_qubits, dtype=np.int8))
-    gamma2 = np.diag(rng.randint(2, size=num_qubits, dtype=np.int8))
+    gamma1 = np.diag(rng.integers(2, size=num_qubits, dtype=np.int8))
+    gamma2 = np.diag(rng.integers(2, size=num_qubits, dtype=np.int8))
     delta1 = np.eye(num_qubits, dtype=np.int8)
     delta2 = delta1.copy()
 
@@ -130,7 +130,7 @@ def random_clifford(num_qubits, seed=None):
     table = np.mod(np.matmul(table1, table), 2).astype(np.bool)
 
     # Generate random phases
-    phase = rng.randint(2, size=2 * num_qubits).astype(np.bool)
+    phase = rng.integers(2, size=2 * num_qubits).astype(np.bool)
     return Clifford(StabilizerTable(table, phase))
 
 
@@ -170,19 +170,19 @@ def _fill_tril(mat, rng, symmetric=False):
         return
 
     if dim <= 4:
-        mat[1, 0] = rng.randint(2, dtype=np.int8)
+        mat[1, 0] = rng.integers(2, dtype=np.int8)
         if symmetric:
             mat[0, 1] = mat[1, 0]
         if dim > 2:
-            mat[2, 0] = rng.randint(2, dtype=np.int8)
-            mat[2, 1] = rng.randint(2, dtype=np.int8)
+            mat[2, 0] = rng.integers(2, dtype=np.int8)
+            mat[2, 1] = rng.integers(2, dtype=np.int8)
             if symmetric:
                 mat[0, 2] = mat[2, 0]
                 mat[1, 2] = mat[2, 1]
         if dim > 3:
-            mat[3, 0] = rng.randint(2, dtype=np.int8)
-            mat[3, 1] = rng.randint(2, dtype=np.int8)
-            mat[3, 2] = rng.randint(2, dtype=np.int8)
+            mat[3, 0] = rng.integers(2, dtype=np.int8)
+            mat[3, 1] = rng.integers(2, dtype=np.int8)
+            mat[3, 2] = rng.integers(2, dtype=np.int8)
             if symmetric:
                 mat[0, 3] = mat[3, 0]
                 mat[1, 3] = mat[3, 1]
@@ -191,7 +191,7 @@ def _fill_tril(mat, rng, symmetric=False):
 
     # Use numpy indices for larger dimensions
     rows, cols = np.tril_indices(dim, -1)
-    vals = rng.randint(2, size=rows.size, dtype=np.int8)
+    vals = rng.integers(2, size=rows.size, dtype=np.int8)
     mat[(rows, cols)] = vals
     if symmetric:
         mat[(cols, rows)] = vals

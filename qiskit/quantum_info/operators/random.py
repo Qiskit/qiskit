@@ -44,7 +44,7 @@ def random_unitary(dims, seed=None):
     """
     if seed is None:
         random_state = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         random_state = seed
     else:
         random_state = default_rng(seed)
@@ -72,7 +72,7 @@ def random_hermitian(dims, traceless=False, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = default_rng(seed)

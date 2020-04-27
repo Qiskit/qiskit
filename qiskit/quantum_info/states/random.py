@@ -41,7 +41,7 @@ def random_statevector(dims, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = default_rng(seed)
@@ -125,7 +125,7 @@ def _ginibre_matrix(nrow, ncol, seed):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, default_rng):
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = default_rng(seed)
