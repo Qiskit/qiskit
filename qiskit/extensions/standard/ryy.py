@@ -42,12 +42,12 @@ class RYYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{YY}(\theta) = exp(-i.\frac{\theta}{2}.Y{\otimes}Y) =
+        R_{YY}(\theta) = exp(-i \th Y{\otimes}Y) =
             \begin{pmatrix}
                 \cos(\th)   & 0           & 0           & i\sin(\th) \\
                 0           & \cos(\th)   & -i\sin(\th) & 0 \\
                 0           & -i\sin(\th) & \cos(\th)   & 0 \\
-                i\sin(\th)  & 0           & 0           & \cos(\th)}
+                i\sin(\th)  & 0           & 0           & \cos(\th)
             \end{pmatrix}
 
     **Examples:**
