@@ -24,7 +24,7 @@ from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import (BlueprintCircuit, Permutation, IQPCircuit, XOR,
+from qiskit.circuit.library import (BlueprintCircuit, Permutation, IQP, XOR,
                                     InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
@@ -133,6 +133,7 @@ class TestPermutationLibrary(QiskitTestCase):
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
+        self.assertEqual(circuit, expected)
 
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
