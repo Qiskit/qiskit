@@ -418,6 +418,34 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
 
+    def test_negative_time_raises(self):
+        """Test that a negative time will raise an error."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.shift(-10)
+
+    def test_shift_float_time_raises(self):
+        """Test that a floating time will raise an error with shift."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.shift(0.1)
+
+    def test_insert_float_time_raises(self):
+        """Test that a floating time will raise an error with insert."""
+        sched = Schedule()
+        sched += Delay(1, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            sched.insert(10.1, sched)
+
+    def test_shift_unshift(self):
+        """Test shift and then unshifting of schedule"""
+        reference_sched = Schedule()
+        reference_sched += Delay(10, DriveChannel(0))
+        shifted_sched = reference_sched.shift(10).shift(-10)
+        self.assertEqual(shifted_sched, reference_sched)
+
 
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""

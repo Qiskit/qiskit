@@ -149,7 +149,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         instruction = SetFrequency(8.0, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
-            name='sf',
+            name='setf',
             ch='d0',
             t0=0,
             frequency=8.0
@@ -304,7 +304,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         """Test converted qobj from FrameChangeInstruction."""
         instruction = SetFrequency(8.0, DriveChannel(0))
 
-        qobj = PulseQobjInstruction(name='sf', ch='d0', t0=0, frequency=8.0)
+        qobj = PulseQobjInstruction(name='setf', ch='d0', t0=0, frequency=8.0)
         converted_instruction = self.converter(qobj)
 
         self.assertEqual(converted_instruction.start_time, 0)

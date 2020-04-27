@@ -75,6 +75,9 @@ class Schedule(ScheduleComponent):
                 # recreate as sequence starting at 0.
                 sched_pair = (0, sched_pair)
             insert_time, sched = sched_pair
+            if not isinstance(insert_time, int):
+                raise PulseError("Schedule start time was a non-integer. Please cast times to "
+                                 "integers.")
             # This will also update duration
             self._add_timeslots(insert_time, sched)
             _children.append(sched_pair)
@@ -224,7 +227,12 @@ class Schedule(ScheduleComponent):
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
             name: Name of the new schedule. Defaults to the name of self.
+
+        Raises:
+            PulseError: If start_time is not an integer.
         """
+        if not isinstance(start_time, int):
+            raise PulseError("Schedules can only be inserted at integer times.")
         if name is None:
             name = self.name
         new_sched = Schedule(name=name)
