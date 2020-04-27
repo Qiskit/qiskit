@@ -185,31 +185,6 @@ class LayoutTest(QiskitTestCase):
         with self.assertRaises(LayoutError):
             layout.swap(0, self.qr[0])
 
-    def test_layout_combine(self):
-        """combine_into_edge_map() method"""
-        layout = Layout()
-        layout.add(self.qr[0])
-        layout.add(self.qr[1])
-        another_layout = Layout()
-        another_layout.add(self.qr[1])
-        another_layout.add(self.qr[0])
-
-        edge_map = layout.combine_into_edge_map(another_layout)
-        self.assertDictEqual(edge_map, {self.qr[0]: self.qr[1], self.qr[1]: self.qr[0]})
-
-    def test_layout_combine_bigger(self):
-        """combine_into_edge_map() method with another_layout is bigger"""
-        layout = Layout()
-        layout.add(self.qr[0])
-        layout.add(self.qr[1])
-        another_layout = Layout()
-        another_layout.add(self.qr[1])
-        another_layout.add(self.qr[0])
-        another_layout.add(self.qr[2])
-
-        edge_map = layout.combine_into_edge_map(another_layout)
-        self.assertDictEqual(edge_map, {self.qr[0]: self.qr[1], self.qr[1]: self.qr[0]})
-
     def test_set_virtual_without_physical(self):
         """When adding a virtual without care in which physical is going"""
         layout = Layout()
@@ -217,19 +192,6 @@ class LayoutTest(QiskitTestCase):
         layout.add(self.qr[0])
 
         self.assertDictEqual(layout.get_virtual_bits(), {self.qr[0]: 1, self.qr[1]: 2})
-
-    def test_layout_combine_smaller(self):
-        """combine_into_edge_map() method with another_layout is smaller and raises an Error"""
-        layout = Layout()
-        layout.add(self.qr[0])
-        layout.add(self.qr[1])
-        layout.add(self.qr[2])
-        another_layout = Layout()
-        another_layout.add(self.qr[1])
-        another_layout.add(self.qr[0])
-
-        with self.assertRaises(LayoutError):
-            _ = layout.combine_into_edge_map(another_layout)
 
     def test_copy(self):
         """Test copy methods return equivalent layouts."""

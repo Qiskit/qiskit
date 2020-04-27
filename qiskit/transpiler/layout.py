@@ -20,6 +20,7 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.classicalregister import Clbit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
 
@@ -202,34 +203,29 @@ class Layout():
         self[left] = self[right]
         self[right] = temp
 
-    def combine_into_edge_map(self, another_layout):
-        """Combines self and another_layout into an "edge map".
+    def to_qubit_list(self):
+        """Return a list where physical qubits are positions and virtual qubits values.
 
-        For example::
-
-              self       another_layout  resulting edge map
-           qr_1 -> 0        0 <- q_2         qr_1 -> q_2
-           qr_2 -> 2        2 <- q_1         qr_2 -> q_1
-           qr_3 -> 3        3 <- q_0         qr_3 -> q_0
-
-        The edge map is used to compose dags via, for example, compose.
-
-        Args:
-            another_layout (Layout): The other layout to combine.
         Returns:
-            dict: A "edge map".
-        Raises:
-            LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
+            List: list of Qubits. Empty if no Qubits in layout.
         """
-        edge_map = dict()
+        qubits = [0] * len(self)
+        for p, v in self.get_physical_bits().items():
+            if isinstance(v, Qubit):
+                qubits[p] = v
+        return qubits
 
-        for virtual, physical in self.get_virtual_bits().items():
-            if physical not in another_layout._p2v:
-                raise LayoutError('The wire_map_from_layouts() method does not support when the'
-                                  ' other layout (another_layout) is smaller.')
-            edge_map[virtual] = another_layout[physical]
+    def to_clbit_list(self):
+        """Return a list where physical clbits are positions and virtual clbits values.
 
-        return edge_map
+        Returns:
+            List: list of Clbits. Empty if no Clbits in layout.
+        """
+        clbits = [0] * len(self)
+        for p, v in self.get_physical_bits().items():
+            if isinstance(v, Clbit):
+                clbits[p] = v
+        return clbits
 
     @staticmethod
     def generate_trivial_layout(*regs):
