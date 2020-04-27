@@ -58,10 +58,6 @@ class ParameterTable(MutableMapping):
         Returns:
             set: A set of all the keys in the parameter table
         """
-        if len(self._keys) != len(self._table):
-            self._keys = set(self._table)
-        if len(self._names) != len(self._keys):
-            self._names = set(x.name for x in self._table)
         return self._keys
 
     def get_names(self):
@@ -70,10 +66,6 @@ class ParameterTable(MutableMapping):
         Returns:
             set: A set of all the names in the parameter table
         """
-        if len(self._keys) != len(self._table):
-            self._keys = set(self._table)
-        if len(self._names) != len(self._keys):
-            self._names = set(x.name for x in self._table)
         return self._names
 
     def __delitem__(self, key):
