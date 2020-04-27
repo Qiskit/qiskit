@@ -76,7 +76,7 @@ class RYRZ(TwoLocal):
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                or 'sca'), a list of integer-pairs specifying the indices of qubits
+                , 'circular' or 'sca'), a list of integer-pairs specifying the indices of qubits
                 entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
