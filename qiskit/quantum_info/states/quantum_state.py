@@ -126,7 +126,7 @@ class QuantumState(ABC):
 
     def seed(self, value=None):
         """Set the seed for the quantum state RNG."""
-        self._rng.seed(value)
+        self._rng = np.random.default_rng(value)
 
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):

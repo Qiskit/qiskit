@@ -43,7 +43,7 @@ def random_unitary(dims, seed=None):
         Operator: a unitary operator.
     """
     if seed is None:
-        random_state = np.random
+        random_state = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         random_state = seed
     else:
@@ -71,7 +71,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         Operator: a Hermitian operator.
     """
     if seed is None:
-        rng = np.random
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:

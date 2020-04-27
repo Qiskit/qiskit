@@ -40,7 +40,7 @@ def random_statevector(dims, seed=None):
         Statevector: the random statevector.
     """
     if seed is None:
-        rng = np.random
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -49,11 +49,11 @@ def random_statevector(dims, seed=None):
     dim = np.product(dims)
 
     # Random array over interval (0, 1]
-    x = rng.rand(dim)
+    x = rng.random(dim)
     x += x == 0
     x = -np.log(x)
     sumx = sum(x)
-    phases = rng.rand(dim) * 2.0 * np.pi
+    phases = rng.random(dim) * 2.0 * np.pi
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
 
 
@@ -124,7 +124,7 @@ def _ginibre_matrix(nrow, ncol, seed):
             entry is sampled from the normal distribution.
     """
     if seed is None:
-        rng = np.random
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:

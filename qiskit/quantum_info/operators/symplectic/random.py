@@ -36,7 +36,7 @@ def random_pauli_table(num_qubits, size=1, seed=None):
         PauliTable: a random PauliTable.
     """
     if seed is None:
-        rng = np.random
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -59,7 +59,7 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
         PauliTable: a random StabilizerTable.
     """
     if seed is None:
-        rng = np.random
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -89,7 +89,7 @@ def random_clifford(num_qubits, seed=None):
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
     if seed is None:
-        rng = np.random
+        rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -138,7 +138,7 @@ def _sample_qmallows(n, rng=None):
     """Sample from the quantum Mallows distribution"""
 
     if rng is None:
-        rng = np.random
+        rng = np.random.default_rng()
 
     # Hadmard layer
     had = np.zeros(n, dtype=np.bool)
