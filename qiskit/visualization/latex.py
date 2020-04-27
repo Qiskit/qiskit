@@ -27,7 +27,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
-from .tools.pi_check import pi_check
+from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
 
 
