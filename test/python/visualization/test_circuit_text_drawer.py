@@ -1188,6 +1188,28 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
 
+    def test_text_conditional_1_cregbundle(self):
+        """ Conditional drawing with 1-bit-length regs and cregbundle."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[1];
+        creg c1[1];
+        if(c0==1) x q[0];
+        if(c1==1) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0: 0 1/╡ = 1 ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1: 0 1/═══════╡ = 1 ╞",
+                              "               └─────┘"])
+
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
     def test_text_conditional_1(self):
         """ Conditional drawing with 1-bit-length regs."""
         qasm_string = """
@@ -1209,6 +1231,27 @@ class TestTextConditional(QiskitTestCase):
 
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_2_cregbundle(self):
+        """ Conditional drawing with 2-bit-length regs with cregbundle"""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[2];
+        creg c1[2];
+        if(c0==2) x q[0];
+        if(c1==2) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0: 0 2/╡ = 2 ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1: 0 2/═══════╡ = 2 ╞",
+                              "               └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_conditional_2(self):
         """ Conditional drawing with 2-bit-length regs."""

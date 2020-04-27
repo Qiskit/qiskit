@@ -1043,6 +1043,7 @@ class Layer:
             for bit in cregs:
                 if previous_creg == bit.register:
                     continue
+                previous_creg = bit.register
                 self.cregs.append(bit.register)
         else:
             self.cregs = cregs
@@ -1183,8 +1184,11 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        clbit = [bit for bit in self.cregs if bit.register == creg]
-        self._set_multibox(label, clbits=clbit, top_connect=top_connect)
+        if self.cregbundle:
+            self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
+        else:
+            clbit = [bit for bit in self.cregs if bit.register == creg]
+            self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, top_connect=None, bot_connect=None,
                         conditional=False, controlled_edge=None):
