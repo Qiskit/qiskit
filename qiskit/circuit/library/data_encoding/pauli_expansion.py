@@ -55,7 +55,7 @@ class PauliExpansion(NLocal):
 
     References:
         [1]: Havlicek et al. (2018), Supervised learning with quantum enhanced feature spaces.
-            https://arxiv.org/abs/1804.11326.
+           `arXiv:1804.11326 <https://arxiv.org/abs/1804.11326>`_
     """
 
     @deprecate_arguments({'depth': 'reps'})
