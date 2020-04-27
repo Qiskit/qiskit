@@ -272,31 +272,30 @@ class DAGCircuit:
         """
         return [] if cond is None else list(cond[0])
 
-    def _add_op_node(self, op, qargs, cargs, condition=None):
+    def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
-            condition (tuple or None): optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: The node for the new op on the DAG
         """
         # Add a new operation node to the graph
         new_node = DAGNode(type="op", op=op, name=op.name, qargs=qargs,
-                           cargs=cargs, condition=condition)
+                           cargs=cargs)
         self._add_multi_graph_node(new_node)
         return new_node
 
-    def apply_operation_back(self, op, qargs=None, cargs=None):
+    def apply_operation_back(self, op, qargs=None, cargs=None, condition=None):
         """Apply an operation to the output of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-
+            condition (tuple or None): DEPRACTED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
@@ -304,6 +303,11 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                          DeprecationWarning)
+        op.condition = condition if op.condition is None else op.condition
+
         qargs = qargs or []
         cargs = cargs or []
 
@@ -314,7 +318,7 @@ class DAGCircuit:
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        node = self._add_op_node(op, qargs, cargs, op.condition)
+        node = self._add_op_node(op, qargs, cargs)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -334,27 +338,32 @@ class DAGCircuit:
 
         return node
 
-    def apply_operation_front(self, op, qargs, cargs):
+    def apply_operation_front(self, op, qargs, cargs, condition=None):
         """Apply an operation to the input of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-
+            condition (tuple or None): DEPRACTED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                          DeprecationWarning)
+
+        op.condition = condition if op.condition is None else op.condition
         all_cbits = self._bits_in_condition(op.condition)
         all_cbits.extend(cargs)
 
         self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
-        node = self._add_op_node(op, qargs, cargs, op.condition)
+        node = self._add_op_node(op, qargs, cargs)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
@@ -548,7 +557,8 @@ class DAGCircuit:
                 self._check_condition(nd.name, condition)
                 m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
                 m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
-                self.apply_operation_back(nd.op, m_qargs, m_cargs)
+                nd.op.condition = condition
+                self.apply_operation_back(nd.op.copy(), m_qargs, m_cargs)
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
 
@@ -799,7 +809,7 @@ class DAGCircuit:
                                sorted_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x),
                                sorted_node.cargs))
-            node = self._add_op_node(sorted_node.op, m_qargs, m_cargs, condition)
+            node = self._add_op_node(sorted_node.op, m_qargs, m_cargs)
             # Add edges from predecessor nodes to new node
             # and update predecessor nodes that change
             all_cbits = self._bits_in_condition(condition)
