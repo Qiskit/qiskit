@@ -72,7 +72,7 @@ class RYRZ(TwoLocal):
             entanglement_blocks: The gates used in the entanglement layer. Can be specified via the
                 name of a gate (e.g. ``'cx'``), the gate type itself (e.g. ``CXGate``) or a
                 ``QuantumCircuit`` with two qubits.
-                If only one gate is provided, the gate same gate is applied to each qubit.
+                If only one gate is provided, the same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
