@@ -93,12 +93,12 @@ class PauliGraph:
             # post-processing to grouped_paulis
             max_color = np.max(color[nodes])  # the color used is 0, 1, 2, ..., max_color
             temp_gp = []  # list of indices of grouped paulis
-            for c in range(max_color+1):  # max_color is included
+            for c in range(max_color + 1):  # max_color is included
                 temp_gp.append([i for i, icolor in enumerate(color) if icolor == c])
 
             # create _grouped_paulis as dictated in the operator.py
             gp = []
-            for c in range(max_color+1):  # max_color is included
+            for c in range(max_color + 1):  # max_color is included
                 # add all paulis
                 gp.append([[self.weights[i], self.nodes[i]] for i in temp_gp[c]])
 

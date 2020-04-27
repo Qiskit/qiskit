@@ -29,7 +29,7 @@ def _post_format_conversion(grouped_paulis):
     for _, tpb in enumerate(grouped_paulis):
         curr_basis = tpb[0][1]
         curr_paulis = tpb[1:]
-        basis.append((curr_basis, list(range(total_idx, total_idx+len(curr_paulis)))))
+        basis.append((curr_basis, list(range(total_idx, total_idx + len(curr_paulis)))))
         paulis.extend(curr_paulis)
         total_idx += len(curr_paulis)
 
@@ -143,10 +143,10 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                         j = 0
                         for __i in range(n):
                             # p_2 is identity, p_1 is identity, p_1 and p_2 has same basis
-                            if not ((not p_2[1].z[__i] and not p_2[1].x[__i]) or
-                                    (not p_1[1].z[__i] and not p_1[1].x[__i]) or
-                                    (p_2[1].z[__i] == p_1[1].z[__i] and
-                                     p_2[1].x[__i] == p_1[1].x[__i])):
+                            if not ((not p_2[1].z[__i] and not p_2[1].x[__i])
+                                    or (not p_1[1].z[__i] and not p_1[1].x[__i])
+                                    or (p_2[1].z[__i] == p_1[1].z[__i]
+                                        and p_2[1].x[__i] == p_1[1].x[__i])):
                                 break
 
                             # update master, if p_2 is not identity

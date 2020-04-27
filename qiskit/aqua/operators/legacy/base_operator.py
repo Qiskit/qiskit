@@ -17,7 +17,7 @@
 from abc import ABC, abstractmethod
 
 
-class BaseOperator(ABC):
+class LegacyBaseOperator(ABC):
     """Operators relevant for quantum applications."""
 
     @abstractmethod
@@ -85,6 +85,11 @@ class BaseOperator(ABC):
     @abstractmethod
     def __mul__(self, other):
         """ Overload * """
+        raise NotImplementedError
+
+    @abstractmethod
+    def to_opflow(self):
+        """ Convert to new Operator format. """
         raise NotImplementedError
 
     @abstractmethod

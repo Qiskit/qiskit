@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,15 +21,14 @@ import logging
 import numpy as np
 from scipy import sparse as scisparse
 from scipy import linalg as scila
-from qiskit import QuantumCircuit  # pylint: disable=unused-import
 
 from qiskit.aqua import AquaError
-from .base_operator import BaseOperator
+from .base_operator import LegacyBaseOperator
 
 logger = logging.getLogger(__name__)
 
 
-class MatrixOperator(BaseOperator):
+class MatrixOperator(LegacyBaseOperator):
     """
     Operators relevant for quantum applications
 
@@ -62,6 +61,12 @@ class MatrixOperator(BaseOperator):
             matrix = matrix if scisparse.isspmatrix_csr(matrix) else matrix.to_csr(copy=True)
         self._matrix = matrix
         self._atol = atol
+
+    def to_opflow(self):
+        """ to op flow """
+        # pylint: disable=import-outside-toplevel
+        from qiskit.aqua.operators import PrimitiveOp
+        return PrimitiveOp(self.dense_matrix)
 
     @property
     def atol(self):
@@ -356,16 +361,16 @@ class MatrixOperator(BaseOperator):
 
             if len(pauli_list) == 1:
                 approx_matrix_slice = scila.expm(
-                    -1.j * evo_time / num_time_slices * pauli_list[0][0] *
-                    pauli_list[0][1].to_spmatrix().tocsc()
+                    -1.j * evo_time / num_time_slices * pauli_list[0][0]
+                    * pauli_list[0][1].to_spmatrix().tocsc()
                 )
             else:
                 if expansion_mode == 'trotter':
                     approx_matrix_slice = reduce(
                         lambda x, y: x @ y,
                         [
-                            scila.expm(-1.j * evo_time /
-                                       num_time_slices * c * p.to_spmatrix().tocsc())
+                            scila.expm(-1.j * evo_time
+                                       / num_time_slices * c * p.to_spmatrix().tocsc())
                             for c, p in pauli_list
                         ]
                     )

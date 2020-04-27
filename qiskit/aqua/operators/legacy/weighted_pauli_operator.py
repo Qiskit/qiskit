@@ -28,16 +28,17 @@ from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
 from qiskit.aqua import AquaError, aqua_globals
-from .base_operator import BaseOperator
+from .base_operator import LegacyBaseOperator
 from .common import (measure_pauli_z, covariance, pauli_measurement,
                      kernel_F2, suzuki_expansion_slice_pauli_list,
                      check_commutativity, evolution_instruction)
 
-
 logger = logging.getLogger(__name__)
 
 
-class WeightedPauliOperator(BaseOperator):
+# pylint: disable=invalid-name
+
+class WeightedPauliOperator(LegacyBaseOperator):
     """ Weighted Pauli Operator """
 
     def __init__(self, paulis, basis=None, z2_symmetries=None, atol=1e-12, name=None):
@@ -90,6 +91,20 @@ class WeightedPauliOperator(BaseOperator):
         if weights is None:
             weights = [1.0] * len(paulis)
         return cls(paulis=[[w, p] for w, p in zip(weights, paulis)], name=name)
+
+    # pylint: disable=arguments-differ
+    def to_opflow(self, reverse_endianness=False):
+        """ to op flow """
+        # pylint: disable=import-outside-toplevel
+        from qiskit.aqua.operators import PrimitiveOp
+
+        pauli_ops = []
+        for [w, p] in self.paulis:
+            pauli = Pauli.from_label(str(p)[::-1]) if reverse_endianness else p
+            # Adding the imaginary is necessary to handle the imaginary coefficients in UCCSD.
+            # TODO fix these or add support for them in Terra.
+            pauli_ops += [PrimitiveOp(pauli, coeff=np.real(w) + np.imag(w))]
+        return sum(pauli_ops)
 
     @property
     def paulis(self):
@@ -1094,10 +1109,10 @@ class Z2Symmetries:
                             and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] in (0, 1)):
                         Z_or_I = False
                 if Z_or_I:
-                    if ((stacked_symmetries[row, col] == 1 and
-                         stacked_symmetries[row, col + symm_shape[1] // 2] == 0) or
-                            (stacked_symmetries[row, col] == 1 and
-                             stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
+                    if ((stacked_symmetries[row, col] == 1
+                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 0)
+                            or (stacked_symmetries[row, col] == 1
+                                and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
                         sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
                                                np.zeros(symm_shape[1] // 2)))
                         sq_paulis[row].z[col] = False
@@ -1108,14 +1123,14 @@ class Z2Symmetries:
                 # case symmetries other than one at (row) have X or I on col qubit
                 X_or_I = True
                 for symm_idx in range(symm_shape[0] - 1):
-                    if not (stacked_symm_del[symm_idx, col] in (0, 1) and
-                            stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0):
+                    if not (stacked_symm_del[symm_idx, col] in (0, 1)
+                            and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0):
                         X_or_I = False
                 if X_or_I:
-                    if ((stacked_symmetries[row, col] == 0 and
-                         stacked_symmetries[row, col + symm_shape[1] // 2] == 1) or
-                            (stacked_symmetries[row, col] == 1 and
-                             stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
+                    if ((stacked_symmetries[row, col] == 0
+                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)
+                            or (stacked_symmetries[row, col] == 1
+                                and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
                         sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
                                                np.zeros(symm_shape[1] // 2)))
                         sq_paulis[row].z[col] = True
@@ -1126,16 +1141,16 @@ class Z2Symmetries:
                 # case symmetries other than one at (row)  have Y or I on col qubit
                 Y_or_I = True
                 for symm_idx in range(symm_shape[0] - 1):
-                    if not ((stacked_symm_del[symm_idx, col] == 1 and
-                             stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 1)
-                            or (stacked_symm_del[symm_idx, col] == 0 and
-                                stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0)):
+                    if not ((stacked_symm_del[symm_idx, col] == 1
+                             and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 1)
+                            or (stacked_symm_del[symm_idx, col] == 0
+                                and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0)):
                         Y_or_I = False
                 if Y_or_I:
-                    if ((stacked_symmetries[row, col] == 0 and
-                         stacked_symmetries[row, col + symm_shape[1] // 2] == 1) or
-                            (stacked_symmetries[row, col] == 1 and
-                             stacked_symmetries[row, col + symm_shape[1] // 2] == 0)):
+                    if ((stacked_symmetries[row, col] == 0
+                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1)
+                            or (stacked_symmetries[row, col] == 1
+                                and stacked_symmetries[row, col + symm_shape[1] // 2] == 0)):
                         sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
                                                np.zeros(symm_shape[1] // 2)))
                         sq_paulis[row].z[col] = True
