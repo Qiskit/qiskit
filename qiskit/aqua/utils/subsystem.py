@@ -100,7 +100,7 @@ def get_subsystems_counts(complete_system_counts, post_select_index=None, post_s
         count = complete_system_counts[mixed_measurement]
         subsystem_measurements = mixed_measurement.split()
         for k, d_l in zip(subsystem_measurements, subsystems_counts):
-            if (post_select_index is None or
-                    subsystem_measurements[post_select_index] == post_select_flag):
+            if (post_select_index is None
+                    or subsystem_measurements[post_select_index] == post_select_flag):
                 d_l[k] += count
     return [dict(d) for d in subsystems_counts]
