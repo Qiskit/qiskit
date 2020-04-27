@@ -151,7 +151,7 @@ def _sample_qmallows(n, rng=None):
         m = n - i
         eps = 4 ** (-m)
         r = rng.uniform(0, 1)
-        index = int(np.ceil(np.log2(1 + (1 - r) * eps)))
+        index = -int(np.ceil(np.log2(r + (1 - r) * eps)))
         had[i] = index < m
         if index < m:
             k = index
