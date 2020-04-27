@@ -20,7 +20,12 @@ from shutil import get_terminal_size
 import sys
 from numpy import ndarray
 
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.circuit import Reset as ResetInstruction
+from qiskit.circuit import Measure as MeasureInstruction
+from qiskit.extensions import IGate, UnitaryGate, HamiltonianGate, RZZGate, SwapGate, Snapshot
+from qiskit.extensions import Barrier as BarrierInstruction
+from qiskit.extensions.quantum_initializer.initializer import Initialize
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
@@ -716,20 +721,29 @@ class TextDrawing():
         return ret
 
     @staticmethod
+    def special_label(instruction):
+        """Some instructions have special labels"""
+        labels = {IGate: 'I',
+                  Initialize: 'initialize',
+                  UnitaryGate: 'unitary',
+                  HamiltonianGate: 'Hamiltonian'}
+        instruction_type = type(instruction)
+        if instruction_type in {Gate, Instruction}:
+            return instruction.name
+        return labels.get(instruction_type, None)
+
+    @staticmethod
     def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
         if getattr(instruction.op, 'label', None) is not None:
             return instruction.op.label
-        if controlled:
-            label = instruction.op.base_gate.name
-        else:
-            label = instruction.name
-        params = TextDrawing.params_for_label(instruction)
 
-        # generate correct label for the box
-        if label == 'id':
-            label = 'i'
-        label = label.capitalize()
+        if controlled:
+            label = TextDrawing.special_label(instruction.op.base_gate) or \
+                    instruction.op.base_gate.name.upper()
+        else:
+            label = TextDrawing.special_label(instruction.op) or instruction.name.upper()
+        params = TextDrawing.params_for_label(instruction)
 
         if params:
             label += "(%s)" % ','.join(params)
@@ -882,12 +896,12 @@ class TextDrawing():
             layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
                                 conditional=conditional)
 
-        elif instruction.name == 'measure':
+        elif isinstance(instruction.op, MeasureInstruction):
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())
 
-        elif instruction.name in ['barrier', 'snapshot', 'save', 'load', 'noise']:
+        elif isinstance(instruction.op, (BarrierInstruction, Snapshot)):
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label
@@ -895,15 +909,16 @@ class TextDrawing():
             for qubit in instruction.qargs:
                 layer.set_qubit(qubit, Barrier())
 
-        elif instruction.name == 'swap':
+        elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif instruction.name == 'reset':
+        elif isinstance(instruction.op, ResetInstruction):
+            # reset
             layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
-        elif instruction.name == 'rzz':
+        elif isinstance(instruction.op, RZZGate):
             # rzz
             connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
