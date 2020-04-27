@@ -45,7 +45,7 @@ class PersistentValue(Command):
         if abs(value) > 1:
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
-        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.Constant "
                       "instead.", DeprecationWarning)
 
         self._value = complex(value)

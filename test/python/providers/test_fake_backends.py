@@ -45,10 +45,11 @@ class TestFakeBackends(QiskitTestCase):
         cls.circuit.x(1)
         cls.circuit.measure_all()
 
-    @combine(backend=FAKE_PROVIDER.backends(),
+    @combine(backend=[be for be in FAKE_PROVIDER.backends()
+                      if be.configuration().num_qubits > 1],
              optimization_level=[0, 1, 2, 3])
     def test_circuit_on_fake_backend(self, backend, optimization_level):
-        if not HAS_AER and backend.configuration().n_qubits > 20:
+        if not HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
                 'Unable to run fake_backend %s without qiskit-aer' %
                 backend.configuration().backend_name)
@@ -67,3 +68,15 @@ class TestFakeBackends(QiskitTestCase):
             self.assertIsInstance(backend.properties().to_dict(), dict)
         else:
             self.assertTrue(backend.configuration().simulator)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_to_dict_configuration(self, backend):
+        configuration = backend.configuration()
+        self.assertIsInstance(configuration.to_dict(), dict)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_defaults_to_dict(self, backend):
+        if hasattr(backend, 'defaults'):
+            self.assertIsInstance(backend.defaults().to_dict(), dict)
+        else:
+            self.skipTest('Backend %s does not have defaults' % backend)

@@ -14,7 +14,7 @@
 
 # pylint: disable=arguments-differ,method-hidden
 
-"""Quick program to test the qi tools modules."""
+""" UnitaryGate tests """
 
 import json
 import numpy
@@ -26,6 +26,8 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.operators import Operator
 from qiskit.transpiler.passes import CXCancellation
 
 
@@ -267,3 +269,9 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "custom_gate q0[0],q0[1];\n" \
                         "custom_gate q0[1],q0[0];\n"
         self.assertEqual(expected_qasm, qc.qasm())
+
+    def test_unitary_decomposition(self):
+        """Test decomposition for unitary gates over 2 qubits."""
+        qc = QuantumCircuit(3)
+        qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
+        self.assertTrue(Operator(qc).equiv(Operator(qc.decompose())))

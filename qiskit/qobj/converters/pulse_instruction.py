@@ -37,7 +37,7 @@ class ParametricPulseShapes(Enum):
     gaussian = commands.Gaussian
     gaussian_square = commands.GaussianSquare
     drag = commands.Drag
-    constant = commands.ConstantPulse
+    constant = commands.Constant
 
 
 class ConversionMethodBinder:
@@ -266,7 +266,7 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': 'sf',
+            'name': 'setf',
             't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
             'frequency': instruction.frequency
@@ -301,7 +301,7 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.ConstantPulse "
+        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.Constant "
                       "instead.", DeprecationWarning)
         command_dict = {
             'name': 'pv',
@@ -521,7 +521,7 @@ class QobjToInstructionConverter:
 
         return instructions.ShiftPhase(phase, channel) << t0
 
-    @bind_name('sf')
+    @bind_name('setf')
     def convert_set_frequency(self, instruction):
         """Return converted `SetFrequencyInstruction`.
 
