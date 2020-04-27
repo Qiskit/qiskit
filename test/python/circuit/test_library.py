@@ -114,6 +114,25 @@ class TestBlueprintCircuit(QiskitTestCase):
 
 
 @ddt
+class TestPermutationLibrary(QiskitTestCase):
+    """Test library of boolean logic quantum circuits."""
+
+    def test_permutation(self):
+        """Test permutation circuit."""
+        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
+        expected = QuantumCircuit(4)
+        expected.swap(0, 1)
+        expected.swap(2, 3)
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
+
+    def test_permutation_bad(self):
+        """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
+        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+@ddt
 class TestBooleanLogicLibrary(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
 
@@ -143,24 +162,6 @@ class TestBooleanLogicLibrary(QiskitTestCase):
             expectations[entry] = 1 / 2 ** boolean_circuit.num_variable_qubits
 
         np.testing.assert_array_almost_equal(probabilities, expectations)
-
-    def test_permutation(self):
-        """Test permutation circuit.
-
-        TODO add a test using assertBooleanFunctionIsCorrect
-        """
-        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
-        expected = QuantumCircuit(4)
-        expected.swap(0, 1)
-        expected.swap(2, 3)
-        self.assertEqual(circuit, expected)
-
-    def test_permutation_bad(self):
-        """Test that [0,..,n-1] permutation is required (no -1 for last element).
-
-        TODO add a test using assertBooleanFunctionIsCorrect
-        """
-        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
     def test_xor(self):
         """Test xor circuit.
