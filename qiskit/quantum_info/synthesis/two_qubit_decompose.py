@@ -167,8 +167,8 @@ class TwoQubitWeylDecomposition:
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
         for i in range(100):  # FIXME: this randomized algorithm is horrendous
-            state = np.random.RandomState(i)
-            M2real = state.randn()*M2.real + state.randn()*M2.imag
+            state = np.random.default_rng(i)
+            M2real = state.normal()*M2.real + state.normal()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):

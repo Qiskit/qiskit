@@ -45,7 +45,7 @@ class QuantumState(ABC):
         self._num_qubits = None  # number of qubit subsystems if N-qubit state
         self._set_dims(dims)
         # RNG for measure functions
-        self._rng = np.random.RandomState()
+        self._rng = np.random.default_rng()
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.dims() == other.dims()

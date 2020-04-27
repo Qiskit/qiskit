@@ -51,7 +51,7 @@ def weyl_coordinates(U):
     # P ∈ SO(4), D is diagonal with unit-magnitude elements.
     # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
     for _ in range(3):  # FIXME: this randomized algorithm is horrendous
-        M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
+        M2real = np.random.normal()*M2.real + np.random.normal()*M2.imag
         _, P = la.eigh(M2real)
         D = P.T.dot(M2).dot(P).diagonal()
         if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):

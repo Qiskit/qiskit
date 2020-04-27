@@ -62,7 +62,7 @@ class QuantumVolume(QuantumCircuit):
 
         depth = depth or num_qubits  # how many layers of SU(4)
         width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
-        rng = np.random.RandomState(seed)
+        rng = np.random.default_rng(seed)
 
         unitary_seeds = rng.randint(low=1, high=1000, size=[depth, width])
 

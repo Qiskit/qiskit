@@ -50,12 +50,12 @@ class ApproximateTokenSwapper(Generic[_V]):
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(self, graph: nx.Graph, seed: Union[int, np.random.RandomState] = None) -> None:
+    def __init__(self, graph: nx.Graph, seed: Union[int, np.random.default_rng] = None) -> None:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
             graph (nx.Graph): Undirected graph represented a coupling map.
-            seed (Union[int, np.random.RandomState]): Seed to use for random trials.
+            seed (Union[int, np.random.default_rng]): Seed to use for random trials.
         """
         self.graph = graph
         # We need to fix the mapping from nodes in graph to nodes in shortest_paths.
@@ -63,10 +63,10 @@ class ApproximateTokenSwapper(Generic[_V]):
         nodelist = list(graph.nodes())
         self.node_map = {node: i for i, node in enumerate(nodelist)}
         self.shortest_paths = nx.floyd_warshall_numpy(graph, nodelist=nodelist)
-        if isinstance(seed, np.random.RandomState):
+        if isinstance(seed, np.random.default_rng):
             self.seed = seed
         else:
-            self.seed = np.random.RandomState(seed)
+            self.seed = np.random.default_rng(seed)
 
     def distance(self, vertex0: _V, vertex1: _V) -> int:
         """Compute the distance between two nodes in `graph`."""

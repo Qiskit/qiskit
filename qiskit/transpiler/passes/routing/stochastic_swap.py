@@ -96,8 +96,8 @@ class StochasticSwap(TransformationPass):
         self.qregs = dag.qregs
         if self.seed is None:
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
-        self.rng = np.random.RandomState(self.seed)
-        logger.debug("StochasticSwap RandomState seeded with seed=%s", self.seed)
+        self.rng = np.random.default_rng(self.seed)
+        logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag

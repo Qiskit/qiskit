@@ -18,7 +18,7 @@ Random state generation.
 
 import warnings
 import numpy as np
-from numpy.random import RandomState
+from numpy.random import default_rng
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.random import random_unitary
@@ -33,7 +33,7 @@ def random_statevector(dims, seed=None):
 
     Args:
         dims (int or tuple): the dimensions of the state.
-        seed (int or RandomState): Optional. Set a fixed seed or
+        seed (int or default_rng): Optional. Set a fixed seed or
                                    generator for RNG.
 
     Returns:
@@ -41,10 +41,10 @@ def random_statevector(dims, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, RandomState):
+    elif isinstance(seed, default_rng):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     dim = np.product(dims)
 
@@ -63,7 +63,7 @@ def random_state(dim, seed=None):
 
     Args:
         dim (int): the dim of the state space
-        seed (int or RandomState): Optional. Set a fixed seed or
+        seed (int or default_rng): Optional. Set a fixed seed or
                                    generator for RNG.
 
     Returns:
@@ -88,7 +88,7 @@ def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
         method (string): Optional. The method to use.
             'Hilbert-Schmidt': (Default) sample from the Hilbert-Schmidt metric.
             'Bures': sample from the Bures metric.
-        seed (int or RandomState): Optional. Set a fixed seed or
+        seed (int or default_rng): Optional. Set a fixed seed or
                                    generator for RNG.
 
     Returns:
@@ -117,7 +117,7 @@ def _ginibre_matrix(nrow, ncol, seed):
     Args:
         nrow (int): number of rows in output matrix.
         ncol (int): number of columns in output matrix.
-        seed(int or RandomState): RandomState for rng.
+        seed(int or default_rng): default_rng for rng.
 
     Returns:
         ndarray: A complex rectangular matrix where each real and imaginary
@@ -125,10 +125,10 @@ def _ginibre_matrix(nrow, ncol, seed):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, RandomState):
+    elif isinstance(seed, default_rng):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     ginibre = rng.normal(
         size=(nrow, ncol)) + rng.normal(size=(nrow, ncol)) * 1j
@@ -143,7 +143,7 @@ def _random_density_hs(dim, rank, seed):
         dim (int): the dimensions of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
-        seed (int or RandomState): RandomState for rng.
+        seed (int or default_rng): default_rng for rng.
 
     Returns:
         ndarray: rho (N,N)  a density matrix.
@@ -160,7 +160,7 @@ def _random_density_bures(dim, rank, seed):
         dim (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
-        seed (int or RandomState): RandomState for rng.
+        seed (int or default_rng): default_rng for rng.
 
     Returns:
         ndarray: rho (N,N) a density matrix.

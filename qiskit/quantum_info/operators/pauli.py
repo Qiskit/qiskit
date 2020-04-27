@@ -472,7 +472,7 @@ class Pauli:
         Returns:
             Pauli: the random pauli
         """
-        rng = np.random.RandomState(seed)
+        rng = np.random.default_rng(seed)
         z = rng.randint(2, size=num_qubits).astype(np.bool)
         x = rng.randint(2, size=num_qubits).astype(np.bool)
         return cls(z, x)

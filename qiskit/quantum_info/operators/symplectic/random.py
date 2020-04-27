@@ -16,7 +16,7 @@ Random symplectic operator functions
 """
 
 import numpy as np
-from numpy.random import RandomState
+from numpy.random import default_rng
 
 from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
@@ -29,7 +29,7 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or RandomState): Optional. Set a fixed seed or
+        seed (int or default_rng): Optional. Set a fixed seed or
                                    generator for RNG.
 
     Returns:
@@ -37,10 +37,10 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, RandomState):
+    elif isinstance(seed, default_rng):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     table = rng.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
     return PauliTable(table)
@@ -52,7 +52,7 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or RandomState): Optional. Set a fixed seed or
+        seed (int or default_rng): Optional. Set a fixed seed or
                                    generator for RNG.
 
     Returns:
@@ -60,10 +60,10 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, RandomState):
+    elif isinstance(seed, default_rng):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     table = rng.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
     phase = rng.randint(2, size=size).astype(np.bool)
@@ -77,7 +77,7 @@ def random_clifford(num_qubits, seed=None):
 
     Args:
         num_qubits (int): the number of qubits for the Clifford
-        seed (int or RandomState): Optional. Set a fixed seed or
+        seed (int or default_rng): Optional. Set a fixed seed or
                                    generator for RNG.
 
     Returns:
@@ -90,10 +90,10 @@ def random_clifford(num_qubits, seed=None):
     """
     if seed is None:
         rng = np.random
-    elif isinstance(seed, RandomState):
+    elif isinstance(seed, default_rng):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     had, perm = _sample_qmallows(num_qubits, rng)
 
