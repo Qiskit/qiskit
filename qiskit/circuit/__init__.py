@@ -221,9 +221,11 @@ from .gate import Gate
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
+from .barrier import Barrier
 from .measure import Measure
 from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
+from .library.standard_gates import *
