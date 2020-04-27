@@ -24,7 +24,7 @@ from .n_local import NLocal
 
 
 class TwoLocal(NLocal):
-    r"""The two-local gate circuit.
+    r"""The two-local circuit.
 
     The two-local circuit is a parameterized circuit consisting of alternating rotation layers and
     entanglement layers. The rotation layers are single qubit gates applied on all qubits.
