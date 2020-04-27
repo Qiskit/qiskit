@@ -104,8 +104,8 @@ class TwoLocal(NLocal):
             skip_final_rotation_layer: If True, a rotation layer is added at the end of the
                 ansatz. If False, no rotation layer is added. Defaults to True.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which
-                we use instances of `qiskit.circuit.Parameter`. The name of each parameter is the
-                number of its occurrence with this specified prefix.
+                we use instances of `qiskit.circuit.Parameter`. The name of each parameter will
+                be this specified prefix plus its index.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted. Defaults to False.
             initial_state: An `InitialState` object to prepend to the circuit.
