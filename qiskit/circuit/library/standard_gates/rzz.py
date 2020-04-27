@@ -35,12 +35,14 @@ class RZZGate(Gate):
 
     .. math::
 
-        R_{ZZ}(\theta) = exp(-i \frac{\theta}{2} Z{\otimes}Z) =
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        R_{ZZ}(\theta) = exp(-i \th Z{\otimes}Z) =
             \begin{pmatrix}
-                e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
-                0 & e^{i\frac{\theta}{2}} & 0 & 0 \\
-                0 & 0 & e^{i\frac{\theta}{2}} & 0 \\
-                0 & 0 & 0 & e^{-i\frac{\theta}{2}}
+                e^{-i \th} & 0 & 0 & 0 \\
+                0 & e^{i \th} & 0 & 0 \\
+                0 & 0 & e^{i \th} & 0 \\
+                0 & 0 & 0 & e^{-i \th}
             \end{pmatrix}
 
     This is a direct sum of RZ rotations, so this gate is equivalent to a

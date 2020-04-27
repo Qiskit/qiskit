@@ -41,6 +41,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    RXGate
    RXXGate
    RYGate
+   RYYGate
    RZGate
    RZZGate
    RZXGate
