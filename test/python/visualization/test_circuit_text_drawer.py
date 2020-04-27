@@ -150,6 +150,26 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.measure(qr, cr)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
+    def test_text_measure_cregbundle_2(self):
+        """ The measure operator, using 2 classical registers with cregbundle=True. """
+        expected = '\n'.join(["        ┌─┐   ",
+                              "q_0: |0>┤M├───",
+                              "        └╥┘┌─┐",
+                              "q_1: |0>─╫─┤M├",
+                              "         ║ └╥┘",
+                              "cA: 0 1/═╩══╬═",
+                              "         0  ║ ",
+                              "cB: 0 1/════╩═",
+                              "            0 "])
+
+        qr = QuantumRegister(2, 'q')
+        crA = ClassicalRegister(1, 'cA')
+        crB = ClassicalRegister(1, 'cB')
+        circuit = QuantumCircuit(qr, crA, crB)
+        circuit.measure(qr[0], crA[0])
+        circuit.measure(qr[1], crB[0])
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
     def test_text_measure_1(self):
         """ The measure operator, using 3-bit-length registers. """
         expected = '\n'.join(['        ┌─┐      ',

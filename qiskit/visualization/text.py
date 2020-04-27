@@ -810,6 +810,8 @@ class TextDrawing():
                 ret += "┬"
             elif topc in "┘└" and botc in "─" and icod == 'top':
                 ret += "┴"
+            elif botc == " " and icod == 'top':
+                ret += topc
             else:
                 ret += botc
         return ret
