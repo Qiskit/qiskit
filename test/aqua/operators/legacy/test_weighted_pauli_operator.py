@@ -23,7 +23,8 @@ from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Pauli, state_fidelity
 from qiskit.aqua import aqua_globals, QuantumInstance
-from qiskit.aqua.operators import WeightedPauliOperator, op_converter
+from qiskit.aqua.operators import WeightedPauliOperator
+from qiskit.aqua.operators.legacy import op_converter
 from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.initial_states import Custom
 

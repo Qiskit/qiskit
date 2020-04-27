@@ -15,15 +15,14 @@
 """Global X phases and parameterized problem hamiltonian."""
 
 from typing import Optional
-from functools import reduce
 
 import numpy as np
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.quantum_info import Pauli
 
-from qiskit.aqua.operators import WeightedPauliOperator, op_converter
+from qiskit.aqua.operators import (OperatorBase, X, I, H, Zero, CircuitStateFn,
+                                   EvolutionFactory, LegacyBaseOperator)
 from qiskit.aqua.components.variational_forms import VariationalForm
 from qiskit.aqua.components.initial_states import InitialState
+
 
 # pylint: disable=invalid-name
 
@@ -31,10 +30,11 @@ from qiskit.aqua.components.initial_states import InitialState
 class QAOAVarForm(VariationalForm):
     """Global X phases and parameterized problem hamiltonian."""
 
-    def __init__(self, cost_operator: WeightedPauliOperator,
+    def __init__(self,
+                 cost_operator: OperatorBase,
                  p: int,
                  initial_state: Optional[InitialState] = None,
-                 mixer_operator: Optional[WeightedPauliOperator] = None):
+                 mixer_operator: Optional[OperatorBase] = None):
         """
         Constructor, following the QAOA paper https://arxiv.org/abs/1411.4028
 
@@ -52,7 +52,6 @@ class QAOAVarForm(VariationalForm):
             TypeError: invalid input
         """
         super().__init__()
-        cost_operator = op_converter.to_weighted_pauli_operator(cost_operator)
         self._cost_operator = cost_operator
         self._num_qubits = cost_operator.num_qubits
         self._p = p
@@ -62,49 +61,42 @@ class QAOAVarForm(VariationalForm):
         self._preferred_init_points = [0] * p * 2
 
         # prepare the mixer operator
-        v = np.zeros(self._cost_operator.num_qubits)
-        ws = np.eye(self._cost_operator.num_qubits)
         if mixer_operator is None:
-            self._mixer_operator = reduce(
-                lambda x, y: x + y,
-                [
-                    WeightedPauliOperator([[1.0, Pauli(v, ws[i, :])]])
-                    for i in range(self._cost_operator.num_qubits)
-                ]
-            )
+            # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
+            # will simply produce rx's on each qubit.
+            num_qubits = self._cost_operator.num_qubits
+            mixer_terms = [(I ^ left) ^ X ^ (I ^ (num_qubits - left - 1))
+                           for left in range(num_qubits)]
+            self._mixer_operator = sum(mixer_terms)
+        elif isinstance(mixer_operator, LegacyBaseOperator):
+            self._mixer_operator = mixer_operator.to_opflow()
         else:
-            if not isinstance(mixer_operator, WeightedPauliOperator):
-                raise TypeError('The mixer should be a qiskit.aqua.operators.WeightedPauliOperator '
-                                + 'object, found {} instead'.format(type(mixer_operator)))
             self._mixer_operator = mixer_operator
+
         self.support_parameterized_circuit = True
 
     def construct_circuit(self, parameters, q=None):
         """ construct circuit """
-        angles = parameters
-        if not len(angles) == self.num_parameters:
+        if not len(parameters) == self.num_parameters:
             raise ValueError('Incorrect number of angles: expecting {}, but {} given.'.format(
-                self.num_parameters, len(angles)
+                self.num_parameters, len(parameters)
             ))
 
+        circuit = (H ^ self._num_qubits)
         # initialize circuit, possibly based on given register/initial state
-        if q is None:
-            q = QuantumRegister(self._num_qubits, name='q')
         if self._initial_state is not None:
-            circuit = self._initial_state.construct_circuit('circuit', q)
+            init_state = CircuitStateFn(self._initial_state.construct_circuit('circuit'))
         else:
-            circuit = QuantumCircuit(q)
+            init_state = Zero
+        circuit = circuit.compose(init_state)
 
-        circuit.u2(0, np.pi, q)
         for idx in range(self._p):
-            beta, gamma = angles[idx], angles[idx + self._p]
-            circuit += self._cost_operator.evolve(
-                evo_time=gamma, num_time_slices=1, quantum_registers=q
-            )
-            circuit += self._mixer_operator.evolve(
-                evo_time=beta, num_time_slices=1, quantum_registers=q
-            )
-        return circuit
+            circuit = (self._cost_operator * parameters[idx]).exp_i().compose(circuit)
+            circuit = (self._mixer_operator * parameters[idx + self._p]).exp_i().compose(circuit)
+
+        evolution = EvolutionFactory.build(self._cost_operator)
+        circuit = evolution.convert(circuit)
+        return circuit.to_circuit()
 
     @property
     def setting(self):

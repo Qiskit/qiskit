@@ -179,12 +179,12 @@ class ADAM(Optimizer):
             self._v = self._beta_2 * self._v + (1 - self._beta_2) * derivative * derivative
             lr_eff = self._lr * np.sqrt(1 - self._beta_2 ** self._t) / (1 - self._beta_1 ** self._t)
             if not self._amsgrad:
-                params_new = (params - lr_eff * self._m.flatten() /
-                              (np.sqrt(self._v.flatten()) + self._noise_factor))
+                params_new = (params - lr_eff * self._m.flatten()
+                              / (np.sqrt(self._v.flatten()) + self._noise_factor))
             else:
                 self._v_eff = np.maximum(self._v_eff, self._v)
-                params_new = (params - lr_eff * self._m.flatten() /
-                              (np.sqrt(self._v_eff.flatten()) + self._noise_factor))
+                params_new = (params - lr_eff * self._m.flatten()
+                              / (np.sqrt(self._v_eff.flatten()) + self._noise_factor))
 
             if self._snapshot_dir:
                 self.save_params(self._snapshot_dir)

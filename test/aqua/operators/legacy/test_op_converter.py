@@ -22,7 +22,8 @@ import numpy as np
 from qiskit.quantum_info import Pauli
 
 from qiskit.aqua import aqua_globals
-from qiskit.aqua.operators import op_converter, WeightedPauliOperator, MatrixOperator
+from qiskit.aqua.operators import WeightedPauliOperator, MatrixOperator
+from qiskit.aqua.operators.legacy import op_converter
 
 
 class TestOpConverter(QiskitAquaTestCase):

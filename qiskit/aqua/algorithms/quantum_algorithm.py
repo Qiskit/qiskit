@@ -75,17 +75,27 @@ class QuantumAlgorithm(ABC):
 
     @property
     def quantum_instance(self) -> Union[None, QuantumInstance]:
-        """ returns quantum instance """
+        """ Returns quantum instance. """
         return self._quantum_instance
 
     @quantum_instance.setter
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend]) -> None:
-        """Set quantum instance."""
+        """ Sets quantum instance. """
         if isinstance(quantum_instance, BaseBackend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
     def set_backend(self, backend: BaseBackend, **kwargs) -> None:
-        """Set backend with configuration."""
-        self._quantum_instance = QuantumInstance(backend)
-        self._quantum_instance.set_config(**kwargs)
+        """ Sets backend with configuration. """
+        self.quantum_instance = QuantumInstance(backend)
+        self.quantum_instance.set_config(**kwargs)
+
+    @property
+    def backend(self) -> BaseBackend:
+        """ Returns backend. """
+        return self.quantum_instance.backend
+
+    @backend.setter
+    def backend(self, backend: BaseBackend):
+        """ Sets backend without additional configuration. """
+        self.set_backend(backend)

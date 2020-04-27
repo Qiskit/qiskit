@@ -120,7 +120,7 @@ class AQGD(Optimizer):
         Returns:
             tuple: params, new momentums
         """
-        mnew = self._eta * (deriv * (1-self._momentum_coeff) + mprev[j] * self._momentum_coeff)
+        mnew = self._eta * (deriv * (1 - self._momentum_coeff) + mprev[j] * self._momentum_coeff)
         params[j] -= mnew
         return params, mnew
 
@@ -148,7 +148,7 @@ class AQGD(Optimizer):
         # store previous function evaluations
         for i in range(n):
             if i < n - 1:
-                self._previous_loss[i] = self._previous_loss[i+1]
+                self._previous_loss[i] = self._previous_loss[i + 1]
             else:
                 self._previous_loss[i] = objval
 
@@ -165,7 +165,7 @@ class AQGD(Optimizer):
         objval = objective_function(params)
 
         if self._disp:
-            print("Iteration: "+str(it)+" \t| Energy: "+str(objval))
+            print("Iteration: " + str(it) + " \t| Energy: " + str(objval))
 
         minobj = objval
         minparams = params
@@ -187,6 +187,6 @@ class AQGD(Optimizer):
             # update the iteration count
             it += 1
             if self._disp:
-                print("Iteration: "+str(it)+" \t| Energy: "+str(objval))
+                print("Iteration: " + str(it) + " \t| Energy: " + str(objval))
 
         return minparams, minobj, it

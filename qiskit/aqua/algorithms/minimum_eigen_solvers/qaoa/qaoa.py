@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance
-from qiskit.aqua.operators import BaseOperator
+from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
 from qiskit.aqua.components.initial_states import InitialState
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua.utils.validation import validate_min
@@ -28,6 +28,7 @@ from .var_form import QAOAVarForm
 from ..vqe import VQE
 
 logger = logging.getLogger(__name__)
+
 
 # pylint: disable=invalid-name
 # disable check for operator setter because of pylint bug
@@ -62,14 +63,17 @@ class QAOA(VQE):
     be supplied.
     """
 
-    def __init__(self, operator: BaseOperator = None, optimizer: Optimizer = None, p: int = 1,
+    def __init__(self,
+                 operator: Union[OperatorBase, LegacyBaseOperator] = None,
+                 optimizer: Optimizer = None,
+                 p: int = 1,
                  initial_state: Optional[InitialState] = None,
-                 mixer: Optional[BaseOperator] = None,
+                 mixer: Union[OperatorBase, LegacyBaseOperator] = None,
                  initial_point: Optional[np.ndarray] = None,
                  max_evals_grouped: int = 1,
-                 aux_operators: Optional[List[BaseOperator]] = None,
+                 aux_operators: Optional[List[Optional[Union[OperatorBase, LegacyBaseOperator]]]] =
+                 None,
                  callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-                 auto_conversion: bool = True,
                  quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
         """
         Args:
@@ -97,38 +101,31 @@ class QAOA(VQE):
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the
                 variational form, the evaluated mean and the evaluated standard deviation.
-            auto_conversion: When ``True`` allows an automatic conversion for operator and
-                aux_operators into the type which is most suitable for the backend on which the
-                algorithm is run.
-
-                - for *non-Aer statevector simulator:*
-                  :class:`~qiskit.aqua.operators.MatrixOperator`
-                - for *Aer statevector simulator:*
-                  :class:`~qiskit.aqua.operators.WeightedPauliOperator`
-                - for *qasm simulator or real backend:*
-                  :class:`~qiskit.aqua.operators.TPBGroupedWeightedPauliOperator`
-            quantum_instance: Quantum instance or backend to be used, needs to be set here or when
-                the algorithm is executed.
+            quantum_instance: Quantum Instance or Backend
         """
         validate_min('p', p, 1)
 
         self._p = p
-        self._mixer_operator = mixer
+        self._mixer_operator = mixer.to_opflow() if isinstance(mixer, LegacyBaseOperator) else mixer
         self._initial_state = initial_state
 
         # VQE will use the operator setter, during its constructor, which is overridden below and
         # will cause the var form to be built
-        super().__init__(operator, None, optimizer, initial_point=initial_point,
-                         max_evals_grouped=max_evals_grouped, aux_operators=aux_operators,
-                         callback=callback, auto_conversion=auto_conversion,
-                         quantum_instance=quantum_instance)
+        super().__init__(operator,
+                         None,
+                         optimizer,
+                         initial_point=initial_point,
+                         max_evals_grouped=max_evals_grouped,
+                         callback=callback,
+                         quantum_instance=quantum_instance,
+                         aux_operators=aux_operators)
 
     @VQE.operator.setter
-    def operator(self, operator: BaseOperator) -> None:
+    def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
         """ Sets operator """
-        if operator is not None:
-            self._in_operator = operator
-            self.var_form = QAOAVarForm(operator.copy(),
-                                        self._p,
-                                        initial_state=self._initial_state,
-                                        mixer_operator=self._mixer_operator)
+        # Setting with VQE's operator property
+        super(QAOA, self.__class__).operator.__set__(self, operator)
+        self.var_form = QAOAVarForm(self.operator,
+                                    self._p,
+                                    initial_state=self._initial_state,
+                                    mixer_operator=self._mixer_operator)

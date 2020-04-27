@@ -13,13 +13,14 @@
 # that they have been altered from the originals.
 
 """The Minimum Eigensolver interface"""
+
 import warnings
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Dict
 
 import numpy as np
 from qiskit.aqua.algorithms import AlgorithmResult
-from qiskit.aqua.operators import BaseOperator
+from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
 
 
 class MinimumEigensolver(ABC):
@@ -33,8 +34,11 @@ class MinimumEigensolver(ABC):
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-            self, operator: Optional[BaseOperator] = None,
-            aux_operators: Optional[List[BaseOperator]] = None) -> 'MinimumEigensolverResult':
+            self,
+            operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+            aux_operators: Optional[List[Optional[Union[OperatorBase,
+                                                        LegacyBaseOperator]]]] = None
+    ) -> 'MinimumEigensolverResult':
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
         if not None will override any already set into algorithm so it can be reused with
@@ -67,25 +71,27 @@ class MinimumEigensolver(ABC):
 
     @property
     @abstractmethod
-    def operator(self) -> BaseOperator:
+    def operator(self) -> Optional[Union[OperatorBase, LegacyBaseOperator]]:
         """ returns operator """
         pass
 
     @operator.setter
     @abstractmethod
-    def operator(self, operator: BaseOperator) -> None:
+    def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
         """ set operator """
         pass
 
     @property
     @abstractmethod
-    def aux_operators(self) -> List[BaseOperator]:
+    def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
         """ returns aux operators """
         pass
 
     @aux_operators.setter
     @abstractmethod
-    def aux_operators(self, aux_operators: List[BaseOperator]) -> None:
+    def aux_operators(self,
+                      aux_operators: Optional[List[Optional[Union[OperatorBase,
+                                                                  LegacyBaseOperator]]]]) -> None:
         """ set aux operators """
         pass
 

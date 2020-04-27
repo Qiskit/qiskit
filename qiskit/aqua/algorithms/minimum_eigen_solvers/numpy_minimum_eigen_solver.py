@@ -14,12 +14,12 @@
 
 """The Numpy Minimum Eigensolver algorithm."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 import logging
 import pprint
 
 from qiskit.aqua.algorithms import ClassicalAlgorithm, NumPyEigensolver
-from qiskit.aqua.operators import BaseOperator
+from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,11 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
     The Numpy Minimum Eigensolver algorithm.
     """
 
-    def __init__(self, operator: Optional[BaseOperator] = None,
-                 aux_operators: Optional[List[BaseOperator]] = None) -> None:
+    def __init__(self,
+                 operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+                 aux_operators: Optional[List[Optional[Union[OperatorBase,
+                                                             LegacyBaseOperator]]]] = None
+                 ) -> None:
         """
         Args:
             operator: Operator instance
@@ -43,27 +46,32 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
         self._ret = {}  # TODO remove
 
     @property
-    def operator(self) -> BaseOperator:
+    def operator(self) -> Optional[OperatorBase]:
         return self._ces.operator
 
     @operator.setter
-    def operator(self, operator: BaseOperator) -> None:
+    def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
         self._ces.operator = operator
 
     @property
-    def aux_operators(self) -> List[BaseOperator]:
+    def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
         return self._ces.aux_operators
 
     @aux_operators.setter
-    def aux_operators(self, aux_operators: List[BaseOperator]) -> None:
+    def aux_operators(self,
+                      aux_operators: Optional[List[Optional[Union[OperatorBase,
+                                                                  LegacyBaseOperator]]]]) -> None:
         self._ces.aux_operators = aux_operators
 
     def supports_aux_operators(self) -> bool:
         return self._ces.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-            self, operator: BaseOperator = None,
-            aux_operators: Optional[List[BaseOperator]] = None) -> MinimumEigensolverResult:
+            self,
+            operator: Optional[Union[OperatorBase, LegacyBaseOperator]] = None,
+            aux_operators: Optional[List[Optional[Union[OperatorBase,
+                                                        LegacyBaseOperator]]]] = None
+    ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         return self._run()
 

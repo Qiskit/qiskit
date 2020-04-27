@@ -124,7 +124,7 @@ class NLoptOptimizer(Optimizer):
             tuple(float, float, int): Solution at minimum found,
                     value at minimum found, num evaluations performed
         """
-        threshold = 3*np.pi
+        threshold = 3 * np.pi
         low = [(l if l is not None else -threshold) for (l, u) in variable_bounds]
         high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
 

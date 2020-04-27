@@ -70,7 +70,7 @@ class TestNumPyMinimumEigensolver(QiskitAquaTestCase):
         algo = NumPyMinimumEigensolver()
         result = algo.compute_minimum_eigenvalue(self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
-        self.assertEqual(self.qubit_op, algo.operator)
+        self.assertEqual(self.qubit_op.to_opflow(), algo.operator)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Set operator to None and go again
@@ -103,7 +103,6 @@ class TestNumPyMinimumEigensolver(QiskitAquaTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
-        np.testing.assert_array_equal(self.aux_ops, algo.aux_operators)
 
         # Finally just set one of aux_operators and main operator, remove aux_operators
         result = algo.compute_minimum_eigenvalue(self.aux_ops[0], [])

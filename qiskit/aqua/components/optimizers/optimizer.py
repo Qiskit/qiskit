@@ -103,7 +103,7 @@ class Optimizer(ABC):
             chunk.append(x)
             counter += 1
             # the last one does not have to reach batch_size
-            if counter == max_evals_grouped or i == length-1:
+            if counter == max_evals_grouped or i == length - 1:
                 chunks.append(chunk)
                 chunk = []
                 counter = 0

@@ -57,7 +57,7 @@ class SPSA(Optimizer):
     (Supplementary information Section IV.)
     """
 
-    _C0 = 2*np.pi*0.1
+    _C0 = 2 * np.pi * 0.1
     _OPTIONS = ['save_steps', 'last_avg']
 
     # pylint: disable=unused-argument
