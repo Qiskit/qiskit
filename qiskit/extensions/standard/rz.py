@@ -58,9 +58,9 @@ class RZGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
-    def __init__(self, phi):
+    def __init__(self, phi, label=None):
         """Create new RZ gate."""
-        super().__init__('rz', 1, [phi])
+        super().__init__('rz', 1, [phi], label=label)
 
     def _define(self):
         """
@@ -89,9 +89,10 @@ class RZGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted RZ gate
