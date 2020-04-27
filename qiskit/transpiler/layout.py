@@ -20,7 +20,6 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.classicalregister import Clbit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
 
@@ -203,29 +202,25 @@ class Layout():
         self[left] = self[right]
         self[right] = temp
 
-    def to_qubit_list(self):
-        """Return a list where physical qubits are positions and virtual qubits values.
+    def reorder_bits(self, bits):
+        """Given an ordered list of bits, reorder them according to this layout.
+
+        The list of bits must exactly match the virtual bits in this layout.
+
+        Args:
+            bits (list[Bit]): the bits to reorder.
 
         Returns:
-            List: list of Qubits. Empty if no Qubits in layout.
+            List: ordered bits.
         """
-        qubits = [0] * len(self)
-        for p, v in self.get_physical_bits().items():
-            if isinstance(v, Qubit):
-                qubits[p] = v
-        return qubits
+        order = [0] * len(bits)
 
-    def to_clbit_list(self):
-        """Return a list where physical clbits are positions and virtual clbits values.
+        # the i-th bit is now sitting in position j
+        for i, v in enumerate(bits):
+            j = self[v]
+            order[i] = j
 
-        Returns:
-            List: list of Clbits. Empty if no Clbits in layout.
-        """
-        clbits = [0] * len(self)
-        for p, v in self.get_physical_bits().items():
-            if isinstance(v, Clbit):
-                clbits[p] = v
-        return clbits
+        return order
 
     @staticmethod
     def generate_trivial_layout(*regs):

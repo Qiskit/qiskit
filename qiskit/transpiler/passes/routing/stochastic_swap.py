@@ -265,7 +265,8 @@ class StochasticSwap(TransformationPass):
         for creg in layer_circuit.cregs.values():
             dagcircuit_output.add_creg(creg)
 
-        dagcircuit_output.compose(layer_circuit, qubits=layout.to_qubit_list())
+        order = layout.reorder_bits(dagcircuit_output.qubits())
+        dagcircuit_output.compose(layer_circuit, qubits=order)
 
         return dagcircuit_output
 
