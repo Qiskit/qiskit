@@ -191,6 +191,7 @@ def pad(schedule: Schedule,
             continue
 
         curr_time = 0
+        # TODO: Replace with method of getting instructions on a channel
         for interval in schedule.timeslots[channel]:
             if curr_time >= until:
                 break
@@ -199,6 +200,6 @@ def pad(schedule: Schedule,
                 schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
             curr_time = interval[1]
         if curr_time < until:
-            schedule |= Delay(until - curr_time, channel).shift(curr_time)
+            schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
 
     return schedule
