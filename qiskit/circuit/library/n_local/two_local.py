@@ -96,7 +96,7 @@ class TwoLocal(NLocal):
                 the index of the entanglement layer.
                 Default to 'full' entanglement.
                 See the Examples section for more detail.
-            reps: Specifies how often a block of consisting of a rotation layer and entanglement
+            reps: Specifies how often a block consisting of a rotation layer and entanglement
                 layer is repeated.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
