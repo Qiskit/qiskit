@@ -29,7 +29,7 @@ class TwoLocal(NLocal):
     The two-local circuit is a parameterized circuit consisting of alternating rotation layers and
     entanglement layers. The rotation layers are single qubit gates applied on all qubits.
     The entanglement layer uses two-qubit gates to entangle the qubits according to a strategy set
-    using ``entanglement``. Both, the rotation and entanglement gates can be specified as
+    using ``entanglement``. Both the rotation and entanglement gates can be specified as
     string (e.g. ``'ry'`` or ``'cx'``), as gate-type (e.g. ``RYGate`` or ``CXGate``) or
     as QuantumCircuit (e.g. a 1-qubit circuit or 2-qubit circuit).
 
