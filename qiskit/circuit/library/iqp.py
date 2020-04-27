@@ -46,7 +46,8 @@ class IQP(QuantumCircuit):
         circuit = IQPCircuit(A)
         circuit.draw('mpl')
 
-    Expanded Circuit:
+    **Expanded Circuit:**
+
         .. jupyter-execute::
             :hide-code:
 
@@ -88,12 +89,12 @@ class IQP(QuantumCircuit):
         for i in range(num_qubits):
             for j in range(i+1, num_qubits):
                 if interactions[i][j] % 4 != 0:
-                    inner.cu1(interactions[i][j]*np.pi/2, i, j)
+                    inner.cu1(interactions[i][j] * np.pi / 2, i, j)
 
         for i in range(num_qubits):
             if interactions[i][i] % 8 != 0:
-                inner.u1(interactions[i][i]*np.pi/8, i)
+                inner.u1(interactions[i][i] * np.pi / 8, i)
 
         inner.h(range(num_qubits))
-        all_qubits = self.qubits  # i dont like this line
+        all_qubits = self.qubits
         self.append(inner, all_qubits, label=name)
