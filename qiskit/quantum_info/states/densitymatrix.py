@@ -357,6 +357,23 @@ class DensityMatrix(QuantumState):
         """
         return DensityMatrix(Statevector.from_label(label))
 
+    @staticmethod
+    def from_int(i, dims):
+        """Return a computational basis state density matrix.
+
+        Args:
+            i (int): the basis state element.
+            dims (int or list): the subsystem ``dims`` value for the
+                                returned density matrix.
+
+        Returns:
+            DensityMatrix: The computational basis state :math:`|i\\rangle\\!\\langle i|`.
+        """
+        size = np.product(dims)
+        state = np.zeros((size, size), dtype=complex)
+        state[i, i] = 1.0
+        return DensityMatrix(state, dims=dims)
+
     @classmethod
     def from_instruction(cls, instruction):
         """Return the output density matrix of an instruction.

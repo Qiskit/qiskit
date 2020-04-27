@@ -448,6 +448,23 @@ class Statevector(QuantumState):
                     state = state.evolve(y_mat, qargs=[qubit])
         return state
 
+    @staticmethod
+    def from_int(i, dims):
+        """Return a computational basis statevector.
+
+        Args:
+            i (int): the basis state element.
+            dims (int or list): the subsystem ``dims`` value for the
+                                returned statevector.
+
+        Returns:
+            Statevector: The computational basis state :math:`|i\\rangle`.
+        """
+        size = np.product(dims)
+        state = np.zeros(size, dtype=complex)
+        state[i] = 1.0
+        return Statevector(state, dims=dims)
+
     @classmethod
     def from_instruction(cls, instruction):
         """Return the output statevector of an instruction.
