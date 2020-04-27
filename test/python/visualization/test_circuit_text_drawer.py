@@ -141,7 +141,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "         ║ └╥┘┌─┐",
                               "q_2: |0>─╫──╫─┤M├",
                               "         ║  ║ └╥┘",
-                              "c: 0  3/═╩══╩══╩═",
+                              " c: 0 3/═╩══╩══╩═",
                               "         0  1  2 "])
 
         qr = QuantumRegister(3, 'q')
@@ -2633,7 +2633,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map, optimization_level=0, seed_transpiler=0)
-        self.assertEqual(qc_result.draw(output='text').single_string(), expected)
+        self.assertEqual(qc_result.draw(output='text', cregbundle=False).single_string(), expected)
 
 
 class TestTextInitialValue(QiskitTestCase):
@@ -2657,7 +2657,8 @@ class TestTextInitialValue(QiskitTestCase):
                               "c_1: ════╩═",
                               "           "])
 
-        self.assertEqual(self.circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(self.circuit.draw(output='text', cregbundle=False).single_string(),
+                         expected)
 
     def test_draw_initial_value_true(self):
         """ Text drawer .draw(initial_state=True). """
@@ -2670,8 +2671,9 @@ class TestTextInitialValue(QiskitTestCase):
                               "            ║ ",
                               " c_1: 0 ════╩═",
                               "              "])
-        self.assertEqual(self.circuit.draw(output='text', initial_state=True).single_string(),
-                         expected)
+        self.assertEqual(self.circuit.draw(output='text',
+                                           initial_state=True,
+                                           cregbundle=False).single_string(), expected)
 
     def test_initial_value_false(self):
         """ Text drawer with initial_state parameter False. """
