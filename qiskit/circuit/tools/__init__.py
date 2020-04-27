@@ -13,5 +13,6 @@
 # that they have been altered from the originals.
 
 """
-Helpful math routines
+Helpful routines
 """
+from .pi_check import pi_check
