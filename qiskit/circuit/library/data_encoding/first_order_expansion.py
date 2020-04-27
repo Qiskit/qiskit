@@ -17,8 +17,6 @@
 from typing import Callable, Optional
 import numpy as np
 
-from qiskit.util import deprecate_arguments
-
 from .pauli_expansion import PauliExpansion
 
 
