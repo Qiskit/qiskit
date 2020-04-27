@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,7 +34,7 @@ class QuantumVolume(QuantumCircuit):
     **References:**
 
     [1] A. Cross et al. Validating quantum computers using
-    randomized model circuits, 2018.
+    randomized model circuits, Phys. Rev. A 100, 032328 (2019).
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_
     """
 
