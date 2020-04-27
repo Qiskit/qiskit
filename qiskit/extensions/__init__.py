@@ -19,7 +19,6 @@ Quantum Circuit Extensions (:mod:`qiskit.extensions`)
 
 .. currentmodule:: qiskit.extensions
 
-
 Unitary Extensions
 ==================
 
