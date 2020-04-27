@@ -80,7 +80,7 @@ class QuantumAlgorithm(ABC):
 
     @quantum_instance.setter
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend]) -> None:
-        """Set quantum  instance."""
+        """Set quantum instance."""
         if isinstance(quantum_instance, BaseBackend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance

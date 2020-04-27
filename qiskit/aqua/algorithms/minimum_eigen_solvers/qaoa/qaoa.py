@@ -64,8 +64,10 @@ class QAOA(VQE):
 
     def __init__(self, operator: BaseOperator = None, optimizer: Optimizer = None, p: int = 1,
                  initial_state: Optional[InitialState] = None,
-                 mixer: Optional[BaseOperator] = None, initial_point: Optional[np.ndarray] = None,
-                 max_evals_grouped: int = 1, aux_operators: Optional[List[BaseOperator]] = None,
+                 mixer: Optional[BaseOperator] = None,
+                 initial_point: Optional[np.ndarray] = None,
+                 max_evals_grouped: int = 1,
+                 aux_operators: Optional[List[BaseOperator]] = None,
                  callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
                  auto_conversion: bool = True,
                  quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None) -> None:
@@ -105,7 +107,8 @@ class QAOA(VQE):
                   :class:`~qiskit.aqua.operators.WeightedPauliOperator`
                 - for *qasm simulator or real backend:*
                   :class:`~qiskit.aqua.operators.TPBGroupedWeightedPauliOperator`
-            quantum_instance: Quantum Instance or Backend
+            quantum_instance: Quantum instance or backend to be used, needs to be set here or when
+                the algorithm is executed.
         """
         validate_min('p', p, 1)
 

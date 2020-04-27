@@ -50,6 +50,7 @@ Local Optimizers
    CG
    COBYLA
    L_BFGS_B
+   GSLS
    NELDER_MEAD
    NFT
    P_BFGS
@@ -87,6 +88,7 @@ from .adam_amsgrad import ADAM
 from .cg import CG
 from .cobyla import COBYLA
 from .l_bfgs_b import L_BFGS_B
+from .gsls import GSLS
 from .nelder_mead import NELDER_MEAD
 from .p_bfgs import P_BFGS
 from .powell import POWELL
@@ -106,6 +108,7 @@ __all__ = ['Optimizer',
            'AQGD',
            'CG',
            'COBYLA',
+           'GSLS',
            'L_BFGS_B',
            'NELDER_MEAD',
            'NFT',

@@ -23,20 +23,15 @@ from scipy import sparse as scisparse
 
 from qiskit.aqua import AquaError
 from qiskit.aqua.algorithms import ClassicalAlgorithm
-from qiskit.aqua.operators import op_converter
-from qiskit.aqua.operators import BaseOperator
+from qiskit.aqua.operators import BaseOperator, op_converter
 from qiskit.aqua.utils.validation import validate_min
 from .eigen_solver_result import EigensolverResult
 
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
-
 class NumPyEigensolver(ClassicalAlgorithm):
-    r"""
-    The NumPy Eigensolver algorithm.
+    r"""The NumPy Eigensolver algorithm.
 
     NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
@@ -66,7 +61,7 @@ class NumPyEigensolver(ClassicalAlgorithm):
         self._operator = None
         self._aux_operators = None
         self._in_k = k
-        self._k = k
+        self._k = k  # pylint: disable=invalid-name
 
         self.operator = operator
         self.aux_operators = aux_operators
@@ -132,6 +127,8 @@ class NumPyEigensolver(ClassicalAlgorithm):
                 self._k = self._in_k
 
     def _solve(self):
+        if self._operator is None:
+            raise ValueError('Operator is None but must be set!')
         if self._operator.dia_matrix is None:
             if self._k >= self._operator.matrix.shape[0] - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
@@ -184,10 +181,11 @@ class NumPyEigensolver(ClassicalAlgorithm):
         return np.asarray(values)
 
     def _run(self):
-        """
-        Run the algorithm to compute up to the requested k number of eigenvalues.
+        """Run the algorithm to compute up to the requested k number of eigenvalues.
+
         Returns:
             dict: Dictionary of results
+
         Raises:
             AquaError: if no operator has been provided
         """
@@ -215,9 +213,7 @@ class NumPyEigensolver(ClassicalAlgorithm):
 
 
 class ExactEigensolver(NumPyEigensolver):
-    """
-    The deprecated Eigensolver algorithm.
-    """
+    """The deprecated Eigensolver algorithm."""
 
     def __init__(self, operator: BaseOperator, k: int = 1,
                  aux_operators: Optional[List[BaseOperator]] = None) -> None:

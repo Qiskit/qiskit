@@ -33,7 +33,7 @@ from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance, AquaError
 from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
-from qiskit.aqua.components.optimizers import Optimizer
+from qiskit.aqua.components.optimizers import Optimizer, SLSQP
 from qiskit.aqua.components.variational_forms import VariationalForm
 
 logger = logging.getLogger(__name__)
@@ -65,6 +65,10 @@ class VQAlgorithm(QuantumAlgorithm):
         """
         super().__init__(quantum_instance)
 
+        if optimizer is None:
+            logger.info('No optimizer provided, setting it to SLSPQ.')
+            optimizer = SLSQP()
+
         self._optimizer = optimizer
         self._cost_fn = cost_fn
         self._initial_point = initial_point
@@ -90,7 +94,9 @@ class VQAlgorithm(QuantumAlgorithm):
             self._var_form_params = ParameterVector('θ', length=var_form.num_parameters)
             self._var_form = var_form
         else:
-            raise ValueError('Unsupported type {} of var_form'.format(type(var_form)))
+            raise ValueError(
+                "Unsupported type '{}' of var_form".format(
+                    type(var_form) if var_form else var_form))
 
         if var_form is not None and len(self._var_form_params) == 0:
             raise AquaError('Passing a variational form with no parameters is not supported.')
