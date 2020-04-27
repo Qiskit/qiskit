@@ -649,7 +649,8 @@ class TextDrawing():
                 if previous_creg == bit.register:
                     continue
                 previous_creg = bit.register
-                label = '{name}: {initial_value} {size}/'
+                label = '{name}: {initial_value}{size}/'
+                print('-'+initial_clbit_value+'-')
                 clbit_labels.append(label.format(name=bit.register.name,
                                                  initial_value=initial_clbit_value,
                                                  size=bit.register.size))

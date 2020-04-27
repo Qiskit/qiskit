@@ -65,7 +65,8 @@ def circuit_drawer(circuit,
                    with_layout=True,
                    fold=None,
                    ax=None,
-                   initial_state=False):
+                   initial_state=False,
+                   cregbundle=True):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -137,6 +138,8 @@ def circuit_drawer(circuit,
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
             Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
+            the ``text`` output. Default: ``True``.
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:
@@ -286,7 +289,8 @@ def circuit_drawer(circuit,
                                     idle_wires=idle_wires,
                                     with_layout=with_layout,
                                     fold=fold,
-                                    initial_state=initial_state)
+                                    initial_state=initial_state,
+                                    cregbundle=cregbundle)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
