@@ -142,10 +142,12 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
-        if chan_intervals:
+        try:
+            chan_intervals = (self._timeslots[chan] for chan in channels if chan in self._timeslots)
             return min(intervals[0][0] for intervals in chan_intervals)
-        return 0
+        except ValueError:
+            # If there are no instructions over channels
+            return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum start time over supplied channels.
@@ -153,10 +155,12 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
-        if chan_intervals:
+        try:
+            chan_intervals = (self._timeslots[chan] for chan in channels if chan in self._timeslots)
             return max(intervals[-1][1] for intervals in chan_intervals)
-        return 0
+        except ValueError:
+            # If there are no instructions over channels
+            return 0
 
     def _instructions(self, time: int = 0):
         """Iterable for flattening Schedule tree.
