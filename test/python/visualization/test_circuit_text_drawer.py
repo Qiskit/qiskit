@@ -163,11 +163,11 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "            0 "])
 
         qr = QuantumRegister(2, 'q')
-        cr_A = ClassicalRegister(1, 'cA')
-        cr_B = ClassicalRegister(1, 'cB')
-        circuit = QuantumCircuit(qr, cr_A, cr_B)
-        circuit.measure(qr[0], cr_A[0])
-        circuit.measure(qr[1], cr_B[0])
+        cr_a = ClassicalRegister(1, 'cA')
+        cr_b = ClassicalRegister(1, 'cB')
+        circuit = QuantumCircuit(qr, cr_a, cr_b)
+        circuit.measure(qr[0], cr_a[0])
+        circuit.measure(qr[1], cr_b[0])
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_measure_1(self):
