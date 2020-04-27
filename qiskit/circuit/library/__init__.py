@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Blueprint Circuit
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlueprintCircuit
+
 Generalized Gates
 =================
 
@@ -26,6 +34,7 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   Permutation
 
 Boolean Logic Circuits
 ======================
@@ -34,10 +43,9 @@ Boolean Logic Circuits
    :toctree: ../stubs/
 
    AND
-   InnerProduct
    OR
-   Permutation
    XOR
+   InnerProduct
 
 Basis Change Circuits
 =====================
@@ -94,14 +102,14 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 """
 
+from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import Diagonal
-
+from .generalized_gates import Permutation
 from .boolean_logic import (
-    Permutation,
+    AND,
+    OR,
     XOR,
     InnerProduct,
-    OR,
-    AND,
 )
 from .basis_change import QFT
 from .arithmetic import (

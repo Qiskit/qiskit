@@ -20,7 +20,12 @@ from shutil import get_terminal_size
 import sys
 from numpy import ndarray
 
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Gate, Instruction
+from qiskit.circuit import Reset as ResetInstruction
+from qiskit.circuit import Measure as MeasureInstruction
+from qiskit.extensions import IGate, UnitaryGate, HamiltonianGate, RZZGate, SwapGate, Snapshot
+from qiskit.extensions import Barrier as BarrierInstruction
+from qiskit.extensions.quantum_initializer.initializer import Initialize
 from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
@@ -716,20 +721,29 @@ class TextDrawing():
         return ret
 
     @staticmethod
+    def special_label(instruction):
+        """Some instructions have special labels"""
+        labels = {IGate: 'I',
+                  Initialize: 'initialize',
+                  UnitaryGate: 'unitary',
+                  HamiltonianGate: 'Hamiltonian'}
+        instruction_type = type(instruction)
+        if instruction_type in {Gate, Instruction}:
+            return instruction.name
+        return labels.get(instruction_type, None)
+
+    @staticmethod
     def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
         if getattr(instruction.op, 'label', None) is not None:
             return instruction.op.label
-        if controlled:
-            label = instruction.op.base_gate.name
-        else:
-            label = instruction.name
-        params = TextDrawing.params_for_label(instruction)
 
-        # generate correct label for the box
-        if label == 'id':
-            label = 'i'
-        label = label.capitalize()
+        if controlled:
+            label = TextDrawing.special_label(instruction.op.base_gate) or \
+                    instruction.op.base_gate.name.upper()
+        else:
+            label = TextDrawing.special_label(instruction.op) or instruction.name.upper()
+        params = TextDrawing.params_for_label(instruction)
 
         if params:
             label += "(%s)" % ','.join(params)
@@ -838,6 +852,21 @@ class TextDrawing():
                 in_box.append(ctrl_qubit)
         return (top_box, bot_box, in_box, args_qubits)
 
+    def _set_ctrl_state(self, instruction, conditional):
+        """ Takes the ctrl_state from instruction and appends Bullet or OpenBullet
+        to gates depending on whether the bit in ctrl_state is 1 or 0. Returns gates"""
+
+        gates = []
+        num_ctrl_qubits = instruction.op.num_ctrl_qubits
+        ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
+        cstate = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        for i in range(len(ctrl_qubits)):
+            if cstate[i] == '1':
+                gates.append(Bullet(conditional=conditional))
+            else:
+                gates.append(OpenBullet(conditional=conditional))
+        return gates
+
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
         any connections it introduces between qubits"""
@@ -867,12 +896,12 @@ class TextDrawing():
             layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
                                 conditional=conditional)
 
-        elif instruction.name == 'measure':
+        elif isinstance(instruction.op, MeasureInstruction):
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())
 
-        elif instruction.name in ['barrier', 'snapshot', 'save', 'load', 'noise']:
+        elif isinstance(instruction.op, (BarrierInstruction, Snapshot)):
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label
@@ -880,60 +909,19 @@ class TextDrawing():
             for qubit in instruction.qargs:
                 layer.set_qubit(qubit, Barrier())
 
-        elif instruction.name == 'swap':
+        elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
             add_connected_gate(instruction, gates, layer, current_cons)
 
-        elif instruction.name == 'cswap':
-            # cswap
-            gates = [Bullet(conditional=conditional),
-                     Ex(conditional=conditional),
-                     Ex(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'reset':
+        elif isinstance(instruction.op, ResetInstruction):
+            # reset
             layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
-        elif instruction.name in ['cx', 'CX', 'ccx']:
-            # cx/ccx
-            gates = [Bullet(conditional=conditional) for _ in range(len(instruction.qargs) - 1)]
-            gates.append(BoxOnQuWire('X', conditional=conditional))
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'cy':
-            # cy
-            gates = [Bullet(conditional=conditional), BoxOnQuWire('Y')]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'cz' and instruction.op.ctrl_state == 1:
-            # cz TODO: only supports one closed controlled for now
-            gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'cu1':
-            # cu1
-            connection_label = TextDrawing.params_for_label(instruction)[0]
-            gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'rzz':
+        elif isinstance(instruction.op, RZZGate):
             # rzz
             connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'cu3':
-            # cu3
-            params = TextDrawing.params_for_label(instruction)
-            gates = [Bullet(conditional=conditional),
-                     BoxOnQuWire("U3(%s)" % ','.join(params), conditional=conditional)]
-            add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'crz':
-            # crz
-            label = "Rz(%s)" % TextDrawing.params_for_label(instruction)[0]
-            gates = [Bullet(conditional=conditional), BoxOnQuWire(label, conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) == 1 and not instruction.cargs:
@@ -944,17 +932,24 @@ class TextDrawing():
 
         elif isinstance(instruction.op, ControlledGate):
             label = TextDrawing.label_for_box(instruction, controlled=True)
-            gates = []
-
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
-            for i in controlled_top + controlled_bot + controlled_edge:
-                if i[1] == '1':
-                    gates.append(Bullet(conditional=conditional))
-                else:
-                    gates.append(OpenBullet(conditional=conditional))
+            gates = self._set_ctrl_state(instruction, conditional)
             if instruction.op.base_gate.name == 'z':
+                # cz
                 gates.append(Bullet(conditional=conditional))
+            elif instruction.op.base_gate.name == 'u1':
+                # cu1
+                connection_label = TextDrawing.params_for_label(instruction)[0]
+                gates.append(Bullet(conditional=conditional))
+            elif instruction.op.base_gate.name == 'swap':
+                # cswap
+                gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
+                add_connected_gate(instruction, gates, layer, current_cons)
+            elif instruction.op.base_gate.name == 'rzz':
+                # crzz
+                connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
+                gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = '┴' if controlled_top else None
                 bot_connect = '┬' if controlled_bot else None
@@ -965,6 +960,8 @@ class TextDrawing():
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
+            elif instruction.op.base_gate.name == 'z':
+                gates.append(Bullet(conditional=conditional))
             else:
                 gates.append(BoxOnQuWire(label, conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
