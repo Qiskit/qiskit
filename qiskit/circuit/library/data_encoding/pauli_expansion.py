@@ -21,7 +21,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterVector
 from qiskit.extensions.standard import HGate
-from qiskit.util import deprecate_arguments
 
 from ..n_local.n_local import NLocal
 
@@ -58,7 +57,6 @@ class PauliExpansion(NLocal):
            `arXiv:1804.11326 <https://arxiv.org/abs/1804.11326>`_
     """
 
-    @deprecate_arguments({'depth': 'reps'})
     def __init__(self,
                  feature_dimension: Optional[int] = None,
                  reps: int = 2,
@@ -67,9 +65,9 @@ class PauliExpansion(NLocal):
                  data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  parameter_prefix: str = 'x',
                  insert_barriers: bool = False,
-                 depth: Optional[int] = None,  # pylint: disable=unused-argument
                  ) -> None:
-        """
+        """Create a new Pauli expansion circuit.
+
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
@@ -82,7 +80,7 @@ class PauliExpansion(NLocal):
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
-            depth: Deprecated, use ``reps`` instead.
+
         """
 
         super().__init__(num_qubits=feature_dimension,

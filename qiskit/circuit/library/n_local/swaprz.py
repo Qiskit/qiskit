@@ -19,7 +19,6 @@ from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.extensions.standard import RZGate
-from qiskit.util import deprecate_arguments
 from .two_local import TwoLocal
 
 
@@ -54,11 +53,37 @@ class SwapRZ(TwoLocal):
                           = R_{XX}(\theta) R_{YY}(\theta)
 
     where the approximation used comes from the Trotter expansion of the sum in the exponential.
+
+    Examples:
+
+        >>> swaprz = SwapRZ(3, reps=1, insert_barriers=True, entanglement='linear')
+        >>> print(swaprz)  # show the circuit
+        ┌──────────┐ ░ ┌────────────┐┌────────────┐                             ░ ┌──────────┐
+        ┤ Rz(θ[0]) ├─░─┤0           ├┤0           ├─────────────────────────────░─┤ Rz(θ[5]) ├
+        ├──────────┤ ░ │  Rxx(θ[3]) ││  Ryy(θ[3]) │┌────────────┐┌────────────┐ ░ ├──────────┤
+        ┤ Rz(θ[1]) ├─░─┤1           ├┤1           ├┤0           ├┤0           ├─░─┤ Rz(θ[6]) ├
+        ├──────────┤ ░ └────────────┘└────────────┘│  Rxx(θ[4]) ││  Ryy(θ[4]) │ ░ ├──────────┤
+        ┤ Rz(θ[2]) ├─░─────────────────────────────┤1           ├┤1           ├─░─┤ Rz(θ[7]) ├
+        └──────────┘ ░                             └────────────┘└────────────┘ ░ └──────────┘
+
+        >>> swaprz = SwapRZ(2, reps=1)
+        >>> qc = QuantumCircuit(2)  # create a circuit and append the RY variational form
+        >>> qc.cry(0.2, 0, 1)  # do some previous operation
+        >>> qc.compose(swaprz, inplace=True)  # add the swaprz
+        >>> qc.draw()
+                        ┌─────────────────┐┌──────────────────┐┌─────────────────┐
+        q_0: ─────■─────┤ Circuit56(θ[0]) ├┤0                 ├┤ Circuit61(θ[3]) ├
+             ┌────┴────┐├─────────────────┤│  Circuit59(θ[2]) │├─────────────────┤
+        q_1: ┤ Ry(0.2) ├┤ Circuit57(θ[1]) ├┤1                 ├┤ Circuit62(θ[4]) ├
+             └─────────┘└─────────────────┘└──────────────────┘└─────────────────┘
+        >>> transpile(qc, basis_gates=['cry', 'rz', 'rxx', 'ryy']).draw()
+                        ┌──────────┐┌────────────┐┌────────────┐┌──────────┐
+        q_0: ─────■─────┤ Rz(θ[0]) ├┤0           ├┤0           ├┤ Rz(θ[3]) ├
+             ┌────┴────┐├──────────┤│  Rxx(θ[2]) ││  Ryy(θ[2]) │├──────────┤
+        q_1: ┤ Ry(0.2) ├┤ Rz(θ[1]) ├┤1           ├┤1           ├┤ Rz(θ[4]) ├
+             └─────────┘└──────────┘└────────────┘└────────────┘└──────────┘
     """
 
-    @deprecate_arguments({'depth': 'reps',
-                          'entangler_map': 'entanglement',
-                          'entanglement_gate': 'entanglement_blocks'})
     def __init__(self,
                  num_qubits: Optional[int] = None,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
@@ -68,8 +93,6 @@ class SwapRZ(TwoLocal):
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
                  initial_state: Optional[Any] = None,
-                 depth: Optional[int] = None,  # pylint: disable=unused-argument
-                 entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
                  ) -> None:
         """Create a new SwapRZ 2-local circuit.
 
@@ -96,37 +119,7 @@ class SwapRZ(TwoLocal):
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
-            depth: Deprecated, use `reps` instead.
-            entangler_map: Deprecated, use `entanglement` instead. This argument now also supports
-                entangler maps.
 
-        Examples:
-            >>> swaprz = SwapRZ(3, reps=1, insert_barriers=True, entanglement='linear')
-            >>> print(swaprz)  # show the circuit
-            ┌──────────┐ ░ ┌────────────┐┌────────────┐                             ░ ┌──────────┐
-            ┤ Rz(θ[0]) ├─░─┤0           ├┤0           ├─────────────────────────────░─┤ Rz(θ[5]) ├
-            ├──────────┤ ░ │  Rxx(θ[3]) ││  Ryy(θ[3]) │┌────────────┐┌────────────┐ ░ ├──────────┤
-            ┤ Rz(θ[1]) ├─░─┤1           ├┤1           ├┤0           ├┤0           ├─░─┤ Rz(θ[6]) ├
-            ├──────────┤ ░ └────────────┘└────────────┘│  Rxx(θ[4]) ││  Ryy(θ[4]) │ ░ ├──────────┤
-            ┤ Rz(θ[2]) ├─░─────────────────────────────┤1           ├┤1           ├─░─┤ Rz(θ[7]) ├
-            └──────────┘ ░                             └────────────┘└────────────┘ ░ └──────────┘
-
-            >>> swaprz = SwapRZ(2, reps=1)
-            >>> qc = QuantumCircuit(2)  # create a circuit and append the RY variational form
-            >>> qc.cry(0.2, 0, 1)  # do some previous operation
-            >>> qc.compose(swaprz, inplace=True)  # add the swaprz
-            >>> qc.draw()
-                            ┌─────────────────┐┌──────────────────┐┌─────────────────┐
-            q_0: ─────■─────┤ Circuit56(θ[0]) ├┤0                 ├┤ Circuit61(θ[3]) ├
-                 ┌────┴────┐├─────────────────┤│  Circuit59(θ[2]) │├─────────────────┤
-            q_1: ┤ Ry(0.2) ├┤ Circuit57(θ[1]) ├┤1                 ├┤ Circuit62(θ[4]) ├
-                 └─────────┘└─────────────────┘└──────────────────┘└─────────────────┘
-            >>> transpile(qc, basis_gates=['cry', 'rz', 'rxx', 'ryy']).draw()
-                            ┌──────────┐┌────────────┐┌────────────┐┌──────────┐
-            q_0: ─────■─────┤ Rz(θ[0]) ├┤0           ├┤0           ├┤ Rz(θ[3]) ├
-                 ┌────┴────┐├──────────┤│  Rxx(θ[2]) ││  Ryy(θ[2]) │├──────────┤
-            q_1: ┤ Ry(0.2) ├┤ Rz(θ[1]) ├┤1           ├┤1           ├┤ Rz(θ[4]) ├
-                 └─────────┘└──────────┘└────────────┘└────────────┘└──────────┘
         """
 
         theta = Parameter('θ')

@@ -29,13 +29,11 @@ class FirstOrderExpansion(PauliExpansion):
     As a result the first order expansion will be a feature map without entangling gates.
     """
 
-    @deprecate_arguments({'depth': 'reps'})
     def __init__(self,
                  feature_dimension: int,
                  reps: int = 2,
                  data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  insert_barriers: bool = False,
-                 depth: Optional[int] = None  # pylint: disable=unused-argument
                  ) -> None:
         """Create a new first-order Pauli-Z expansion circuit.
 
@@ -46,7 +44,7 @@ class FirstOrderExpansion(PauliExpansion):
                 default mapping from :meth:`self_product`.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
-            depth: Deprecated, use ``reps`` instead.
+
         """
         super().__init__(feature_dimension=feature_dimension,
                          paulis=['Z'],

@@ -16,22 +16,18 @@
 
 from typing import Callable, List, Union, Optional
 import numpy as np
-from qiskit.util import deprecate_arguments
 from .pauli_expansion import PauliExpansion
 
 
 class SecondOrderExpansion(PauliExpansion):
     """Second-order Pauli-Z expansion circuit."""
 
-    @deprecate_arguments({'entangler_map': 'entanglement'})
     def __init__(self,
                  feature_dimension: int,
                  reps: int = 2,
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  data_map_func: Optional[Callable[[np.ndarray], float]] = None,
                  insert_barriers: bool = False,
-                 entangler_map: Optional[List[List[int]]] = None,  # pylint:disable=unused-argument
-                 depth: Optional[int] = None,  # pylint:disable=unused-argument
                  ) -> None:
         """Create a new second-order Pauli-Z expansion.
 
@@ -43,8 +39,7 @@ class SecondOrderExpansion(PauliExpansion):
             data_map_func: A mapping function for data x.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
-            depth: Deprecated, use ``reps`` instead.
-            entangler_map: Deprecated, use ``entanglement`` instead.
+
         """
         super().__init__(feature_dimension=feature_dimension,
                          reps=reps,

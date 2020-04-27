@@ -19,7 +19,6 @@ from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.extensions.standard import RYGate, RZGate, CZGate
-from qiskit.util import deprecate_arguments
 from .two_local import TwoLocal
 
 
@@ -41,11 +40,34 @@ class RYRZ(TwoLocal):
 
     See :class:`~qiskit.circuit.library.RY` for more detail on the possible arguments and options
     such as skipping unentanglement qubits, which apply here too.
+
+    Examples:
+
+        >>> ryrz = RYRZ(3, reps=1)  # create the variational form on 3 qubits
+        >>> print(ryrz)  # show the circuit
+             ┌──────────┐┌──────────┐      ┌──────────┐┌──────────┐
+        q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─■──■─┤ Ry(θ[6]) ├┤ Rz(θ[9]) ├─────────────
+             ├──────────┤├──────────┤ │  │ └──────────┘├──────────┤┌───────────┐
+        q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─■──┼──────■──────┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
+             ├──────────┤├──────────┤    │      │      ├──────────┤├───────────┤
+        q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├────■──────■──────┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
+             └──────────┘└──────────┘                  └──────────┘└───────────┘
+
+        >>> ryrz = RYRZ(4, entanglement='circular', reps=1)
+        >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
+        >>> qc += ryrz.to_circuit()
+        >>> qc.decompose().draw()
+             ┌──────────┐┌──────────┐      ┌──────────┐┌───────────┐
+        q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[4]) ├─■──■─┤ Ry(θ[8]) ├┤ Rz(θ[12]) ├──────────────────────────
+             ├──────────┤├──────────┤ │  │ └──────────┘└┬──────────┤┌───────────┐
+        q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[5]) ├─┼──■──────■───────┤ Ry(θ[9]) ├┤ Rz(θ[13]) ├─────────────
+             ├──────────┤├──────────┤ │         │       └──────────┘├───────────┤┌───────────┐
+        q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[6]) ├─┼─────────■────────────■──────┤ Ry(θ[10]) ├┤ Rz(θ[14]) ├
+             ├──────────┤├──────────┤ │                      │      ├───────────┤├───────────┤
+        q_3: ┤ Ry(θ[3]) ├┤ Rz(θ[7]) ├─■──────────────────────■──────┤ Ry(θ[11]) ├┤ Rz(θ[15]) ├
+             └──────────┘└──────────┘                               └───────────┘└───────────┘
     """
 
-    @deprecate_arguments({'depth': 'reps',
-                          'entangler_map': 'entanglement',
-                          'entanglement_gate': 'entanglement_blocks'})
     def __init__(self,
                  num_qubits: Optional[int] = None,
                  entanglement_blocks: Union[
@@ -59,9 +81,6 @@ class RYRZ(TwoLocal):
                  parameter_prefix: str = 'θ',
                  insert_barriers: bool = False,
                  initial_state: Optional[Any] = None,
-                 depth: Optional[int] = None,  # pylint: disable=unused-argument
-                 entangler_map: Optional[List[List[int]]] = None,  # pylint: disable=unused-argument
-                 entanglement_gate: Optional[str] = None,  # pylint: disable=unused-argument
                  ) -> None:
         """Create a new RYRZ 2-local circuit.
 
@@ -85,41 +104,13 @@ class RYRZ(TwoLocal):
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
-            skip_final_rotation_layer: If True, a rotation layer is added at the end of the
-                ansatz. If False, no rotation layer is added. Defaults to True.
+            skip_final_rotation_layer: If False, a rotation layer is added at the end of the
+                ansatz. If True, no rotation layer is added.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
-            depth: Deprecated, use `reps` instead.
-            entangler_map: Deprecated, use `entanglement` instead. This argument now also supports
-                entangler maps.
-            entanglement_gate: Deprecated, use `entanglement_blocks` instead.
 
-        Examples:
-            >>> ryrz = RYRZ(3, reps=1)  # create the variational form on 3 qubits
-            >>> print(ryrz)  # show the circuit
-                 ┌──────────┐┌──────────┐      ┌──────────┐┌──────────┐
-            q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─■──■─┤ Ry(θ[6]) ├┤ Rz(θ[9]) ├─────────────
-                 ├──────────┤├──────────┤ │  │ └──────────┘├──────────┤┌───────────┐
-            q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─■──┼──────■──────┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
-                 ├──────────┤├──────────┤    │      │      ├──────────┤├───────────┤
-            q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├────■──────■──────┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
-                 └──────────┘└──────────┘                  └──────────┘└───────────┘
-
-            >>> ryrz = RYRZ(4, entanglement='circular', reps=1)
-            >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
-            >>> qc += ryrz.to_circuit()
-            >>> qc.decompose().draw()
-                 ┌──────────┐┌──────────┐      ┌──────────┐┌───────────┐
-            q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[4]) ├─■──■─┤ Ry(θ[8]) ├┤ Rz(θ[12]) ├──────────────────────────
-                 ├──────────┤├──────────┤ │  │ └──────────┘└┬──────────┤┌───────────┐
-            q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[5]) ├─┼──■──────■───────┤ Ry(θ[9]) ├┤ Rz(θ[13]) ├─────────────
-                 ├──────────┤├──────────┤ │         │       └──────────┘├───────────┤┌───────────┐
-            q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[6]) ├─┼─────────■────────────■──────┤ Ry(θ[10]) ├┤ Rz(θ[14]) ├
-                 ├──────────┤├──────────┤ │                      │      ├───────────┤├───────────┤
-            q_3: ┤ Ry(θ[3]) ├┤ Rz(θ[7]) ├─■──────────────────────■──────┤ Ry(θ[11]) ├┤ Rz(θ[15]) ├
-                 └──────────┘└──────────┘                               └───────────┘└───────────┘
         """
         super().__init__(num_qubits=num_qubits,
                          rotation_blocks=[RYGate, RZGate],

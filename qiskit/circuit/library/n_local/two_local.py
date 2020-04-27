@@ -101,8 +101,8 @@ class TwoLocal(NLocal):
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
-            skip_final_rotation_layer: If True, a rotation layer is added at the end of the
-                ansatz. If False, no rotation layer is added. Defaults to True.
+            skip_final_rotation_layer: If False, a rotation layer is added at the end of the
+                ansatz. If True, no rotation layer is added.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which
                 we use instances of `qiskit.circuit.Parameter`. The name of each parameter will
                 be this specified prefix plus its index.
