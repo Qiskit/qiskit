@@ -35,16 +35,6 @@ class AND(QuantumCircuit):
 
     The AND gate without special flags equals the multi-controlled-X gate:
 
-        if pattern is not None:
-            if sorted(pattern) != list(range(num_qubits)):
-                raise CircuitError("Permutation pattern must be some "
-                                   "ordering of 0..num_qubits-1 in a list.")
-            pattern = np.array(pattern)
-        else:
-            rng = np.random.default_rng(seed)
-            pattern = np.arange(num_qubits)
-            rng.shuffle(pattern)
-
     .. jupyter-execute::
         :hide-code:
 
