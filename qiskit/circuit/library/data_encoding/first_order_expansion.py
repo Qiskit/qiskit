@@ -21,10 +21,57 @@ from .pauli_expansion import PauliExpansion
 
 
 class FirstOrderExpansion(PauliExpansion):
-    """First Order Expansion feature map.
+    """The first order Pauli Z-evolution circuit.
 
-    This is a sub-class of :class:`PauliZExpansion` where *z_order* is fixed at 1.
-    As a result the first order expansion will be a feature map without entangling gates.
+    On 3 qubits and with 2 repetitions the circuit is represented by:
+
+    .. parsed-literal::
+
+        ┌───┐┌──────────────┐┌───┐┌──────────────┐
+        ┤ H ├┤ U1(2.0*x[0]) ├┤ H ├┤ U1(2.0*x[0]) ├
+        ├───┤├──────────────┤├───┤├──────────────┤
+        ┤ H ├┤ U1(2.0*x[1]) ├┤ H ├┤ U1(2.0*x[1]) ├
+        ├───┤├──────────────┤├───┤├──────────────┤
+        ┤ H ├┤ U1(2.0*x[2]) ├┤ H ├┤ U1(2.0*x[2]) ├
+        └───┘└──────────────┘└───┘└──────────────┘
+
+    This is a sub-class of :class:`~qiskit.circuit.library.PauliExpansion` where the Pauli
+    strings are fixed as `['Z']`. As a result the first order expansion will be a circuit without
+    entangling gates.
+
+    Examples:
+
+        >>> prep = FirstOrderExpansion(3, reps=3, insert_barriers=True)
+        >>> print(prep)
+             ┌───┐ ░ ┌──────────────┐ ░ ┌───┐ ░ ┌──────────────┐ ░ ┌───┐ ░ ┌──────────────┐
+        q_0: ┤ H ├─░─┤ U1(2.0*x[0]) ├─░─┤ H ├─░─┤ U1(2.0*x[0]) ├─░─┤ H ├─░─┤ U1(2.0*x[0]) ├
+             ├───┤ ░ ├──────────────┤ ░ ├───┤ ░ ├──────────────┤ ░ ├───┤ ░ ├──────────────┤
+        q_1: ┤ H ├─░─┤ U1(2.0*x[1]) ├─░─┤ H ├─░─┤ U1(2.0*x[1]) ├─░─┤ H ├─░─┤ U1(2.0*x[1]) ├
+             ├───┤ ░ ├──────────────┤ ░ ├───┤ ░ ├──────────────┤ ░ ├───┤ ░ ├──────────────┤
+        q_2: ┤ H ├─░─┤ U1(2.0*x[2]) ├─░─┤ H ├─░─┤ U1(2.0*x[2]) ├─░─┤ H ├─░─┤ U1(2.0*x[2]) ├
+             └───┘ ░ └──────────────┘ ░ └───┘ ░ └──────────────┘ ░ └───┘ ░ └──────────────┘
+
+        >>> data_map = lambda x: x[0]*x[0] + 1  # note: input is an array
+        >>> prep = FirstOrderExpansion(3, reps=1, data_map_func=data_map)
+        >>> print(prep)
+             ┌───┐┌───────────────────────┐
+        q_0: ┤ H ├┤ U1(2.0*x[0]**2 + 2.0) ├
+             ├───┤├───────────────────────┤
+        q_1: ┤ H ├┤ U1(2.0*x[1]**2 + 2.0) ├
+             ├───┤├───────────────────────┤
+        q_2: ┤ H ├┤ U1(2.0*x[2]**2 + 2.0) ├
+             └───┘└───────────────────────┘
+
+        >>> classifier = FirstOrderExpansion(3, reps=1) + RY(3, reps=1)
+        >>> print(classifier)
+             ┌───┐┌──────────────┐┌──────────┐      ┌──────────┐
+        q_0: ┤ H ├┤ U1(2.0*x[0]) ├┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├────────────
+             ├───┤├──────────────┤├──────────┤ │  │ └──────────┘┌──────────┐
+        q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ RY(θ[1]) ├─■──┼──────■──────┤ RY(θ[4]) ├
+             ├───┤├──────────────┤├──────────┤    │      │      ├──────────┤
+        q_2: ┤ H ├┤ U1(2.0*x[2]) ├┤ RY(θ[2]) ├────■──────■──────┤ RY(θ[5]) ├
+             └───┘└──────────────┘└──────────┘                  └──────────┘
+
     """
 
     def __init__(self,

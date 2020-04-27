@@ -48,9 +48,56 @@ class PauliExpansion(NLocal):
             x_0 \text{ if } k = 1 \\
             \prod_{j \in S} (\pi - x_j)
 
+    For example, if the Pauli strings are chosen to be :math:`P_0 = Z` and :math:`P_{0,1} = YY` on
+    2 qubits and with 1 repetition using the default data-mapping, the Pauli evolution feature map
+    is represented by:
+
+    .. parsed-literal::
+
+        ┌───┐┌──────────────┐┌──────────┐                                             ┌───────────┐
+        ┤ H ├┤ U1(2.0*x[0]) ├┤ RX(pi/2) ├──■───────────────────────────────────────■──┤ RX(-pi/2) ├
+        ├───┤├──────────────┤├──────────┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐├───────────┤
+        ┤ H ├┤ U1(2.0*x[1]) ├┤ RX(pi/2) ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ RX(-pi/2) ├
+        └───┘└──────────────┘└──────────┘└───┘└─────────────────────────────────┘└───┘└───────────┘
+
     Please refer to :class:`FirstOrderExpansion` for the case :math:`k = 1`, :math:`P_0 = Z`
     and to :class:`SecondOrderExpansion` for the case :math:`k = 2`, :math:`P_0 = Z` and
-    :math:`P_1 P_0 = ZZ`.
+    :math:`P_{0,1} = ZZ`.
+
+    Examples:
+
+        >>> prep = PauliExpansion(2, reps=1, paulis=['ZZ'])
+        >>> print(prep)
+             ┌───┐
+        q_0: ┤ H ├──■───────────────────────────────────────■──
+             ├───┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐
+        q_1: ┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
+             └───┘└───┘└─────────────────────────────────┘└───┘
+
+        >>> prep = PauliExpansion(2, reps=1, paulis=['Z', 'XX'])
+        >>> print(prep)
+             ┌───┐┌──────────────┐┌───┐                                             ┌───┐
+        q_0: ┤ H ├┤ U1(2.0*x[0]) ├┤ H ├──■───────────────────────────────────────■──┤ H ├
+             ├───┤├──────────────┤├───┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐├───┤
+        q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ H ├
+             └───┘└──────────────┘└───┘└───┘└─────────────────────────────────┘└───┘└───┘
+
+        >>> prep = PauliExpansion(2, reps=1, paulis=['ZY'])
+        >>> print(prep)
+             ┌───┐┌──────────┐                                             ┌───────────┐
+        q_0: ┤ H ├┤ RX(pi/2) ├──■───────────────────────────────────────■──┤ RX(-pi/2) ├
+             ├───┤└──────────┘┌─┴─┐┌─────────────────────────────────┐┌─┴─┐└───────────┘
+        q_1: ┤ H ├────────────┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
+             └───┘            └───┘└─────────────────────────────────┘└───┘
+
+        >>> from qiskit.circuit.library import RYRZ
+        >>> prep = PauliExpansion(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
+        >>> wavefunction = RYRZ(3, entanglement_blocks='cx')
+        >>> classifier = prep.compose(wavefunction
+        >>> classifier.num_parameters
+        27
+        >>> classifier.count_ops()
+        OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
 
     References:
         [1]: Havlicek et al. (2018), Supervised learning with quantum enhanced feature spaces.
