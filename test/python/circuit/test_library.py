@@ -133,7 +133,9 @@ class TestPermutationLibrary(QiskitTestCase):
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
-        self.assertEqual(circuit, expected)
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
 
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
@@ -145,7 +147,7 @@ class TestIQPLibrary(QiskitTestCase):
 
     def test_iqp(self):
         """Test iqp circuit."""
-        circuit = IQPCircuit(interactions=np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]]))
+        circuit = IQP(interactions=np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]]))
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
         expected.cu1(5*np.pi/2, 0, 1)
@@ -161,7 +163,7 @@ class TestIQPLibrary(QiskitTestCase):
 
     def test_iqp_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
-        self.assertRaises(CircuitError, IQPCircuit, [[6, 5], [2, 4]])
+        self.assertRaises(CircuitError, IQP, [[6, 5], [2, 4]])
 
 
 @ddt
