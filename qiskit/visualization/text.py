@@ -738,8 +738,8 @@ class TextDrawing():
         if controlled:
             if getattr(instruction.op.base_gate, 'label', None) is not None:
                 return instruction.op.base_gate.label
-            label = TextDrawing.special_label(instruction.op.base_gate) or \
-                    instruction.op.base_gate.name.upper()
+            label = TextDrawing.special_label(
+                instruction.op.base_gate) or instruction.op.base_gate.name.upper()
         else:
             if getattr(instruction.op, 'label', None) is not None:
                 return instruction.op.label
