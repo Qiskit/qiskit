@@ -26,7 +26,7 @@ from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.extensions import IGate, UnitaryGate, HamiltonianGate, RZZGate, SwapGate, Snapshot
 from qiskit.extensions import Barrier as BarrierInstruction
 from qiskit.extensions.quantum_initializer.initializer import Initialize
-from ..circuit.tools.pi_check import pi_check
+from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
 
