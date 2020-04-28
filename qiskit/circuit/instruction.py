@@ -50,7 +50,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, label=None):
+    def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
 
         Args:
@@ -59,7 +59,7 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            label (str): An optional label for the instruction.
+
         Raises:
             CircuitError: when the register is not in the correct format.
         """
@@ -70,7 +70,6 @@ class Instruction:
                 "bad instruction dimensions: %d qubits, %d clbits." %
                 num_qubits, num_clbits)
         self.name = name
-        self.label = label
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
 
