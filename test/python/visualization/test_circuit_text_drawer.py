@@ -1760,6 +1760,26 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_all_2q_2c_cregbundle(self):
+        """ Test q0-q1-c0-c1 in q0-q1-c0-c1. Ignore cregbundle=True"""
+        expected = '\n'.join(["         ┌───────┐",
+                              "qr_0: |0>┤0      ├",
+                              "         │       │",
+                              "qr_1: |0>┤1      ├",
+                              "         │  name │",
+                              " cr_0: 0 ╡0      ╞",
+                              "         │       │",
+                              " cr_1: 0 ╡1      ╞",
+                              "         └───────┘"])
+
+        qr2 = QuantumRegister(2, 'qr')
+        cr2 = ClassicalRegister(2, 'cr')
+        inst = QuantumCircuit(qr2, cr2, name='name').to_instruction()
+        circuit = QuantumCircuit(qr2, cr2)
+        circuit.append(inst, qr2[:], cr2[:])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
     def test_text_4q_2c(self):
         """ Test q1-q2-q3-q4-c1-c2 in q0-q1-q2-q3-q4-q5-c0-c1-c2-c3-c4-c5"""
         expected = '\n'.join(["                 ",

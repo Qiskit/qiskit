@@ -30,6 +30,10 @@ from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
 
+class TextDrawerCregBundle(VisualizationError):
+    pass
+
+
 class DrawElement():
     """ An element is an instruction or an operation that need to be drawn."""
 
@@ -991,6 +995,8 @@ class TextDrawing():
         elif instruction.qargs and instruction.cargs:
             # multiple gate, involving both qargs AND cargs
             label = TextDrawing.label_for_box(instruction)
+            if self.cregbundle and instruction.cargs:
+                raise TextDrawerCregBundle('TODO')
             layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
                                 conditional=conditional)
         else:
