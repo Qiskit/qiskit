@@ -148,6 +148,31 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+
+
+N-local circuits
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NLocal
+   TwoLocal
+   RY
+   RYRZ
+   SwapRZ
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliExpansion
+   FirstOrderExpansion
+   SecondOrderExpansion
+
 """
 
 from .standard_gates import *
@@ -174,4 +199,16 @@ from .arithmetic import (
     WeightedAdder,
 )
 from .fourier_checking import FourierChecking
+from .n_local import (
+    NLocal,
+    TwoLocal,
+    RY,
+    RYRZ,
+    SwapRZ,
+)
+from .data_encoding import (
+    PauliExpansion,
+    FirstOrderExpansion,
+    SecondOrderExpansion
+)
 from .quantum_volume import QuantumVolume
