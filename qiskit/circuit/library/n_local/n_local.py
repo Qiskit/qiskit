@@ -19,7 +19,7 @@ from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 
 import numpy
-from qiskit import QuantumCircuit, transpile, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
 
@@ -914,6 +914,7 @@ class NLocal(BlueprintCircuit):
         Returns:
             A single string representing this NLocal.
         """
+        from qiskit.compiler import transpile
         basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
                        'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
