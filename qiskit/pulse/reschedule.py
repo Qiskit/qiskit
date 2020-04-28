@@ -12,10 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Deprecated transforms. Moved to "qiskit.pulse.transforms"."""
+"""Deprecated import path. Use `pulse.transforms` instead."""
 import warnings
-# pylint: disable=unused-import
-from .transforms import align_measures, add_implicit_acquires, pad
 
-warnings.warn('This module has been moved to "qiskit.pulse.transforms".',
-              DeprecationWarning)
+# pylint: disable=unused-import
+from .transforms import align_measures, add_implicit_acquires, pad, compress_pulses
+
+
+warnings.warn("The reschedule module has been renamed to transforms. This import path "
+              "is deprecated.")

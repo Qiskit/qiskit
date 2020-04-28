@@ -804,7 +804,7 @@ class TestBuilderComposition(TestBuilder):
                                            meas_map=self.configuration.meas_map)
         reference = pulse.Schedule()
         reference += outer_reference
-        # Insert so that the long pulse on d2 ocurrs as early as possible
+        # Insert so that the long pulse on d2 occurs as early as possible
         # without an overval on d1.
         insert_time = (reference.ch_stop_time(d1) -
                        align_right_reference.ch_start_time(d1))

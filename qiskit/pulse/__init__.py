@@ -60,7 +60,7 @@ Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
 
    ~qiskit.pulse.pulse_lib.discrete
    SamplePulse
-   ConstantPulse
+   Constant
    Drag
    Gaussian
    GaussianSquare
@@ -120,10 +120,11 @@ Configuration
 
    InstructionScheduleMap
 
-Pulse Program Transformations
-=============================
+Schedule Transforms
+===================
 
-These utilities return modified :class:`~qiskit.pulse.Schedule` s.
+These functions take :class:`~qiskit.pulse.Schedule` s as input and return modified
+:class:`~qiskit.pulse.Schedule` s.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -152,6 +153,6 @@ from .instructions import (Acquire, Instruction, Delay, Play, ShiftPhase,
                            Snapshot, SetFrequency)
 from .interfaces import ScheduleComponent
 from .pulse_lib import (SamplePulse, Gaussian, GaussianSquare, Drag,
-                        ConstantPulse, ParametricPulse)
+                        Constant, ConstantPulse, ParametricPulse)
 from .pulse_lib.samplers.decorators import functional_pulse
 from .schedule import Schedule

@@ -137,7 +137,7 @@ import qiskit.circuit as circuit
 import qiskit.pulse.channels as channels
 import qiskit.pulse.configuration as configuration
 import qiskit.pulse.exceptions as exceptions
-import qiskit.pulse.instructions as instructions
+from qiskit.pulse import instructions
 import qiskit.pulse.instructions.directives as directives
 import qiskit.pulse.macros as macros
 import qiskit.pulse.pulse_lib as pulse_lib

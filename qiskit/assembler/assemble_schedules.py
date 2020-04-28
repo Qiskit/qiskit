@@ -19,6 +19,7 @@ import hashlib
 
 import qiskit.pulse as pulse
 import qiskit.pulse.instructions as instructions
+import qiskit.pulse.transforms as transforms
 import qiskit.pulse.pulse_lib as pulse_lib
 import qiskit.pulse.commands as commands
 import qiskit.qobj as qobj
@@ -98,10 +99,11 @@ def _assemble_experiments(
                                     converters.InstructionToQobjConverter)
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
+    compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
     experiments = []
-    for idx, schedule in enumerate(schedules):
+    for idx, schedule in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
             schedule,
             instruction_converter,

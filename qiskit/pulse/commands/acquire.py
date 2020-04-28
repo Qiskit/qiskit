@@ -23,8 +23,8 @@ from ..exceptions import PulseError
 
 # pylint: disable=unused-import
 
-from ..instructions import Acquire
-from ..instructions import Instruction
+from qiskit.pulse.instructions import Acquire
+from qiskit.pulse.instructions import Instruction
 
 
 class AcquireInstruction(Instruction):
