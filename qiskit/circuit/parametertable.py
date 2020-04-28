@@ -54,3 +54,6 @@ class ParameterTable(MutableMapping):
 
     def __len__(self):
         return len(self._table)
+
+    def __repr__(self):
+        return 'ParameterTable({0})'.format(repr(self._table))

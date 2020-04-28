@@ -49,7 +49,7 @@ class TestEquivalence(ChannelTestCase):
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
                 sop2 = self.rand_matrix(dim * dim, dim * dim)
             targ = SuperOp(sop1 + sop2)
-            channel = SuperOp(rep(SuperOp(sop1)).add(rep(SuperOp(sop2))))
+            channel = SuperOp(rep(SuperOp(sop1))._add(rep(SuperOp(sop2))))
             self.assertEqual(channel, targ)
 
     def _compare_subtract_to_superop(self, rep, dim, samples, unitary=False):
@@ -64,7 +64,7 @@ class TestEquivalence(ChannelTestCase):
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
                 sop2 = self.rand_matrix(dim * dim, dim * dim)
             targ = SuperOp(sop1 - sop2)
-            channel = SuperOp(rep(SuperOp(sop1)).subtract(rep(SuperOp(sop2))))
+            channel = SuperOp(rep(SuperOp(sop1))._add(rep(-SuperOp(sop2))))
             self.assertEqual(channel, targ)
 
     def _compare_multiply_to_superop(self, rep, dim, samples, unitary=False):
@@ -77,7 +77,7 @@ class TestEquivalence(ChannelTestCase):
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
             val = 0.7
             targ = SuperOp(val * sop1)
-            channel = SuperOp(rep(SuperOp(sop1)).multiply(val))
+            channel = SuperOp(rep(SuperOp(sop1))._multiply(val))
             self.assertEqual(channel, targ)
 
     def _compare_negate_to_superop(self, rep, dim, samples, unitary=False):
@@ -97,14 +97,14 @@ class TestEquivalence(ChannelTestCase):
         current_rep = chan.__class__
         other_reps = [Operator, Choi, SuperOp, Kraus, Stinespring, Chi, PTM]
         for rep in other_reps:
-            self.assertEqual(current_rep, chan.add(rep(chan)).__class__)
+            self.assertEqual(current_rep, chan._add(rep(chan)).__class__)
 
     def _check_subtract_other_reps(self, chan):
         """Check subtraction works for other representations"""
         current_rep = chan.__class__
         other_reps = [Operator, Choi, SuperOp, Kraus, Stinespring, Chi, PTM]
         for rep in other_reps:
-            self.assertEqual(current_rep, chan.subtract(rep(chan)).__class__)
+            self.assertEqual(current_rep, chan._add(-rep(chan)).__class__)
 
     def test_choi_add(self):
         """Test addition of Choi matrices is correct."""

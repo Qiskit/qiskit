@@ -25,6 +25,22 @@ from qiskit.test import QiskitTestCase
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
+    def test_adding_self(self):
+        """Test that qc += qc finishes, which can be prone to infinite while-loops.
+
+        This can occur e.g. when a user tries
+        >>> other_qc = qc
+        >>> other_qc += qc  # or qc2.extend(qc)
+        """
+        qc = QuantumCircuit(1)
+        qc.x(0)  # must contain at least one operation to end up in a infinite while-loop
+
+        # attempt addition, times out if qc is added via reference
+        qc += qc
+
+        # finally, qc should contain two X gates
+        self.assertEqual(['x', 'x'], [x[0].name for x in qc.data])
+
     def test_combine_circuit_common(self):
         """Test combining two circuits with same registers.
         """
@@ -158,6 +174,20 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc, qc.copy())
 
+    def test_copy_copies_registers(self):
+        """Test copy copies the registers not via reference."""
+        qc = QuantumCircuit(1, 1)
+        copied = qc.copy()
+
+        copied.add_register(QuantumRegister(1, 'additional_q'))
+        copied.add_register(ClassicalRegister(1, 'additional_c'))
+
+        self.assertEqual(len(qc.qregs), 1)
+        self.assertEqual(len(copied.qregs), 2)
+
+        self.assertEqual(len(qc.cregs), 1)
+        self.assertEqual(len(copied.cregs), 2)
+
     def test_measure_active(self):
         """Test measure_active
         Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
@@ -180,6 +210,29 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_active_copy(self):
+        """Test measure_active copy
+        Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
+        the amount of non-idle qubits to store the measured values.
+        """
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(2, 'measure')
+
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[2])
+        new_circuit = circuit.measure_active(inplace=False)
+
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[2])
+        expected.add_register(cr)
+        expected.barrier()
+        expected.measure([qr[0], qr[2]], [cr[0], cr[1]])
+
+        self.assertEqual(expected, new_circuit)
+        self.assertFalse('measure' in circuit.count_ops().keys())
+
     def test_measure_active_repetition(self):
         """Test measure_active in a circuit with a 'measure' creg.
         measure_active should be aware that the creg 'measure' might exists.
@@ -201,7 +254,7 @@ class TestCircuitOperations(QiskitTestCase):
         store those measured values.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         circuit.measure_all()
@@ -211,6 +264,22 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr)
 
         self.assertEqual(expected, circuit)
+
+    def test_measure_all_copy(self):
+        """Test measure_all with inplace=False
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'meas')
+
+        circuit = QuantumCircuit(qr)
+        new_circuit = circuit.measure_all(inplace=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, new_circuit)
+        self.assertFalse('measure' in circuit.count_ops().keys())
 
     def test_measure_all_repetition(self):
         """Test measure_all in a circuit with a 'measure' creg.
@@ -231,7 +300,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -240,6 +309,22 @@ class TestCircuitOperations(QiskitTestCase):
         expected = QuantumCircuit(qr)
 
         self.assertEqual(expected, circuit)
+
+    def test_remove_final_measurements_copy(self):
+        """Test remove_final_measurements on copy
+        Removes all measurements at end of circuit.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'meas')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        new_circuit = circuit.remove_final_measurements(inplace=False)
+
+        expected = QuantumCircuit(qr)
+
+        self.assertEqual(expected, new_circuit)
+        self.assertTrue('measure' in circuit.count_ops().keys())
 
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit

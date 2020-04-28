@@ -318,11 +318,8 @@ class QasmSimulatorPy(BaseBackend):
                                        self._number_of_qubits * [2])
 
     def _get_statevector(self):
-        """Return the current statevector in JSON Result spec format"""
+        """Return the current statevector"""
         vec = np.reshape(self._statevector, 2 ** self._number_of_qubits)
-        # Expand complex numbers
-        vec = np.stack([vec.real, vec.imag], axis=1)
-        # Truncate small values
         vec[abs(vec) < self._chop_threshold] = 0.0
         return vec
 

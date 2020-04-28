@@ -13,53 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-ry gate.
+Controlled-ry gate.
 """
-from qiskit.circuit import ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U3Gate
-from qiskit.extensions.standard.cx import CnotGate
-from qiskit.extensions.standard.ry import RYGate
+import warnings
+from qiskit.circuit.library.standard_gates.ry import CryGate
 
+warnings.warn('This module is deprecated.',
+              category=DeprecationWarning, stacklevel=2)
 
-class CryGate(ControlledGate):
-    """controlled-ry gate."""
-
-    def __init__(self, theta):
-        """Create new cry gate."""
-        super().__init__("cry", 2, [theta], num_ctrl_qubits=1)
-        self.base_gate = RYGate
-        self.base_gate_name = "ry"
-
-    def _define(self):
-        """
-        gate cry(lambda) a,b
-        { u3(lambda/2,0,0) b; cx a,b;
-          u3(-lambda/2,0,0) b; cx a,b;
-        }
-
-        """
-        definition = []
-        q = QuantumRegister(2, "q")
-        rule = [
-            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
-
-    def inverse(self):
-        """Invert this gate."""
-        return CryGate(-self.params[0])
-
-
-def cry(self, theta, ctl, tgt):
-    """Apply cry from ctl to tgt with angle theta."""
-    return self.append(CryGate(theta), [ctl, tgt], [])
-
-
-QuantumCircuit.cry = cry
+__all__ = ['CryGate']
