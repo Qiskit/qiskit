@@ -21,7 +21,7 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
+from qiskit.pulse import (Acquire, AcquireInstruction, Delay, Play,
                           InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
@@ -203,3 +203,36 @@ def pad(schedule: Schedule,
             schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
 
     return schedule
+
+
+def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
+    """Optimization pass to replace identical pulses.
+
+    Args:
+        schedules (list): Schedules to compress.
+
+    Returns:
+        Compressed schedules.
+    """
+
+    existing_pulses = []
+    new_schedules = []
+
+    for schedule in schedules:
+        new_schedule = Schedule(name=schedule.name)
+
+        for time, inst in schedule.instructions:
+            if isinstance(inst, Play):
+                if inst.pulse in existing_pulses:
+                    idx = existing_pulses.index(inst.pulse)
+                    identical_pulse = existing_pulses[idx]
+                    new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
+                else:
+                    existing_pulses.append(inst.pulse)
+                    new_schedule |= inst << time
+            else:
+                new_schedule |= inst << time
+
+        new_schedules.append(new_schedule)
+
+    return new_schedules
