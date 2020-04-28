@@ -461,7 +461,7 @@ class C3XGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
-    def __init__(self, angle=numpy.pi/4, label=None, ctrl_state=None):
+    def __init__(self, angle=None, label=None, ctrl_state=None):
         """Create a new 3-qubit controlled X gate.
 
         Args:
@@ -471,6 +471,12 @@ class C3XGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
+        if angle is not None:
+            import warnings
+            warnings.warn('The parameter C3XGate(angle=...) is going to be removed in the future.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            angle = numpy.pi / 4
         super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
         self.base_gate = XGate()
         self._angle = angle
