@@ -82,6 +82,8 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   MCMT
+   MCMTVChain
    Permutation
 
 Boolean Logic Circuits
@@ -183,8 +185,12 @@ from ..measure import Measure
 from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
-from .generalized_gates import Diagonal
-from .generalized_gates import Permutation
+from .generalized_gates import (
+    Diagonal,
+    MCMT,
+    MCMTVChain,
+    Permutation
+)
 from .boolean_logic import (
     AND,
     OR,
