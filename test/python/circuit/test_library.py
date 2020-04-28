@@ -27,9 +27,9 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
-                                    SwapRZ, PauliEvolutionFeatureMap, ZEvolutionFeatureMap,
-                                    ZZEvolutionFeatureMap)
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZAnsatz,
+                                    SwapRZ, PauliFeatureMap, ZFeatureMap,
+                                    ZZFeatureMap)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
@@ -1303,8 +1303,8 @@ class TestTwoLocal(QiskitTestCase):
         self.assertCircuitEqual(library, expected)
 
     def test_ryrz_blocks(self):
-        """Test that the RYRZ circuit is instantiated correctly."""
-        two = RYRZ(3)
+        """Test that the RYRZAnsatz circuit is instantiated correctly."""
+        two = RYRZAnsatz(3)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 2)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1315,7 +1315,7 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_ryrz_circuit(self):
-        """Test an RYRZ circuit."""
+        """Test an RYRZAnsatz circuit."""
         num_qubits = 3
         reps = 2
         entanglement = 'circular'
@@ -1337,8 +1337,8 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
-        library = RYRZ(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                       entanglement=entanglement).assign_parameters(parameters)
+        library = RYRZAnsatz(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
+                             entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
@@ -1393,7 +1393,7 @@ class TestDataEncoding(QiskitTestCase):
 
     def test_pauli_empty(self):
         """Test instantiating an empty Pauli expansion."""
-        encoding = PauliEvolutionFeatureMap()
+        encoding = PauliFeatureMap()
 
         with self.subTest(msg='equal to empty circuit'):
             self.assertTrue(Operator(encoding).equiv(QuantumCircuit()))
@@ -1406,13 +1406,13 @@ class TestDataEncoding(QiskitTestCase):
     @unpack
     def test_num_parameters(self, num_qubits, reps, pauli_strings):
         """Test the number of parameters equals the number of qubits, independent of reps."""
-        encoding = PauliEvolutionFeatureMap(num_qubits, paulis=pauli_strings, reps=reps)
+        encoding = PauliFeatureMap(num_qubits, paulis=pauli_strings, reps=reps)
         self.assertEqual(encoding.num_parameters, num_qubits)
         self.assertEqual(encoding.num_parameters_settable, num_qubits)
 
     def test_pauli_evolution(self):
         """Test the generation of Pauli blocks."""
-        encoding = PauliEvolutionFeatureMap()
+        encoding = PauliFeatureMap()
         time = 1.4
         with self.subTest(pauli_string='ZZ'):
             evo = QuantumCircuit(2)
@@ -1447,7 +1447,7 @@ class TestDataEncoding(QiskitTestCase):
     def test_first_order_circuit(self):
         """Test a first order expansion circuit."""
         times = [0.2, 1, np.pi, -1.2]
-        encoding = ZEvolutionFeatureMap(4, reps=3).assign_parameters(times)
+        encoding = ZFeatureMap(4, reps=3).assign_parameters(times)
 
         ref = QuantumCircuit(4)
         for _ in range(3):
@@ -1460,7 +1460,7 @@ class TestDataEncoding(QiskitTestCase):
     def test_second_order_circuit(self):
         """Test a second order expansion circuit."""
         times = [0.2, 1, np.pi]
-        encoding = ZZEvolutionFeatureMap(3, reps=2).assign_parameters(times)
+        encoding = ZZFeatureMap(3, reps=2).assign_parameters(times)
 
         def zz_evolution(circuit, qubit1, qubit2):
             time = (np.pi - times[qubit1]) * (np.pi - times[qubit2])

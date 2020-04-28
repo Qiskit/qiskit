@@ -111,7 +111,7 @@ N-local circuits
    NLocal
    TwoLocal
    RY
-   RYRZ
+   RYRZAnsatz
    SwapRZ
 
 
@@ -121,9 +121,9 @@ Data encoding circuits
 .. autosummary::
    :toctree: ../stubs/
 
-   PauliEvolutionFeatureMap
-   ZEvolutionFeatureMap
-   ZZEvolutionFeatureMap
+   PauliFeatureMap
+   ZFeatureMap
+   ZZFeatureMap
 
 """
 
@@ -150,12 +150,12 @@ from .n_local import (
     NLocal,
     TwoLocal,
     RY,
-    RYRZ,
+    RYRZAnsatz,
     SwapRZ,
 )
 from .data_preparation import (
-    PauliEvolutionFeatureMap,
-    ZEvolutionFeatureMap,
-    ZZEvolutionFeatureMap
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap
 )
 from .quantum_volume import QuantumVolume

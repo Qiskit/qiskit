@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The RYRZ 2-local circuit."""
+"""The RYRZAnsatz 2-local circuit."""
 
 from typing import Union, Optional, List, Tuple, Callable, Any
 from numpy import pi
@@ -22,11 +22,12 @@ from qiskit.extensions.standard import RYGate, RZGate, CZGate
 from .two_local import TwoLocal
 
 
-class RYRZ(TwoLocal):
-    r"""The RYRZ 2-local circuit.
+class RYRZAnsatz(TwoLocal):
+    r"""The RYRZAnsatz 2-local circuit.
 
-    The RYRZ circuit consists of layers of :math:`Y` plus :math:`Z` rotations with entanglements.
-    It can be used to prepare trial wave functions for variational quantum algorithms.
+    The RYRZAnsatz circuit consists of layers of :math:`Y` plus :math:`Z` rotations with
+    entanglements. It can be used to prepare trial wave functions for variational quantum
+    algorithms.
 
     .. parsed-literal::
 
@@ -43,7 +44,7 @@ class RYRZ(TwoLocal):
 
     Examples:
 
-        >>> ryrz = RYRZ(3, reps=1)  # create the variational form on 3 qubits
+        >>> ryrz = RYRZAnsatz(3, reps=1)  # create the variational form on 3 qubits
         >>> print(ryrz)  # show the circuit
              ┌──────────┐┌──────────┐      ┌──────────┐┌──────────┐
         q_0: ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├─■──■─┤ RY(θ[6]) ├┤ RZ(θ[9]) ├─────────────
@@ -53,7 +54,7 @@ class RYRZ(TwoLocal):
         q_2: ┤ RY(θ[2]) ├┤ RZ(θ[5]) ├────■──────■──────┤ RY(θ[8]) ├┤ RZ(θ[11]) ├
              └──────────┘└──────────┘                  └──────────┘└───────────┘
 
-        >>> ryrz = RYRZ(4, entanglement='circular', reps=1)
+        >>> ryrz = RYRZAnsatz(4, entanglement='circular', reps=1)
         >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
         >>> qc += ryrz.to_circuit()
         >>> qc.decompose().draw()
@@ -82,10 +83,10 @@ class RYRZ(TwoLocal):
                  insert_barriers: bool = False,
                  initial_state: Optional[Any] = None,
                  ) -> None:
-        """Create a new RYRZ 2-local circuit.
+        """Create a new RYRZAnsatz 2-local circuit.
 
         Args:
-            num_qubits: The number of qubits of the RYRZ circuit.
+            num_qubits: The number of qubits of the RYRZAnsatz circuit.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
                 layer is repeated.
             entanglement_blocks: The gates used in the entanglement layer. Can be specified via the

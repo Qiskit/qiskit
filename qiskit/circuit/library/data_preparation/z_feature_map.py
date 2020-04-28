@@ -17,10 +17,10 @@
 from typing import Callable, Optional
 import numpy as np
 
-from .pauli_evolution_feature_map import PauliEvolutionFeatureMap
+from .pauli_feature_map import PauliFeatureMap
 
 
-class ZEvolutionFeatureMap(PauliEvolutionFeatureMap):
+class ZFeatureMap(PauliFeatureMap):
     """The first order Pauli Z-evolution circuit.
 
     On 3 qubits and with 2 repetitions the circuit is represented by:
@@ -35,13 +35,13 @@ class ZEvolutionFeatureMap(PauliEvolutionFeatureMap):
         ┤ H ├┤ U1(2.0*x[2]) ├┤ H ├┤ U1(2.0*x[2]) ├
         └───┘└──────────────┘└───┘└──────────────┘
 
-    This is a sub-class of :class:`~qiskit.circuit.library.PauliEvolutionFeatureMap` where the Pauli
+    This is a sub-class of :class:`~qiskit.circuit.library.PauliFeatureMap` where the Pauli
     strings are fixed as `['Z']`. As a result the first order expansion will be a circuit without
     entangling gates.
 
     Examples:
 
-        >>> prep = ZEvolutionFeatureMap(3, reps=3, insert_barriers=True)
+        >>> prep = ZFeatureMap(3, reps=3, insert_barriers=True)
         >>> print(prep)
              ┌───┐ ░ ┌──────────────┐ ░ ┌───┐ ░ ┌──────────────┐ ░ ┌───┐ ░ ┌──────────────┐
         q_0: ┤ H ├─░─┤ U1(2.0*x[0]) ├─░─┤ H ├─░─┤ U1(2.0*x[0]) ├─░─┤ H ├─░─┤ U1(2.0*x[0]) ├
@@ -52,7 +52,7 @@ class ZEvolutionFeatureMap(PauliEvolutionFeatureMap):
              └───┘ ░ └──────────────┘ ░ └───┘ ░ └──────────────┘ ░ └───┘ ░ └──────────────┘
 
         >>> data_map = lambda x: x[0]*x[0] + 1  # note: input is an array
-        >>> prep = ZEvolutionFeatureMap(3, reps=1, data_map_func=data_map)
+        >>> prep = ZFeatureMap(3, reps=1, data_map_func=data_map)
         >>> print(prep)
              ┌───┐┌───────────────────────┐
         q_0: ┤ H ├┤ U1(2.0*x[0]**2 + 2.0) ├
@@ -62,7 +62,7 @@ class ZEvolutionFeatureMap(PauliEvolutionFeatureMap):
         q_2: ┤ H ├┤ U1(2.0*x[2]**2 + 2.0) ├
              └───┘└───────────────────────┘
 
-        >>> classifier = ZEvolutionFeatureMap(3, reps=1) + RY(3, reps=1)
+        >>> classifier = ZFeatureMap(3, reps=1) + RY(3, reps=1)
         >>> print(classifier)
              ┌───┐┌──────────────┐┌──────────┐      ┌──────────┐
         q_0: ┤ H ├┤ U1(2.0*x[0]) ├┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├────────────
