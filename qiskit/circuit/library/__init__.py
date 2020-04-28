@@ -150,6 +150,8 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+   GraphState
+   HiddenLinearFunction
 
 
 N-local circuits
@@ -204,7 +206,6 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
 )
-from .fourier_checking import FourierChecking
 from .n_local import (
     NLocal,
     TwoLocal,
@@ -218,3 +219,6 @@ from .data_encoding import (
     SecondOrderExpansion
 )
 from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking
+from .graph_state import GraphState
+from .hidden_linear_function import HiddenLinearFunction
