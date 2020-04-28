@@ -33,8 +33,8 @@ def random_statevector(dims, seed=None):
 
     Args:
         dims (int or tuple): the dimensions of the state.
-        seed (int or default_rng): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         Statevector: the random statevector.
@@ -63,8 +63,8 @@ def random_state(dim, seed=None):
 
     Args:
         dim (int): the dim of the state space
-        seed (int or default_rng): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         ndarray:  state(2**num) a random quantum state.
@@ -88,8 +88,8 @@ def random_density_matrix(dims, rank=None, method='Hilbert-Schmidt',
         method (string): Optional. The method to use.
             'Hilbert-Schmidt': (Default) sample from the Hilbert-Schmidt metric.
             'Bures': sample from the Bures metric.
-        seed (int or default_rng): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         DensityMatrix: the random density matrix.
@@ -117,7 +117,7 @@ def _ginibre_matrix(nrow, ncol, seed):
     Args:
         nrow (int): number of rows in output matrix.
         ncol (int): number of columns in output matrix.
-        seed(int or default_rng): default_rng for rng.
+        seed(int or np.random.Generator): default rng.
 
     Returns:
         ndarray: A complex rectangular matrix where each real and imaginary
@@ -143,7 +143,7 @@ def _random_density_hs(dim, rank, seed):
         dim (int): the dimensions of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
-        seed (int or default_rng): default_rng for rng.
+        seed (int or np.random.Generator): default rng.
 
     Returns:
         ndarray: rho (N,N)  a density matrix.
@@ -160,7 +160,7 @@ def _random_density_bures(dim, rank, seed):
         dim (int): the length of the density matrix.
         rank (int or None): the rank of the density matrix. The default
             value is full-rank.
-        seed (int or default_rng): default_rng for rng.
+        seed (int or np.random.Generator): default rng.
 
     Returns:
         ndarray: rho (N,N) a density matrix.

@@ -29,8 +29,8 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or default_rng): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         PauliTable: a random PauliTable.
@@ -52,8 +52,8 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or default_rng): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         PauliTable: a random StabilizerTable.
@@ -77,8 +77,8 @@ def random_clifford(num_qubits, seed=None):
 
     Args:
         num_qubits (int): the number of qubits for the Clifford
-        seed (int or default_rng): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         Clifford: a random Clifford operator.
