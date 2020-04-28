@@ -1777,8 +1777,8 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         inst = QuantumCircuit(qr2, cr2, name='name').to_instruction()
         circuit = QuantumCircuit(qr2, cr2)
         circuit.append(inst, qr2[:], cr2[:])
-
-        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+        with self.assertWarns(RuntimeWarning):
+            self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_4q_2c(self):
         """ Test q1-q2-q3-q4-c1-c2 in q0-q1-q2-q3-q4-q5-c0-c1-c2-c3-c4-c5"""

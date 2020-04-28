@@ -16,6 +16,7 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from warnings import warn
 from shutil import get_terminal_size
 import sys
 from numpy import ndarray
@@ -574,7 +575,13 @@ class TextDrawing():
 
         noqubits = len(self.qregs)
 
-        layers = self.build_layers()
+        try:
+            layers = self.build_layers()
+        except TextDrawerCregBundle:
+            self.cregbundle = False
+            warn('The parameter "cregbundle" was disable, since an instruction needs to refer to '
+                 'individual classical wires', RuntimeWarning, 2)
+            layers = self.build_layers()
 
         layer_groups = [[]]
         rest_of_the_line = line_length
