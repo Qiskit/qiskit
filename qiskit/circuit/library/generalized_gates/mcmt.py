@@ -20,7 +20,7 @@ import warnings
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.util import deprecate_arguments
-from qiskit.extensions.standard import (
+from ..standard_gates import (
     XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 )
 
