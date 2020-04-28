@@ -16,14 +16,14 @@
 
 from .n_local import NLocal
 from .two_local import TwoLocal
-from .ry import RY
-from .ryrz import RYRZAnsatz
+from .ry_ansatz import RYAnsatz
+from .ryrz_ansatz import RYRZAnsatz
 from .swaprz import SwapRZ
 
 __all__ = [
     'NLocal',
     'TwoLocal',
-    'RY',
+    'RYAnsatz',
     'RYRZAnsatz',
     'SwapRZ'
 ]

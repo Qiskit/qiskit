@@ -149,7 +149,7 @@ from .fourier_checking import FourierChecking
 from .n_local import (
     NLocal,
     TwoLocal,
-    RY,
+    RYAnsatz,
     RYRZAnsatz,
     SwapRZ,
 )

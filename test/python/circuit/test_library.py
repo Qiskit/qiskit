@@ -27,7 +27,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZAnsatz,
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RYAnsatz, RYRZAnsatz,
                                     SwapRZ, PauliFeatureMap, ZFeatureMap,
                                     ZZFeatureMap)
 from qiskit.circuit.random.utils import random_circuit
@@ -1269,7 +1269,7 @@ class TestTwoLocal(QiskitTestCase):
 
     def test_ry_blocks(self):
         """Test that the RY circuit is instantiated correctly."""
-        two = RY(4)
+        two = RYAnsatz(4)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1297,8 +1297,8 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
 
-        library = RY(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                     entanglement=entanglement).assign_parameters(parameters)
+        library = RYAnsatz(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
+                           entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
