@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A test for visualizing tools"""
+"""A test for circuit tools"""
 import unittest
 
 from test import combine
 from ddt import ddt
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.tools.pi_check import pi_check
+from qiskit.circuit.tools.pi_check import pi_check
 
 
 @ddt

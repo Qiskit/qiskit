@@ -12,19 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for the pulse utilities."""
+"""Test cases for the pulse rescheduler."""
 import unittest
+from typing import List, Set
 
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse import Play, Delay, Acquire
+from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
+                          Gaussian, GaussianSquare, Constant)
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-from qiskit.pulse.reschedule import add_implicit_acquires, align_measures, pad
+from qiskit.pulse.reschedule import add_implicit_acquires, align_measures, pad, compress_pulses
 
 
 class TestAutoMerge(QiskitTestCase):
@@ -257,6 +259,153 @@ class TestPad(QiskitTestCase):
         channels = [DriveChannel(0), DriveChannel(2)]
 
         self.assertEqual(pad(sched, channels=channels), ref_sched)
+
+    def test_padding_less_than_sched_duration(self):
+        """Test that the until arg is respected even for less than the input schedule duration."""
+        delay = 10
+        sched = (Delay(delay, DriveChannel(0)) +
+                 Delay(delay, DriveChannel(0)).shift(20))
+        ref_sched = (sched | pulse.Delay(5, DriveChannel(0)).shift(10))
+        self.assertEqual(pad(sched, until=15), ref_sched)
+
+
+def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
+    """Returns ids of pulses used in Schedules."""
+    ids = set()
+    for schedule in schedules:
+        for _, inst in schedule.instructions:
+            ids.add(inst.pulse.id)
+    return ids
+
+
+class TestCompressTransform(QiskitTestCase):
+    """Compress function test."""
+
+    def test_with_duplicates(self):
+        """Test compression of schedule."""
+        schedule = Schedule()
+        drive_channel = DriveChannel(0)
+        schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+        schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+
+        self.assertEqual(len(compressed_pulse_ids), 1)
+        self.assertEqual(len(original_pulse_ids), 2)
+        self.assertTrue(next(iter(compressed_pulse_ids)) in original_pulse_ids)
+
+    def test_sample_pulse_with_clipping(self):
+        """Test sample pulses with clipping."""
+        schedule = Schedule()
+        drive_channel = DriveChannel(0)
+        schedule += Play(SamplePulse([0.0, 1.0]), drive_channel)
+        schedule += Play(SamplePulse([0.0, 1.001], epsilon=1e-3), drive_channel)
+        schedule += Play(SamplePulse([0.0, 1.0000000001]), drive_channel)
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+
+        self.assertEqual(len(compressed_pulse_ids), 1)
+        self.assertEqual(len(original_pulse_ids), 3)
+        self.assertTrue(next(iter(compressed_pulse_ids)) in original_pulse_ids)
+
+    def test_no_duplicates(self):
+        """Test with no pulse duplicates."""
+        schedule = Schedule()
+        drive_channel = DriveChannel(0)
+        schedule += Play(SamplePulse([0.0, 1.0]), drive_channel)
+        schedule += Play(SamplePulse([0.0, 0.9]), drive_channel)
+        schedule += Play(SamplePulse([0.0, 0.3]), drive_channel)
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), len(compressed_pulse_ids))
+
+    def test_parametric_pulses_with_duplicates(self):
+        """Test with parametric pulses."""
+        schedule = Schedule()
+        drive_channel = DriveChannel(0)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2,
+                                        sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2,
+                                        sigma=8, width=140), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), 8)
+        self.assertEqual(len(compressed_pulse_ids), 4)
+
+    def test_parametric_pulses_with_no_duplicates(self):
+        """Test parametric pulses with no duplicates."""
+        schedule = Schedule()
+        drive_channel = DriveChannel(0)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.49j), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2,
+                                        sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.19,
+                                        sigma=8, width=140), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.1 + 0.41j), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.2 + 0.31j, sigma=7.8, beta=4), drive_channel)
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), len(compressed_pulse_ids))
+
+    def test_with_different_channels(self):
+        """Test with different channels."""
+        schedule = Schedule()
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), 2)
+        self.assertEqual(len(compressed_pulse_ids), 1)
+
+    def test_sample_pulses_with_tolerance(self):
+        """Test sample pulses with tolerance."""
+        schedule = Schedule()
+        schedule += Play(SamplePulse([0.0, 0.1001], epsilon=1e-3), DriveChannel(0))
+        schedule += Play(SamplePulse([0.0, 0.1], epsilon=1e-3), DriveChannel(1))
+
+        compressed_schedule = compress_pulses([schedule])
+        original_pulse_ids = get_pulse_ids([schedule])
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), 2)
+        self.assertEqual(len(compressed_pulse_ids), 1)
+
+    def test_multiple_schedules(self):
+        """Test multiple schedules."""
+        schedules = []
+        for _ in range(2):
+            schedule = Schedule()
+            drive_channel = DriveChannel(0)
+            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+            schedule += Play(SamplePulse([0.0, 0.2]), drive_channel)
+            schedules.append(schedule)
+
+        compressed_schedule = compress_pulses(schedules)
+        original_pulse_ids = get_pulse_ids(schedules)
+        compressed_pulse_ids = get_pulse_ids(compressed_schedule)
+        self.assertEqual(len(original_pulse_ids), 6)
+        self.assertEqual(len(compressed_pulse_ids), 2)
 
 
 if __name__ == '__main__':

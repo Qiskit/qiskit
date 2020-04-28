@@ -19,6 +19,23 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Blueprint Circuit
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlueprintCircuit
+
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+   Permutation
+
 Boolean Logic Circuits
 ======================
 
@@ -26,10 +43,9 @@ Boolean Logic Circuits
    :toctree: ../stubs/
 
    AND
-   InnerProduct
    OR
-   Permutation
    XOR
+   InnerProduct
 
 Basis Change Circuits
 =====================
@@ -84,15 +100,41 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+
+
+N-local circuits
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NLocal
+   TwoLocal
+   RY
+   RYRZ
+   SwapRZ
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliExpansion
+   FirstOrderExpansion
+   SecondOrderExpansion
+
 """
 
-
+from .blueprintcircuit import BlueprintCircuit
+from .generalized_gates import Diagonal
+from .generalized_gates import Permutation
 from .boolean_logic import (
-    Permutation,
+    AND,
+    OR,
     XOR,
     InnerProduct,
-    OR,
-    AND,
 )
 from .basis_change import QFT
 from .arithmetic import (
@@ -104,4 +146,16 @@ from .arithmetic import (
     WeightedAdder,
 )
 from .fourier_checking import FourierChecking
+from .n_local import (
+    NLocal,
+    TwoLocal,
+    RY,
+    RYRZ,
+    SwapRZ,
+)
+from .data_encoding import (
+    PauliExpansion,
+    FirstOrderExpansion,
+    SecondOrderExpansion
+)
 from .quantum_volume import QuantumVolume
