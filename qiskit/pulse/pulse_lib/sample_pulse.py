@@ -42,6 +42,7 @@ class SamplePulse(Pulse):
                 norm is greater than 1+epsilon an error will be raised.
         """
         samples = np.asarray(samples, dtype=np.complex_)
+        self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
 
@@ -131,7 +132,8 @@ class SamplePulse(Pulse):
                                           interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and (self.samples == other.samples).all()
+        return super().__eq__(other) and self.samples.shape == other.samples.shape and \
+               np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
 
     def __hash__(self) -> int:
         return hash(self.samples.tostring())
