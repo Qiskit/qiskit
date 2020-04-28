@@ -33,24 +33,12 @@ class FakeVigo(FakeBackend):
              ↕
              2
         """
-        cmap = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
-
-        configuration = QasmBackendConfiguration(
-            backend_name='fake_vigo',
-            backend_version='0.0.0',
-            n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-            simulator=False,
-            local=True,
-            conditional=False,
-            open_pulse=False,
-            memory=False,
-            max_shots=65536,
-            max_experiments=75,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=cmap,
-        )
-
+        dirname = os.path.dirname(__file__)
+        filename = "conf_vigo.json"
+        with open(os.path.join(dirname, filename), "r") as f_conf:
+            conf = json.load(f_conf)
+        configuration = QasmBackendConfiguration.from_dict(conf)
+        configuration.backend_name = 'fake_vigo'
         super().__init__(configuration)
 
     def properties(self):

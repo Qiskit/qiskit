@@ -33,6 +33,14 @@ class FakeOurense(FakeBackend):
              ↕
              2
         """
+        dirname = os.path.dirname(__file__)
+        filename = "conf_ourense.json"
+        with open(os.path.join(dirname, filename), "r") as f_conf:
+            conf = json.load(f_conf)
+        configuration = QasmBackendConfiguration.from_dict(conf)
+        configuration.backend_name='fake_ourense',
+
+
         cmap = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
         configuration = QasmBackendConfiguration(

@@ -19,7 +19,7 @@ Fake Valencia device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
+from qiskit.providers.models import PulseBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -39,7 +39,7 @@ class FakeValencia(FakeBackend):
         with open(os.path.join(dirname, filename), "r") as f_conf:
             conf = json.load(f_conf)
 
-        configuration = QasmBackendConfiguration.from_dict(conf)
+        configuration = PulseBackendConfiguration.from_dict(conf)
         configuration.backend_name = 'fake_valencia'
         self._defaults = None
         self._properties = None
@@ -55,3 +55,15 @@ class FakeValencia(FakeBackend):
                 props = json.load(f_prop)
             self._properties = BackendProperties.from_dict(props)
         return self._properties
+
+    def defaults(self):
+        """Returns a snapshot of device defaults as recorded on 11/15/19.
+        """
+        if not self._defaults:
+            dirname = os.path.dirname(__file__)
+            filename = "defs_valencia.json"
+            with open(os.path.join(dirname, filename), "r") as f_defs:
+                defs = json.load(f_defs)
+            self._defaults = PulseDefaults.from_dict(defs)
+        return self._defaults
+
