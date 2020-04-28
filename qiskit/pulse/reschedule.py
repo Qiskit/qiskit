@@ -21,7 +21,7 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import (Acquire, AcquireInstruction, Delay,
+from qiskit.pulse import (Acquire, AcquireInstruction, Delay, Play,
                           InstructionScheduleMap, ScheduleComponent, Schedule)
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError
@@ -183,19 +183,56 @@ def pad(schedule: Schedule,
         The padded schedule.
     """
     until = until or schedule.duration
-
     channels = channels or schedule.channels
-    occupied_channels = schedule.channels
-
-    unoccupied_channels = set(channels) - set(occupied_channels)
-
-    empty_timeslot_collection = schedule.timeslots.complement(until)
 
     for channel in channels:
-        for timeslot in empty_timeslot_collection.ch_timeslots(channel):
-            schedule |= Delay(timeslot.duration, timeslot.channel).shift(timeslot.start)
+        if channel not in schedule.channels:
+            schedule |= Delay(until, channel)
+            continue
 
-    for channel in unoccupied_channels:
-        schedule |= Delay(until, channel)
+        curr_time = 0
+        # TODO: Replace with method of getting instructions on a channel
+        for interval in schedule.timeslots[channel]:
+            if curr_time >= until:
+                break
+            if interval[0] != curr_time:
+                end_time = min(interval[0], until)
+                schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
+            curr_time = interval[1]
+        if curr_time < until:
+            schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
 
     return schedule
+
+
+def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
+    """Optimization pass to replace identical pulses.
+
+    Args:
+        schedules (list): Schedules to compress.
+
+    Returns:
+        Compressed schedules.
+    """
+
+    existing_pulses = []
+    new_schedules = []
+
+    for schedule in schedules:
+        new_schedule = Schedule(name=schedule.name)
+
+        for time, inst in schedule.instructions:
+            if isinstance(inst, Play):
+                if inst.pulse in existing_pulses:
+                    idx = existing_pulses.index(inst.pulse)
+                    identical_pulse = existing_pulses[idx]
+                    new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
+                else:
+                    existing_pulses.append(inst.pulse)
+                    new_schedule |= inst << time
+            else:
+                new_schedule |= inst << time
+
+        new_schedules.append(new_schedule)
+
+    return new_schedules

@@ -36,9 +36,10 @@ class MSGate(Gate):
     """
 
     @deprecate_arguments({'n_qubits': 'num_qubits'})
-    def __init__(self, num_qubits, theta, *, n_qubits=None):  # pylint:disable=unused-argument
+    def __init__(self, num_qubits, theta, *, n_qubits=None,  # pylint:disable=unused-argument
+                 label=None):
         """Create new MS gate."""
-        super().__init__('ms', num_qubits, [theta])
+        super().__init__('ms', num_qubits, [theta], label=label)
 
     def _define(self):
         from qiskit.extensions.standard.rxx import RXXGate

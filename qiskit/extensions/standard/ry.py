@@ -42,7 +42,7 @@ class RYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th Y) =
+        RY(\theta) = exp(-i \th Y) =
             \begin{pmatrix}
                 \cos{\th} & -\sin{\th} \\
                 \sin{\th} & \cos{\th}
@@ -80,9 +80,10 @@ class RYGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            gate = CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted RY gate.
