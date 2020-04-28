@@ -82,6 +82,8 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   MCMT
+   MCMTVChain
    Permutation
 
 Boolean Logic Circuits
@@ -148,6 +150,8 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+   GraphState
+   HiddenLinearFunction
 
 
 N-local circuits
@@ -181,8 +185,12 @@ from ..measure import Measure
 from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
-from .generalized_gates import Diagonal
-from .generalized_gates import Permutation
+from .generalized_gates import (
+    Diagonal,
+    MCMT,
+    MCMTVChain,
+    Permutation
+)
 from .boolean_logic import (
     AND,
     OR,
@@ -198,7 +206,6 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
 )
-from .fourier_checking import FourierChecking
 from .n_local import (
     NLocal,
     TwoLocal,
@@ -212,3 +219,6 @@ from .data_encoding import (
     SecondOrderExpansion
 )
 from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking
+from .graph_state import GraphState
+from .hidden_linear_function import HiddenLinearFunction
