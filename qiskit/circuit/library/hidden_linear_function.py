@@ -82,7 +82,7 @@ class HiddenLinearFunction(QuantumCircuit):
         """
         num_qubits = len(adjacency_matrix)
         super().__init__(num_qubits,
-                         name=f"hlf: %s" % adjacency_matrix)
+                         name="hlf: %s" % adjacency_matrix)
 
         self.h(range(num_qubits))
         for i in range(num_qubits):
