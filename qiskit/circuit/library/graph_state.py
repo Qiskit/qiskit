@@ -73,7 +73,7 @@ class GraphState(QuantumCircuit):
         matrix.
         """
         num_qubits = len(adjacency_matrix)
-        super().__init__(num_qubits, name=f"graph: %s" % (adjacency_matrix))
+        super().__init__(num_qubits, name="graph: %s" % (adjacency_matrix))
 
         self.h(range(num_qubits))
         for i in range(num_qubits):
