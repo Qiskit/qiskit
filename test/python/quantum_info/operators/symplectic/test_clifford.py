@@ -788,6 +788,18 @@ class TestCliffordOperators(QiskitTestCase):
         value = Clifford.from_dict(target.to_dict())
         self.assertEqual(value, target)
 
+    def test_from_label(self):
+        """Test from_label method"""
+        label = 'IXYZHS'
+        CI = Clifford(IGate())
+        CX = Clifford(XGate())
+        CY = Clifford(YGate())
+        CZ = Clifford(ZGate())
+        CH = Clifford(HGate())
+        CS = Clifford(SGate())
+        target = CI.tensor(CX).tensor(CY).tensor(CZ).tensor(CH).tensor(CS)
+        self.assertEqual(Clifford.from_label(label), target)
+
 
 if __name__ == '__main__':
     unittest.main()

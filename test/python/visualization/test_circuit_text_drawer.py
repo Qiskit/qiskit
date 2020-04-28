@@ -60,6 +60,14 @@ class TestTextDrawerElement(QiskitTestCase):
                     "   "]
         self.assertEqualElement(expected, element)
 
+    def test_measure_to_label(self):
+        """ MeasureTo element with cregbundle """
+        element = elements.MeasureTo('1')
+        expected = [" ║ ",
+                    "═╩═",
+                    " 1 "]
+        self.assertEqualElement(expected, element)
+
     def test_measure_from(self):
         """ MeasureFrom element. """
         element = elements.MeasureFrom()
@@ -123,6 +131,44 @@ class TestTextDrawerElement(QiskitTestCase):
 
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """ Gate by gate checks in different settings."""
+
+    def test_text_measure_cregbundle(self):
+        """ The measure operator, using 3-bit-length registers with cregbundle=True. """
+        expected = '\n'.join(["        ┌─┐      ",
+                              "q_0: |0>┤M├──────",
+                              "        └╥┘┌─┐   ",
+                              "q_1: |0>─╫─┤M├───",
+                              "         ║ └╥┘┌─┐",
+                              "q_2: |0>─╫──╫─┤M├",
+                              "         ║  ║ └╥┘",
+                              " c: 0 3/═╩══╩══╩═",
+                              "         0  1  2 "])
+
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
+    def test_text_measure_cregbundle_2(self):
+        """ The measure operator, using 2 classical registers with cregbundle=True. """
+        expected = '\n'.join(["        ┌─┐   ",
+                              "q_0: |0>┤M├───",
+                              "        └╥┘┌─┐",
+                              "q_1: |0>─╫─┤M├",
+                              "         ║ └╥┘",
+                              "cA: 0 1/═╩══╬═",
+                              "         0  ║ ",
+                              "cB: 0 1/════╩═",
+                              "            0 "])
+
+        qr = QuantumRegister(2, 'q')
+        cr_a = ClassicalRegister(1, 'cA')
+        cr_b = ClassicalRegister(1, 'cB')
+        circuit = QuantumCircuit(qr, cr_a, cr_b)
+        circuit.measure(qr[0], cr_a[0])
+        circuit.measure(qr[1], cr_b[0])
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_measure_1(self):
         """ The measure operator, using 3-bit-length registers. """
@@ -1142,6 +1188,28 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
 
+    def test_text_conditional_1_cregbundle(self):
+        """ Conditional drawing with 1-bit-length regs and cregbundle."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[1];
+        creg c1[1];
+        if(c0==1) x q[0];
+        if(c1==1) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0: 0 1/╡ = 1 ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1: 0 1/═══════╡ = 1 ╞",
+                              "               └─────┘"])
+
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
     def test_text_conditional_1(self):
         """ Conditional drawing with 1-bit-length regs."""
         qasm_string = """
@@ -1163,6 +1231,27 @@ class TestTextConditional(QiskitTestCase):
 
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_2_cregbundle(self):
+        """ Conditional drawing with 2-bit-length regs with cregbundle"""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[2];
+        creg c1[2];
+        if(c0==2) x q[0];
+        if(c1==2) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0: 0 2/╡ = 2 ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1: 0 2/═══════╡ = 2 ╞",
+                              "               └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_conditional_2(self):
         """ Conditional drawing with 2-bit-length regs."""
@@ -2607,7 +2696,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map, optimization_level=0, seed_transpiler=0)
-        self.assertEqual(qc_result.draw(output='text').single_string(), expected)
+        self.assertEqual(qc_result.draw(output='text', cregbundle=False).single_string(), expected)
 
 
 class TestTextInitialValue(QiskitTestCase):
@@ -2631,7 +2720,8 @@ class TestTextInitialValue(QiskitTestCase):
                               "c_1: ════╩═",
                               "           "])
 
-        self.assertEqual(self.circuit.draw(output='text').single_string(), expected)
+        self.assertEqual(self.circuit.draw(output='text', cregbundle=False).single_string(),
+                         expected)
 
     def test_draw_initial_value_true(self):
         """ Text drawer .draw(initial_state=True). """
@@ -2644,8 +2734,9 @@ class TestTextInitialValue(QiskitTestCase):
                               "            ║ ",
                               " c_1: 0 ════╩═",
                               "              "])
-        self.assertEqual(self.circuit.draw(output='text', initial_state=True).single_string(),
-                         expected)
+        self.assertEqual(self.circuit.draw(output='text',
+                                           initial_state=True,
+                                           cregbundle=False).single_string(), expected)
 
     def test_initial_value_false(self):
         """ Text drawer with initial_state parameter False. """
