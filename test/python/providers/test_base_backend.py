@@ -35,7 +35,7 @@ class TestBaseBackend(QiskitTestCase):
     def test_version(self):
         """Test that name can be extracted."""
         self.assertEqual(self.pulse_backend.version(), '0.0.0')
-        self.assertEqual(self.backend.version(), '2.1.0')
+        self.assertEqual(self.backend.version(), '0.0.0')
 
     def test_str_and_repr(self):
         """Test the custom __str__ and __repr__ methods."""
