@@ -32,6 +32,8 @@ from .exceptions import VisualizationError
 
 
 class TextDrawerCregBundle(VisualizationError):
+    """The parameter "cregbundle" was set to True in an imposible situation. For example, an
+    instruction needs to refer to individual classical wires'"""
     pass
 
 
