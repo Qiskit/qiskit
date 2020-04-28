@@ -22,7 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class IQP(QuantumCircuit):
-    """Instantaneous quantum polynomial (IQP) circuit.
+    r"""Instantaneous quantum polynomial (IQP) circuit.
 
     The circuit consists of a column of Hadamard gates,
     a column of powers of T gates,
@@ -62,7 +62,7 @@ class IQP(QuantumCircuit):
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
     Phys. Rev. Lett. 117, 080501 (2016).
-    [`arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_]
+    `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
     """
 
     def __init__(self, interactions: Union[List, np.array]) -> None:
