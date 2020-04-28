@@ -102,6 +102,31 @@ Quantum Complexity Advantage Circuits
    FourierChecking
    GraphState
    HiddenLinearFunction
+
+
+N-local circuits
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NLocal
+   TwoLocal
+   RY
+   RYRZ
+   SwapRZ
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliExpansion
+   FirstOrderExpansion
+   SecondOrderExpansion
+
 """
 
 from .blueprintcircuit import BlueprintCircuit
@@ -122,7 +147,19 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
 )
+from .n_local import (
+    NLocal,
+    TwoLocal,
+    RY,
+    RYRZ,
+    SwapRZ,
+)
+from .data_encoding import (
+    PauliExpansion,
+    FirstOrderExpansion,
+    SecondOrderExpansion
+)
+from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
-from .quantum_volume import QuantumVolume
