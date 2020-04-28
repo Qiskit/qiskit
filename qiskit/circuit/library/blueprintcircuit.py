@@ -39,6 +39,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """
         super().__init__(*regs, name=name)
         self._data = None
+        self._qregs = []
+        self._cregs = []
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -70,6 +72,17 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """Invalidate the current circuit build."""
         self._data = None
         self._parameter_table = ParameterTable()
+
+    @property
+    def qregs(self):
+        """A list of the quantum registers associated with the circuit."""
+        return self._qregs
+
+    @qregs.setter
+    def qregs(self, qregs):
+        """Set the quantum registers associated with the circuit."""
+        self._qregs = qregs
+        self._invalidate()
 
     @property
     def data(self):

@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,9 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Add control to operation if supported.
-"""
+
+"""Add control to operation if supported."""
+
 from typing import Union, Optional
 
 from qiskit.circuit.exceptions import CircuitError
@@ -51,7 +51,7 @@ def add_control(operation: Union[Gate, ControlledGate],
         Controlled version of gate.
 
     """
-    import qiskit.extensions.standard as standard
+    import qiskit.circuit.library.standard_gates as standard
     if ctrl_state is None:
         ctrl_state = 2**num_ctrl_qubits - 1
     if isinstance(operation, standard.RZGate) or operation.name == 'rz':
@@ -66,8 +66,9 @@ def add_control(operation: Union[Gate, ControlledGate],
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    return control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label,
-                   ctrl_state=ctrl_state)
+    cgate = control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+    cgate.base_gate.label = operation.label
+    return cgate
 
 
 def control(operation: Union[Gate, ControlledGate],
@@ -99,7 +100,7 @@ def control(operation: Union[Gate, ControlledGate],
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
-    import qiskit.extensions.standard.multi_control_rotation_gates
+    import qiskit.circuit.library.standard_gates.multi_control_rotation_gates
 
     # check args
     if num_ctrl_qubits == 0:

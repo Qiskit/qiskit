@@ -19,6 +19,54 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Standard Gates
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Barrier
+   C3XGate
+   C4XGate
+   CCXGate
+   CHGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSwapGate
+   CU1Gate
+   CU3Gate
+   CXGate
+   CYGate
+   CZGate
+   HGate
+   IGate
+   Measure
+   MSGate
+   RCCXGate
+   RC3XGate
+   Reset
+   RXGate
+   RXXGate
+   RYGate
+   RYYGate
+   RZGate
+   RZZGate
+   RZXGate
+   SGate
+   SdgGate
+   SwapGate
+   iSwapGate
+   DCXGate
+   TdgGate
+   U1Gate
+   U2Gate
+   U3Gate
+   XGate
+   YGate
+   ZGate
+
+
 Blueprint Circuit
 =================
 
@@ -100,7 +148,37 @@ Quantum Complexity Advantage Circuits
    :toctree: ../stubs/
 
    FourierChecking
+
+
+N-local circuits
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NLocal
+   TwoLocal
+   RY
+   RYRZ
+   SwapRZ
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliExpansion
+   FirstOrderExpansion
+   SecondOrderExpansion
+
 """
+
+from .standard_gates import *
+from ..barrier import Barrier
+from ..measure import Measure
+from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import Diagonal
@@ -121,4 +199,16 @@ from .arithmetic import (
     WeightedAdder,
 )
 from .fourier_checking import FourierChecking
+from .n_local import (
+    NLocal,
+    TwoLocal,
+    RY,
+    RYRZ,
+    SwapRZ,
+)
+from .data_encoding import (
+    PauliExpansion,
+    FirstOrderExpansion,
+    SecondOrderExpansion
+)
 from .quantum_volume import QuantumVolume
