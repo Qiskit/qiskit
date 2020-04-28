@@ -42,7 +42,7 @@ class RYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th Y) =
+        RY(\theta) = exp(-i \th Y) =
             \begin{pmatrix}
                 \cos{\th} & -\sin{\th} \\
                 \sin{\th} & \cos{\th}
