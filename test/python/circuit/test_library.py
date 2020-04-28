@@ -28,8 +28,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerPro
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
-                                    SwapRZ, PauliExpansion, FirstOrderExpansion,
-                                    SecondOrderExpansion)
+                                    SwapRZ, PauliEvolutionFeatureMap, ZEvolutionFeatureMap,
+                                    ZZEvolutionFeatureMap)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
@@ -1393,7 +1393,7 @@ class TestDataEncoding(QiskitTestCase):
 
     def test_pauli_empty(self):
         """Test instantiating an empty Pauli expansion."""
-        encoding = PauliExpansion()
+        encoding = PauliEvolutionFeatureMap()
 
         with self.subTest(msg='equal to empty circuit'):
             self.assertTrue(Operator(encoding).equiv(QuantumCircuit()))
@@ -1406,13 +1406,13 @@ class TestDataEncoding(QiskitTestCase):
     @unpack
     def test_num_parameters(self, num_qubits, reps, pauli_strings):
         """Test the number of parameters equals the number of qubits, independent of reps."""
-        encoding = PauliExpansion(num_qubits, paulis=pauli_strings, reps=reps)
+        encoding = PauliEvolutionFeatureMap(num_qubits, paulis=pauli_strings, reps=reps)
         self.assertEqual(encoding.num_parameters, num_qubits)
         self.assertEqual(encoding.num_parameters_settable, num_qubits)
 
     def test_pauli_evolution(self):
         """Test the generation of Pauli blocks."""
-        encoding = PauliExpansion()
+        encoding = PauliEvolutionFeatureMap()
         time = 1.4
         with self.subTest(pauli_string='ZZ'):
             evo = QuantumCircuit(2)
@@ -1447,7 +1447,7 @@ class TestDataEncoding(QiskitTestCase):
     def test_first_order_circuit(self):
         """Test a first order expansion circuit."""
         times = [0.2, 1, np.pi, -1.2]
-        encoding = FirstOrderExpansion(4, reps=3).assign_parameters(times)
+        encoding = ZEvolutionFeatureMap(4, reps=3).assign_parameters(times)
 
         ref = QuantumCircuit(4)
         for _ in range(3):
@@ -1460,7 +1460,7 @@ class TestDataEncoding(QiskitTestCase):
     def test_second_order_circuit(self):
         """Test a second order expansion circuit."""
         times = [0.2, 1, np.pi]
-        encoding = SecondOrderExpansion(3, reps=2).assign_parameters(times)
+        encoding = ZZEvolutionFeatureMap(3, reps=2).assign_parameters(times)
 
         def zz_evolution(circuit, qubit1, qubit2):
             time = (np.pi - times[qubit1]) * (np.pi - times[qubit2])

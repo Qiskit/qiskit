@@ -121,9 +121,9 @@ Data encoding circuits
 .. autosummary::
    :toctree: ../stubs/
 
-   PauliExpansion
-   FirstOrderExpansion
-   SecondOrderExpansion
+   PauliEvolutionFeatureMap
+   ZEvolutionFeatureMap
+   ZZEvolutionFeatureMap
 
 """
 
@@ -153,9 +153,9 @@ from .n_local import (
     RYRZ,
     SwapRZ,
 )
-from .data_encoding import (
-    PauliExpansion,
-    FirstOrderExpansion,
-    SecondOrderExpansion
+from .data_preparation import (
+    PauliEvolutionFeatureMap,
+    ZEvolutionFeatureMap,
+    ZZEvolutionFeatureMap
 )
 from .quantum_volume import QuantumVolume

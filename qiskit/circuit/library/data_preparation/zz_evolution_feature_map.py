@@ -16,10 +16,10 @@
 
 from typing import Callable, List, Union, Optional
 import numpy as np
-from .pauli_expansion import PauliExpansion
+from .pauli_evolution_feature_map import PauliEvolutionFeatureMap
 
 
-class SecondOrderExpansion(PauliExpansion):
+class ZZEvolutionFeatureMap(PauliEvolutionFeatureMap):
     """Second-order Pauli-Z evolution circuit.
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
@@ -39,7 +39,7 @@ class SecondOrderExpansion(PauliExpansion):
 
     Examples:
 
-        >>> prep = SecondOrderExpansion(2, reps=2)
+        >>> prep = ZZEvolutionFeatureMap(2, reps=2)
         >>> print(prep)
              ┌───┐┌──────────────┐
         q_0: ┤ H ├┤ U1(2.0*x[0]) ├──■───────────────────────────────────────■──
@@ -48,7 +48,7 @@ class SecondOrderExpansion(PauliExpansion):
              └───┘└──────────────┘└───┘└─────────────────────────────────┘└───┘
 
         >>> from qiskit.circuit.library import RYRZ
-        >>> classifier = SecondOrderExpansion(3) + RYRZ(3)
+        >>> classifier = ZZEvolutionFeatureMap(3) + RYRZ(3)
         >>> classifier.num_parameters
         15
         >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the RYRZ parameters
