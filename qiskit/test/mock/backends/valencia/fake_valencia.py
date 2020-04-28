@@ -19,7 +19,8 @@ Fake Valencia device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import PulseBackendConfiguration, BackendProperties
+from qiskit.providers.models import (PulseBackendConfiguration,
+                                     BackendProperties, PulseDefaults)
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
