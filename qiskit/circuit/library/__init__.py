@@ -151,14 +151,6 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
 )
-from .basis_change import QFT
-from .boolean_logic import (
-    Permutation,
-    XOR,
-    InnerProduct,
-    OR,
-    AND,
-)
 from .fourier_checking import FourierChecking
 from .n_local import (
     NLocal,
