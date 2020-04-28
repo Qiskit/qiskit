@@ -394,7 +394,21 @@ class QuantumCircuit:
         if front:
             raise CircuitError("Front composition of QuantumCircuit not supported yet.")
 
-        if isinstance(other, (Instruction, BaseOperator)):
+        if isinstance(other, QuantumCircuit):
+            from qiskit.converters.circuit_to_dag import circuit_to_dag
+            from qiskit.converters.dag_to_circuit import dag_to_circuit
+
+            dag_self = circuit_to_dag(self)
+            dag_other = circuit_to_dag(other)
+            dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
+            composed_circuit = dag_to_circuit(dag_self)
+            if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
+                self.__dict__.update(composed_circuit.__dict__)
+                return None
+            else:
+                return dag_to_circuit(dag_self)
+
+        else:  # fall back to append which accepts Instruction and BaseOperator
             if inplace:
                 self.append(other, qargs=qubits, cargs=clbits)
                 return None
@@ -402,19 +416,6 @@ class QuantumCircuit:
                 new_circuit = self.copy()
                 new_circuit.append(other, qargs=qubits, cargs=clbits)
                 return new_circuit
-
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-        from qiskit.converters.dag_to_circuit import dag_to_circuit
-
-        dag_self = circuit_to_dag(self)
-        dag_other = circuit_to_dag(other)
-        dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
-        composed_circuit = dag_to_circuit(dag_self)
-        if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
-            self.__dict__.update(composed_circuit.__dict__)
-            return None
-        else:
-            return dag_to_circuit(dag_self)
 
     @property
     def qubits(self):

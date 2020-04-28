@@ -17,6 +17,7 @@
 import unittest
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import CXGate
 from qiskit.test import QiskitTestCase
 
 
@@ -347,6 +348,32 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_expected.tdg(self.left_qubit1)
         circuit_expected.measure(self.left_qubit4, self.left_clbit0)
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
+
+        self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_gate(self):
+        """Composing with a gate.
+
+                    ┌───┐                                ┌───┐    ┌───┐ 
+        lqr_1_0: ───┤ H ├───                 lqr_1_0: ───┤ H ├────┤ X ├
+                    ├───┤                                ├───┤    └─┬─┘
+        lqr_1_1: ───┤ X ├───                 lqr_1_1: ───┤ X ├──────┼───
+                 ┌──┴───┴──┐     ───■───              ┌──┴───┴──┐   │
+        lqr_1_2: ┤ U1(0.1) ├  +   ┌─┴─┐   =  lqr_1_2: ┤ U1(0.1) ├───┼───
+                 └─────────┘     ─┤ X ├─              └─────────┘   │
+        lqr_2_0: ─────■─────      └───┘      lqr_2_0: ─────■────────┼──
+                    ┌─┴─┐                                ┌─┴─┐      │
+        lqr_2_1: ───┤ X ├───                 lqr_2_1: ───┤ X ├──────■───
+                    └───┘                                └───┘
+        lcr_0: 0 ═══════════                 lcr_0: 0 ═══════════
+                                                                 
+        lcr_1: 0 ═══════════                 lcr_1: 0 ═══════════
+
+        """
+        circuit_composed = self.circuit_left.compose(CXGate(), qubits=[4, 0])
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.cx(self.left_qubit4, self.left_qubit0)
 
         self.assertEqual(circuit_composed, circuit_expected)
 
