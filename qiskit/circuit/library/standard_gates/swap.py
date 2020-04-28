@@ -53,9 +53,9 @@ class SwapGate(Gate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new SWAP gate."""
-        super().__init__('swap', 2, [])
+        super().__init__('swap', 2, [], label=label)
 
     def _define(self):
         """
@@ -88,9 +88,10 @@ class SwapGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return CSwapGate(label=None, ctrl_state=ctrl_state)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            gate = CSwapGate(label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         """Return inverse Swap gate (itself)."""

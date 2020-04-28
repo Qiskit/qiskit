@@ -77,9 +77,10 @@ class RXGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            return CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+            gate = CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted RX gate.

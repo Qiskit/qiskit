@@ -102,7 +102,9 @@ class XGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        return MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        gate.base_gate.label = self.label
+        return gate
 
     def inverse(self):
         r"""Return inverted X gate (itself)."""
@@ -204,7 +206,9 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         if ctrl_state is None:
             ctrl_state = 2**num_ctrl_qubits - 1
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
+        gate.base_gate.label = self.label
+        return gate
 
     def inverse(self):
         """Return inverted CX gate (itself)."""
@@ -363,7 +367,9 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         if ctrl_state is None:
             ctrl_state = 2**num_ctrl_qubits - 1
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
+        gate.base_gate.label = self.label
+        return gate
 
     def inverse(self):
         """Return an inverted CCX gate (also a CCX)."""
@@ -401,9 +407,9 @@ class RCCXGate(Gate):
     of Fig. 3.
     """
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create a new simplified CCX gate."""
-        super().__init__('rccx', 3, [])
+        super().__init__('rccx', 3, [], label=label)
 
     def _define(self):
         """
@@ -536,7 +542,9 @@ class C3XGate(ControlledGate):
         if ctrl_state is None:
             ctrl_state = 2**num_ctrl_qubits - 1
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
+        gate.base_gate.label = self.label
+        return gate
 
     def inverse(self):
         """Invert this gate. The C3X is its own inverse."""
@@ -574,9 +582,9 @@ class RC3XGate(Gate):
     of Fig. 4.
     """
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create a new RC3X gate."""
-        super().__init__('rcccx', 4, [])
+        super().__init__('rcccx', 4, [], label=label)
 
     def _define(self):
         """
@@ -716,7 +724,9 @@ class C4XGate(ControlledGate):
         if ctrl_state is None:
             ctrl_state = 2**num_ctrl_qubits - 1
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        return MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
+        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
+        gate.base_gate.label = self.label
+        return gate
 
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
@@ -796,7 +806,10 @@ class MCXGate(ControlledGate):
         """
         if ctrl_state is None:
             # use __class__ so this works for derived classes
-            return self.__class__(self.num_ctrl_qubits + num_ctrl_qubits)
+            gate = self.__class__(self.num_ctrl_qubits + num_ctrl_qubits, label=label,
+                                  ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
         return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
 
