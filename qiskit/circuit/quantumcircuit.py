@@ -564,7 +564,7 @@ class QuantumCircuit:
     def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
-                current_parameters = self.parameters
+                current_parameters = self._parameter_table
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
@@ -572,7 +572,7 @@ class QuantumCircuit:
                                                           instruction, param_index):
                             self._parameter_table[parameter].append((instruction, param_index))
                     else:
-                        if parameter.name in {p.name for p in current_parameters}:
+                        if parameter.name in self._parameter_table.get_names():
                             raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
@@ -1223,12 +1223,11 @@ class QuantumCircuit:
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
 
-        cpy._parameter_table = ParameterTable()
-        cpy._parameter_table._table = {
+        cpy._parameter_table = ParameterTable({
             param: [(instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]]
             for param in self._parameter_table
-        }
+        })
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
                      for inst, qargs, cargs in self._data]
@@ -1381,7 +1380,7 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return set(self._parameter_table.keys())
+        return self._parameter_table.get_keys()
 
     @property
     def num_parameters(self):
@@ -1448,9 +1447,9 @@ class QuantumCircuit:
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self.parameters:
+        if unrolled_param_dict.keys() > self._parameter_table.keys():
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self.parameters]))
+                [str(p) for p in param_dict.keys() - self._parameter_table]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
@@ -1484,9 +1483,9 @@ class QuantumCircuit:
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_value_dict.keys() > self.parameters:
+        if len(unrolled_value_dict) > len(self._parameter_table):
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in value_dict.keys() - self.parameters]))
+                [str(p) for p in value_dict.keys() - self._parameter_table.keys()]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_value_dict.items():
