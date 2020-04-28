@@ -18,9 +18,13 @@ from typing import Union, Optional, List, Callable, Any
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
-import qiskit.extensions.standard as gates
 
 from .n_local import NLocal
+from ..standard_gates import (
+    IGate, XGate, YGate, ZGate, RXGate, RYGate, RZGate, HGate, SGate, SdgGate, TGate, TdgGate,
+    RXXGate, RYYGate, RZXGate, RZZGate, SwapGate, CXGate, CYGate, CZGate, CRXGate, CRYGate, CRZGate,
+    CHGate
+)
 
 
 class TwoLocal(NLocal):
@@ -208,30 +212,32 @@ class TwoLocal(NLocal):
         # as static types, which might be something they should have anyways
         theta = Parameter('θ')
         valid_layers = {
-            'ch': gates.CHGate(),
-            'cx': gates.CXGate(),
-            'cy': gates.CYGate(),
-            'cz': gates.CZGate(),
-            'crx': gates.CRXGate(theta),
-            'cry': gates.CRYGate(theta),
-            'crz': gates.CRZGate(theta),
-            'h': gates.HGate(),
-            'i': gates.IGate(),
-            'id': gates.IGate(),
-            'iden': gates.IGate(),
-            'rx': gates.RXGate(theta),
-            'rxx': gates.RXXGate(theta),
-            'ry': gates.RYGate(theta),
-            'ryy': gates.RYYGate(theta),
-            'rz': gates.RZGate(theta),
-            's': gates.SGate(),
-            'sdg': gates.SdgGate(),
-            'swap': gates.SwapGate(),
-            'x': gates.XGate(),
-            'y': gates.YGate(),
-            'z': gates.ZGate(),
-            't': gates.TGate(),
-            'tdg': gates.TdgGate(),
+            'ch': CHGate(),
+            'cx': CXGate(),
+            'cy': CYGate(),
+            'cz': CZGate(),
+            'crx': CRXGate(theta),
+            'cry': CRYGate(theta),
+            'crz': CRZGate(theta),
+            'h': HGate(),
+            'i': IGate(),
+            'id': IGate(),
+            'iden': IGate(),
+            'rx': RXGate(theta),
+            'rxx': RXXGate(theta),
+            'ry': RYGate(theta),
+            'ryy': RYYGate(theta),
+            'rz': RZGate(theta),
+            'rzx': RZXGate(theta),
+            'rzz': RZZGate(theta),
+            's': SGate(),
+            'sdg': SdgGate(),
+            'swap': SwapGate(),
+            'x': XGate(),
+            'y': YGate(),
+            'z': ZGate(),
+            't': TGate(),
+            'tdg': TdgGate(),
         }
 
         # try to exchange `layer` from a string to a gate instance

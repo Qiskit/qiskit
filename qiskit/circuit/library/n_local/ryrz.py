@@ -18,7 +18,7 @@ from typing import Union, Optional, List, Tuple, Callable, Any
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.extensions.standard import RYGate, RZGate, CZGate
+from qiskit.circuit.library.standard_gates import RYGate, RZGate, CZGate
 from .two_local import TwoLocal
 
 
