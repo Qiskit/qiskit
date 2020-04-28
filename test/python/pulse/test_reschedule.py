@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for the pulse utilities."""
+"""Test cases for the pulse rescheduler."""
 import unittest
 
 import numpy as np
@@ -257,6 +257,14 @@ class TestPad(QiskitTestCase):
         channels = [DriveChannel(0), DriveChannel(2)]
 
         self.assertEqual(pad(sched, channels=channels), ref_sched)
+
+    def test_padding_less_than_sched_duration(self):
+        """Test that the until arg is respected even for less than the input schedule duration."""
+        delay = 10
+        sched = (Delay(delay, DriveChannel(0)) +
+                 Delay(delay, DriveChannel(0)).shift(20))
+        ref_sched = (sched | pulse.Delay(5, DriveChannel(0)).shift(10))
+        self.assertEqual(pad(sched, until=15), ref_sched)
 
 
 if __name__ == '__main__':
