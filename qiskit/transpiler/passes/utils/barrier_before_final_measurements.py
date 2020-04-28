@@ -15,7 +15,7 @@
 
 """Add a barrier before final measurements."""
 
-from qiskit.extensions.standard.barrier import Barrier
+from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from .merge_adjacent_barriers import MergeAdjacentBarriers
