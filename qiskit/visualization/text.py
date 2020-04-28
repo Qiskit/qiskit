@@ -171,11 +171,11 @@ class MeasureTo(DrawElement):
         bot:
     """
 
-    def __init__(self):
+    def __init__(self, label=''):
         super().__init__()
         self.top_connect = " ║ "
         self.mid_content = "═╩═"
-        self.bot_connect = "   "
+        self.bot_connect = label
         self.mid_bck = "═"
 
 
@@ -500,13 +500,15 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertical_compression='high', layout=None, initial_state=True):
+                 line_length=None, vertical_compression='high', layout=None, initial_state=True,
+                 cregbundle=False):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
         self.initial_state = initial_state
 
+        self.cregbundle = cregbundle
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
@@ -641,9 +643,19 @@ class TextDrawing():
                                                  index=self.layout[bit.index].index,
                                                  physical=bit.index))
         clbit_labels = []
+        previous_creg = None
         for bit in self.cregs:
-            label = '{name}_{index}: ' + initial_clbit_value
-            clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
+            if self.cregbundle:
+                if previous_creg == bit.register:
+                    continue
+                previous_creg = bit.register
+                label = '{name}: {initial_value}{size}/'
+                clbit_labels.append(label.format(name=bit.register.name,
+                                                 initial_value=initial_clbit_value,
+                                                 size=bit.register.size))
+            else:
+                label = '{name}_{index}: ' + initial_clbit_value
+                clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
@@ -798,6 +810,8 @@ class TextDrawing():
                 ret += "┬"
             elif topc in "┘└" and botc in "─" and icod == 'top':
                 ret += "┴"
+            elif botc == " " and icod == 'top':
+                ret += topc
             else:
                 ret += botc
         return ret
@@ -899,7 +913,10 @@ class TextDrawing():
         elif isinstance(instruction.op, MeasureInstruction):
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
-            layer.set_clbit(instruction.cargs[0], MeasureTo())
+            if self.cregbundle:
+                layer.set_clbit(instruction.cargs[0], MeasureTo(str(instruction.cargs[0].index)))
+            else:
+                layer.set_clbit(instruction.cargs[0], MeasureTo())
 
         elif isinstance(instruction.op, (BarrierInstruction, Snapshot)):
             # barrier
@@ -1002,7 +1019,7 @@ class TextDrawing():
         layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
-            layer = Layer(self.qregs, self.cregs)
+            layer = Layer(self.qregs, self.cregs, self.cregbundle)
 
             for instruction in instruction_layer:
                 layer, current_connections, connection_label = \
@@ -1018,12 +1035,22 @@ class TextDrawing():
 class Layer:
     """ A layer is the "column" of the circuit. """
 
-    def __init__(self, qregs, cregs):
+    def __init__(self, qregs, cregs, cregbundle=False):
         self.qregs = qregs
-        self.cregs = cregs
+        if cregbundle:
+            self.cregs = []
+            previous_creg = None
+            for bit in cregs:
+                if previous_creg == bit.register:
+                    continue
+                previous_creg = bit.register
+                self.cregs.append(bit.register)
+        else:
+            self.cregs = cregs
         self.qubit_layer = [None] * len(qregs)
         self.connections = []
         self.clbit_layer = [None] * len(cregs)
+        self.cregbundle = cregbundle
 
     @property
     def full_layer(self):
@@ -1050,7 +1077,10 @@ class Layer:
             clbit (cbit): Element of self.cregs.
             element (DrawElement): Element to set in the clbit
         """
-        self.clbit_layer[self.cregs.index(clbit)] = element
+        if self.cregbundle:
+            self.clbit_layer[self.cregs.index(clbit.register)] = element
+        else:
+            self.clbit_layer[self.cregs.index(clbit)] = element
 
     def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None,
                       bot_connect=None, conditional=False, controlled_edge=None):
@@ -1154,8 +1184,11 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        clbit = [bit for bit in self.cregs if bit.register == creg]
-        self._set_multibox(label, clbits=clbit, top_connect=top_connect)
+        if self.cregbundle:
+            self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
+        else:
+            clbit = [bit for bit in self.cregs if bit.register == creg]
+            self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, top_connect=None, bot_connect=None,
                         conditional=False, controlled_edge=None):
