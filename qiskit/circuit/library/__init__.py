@@ -178,7 +178,6 @@ Data encoding circuits
    FirstOrderExpansion
    SecondOrderExpansion
 
->>>>>>> IQP
 """
 
 from .standard_gates import *
