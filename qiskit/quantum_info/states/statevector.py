@@ -35,7 +35,11 @@ class Statevector(QuantumState):
 
     def __init__(self, data, dims=None):
         """Initialize a state object."""
-        if isinstance(data, Statevector):
+        if isinstance(data, (list, np.ndarray)):
+            # Finally we check if the input is a raw vector in either a
+            # python list or numpy array format.
+            self._data = np.asarray(data, dtype=complex)
+        elif isinstance(data, Statevector):
             self._data = data._data
             if dims is None:
                 dims = data._dims
@@ -45,20 +49,17 @@ class Statevector(QuantumState):
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
             self._data = np.ravel(data.data)
-        elif isinstance(data, (list, np.ndarray)):
-            # Finally we check if the input is a raw vector in either a
-            # python list or numpy array format.
-            self._data = np.asarray(data, dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Statevector")
         # Check that the input is a numpy vector or column-vector numpy
         # matrix. If it is a column-vector matrix reshape to a vector.
         ndim = self._data.ndim
         shape = self._data.shape
-        if ndim not in [1, 2] or (ndim == 2 and shape[1] != 1):
-            raise QiskitError("Invalid input: not a vector or column-vector.")
-        if ndim == 2 and shape[1] == 1:
-            self._data = np.reshape(self._data, shape[0])
+        if ndim != 1:
+            if ndim == 2 and shape[1] == 1:
+                self._data = np.reshape(self._data, shape[0])
+            elif ndim != 2 or shape[1] != 1:
+                raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(self._automatic_dims(dims, shape[0]))
 
     def __eq__(self, other):
@@ -470,8 +471,8 @@ class Statevector(QuantumState):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         init = np.zeros(2 ** instruction.num_qubits, dtype=complex)
-        init[0] = 1
-        vec = Statevector(init, dims=instruction.num_qubits * [2])
+        init[0] = 1.0
+        vec = Statevector(init, dims=instruction.num_qubits * (2,))
         vec._append_instruction(instruction)
         return vec
 
@@ -548,7 +549,8 @@ class Statevector(QuantumState):
         if mat is not None:
             # Perform the composition and inplace update the current state
             # of the operator
-            self._data = self.evolve(mat, qargs=qargs).data
+            state = self.evolve(mat, qargs=qargs)
+            self._data = state.data
         else:
             # If the instruction doesn't have a matrix defined we use its
             # circuit decomposition definition if it exists, otherwise we
