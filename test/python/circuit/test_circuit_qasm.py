@@ -137,7 +137,7 @@ composite_circ qr[0],qr[1];
 measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
-        
+
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params.
         """
