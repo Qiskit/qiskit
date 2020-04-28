@@ -80,4 +80,4 @@ class Permutation(QuantumCircuit):
                 inner.swap(i, int(pattern[i]))
                 pattern[pattern[i]] = -1
         all_qubits = self.qubits
-        self.append(inner, all_qubits, label=name)
+        self.append(inner, all_qubits)
