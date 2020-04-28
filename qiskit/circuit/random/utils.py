@@ -18,12 +18,12 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Reset
-from qiskit.extensions import (IGate, U1Gate, U2Gate, U3Gate, XGate,
-                               YGate, ZGate, HGate, SGate, SdgGate, TGate,
-                               TdgGate, RXGate, RYGate, RZGate, CXGate,
-                               CYGate, CZGate, CHGate, CRZGate, CU1Gate,
-                               CU3Gate, SwapGate, RZZGate,
-                               CCXGate, CSwapGate)
+from qiskit.circuit.library.standard_gates import (IGate, U1Gate, U2Gate, U3Gate, XGate,
+                                                   YGate, ZGate, HGate, SGate, SdgGate, TGate,
+                                                   TdgGate, RXGate, RYGate, RZGate, CXGate,
+                                                   CYGate, CZGate, CHGate, CRZGate, CU1Gate,
+                                                   CU3Gate, SwapGate, RZZGate,
+                                                   CCXGate, CSwapGate)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.util import deprecate_arguments
 
