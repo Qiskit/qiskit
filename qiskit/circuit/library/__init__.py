@@ -19,6 +19,14 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Blueprint Circuit
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlueprintCircuit
+
 Generalized Gates
 =================
 
@@ -26,6 +34,9 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   MCMT
+   MCMTVChain
+   Permutation
 
 Boolean Logic Circuits
 ======================
@@ -34,10 +45,9 @@ Boolean Logic Circuits
    :toctree: ../stubs/
 
    AND
-   InnerProduct
    OR
-   Permutation
    XOR
+   InnerProduct
 
 Basis Change Circuits
 =====================
@@ -94,19 +104,45 @@ Quantum Complexity Advantage Circuits
    FourierChecking
 
 
-Generalized Gates
-=================
+N-local circuits
+================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   MCMT
-   MCMTVChain
+   NLocal
+   TwoLocal
+   RY
+   RYRZ
+   SwapRZ
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliExpansion
+   FirstOrderExpansion
+   SecondOrderExpansion
 
 """
 
-from .generalized_gates import Diagonal
-
+from .blueprintcircuit import BlueprintCircuit
+from .generalized_gates import (
+    Diagonal,
+    MCMT,
+    MCMTVChain,
+    Permutation
+)
+from .boolean_logic import (
+    AND,
+    OR,
+    XOR,
+    InnerProduct,
+)
+from .basis_change import QFT
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
@@ -124,8 +160,16 @@ from .boolean_logic import (
     AND,
 )
 from .fourier_checking import FourierChecking
-from .generalized_gates import (
-    MCMT,
-    MCMTVChain
+from .n_local import (
+    NLocal,
+    TwoLocal,
+    RY,
+    RYRZ,
+    SwapRZ,
+)
+from .data_encoding import (
+    PauliExpansion,
+    FirstOrderExpansion,
+    SecondOrderExpansion
 )
 from .quantum_volume import QuantumVolume
