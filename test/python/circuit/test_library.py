@@ -24,7 +24,8 @@ from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerProduct, OR, AND, QFT,
+from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume, XOR,
+                                    InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
@@ -36,6 +37,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
                                         RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
 from qiskit.quantum_info import Statevector, Operator
+from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
 
@@ -125,7 +127,7 @@ class TestBlueprintCircuit(QiskitTestCase):
 
 @ddt
 class TestPermutationLibrary(QiskitTestCase):
-    """Test library of boolean logic quantum circuits."""
+    """Test library of permutation logic quantum circuits."""
 
     def test_permutation(self):
         """Test permutation circuit."""
@@ -140,6 +142,22 @@ class TestPermutationLibrary(QiskitTestCase):
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+@ddt
+class TestQuantumVolumeLibrary(QiskitTestCase):
+    """Test library of quantum volume quantum circuits."""
+
+    def test_qv(self):
+        """Test qv circuit."""
+        circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
+        expected = QuantumCircuit(2)
+        expected.swap(0, 1)
+        expected.append(random_unitary(4, seed=837), [0, 1])
+        expected.append(random_unitary(4, seed=262), [0, 1])
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
 
 
 @ddt
