@@ -357,8 +357,8 @@ class QuantumCircuit:
         ``other`` can be narrower or of equal width to ``self``.
 
         Args:
-            other (qiskit.circuit.Instruction|QuantumCircuit|BaseOperator):
-                (sub)circuit to compose with self.
+            other (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
+                (sub)circuit to compose onto self.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet).
@@ -387,7 +387,7 @@ class QuantumCircuit:
             lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
                         └───┘                                          └───┘
             lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
-                                                                                           
+
             lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
