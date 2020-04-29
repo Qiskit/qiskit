@@ -169,8 +169,8 @@ class VectorStateFn(StateFn):
                shots: int = 1024,
                massive: bool = False,
                reverse_endianness: bool = False) -> dict:
-        deterministic_counts = self.primitive.to_counts()
-        # Don't need to square because to_counts already does.
+        deterministic_counts = self.primitive.probabilities_dict()
+        # Don't need to square because probabilities_dict already does.
         probs = np.array(list(deterministic_counts.values()))
         unique, counts = np.unique(np.random.choice(list(deterministic_counts.keys()),
                                                     size=shots,
