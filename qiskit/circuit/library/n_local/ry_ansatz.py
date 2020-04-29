@@ -22,7 +22,7 @@ from qiskit.circuit.library.standard_gates import RYGate, CZGate
 from .two_local import TwoLocal
 
 
-class RYAnsatz(TwoLocal):
+class RY(TwoLocal):
     r"""The RY 2-local circuit.
 
     The RY trial wave function consistes of alternating layers of :math:`Y` rotations
@@ -64,7 +64,7 @@ class RYAnsatz(TwoLocal):
 
     Examples:
 
-         >>> ry = RYAnsatz(3, reps=2)  # create the variational form on 3 qubits
+         >>> ry = RY(3, reps=2)  # create the variational form on 3 qubits
          >>> print(ry)  # show the circuit
               ┌──────────┐      ┌──────────┐                  ┌──────────┐
          q_0: ┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├─────────────■──■─┤ RY(θ[6]) ├────────────
@@ -74,7 +74,7 @@ class RYAnsatz(TwoLocal):
          q_2: ┤ RY(θ[2]) ├────■──────■──────┤ RY(θ[5]) ├────■──────■──────┤ RY(θ[8]) ├
               └──────────┘                  └──────────┘                  └──────────┘
 
-         >>> ry = RYAnsatz(3, entanglement='linear', reps=2, insert_barriers=True)
+         >>> ry = RY(3, entanglement='linear', reps=2, insert_barriers=True)
          >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
          >>> qc += ry.to_circuit()
          >>> qc.decompose().draw()
@@ -86,7 +86,7 @@ class RYAnsatz(TwoLocal):
          q_2: ┤ RY(θ[2]) ├─░─────■──░─┤ RY(θ[5]) ├─░─────■──░─┤ RY(θ[8]) ├
               └──────────┘ ░        ░ └──────────┘ ░        ░ └──────────┘
 
-         >>> ry = RYAnsatz(4, 'crx', entanglement='circular', reps=2, insert_barriers=True)
+         >>> ry = RY(4, 'crx', entanglement='circular', reps=2, insert_barriers=True)
          >>> print(ry)
               ┌──────────┐ ░ ┌──────────┐                                     ░  ┌──────────┐
          q_0: ┤ RY(θ[0]) ├─░─┤ Rx(θ[4]) ├─────■───────────────────────────────░──┤ RY(θ[8]) ├
@@ -99,7 +99,7 @@ class RYAnsatz(TwoLocal):
               └──────────┘ ░                                     └──────────┘ ░ └───────────┘
 
          >>> entanglement = [[0, 1], [0, 2]]
-         >>> ry = RYAnsatz(3, 'cx', entanglement, reps=2)
+         >>> ry = RY(3, 'cx', entanglement, reps=2)
          >>> print(ry)
               ┌──────────┐                      ┌──────────┐                      ┌──────────┐
          q_0: ┤ RY(θ[0]) ├──■────────────────■──┤ RY(θ[3]) ├──■────────────────■──┤ RY(θ[6]) ├

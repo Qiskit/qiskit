@@ -47,11 +47,11 @@ class ZZFeatureMap(PauliFeatureMap):
         q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
              └───┘└──────────────┘└───┘└─────────────────────────────────┘└───┘
 
-        >>> from qiskit.circuit.library import RYRZAnsatz
-        >>> classifier = ZZFeatureMap(3) + RYRZAnsatz(3)
+        >>> from qiskit.circuit.library import RYRZ
+        >>> classifier = ZZFeatureMap(3) + RYRZ(3)
         >>> classifier.num_parameters
         15
-        >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the RYRZAnsatz parameters
+        >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the RYRZ parameters
         {Parameter(θ[9]), Parameter(θ[4]), Parameter(θ[6]), Parameter(θ[1]), Parameter(x[2]),
         Parameter(θ[7]), Parameter(x[1]), Parameter(θ[8]), Parameter(θ[2]), Parameter(θ[10]),
         Parameter(θ[5]), Parameter(θ[0]), Parameter(θ[3]), Parameter(x[0]), Parameter(θ[11])}
