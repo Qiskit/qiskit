@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Boeblingen device (20 qubit).
+Fake Singapore device (20 qubit).
 """
 
 import os
@@ -40,7 +40,7 @@ class FakeSingapore(FakeBackend):
         dirname = os.path.dirname(__file__)
         filename = "conf_singapore.json"
         with open(os.path.join(dirname, filename), "r") as f_conf:
-            conf = json.load(f_conf) 
+            conf = json.load(f_conf)
 
         configuration = PulseBackendConfiguration.from_dict(conf)
         configuration.backend_name = 'fake_singapore'
@@ -49,8 +49,7 @@ class FakeSingapore(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 10/08/19.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_singapore.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
@@ -58,8 +57,7 @@ class FakeSingapore(FakeBackend):
         return BackendProperties.from_dict(props)
 
     def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 11/15/19.
-        """
+        """Returns a snapshot of device defaults"""
         if not self._defaults:
             dirname = os.path.dirname(__file__)
             filename = "defs_singapore.json"

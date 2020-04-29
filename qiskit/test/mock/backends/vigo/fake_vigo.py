@@ -19,8 +19,7 @@ Fake Vigo device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
-                                     BackendProperties)
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -42,8 +41,7 @@ class FakeVigo(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 8/30/19.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_vigo.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:

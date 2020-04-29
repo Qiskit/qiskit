@@ -19,8 +19,7 @@ Fake Rochester device (53 qubit).
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
-                                     BackendProperties)
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -31,14 +30,13 @@ class FakeRochester(FakeBackend):
         dirname = os.path.dirname(__file__)
         filename = "conf_rochester.json"
         with open(os.path.join(dirname, filename), "r") as f_conf:
-            conf = json.load(f_conf) 
+            conf = json.load(f_conf)
         configuration = QasmBackendConfiguration.from_dict(conf)
         configuration.backend_name = 'fake_rochester'
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 11/21/19.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_rochester.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:

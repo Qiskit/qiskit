@@ -46,10 +46,9 @@ class FakeJohannesburg(FakeBackend):
         self._defaults = None
         self._properties = None
         super().__init__(configuration)
- 
+
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 04/28/20.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_johannesburg.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
@@ -57,8 +56,7 @@ class FakeJohannesburg(FakeBackend):
         return BackendProperties.from_dict(props)
 
     def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 04/28/20.
-        """
+        """Returns a snapshot of device defaults"""
         if not self._defaults:
             dirname = os.path.dirname(__file__)
             filename = "defs_johannesburg.json"
@@ -66,4 +64,3 @@ class FakeJohannesburg(FakeBackend):
                 defs = json.load(f_defs)
             self._defaults = PulseDefaults.from_dict(defs)
         return self._defaults
-
