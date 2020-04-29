@@ -51,14 +51,13 @@ class TestBackendOverview(QiskitTestCase):
         ibmq_mock.IBMQBackend = FakeBackend
         sys.modules['qiskit.providers.ibmq'] = ibmq_mock
 
-        import qiskit
         if hasattr(qiskit, 'IBMQ'):
             self.import_error = False
         else:
             self.import_error = True
             qiskit.IBMQ = None
         self.ibmq_back = qiskit.IBMQ
-        IBMQ = FakeProvider()
+        qiskit.IBMQ = FakeProvider()
         self.addCleanup(self._restore_ibmq)
         if hasattr(providers, 'ibmq'):
             self.prov_backup = providers.ibmq

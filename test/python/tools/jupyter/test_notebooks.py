@@ -22,9 +22,8 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-import qiskit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
-from qiskit.test import (Path, QiskitTestCase, online_test, slow_test)
+from qiskit.test import (Path, QiskitTestCase, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.
@@ -47,10 +46,20 @@ class TestJupyter(QiskitTestCase):
         with open(filename) as file_:
             notebook = nbformat.read(file_, as_version=4)
 
-        top_str = "import qiskit\n"
-        top_str += "from qiskit.test.mock import FakeProvider\n"
-        top_str += "fake_prov = FakeProvider()\n"
-        top_str += 'qiskit.IBMQ = fake_prov\n'
+        top_str = """
+        import qiskit
+        import sys
+        from unittest.mock import create_autospec, MagicMock
+        from qiskit.test.mock import FakeProvider
+        from qiskit.providers import basicaer
+        fake_prov = FakeProvider()
+        qiskit.IBMQ = fake_prov
+        ibmq_mock = create_autospec(basicaer)
+        ibmq_mock.IBMQJobApiError = MagicMock()
+        sys.modules['qiskit.providers.ibmq'] = ibmq_mock
+        sys.modules['qiskit.providers.ibmq.job'] = ibmq_mock
+        sys.modules['qiskit.providers.ibmq.job.exceptions'] = ibmq_mock
+        """
         top = nbformat.notebooknode.NotebookNode({'cell_type': 'code',
                                                   'execution_count': 0,
                                                   'metadata': {},

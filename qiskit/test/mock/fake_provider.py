@@ -76,7 +76,9 @@ class FakeProvider(BaseProvider):
         super().__init__()
 
     def load_account(self):
+        """Fake load_account method to mirror the IBMQ provider/"""
         pass
 
     def providers(self):
+        """Fake providers method to mirror the IBMQ provider."""
         return [self]
