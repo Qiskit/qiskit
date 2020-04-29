@@ -16,8 +16,9 @@
 Controlled-Swap gate or Fredkin gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.swap import FredkinGate, cswap
+from qiskit.circuit.library.standard_gates.swap import FredkinGate
 
-warnings.warn('This module is deprecated. The FredkinGate can now be found in swap.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['FredkinGate']

@@ -12,8 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Standard gates."""
+"""This module is deprecated, the gates moved to qiskit/circuit/library."""
 
+import warnings
 from .barrier import Barrier
 from .h import HGate, CHGate
 from .i import IGate
@@ -57,3 +58,8 @@ from .u3 import Cu3Gate
 from .rx import CrxGate
 from .ry import CryGate
 from .rz import CrzGate
+
+warnings.warn('The module qiskit.extensions.standard is deprecated as of 0.14.0 and will be '
+              'removed no earlier than 3 months after the release. You should import the '
+              'standard gates from qiskit.circuit.library.standard_gates instead.',
+              DeprecationWarning, stacklevel=2)
