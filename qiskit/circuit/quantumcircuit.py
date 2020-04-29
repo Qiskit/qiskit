@@ -784,7 +784,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -858,7 +858,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-                the ``text`` output. Default: ``True``.
+                the ``text`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
