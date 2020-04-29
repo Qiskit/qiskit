@@ -1,10 +1,9 @@
 ---
-prelude: >
+prelude: |
   The 0.14.0 release includes several new features and bug fixes. The biggest
   change for this release is the introduction of a quantum circuit library
   in :mod:`qiskit.circuit.library`, containing some circuit families of
-  interest. Full documentation of this library is available on
-  `qiskit.org <https://qiskit.org/documentation/apidoc/circuit_library.html>_`.
+  interest.
   
   The circuit library gives users access to a rich set of well-studied
   circuit families, instances of which can be used as benchmarks,
@@ -14,41 +13,42 @@ prelude: >
   
   The initial release of the circuit library contains:
   
-  - standard_gates: these are fixed-width gates commonly used as primitive
-  building blocks, consisting of 1-, 2- and 3- qubit gates. For example
-  the ``XGate``, ``RZZGate`` and ``CSWAPGate``. The old location of
-  these gates under qiskit.extensions.standard is deprecated.
-  
-  - generalized_gates: these are families that can generalize to arbitrarily
-  many qubits, for example a ``Permutation`` or ``GMS`` (Global Molmer-Sorensen
-  gate).
-  
-  - boolean_logic: circuits that transform basis state according to simple
-  Boolean logic functions, such as ``ADD`` or ``XOR``.
-  
-  - arithmetic: a set of circuits for doing classical arithmetics such as
-  ``WeightedAdder`` and ``IntegerComparator``.
-  
-  - basis_changes: circuits such a the quantum Fourier transform, ``QFT``, that 
-    mathematically apply basis changes
-  
-  - n_local: patterns to easily create large circuits with rotation and entanglement 
-     layers, such as  ``TwoLocal`` which uses single-qubit rotations and two-qubit 
-     entanglements.
-     
-  - data_preparation: circuits that take classical input data and encode it in a 
-     quantum state that is difficult to simulate, e.g. ``PauliFeatureMap`` or 
-     ``ZZFeatureMap``.
-  
-  - Other circuits that have proven interesting in the literature, such as
-  ``QuantumVolume`` or ``GraphState`` or ``IQP``.
+  * standard_gates: these are fixed-width gates commonly used as primitive
+    building blocks, consisting of 1, 2, and 3 qubit gates. For example
+    the :class:`~qiskit.circuit.library.XGate`,
+    :class:`~qiskit.circuit.library.RZZGate` and
+    :class:`~qiskit.circuit.library.CSWAPGate`. The old location of these
+    gates under ``qiskit.extensions.standard`` is deprecated.
+  * generalized_gates: these are families that can generalize to arbitrarily
+    many qubits, for example a :class:`~qiskit.circuit.library.Permutation` or
+    :class:`~qiskit.circuit.library.GMS` (Global Molmer-Sorensen gate).
+  * boolean_logic: circuits that transform basis state according to simple
+    Boolean logic functions, such as :class:`~qiskit.circuit.library.ADD` or
+    :class:`~qiskit.circuit.library.XOR`.
+  * arithmetic: a set of circuits for doing classical arithmetics such as
+    :class:`~qiskit.circuit.library.WeightedAdder` and
+    :class:`~qiskit.circuit.library.IntegerComparator`.
+  * basis_changes: circuits such a the quantum Fourier transform,
+    :class:`~qiskit.circuit.library.QFT`, that mathematically apply basis
+    changes.
+  * n_local: patterns to easily create large circuits with rotation and
+    entanglement layers, such as  :class:`~qiskit.circuit.library.TwoLocal`
+    which uses single-qubit rotations and two-qubit entanglements.
+  * data_preparation: circuits that take classical input data and encode it
+    in a quantum state that is difficult to simulate, e.g.
+    :class:`~qiskit.circuit.library.PauliFeatureMap` or
+    :class:`~qiskit.circuit.library.ZZFeatureMap`.
+  * Other circuits that have proven interesting in the literature, such as
+    :class:`~qiskit.circuit.library.QuantumVolume`,
+    :class:`~qiskit.circuit.library.GraphState`, or
+    :class:`~qiskit.circuit.library.IQP`.
   
   To allow easier use of these circuits as building blocks, we have introduced
-  a ``QuantumCircuit.compose()`` method for composition of circuits either with
-  other circuits (by welding them at the ends and optionally permuting wires) or
-  with other simpler gates.
+  a :meth:`~qiskit.circuit.QuantumCircuit.compose` method for composition of
+  circuits either with other circuits (by welding them at the ends and
+  optionally permuting wires) or with other simpler gates::
   
-  >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+    >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
   
   .. parsed-literal::
                     ┌───┐                   ┌─────┐                ┌───┐
