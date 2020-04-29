@@ -481,7 +481,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.dtm = dtm * 1e-9
 
         if channels is not None:
-            self._channels = channels
+            self.channels = channels
 
             (self._qubit_channel_map,
              self._channel_qubit_map,
@@ -563,6 +563,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict['acquisition_latency'] = self.acquisition_latency
         if hasattr(self, 'conditional_latency'):
             out_dict['conditional_latency'] = self.conditional_latency
+        if 'channels' in out_dict:
+            out_dict.pop('_qubit_channel_map')
+            out_dict.pop('_channel_qubit_map')
+            out_dict.pop('_control_channels')
         return out_dict
 
     def __eq__(self, other):
