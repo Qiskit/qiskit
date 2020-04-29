@@ -1,11 +1,43 @@
 ---
 prelude: >
   The 0.14.0 release includes several new features and bug fixes. The biggest
-  change for this release is the introduction of a library of quantum circuits
-  in :mod:`qiskit.circuit.library`, containing some circuits of interest.
-  The contents of this library will grow over time. Each circuit can be
-  executed on its own, or used as a building block in building larger
-  circuits. With this, Qiskit's circuits no longer assume an implicit
+  change for this release is the introduction of a quantum circuit library
+  in :mod:`qiskit.circuit.library`, containing some circuit families of
+  interest. Full documentation of this library is available on
+  `qiskit.org <https://qiskit.org/documentation/apidoc/circuit_library.html>_`.
+  
+  The circuit library gives users access to a rich set of well-studied
+  circuit families, instances of which can be used as benchmarks,
+  as building blocks in building more complex circuits, or
+  as a tool to explore quantum computational advantage over classical.
+  The contents of this library will continue to grow and refine.
+  
+  The initial release of the circuit library contains:
+  
+  - standard_gates: these are fixed-width gates commonly used as primitive
+  building blocks, consisting of 1-, 2- and 3- qubit gates. For example
+  the ``XGate``, ``RZZGate`` and ``CSWAPGate``. The old location of
+  these gates under qiskit.extensions.standard is deprecated.
+  
+  - generalized_gates: these are families that can generalize to arbitrarily
+  many qubits, for example a ``Permutation`` or ``GMS`` (Global Molmer-Sorensen
+  gate).
+  
+  - boolean_logic: circuits that transform basis state according to simple
+  Boolean logic functions, such as ``ADD`` or ``XOR``.
+  
+  - arithmetic: a set of circuits for doing classical arithmetics such as
+  ``WeightedAdder`` and ``IntegerComparator``.
+  
+  - Other circuits that have proven interesting in the literature, such as
+  ``QuantumVolume`` or ``GraphState`` or ``IQP``.
+  
+  To allow easier use of these circuits as building blocks, we have introduced
+  a ``QuantumCircuit.compose()`` method for composition of circuits either with
+  other circuits (by welding them at the ends and optionally permuting wires) or
+  with other simpler gates.
+
+  With this, Qiskit's circuits no longer assume an implicit
   initial state of :math:`|0\rangle`, and will not be drawn with this
   initial state. The all-zero initial state is still assumed on a backend
   when a circuit is executed.
