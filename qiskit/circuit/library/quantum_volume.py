@@ -32,6 +32,26 @@ class QuantumVolume(QuantumCircuit):
     elements of SU(4) applied between corresponding pairs
     of qubits in a random bipartition.
 
+    **Reference Circuit:**
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import QuantumVolume
+        import qiskit.tools.jupyter
+        circuit = QuantumVolume(5, 6, seed=10)
+        circuit.draw('mpl')
+
+    **Expanded Circuit:**
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import QuantumVolume
+        import qiskit.tools.jupyter
+        circuit = QuantumVolume(5, 6, seed=10, classical_permutation=False)
+        %circuit_library_info circuit.decompose()
+
     **References:**
 
     [1] A. Cross et al. Validating quantum computers using
@@ -50,37 +70,23 @@ class QuantumVolume(QuantumCircuit):
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
             seed: randomization seed.
-            classical_permutation: do permuations by hand
-
-        Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
-
-                from qiskit.circuit.library import QuantumVolume
-                import qiskit.tools.jupyter
-                circuit = QuantumVolume(5,6,seed=10)
-                circuit.draw('mpl')
-
-        Expanded Circuit:
-            .. jupyter-execute::
-                :hide-code:
-
-                from qiskit.circuit.library import QuantumVolume
-                import qiskit.tools.jupyter
-                circuit = QuantumVolume(5,6,seed=10, do_permutations=False)
-                %circuit_library_info circuit.decompose()
+            classical_permutation: use classical permutations at every layer,
+                rather than quantum.
         """
         depth = depth or num_qubits  # how many layers of SU(4)
         width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
+
         if seed is None:
             rng_set = np.random.RandomState()
-            seed = rng_set.randint(low=1, high=1000)
-        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
-        super().__init__(num_qubits, name=name)
-        rng = np.random.RandomState(seed)
+            seed = rng_set.randint(low=1, high=1000000)
 
-        unitary_seeds = rng.randint(low=1, high=1000,
-                                    size=[depth, width])
+        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
+
+        super().__init__(num_qubits, name=name)
+
+        rng = np.random.default_rng(seed)
+
+        unitary_seeds = rng.integers(low=1, high=1000000, size=[depth, width])
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
@@ -90,16 +96,15 @@ class QuantumVolume(QuantumCircuit):
         for d in range(depth):
             perm = rng.permutation(perm_0)
             if not classical_permutation:
-                insert_circuit = Permutation(num_qubits, perm)
-                inner.append(insert_circuit.decompose(), all_qubits,
-                             label=insert_circuit.name)
+                layer_perm = Permutation(num_qubits, perm)
+                inner.compose(layer_perm)
             for w in range(width):
                 seed_u = unitary_seeds[d][w]
-                su4 = random_unitary(4, seed=seed_u)
-                uname = 'su4_' + str(seed_u)
+                su4 = random_unitary(4, seed=seed_u).to_instruction()
+                su4.name = 'su4_' + str(seed_u)
                 if classical_permutation:
                     physical_qubits = int(perm[2*w]), int(perm[2*w+1])
-                    inner.append(su4, [physical_qubits[0], physical_qubits[1]], label=uname)
+                    inner.compose(su4, [physical_qubits[0], physical_qubits[1]])
                 else:
-                    inner.append(su4, [2*w, 2*w+1], label=uname)
-        self.append(inner, all_qubits, label=name)
+                    inner.compose(su4, [2*w, 2*w+1])
+        self.compose(inner)
