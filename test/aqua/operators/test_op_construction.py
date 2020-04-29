@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator, Pauli
-from qiskit.extensions.standard import CZGate
+from qiskit.circuit.library import CZGate
 
 from qiskit.aqua.operators import X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus
 
