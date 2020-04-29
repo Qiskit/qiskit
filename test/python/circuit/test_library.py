@@ -25,7 +25,7 @@ from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, Paramete
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume, XOR,
-                                    InnerProduct, OR, AND, QFT, IQP
+                                    InnerProduct, OR, AND, QFT, IQP,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
