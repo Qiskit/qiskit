@@ -357,8 +357,8 @@ class QuantumCircuit:
         ``other`` can be narrower or of equal width to ``self``.
 
         Args:
-            other (qiskit.circuit.Instruction|QuantumCircuit|BaseOperator):
-                (sub)circuit to compose with self.
+            other (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
+                (sub)circuit to compose onto self.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet).
@@ -375,20 +375,22 @@ class QuantumCircuit:
 
             >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
-                        ┌───┐                   ┌─────┐                ┌───┐
-            lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
-                        ├───┤              ┌─┴─┐└─────┘                ├───┤
-            lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
-                     ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
-            lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
-                     └─────────┘                                    └─────────┘└─┬─┘┌─────┐
-            lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
-                        ┌─┴─┐                                          ┌─┴─┐        └─────┘
-            lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
-                        └───┘                                          └───┘
-            lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
-                                                                                           
-            lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
+            .. parsed-literal::
+
+                            ┌───┐                   ┌─────┐                ┌───┐
+                lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
+                            ├───┤              ┌─┴─┐└─────┘                ├───┤
+                lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
+                         ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
+                lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
+                         └─────────┘                                    └─────────┘└─┬─┘┌─────┐
+                lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
+                            ┌─┴─┐                                          ┌─┴─┐        └─────┘
+                lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
+                            └───┘                                          └───┘
+                lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+
+                lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
         if front:
@@ -782,7 +784,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -856,7 +858,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-                the ``text`` output. Default: ``True``.
+                the ``text`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
