@@ -494,8 +494,7 @@ class QuantumCircuit:
                 to append.
             qargs (list(argument)): qubits to attach instruction to.
             cargs (list(argument)): clbits to attach instruction to.
-            label (str): An optional label for the appended instruction (will override
-                any existing gate label).
+
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
