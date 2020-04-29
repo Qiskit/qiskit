@@ -971,8 +971,8 @@ class TestNLocal(QiskitTestCase):
         """An equality test specialized to circuits."""
         if transpiled:
             basis_gates = ['id', 'u1', 'u3', 'cx']
-            qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
-            qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
+            qc1_transpiled = transpile(qc1, basis_gates=basis_gates, optimization_level=0)
+            qc2_transpiled = transpile(qc2, basis_gates=basis_gates, optimization_level=0)
             qc1, qc2 = qc1_transpiled, qc2_transpiled
 
         if visual:
@@ -1278,8 +1278,8 @@ class TestTwoLocal(QiskitTestCase):
         """An equality test specialized to circuits."""
         if transpiled:
             basis_gates = ['id', 'u1', 'u3', 'cx']
-            qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
-            qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
+            qc1_transpiled = transpile(qc1, basis_gates=basis_gates, optimization_level=0)
+            qc2_transpiled = transpile(qc2, basis_gates=basis_gates, optimization_level=0)
             qc1, qc2 = qc1_transpiled, qc2_transpiled
 
         if visual:
@@ -1537,7 +1537,9 @@ class TestTwoLocal(QiskitTestCase):
         num_qubits = 3
         reps = 2
         entanglement = 'linear'
-        parameters = ParameterVector('theta', num_qubits * (reps + 1) + reps * (1 + num_qubits))
+        # need the parameters in the entanglement blocks to be the same because the order
+        # can get mixed up in ExcitationPreserving (since parameters are not ordered in circuits)
+        parameters = [1] * (num_qubits * (reps + 1) + reps * (1 + num_qubits))
         param_iter = iter(parameters)
 
         expected = QuantumCircuit(3)
