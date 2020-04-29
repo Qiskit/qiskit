@@ -135,16 +135,8 @@ Comparators
 
    IntegerComparator
 
-Characterization and Validation Circuits
-========================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   QuantumVolume
-
-Quantum Complexity Advantage Circuits
-=====================================
+Particular Quantum Circuits
+===========================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -152,6 +144,8 @@ Quantum Complexity Advantage Circuits
    FourierChecking
    GraphState
    HiddenLinearFunction
+   IQP
+   QuantumVolume
 
 
 N-local circuits
@@ -176,7 +170,6 @@ Data encoding circuits
    PauliExpansion
    FirstOrderExpansion
    SecondOrderExpansion
-
 """
 
 from .standard_gates import *
@@ -222,3 +215,4 @@ from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
+from .iqp import IQP
