@@ -29,6 +29,17 @@ prelude: >
   - arithmetic: a set of circuits for doing classical arithmetics such as
   ``WeightedAdder`` and ``IntegerComparator``.
   
+  - basis_changes: circuits such a the quantum Fourier transform, ``QFT``, that 
+    mathematically apply basis changes
+  
+  - n_local: patterns to easily create large circuits with rotation and entanglement 
+     layers, such as  ``TwoLocal`` which uses single-qubit rotations and two-qubit 
+     entanglements.
+     
+  - data_preparation: circuits that take classical input data and encode it in a 
+     quantum state that is difficult to simulate, e.g. ``PauliFeatureMap`` or 
+     ``ZZFeatureMap``.
+  
   - Other circuits that have proven interesting in the literature, such as
   ``QuantumVolume`` or ``GraphState`` or ``IQP``.
   
