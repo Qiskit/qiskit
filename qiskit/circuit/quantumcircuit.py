@@ -43,7 +43,7 @@ try:
     from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
     from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
     HAS_PYGMENTS = True
-except ImportError:
+except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 
@@ -514,6 +514,8 @@ class QuantumCircuit:
                 instruction = instruction.to_instruction()
             except AttributeError:
                 raise CircuitError('Unable to append operator to circuit.')
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
 
         if label is not None:
             instruction.label = label
@@ -733,9 +735,9 @@ class QuantumCircuit:
 
         if formatted:
             if not HAS_PYGMENTS:
-                raise ImportError("To use the formatted output pygments must "
-                                  'be installed. To install run "pip install '
-                                  'pygments".')
+                raise ImportError("To use the formatted output pygments>2.4 "
+                                  "must be installed. To install pygments run "
+                                  '"pip install pygments".')
             code = pygments.highlight(string_temp,
                                       OpenQASMLexer(),
                                       Terminal256Formatter(style=QasmTerminalStyle))
@@ -1212,7 +1214,7 @@ class QuantumCircuit:
         cpy.cregs = self.cregs.copy()
 
         instr_instances = {id(instr): instr
-                           for instr, _, __ in self.data}
+                           for instr, _, __ in self._data}
 
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
@@ -1225,7 +1227,7 @@ class QuantumCircuit:
         }
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
-                     for inst, qargs, cargs in self.data]
+                     for inst, qargs, cargs in self._data]
 
         if name:
             cpy.name = name
