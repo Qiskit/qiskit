@@ -25,13 +25,75 @@ from ddt import ddt, data
 import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
+
+
+def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
+    """Validates the internal consistency of a ParameterTable and its
+    containing QuantumCircuit. Intended for use in testing.
+
+    Raises:
+       CircuitError: if QuantumCircuit and ParameterTable are inconsistent.
+    """
+
+    table = circuit._parameter_table
+
+    # Assert parameters present in circuit match those in table.
+    circuit_parameters = {parameter
+                          for instr, qargs, cargs in circuit._data
+                          for param in instr.params
+                          for parameter in param.parameters
+                          if isinstance(param, ParameterExpression)}
+    table_parameters = set(table._table.keys())
+
+    if circuit_parameters != table_parameters:
+        raise CircuitError('Circuit/ParameterTable Parameter mismatch. '
+                           'Circuit parameters: {}. '
+                           'Table parameters: {}.'.format(
+                               circuit_parameters,
+                               table_parameters))
+
+    # Assert parameter locations in table are present in circuit.
+    circuit_instructions = [instr
+                            for instr, qargs, cargs in circuit._data]
+
+    for parameter, instr_list in table.items():
+        for instr, param_index in instr_list:
+            if instr not in circuit_instructions:
+                raise CircuitError('ParameterTable instruction not present '
+                                   'in circuit: {}.'.format(instr))
+
+            if not isinstance(instr.params[param_index], ParameterExpression):
+                raise CircuitError('ParameterTable instruction does not have a '
+                                   'ParameterExpression at param_index {}: {}.'
+                                   ''.format(param_index, instr))
+
+            if parameter not in instr.params[param_index].parameters:
+                raise CircuitError('ParameterTable instruction parameters does '
+                                   'not match ParameterTable key. Instruction '
+                                   'parameters: {} ParameterTable key: {}.'
+                                   ''.format(instr.params[param_index].parameters,
+                                             parameter))
+
+    # Assert circuit has no other parameter locations other than those in table.
+    for instr, qargs, cargs in circuit._data:
+        for param_index, param in enumerate(instr.params):
+            if isinstance(param, ParameterExpression):
+                parameters = param.parameters
+
+                for parameter in parameters:
+                    if (instr, param_index) not in table[parameter]:
+                        raise CircuitError('Found parameterized instruction not '
+                                           'present in table. Instruction: {} '
+                                           'param_index: {}'.format(instr,
+                                                                    param_index))
 
 
 @ddt
@@ -658,6 +720,46 @@ class TestParameters(QiskitTestCase):
             qc = QuantumCircuit(1)
             qc.x(0)
             self.assertEqual(qc.num_parameters, 0)
+
+    def test_to_instruction_after_inverse(self):
+        """Verify converting an inverse generates a valid ParameterTable"""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/4235
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+
+        inv_instr = qc.inverse().to_instruction()
+        self.assertIsInstance(inv_instr, Instruction)
+
+    def test_copy_after_inverse(self):
+        """Verify circuit.inverse generates a valid ParameterTable."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+
+        inverse = qc.inverse()
+        self.assertIn(theta, inverse.parameters)
+        raise_if_parameter_table_invalid(inverse)
+
+    def test_copy_after_mirror(self):
+        """Verify circuit.mirror generates a valid ParameterTable."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+
+        mirror = qc.mirror()
+        self.assertIn(theta, mirror.parameters)
+        raise_if_parameter_table_invalid(mirror)
+
+    def test_copy_after_dot_data_setter(self):
+        """Verify setting circuit.data generates a valid ParameterTable."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+
+        qc.data = []
+        self.assertEqual(qc.parameters, set())
+        raise_if_parameter_table_invalid(qc)
 
 
 def _construct_circuit(param, qr):
