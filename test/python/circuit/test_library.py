@@ -152,9 +152,9 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
         """Test qv circuit."""
         circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
         expected = QuantumCircuit(2)
-        expected.append(random_unitary(4, seed=169), [0, 1])
         expected.swap(0, 1)
-        expected.append(random_unitary(4, seed=528), [0, 1])
+        expected.append(random_unitary(4, seed=837), [0, 1])
+        expected.append(random_unitary(4, seed=262), [0, 1])
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
