@@ -298,7 +298,7 @@ class MatplotlibDrawer:
                 disp_color = self._style.gt
                 sub_color = self._style.sc
 
-            if text in self._style.dispcol:
+            if text in self._style.disptex:
                 disp_text = "${}$".format(self._style.disptex[text])
             else:
                 disp_text = text
@@ -722,7 +722,8 @@ class MatplotlibDrawer:
 
                     # handle params/subtext longer than op names
                     if (op.type == 'op' and hasattr(op.op, 'params')
-                            and op.name != 'unitary' and op.name != 'hamiltonian'):
+                            and op.name != 'unitary' and op.name != 'hamiltonian'
+                            and op.name != 'isometry'):
                         param = self.param_parse(op.op.params)
                         if '$\\pi$' in param:
                             pi_count = param.count('pi')
@@ -867,6 +868,10 @@ class MatplotlibDrawer:
                     label = None if not hasattr(op.op, 'label') else op.op.label
                     self._custom_multiqubit_gate(q_xy, wide=True,
                                                  text=label or "Hamiltonian")
+                elif op.name == 'isometry':
+                    label = None if not hasattr(op.op, 'label') else op.op.label
+                    self._custom_multiqubit_gate(q_xy, wide=True,
+                                                 text=label or " Isometry")
                 #
                 # draw single qubit gates
                 #
