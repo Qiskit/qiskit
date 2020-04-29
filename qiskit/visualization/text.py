@@ -747,13 +747,14 @@ class TextDrawing():
     @staticmethod
     def label_for_box(instruction, controlled=False):
         """ Creates the label for a box."""
-        if getattr(instruction.op, 'label', None) is not None:
-            return instruction.op.label
-
         if controlled:
-            label = TextDrawing.special_label(instruction.op.base_gate) or \
-                    instruction.op.base_gate.name.upper()
+            if getattr(instruction.op.base_gate, 'label', None) is not None:
+                return instruction.op.base_gate.label
+            label = TextDrawing.special_label(
+                instruction.op.base_gate) or instruction.op.base_gate.name.upper()
         else:
+            if getattr(instruction.op, 'label', None) is not None:
+                return instruction.op.label
             label = TextDrawing.special_label(instruction.op) or instruction.name.upper()
         params = TextDrawing.params_for_label(instruction)
 
