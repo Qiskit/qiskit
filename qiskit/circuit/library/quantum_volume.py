@@ -43,14 +43,14 @@ class QuantumVolume(QuantumCircuit):
                  num_qubits: int,
                  depth: Optional[int] = None,
                  seed: Optional[int] = None,
-                 do_permutations: bool = True) -> None:
+                 classical_permutation: bool = True) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
             seed: randomization seed.
-            do_permutations: do permuations by hand
+            classical_permutation: do permuations by hand
 
         Reference Circuit:
             .. jupyter-execute::
@@ -89,7 +89,7 @@ class QuantumVolume(QuantumCircuit):
         all_qubits = self.qubits
         for d in range(depth):
             perm = rng.permutation(perm_0)
-            if not do_permutations:
+            if not classical_permutation:
                 insert_circuit = Permutation(num_qubits, perm)
                 inner.append(insert_circuit.decompose(), all_qubits,
                              label=insert_circuit.name)
@@ -97,7 +97,7 @@ class QuantumVolume(QuantumCircuit):
                 seed_u = unitary_seeds[d][w]
                 su4 = random_unitary(4, seed=seed_u)
                 uname = 'su4_' + str(seed_u)
-                if do_permutations:
+                if classical_permutation:
                     physical_qubits = int(perm[2*w]), int(perm[2*w+1])
                     inner.append(su4, [physical_qubits[0], physical_qubits[1]], label=uname)
                 else:
