@@ -58,7 +58,7 @@ th {
     width: 100%;
     background-color: #3700BE;
     color: #fff;
-    font-size: 18px;
+    font-size: 16px;
     border-left: 2px solid #3700BE;
 }
 
@@ -67,7 +67,7 @@ td {
     text-align: left;
     padding: 5px 5px 5px 5px;
     width: 100%;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: medium;
 }
 
@@ -85,7 +85,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
 
 head_style = 'font-family: IBM Plex Sans, Arial, Helvetica, sans-serif;' \
-             ' font-size: 22px; font-weight: medium;'
+             ' font-size: 20px; font-weight: medium;'
 
 property_label = wid.HTML("<p style='{}'>Circuit Properties</p>".format(head_style),
                           layout=wid.Layout(margin='0px 0px 10px 0px'))
@@ -102,7 +102,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     """
     properties = wid.VBox(children=[property_label,
                                     circuit_data_table(circuit)],
-                          layout=wid.Layout(width='30%',
+                          layout=wid.Layout(width='40%',
                                             height='auto'))
     return properties
 
@@ -150,7 +150,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
                          layout=wid.Layout(margin='0px 0px 10px 0px'))
 
     qasm = wid.VBox(children=[out_label, out],
-                    layout=wid.Layout(height='auto', max_height='500px', width='70%',
+                    layout=wid.Layout(height='auto', max_height='500px', width='60%',
                                       margin='0px 0px 0px 20px'))
 
     qasm._code_length = len(qasm_code.split('\n'))
