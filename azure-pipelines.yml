@@ -12,6 +12,7 @@ trigger:
     include:
       - '*'
 pr:
+  autoCancel: true
   branches:
     include:
     - '*'  # must quote since "*" is a YAML reserved character; we want a string
@@ -124,7 +125,7 @@ stages:
     jobs:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python37:
@@ -187,7 +188,7 @@ stages:
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'Lint'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python37:
@@ -223,7 +224,7 @@ stages:
           displayName: 'Style and lint'
     - job: 'Docs'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python37:
@@ -269,7 +270,7 @@ stages:
             ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python37:
@@ -334,7 +335,7 @@ stages:
     jobs:
     - job: 'Windows_Tests'
       pool: {vmImage: 'vs2017-win2016'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python35:
@@ -402,7 +403,7 @@ stages:
             testRunTitle: 'Test results for Windows Python $(python.version)'
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python36:
@@ -469,7 +470,7 @@ stages:
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
       strategy:
         matrix:
           Python36:
