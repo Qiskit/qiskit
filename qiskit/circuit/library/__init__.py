@@ -144,6 +144,7 @@ Particular Quantum Circuits
    FourierChecking
    GraphState
    HiddenLinearFunction
+   IQP
    QuantumVolume
 
 
@@ -215,3 +216,4 @@ from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
+from .iqp import IQP

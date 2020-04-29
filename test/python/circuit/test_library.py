@@ -25,7 +25,7 @@ from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, Paramete
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume, XOR,
-                                    InnerProduct, OR, AND, QFT,
+                                    InnerProduct, OR, AND, QFT, IQP,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
@@ -125,7 +125,6 @@ class TestBlueprintCircuit(QiskitTestCase):
             self.assertGreater(len(circuit._data), 0)
 
 
-@ddt
 class TestPermutationLibrary(QiskitTestCase):
     """Test library of permutation logic quantum circuits."""
 
@@ -142,6 +141,30 @@ class TestPermutationLibrary(QiskitTestCase):
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+class TestIQPLibrary(QiskitTestCase):
+    """Test library of IQP quantum circuits."""
+
+    def test_iqp(self):
+        """Test iqp circuit."""
+        circuit = IQP(interactions=np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]]))
+        expected = QuantumCircuit(3)
+        expected.h([0, 1, 2])
+        expected.cu1(5*np.pi/2, 0, 1)
+        expected.cu1(3*np.pi/2, 1, 2)
+        expected.cu1(1*np.pi/2, 0, 2)
+        expected.u1(6*np.pi/8, 0)
+        expected.u1(4*np.pi/8, 1)
+        expected.u1(2*np.pi/8, 2)
+        expected.h([0, 1, 2])
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
+
+    def test_iqp_bad(self):
+        """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
+        self.assertRaises(CircuitError, IQP, [[6, 5], [2, 4]])
 
 
 @ddt
