@@ -355,12 +355,13 @@ class QuantumCircuit:
         return self
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
-        """Compose circuit with ``other`` circuit, optionally permuting wires.
+        """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
 
         Args:
-            other (QuantumCircuit): circuit to compose with self.
+            other (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
+                (sub)circuit to compose onto self.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet).
@@ -372,21 +373,54 @@ class QuantumCircuit:
         Raises:
             CircuitError: if composing on the front.
             QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+
+        Examples:
+
+            >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+
+            .. parsed-literal::
+
+                            ┌───┐                   ┌─────┐                ┌───┐
+                lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
+                            ├───┤              ┌─┴─┐└─────┘                ├───┤
+                lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
+                         ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
+                lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
+                         └─────────┘                                    └─────────┘└─┬─┘┌─────┐
+                lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
+                            ┌─┴─┐                                          ┌─┴─┐        └─────┘
+                lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
+                            └───┘                                          └───┘
+                lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+
+                lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
+
         """
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-        from qiskit.converters.dag_to_circuit import dag_to_circuit
         if front:
             raise CircuitError("Front composition of QuantumCircuit not supported yet.")
 
-        dag_self = circuit_to_dag(self)
-        dag_other = circuit_to_dag(other)
-        dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
-        composed_circuit = dag_to_circuit(dag_self)
-        if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
-            self.__dict__.update(composed_circuit.__dict__)
-            return None
-        else:
-            return dag_to_circuit(dag_self)
+        if isinstance(other, QuantumCircuit):
+            from qiskit.converters.circuit_to_dag import circuit_to_dag
+            from qiskit.converters.dag_to_circuit import dag_to_circuit
+
+            dag_self = circuit_to_dag(self)
+            dag_other = circuit_to_dag(other)
+            dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
+            composed_circuit = dag_to_circuit(dag_self)
+            if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
+                self.__dict__.update(composed_circuit.__dict__)
+                return None
+            else:
+                return composed_circuit
+
+        else:  # fall back to append which accepts Instruction and BaseOperator
+            if inplace:
+                self.append(other, qargs=qubits, cargs=clbits)
+                return None
+            else:
+                new_circuit = self.copy()
+                new_circuit.append(other, qargs=qubits, cargs=clbits)
+                return new_circuit
 
     @property
     def qubits(self):
@@ -753,7 +787,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -827,7 +861,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-                the ``text`` output. Default: ``True``.
+                the ``text`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
