@@ -664,6 +664,7 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
+    # there ar eno
     if not intervals:
         return index
     if len(intervals) == 1:
