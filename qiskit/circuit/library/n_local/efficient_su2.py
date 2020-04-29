@@ -64,7 +64,6 @@ class EfficientSU2(TwoLocal):
         >>> qc = QuantumCircuit(4)  # create a circuit and append the RY variational form
         >>> qc.compose(ansatz, inplace=True)
         >>> qc.draw()
-
              ┌──────────┐┌───┐┌───┐     ┌──────────┐   ┌───┐
         q_0: ┤ RX(θ[0]) ├┤ Y ├┤ X ├──■──┤ RX(θ[4]) ├───┤ Y ├─────────────────────
              ├──────────┤├───┤└─┬─┘┌─┴─┐└──────────┘┌──┴───┴───┐   ┌───┐
@@ -74,6 +73,7 @@ class EfficientSU2(TwoLocal):
              ├──────────┤├───┤  │          └───┘       ┌─┴─┐    ├──────────┤├───┤
         q_3: ┤ RX(θ[3]) ├┤ Y ├──■──────────────────────┤ X ├────┤ RX(θ[7]) ├┤ Y ├
              └──────────┘└───┘                         └───┘    └──────────┘└───┘
+
     """
 
     def __init__(self,
