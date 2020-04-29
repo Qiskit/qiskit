@@ -35,7 +35,7 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
 
-def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
+def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
 
