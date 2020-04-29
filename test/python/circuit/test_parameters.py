@@ -26,12 +26,12 @@ import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
-from qiskit.circuit.exceptions import CircuitError
 
 
 @ddt
@@ -55,6 +55,14 @@ class TestParameters(QiskitTestCase):
         qc_aer = transpile(qc, backend)
         self.assertIn(theta, qc_aer.parameters)
 
+    def test_duplicate_name_on_append(self):
+        """Test adding a second parameter object with the same name fails."""
+        param_a = Parameter('a')
+        param_a_again = Parameter('a')
+        qc = QuantumCircuit(1)
+        qc.rx(param_a, 0)
+        self.assertRaises(CircuitError, qc.rx, param_a_again, 0)
+
     def test_get_parameters(self):
         """Test instantiating gate with variable parameters"""
         from qiskit.extensions.standard.rx import RXGate
@@ -77,7 +85,7 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(rxg.is_parameterized())
         theta_bound = theta.bind({theta: 3.14})
         rxg = RXGate(theta_bound)
-        self.assertTrue(rxg.is_parameterized())
+        self.assertFalse(rxg.is_parameterized())
         h_gate = HGate()
         self.assertFalse(h_gate.is_parameterized())
 
@@ -663,6 +671,32 @@ class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
     supported_operations = [add, sub, mul, truediv]
+
+    def test_raise_if_sub_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter('x')
+        expr = x + 2
+
+        y = Parameter('y')
+        z = Parameter('z')
+
+        with self.assertRaisesRegex(CircuitError, 'not present'):
+            expr.subs({y: z})
+
+    def test_raise_if_subbing_in_parameter_name_conflict(self):
+        """Verify we raise if substituting in conflicting parameter names."""
+        x = Parameter('x')
+        y_first = Parameter('y')
+
+        expr = x + y_first
+
+        y_second = Parameter('y')
+
+        # Replacing an existing name is okay.
+        expr.subs({y_first: y_second})
+
+        with self.assertRaisesRegex(CircuitError, 'Name conflict'):
+            expr.subs({x: y_second})
 
     def test_expressions_of_parameter_with_constant(self):
         """Verify operating on a Parameter with a constant."""

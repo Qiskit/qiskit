@@ -16,7 +16,7 @@
 
 # pylint: disable=invalid-name
 
-from qiskit.extensions.standard.equivalence_library import StandardEquivalenceLibrary
+from .library.standard_gates.equivalence_library import StandardEquivalenceLibrary
 from .equivalence import EquivalenceLibrary
 
 SessionEquivalenceLibrary = EquivalenceLibrary(base=StandardEquivalenceLibrary)

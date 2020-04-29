@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,23 +34,20 @@ class QuantumVolume(QuantumCircuit):
     **References:**
 
     [1] A. Cross et al. Validating quantum computers using
-    randomized model circuits, 2018.
+    randomized model circuits, Phys. Rev. A 100, 032328 (2019).
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_
     """
 
     def __init__(self,
                  num_qubits: int,
                  depth: Optional[int] = None,
-                 seed: Optional[int] = None) -> QuantumCircuit:
+                 seed: Optional[int] = None) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
             seed: randomization seed.
-
-        Returns:
-            QuantumCircuit: a randomly constructed quantum volume model circuit.
 
         Reference Circuit:
             .. jupyter-execute::

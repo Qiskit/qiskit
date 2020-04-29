@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,70 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Double-CNOT gate.
-"""
+"""The standard gates moved to qiskit/circuit/library."""
 
-import numpy as np
-from qiskit.circuit import Gate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit.library.standard_gates.dcx import DCXGate
 
-
-class DCXGate(Gate):
-    r"""Double-CNOT gate.
-
-    A 2-qubit Clifford gate consisting of two back-to-back
-    CNOTs with alternate controls.
-
-    .. parsed-literal::
-                  ┌───┐
-        q_0: ──■──┤ X ├
-             ┌─┴─┐└─┬─┘
-        q_1: ┤ X ├──■──
-             └───┘
-
-    This is a classical logic gate, equivalent to a CNOT-SWAP (CNS) sequence,
-    and locally equivalent to an iSWAP.
-
-    .. math::
-
-        DCX\ q_0, q_1 =
-            \begin{pmatrix}
-                1 & 0 & 0 & 0 \\
-                0 & 0 & 0 & 1 \\
-                0 & 1 & 0 & 0 \\
-                0 & 0 & 1 & 0
-            \end{pmatrix}
-    """
-
-    def __init__(self):
-        """Create new DCX gate."""
-        super().__init__('dcx', 2, [])
-
-    def _define(self):
-        """
-        gate dcx a, b { cx a, b; cx a, b; }
-        """
-        from qiskit.extensions.standard.x import CXGate
-        q = QuantumRegister(2, 'q')
-        self.definition = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], [])
-        ]
-
-    def to_matrix(self):
-        """Return a numpy.array for the DCX gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 1, 0, 0],
-                         [0, 0, 1, 0]], dtype=complex)
-
-
-def dcx(self, qubit1, qubit2):
-    """Apply :class:`~qiskit.extensions.standard.DCXGate`.
-    """
-    return self.append(DCXGate(), [qubit1, qubit2], [])
-
-
-QuantumCircuit.dcx = dcx
+__all__ = ['DCXGate']
