@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Test QuantumCircuit.compose()."""
 
 import unittest
@@ -354,7 +356,7 @@ class TestCircuitCompose(QiskitTestCase):
     def test_compose_gate(self):
         """Composing with a gate.
 
-                    ┌───┐                                ┌───┐    ┌───┐ 
+                    ┌───┐                                ┌───┐    ┌───┐
         lqr_1_0: ───┤ H ├───                 lqr_1_0: ───┤ H ├────┤ X ├
                     ├───┤                                ├───┤    └─┬─┘
         lqr_1_1: ───┤ X ├───                 lqr_1_1: ───┤ X ├──────┼───
@@ -366,7 +368,7 @@ class TestCircuitCompose(QiskitTestCase):
         lqr_2_1: ───┤ X ├───                 lqr_2_1: ───┤ X ├──────■───
                     └───┘                                └───┘
         lcr_0: 0 ═══════════                 lcr_0: 0 ═══════════
-                                                                 
+
         lcr_1: 0 ═══════════                 lcr_1: 0 ═══════════
 
         """
