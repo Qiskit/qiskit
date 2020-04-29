@@ -406,7 +406,7 @@ class QuantumCircuit:
                 self.__dict__.update(composed_circuit.__dict__)
                 return None
             else:
-                return dag_to_circuit(dag_self)
+                return composed_circuit
 
         else:  # fall back to append which accepts Instruction and BaseOperator
             if inplace:
