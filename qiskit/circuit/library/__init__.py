@@ -66,15 +66,6 @@ Standard Gates
    YGate
    ZGate
 
-
-Blueprint Circuit
-=================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   BlueprintCircuit
-
 Generalized Gates
 =================
 
@@ -85,6 +76,7 @@ Generalized Gates
    MCMT
    MCMTVChain
    Permutation
+   GMS
 
 Boolean Logic Circuits
 ======================
@@ -181,7 +173,8 @@ from .generalized_gates import (
     Diagonal,
     MCMT,
     MCMTVChain,
-    Permutation
+    Permutation,
+    GMS
 )
 from .boolean_logic import (
     AND,

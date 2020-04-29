@@ -12,20 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """
 Global Mølmer–Sørensen gate.
 """
 
+import numpy as np
+from typing import Union, List
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.standard.rxx import RXXGate
+from qiskit.circuit.library.standard_gates import RXXGate
 
 
 class GMS(QuantumCircuit):
     r"""Global Mølmer–Sørensen gate.
 
-    Circuit symbol:
+    **Circuit symbol:**
 
     .. parsed-literal::
 
@@ -37,7 +38,20 @@ class GMS(QuantumCircuit):
         q_2: ┤2          ├
              └───────────┘
 
-    The global Mølmer–Sørensen gate is native to ion-trap systems. The global MS
+    **Expanded Circuit:**
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import GMS
+        import qiskit.tools.jupyter
+        import numpy as np
+        circuit = GMS(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
+                                           [0, 0, np.pi/2],
+                                           [0, 0, 0]])
+        %circuit_library_info circuit.decompose()
+
+    The Mølmer–Sørensen gate is native to ion-trap systems. The global MS
     can be applied to multiple ions to entangle multiple qubits simultaneously [1].
 
     In the two-qubit case, this is equivalent to an XX(theta) interaction,
@@ -62,16 +76,20 @@ class GMS(QuantumCircuit):
 
     def __init__(self,
                  num_qubits: int,
-                 theta: Union[float, List[float]]) -> None:
+                 theta: Union[List[List[float]], np.ndarray]) -> None:
         """Create a new Global Mølmer–Sørensen (GMS) gate.
 
         Args:
-            num_qubits: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
-            theta: list of rotation angles for each i,j interaction.
+            num_qubits: width of gate.
+            theta: a num_qubits x num_qubits symmetric matrix of
+                interaction angles for each qubit pair. The upper
+                triangle is considered.
         """
         super().__init__(num_qubits, name="gms")
         if not isinstance(theta, list):
             theta = [theta] * int((num_qubits**2 - 1) / 2)
+        gms = QuantumCircuit(num_qubits, name="gms")
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
-                self.append(RXXGate(theta), [i, j])
+                gms.append(RXXGate(theta[i][j]), [i, j])
+        self.append(gms, self.qubits)

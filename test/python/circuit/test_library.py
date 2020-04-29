@@ -30,7 +30,7 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
                                     SwapRZ, PauliExpansion, FirstOrderExpansion,
-                                    SecondOrderExpansion, MCMT, MCMTVChain)
+                                    SecondOrderExpansion, MCMT, MCMTVChain, GMS)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -142,6 +142,19 @@ class TestPermutationLibrary(QiskitTestCase):
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+@ddt
+class TestGMSLibrary(QiskitTestCase):
+    """Test library of Global Mølmer–Sørensen gate."""
+
+    def test_twoq_equivalence(self):
+        """Test GMS on 2 qubits is same as RXX."""
+        circuit = GMS(num_qubits=2, theta=[[0, np.pi/3], [0, 0]])
+        expected = RXXGate(np.pi/3)
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
 
 
 @ddt
