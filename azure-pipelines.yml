@@ -148,7 +148,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -210,7 +210,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -247,7 +247,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
@@ -293,7 +293,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -364,7 +364,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -430,7 +430,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -497,7 +497,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
