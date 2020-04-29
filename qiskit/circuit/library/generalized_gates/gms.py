@@ -17,8 +17,9 @@
 Global Mølmer–Sørensen gate.
 """
 
-import numpy as np
 from typing import Union, List
+
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXXGate
 
