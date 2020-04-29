@@ -20,7 +20,8 @@ import numpy as np
 
 from qiskit import QuantumCircuit, BasicAer, execute, ClassicalRegister
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.extensions import Initialize, IGate
+from qiskit.extensions import Initialize
+from qiskit.circuit.library import IGate
 
 from ..operator_base import OperatorBase
 from ..list_ops.summed_op import SummedOp

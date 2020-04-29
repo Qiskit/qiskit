@@ -19,7 +19,7 @@ import logging
 import numpy as np
 
 from qiskit import QuantumCircuit, BasicAer, execute
-from qiskit.extensions.standard import IGate
+from qiskit.circuit.library import IGate
 from qiskit.circuit import Instruction, ParameterExpression
 
 from ..operator_base import OperatorBase

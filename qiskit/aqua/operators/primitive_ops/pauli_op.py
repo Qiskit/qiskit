@@ -22,7 +22,7 @@ from scipy.sparse import spmatrix
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, Instruction
 from qiskit.quantum_info import Pauli
-from qiskit.extensions.standard import RZGate, RYGate, RXGate, XGate, YGate, ZGate, IGate
+from qiskit.circuit.library import RZGate, RYGate, RXGate, XGate, YGate, ZGate, IGate
 
 from ..operator_base import OperatorBase
 from .primitive_op import PrimitiveOp
