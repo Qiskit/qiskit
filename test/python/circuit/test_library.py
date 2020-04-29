@@ -28,9 +28,9 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
-                                    SwapRZ, PauliFeatureMap, ZFeatureMap,
-                                    ZZFeatureMap, MCMT, MCMTVChain)
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
+                                    EfficientSU2, ExcitationPreserving, PauliFeatureMap,
+                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -1415,8 +1415,8 @@ class TestTwoLocal(QiskitTestCase):
         self.assertCircuitEqual(reference, circuit)
 
     def test_ry_blocks(self):
-        """Test that the RY circuit is instantiated correctly."""
-        two = RY(4)
+        """Test that the RealAmplitudes circuit is instantiated correctly."""
+        two = RealAmplitudes(4)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1426,11 +1426,10 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_ry_circuit(self):
-        """Test an RY circuit."""
+        """Test an RealAmplitudes circuit."""
         num_qubits = 3
         reps = 2
         entanglement = 'full'
-        entanglement_gate = 'cx'
         parameters = ParameterVector('theta', num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
@@ -1444,14 +1443,14 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
 
-        library = RY(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                     entanglement=entanglement).assign_parameters(parameters)
+        library = RealAmplitudes(num_qubits, reps=reps,
+                                 entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
     def test_ryrz_blocks(self):
-        """Test that the RYRZ circuit is instantiated correctly."""
-        two = RYRZ(3)
+        """Test that the EfficientSU2 circuit is instantiated correctly."""
+        two = EfficientSU2(3)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 2)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1462,11 +1461,10 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_ryrz_circuit(self):
-        """Test an RYRZ circuit."""
+        """Test an EfficientSU2 circuit."""
         num_qubits = 3
         reps = 2
         entanglement = 'circular'
-        entanglement_gate = 'cz'
         parameters = ParameterVector('theta', 2 * num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
@@ -1476,22 +1474,23 @@ class TestTwoLocal(QiskitTestCase):
                 expected.ry(next(param_iter), i)
             for i in range(num_qubits):
                 expected.rz(next(param_iter), i)
-            expected.cz(2, 0)
-            expected.cz(0, 1)
-            expected.cz(1, 2)
+            expected.cx(2, 0)
+            expected.cx(0, 1)
+            expected.cx(1, 2)
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
-        library = RYRZ(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                       entanglement=entanglement).assign_parameters(parameters)
+        library = EfficientSU2(num_qubits, reps=reps, entanglement=entanglement).assign_parameters(
+            parameters
+        )
 
         self.assertCircuitEqual(library, expected)
 
     def test_swaprz_blocks(self):
-        """Test that the SwapRZ circuit is instantiated correctly."""
-        two = SwapRZ(5)
+        """Test that the ExcitationPreserving circuit is instantiated correctly."""
+        two = ExcitationPreserving(5)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RZGate)
@@ -1508,7 +1507,7 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_swaprz_circuit(self):
-        """Test a SwapRZ circuit."""
+        """Test a ExcitationPreserving circuit in iswap mode."""
         num_qubits = 3
         reps = 2
         entanglement = 'linear'
@@ -1528,8 +1527,36 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
-        library = SwapRZ(num_qubits, reps=reps,
-                         entanglement=entanglement).assign_parameters(parameters)
+        library = ExcitationPreserving(num_qubits, reps=reps,
+                                       entanglement=entanglement).assign_parameters(parameters)
+
+        self.assertCircuitEqual(library, expected)
+
+    def test_fsim_circuit(self):
+        """Test a ExcitationPreserving circuit in fsim mode."""
+        num_qubits = 3
+        reps = 2
+        entanglement = 'linear'
+        parameters = ParameterVector('theta', num_qubits * (reps + 1) + reps * (1 + num_qubits))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.rz(next(param_iter), i)
+            shared_param = next(param_iter)
+            expected.rxx(shared_param, 0, 1)
+            expected.ryy(shared_param, 0, 1)
+            expected.cu1(next(param_iter), 0, 1)
+            shared_param = next(param_iter)
+            expected.rxx(shared_param, 1, 2)
+            expected.ryy(shared_param, 1, 2)
+            expected.cu1(next(param_iter), 1, 2)
+        for i in range(num_qubits):
+            expected.rz(next(param_iter), i)
+
+        library = ExcitationPreserving(num_qubits, reps=reps, mode='fsim',
+                                       entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 

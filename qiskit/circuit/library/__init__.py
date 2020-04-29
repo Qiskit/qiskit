@@ -155,9 +155,9 @@ N-local circuits
 
    NLocal
    TwoLocal
-   RY
-   RYRZ
-   SwapRZ
+   RealAmplitudes
+   EfficientSU2
+   ExcitationPreserving
 
 
 Data encoding circuits
@@ -202,9 +202,9 @@ from .arithmetic import (
 from .n_local import (
     NLocal,
     TwoLocal,
-    RY,
-    RYRZ,
-    SwapRZ,
+    RealAmplitudes,
+    EfficientSU2,
+    ExcitationPreserving,
 )
 from .data_preparation import (
     PauliFeatureMap,

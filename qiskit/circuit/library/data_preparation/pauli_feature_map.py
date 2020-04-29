@@ -90,9 +90,9 @@ class PauliFeatureMap(NLocal):
         q_1: ┤ H ├────────────┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
              └───┘            └───┘└─────────────────────────────────┘└───┘
 
-        >>> from qiskit.circuit.library import RYRZ
+        >>> from qiskit.circuit.library import EfficientSU2
         >>> prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
-        >>> wavefunction = RYRZ(3, entanglement_blocks='cx')
+        >>> wavefunction = EfficientSU2(3)
         >>> classifier = prep.compose(wavefunction
         >>> classifier.num_parameters
         27
