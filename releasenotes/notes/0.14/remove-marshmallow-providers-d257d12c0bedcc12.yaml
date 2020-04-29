@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The marshmallow schema objects in :mod:`qiskit.providers.models` have been
+    The marshmallow schema classes in :mod:`qiskit.providers.models` have been
     removed since they are no longer used by the BackendObjects.
   - |
     The output of ``to_dict()`` method for the classes in

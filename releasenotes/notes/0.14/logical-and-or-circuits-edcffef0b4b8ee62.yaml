@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    The circuit library module :mod:`qiskit.circuit.library now provides a
+    The circuit library module :mod:`qiskit.circuit.library` now provides a
     new boolean logic AND circuit, :class:`qiskit.circuit.library.AND`, and
     OR circuit, :class:`qiskit.circuit.library.OR`, which implement the
     respective operations on a number of provided variable qubits.
