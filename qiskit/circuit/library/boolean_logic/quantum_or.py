@@ -18,7 +18,6 @@
 
 from typing import List, Optional
 
-import numpy as np
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library.standard_gates import MCXGate
 
