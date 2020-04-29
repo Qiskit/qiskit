@@ -24,17 +24,21 @@ from qiskit import BasicAer, execute, transpile
 from qiskit.circuit import (QuantumCircuit, QuantumRegister, Parameter, ParameterExpression,
                             ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import (BlueprintCircuit, Permutation, XOR, InnerProduct, OR, AND, QFT,
+from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume, XOR,
+                                    InnerProduct, OR, AND, QFT,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RYAnsatz, RYRZAnsatz,
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
                                     SwapRZ, PauliFeatureMap, ZFeatureMap,
-                                    ZZFeatureMap)
+                                    ZZFeatureMap, MCMT, MCMTVChain)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
-                                        RXXGate, RYYGate, HGate)
+                                        RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
 from qiskit.quantum_info import Statevector, Operator
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.states import state_fidelity
 
 
 class MockBlueprint(BlueprintCircuit):
@@ -123,7 +127,7 @@ class TestBlueprintCircuit(QiskitTestCase):
 
 @ddt
 class TestPermutationLibrary(QiskitTestCase):
-    """Test library of boolean logic quantum circuits."""
+    """Test library of permutation logic quantum circuits."""
 
     def test_permutation(self):
         """Test permutation circuit."""
@@ -138,6 +142,22 @@ class TestPermutationLibrary(QiskitTestCase):
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+@ddt
+class TestQuantumVolumeLibrary(QiskitTestCase):
+    """Test library of quantum volume quantum circuits."""
+
+    def test_qv(self):
+        """Test qv circuit."""
+        circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
+        expected = QuantumCircuit(2)
+        expected.swap(0, 1)
+        expected.append(random_unitary(4, seed=837), [0, 1])
+        expected.append(random_unitary(4, seed=262), [0, 1])
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
 
 
 @ddt
@@ -817,6 +837,133 @@ class TestWeightedAdder(QiskitTestCase):
 
 
 @ddt
+class TestMCMT(QiskitTestCase):
+    """Test the multi-controlled multi-target circuit."""
+
+    @data(MCMT, MCMTVChain)
+    def test_mcmt_as_normal_control(self, mcmt_class):
+        """Test that the MCMT can act as normal control gate."""
+        qc = QuantumCircuit(2)
+        mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
+        qc = qc.compose(mcmt, [0, 1])
+
+        ref = QuantumCircuit(2)
+        ref.ch(0, 1)
+
+        self.assertEqual(qc, ref)
+
+    def test_missing_qubits(self):
+        """Test that an error is raised if qubits are missing."""
+        with self.subTest(msg='no control qubits'):
+            with self.assertRaises(AttributeError):
+                _ = MCMT(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
+
+        with self.subTest(msg='no target qubits'):
+            with self.assertRaises(AttributeError):
+                _ = MCMT(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
+
+    def test_different_gate_types(self):
+        """Test the different supported input types for the target gate."""
+        x_circ = QuantumCircuit(1)
+        x_circ.x(0)
+        for input_gate in [x_circ, QuantumCircuit.cx, QuantumCircuit.x, 'cx', 'x', CXGate()]:
+            with self.subTest(input_gate=input_gate):
+                mcmt = MCMT(input_gate, 2, 2)
+                if isinstance(input_gate, QuantumCircuit):
+                    self.assertEqual(mcmt.gate.definition[0][0], XGate())
+                    self.assertEqual(len(mcmt.gate.definition), 1)
+                else:
+                    self.assertEqual(mcmt.gate, XGate())
+
+    def test_mcmt_v_chain_ancilla_test(self):
+        """Test too few and too many ancillas for the MCMT V-chain mode."""
+        with self.subTest(msg='insufficient number of ancillas on gate'):
+            qc = QuantumCircuit(5)
+            mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertRaises(QiskitError):
+                qc.append(mcmt, [0, 1, 2, 3, 4])
+
+        with self.subTest(msg='insufficient number of ancillas on method'):
+            qc = QuantumCircuit(5)
+            mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertRaises(QiskitError):
+                qc.append(mcmt, [0, 1, 2, 3, 4], [])
+
+        with self.subTest(msg='too many ancillas works on method'):
+            qc = QuantumCircuit(8)
+            qc.mcmt(CZGate(), [0, 1, 2], 3, [4, 5, 6, 7])
+
+    @data(
+        [CZGate(), 1, 1], [CHGate(), 1, 1],
+        [CZGate(), 3, 3], [CHGate(), 3, 3],
+        [CZGate(), 1, 5], [CHGate(), 1, 5],
+        [CZGate(), 5, 1], [CHGate(), 5, 1],
+    )
+    @unpack
+    def test_mcmt_v_chain_simulation(self, cgate, num_controls, num_targets):
+        """Test the MCMT V-chain implementation test on a simulation."""
+        controls = QuantumRegister(num_controls)
+        targets = QuantumRegister(num_targets)
+
+        subsets = [tuple(range(i)) for i in range(num_controls + 1)]
+        for subset in subsets:
+            qc = QuantumCircuit(targets, controls)
+            # Initialize all targets to 1, just to be sure that
+            # the generic gate has some effect (f.e. Z gate has no effect
+            # on a 0 state)
+            qc.x(targets)
+
+            num_ancillas = max(0, num_controls - 1)
+
+            if num_ancillas > 0:
+                ancillas = QuantumRegister(num_ancillas)
+                qc.add_register(ancillas)
+                qubits = controls[:] + targets[:] + ancillas[:]
+            else:
+                qubits = controls[:] + targets[:]
+
+            for i in subset:
+                qc.x(controls[i])
+
+            mcmt = MCMTVChain(cgate, num_controls, num_targets)
+            qc.compose(mcmt, qubits, inplace=True)
+
+            for i in subset:
+                qc.x(controls[i])
+
+            vec = Statevector.from_label('0' * qc.num_qubits).evolve(qc)
+
+            # target register is initially |11...1>, with length equal to 2**(n_targets)
+            vec_exp = np.array([0] * (2**(num_targets) - 1) + [1])
+
+            if isinstance(cgate, CZGate):
+                # Z gate flips the last qubit only if it's applied an odd number of times
+                if len(subset) == num_controls and (num_controls % 2) == 1:
+                    vec_exp[-1] = -1
+            elif isinstance(cgate, CHGate):
+                # if all the control qubits have been activated,
+                # we repeatedly apply the kronecker product of the Hadamard
+                # with itself and then multiply the results for the original
+                # state of the target qubits
+                if len(subset) == num_controls:
+                    h_i = 1 / np.sqrt(2) * np.array([[1, 1], [1, -1]])
+                    h_tot = np.array([1])
+                    for _ in range(num_targets):
+                        h_tot = np.kron(h_tot, h_i)
+                    vec_exp = np.dot(h_tot, vec_exp)
+            else:
+                raise ValueError('Test not implement for gate: {}'.format(cgate))
+
+            # append the remaining part of the state
+            vec_exp = np.concatenate(
+                (vec_exp,
+                 [0] * (2**(num_controls + num_ancillas + num_targets) - vec_exp.size))
+            )
+            f_i = state_fidelity(vec, vec_exp)
+            self.assertAlmostEqual(f_i, 1)
+
+
+@ddt
 class TestNLocal(QiskitTestCase):
     """Test the n-local circuit class."""
 
@@ -1269,7 +1416,7 @@ class TestTwoLocal(QiskitTestCase):
 
     def test_ry_blocks(self):
         """Test that the RY circuit is instantiated correctly."""
-        two = RYAnsatz(4)
+        two = RY(4)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1297,14 +1444,14 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
 
-        library = RYAnsatz(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                           entanglement=entanglement).assign_parameters(parameters)
+        library = RY(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
+                     entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
     def test_ryrz_blocks(self):
-        """Test that the RYRZAnsatz circuit is instantiated correctly."""
-        two = RYRZAnsatz(3)
+        """Test that the RYRZ circuit is instantiated correctly."""
+        two = RYRZ(3)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 2)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1315,7 +1462,7 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_ryrz_circuit(self):
-        """Test an RYRZAnsatz circuit."""
+        """Test an RYRZ circuit."""
         num_qubits = 3
         reps = 2
         entanglement = 'circular'
@@ -1337,8 +1484,8 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
-        library = RYRZAnsatz(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                             entanglement=entanglement).assign_parameters(parameters)
+        library = RYRZ(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
+                       entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
