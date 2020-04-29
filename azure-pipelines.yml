@@ -121,6 +121,7 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
+    dependsOn: []
     jobs:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
