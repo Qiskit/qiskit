@@ -25,7 +25,7 @@ from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
                                    PauliExpectation, AbelianGrouper,
                                    CircuitSampler)
 
-from qiskit import BasicAer, IBMQ
+from qiskit import BasicAer
 
 
 # pylint: disable=invalid-name
@@ -190,6 +190,7 @@ class TestPauliExpectation(QiskitAquaTestCase):
     @unittest.skip(reason="IBMQ testing not available in general.")
     def test_ibmq_grouped_pauli_expectation(self):
         """ pauli expect op vector state vector test """
+        from qiskit import IBMQ
         p = IBMQ.load_account()
         backend = p.get_backend('ibmq_qasm_simulator')
         paulis_op = ListOp([X, Y, Z, I])
