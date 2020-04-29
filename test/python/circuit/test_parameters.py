@@ -26,12 +26,12 @@ import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
-from qiskit.circuit.exceptions import CircuitError
 
 
 @ddt
@@ -54,6 +54,14 @@ class TestParameters(QiskitTestCase):
         backend = BasicAer.get_backend('qasm_simulator')
         qc_aer = transpile(qc, backend)
         self.assertIn(theta, qc_aer.parameters)
+
+    def test_duplicate_name_on_append(self):
+        """Test adding a second parameter object with the same name fails."""
+        param_a = Parameter('a')
+        param_a_again = Parameter('a')
+        qc = QuantumCircuit(1)
+        qc.rx(param_a, 0)
+        self.assertRaises(CircuitError, qc.rx, param_a_again, 0)
 
     def test_get_parameters(self):
         """Test instantiating gate with variable parameters"""

@@ -27,14 +27,13 @@ import warnings
 
 from abc import ABC
 
-from typing import Tuple, List, Iterable, Callable, Optional, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 
 from ..channels import Channel
 from ..exceptions import PulseError
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
-from ..timeslots import Interval, Timeslot, TimeslotCollection
 from .. import commands  # pylint: disable=unused-import
 
 # pylint: disable=missing-return-doc
@@ -73,12 +72,13 @@ class Instruction(ScheduleComponent, ABC):
             if name is None:
                 name = self.command.name
             duration = self.command.duration
+
         if duration < 0:
             raise PulseError("{} duration of {} is invalid: must be nonnegative."
                              "".format(self.__class__.__name__, duration))
         self._duration = duration
-        self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
-                                               for channel in channels if channel is not None))
+        self._channels = channels
+        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
@@ -111,22 +111,23 @@ class Instruction(ScheduleComponent, ABC):
     @property
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
-        return self.timeslots.channels
+        return self._channels
 
     @property
-    def timeslots(self) -> TimeslotCollection:
+    def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
         """Occupied time slots by this instruction."""
+        warnings.warn("Access to Instruction timeslots is deprecated.")
         return self._timeslots
 
     @property
     def start_time(self) -> int:
         """Relative begin time of this instruction."""
-        return self.timeslots.start_time
+        return 0
 
     @property
     def stop_time(self) -> int:
         """Relative end time of this instruction."""
-        return self.timeslots.stop_time
+        return self.duration
 
     @property
     def duration(self) -> int:
@@ -149,7 +150,7 @@ class Instruction(ScheduleComponent, ABC):
         Args:
             *channels: Supplied channels
         """
-        return self.timeslots.ch_duration(*channels)
+        return self.ch_stop_time(*channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return minimum start time for supplied channels.
@@ -157,7 +158,7 @@ class Instruction(ScheduleComponent, ABC):
         Args:
             *channels: Supplied channels
         """
-        return self.timeslots.ch_start_time(*channels)
+        return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum start time for supplied channels.
@@ -165,7 +166,9 @@ class Instruction(ScheduleComponent, ABC):
         Args:
             *channels: Supplied channels
         """
-        return self.timeslots.ch_stop_time(*channels)
+        if any(chan in self.channels for chan in channels):
+            return self.duration
+        return 0
 
     def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
         """Iterable for flattening Schedule tree.

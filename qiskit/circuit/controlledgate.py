@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,16 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Controlled unitary gate.
-"""
+"""Controlled unitary gate."""
+
 from typing import Tuple, List, Optional, Union
 from qiskit.circuit.exceptions import CircuitError
 
 from .gate import Gate
-from . import QuantumRegister
+from .quantumregister import QuantumRegister
 from .quantumregister import Qubit
-from .quantumcircuit import Clbit
+from .classicalregister import Clbit
 
 # pylint: disable=missing-return-doc
 
@@ -61,7 +60,7 @@ class ControlledGate(Gate):
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit, QuantumRegister
-           from qiskit.extensions.standard import HGate
+           from qiskit.circuit.library.standard_gates import HGate
 
            qr = QuantumRegister(3)
            qc = QuantumCircuit(qr)
@@ -74,7 +73,7 @@ class ControlledGate(Gate):
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit, QuantumRegister
-           from qiskit.extensions.standard import HGate
+           from qiskit.circuit.library.standard_gates import HGate
 
            qc1 = QuantumCircuit(2)
            qc1.x(0)
@@ -112,7 +111,7 @@ class ControlledGate(Gate):
         if not self._definition:
             self._define()
         # pylint: disable=cyclic-import
-        from qiskit.extensions.standard import XGate, CXGate
+        from qiskit.circuit.library.standard_gates import XGate, CXGate
         bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
         # hacky way to get register assuming single register
         if self._definition:
