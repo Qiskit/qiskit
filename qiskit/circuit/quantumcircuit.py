@@ -197,6 +197,7 @@ class QuantumCircuit:
         # below will also empty data_input, so make a shallow copy first.
         data_input = data_input.copy()
         self._data = []
+        self._parameter_table = ParameterTable()
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
@@ -252,10 +253,11 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: the mirrored circuit
         """
-        reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ._data = []
+        reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_mirror')
+
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.append(inst.mirror(), qargs, cargs)
+            reverse_circ._append(inst.mirror(), qargs, cargs)
         return reverse_circ
 
     def inverse(self):
@@ -269,10 +271,11 @@ class QuantumCircuit:
         Raises:
             CircuitError: if the circuit cannot be inverted.
         """
-        inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ._data = []
+        inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_dg')
+
         for inst, qargs, cargs in reversed(self._data):
-            inverse_circ._data.append((inst.inverse(), qargs, cargs))
+            inverse_circ._append(inst.inverse(), qargs, cargs)
         return inverse_circ
 
     def combine(self, rhs):
