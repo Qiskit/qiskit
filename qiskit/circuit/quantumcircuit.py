@@ -197,6 +197,7 @@ class QuantumCircuit:
         # below will also empty data_input, so make a shallow copy first.
         data_input = data_input.copy()
         self._data = []
+        self._parameter_table = ParameterTable()
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
@@ -252,10 +253,11 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: the mirrored circuit
         """
-        reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ._data = []
+        reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_mirror')
+
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.append(inst.mirror(), qargs, cargs)
+            reverse_circ._append(inst.mirror(), qargs, cargs)
         return reverse_circ
 
     def inverse(self):
@@ -269,10 +271,11 @@ class QuantumCircuit:
         Raises:
             CircuitError: if the circuit cannot be inverted.
         """
-        inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ._data = []
+        inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_dg')
+
         for inst, qargs, cargs in reversed(self._data):
-            inverse_circ._data.append((inst.inverse(), qargs, cargs))
+            inverse_circ._append(inst.inverse(), qargs, cargs)
         return inverse_circ
 
     def combine(self, rhs):
@@ -375,20 +378,22 @@ class QuantumCircuit:
 
             >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
-                        ┌───┐                   ┌─────┐                ┌───┐
-            lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
-                        ├───┤              ┌─┴─┐└─────┘                ├───┤
-            lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
-                     ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
-            lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
-                     └─────────┘                                    └─────────┘└─┬─┘┌─────┐
-            lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
-                        ┌─┴─┐                                          ┌─┴─┐        └─────┘
-            lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
-                        └───┘                                          └───┘
-            lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+            .. parsed-literal::
 
-            lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
+                            ┌───┐                   ┌─────┐                ┌───┐
+                lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
+                            ├───┤              ┌─┴─┐└─────┘                ├───┤
+                lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
+                         ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
+                lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
+                         └─────────┘                                    └─────────┘└─┬─┘┌─────┐
+                lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
+                            ┌─┴─┐                                          ┌─┴─┐        └─────┘
+                lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
+                            └───┘                                          └───┘
+                lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+
+                lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
         if front:
@@ -782,7 +787,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -856,7 +861,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-                the ``text`` output. Default: ``True``.
+                the ``text`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
