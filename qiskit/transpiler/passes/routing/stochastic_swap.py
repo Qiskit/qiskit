@@ -260,16 +260,13 @@ class StochasticSwap(TransformationPass):
             dagcircuit_output.compose(best_circuit)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
-        # Make qubit edge map and extend by classical bits
-        edge_map = layout.combine_into_edge_map(self.trivial_layout)
-        for bit in dagcircuit_output.clbits():
-            edge_map[bit] = bit
         # Output this layer
         layer_circuit = layer_list[i]["graph"]
         for creg in layer_circuit.cregs.values():
             dagcircuit_output.add_creg(creg)
 
-        dagcircuit_output.compose(layer_circuit, edge_map)
+        order = layout.reorder_bits(dagcircuit_output.qubits())
+        dagcircuit_output.compose(layer_circuit, qubits=order)
 
         return dagcircuit_output
 
@@ -310,14 +307,6 @@ class StochasticSwap(TransformationPass):
             dagcircuit_output.add_qreg(qreg)
         for creg in circuit_graph.cregs.values():
             dagcircuit_output.add_creg(creg)
-
-        # Make a trivial wire mapping between the subcircuits
-        # returned by _layer_update and the circuit we build
-        identity_wire_map = {}
-        for qubit in circuit_graph.qubits():
-            identity_wire_map[qubit] = qubit
-        for bit in circuit_graph.clbits():
-            identity_wire_map[bit] = bit
 
         logger.debug("trivial_layout = %s", layout)
 
@@ -366,8 +355,7 @@ class StochasticSwap(TransformationPass):
                                            best_layout,
                                            best_depth,
                                            best_circuit,
-                                           serial_layerlist),
-                        identity_wire_map)
+                                           serial_layerlist))
 
             else:
                 # Update the record of qubit positions for each iteration
@@ -379,15 +367,12 @@ class StochasticSwap(TransformationPass):
                                        best_layout,
                                        best_depth,
                                        best_circuit,
-                                       layerlist),
-                    identity_wire_map)
+                                       layerlist))
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.trivial_layout = %s", self.trivial_layout)
         logger.debug("mapper: layout = %s", layout)
-        last_edgemap = layout.combine_into_edge_map(self.trivial_layout)
-        logger.debug("mapper: last_edgemap = %s", last_edgemap)
 
         return dagcircuit_output
 
