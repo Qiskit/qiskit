@@ -26,9 +26,9 @@ from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 import warnings
 
 from qiskit.util import is_main_process
-from .channels import Channel
-from .interfaces import ScheduleComponent
-from .exceptions import PulseError
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.exceptions import PulseError
 
 # pylint: disable=missing-return-doc
 

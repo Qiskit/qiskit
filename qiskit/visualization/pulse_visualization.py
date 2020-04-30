@@ -20,11 +20,11 @@ matplotlib pulse visualization.
 import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
-import qiskit.pulse as pulse
-import qiskit.pulse.channels as chans
-import qiskit.visualization.exceptions as exceptions
-import qiskit.visualization.pulse.matplotlib as _matplotlib
-import qiskit.visualization.pulse.qcstyle as qcstyle
+from qiskit import pulse
+from qiskit.pulse import channels as chans
+from qiskit.visualization import exceptions
+from qiskit.visualization.pulse import matplotlib as _matplotlib
+from qiskit.visualization.pulse import qcstyle
 
 try:
     from matplotlib import get_backend

@@ -17,18 +17,17 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 import hashlib
 
-import qiskit.pulse as pulse
-import qiskit.pulse.instructions as instructions
-import qiskit.pulse.transforms as transforms
-import qiskit.pulse.pulse_lib as pulse_lib
-import qiskit.pulse.commands as commands
-import qiskit.qobj as qobj
-import qiskit.qobj.converters as converters
-import qiskit.qobj.utils as qobj_utils
+from qiskit import qobj
+from qiskit import pulse
+from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
+from qiskit.pulse import instructions
+from qiskit.pulse import transforms
+from qiskit.pulse import pulse_lib
+from qiskit.pulse import commands
+from qiskit.qobj import converters
+from qiskit.qobj import utils as qobj_utils
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
-
-from .run_config import RunConfig
 
 
 def assemble_schedules(schedules: List[pulse.Schedule],

@@ -130,17 +130,36 @@ Exceptions
    PulseError
 
 """
-from .builder import *
-from .channels import (DriveChannel, MeasureChannel, AcquireChannel,
-                       ControlChannel, RegisterSlot, MemorySlot)
-from .commands import AcquireInstruction, FrameChange, PersistentValue
-from .configuration import LoConfig, LoRange, Kernel, Discriminator
-from .exceptions import PulseError
-from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import (Acquire, Instruction, Delay, Play, ShiftPhase,
-                           Snapshot, SetFrequency)
-from .interfaces import ScheduleComponent
-from .pulse_lib import (SamplePulse, Gaussian, GaussianSquare, Drag,
-                        Constant, ConstantPulse, ParametricPulse)
-from .pulse_lib.samplers.decorators import functional_pulse
-from .schedule import Schedule
+from qiskit.pulse.builder import *
+from qiskit.pulse.channels import (DriveChannel,
+                                   MeasureChannel,
+                                   AcquireChannel,
+                                   ControlChannel,
+                                   RegisterSlot,
+                                   MemorySlot)
+from qiskit.pulse.commands import (AcquireInstruction,
+                                   FrameChange,
+                                   PersistentValue)
+from qiskit.pulse.configuration import (LoConfig,
+                                        LoRange,
+                                        Kernel,
+                                        Discriminator)
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instructions import (Acquire,
+                                       Instruction,
+                                       Delay,
+                                       Play,
+                                       ShiftPhase,
+                                       Snapshot,
+                                       SetFrequency)
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.pulse_lib import (SamplePulse,
+                                    Gaussian,
+                                    GaussianSquare,
+                                    Drag,
+                                    Constant,
+                                    ConstantPulse,
+                                    ParametricPulse)
+from qiskit.pulse.pulse_lib.samplers.decorators import functional_pulse
+from qiskit.pulse.schedule import Schedule

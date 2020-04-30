@@ -16,8 +16,8 @@
 from abc import ABC
 from typing import Optional
 
-import qiskit.pulse.channels as chans
-from . import instruction
+from qiskit.pulse import channels as chans
+from qiskit.pulse.instructions import instruction
 
 
 class Directive(instruction.Instruction, ABC):

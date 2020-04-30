@@ -19,11 +19,11 @@ import unittest
 
 import numpy as np
 
-import qiskit.circuit as circuit
-import qiskit.compiler as compiler
-import qiskit.pulse as pulse
-import qiskit.pulse.builder as builder
-import qiskit.pulse.macros as macros
+from qiskit import circuit
+from qiskit import compiler
+from qiskit import pulse
+from qiskit.pulse import builder
+from qiskit.pulse import macros
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse import pulse_lib, instructions

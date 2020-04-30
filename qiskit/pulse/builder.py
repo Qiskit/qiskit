@@ -126,22 +126,31 @@ import contextvars
 import functools
 import itertools
 from contextlib import contextmanager
-from typing import (Any, Callable, ContextManager, Dict,
-                    Iterable, List, Mapping, Optional, Set,
-                    Tuple, TypeVar, Union)
+from typing import (Any,
+                    Callable,
+                    ContextManager,
+                    Dict,
+                    Iterable,
+                    List,
+                    Mapping,
+                    Optional,
+                    Set,
+                    Tuple,
+                    TypeVar,
+                    Union)
 
 import numpy as np
 
-import qiskit.extensions.standard as gates
-import qiskit.circuit as circuit
-import qiskit.pulse.channels as channels
-import qiskit.pulse.configuration as configuration
-import qiskit.pulse.exceptions as exceptions
+from qiskit import circuit
+from qiskit.extensions import standard as gates
+from qiskit.pulse import channels
+from qiskit.pulse import configuration
+from qiskit.pulse import exceptions
 from qiskit.pulse import instructions
-import qiskit.pulse.instructions.directives as directives
-import qiskit.pulse.macros as macros
-import qiskit.pulse.pulse_lib as pulse_lib
-import qiskit.pulse.transforms as transforms
+from qiskit.pulse import macros
+from qiskit.pulse import pulse_lib
+from qiskit.pulse import transforms
+from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 
 __all__ = [

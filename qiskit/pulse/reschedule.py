@@ -16,7 +16,10 @@
 import warnings
 
 # pylint: disable=unused-import
-from .transforms import align_measures, add_implicit_acquires, pad, compress_pulses
+from qiskit.pulse.transforms import (align_measures,
+                                     add_implicit_acquires,
+                                     pad,
+                                     compress_pulses)
 
 
 warnings.warn("The reschedule module has been renamed to transforms. This import path "

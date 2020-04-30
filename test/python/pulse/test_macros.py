@@ -14,10 +14,15 @@
 
 """Test cases for Pulse Macro functions."""
 
-from qiskit.pulse import (Schedule, AcquireChannel, Acquire, InstructionScheduleMap,
-                          MeasureChannel, MemorySlot, GaussianSquare, Play)
-
-import qiskit.pulse.macros as macros
+from qiskit.pulse import (Schedule,
+                          AcquireChannel,
+                          Acquire,
+                          InstructionScheduleMap,
+                          MeasureChannel,
+                          MemorySlot,
+                          GaussianSquare,
+                          Play)
+from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase

@@ -28,6 +28,6 @@ A circuit scheduler compiles a circuit program to a pulse program.
    ScheduleConfig
 """
 
-from .config import ScheduleConfig
-from .schedule_circuit import schedule_circuit
-from .utils import measure, measure_all
+from qiskit.scheduler.config import ScheduleConfig
+from qiskit.scheduler import schedule_circuit
+from qiskit.scheduler.utils import measure, measure_all

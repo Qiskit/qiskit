@@ -23,12 +23,12 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-import qiskit.pulse.channels as chans
-import qiskit.pulse.commands as commands
-import qiskit.pulse.exceptions as exceptions
-import qiskit.pulse.instructions as instructions
-import qiskit.pulse.instructions.directives as directives
-import qiskit.pulse.interfaces as interfaces
+from qiskit.pulse import channels as chans
+from qiskit.pulse import commands
+from qiskit.pulse import exceptions
+from qiskit.pulse import instructions
+from qiskit.pulse import interfaces
+from qiskit.pulse.instructions import directives
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 

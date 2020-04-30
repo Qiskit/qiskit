@@ -15,10 +15,11 @@
 """Unit tests for pulse instructions."""
 
 import numpy as np
-import qiskit.pulse.channels as channels
-import qiskit.pulse.configuration as configuration
-import qiskit.pulse.instructions as instructions
-import qiskit.pulse.pulse_lib as pulse_lib
+
+from qiskit.pulse import channels
+from qiskit.pulse import configuration
+from qiskit.pulse import instructions
+from qiskit.pulse import pulse_lib
 from qiskit.test import QiskitTestCase
 
 

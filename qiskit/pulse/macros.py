@@ -16,18 +16,18 @@
 
 from typing import Dict, List, Optional, Union
 
-from .channels import MemorySlot
-from .commands import AcquireInstruction
-from .exceptions import PulseError
-from .instructions import Acquire
-from .instruction_schedule_map import InstructionScheduleMap
-from .schedule import Schedule
-from .utils import format_meas_map
+from qiskit.pulse import channels
+from qiskit.pulse import commands
+from qiskit.pulse import exceptions
+from qiskit.pulse import instructions
+from qiskit.pulse import utils
+from qiskit.pulse import instruction_schedule_map as inst_map
+from qiskit.pulse.schedule import Schedule
 
 
 def measure(qubits: List[int],
             backend=None,
-            inst_map: Optional[InstructionScheduleMap] = None,
+            inst_map: Optional[inst_map.InstructionScheduleMap] = None,
             meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None,
             measure_name: str = 'measure') -> Schedule:
@@ -61,9 +61,10 @@ def measure(qubits: List[int],
         inst_map = inst_map or backend.defaults().instruction_schedule_map
         meas_map = meas_map or backend.configuration().meas_map
     except AttributeError:
-        raise PulseError('inst_map or meas_map, and backend cannot be None simultaneously')
+        raise exceptions.PulseError(
+            'inst_map or meas_map, and backend cannot be None simultaneously')
     if isinstance(meas_map, List):
-        meas_map = format_meas_map(meas_map)
+        meas_map = utils.format_meas_map(meas_map)
 
     measure_groups = set()
     for qubit in qubits:
@@ -73,23 +74,27 @@ def measure(qubits: List[int],
             unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
         try:
             default_sched = inst_map.get(measure_name, measure_group_qubits)
-        except PulseError:
-            raise PulseError("We could not find a default measurement schedule called '{}'. "
-                             "Please provide another name using the 'measure_name' keyword "
-                             "argument. For assistance, the instructions which are defined are: "
-                             "{}".format(measure_name, inst_map.instructions))
+        except exceptions.PulseError:
+            raise exceptions.PulseError(
+                "We could not find a default measurement schedule called '{}'. "
+                "Please provide another name using the 'measure_name' keyword "
+                "argument. For assistance, the instructions which are defined are: "
+                "{}".format(measure_name, inst_map.instructions))
 
         for time, inst in default_sched.instructions:
-            if qubit_mem_slots and isinstance(inst, (Acquire, AcquireInstruction)):
+            if qubit_mem_slots and isinstance(
+                    inst, (instructions.Acquire, commands.AcquireInstruction)):
                 for channel in inst.acquires:
                     if channel.index in qubit_mem_slots:
-                        mem_slot = MemorySlot(qubit_mem_slots[channel.index])
+                        mem_slot = channels.MemorySlot(qubit_mem_slots[channel.index])
                     else:
-                        mem_slot = MemorySlot(unused_mem_slots.pop())
-                    schedule = schedule.insert(time, Acquire(inst.duration,
-                                                             channel,
-                                                             mem_slot=mem_slot))
-            elif qubit_mem_slots is None and isinstance(inst, (Acquire, AcquireInstruction)):
+                        mem_slot = channels.MemorySlot(unused_mem_slots.pop())
+                    schedule = schedule.insert(
+                        time, instructions.Acquire(inst.duration,
+                                                   channel,
+                                                   mem_slot=mem_slot))
+            elif qubit_mem_slots is None and isinstance(
+                    inst, (instructions.Acquire, commands.AcquireInstruction)):
                 schedule = schedule.insert(time, inst)
             # Measurement pulses should only be added if its qubit was measured by the user
             elif inst.channels[0].index in qubits:

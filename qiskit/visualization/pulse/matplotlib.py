@@ -28,14 +28,14 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-import qiskit.pulse.channels as chans
-import qiskit.pulse.commands as commands
-import qiskit.pulse.exceptions as exceptions
-import qiskit.pulse.instructions as instructions
-import qiskit.pulse.interfaces as interfaces
-import qiskit.pulse.pulse_lib as pulse_lib
-import qiskit.visualization.pulse.qcstyle as qcstyle
-import qiskit.visualization.pulse.interpolation as interpolation
+from qiskit.pulse import channels as chans
+from qiskit.pulse import commands
+from qiskit.pulse import exceptions
+from qiskit.pulse import instructions
+from qiskit.pulse import interfaces
+from qiskit.pulse import pulse_lib
+from qiskit.visualization.pulse import qcstyle
+from qiskit.visualization.pulse import interpolation
 
 
 class EventsOutputChannels:
