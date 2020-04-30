@@ -66,7 +66,7 @@ class VectorStateFn(StateFn):
         # Right now doesn't make sense to add a StateFn to a Measurement
         if isinstance(other, VectorStateFn) and self.is_measurement == other.is_measurement:
             # Covers MatrixOperator, Statevector and custom.
-            return VectorStateFn((self.coeff * self.primitive).add(other.primitive * other.coeff),
+            return VectorStateFn((self.coeff * self.primitive) + (other.primitive * other.coeff),
                                  is_measurement=self._is_measurement)
         # pylint: disable=cyclic-import,import-outside-toplevel
         from .. import SummedOp
