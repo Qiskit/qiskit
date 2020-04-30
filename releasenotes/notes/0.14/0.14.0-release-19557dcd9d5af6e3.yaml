@@ -44,9 +44,10 @@ prelude: |
     :class:`~qiskit.circuit.library.IQP`.
   
   To allow easier use of these circuits as building blocks, we have introduced
-  a :meth:`~qiskit.circuit.QuantumCircuit.compose` method for composition of
-  circuits either with other circuits (by welding them at the ends and
-  optionally permuting wires) or with other simpler gates::
+  a :meth:`~qiskit.circuit.QuantumCircuit.compose` method of
+  :class:`qiskit.circuit.QuantumCircuit` for composition of circuits either
+  with other circuits (by welding them at the ends and optionally permuting
+  wires) or with other simpler gates::
   
     >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
   
