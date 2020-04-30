@@ -55,52 +55,53 @@ class RealAmplitudes(TwoLocal):
 
     Examples:
 
-         >>> ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
-         >>> print(ansatz)
-              ┌──────────┐          ┌──────────┐                      ┌──────────┐
-         q_0: ┤ RY(θ[0]) ├──■────■──┤ RY(θ[3]) ├──────────────■────■──┤ RY(θ[6]) ├────────────
-              ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
-         q_1: ┤ RY(θ[1]) ├┤ X ├──┼───────■──────┤ RY(θ[4]) ├┤ X ├──┼───────■──────┤ RY(θ[7]) ├
-              ├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤
-         q_2: ┤ RY(θ[2]) ├─────┤ X ├───┤ X ├────┤ RY(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├
-              └──────────┘     └───┘   └───┘    └──────────┘     └───┘   └───┘    └──────────┘
+        >>> ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
+        >>> print(ansatz)
+             ┌──────────┐          ┌──────────┐                      ┌──────────┐
+        q_0: ┤ RY(θ[0]) ├──■────■──┤ RY(θ[3]) ├──────────────■────■──┤ RY(θ[6]) ├────────────
+             ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
+        q_1: ┤ RY(θ[1]) ├┤ X ├──┼───────■──────┤ RY(θ[4]) ├┤ X ├──┼───────■──────┤ RY(θ[7]) ├
+             ├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤
+        q_2: ┤ RY(θ[2]) ├─────┤ X ├───┤ X ├────┤ RY(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├
+             └──────────┘     └───┘   └───┘    └──────────┘     └───┘   └───┘    └──────────┘
 
-         >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
-         >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
-         >>> qc.compose(ansatz, inplace=True)
-         >>> qc.draw()
-              ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
-         q_0: ┤ RY(θ[0]) ├─░───■────────░─┤ RY(θ[3]) ├─░───■────────░─┤ RY(θ[6]) ├
-              ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
-         q_1: ┤ RY(θ[1]) ├─░─┤ X ├──■───░─┤ RY(θ[4]) ├─░─┤ X ├──■───░─┤ RY(θ[7]) ├
-              ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
-         q_2: ┤ RY(θ[2]) ├─░──────┤ X ├─░─┤ RY(θ[5]) ├─░──────┤ X ├─░─┤ RY(θ[8]) ├
-              └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
+        >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
+        >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
+        >>> qc.compose(ansatz, inplace=True)
+        >>> qc.draw()
+             ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
+        q_0: ┤ RY(θ[0]) ├─░───■────────░─┤ RY(θ[3]) ├─░───■────────░─┤ RY(θ[6]) ├
+             ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
+        q_1: ┤ RY(θ[1]) ├─░─┤ X ├──■───░─┤ RY(θ[4]) ├─░─┤ X ├──■───░─┤ RY(θ[7]) ├
+             ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
+        q_2: ┤ RY(θ[2]) ├─░──────┤ X ├─░─┤ RY(θ[5]) ├─░──────┤ X ├─░─┤ RY(θ[8]) ├
+             └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
 
-         >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
-         >>> print(ansatz)
-              ┌──────────┐ ░ ┌───┐                ░ ┌──────────┐
-         q_0: ┤ RY(θ[0]) ├─░─┤ X ├──■─────────────░─┤ RY(θ[4]) ├
-              ├──────────┤ ░ └─┬─┘┌─┴─┐           ░ ├──────────┤
-         q_1: ┤ RY(θ[1]) ├─░───┼──┤ X ├──■────────░─┤ RY(θ[5]) ├
-              ├──────────┤ ░   │  └───┘┌─┴─┐      ░ ├──────────┤
-         q_2: ┤ RY(θ[2]) ├─░───┼───────┤ X ├──■───░─┤ RY(θ[6]) ├
-              ├──────────┤ ░   │       └───┘┌─┴─┐ ░ ├──────────┤
-         q_3: ┤ RY(θ[3]) ├─░───■────────────┤ X ├─░─┤ RY(θ[7]) ├
-              └──────────┘ ░                └───┘ ░ └──────────┘
+        >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
+        >>> print(ansatz)
+             ┌──────────┐ ░ ┌───┐                ░ ┌──────────┐
+        q_0: ┤ RY(θ[0]) ├─░─┤ X ├──■─────────────░─┤ RY(θ[4]) ├
+             ├──────────┤ ░ └─┬─┘┌─┴─┐           ░ ├──────────┤
+        q_1: ┤ RY(θ[1]) ├─░───┼──┤ X ├──■────────░─┤ RY(θ[5]) ├
+             ├──────────┤ ░   │  └───┘┌─┴─┐      ░ ├──────────┤
+        q_2: ┤ RY(θ[2]) ├─░───┼───────┤ X ├──■───░─┤ RY(θ[6]) ├
+             ├──────────┤ ░   │       └───┘┌─┴─┐ ░ ├──────────┤
+        q_3: ┤ RY(θ[3]) ├─░───■────────────┤ X ├─░─┤ RY(θ[7]) ├
+             └──────────┘ ░                └───┘ ░ └──────────┘
 
-         >>> ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
-         ... skip_unentangled_qubits=True)
-         >>> print(ansatz)
-              ┌──────────┐                 ┌──────────┐                 ┌──────────┐
-         q_0: ┤ RY(θ[0]) ├──■───────■──────┤ RY(θ[3]) ├──■───────■──────┤ RY(θ[6]) ├
-              └──────────┘  │       │      └──────────┘  │       │      └──────────┘
-         q_1: ──────────────┼───────┼────────────────────┼───────┼──────────────────
-              ┌──────────┐  │     ┌─┴─┐    ┌──────────┐  │     ┌─┴─┐    ┌──────────┐
-         q_2: ┤ RY(θ[1]) ├──┼─────┤ X ├────┤ RY(θ[4]) ├──┼─────┤ X ├────┤ RY(θ[7]) ├
-              ├──────────┤┌─┴─┐┌──┴───┴───┐└──────────┘┌─┴─┐┌──┴───┴───┐└──────────┘
-         q_3: ┤ RY(θ[2]) ├┤ X ├┤ RY(θ[5]) ├────────────┤ X ├┤ RY(θ[8]) ├────────────
-              └──────────┘└───┘└──────────┘            └───┘└──────────┘
+        >>> ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
+        ... skip_unentangled_qubits=True)
+        >>> print(ansatz)
+             ┌──────────┐                 ┌──────────┐                 ┌──────────┐
+        q_0: ┤ RY(θ[0]) ├──■───────■──────┤ RY(θ[3]) ├──■───────■──────┤ RY(θ[6]) ├
+             └──────────┘  │       │      └──────────┘  │       │      └──────────┘
+        q_1: ──────────────┼───────┼────────────────────┼───────┼──────────────────
+             ┌──────────┐  │     ┌─┴─┐    ┌──────────┐  │     ┌─┴─┐    ┌──────────┐
+        q_2: ┤ RY(θ[1]) ├──┼─────┤ X ├────┤ RY(θ[4]) ├──┼─────┤ X ├────┤ RY(θ[7]) ├
+             ├──────────┤┌─┴─┐┌──┴───┴───┐└──────────┘┌─┴─┐┌──┴───┴───┐└──────────┘
+        q_3: ┤ RY(θ[2]) ├┤ X ├┤ RY(θ[5]) ├────────────┤ X ├┤ RY(θ[8]) ├────────────
+             └──────────┘└───┘└──────────┘            └───┘└──────────┘
+
     """
 
     def __init__(self,
@@ -116,28 +117,28 @@ class RealAmplitudes(TwoLocal):
         """Create a new RealAmplitudes 2-local circuit.
 
         Args:
-        num_qubits: The number of qubits of the RealAmplitudes circuit.
-        reps: Specifies how often the structure of a rotation layer followed by an entanglement
-             layer is repeated.
-        entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-             or 'sca'), a list of integer-pairs specifying the indices of qubits
-             entangled with one another, or a callable returning such a list provided with
-             the index of the entanglement layer.
-             See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
-             detail.
-        initial_state: An `InitialState` object to prepend to the circuit.
-        skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-             that are entangled with another qubit. If False, the single qubit gates are applied
-             to each qubit in the Ansatz. Defaults to False.
-        skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-             that are entangled with another qubit. If False, the single qubit gates are applied
-             to each qubit in the Ansatz. Defaults to False.
-        skip_final_rotation_layer: If False, a rotation layer is added at the end of the
-             ansatz. If True, no rotation layer is added.
-        parameter_prefix: The parameterized gates require a parameter to be defined, for which
-             we use :class:`~qiskit.circuit.ParameterVector`.
-        insert_barriers: If True, barriers are inserted in between each layer. If False,
-             no barriers are inserted.
+            num_qubits: The number of qubits of the RealAmplitudes circuit.
+            reps: Specifies how often the structure of a rotation layer followed by an entanglement
+                layer is repeated.
+            entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
+                or 'sca'), a list of integer-pairs specifying the indices of qubits
+                entangled with one another, or a callable returning such a list provided with
+                the index of the entanglement layer.
+                See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
+                detail.
+            initial_state: An `InitialState` object to prepend to the circuit.
+            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
+                that are entangled with another qubit. If False, the single qubit gates are applied
+                to each qubit in the Ansatz. Defaults to False.
+            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
+                that are entangled with another qubit. If False, the single qubit gates are applied
+                to each qubit in the Ansatz. Defaults to False.
+            skip_final_rotation_layer: If False, a rotation layer is added at the end of the
+                ansatz. If True, no rotation layer is added.
+            parameter_prefix: The parameterized gates require a parameter to be defined, for which
+                we use :class:`~qiskit.circuit.ParameterVector`.
+            insert_barriers: If True, barriers are inserted in between each layer. If False,
+                no barriers are inserted.
 
         """
         super().__init__(num_qubits=num_qubits,
@@ -156,6 +157,6 @@ class RealAmplitudes(TwoLocal):
         """Return the parameter bounds.
 
         Returns:
-             The parameter bounds.
+            The parameter bounds.
         """
         return self.num_parameters * [(-np.pi, np.pi)]
