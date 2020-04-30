@@ -4,12 +4,12 @@ upgrade:
     The marshmallow schema classes in :mod:`qiskit.providers.models` have been
     removed since they are no longer used by the BackendObjects.
   - |
-    The output of ``to_dict()`` method for the classes in
-    :mod:`qiskit.providers.models` is no longer in a format for direct json
+    The output of the ``to_dict()`` method for the classes in
+    :mod:`qiskit.providers.models` is no longer in a format for direct JSON
     serialization. Depending on the content contained in instances of these
-    class there may be numpy arrays and/or complex in the fields of the dict.
+    class there may be numpy arrays and/or complex numbers in the fields of the dict.
     If you're JSON serializing the output of the to_dict methods you should
-    ensure your json encoder can handle numpy arrays and complex. This
+    ensure your JSON encoder can handle numpy arrays and complex numbers. This
     includes:
 
     * :meth:`qiskit.providers.models.BackendConfiguration.to_dict`

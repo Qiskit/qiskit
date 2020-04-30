@@ -13,5 +13,5 @@ deprecations:
   - |
     The :meth:`qiskit.dagcircuit.DAGCircuit.compose` method now takes a list
     of qubits/clbits that specify the positional order of bits to compose onto.
-    The dictionary-based method of mapping using ``edge_map`` arg is
+    The dictionary-based method of mapping using the ``edge_map`` argument is
     deprecated and will be removed in a future release.

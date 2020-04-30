@@ -9,7 +9,7 @@ prelude: |
   circuit families, instances of which can be used as benchmarks,
   as building blocks in building more complex circuits, or
   as a tool to explore quantum computational advantage over classical.
-  The contents of this library will continue to grow and refine.
+  The contents of this library will continue to grow and mature.
   
   The initial release of the circuit library contains:
   

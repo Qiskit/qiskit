@@ -12,7 +12,7 @@ features:
 
 deprecations:
   - |
-    The passing a :class:`qiskit.pulse.ControlChannel` object in via the
+    Passing a :class:`qiskit.pulse.ControlChannel` object in via the
     parameter ``channel`` for the
     :class:`qiskit.providers.models.PulseBackendConfiguration` method
     :meth:`~qiskit.providers.models.PulseBackendConfiguration.control` has been
