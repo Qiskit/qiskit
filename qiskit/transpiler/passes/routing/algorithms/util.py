@@ -28,7 +28,7 @@
 
 """Utility functions shared between permutation functionality."""
 
-from typing import List, TypeVar, Iterable, MutableMapping, Optional
+from typing import List, TypeVar, Iterable, MutableMapping
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
