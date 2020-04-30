@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The SwapRZ 2-local circuit."""
+"""The ExcitationPreserving 2-local circuit."""
 
 from typing import Union, Optional, List, Tuple, Callable, Any
 from numpy import pi
@@ -22,42 +22,43 @@ from qiskit.circuit.library.standard_gates import RZGate
 from .two_local import TwoLocal
 
 
-class SwapRZ(TwoLocal):
-    r"""The SwapRZ ansatz.
+class ExcitationPreserving(TwoLocal):
+    r"""The heurisitic excitation-preserving wave function ansatz.
 
-    This trial wave function is layers of :math:`Z` rotations with entanglements using 2-qubit
-    :math:`XX+YY` rotations. It was designed principally to be a particle-preserving wave function
-    for :mod:`qiskit.chemistry`. Given an initial state as a set of 1's and 0's it will preserve
-    the number of 1's - where for chemistry a 1 will indicate a particle.
-
-    Note:
-
-        In chemistry, to define the particles for SwapRZ, use a
-        :class:`~qiskit.chemistry.components.initial_states.HartreeFock` initial state with
-        the `Jordan-Wigner` qubit mapping
-
-    See :class:`~qiskit.circuit.library.RY` for more detail on the possible arguments and options
-    such as skipping unentanglement qubits, which apply here too.
-
-    The rotations of the SwapRZ ansatz can be written as
-
-    .. math::
-        R_Z(\theta) = e^{-i \theta Z}
-
-    and
+    The ``ExcitationPreserving`` circuit preserves the ratio of :math:`|00\rangle`,
+    :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. The matrix representing
+    the operation is
 
     .. math::
 
-        R_{XX+YY}(\theta) = e^{-i \theta / 2 (X \otimes X + Y \otimes Y)}
-                          \approx e^{-i \theta / 2 X \otimes X} e^{-i \theta /2 Y \otimes Y }
-                          = R_{XX}(\theta) R_{YY}(\theta)
+        \newcommand{\th}{\theta/2}
 
-    where the approximation used comes from the Trotter expansion of the sum in the exponential.
+        \begin{pmatrix}
+        1 & 0 & 0 & 0 \\
+        0 & \cos(\th) & -\sin(\th) & 0 \\
+        0 & \sin(\th) & \cos(\th) & 0 \\
+        0 & 0 & 0 e^{-i\phi}
+        \end{pmatrix}
+
+    for the mode ``'fsim'`` or with :math:`e^{-i\phi} = 1` for the mode ``'iswap'``.
+
+    Note that other wave functions, such as UCC-ansatzes, are also excitation preserving.
+    However these can become complex quickly, while this heuristically motivated circuit follows
+    a simpler pattern.
+
+    This trial wave function consists of layers of :math:`Z` rotations with 2-qubit entanglements.
+    The entangling is creating using :math:`XX+YY` rotations and optionally a controlled-phase
+    gate for the mode ``'fsim'``.
+
+    See :class:`~qiskit.circuit.library.RealAmplitudes` for more detail on the possible arguments
+    and options such as skipping unentanglement qubits, which apply here too.
+
+    The rotations of the ExcitationPreserving ansatz can be written as
 
     Examples:
 
-        >>> swaprz = SwapRZ(3, reps=1, insert_barriers=True, entanglement='linear')
-        >>> print(swaprz)  # show the circuit
+        >>> ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True, entanglement='linear')
+        >>> print(ansatz)  # show the circuit
              ┌──────────┐ ░ ┌────────────┐┌────────────┐                             ░ ┌──────────┐
         q_0: ┤ RZ(θ[0]) ├─░─┤0           ├┤0           ├─────────────────────────────░─┤ RZ(θ[5]) ├
              ├──────────┤ ░ │  RXX(θ[3]) ││  RYY(θ[3]) │┌────────────┐┌────────────┐ ░ ├──────────┤
@@ -66,10 +67,10 @@ class SwapRZ(TwoLocal):
         q_2: ┤ RZ(θ[2]) ├─░─────────────────────────────┤1           ├┤1           ├─░─┤ RZ(θ[7]) ├
              └──────────┘ ░                             └────────────┘└────────────┘ ░ └──────────┘
 
-        >>> swaprz = SwapRZ(2, reps=1)
+        >>> ansatz = ExcitationPreserving(2, reps=1)
         >>> qc = QuantumCircuit(2)  # create a circuit and append the RY variational form
         >>> qc.cry(0.2, 0, 1)  # do some previous operation
-        >>> qc.compose(swaprz, inplace=True)  # add the swaprz
+        >>> qc.compose(ansatz, inplace=True)  # add the swaprz
         >>> qc.draw()
                         ┌──────────┐┌────────────┐┌────────────┐┌──────────┐
         q_0: ─────■─────┤ RZ(θ[0]) ├┤0           ├┤0           ├┤ RZ(θ[3]) ├
@@ -77,10 +78,21 @@ class SwapRZ(TwoLocal):
         q_1: ┤ RY(0.2) ├┤ RZ(θ[1]) ├┤1           ├┤1           ├┤ RZ(θ[4]) ├
              └─────────┘└──────────┘└────────────┘└────────────┘└──────────┘
 
+        >>> ansatz = ExcitationPreserving(3, reps=1, mode='fsim', entanglement=[[0,2]],
+        ... insert_barriers=True)
+        >>> print(ansatz)
+             ┌──────────┐ ░ ┌────────────┐┌────────────┐        ░ ┌──────────┐
+        q_0: ┤ RZ(θ[0]) ├─░─┤0           ├┤0           ├─■──────░─┤ RZ(θ[5]) ├
+             ├──────────┤ ░ │            ││            │ │      ░ ├──────────┤
+        q_1: ┤ RZ(θ[1]) ├─░─┤  RXX(θ[3]) ├┤  RYY(θ[3]) ├─┼──────░─┤ RZ(θ[6]) ├
+             ├──────────┤ ░ │            ││            │ │θ[4]  ░ ├──────────┤
+        q_2: ┤ RZ(θ[2]) ├─░─┤1           ├┤1           ├─■──────░─┤ RZ(θ[7]) ├
+             └──────────┘ ░ └────────────┘└────────────┘        ░ └──────────┘
     """
 
     def __init__(self,
                  num_qubits: Optional[int] = None,
+                 mode: str = 'iswap',
                  entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
                  reps: int = 3,
                  skip_unentangled_qubits: bool = False,
@@ -89,10 +101,11 @@ class SwapRZ(TwoLocal):
                  insert_barriers: bool = False,
                  initial_state: Optional[Any] = None,
                  ) -> None:
-        """Create a new SwapRZ 2-local circuit.
+        """Create a new ExcitationPreserving 2-local circuit.
 
         Args:
-            num_qubits: The number of qubits of the SwapRZ circuit.
+            num_qubits: The number of qubits of the ExcitationPreserving circuit.
+            mode: aa
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
                 layer is repeated.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
@@ -115,16 +128,24 @@ class SwapRZ(TwoLocal):
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
 
+        Raises:
+            ValueError: If the selected mode is not supported.
         """
+        supported_modes = ['iswap', 'fsim']
+        if mode not in supported_modes:
+            raise ValueError('Unsupported mode {}, choose one of {}'.format(mode, supported_modes))
 
         theta = Parameter('θ')
-        rxxyy = QuantumCircuit(2, name='Rxx+yy')
-        rxxyy.rxx(theta, 0, 1)
-        rxxyy.ryy(theta, 0, 1)
+        swap = QuantumCircuit(2, name='Interaction')
+        swap.rxx(theta, 0, 1)
+        swap.ryy(theta, 0, 1)
+        if mode == 'fsim':
+            phi = Parameter('φ')
+            swap.cu1(phi, 0, 1)
 
         super().__init__(num_qubits=num_qubits,
                          rotation_blocks=RZGate,
-                         entanglement_blocks=rxxyy,
+                         entanglement_blocks=swap,
                          entanglement=entanglement,
                          reps=reps,
                          skip_unentangled_qubits=skip_unentangled_qubits,

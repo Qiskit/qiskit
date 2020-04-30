@@ -66,15 +66,6 @@ Standard Gates
    YGate
    ZGate
 
-
-Blueprint Circuit
-=================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   BlueprintCircuit
-
 Generalized Gates
 =================
 
@@ -85,6 +76,7 @@ Generalized Gates
    MCMT
    MCMTVChain
    Permutation
+   GMS
 
 Boolean Logic Circuits
 ======================
@@ -156,9 +148,9 @@ N-local circuits
 
    NLocal
    TwoLocal
-   RY
-   RYRZ
-   SwapRZ
+   RealAmplitudes
+   EfficientSU2
+   ExcitationPreserving
 
 
 Data encoding circuits
@@ -167,9 +159,10 @@ Data encoding circuits
 .. autosummary::
    :toctree: ../stubs/
 
-   PauliExpansion
-   FirstOrderExpansion
-   SecondOrderExpansion
+   PauliFeatureMap
+   ZFeatureMap
+   ZZFeatureMap
+
 """
 
 from .standard_gates import *
@@ -182,7 +175,8 @@ from .generalized_gates import (
     Diagonal,
     MCMT,
     MCMTVChain,
-    Permutation
+    Permutation,
+    GMS
 )
 from .boolean_logic import (
     AND,
@@ -202,14 +196,14 @@ from .arithmetic import (
 from .n_local import (
     NLocal,
     TwoLocal,
-    RY,
-    RYRZ,
-    SwapRZ,
+    RealAmplitudes,
+    EfficientSU2,
+    ExcitationPreserving,
 )
-from .data_encoding import (
-    PauliExpansion,
-    FirstOrderExpansion,
-    SecondOrderExpansion
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
