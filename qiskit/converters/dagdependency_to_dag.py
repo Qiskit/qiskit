@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,25 +12,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper function for converting a dag canonical to a circuit"""
+"""Helper function for converting a dag dependency to a dag circuit"""
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
-def dagcanonical_to_dag(dagcanonical):
-    """Build a ``QuantumCircuit`` object from a ``DAGCanonical``.
+def dagdependency_to_dag(dagdependency):
+    """Build a ``DAGCircuit`` object from a ``DAGDependency``.
 
     Args:
-        dagcanonical (DAGCcanonical): the input dag.
+        dag dependency (DAGDependency): the input dag.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
     """
 
     dagcircuit = DAGCircuit()
-    dagcircuit.name = dagcanonical.name
+    dagcircuit.name = dagdependency.name
 
-    qregs = list(dagcanonical.qregs.values())
-    cregs = list(dagcanonical.cregs.values())
+    qregs = list(dagdependency.qregs.values())
+    cregs = list(dagdependency.cregs.values())
 
     for register in qregs:
         dagcircuit.add_qreg(register)
@@ -38,8 +38,8 @@ def dagcanonical_to_dag(dagcanonical):
     for register in cregs:
         dagcircuit.add_creg(register)
 
-    for node in list(dagcanonical.nodes()):
-        node_op = node[1]
+    for node in dagdependency.get_nodes():
+        node_op = node['operation']
         # Get arguments for classical control (if any)
         inst = node_op.op.copy()
         inst.condition = node_op.condition

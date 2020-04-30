@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -52,7 +52,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', category=None):
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
-        category (str): 'canonical' for drawing DAG canonical
+        category (str): 'dependency' for drawing DAG dependency
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -114,7 +114,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', category=None):
         else:
             raise VisualizationError("Unrecognized style for the dag_drawer.")
 
-    elif category == 'canonical':
+    elif category == 'dependency':
         G = dag.to_networkx()
         G.graph['dpi'] = 100 * scale
 
@@ -123,7 +123,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', category=None):
         elif style == 'color':
             for node in G.nodes(data='operation'):
                 n = G.nodes[node[0]]
-                n['label'] = str(node[0]) + ': ' + node[1].name
+                n['label'] = str(node[0]+1) + ': ' + node[1].name
                 if node[1].name == 'measure':
                     n['color'] = 'blue'
                     n['style'] = 'filled'

@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,33 +12,33 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-'''Helper function for converting a circuit to a dag canonical'''
+'''Helper function for converting a circuit to a dag dependency'''
 
-from qiskit.dagcircuit.dagcanonical import DAGcanonical
+from qiskit.dagcircuit.dagdependency import DAGDependency
 
 
-def circuit_to_dagcanonical(circuit):
-    """Build a ``DAGCanonical`` object from a ``QuantumCircuit``.
+def circuit_to_dagdependency(circuit):
+    """Build a ``DAGDependency`` object from a ``QuantumCircuit``.
 
     Args:
         circuit (QuantumCircuit): the input circuits.
 
     Return:
-        DAGcanonical: the DAG representing the input circuit as a dag canonical.
+        DAGDependency: the DAG representing the input circuit as a dag dependency.
     """
-    dagcircuit = DAGcanonical()
-    dagcircuit.name = circuit.name
+    dagdependency = DAGDependency()
+    dagdependency.name = circuit.name
 
     for register in circuit.qregs:
-        dagcircuit.add_qreg(register)
+        dagdependency.add_qreg(register)
 
     for register in circuit.cregs:
-        dagcircuit.add_creg(register)
+        dagdependency.add_creg(register)
 
     for operation, qargs, cargs in circuit.data:
-        dagcircuit.add_node(operation, qargs, cargs)
-        dagcircuit.add_edge()
+        dagdependency.add_op_node(operation, qargs, cargs)
+        dagdependency.add_edge()
 
-    dagcircuit.add_successors()
+    dagdependency.add_successors()
 
-    return dagcircuit
+    return dagdependency

@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,21 +12,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test for the converter dag canonical to ciruit and circuit to dag canonical."""
+"""Test for the converter dag dependency to dag circuit and
+dag circuit to dag dependency."""
 
 import unittest
 
-from qiskit.converters.dagcanonical_to_circuit import dagcanonical_to_circuit
-from qiskit.converters.circuit_to_dagcanonical import circuit_to_dagcanonical
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
+from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
 
-class TestCircuitToDagCanonical(QiskitTestCase):
-    """Test Circuit to DAGcanonical."""
+class TestCircuitToDagDependency(QiskitTestCase):
+    """Test DAGCircuit to DAGDependency."""
 
-    def test_circuit_and_dag_canonical(self):
-        """Check convert to dag canonical and back"""
+    def test_circuit_and_dag_dependency(self):
+        """Check convert to dag dependency and back"""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit_in = QuantumCircuit(qr, cr)
@@ -38,9 +40,12 @@ class TestCircuitToDagCanonical(QiskitTestCase):
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
-        dag_canonical = circuit_to_dagcanonical(circuit_in)
-        circuit_out = dagcanonical_to_circuit(dag_canonical)
-        self.assertEqual(circuit_out, circuit_in)
+        dag_in = circuit_to_dag(circuit_in)
+
+        dag_dependency = dag_to_dagdependency(dag_in)
+        dag_out = dagdependency_to_dag(dag_dependency)
+
+        self.assertEqual(dag_out, dag_in)
 
 
 if __name__ == '__main__':

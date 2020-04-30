@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,22 +12,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test for the converter dag canonical to dag and dag to dag canonical."""
+"""Test for the converter dag dependency to circuit and circuit to dag
+dependency."""
 
 import unittest
 
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.converters.dag_to_dagcanonical import dag_to_dagcanonical
-from qiskit.converters.dagcanonical_to_dag import dagcanonical_to_dag
+from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
+from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
 
 class TestCircuitToDagCanonical(QiskitTestCase):
-    """Test DAG to DAGcanonical."""
+    """Test QuantumCircuit to DAGDependency."""
 
     def test_circuit_and_dag_canonical(self):
-        """Check convert to dag canonical and back"""
+        """Check convert to dag dependency and back"""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit_in = QuantumCircuit(qr, cr)
@@ -39,12 +39,9 @@ class TestCircuitToDagCanonical(QiskitTestCase):
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
-        dag_in = circuit_to_dag(circuit_in)
-
-        dag_canonical = dag_to_dagcanonical(dag_in)
-        dag_out = dagcanonical_to_dag(dag_canonical)
-
-        self.assertEqual(dag_out, dag_in)
+        dag_dependency = circuit_to_dagdependency(circuit_in)
+        circuit_out = dagdependency_to_circuit(dag_dependency)
+        self.assertEqual(circuit_out, circuit_in)
 
 
 if __name__ == '__main__':
