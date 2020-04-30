@@ -16,7 +16,7 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard.barrier import Barrier
+from qiskit.circuit.barrier import Barrier
 
 
 class MergeAdjacentBarriers(TransformationPass):
@@ -113,7 +113,8 @@ class MergeAdjacentBarriers(TransformationPass):
         for next_barrier in barriers[1:]:
 
             # Ensure barriers are adjacent before checking if they are mergeable.
-            if dag._multi_graph.has_edge(end_of_barrier, next_barrier):
+            if dag._multi_graph.has_edge(end_of_barrier._node_id,
+                                         next_barrier._node_id):
 
                 # Remove all barriers that have already been included in this new barrier from the
                 # set of ancestors/descendants as they will be removed from the new DAG when it is

@@ -18,17 +18,20 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Reset
-from qiskit.extensions import (IGate, U1Gate, U2Gate, U3Gate, XGate,
-                               YGate, ZGate, HGate, SGate, SdgGate, TGate,
-                               TdgGate, RXGate, RYGate, RZGate, CXGate,
-                               CYGate, CZGate, CHGate, CRZGate, CU1Gate,
-                               CU3Gate, SwapGate, RZZGate,
-                               CCXGate, CSwapGate)
+from qiskit.circuit.library.standard_gates import (IGate, U1Gate, U2Gate, U3Gate, XGate,
+                                                   YGate, ZGate, HGate, SGate, SdgGate, TGate,
+                                                   TdgGate, RXGate, RYGate, RZGate, CXGate,
+                                                   CYGate, CZGate, CHGate, CRZGate, CU1Gate,
+                                                   CU3Gate, SwapGate, RZZGate,
+                                                   CCXGate, CSwapGate)
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.util import deprecate_arguments
 
 
-def random_circuit(n_qubits, depth, max_operands=3, measure=False,
-                   conditional=False, reset=False, seed=None):
+@deprecate_arguments({'n_qubits': 'num_qubits'})
+def random_circuit(num_qubits, depth, max_operands=3, measure=False,
+                   conditional=False, reset=False, seed=None,
+                   *, n_qubits=None):  # pylint:disable=unused-argument
     """Generate random circuit of arbitrary size and form.
 
     This function will generate a random circuit by randomly selecting gates
@@ -42,13 +45,14 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
         circ.draw(output='mpl')
 
     Args:
-        n_qubits (int): number of quantum wires
+        num_qubits (int): number of quantum wires
         depth (int): layers of operations (i.e. critical path length)
         max_operands (int): maximum operands of each gate (between 1 and 3)
         measure (bool): if True, measure all qubits at the end
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
+        n_qubits (int): deprecated, use num_qubits instead
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -68,11 +72,11 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                  CU1Gate, CU3Gate, SwapGate, RZZGate]
     three_q_ops = [CCXGate, CSwapGate]
 
-    qr = QuantumRegister(n_qubits, 'q')
-    qc = QuantumCircuit(n_qubits)
+    qr = QuantumRegister(num_qubits, 'q')
+    qc = QuantumCircuit(num_qubits)
 
     if measure or conditional:
-        cr = ClassicalRegister(n_qubits, 'c')
+        cr = ClassicalRegister(num_qubits, 'c')
         qc.add_register(cr)
 
     if reset:
@@ -80,12 +84,12 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
 
     if seed is None:
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-    rng = np.random.RandomState(seed)
+    rng = np.random.default_rng(seed)
 
     # apply arbitrary random operations at every depth
     for _ in range(depth):
         # choose either 1, 2, or 3 qubits for the operation
-        remaining_qubits = list(range(n_qubits))
+        remaining_qubits = list(range(num_qubits))
         while remaining_qubits:
             max_possible_operands = min(len(remaining_qubits), max_operands)
             num_operands = rng.choice(range(max_possible_operands)) + 1
@@ -112,7 +116,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
 
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
-                value = rng.randint(0, np.power(2, n_qubits))
+                value = rng.integers(0, np.power(2, num_qubits))
                 op.condition = (cr, value)
 
             qc.append(op, register_operands)

@@ -54,7 +54,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
                 unitary = result.get_unitary(qc)
                 if up_to_diagonal:
                     squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
-                    unitary = np.dot(np.diagflat(squ._get_diag()), unitary)
+                    unitary = np.dot(np.diagflat(squ.diag), unitary)
                 unitary_desired = u
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
