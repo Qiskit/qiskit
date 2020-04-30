@@ -14,6 +14,13 @@
 
 """Scheduling utility functions."""
 
+import warnings
+
 # pylint: disable=unused-import
 from qiskit.pulse.utils import format_meas_map
 from qiskit.pulse.macros import measure, measure_all
+
+warnings.warn('This module has been deprecated. '
+              '"format_meas_map" has been moved to "qiskit.pulse.utils", '
+              '"measure", and "measure_all" have been moved to '
+              '"qiskit.pulse.macros".', DeprecationWarning)
