@@ -256,7 +256,6 @@ def sin(duration: int, amp: complex, freq: float = None,
 
     return _sampled_sin_pulse(duration, amp, freq, phase=phase, name=name)
 
-
 _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 

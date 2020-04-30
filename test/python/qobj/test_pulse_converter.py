@@ -21,7 +21,7 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
                          QobjMeasurementOption)
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
-from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
+from qiskit.pulse.commands import (Waveform, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Gaussian, GaussianSquare, Constant, Drag)
 from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
@@ -36,7 +36,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_deprecated_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = SamplePulse(np.arange(0, 0.01), name='linear')
+        command = Waveform(np.arange(0, 0.01), name='linear')
         with self.assertWarns(DeprecationWarning):
             instruction = command(DriveChannel(0))
 
@@ -51,7 +51,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_drive_instruction(self):
         """Test converted qobj from Play."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(SamplePulse(np.arange(0, 0.01), name='linear'), DriveChannel(0))
+        instruction = Play(Waveform(np.arange(0, 0.01), name='linear'), DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
             name='linear',
             ch='d0',
@@ -252,7 +252,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
-        self.linear = SamplePulse(np.arange(0, 0.01), name='linear')
+        self.linear = Waveform(np.arange(0, 0.01), name='linear')
         self.pulse_library = [PulseLibraryItem(name=self.linear.name,
                                                samples=self.linear.samples.tolist())]
 

@@ -19,7 +19,7 @@ from typing import List, Set
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
+from qiskit.pulse import (Play, Delay, Acquire, Schedule, Waveform, Drag,
                           Gaussian, GaussianSquare, Constant)
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
@@ -36,8 +36,8 @@ class TestAutoMerge(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.inst_map = self.backend.defaults().instruction_schedule_map
-        self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
-                                             name='p0')
+        self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
+                                          name='p0')
 
     def test_align_measures(self):
         """Test that one acquire is delayed to match the time of the later acquire."""
@@ -133,8 +133,8 @@ class TestAddImplicitAcquires(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
-                                             name='p0')
+        self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
+                                          name='p0')
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched = sched.insert(5, Acquire(5, self.config.acquire(0), MemorySlot(0)))
@@ -285,8 +285,8 @@ class TestCompressTransform(QiskitTestCase):
         """Test compression of schedule."""
         schedule = Schedule()
         drive_channel = DriveChannel(0)
-        schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
-        schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
+        schedule += Play(Waveform([0.0, 0.1]), drive_channel)
+        schedule += Play(Waveform([0.0, 0.1]), drive_channel)
 
         compressed_schedule = compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -300,9 +300,9 @@ class TestCompressTransform(QiskitTestCase):
         """Test sample pulses with clipping."""
         schedule = Schedule()
         drive_channel = DriveChannel(0)
-        schedule += Play(SamplePulse([0.0, 1.0]), drive_channel)
-        schedule += Play(SamplePulse([0.0, 1.001], epsilon=1e-3), drive_channel)
-        schedule += Play(SamplePulse([0.0, 1.0000000001]), drive_channel)
+        schedule += Play(Waveform([0.0, 1.0]), drive_channel)
+        schedule += Play(Waveform([0.0, 1.001], epsilon=1e-3), drive_channel)
+        schedule += Play(Waveform([0.0, 1.0000000001]), drive_channel)
 
         compressed_schedule = compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -316,9 +316,9 @@ class TestCompressTransform(QiskitTestCase):
         """Test with no pulse duplicates."""
         schedule = Schedule()
         drive_channel = DriveChannel(0)
-        schedule += Play(SamplePulse([0.0, 1.0]), drive_channel)
-        schedule += Play(SamplePulse([0.0, 0.9]), drive_channel)
-        schedule += Play(SamplePulse([0.0, 0.3]), drive_channel)
+        schedule += Play(Waveform([0.0, 1.0]), drive_channel)
+        schedule += Play(Waveform([0.0, 0.9]), drive_channel)
+        schedule += Play(Waveform([0.0, 0.3]), drive_channel)
 
         compressed_schedule = compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -369,8 +369,8 @@ class TestCompressTransform(QiskitTestCase):
     def test_with_different_channels(self):
         """Test with different channels."""
         schedule = Schedule()
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(0))
-        schedule += Play(SamplePulse([0.0, 0.1]), DriveChannel(1))
+        schedule += Play(Waveform([0.0, 0.1]), DriveChannel(0))
+        schedule += Play(Waveform([0.0, 0.1]), DriveChannel(1))
 
         compressed_schedule = compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -381,8 +381,8 @@ class TestCompressTransform(QiskitTestCase):
     def test_sample_pulses_with_tolerance(self):
         """Test sample pulses with tolerance."""
         schedule = Schedule()
-        schedule += Play(SamplePulse([0.0, 0.1001], epsilon=1e-3), DriveChannel(0))
-        schedule += Play(SamplePulse([0.0, 0.1], epsilon=1e-3), DriveChannel(1))
+        schedule += Play(Waveform([0.0, 0.1001], epsilon=1e-3), DriveChannel(0))
+        schedule += Play(Waveform([0.0, 0.1], epsilon=1e-3), DriveChannel(1))
 
         compressed_schedule = compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -396,9 +396,9 @@ class TestCompressTransform(QiskitTestCase):
         for _ in range(2):
             schedule = Schedule()
             drive_channel = DriveChannel(0)
-            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
-            schedule += Play(SamplePulse([0.0, 0.1]), drive_channel)
-            schedule += Play(SamplePulse([0.0, 0.2]), drive_channel)
+            schedule += Play(Waveform([0.0, 0.1]), drive_channel)
+            schedule += Play(Waveform([0.0, 0.1]), drive_channel)
+            schedule += Play(Waveform([0.0, 0.2]), drive_channel)
             schedules.append(schedule)
 
         compressed_schedule = compress_pulses(schedules)

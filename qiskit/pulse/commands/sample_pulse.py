@@ -18,16 +18,16 @@ import warnings
 from typing import Optional
 
 from ..channels import PulseChannel
-from ..pulse_lib import SamplePulse
+from ..pulse_lib import Waveform
 from ..instructions import Instruction
 
 
 class PulseInstruction(Instruction):
     """Instruction to drive a pulse to an `PulseChannel`."""
 
-    def __init__(self, command: SamplePulse, channel: PulseChannel, name: Optional[str] = None):
+    def __init__(self, command: Waveform, channel: PulseChannel, name: Optional[str] = None):
         warnings.warn("PulseInstruction is deprecated. Use Play, instead, with a pulse and a "
-                      "channel. For example: PulseInstruction(SamplePulse([...]), DriveChannel(0))"
-                      " -> Play(SamplePulse[...], DriveChannel(0)).",
+                      "channel. For example: PulseInstruction(Waveform([...]), DriveChannel(0))"
+                      " -> Play(Waveform[...], DriveChannel(0)).",
                       DeprecationWarning)
         super().__init__((), command, (channel,), name=name)

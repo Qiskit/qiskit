@@ -136,7 +136,7 @@ import pydoc
 import numpy as np
 
 from ...exceptions import PulseError
-from ..sample_pulse import SamplePulse
+from ..waveform import Waveform
 from . import strategies
 
 
@@ -155,7 +155,7 @@ def functional_pulse(func: Callable) -> Callable:
         if isinstance(duration, (int, np.integer)) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
-            return SamplePulse(samples=samples, name=name)
+            return Waveform(samples=samples, name=name)
         raise PulseError('The first argument must be an integer value representing duration.')
 
     return to_pulse
@@ -236,7 +236,7 @@ def sampler(sample_function: Callable) -> Callable:
         """Return a decorated sampler function."""
 
         @functools.wraps(continuous_pulse)
-        def call_sampler(duration: int, *args, **kwargs) -> SamplePulse:
+        def call_sampler(duration: int, *args, **kwargs) -> Waveform:
             """Replace the call to the continuous function with a call to the sampler applied
             to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)

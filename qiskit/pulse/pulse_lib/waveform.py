@@ -27,7 +27,6 @@ class Waveform(Pulse):
     """A pulse specified completely by complex-valued samples; each sample is played for the
     duration of the backend cycle-time, dt.
     """
-
     def __init__(self, samples: Union[np.ndarray, List[complex]],
                  name: Optional[str] = None,
                  epsilon: float = 1e-7):
@@ -41,7 +40,9 @@ class Waveform(Pulse):
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
         """
+
         samples = np.asarray(samples, dtype=np.complex_)
+        self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
 
@@ -131,7 +132,8 @@ class Waveform(Pulse):
                                           interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and (self.samples == other.samples).all()
+        return super().__eq__(other) and self.samples.shape == other.samples.shape and \
+               np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
 
     def __hash__(self) -> int:
         return hash(self.samples.tostring())

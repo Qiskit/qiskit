@@ -577,7 +577,7 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = pulse_lib.SamplePulse(pulse.samples, pulse.name)
+        pulse = pulse_lib.Waveform(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):

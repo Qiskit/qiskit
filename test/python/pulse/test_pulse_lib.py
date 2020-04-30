@@ -17,7 +17,7 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.pulse_lib import (SamplePulse, Constant, ConstantPulse, Gaussian,
+from qiskit.pulse.pulse_lib import (Waveform, Constant, ConstantPulse, Gaussian,
                                     GaussianSquare, Drag, gaussian)
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
@@ -31,7 +31,7 @@ class TestSamplePulse(QiskitTestCase):
         n_samples = 100
         samples = np.linspace(0, 1., n_samples, dtype=np.complex128)
         name = 'test'
-        sample_pulse = SamplePulse(samples, name=name)
+        sample_pulse = Waveform(samples, name=name)
 
         self.assertEqual(sample_pulse.samples.dtype, np.complex128)
         np.testing.assert_almost_equal(sample_pulse.samples, samples)
@@ -44,17 +44,17 @@ class TestSamplePulse(QiskitTestCase):
         n_samples = 100
         samples_f64 = np.linspace(0, 1., n_samples, dtype=np.float64)
 
-        sample_pulse_f64 = SamplePulse(samples_f64)
+        sample_pulse_f64 = Waveform(samples_f64)
         self.assertEqual(sample_pulse_f64.samples.dtype, np.complex128)
 
         samples_c64 = np.linspace(0, 1., n_samples, dtype=np.complex64)
 
-        sample_pulse_c64 = SamplePulse(samples_c64)
+        sample_pulse_c64 = Waveform(samples_c64)
         self.assertEqual(sample_pulse_c64.samples.dtype, np.complex128)
 
         samples_list = np.linspace(0, 1., n_samples).tolist()
 
-        sample_pulse_list = SamplePulse(samples_list)
+        sample_pulse_list = Waveform(samples_list)
         self.assertEqual(sample_pulse_list.samples.dtype, np.complex128)
 
     def test_pulse_limits(self):
@@ -64,13 +64,13 @@ class TestSamplePulse(QiskitTestCase):
         unit_pulse_c128 = np.exp(1j*2*np.pi*np.linspace(0, 1, 1000), dtype=np.complex128)
         # test does not raise error
         try:
-            SamplePulse(unit_pulse_c128)
+            Waveform(unit_pulse_c128)
         except PulseError:
-            self.fail('SamplePulse incorrectly failed on approximately unit norm samples.')
+            self.fail('Waveform incorrectly failed on approximately unit norm samples.')
 
         invalid_const = 1.1
         with self.assertRaises(PulseError):
-            SamplePulse(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
+            Waveform(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
 
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
@@ -84,9 +84,9 @@ class TestSamplePulse(QiskitTestCase):
 
         # test does not raise error
         try:
-            SamplePulse(recombined_pulse)
+            Waveform(recombined_pulse)
         except PulseError:
-            self.fail('SamplePulse incorrectly failed to approximately unit norm samples.')
+            self.fail('Waveform incorrectly failed to approximately unit norm samples.')
 
 
 class TestParametricPulses(QiskitTestCase):
@@ -103,7 +103,7 @@ class TestParametricPulses(QiskitTestCase):
         """Test that we can convert to a sampled pulse."""
         gauss = Gaussian(duration=25, sigma=4, amp=0.5j)
         sample_pulse = gauss.get_sample_pulse()
-        self.assertIsInstance(sample_pulse, SamplePulse)
+        self.assertIsInstance(sample_pulse, Waveform)
         pulse_lib_gaus = gaussian(duration=25, sigma=4,
                                   amp=0.5j, zero_ends=False).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gaus)
