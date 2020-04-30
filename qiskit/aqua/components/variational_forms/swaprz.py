@@ -14,6 +14,7 @@
 
 """Layers of Swap+Z rotations followed by entangling gates."""
 
+import warnings
 from typing import Optional, List
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
@@ -23,8 +24,7 @@ from .variational_form import VariationalForm
 
 
 class SwapRZ(VariationalForm):
-    r"""
-    The SwapRZ Variational Form.
+    r"""DEPRECATED. The SwapRZ Variational Form.
 
     This trial wave function is layers of swap plus :math:`z` rotations with entanglements.
     It was designed principally to be a particle-preserving variational form for
@@ -72,6 +72,11 @@ class SwapRZ(VariationalForm):
             initial_state: An initial state object
             skip_unentangled_qubits: Skip the qubits not in the entangler_map
         """
+        warnings.warn('The qiskit.aqua.components.variational_forms.SwapRZ object is deprecated as '
+                      'of 0.7.0 and will be removed no sooner than 3 months after the release. You '
+                      'should use the qiskit.circuit.library.ExcitationPreserving object instead.',
+                      DeprecationWarning, stacklevel=2)
+
         validate_min('num_qubits', num_qubits, 1)
         validate_min('depth', depth, 1)
         validate_in_set('entanglement', entanglement, {'full', 'linear'})
@@ -100,8 +105,7 @@ class SwapRZ(VariationalForm):
         self._support_parameterized_circuit = True
 
     def construct_circuit(self, parameters, q=None):
-        """
-        Construct the variational form, given its parameters.
+        """Construct the variational form, given its parameters.
 
         Args:
             parameters (Union(numpy.ndarray, list[Parameter], ParameterVector)): circuit parameters

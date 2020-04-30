@@ -31,7 +31,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.providers import BaseBackend
-from qiskit.aqua import QuantumInstance, AquaError
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
 from qiskit.aqua.components.optimizers import Optimizer, SLSQP
 from qiskit.aqua.components.variational_forms import VariationalForm
@@ -73,6 +73,7 @@ class VQAlgorithm(QuantumAlgorithm):
         self._cost_fn = cost_fn
         self._initial_point = initial_point
         self._var_form = var_form
+        self._var_form_params = None
         if var_form is not None:
             self.var_form = var_form
 
@@ -97,12 +98,7 @@ class VQAlgorithm(QuantumAlgorithm):
             self._var_form_params = None
             self._var_form = var_form
         else:
-            raise ValueError(
-                "Unsupported type '{}' of var_form".format(
-                    type(var_form) if var_form else var_form))
-
-        if var_form is not None and len(self._var_form_params) == 0:
-            raise AquaError('Passing a variational form with no parameters is not supported.')
+            raise ValueError('Unsupported type "{}" of var_form'.format(type(var_form)))
 
     @property
     def optimizer(self) -> Optional[Optimizer]:
@@ -164,7 +160,7 @@ class VQAlgorithm(QuantumAlgorithm):
 
         nparms = var_form.num_parameters
 
-        if hasattr(var_form, 'parameter_bounds'):
+        if hasattr(var_form, 'parameter_bounds') and var_form.parameter_bounds is not None:
             bounds = var_form.parameter_bounds
         else:
             bounds = [(None, None)] * nparms
@@ -210,6 +206,7 @@ class VQAlgorithm(QuantumAlgorithm):
         result.optimizer_time = eval_time
         result.optimal_value = opt_val
         result.optimal_point = opt_params
+        result.optimal_parameters = dict(zip(self._var_form_params, opt_params))
 
         return result
 
@@ -310,6 +307,16 @@ class VQResult(AlgorithmResult):
     def optimal_point(self, value: np.ndarray) -> None:
         """ Sets optimal point """
         self.data['optimal_point'] = value
+
+    @property
+    def optimal_parameters(self) -> dict:
+        """ Returns the optimal parameters in a dictionary """
+        return self.get('optimal_parameters')
+
+    @optimal_parameters.setter
+    def optimal_parameters(self, value: dict) -> None:
+        """ Sets optimal parameters """
+        self.data['optimal_parameters'] = value
 
     def __getitem__(self, key: object) -> object:
         if key == 'num_optimizer_evals':
