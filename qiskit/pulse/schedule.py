@@ -128,7 +128,7 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        return self.ch_stop_time(channels)
+        return self.ch_stop_time(*channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
@@ -669,10 +669,10 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
     if len(intervals) == 1:
         if _overlaps(intervals[0], new_interval):
             raise PulseError("New interval overlaps with existing.")
-        return index if new_interval[0] < intervals[0][0] else index + 1
+        return index if new_interval[1] <= intervals[0][0] else index + 1
 
     mid_idx = len(intervals) // 2
-    if new_interval[0] < intervals[mid_idx][0]:
+    if new_interval[1] <= intervals[mid_idx][0]:
         return _insertion_index(intervals[:mid_idx], new_interval, index=index)
     else:
         return _insertion_index(intervals[mid_idx:], new_interval, index=index + mid_idx)
