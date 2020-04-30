@@ -123,6 +123,8 @@ class QAOA(VQE):
     @VQE.operator.setter
     def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
         """ Sets operator """
+        # Need to wipe the var_form in case number of qubits differs from operator.
+        self.var_form = None
         # Setting with VQE's operator property
         super(QAOA, self.__class__).operator.__set__(self, operator)
         self.var_form = QAOAVarForm(self.operator,

@@ -131,7 +131,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None
+        self._expectation = expectation
         self._expect_op = None
+        self._operator = None
 
         super().__init__(var_form=var_form,
                          optimizer=optimizer,
@@ -143,8 +145,6 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         self._optimizer.set_max_evals_grouped(max_evals_grouped)
         self._callback = callback
 
-        self._expectation = expectation
-        self._operator = None
         if operator is not None:
             self.operator = operator
         self.aux_operators = aux_operators

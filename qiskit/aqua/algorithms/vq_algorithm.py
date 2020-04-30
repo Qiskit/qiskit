@@ -84,7 +84,7 @@ class VQAlgorithm(QuantumAlgorithm):
         return self._var_form
 
     @var_form.setter
-    def var_form(self, var_form: Union[QuantumCircuit, VariationalForm]):
+    def var_form(self, var_form: Optional[Union[QuantumCircuit, VariationalForm]]):
         """ Sets variational form """
         if isinstance(var_form, QuantumCircuit):
             # store the parameters
@@ -92,6 +92,9 @@ class VQAlgorithm(QuantumAlgorithm):
             self._var_form = var_form
         elif isinstance(var_form, VariationalForm):
             self._var_form_params = ParameterVector('θ', length=var_form.num_parameters)
+            self._var_form = var_form
+        elif var_form is None:
+            self._var_form_params = None
             self._var_form = var_form
         else:
             raise ValueError(
