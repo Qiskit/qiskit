@@ -22,13 +22,13 @@ prelude: |
   * ``generalized_gates``: these are families that can generalize to arbitrarily
     many qubits, for example a :class:`~qiskit.circuit.library.Permutation` or
     :class:`~qiskit.circuit.library.GMS` (Global Molmer-Sorensen gate).
-  * ``boolean_logic``: circuits that transform basis state according to simple
+  * ``boolean_logic``: circuits that transform basis states according to simple
     Boolean logic functions, such as :class:`~qiskit.circuit.library.ADD` or
     :class:`~qiskit.circuit.library.XOR`.
-  * arithmetic: a set of circuits for doing classical arithmetics such as
+  * ``arithmetic``: a set of circuits for doing classical arithmetic such as
     :class:`~qiskit.circuit.library.WeightedAdder` and
     :class:`~qiskit.circuit.library.IntegerComparator`.
-  * ``basis_changes``: circuits such a the quantum Fourier transform,
+  * ``basis_changes``: circuits such as the quantum Fourier transform,
     :class:`~qiskit.circuit.library.QFT`, that mathematically apply basis
     changes.
   * ``n_local``: patterns to easily create large circuits with rotation and
