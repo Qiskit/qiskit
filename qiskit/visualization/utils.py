@@ -298,6 +298,9 @@ def _bloch_multivector_data(state):
 
     Returns:
         list: list of bloch vectors (x, y, z) for each qubit.
+
+    Raises:
+        VisualizationError: if input is not an N-qubit state.
     """
     rho = DensityMatrix(state)
     num = rho.num_qubits
@@ -320,7 +323,10 @@ def _paulivec_data(state):
         state (DensityMatrix or Statevector): an N-qubit state.
 
     Returns:
-        tuple: (labels, values) for Pauli vec
+        tuple: (labels, values) for Pauli vec.
+
+    Raises:
+        VisualizationError: if input is not an N-qubit state.
     """
     rho = SparsePauliOp.from_operator(DensityMatrix(state))
     if rho.num_qubits is None:
