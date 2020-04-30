@@ -141,7 +141,7 @@ class TestDagNodeEdge(QiskitTestCase):
         circuit = QuantumCircuit(self.qreg, self.creg)
         circuit.h(self.qreg[0])
         circuit.x(self.qreg[1])
-        circuit.cnot(self.qreg[1], self.qreg[0])
+        circuit.cx(self.qreg[1], self.qreg[0])
         circuit.measure(self.qreg[0], self.creg[0])
 
         self.dag = circuit_to_dagdependency(circuit)
