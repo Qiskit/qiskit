@@ -17,12 +17,14 @@
 from typing import Optional
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
+
+from ..blueprintcircuit import BlueprintCircuit
 
 # pylint: disable=no-member
 
 
-class QFT(QuantumCircuit):
+class QFT(BlueprintCircuit):
     r"""Quantum Fourier Transform Circuit.
 
     The Quantum Fourier Transform (QFT) on :math:`n` qubits is the operation
@@ -101,16 +103,6 @@ class QFT(QuantumCircuit):
         self._inverse = inverse
         self._data = None
         self.num_qubits = num_qubits
-
-    def qasm(self, formatted=False, filename=None):
-        if self._data is None:
-            self._build()
-        return super().qasm(formatted, filename)
-
-    def append(self, instruction, qargs=None, cargs=None, label=None):
-        if self._data is None:
-            self._build()
-        return super().append(instruction, qargs, cargs, label)
 
     @property
     def num_qubits(self) -> int:
@@ -226,7 +218,21 @@ class QFT(QuantumCircuit):
         Returns:
             The inverted circuit.
         """
-        inverted = super().inverse()
+
+        if self.name in ('qft', 'iqft'):
+            name = 'qft' if self._inverse else 'iqft'
+        else:
+            name = self.name + '_dg'
+
+        inverted = self.copy(name=name)
+        inverted._data = []
+
+        from qiskit.circuit.parametertable import ParameterTable
+        inverted._parameter_table = ParameterTable()
+
+        for inst, qargs, cargs in reversed(self._data):
+            inverted._append(inst.inverse(), qargs, cargs)
+
         inverted._inverse = not self._inverse
         return inverted
 
@@ -235,12 +241,18 @@ class QFT(QuantumCircuit):
         for i in range(num_qubits // 2):
             self.swap(i, num_qubits - i - 1)
 
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        valid = True
+        if self.num_qubits is None:
+            valid = False
+            if raise_on_failure:
+                raise AttributeError('The number of qubits has not been set.')
+
+        return valid
+
     def _build(self) -> None:
         """Construct the circuit representing the desired state vector."""
-        if self._data:
-            return
-
-        self._data = []
+        super()._build()
 
         for j in range(self.num_qubits):
             self.h(j)
@@ -257,9 +269,3 @@ class QFT(QuantumCircuit):
 
         if self._inverse:
             self._data = super().inverse()
-
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return super().data
