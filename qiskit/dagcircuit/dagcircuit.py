@@ -1097,6 +1097,16 @@ class DAGCircuit:
         """Returns iterator of the predecessors of a node as DAGNodes."""
         raise NotImplementedError()
 
+    def quantum_successors(self, node):
+        """Returns iterator of the successors of a node that are
+        connected by a qubit edge."""
+        for successor in self.successors(node):
+            if any(isinstance(x['wire'], Qubit)
+                   for x in
+                   self._get_all_multi_graph_edges(
+                       node._node_id, successor._node_id)):
+                yield successor
+
     def quantum_predecessors(self, node):
         """Returns iterator of the predecessors of a node that are
         connected by a quantum edge as DAGNodes."""
@@ -1121,16 +1131,6 @@ class DAGCircuit:
         and [DAGNode] is its successors in  BFS order.
         """
         raise NotImplementedError()
-
-    def quantum_successors(self, node):
-        """Returns iterator of the successors of a node that are
-        connected by a quantum edge as DAGNodes."""
-        for successor in self.successors(node):
-            if any(isinstance(x['wire'], Qubit)
-                   for x in
-                   self._get_all_multi_graph_edges(
-                       node._node_id, successor._node_id)):
-                yield successor
 
     def remove_op_node(self, node):
         """Remove an operation node n.
@@ -1182,6 +1182,20 @@ class DAGCircuit:
             if n.type == "op":
                 self.remove_op_node(n)
 
+    def front_layer(self):
+        """Return a list of op nodes in the first layer of this dag.
+        """
+        graph_layers = self.multigraph_layers()
+        try:
+            next(graph_layers)  # Remove input nodes
+        except StopIteration:
+            return []
+
+        op_nodes = [node for node in next(graph_layers) if node.type == "op"]
+
+        return op_nodes
+
+
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
@@ -1192,9 +1206,9 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
-        New but semantically equivalent DAGNodes will be included in the returned layers,
-        NOT the DAGNodes from the original DAG. The original vs. new nodes can be compared using
-        DAGNode.semantic_eq(node1, node2).
+        The returned layer contains new (but semantically equivalent) DAGNodes.
+        These are not the same as nodes of the original dag, but are equivalent
+        via DAGNode.semantic_eq(node1, node2).
 
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
@@ -1214,7 +1228,7 @@ class DAGCircuit:
             # Sort to make sure they are in the order they were added to the original DAG
             # It has to be done by node_id as graph_layer is just a list of nodes
             # with no implied topology
-            # Drawing tools that rely on _node_id to infer order of node creation
+            # Drawing tools rely on _node_id to infer order of node creation
             # so we need this to be preserved by layers()
             op_nodes.sort(key=lambda nd: nd._node_id)
 
