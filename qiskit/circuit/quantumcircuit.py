@@ -25,7 +25,6 @@ from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -527,29 +526,15 @@ class QuantumCircuit:
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
-                instruction to append.
-            qargs (list(argument)): qubits to attach instruction to.
-            cargs (list(argument)): clbits to attach instruction to.
+            instruction (qiskit.circuit.Instruction): Instruction instance to append
+            qargs (list(argument)): qubits to attach instruction to
+            cargs (list(argument)): clbits to attach instruction to
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
-        Raises:
-            CircuitError: If it is not possible to append the operator.
         """
-        from qiskit.quantum_info.operators.base_operator import BaseOperator
         # Convert input to Instruction
-        if isinstance(instruction, QuantumCircuit):
-            try:
-                instruction = instruction.to_gate()
-            except QiskitError:
-                instruction = instruction.to_instruction()
-        elif isinstance(instruction, BaseOperator):
-            try:
-                instruction = instruction.to_instruction()
-            except AttributeError:
-                raise CircuitError('Unable to append operator to circuit.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
 
