@@ -41,10 +41,10 @@ class TestStatevector(QiskitTestCase):
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-        logger.debug("rand_vec RandomState seeded with seed=%s", seed)
-        rng = np.random.RandomState(seed)
+        logger.debug("rand_vec default_rng seeded with seed=%s", seed)
+        rng = np.random.default_rng(seed)
 
-        vec = rng.rand(n) + 1j * rng.rand(n)
+        vec = rng.random(n) + 1j * rng.random(n)
         if normalize:
             vec /= np.sqrt(np.dot(vec, np.conj(vec)))
         return vec
@@ -595,7 +595,7 @@ class TestStatevector(QiskitTestCase):
         """Test sample_counts method for qutrit state"""
         p = 0.3
         shots = 1000
-        threshold = 0.02 * shots
+        threshold = 0.03 * shots
         state = Statevector([np.sqrt(p), 0, np.sqrt(1 - p)])
         state.seed(100)
 

@@ -18,7 +18,7 @@ import unittest
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
@@ -97,7 +97,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 11)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -128,7 +128,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 11)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -136,7 +136,7 @@ class TestStochasticSwap(QiskitTestCase):
         expected.cx(qr[0], qr[1])
         expected.h(qr[0])
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(expected, dag_to_circuit(after))
 
     def test_permute_wires_3(self):
         """
@@ -357,7 +357,7 @@ class TestStochasticSwap(QiskitTestCase):
         #  qr[1]: 1,
         #  qr[2]: 2,
         #  qr[3]: 3}
-        pass_ = StochasticSwap(coupling, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 19)
         after = pass_.run(dag)
 
         self.assertEqual(expected_dag, after)
@@ -465,7 +465,7 @@ class TestStochasticSwap(QiskitTestCase):
         expected.measure(qr[0], cr[1])
         expected_dag = circuit_to_dag(expected)
 
-        pass_ = StochasticSwap(coupling, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 999)
         after = pass_.run(dag)
 
         self.assertEqual(expected_dag, after)
