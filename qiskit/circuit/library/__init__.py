@@ -19,6 +19,65 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Standard Gates
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Barrier
+   C3XGate
+   C4XGate
+   CCXGate
+   CHGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSwapGate
+   CU1Gate
+   CU3Gate
+   CXGate
+   CYGate
+   CZGate
+   HGate
+   IGate
+   Measure
+   MSGate
+   RCCXGate
+   RC3XGate
+   Reset
+   RXGate
+   RXXGate
+   RYGate
+   RYYGate
+   RZGate
+   RZZGate
+   RZXGate
+   SGate
+   SdgGate
+   SwapGate
+   iSwapGate
+   DCXGate
+   TdgGate
+   U1Gate
+   U2Gate
+   U3Gate
+   XGate
+   YGate
+   ZGate
+
+Generalized Gates
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Diagonal
+   MCMT
+   MCMTVChain
+   Permutation
+   GMS
+
 Boolean Logic Circuits
 ======================
 
@@ -26,10 +85,9 @@ Boolean Logic Circuits
    :toctree: ../stubs/
 
    AND
-   InnerProduct
    OR
-   Permutation
    XOR
+   InnerProduct
 
 Basis Change Circuits
 =====================
@@ -69,30 +127,62 @@ Comparators
 
    IntegerComparator
 
-Characterization and Validation Circuits
-========================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   QuantumVolume
-
-Quantum Complexity Advantage Circuits
-=====================================
+Particular Quantum Circuits
+===========================
 
 .. autosummary::
    :toctree: ../stubs/
 
    FourierChecking
+   GraphState
+   HiddenLinearFunction
+   IQP
+   QuantumVolume
+
+
+N-local circuits
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NLocal
+   TwoLocal
+   RealAmplitudes
+   EfficientSU2
+   ExcitationPreserving
+
+
+Data encoding circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PauliFeatureMap
+   ZFeatureMap
+   ZZFeatureMap
+
 """
 
+from .standard_gates import *
+from ..barrier import Barrier
+from ..measure import Measure
+from ..reset import Reset
 
-from .boolean_logic import (
+from .blueprintcircuit import BlueprintCircuit
+from .generalized_gates import (
+    Diagonal,
+    MCMT,
+    MCMTVChain,
     Permutation,
+    GMS
+)
+from .boolean_logic import (
+    AND,
+    OR,
     XOR,
     InnerProduct,
-    OR,
-    AND,
 )
 from .basis_change import QFT
 from .arithmetic import (
@@ -103,5 +193,20 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
 )
-from .fourier_checking import FourierChecking
+from .n_local import (
+    NLocal,
+    TwoLocal,
+    RealAmplitudes,
+    EfficientSU2,
+    ExcitationPreserving,
+)
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap
+)
 from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking
+from .graph_state import GraphState
+from .hidden_linear_function import HiddenLinearFunction
+from .iqp import IQP

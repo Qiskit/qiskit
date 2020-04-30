@@ -25,10 +25,10 @@ Generic isometries from m to n qubits.
 import itertools
 import numpy as np
 
-from qiskit import QuantumRegister
-from qiskit.circuit import Instruction
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.extensions.quantum_initializer.uc import UCGate

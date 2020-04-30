@@ -42,6 +42,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+from .tools import pi_check
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -145,7 +146,9 @@ class Instruction:
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
-        return any(isinstance(param, ParameterExpression) for param in self.params)
+        return any(isinstance(param, ParameterExpression)
+                   and param.parameters
+                   for param in self.params)
 
     @property
     def definition(self):
@@ -290,7 +293,7 @@ class Instruction:
         name_param = self.name
         if self.params:
             name_param = "%s(%s)" % (name_param, ",".join(
-                [str(i) for i in self.params]))
+                [pi_check(i, ndigits=8, output='qasm') for i in self.params]))
 
         return self._qasmif(name_param)
 

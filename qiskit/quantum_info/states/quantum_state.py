@@ -45,7 +45,7 @@ class QuantumState(ABC):
         self._num_qubits = None  # number of qubit subsystems if N-qubit state
         self._set_dims(dims)
         # RNG for measure functions
-        self._rng = np.random.RandomState()
+        self._rng_generator = None
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.dims() == other.dims()
@@ -94,6 +94,12 @@ class QuantumState(ABC):
                     value, cls._MAX_TOL))
         cls._RTOL_DEFAULT = value
 
+    @property
+    def _rng(self):
+        if self._rng_generator is None:
+            return np.random
+        return self._rng_generator
+
     def _reshape(self, dims=None):
         """Reshape dimensions of the state.
 
@@ -126,7 +132,12 @@ class QuantumState(ABC):
 
     def seed(self, value=None):
         """Set the seed for the quantum state RNG."""
-        self._rng.seed(value)
+        if value is None:
+            self._rng_generator = None
+        elif isinstance(value, np.random.Generator):
+            self._rng_generator = value
+        else:
+            self._rng_generator = np.random.default_rng(value)
 
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):
@@ -360,8 +371,6 @@ class QuantumState(ABC):
         # Generate list of possible outcome string labels
         labels = self._index_to_ket_array(
             np.arange(len(probs)), self.dims(qargs), string_labels=True)
-
-        # Sample outcomes
         return self._rng.choice(labels, p=probs, size=shots)
 
     def sample_counts(self, shots, qargs=None):

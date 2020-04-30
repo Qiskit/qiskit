@@ -278,6 +278,25 @@ class QasmBackendConfiguration(SimpleNamespace):
             self.description = description
         if tags is not None:
             self.tags = tags
+
+        # Add pulse properties here becuase some backends do not
+        # fit within the Qasm / Pulse backend partitioning in Qiskit
+        if 'dt' in kwargs.keys():
+            kwargs['dt'] *= 1e-9
+        if 'dtm' in kwargs.keys():
+            kwargs['dtm'] *= 1e-9
+
+        if 'qubit_lo_range'in kwargs.keys():
+            kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
+                                        (min_range, max_range) in kwargs['qubit_lo_range']]
+
+        if 'meas_lo_range' in kwargs.keys():
+            kwargs['meas_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
+                                       (min_range, max_range) in kwargs['meas_lo_range']]
+
+        if 'rep_times' in kwargs.keys():
+            kwargs['rep_times'] = [_rt * 1e-6 for _rt in kwargs['rep_times']]
+
         self.__dict__.update(kwargs)
 
     def __getstate__(self):
@@ -364,7 +383,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  max_shots: int,
                  coupling_map,
                  n_uchannels: int,
-                 u_channel_lo: List[UchannelLO],
+                 u_channel_lo: List[List[UchannelLO]],
                  meas_levels: List[int],
                  qubit_lo_range: List[List[float]],
                  meas_lo_range: List[List[float]],
@@ -462,7 +481,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.dtm = dtm * 1e-9
 
         if channels is not None:
-            self._channels = channels
+            self.channels = channels
 
             (self._qubit_channel_map,
              self._channel_qubit_map,
@@ -500,9 +519,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Returns:
             GateConfig: The GateConfig from the input dictionary.
         """
-        gates = [GateConfig.from_dict(x) for x in data.pop('gates')]
-        data['gates'] = gates
-        return cls(**data)
+        in_data = copy.copy(data)
+        gates = [GateConfig.from_dict(x) for x in in_data.pop('gates')]
+        in_data['gates'] = gates
+        input_uchannels = in_data.pop('u_channel_lo')
+        u_channels = []
+        for channel in input_uchannels:
+            u_channels.append([UchannelLO.from_dict(x) for x in channel])
+        in_data['u_channel_lo'] = u_channels
+        return cls(**in_data)
 
     def to_dict(self):
         """Return a dictionary format representation of the GateConfig.
@@ -511,9 +536,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             dict: The dictionary form of the GateConfig.
         """
         out_dict = super().to_dict()
+        u_channel_lo = []
+        for x in self.u_channel_lo:
+            channel = []
+            for y in x:
+                channel.append(y.to_dict())
+            u_channel_lo.append(channel)
         out_dict.update({
             'n_uchannels': self.n_uchannels,
-            'u_channel_lo': self.u_channel_lo,
+            'u_channel_lo': u_channel_lo,
             'meas_levels': self.meas_levels,
             'qubit_lo_range': self.qubit_lo_range,
             'meas_lo_range': self.meas_lo_range,
@@ -532,6 +563,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict['acquisition_latency'] = self.acquisition_latency
         if hasattr(self, 'conditional_latency'):
             out_dict['conditional_latency'] = self.conditional_latency
+        if 'channels' in out_dict:
+            out_dict.pop('_qubit_channel_map')
+            out_dict.pop('_channel_qubit_map')
+            out_dict.pop('_control_channels')
         return out_dict
 
     def __eq__(self, other):
