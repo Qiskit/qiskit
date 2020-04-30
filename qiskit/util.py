@@ -111,6 +111,16 @@ def deprecate_arguments(kwarg_map):
     return decorator
 
 
+def deprecate_function(msg):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(msg, DeprecationWarning)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 def _rename_kwargs(func_name, kwargs, kwarg_map):
     for old_arg, new_arg in kwarg_map.items():
         if old_arg in kwargs:

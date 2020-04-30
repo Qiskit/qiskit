@@ -27,3 +27,4 @@ A circuit scheduler compiles a circuit program to a pulse program.
 
 from .config import ScheduleConfig
 from .schedule_circuit import schedule_circuit
+from .utils import measure, measure_all
