@@ -25,7 +25,7 @@ from qiskit.circuit.library.standard_gates import HGate
 from ..n_local.n_local import NLocal
 
 
-class PauliExpansion(NLocal):
+class PauliFeatureMap(NLocal):
     r"""The Pauli Expansion circuit.
 
     The Pauli Expansion circuit is a data encoding circuit that transforms input data
@@ -60,13 +60,13 @@ class PauliExpansion(NLocal):
         ┤ H ├┤ U1(2.0*x[1]) ├┤ RX(pi/2) ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ RX(-pi/2) ├
         └───┘└──────────────┘└──────────┘└───┘└─────────────────────────────────┘└───┘└───────────┘
 
-    Please refer to :class:`FirstOrderExpansion` for the case :math:`k = 1`, :math:`P_0 = Z`
-    and to :class:`SecondOrderExpansion` for the case :math:`k = 2`, :math:`P_0 = Z` and
+    Please refer to :class:`ZFeatureMap` for the case :math:`k = 1`, :math:`P_0 = Z`
+    and to :class:`ZZFeatureMap` for the case :math:`k = 2`, :math:`P_0 = Z` and
     :math:`P_{0,1} = ZZ`.
 
     Examples:
 
-        >>> prep = PauliExpansion(2, reps=1, paulis=['ZZ'])
+        >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZZ'])
         >>> print(prep)
              ┌───┐
         q_0: ┤ H ├──■───────────────────────────────────────■──
@@ -74,7 +74,7 @@ class PauliExpansion(NLocal):
         q_1: ┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
              └───┘└───┘└─────────────────────────────────┘└───┘
 
-        >>> prep = PauliExpansion(2, reps=1, paulis=['Z', 'XX'])
+        >>> prep = PauliFeatureMap(2, reps=1, paulis=['Z', 'XX'])
         >>> print(prep)
              ┌───┐┌──────────────┐┌───┐                                             ┌───┐
         q_0: ┤ H ├┤ U1(2.0*x[0]) ├┤ H ├──■───────────────────────────────────────■──┤ H ├
@@ -82,7 +82,7 @@ class PauliExpansion(NLocal):
         q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ H ├
              └───┘└──────────────┘└───┘└───┘└─────────────────────────────────┘└───┘└───┘
 
-        >>> prep = PauliExpansion(2, reps=1, paulis=['ZY'])
+        >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZY'])
         >>> print(prep)
              ┌───┐┌──────────┐                                             ┌───────────┐
         q_0: ┤ H ├┤ RX(pi/2) ├──■───────────────────────────────────────■──┤ RX(-pi/2) ├
@@ -90,9 +90,9 @@ class PauliExpansion(NLocal):
         q_1: ┤ H ├────────────┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
              └───┘            └───┘└─────────────────────────────────┘└───┘
 
-        >>> from qiskit.circuit.library import RYRZ
-        >>> prep = PauliExpansion(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
-        >>> wavefunction = RYRZ(3, entanglement_blocks='cx')
+        >>> from qiskit.circuit.library import EfficientSU2
+        >>> prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
+        >>> wavefunction = EfficientSU2(3)
         >>> classifier = prep.compose(wavefunction
         >>> classifier.num_parameters
         27
