@@ -11,11 +11,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-The Shor's Factoring algorithm.  This implementation is based on the following paper:
-Stephane Beauregard, "Circuit for Shor's algorithm using 2n+3 qubits",
-Quantum Information and Computation, Vol. 3, No. 2 (2003) pp. 175-185
-"""
+
+"""Shor's factoring algorithm."""
 
 from typing import Optional, Union
 import math
@@ -25,12 +22,12 @@ import logging
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QFT
 from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.utils.arithmetic import is_power
 from qiskit.aqua.utils import get_subsystem_density_matrix
 from qiskit.aqua.algorithms import QuantumAlgorithm
-from qiskit.aqua.circuits import FourierTransformCircuits as ftc
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.validation import validate_min
 
@@ -40,8 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class Shor(QuantumAlgorithm):
-    """
-    The Shor's Factoring algorithm.
+    """Shor's factoring algorithm.
 
     Shor's Factoring algorithm is one of the most well-known quantum algorithms and finds the
     prime factors for input integer :math:`N` in polynomial time.
@@ -65,6 +61,7 @@ class Shor(QuantumAlgorithm):
             N: The integer to be factored, has a min. value of 3.
             a: A random integer that satisfies a < N and gcd(a, N) = 1, has a min. value of 2.
             quantum_instance: Quantum Instance or Backend
+
          Raises:
             ValueError: Invalid input
         """
@@ -95,10 +92,11 @@ class Shor(QuantumAlgorithm):
             logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
             self._ret['factors'].append(b)
 
+        self._qft = QFT(do_swaps=False)
+        self._iqft = self._qft.inverse()
+
     def _get_angles(self, a):
-        """
-        Calculate the array of angles to be used in the addition in Fourier Space
-        """
+        """Calculate the array of angles to be used in the addition in Fourier Space."""
         s = bin(int(a))[2:].zfill(self._n + 1)
         angles = np.zeros([self._n + 1])
         for i in range(0, self._n + 1):
@@ -109,18 +107,16 @@ class Shor(QuantumAlgorithm):
         return angles
 
     def _phi_add(self, circuit, q, inverse=False):
-        """
-        Creation of the circuit that performs addition by a in Fourier Space
-        Can also be used for subtraction by setting the parameter inverse=True
+        """Creation of the circuit that performs addition by a in Fourier Space.
+
+        Can also be used for subtraction by setting the parameter ``inverse=True``.
         """
         angle = self._get_angles(self._N)
         for i in range(0, self._n + 1):
             circuit.u1(-angle[i] if inverse else angle[i], q[i])
 
     def _controlled_phi_add(self, circuit, q, ctl, inverse=False):
-        """
-        Single controlled version of the _phi_add circuit
-        """
+        """Single controlled version of the _phi_add circuit."""
         angles = self._get_angles(self._N)
         for i in range(0, self._n + 1):
             angle = (-angles[i] if inverse else angles[i]) / 2
@@ -132,96 +128,54 @@ class Shor(QuantumAlgorithm):
             circuit.u1(angle, q[i])
 
     def _controlled_controlled_phi_add(self, circuit, q, ctl1, ctl2, a, inverse=False):
-        """
-        Doubly controlled version of the _phi_add circuit
-        """
+        """Doubly controlled version of the _phi_add circuit."""
         angle = self._get_angles(a)
         for i in range(self._n + 1):
             # ccphase(circuit, -angle[i] if inverse else angle[i], ctl1, ctl2, q[i])
             circuit.mcu1(-angle[i] if inverse else angle[i], [ctl1, ctl2], q[i])
 
     def _controlled_controlled_phi_add_mod_N(self, circuit, q, ctl1, ctl2, aux, a):
-        """
-        Circuit that implements doubly controlled modular addition by a
-        """
+        """Circuit that implements doubly controlled modular addition by a."""
+        qubits = [q[i] for i in reversed(range(self._n + 1))]
+
         self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a)
         self._phi_add(circuit, q, inverse=True)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False,
-            inverse=True
-        )
+
+        circuit.compose(self._iqft, qubits, inplace=True)
         circuit.cx(q[self._n], aux)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False
-        )
+        circuit.compose(self._qft, qubits, inplace=True)
         self._controlled_phi_add(circuit, q, aux)
 
         self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a, inverse=True)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False,
-            inverse=True
-        )
+        circuit.compose(self._iqft, qubits, inplace=True)
         circuit.u3(np.pi, 0, np.pi, q[self._n])
         circuit.cx(q[self._n], aux)
         circuit.u3(np.pi, 0, np.pi, q[self._n])
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False
-        )
+        circuit.compose(self._qft, qubits, inplace=True)
         self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a)
 
     def _controlled_controlled_phi_add_mod_N_inv(self, circuit, q, ctl1, ctl2, aux, a):
-        """
-        Circuit that implements the inverse of doubly controlled modular addition by a
-        """
+        """Circuit that implements the inverse of doubly controlled modular addition by a."""
+        qubits = [q[i] for i in reversed(range(self._n + 1))]
+
         self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a, inverse=True)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False,
-            inverse=True
-        )
+        circuit.compose(self._iqft, qubits, inplace=True)
         circuit.u3(np.pi, 0, np.pi, q[self._n])
         circuit.cx(q[self._n], aux)
         circuit.u3(np.pi, 0, np.pi, q[self._n])
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False
-        )
+        circuit.compose(self._qft, qubits, inplace=True)
         self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a)
         self._controlled_phi_add(circuit, q, aux, inverse=True)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False,
-            inverse=True
-        )
+        circuit.compose(self._iqft, qubits, inplace=True)
         circuit.cx(q[self._n], aux)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[q[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False
-        )
+        circuit.compose(self._qft, qubits, inplace=True)
         self._phi_add(circuit, q)
         self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a, inverse=True)
 
     def _controlled_multiple_mod_N(self, circuit, ctl, q, aux, a):
-        """
-        Circuit that implements single controlled modular multiplication by a
-        """
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[aux[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False
-        )
+        """Circuit that implements single controlled modular multiplication by a."""
+        qubits = [aux[i] for i in reversed(range(self._n + 1))]
+        circuit.compose(self._qft, qubits, inplace=True)
 
         for i in range(0, self._n):
             self._controlled_controlled_phi_add_mod_N(
@@ -232,12 +186,7 @@ class Shor(QuantumAlgorithm):
                 aux[self._n + 1],
                 (2 ** i) * a % self._N
             )
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[aux[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False,
-            inverse=True
-        )
+        circuit.compose(self._iqft, qubits, inplace=True)
 
         for i in range(0, self._n):
             circuit.cswap(ctl, q[i], aux[i])
@@ -257,11 +206,7 @@ class Shor(QuantumAlgorithm):
             return x % m
 
         a_inv = modinv(a, self._N)
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[aux[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False
-        )
+        circuit.compose(self._qft, qubits, inplace=True)
 
         for i in reversed(range(self._n)):
             self._controlled_controlled_phi_add_mod_N_inv(
@@ -272,25 +217,22 @@ class Shor(QuantumAlgorithm):
                 aux[self._n + 1],
                 math.pow(2, i) * a_inv % self._N
             )
-        ftc.construct_circuit(
-            circuit=circuit,
-            qubits=[aux[i] for i in reversed(range(self._n + 1))],
-            do_swaps=False,
-            inverse=True
-        )
+        circuit.compose(self._iqft, qubits, inplace=True)
 
-    def construct_circuit(self, measurement=False):
+    def construct_circuit(self, measurement: bool = False) -> QuantumCircuit:
         """Construct circuit.
 
         Args:
-            measurement (bool): Boolean flag to indicate if measurement
-                should be included in the circuit.
+            measurement: Boolean flag to indicate if measurement should be included in the circuit.
+
         Returns:
-            QuantumCircuit: quantum circuit.
+            Quantum circuit.
         """
 
         # Get n value used in Shor's algorithm, to know how many qubits are used
         self._n = math.ceil(math.log(self._N, 2))
+        self._qft.num_qubits = self._n + 1
+        self._iqft.num_qubits = self._n + 1
 
         # quantum register where the sequential QFT is performed
         self._up_qreg = QuantumRegister(2 * self._n, name='up')
@@ -318,7 +260,8 @@ class Shor(QuantumAlgorithm):
             )
 
         # Apply inverse QFT
-        ftc.construct_circuit(circuit=circuit, qubits=self._up_qreg, do_swaps=True, inverse=True)
+        iqft = QFT(len(self._up_qreg), inverse=True)
+        circuit.compose(iqft, qubits=self._up_qreg)
 
         if measurement:
             up_cqreg = ClassicalRegister(2 * self._n, name='m')
@@ -330,9 +273,7 @@ class Shor(QuantumAlgorithm):
         return circuit
 
     def _get_factors(self, output_desired, t_upper):
-        """
-        Apply the continued fractions to find r and the gcd to find the desired factors.
-        """
+        """Apply the continued fractions to find r and the gcd to find the desired factors."""
         x_value = int(output_desired, 2)
         logger.info('In decimal, x_final value for this result is: %s.', x_value)
 
