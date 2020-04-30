@@ -135,9 +135,30 @@ import pydoc
 
 import numpy as np
 
-import qiskit.pulse.commands as commands
-
+from ...exceptions import PulseError
+from ..sample_pulse import SamplePulse
 from . import strategies
+
+
+def functional_pulse(func: Callable) -> Callable:
+    """A decorator for generating SamplePulse from python callable.
+
+    Args:
+        func: A function describing pulse envelope.
+
+    Raises:
+        PulseError: when invalid function is specified.
+    """
+    @functools.wraps(func)
+    def to_pulse(duration, *args, name=None, **kwargs):
+        """Return SamplePulse."""
+        if isinstance(duration, (int, np.integer)) and duration > 0:
+            samples = func(duration, *args, **kwargs)
+            samples = np.asarray(samples, dtype=np.complex128)
+            return SamplePulse(samples=samples, name=name)
+        raise PulseError('The first argument must be an integer value representing duration.')
+
+    return to_pulse
 
 
 def _update_annotations(discretized_pulse: Callable) -> Callable:
@@ -215,7 +236,7 @@ def sampler(sample_function: Callable) -> Callable:
         """Return a decorated sampler function."""
 
         @functools.wraps(continuous_pulse)
-        def call_sampler(duration: int, *args, **kwargs) -> commands.SamplePulse:
+        def call_sampler(duration: int, *args, **kwargs) -> SamplePulse:
             """Replace the call to the continuous function with a call to the sampler applied
             to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
@@ -230,7 +251,7 @@ def sampler(sample_function: Callable) -> Callable:
         # such as __name__, __qualname__
         call_sampler.__dict__.pop('__wrapped__')
         # wrap with functional pulse
-        return commands.functional_pulse(call_sampler)
+        return functional_pulse(call_sampler)
 
     return generate_sampler
 

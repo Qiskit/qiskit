@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Allowed values of ``meas_level`` parameters and fields can now be a member 
+    from the `IntEnum` class ``qiskit.qobj.utils.MeasLevel``. This can be used
+    when calling ``execute`` (or anywhere else ``meas_level`` is specified) with
+    a pulse experiment. For example::
+
+      from qiskit import QuantumCircuit, transpile, schedule, execute
+      from qiskit.test.mock import FakeOpenPulse2Q
+      from qiskit.qobj.utils import MeasLevel, MeasReturnType
+
+      backend = FakeOpenPulse2Q()
+      qc = QuantumCircuit(2, 2)
+      qc.h(0)
+      qc.cx(0,1)
+      qc_transpiled = transpile(qc, backend)
+      sched = schedule(qc_transpiled, backend)
+      execute(sched, backend, meas_level=MeasLevel.CLASSIFIED)
+
+    In this above example, ``meas_level=MeasLevel.CLASSIFIED`` and
+    ``meas_level=2`` can be used interchangably now.

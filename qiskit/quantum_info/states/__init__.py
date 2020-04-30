@@ -16,4 +16,8 @@
 
 from .statevector import Statevector
 from .densitymatrix import DensityMatrix
-from .states import basis_state, projector, purity
+from .utils import partial_trace, shannon_entropy
+from .measures import (state_fidelity, purity, entropy, concurrence,
+                       mutual_information, entanglement_of_formation)
+from .states import basis_state, projector  # DERECATED in 0.12.0
+from .counts import state_to_counts  # DEPRECATED in 0.13.0

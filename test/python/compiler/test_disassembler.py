@@ -50,7 +50,7 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
 
-    def test_disssemble_multiple_circuits(self):
+    def test_disassemble_multiple_circuits(self):
         """Test assembling multiple circuits, all should have the same config.
         """
         qr0 = QuantumRegister(2, name='q0')

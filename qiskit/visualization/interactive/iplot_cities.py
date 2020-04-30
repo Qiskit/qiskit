@@ -24,7 +24,8 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
     except ImportError:
-        print("Error importing IPython.core.display")
+        print("Error importing IPython.core.display. To install, run "
+              '"pip install ipython".')
 
 
 def iplot_state_city(rho, figsize=None):
@@ -35,6 +36,22 @@ def iplot_state_city(rho, figsize=None):
         Args:
             rho (array): State vector or density matrix.
             figsize (tuple): The figure size in pixels.
+
+        Example:
+            .. code-block::
+
+                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit.visualization import iplot_state_city
+                %matplotlib inline
+
+                qc = QuantumCircuit(2, 2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure([0, 1], [0, 1])
+
+                backend = BasicAer.get_backend('statevector_simulator')
+                job = execute(qc, backend).result()
+                iplot_state_city(job.get_statevector(qc))
     """
 
     # HTML

@@ -33,10 +33,10 @@ class TestDagDrawer(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         self.dag = circuit_to_dag(circuit)
 
-    def test_dag_drawer_no_graphviz(self):
-        """Test dag draw with no graphviz."""
-        with unittest.mock.patch('nxpd.pydot.find_graphviz', return_value=None) as _:
-            self.assertRaises(VisualizationError, dag_drawer, self.dag)
+    def test_dag_drawer_invalid_style(self):
+        """Test dag draw with invalid style."""
+        self.assertRaises(VisualizationError, dag_drawer, self.dag,
+                          style='multicolor')
 
 
 if __name__ == '__main__':

@@ -54,7 +54,7 @@
             "type": "array"
         },
         "complex_matrix": {
-            "description": "JSON representaiton of a complex matrix",
+            "description": "JSON representation of a complex matrix",
             "items": {
                 "$ref": "#/definitions/complex_array"
             },
@@ -96,7 +96,10 @@
                                 "enum": [
                                     "pv",
                                     "fc",
-                                    "acquire"
+                                    "setf",
+                                    "acquire",
+                                    "delay",
+                                    "parametric_pulse"
                                 ]
                             }
                         }
@@ -151,6 +154,62 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "setf"
+                            ]
+                        },
+                        "frequency": {
+                            "OneOf":[
+                            {"type": "number"},
+                            {"type": "string"}]
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "delay"
+                            ]
+                        },
+                        "duration": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "duration",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Delay in pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "parametric_pulse"
+                            ]
+                        },
+                        "pulse_shape": {"type": "string"},
+                        "parameters": {"type": "object"}
+                    },
+                    "required": [
+                        "pulse_shape",
+                        "parameters",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Parametric pulse"
                 },
                 {
                     "properties": {
@@ -270,7 +329,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -287,7 +346,7 @@
                             "maxItems": 1
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -304,7 +363,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -329,7 +388,7 @@
                             "minItems": 1
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -344,7 +403,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -365,7 +424,7 @@
                             "minItems": 1
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -382,7 +441,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -399,7 +458,7 @@
                             "minItems": 1
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -416,7 +475,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -438,7 +497,7 @@
                             "minItems": 2
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -453,7 +512,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -473,7 +532,7 @@
                             "minItems": 2
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -490,7 +549,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -508,7 +567,7 @@
                             "minItems": 2
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -525,7 +584,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -543,7 +602,7 @@
                             "minItems": 3
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -558,7 +617,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "minItems": 1
                         },
                         "name": {
@@ -573,7 +632,7 @@
                             "minItems": 1
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "minItems": 1
                         },
                         "texparams": {
@@ -589,7 +648,7 @@
                 {
                     "properties": {
                         "memory": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -604,7 +663,7 @@
                             "minItems": 1
                         },
                         "register": {
-			    "type": "array",
+                            "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -622,7 +681,7 @@
                             "type": "string"
                         },
                         "memory": {
-			                "type": "array"
+                            "type": "array"
                         },
                         "name": {
                             "enum": [
@@ -636,7 +695,7 @@
                             "type": "array"
                         },
                         "register": {
-			                "type": "array"
+                            "type": "array"
                         },
                         "snapshot_type": {
                             "type": "string"
@@ -887,7 +946,6 @@
                     "description": "Configuration options that apply to all experiments in this qobj. For options that may be set on a per-experiment basis, these are the defaults.",
                     "properties": {
                         "max_credits": {
-                            "default": 3,
                             "type": "integer"
                         },
                         "memory_slots": {
@@ -901,7 +959,6 @@
                             "type": "integer"
                         },
                         "seed": {
-                            "default": 1,
                             "type": "integer"
                         },
                         "shots": {
@@ -1056,7 +1113,7 @@
                                         "properties": {
                                             "instructions": {
                                                 "items": {
-                                                    "$ref": "#definitions/openqasm_instructions"
+                                                    "$ref": "#/definitions/openqasm_instructions"
                                                 }
                                             }
                                         }

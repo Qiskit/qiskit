@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper function for converting a dag to a circuit"""
+"""Helper function for converting a dag to a circuit."""
 from qiskit.circuit import QuantumCircuit
 
 
@@ -24,6 +24,27 @@ def dag_to_circuit(dag):
 
     Return:
         QuantumCircuit: the circuit representing the input dag.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.dagcircuit import DAGCircuit
+            from qiskit.converters import circuit_to_dag
+            from qiskit.circuit.library.standard_gates import CHGate, U2Gate, CXGate
+            from qiskit.converters import dag_to_circuit
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            dag = circuit_to_dag(circ)
+            circuit = dag_to_circuit(dag)
+            circuit.draw()
     """
 
     name = dag.name or None

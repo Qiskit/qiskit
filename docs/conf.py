@@ -46,7 +46,7 @@ author = 'Qiskit Development Team'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.12.0'
+release = '0.14.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -61,18 +61,17 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx_automodapi.automodapi',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
     'sphinx_tabs.tabs',
     'jupyter_sphinx.execute',
+    'sphinx_autodoc_typehints',
     'reno.sphinxext',
 ]
 html_static_path = ['_static']
-html_css_files = [
-    'style.css',
-]
+templates_path = ['_templates']
+html_css_files = ['style.css', 'custom.css']
 
 # -----------------------------------------------------------------------------
 # Autosummary
@@ -109,7 +108,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'colorful'
@@ -148,3 +147,4 @@ html_theme_options = {
     'style_nav_header_background': '#212121',
 }
 
+autoclass_content = 'both'

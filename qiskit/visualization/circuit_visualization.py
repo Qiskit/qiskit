@@ -64,7 +64,9 @@ def circuit_drawer(circuit,
                    idle_wires=True,
                    with_layout=True,
                    fold=None,
-                   ax=None):
+                   ax=None,
+                   initial_state=False,
+                   cregbundle=False):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -77,7 +79,8 @@ def circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        scale (float): scale of image to draw (shrink if < 1)
+        scale (float): scale of image to draw (shrink if < 1). Only used by the ``mpl``,
+            ``latex``, and ``latex_source`` outputs.
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file.
             This option is only used by the ``mpl`` output type. If a str is
@@ -133,7 +136,11 @@ def circuit_drawer(circuit,
             will be no returned Figure since it is redundant. This is only used
             when the ``output`` kwarg is set to use the ``mpl`` backend. It
             will be silently ignored with all other outputs.
-
+        initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+            Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+            Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
+            the ``text`` output. Default: ``False``.
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:
@@ -203,8 +210,8 @@ def circuit_drawer(circuit,
 
             You must specify all the necessary values if using this. There is
             no provision for passing an incomplete dict in.
-        displaycolor (dict): The color codes to use for each circuit element.
-            The default values are::
+        displaycolor (dict):
+            The color codes to use for each circuit element. The default values are::
 
                 {
                     'id': '#F0E442',
@@ -246,6 +253,18 @@ def circuit_drawer(circuit,
         creglinestyle (str): The style of line to use for classical registers.
             Choices are `'solid'`, `'doublet'`, or any valid matplotlib
             `linestyle` kwarg value. Defaults to `doublet`
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.tools.visualization import circuit_drawer
+            q = QuantumRegister(1)
+            c = ClassicalRegister(1)
+            qc = QuantumCircuit(q, c)
+            qc.h(q)
+            qc.measure(q, c)
+            circuit_drawer(qc)
     """
     image = None
     config = user_config.get_config()
@@ -270,7 +289,9 @@ def circuit_drawer(circuit,
                                     vertical_compression=vertical_compression,
                                     idle_wires=idle_wires,
                                     with_layout=with_layout,
-                                    fold=fold)
+                                    fold=fold,
+                                    initial_state=initial_state,
+                                    cregbundle=cregbundle)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
@@ -278,7 +299,8 @@ def circuit_drawer(circuit,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
                                       idle_wires=idle_wires,
-                                      with_layout=with_layout)
+                                      with_layout=with_layout,
+                                      initial_state=initial_state)
     elif output == 'latex_source':
         return _generate_latex_source(circuit,
                                       filename=filename, scale=scale,
@@ -287,7 +309,8 @@ def circuit_drawer(circuit,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
                                       idle_wires=idle_wires,
-                                      with_layout=with_layout)
+                                      with_layout=with_layout,
+                                      initial_state=initial_state)
     elif output == 'mpl':
         image = _matplotlib_circuit_drawer(circuit, scale=scale,
                                            filename=filename, style=style,
@@ -312,6 +335,9 @@ def circuit_drawer(circuit,
 # -----------------------------------------------------------------------------
 def qx_color_scheme():
     """Return default style for matplotlib_circuit_drawer (IBM QX style)."""
+    warn('The qx_color_scheme function is deprecated as of 0.11, and '
+         'will be removed no earlier than 3 months after that release '
+         'date.', DeprecationWarning, stacklevel=2)
     return {
         "comment": "Style file for matplotlib_circuit_drawer (IBM QX Composer style)",
         "textcolor": "#000000",
@@ -385,7 +411,8 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
-                         idle_wires=True, with_layout=True, fold=None,):
+                         idle_wires=True, with_layout=True, fold=None, initial_state=True,
+                         cregbundle=False):
     """Draws a circuit using ascii art.
 
     Args:
@@ -406,6 +433,9 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                     None (default), it will try to guess the console width using
                     `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
+        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
+            the ``text`` output. Default: ``False``.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -420,7 +450,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     if line_length:
         warn('The parameter "line_length" is being replaced by "fold"', DeprecationWarning, 3)
         fold = line_length
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
+                                     cregbundle=cregbundle)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
@@ -443,7 +474,8 @@ def _latex_circuit_drawer(circuit,
                           reverse_bits=False,
                           justify=None,
                           idle_wires=True,
-                          with_layout=True):
+                          with_layout=True,
+                          initial_state=False):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -462,6 +494,8 @@ def _latex_circuit_drawer(circuit,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
+        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
+
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
 
@@ -478,7 +512,8 @@ def _latex_circuit_drawer(circuit,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify,
-                               idle_wires=idle_wires, with_layout=with_layout)
+                               idle_wires=idle_wires, with_layout=with_layout,
+                               initial_state=initial_state)
         try:
 
             subprocess.run(["pdflatex", "-halt-on-error",
@@ -507,17 +542,16 @@ def _latex_circuit_drawer(circuit,
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
-                                base + '.pdf', base])
+                                base + '.pdf', base], check=True)
                 image = Image.open(base + '.png')
                 image = utils._trim(image)
                 os.remove(base + '.png')
                 if filename:
                     image.save(filename, 'PNG')
-            except OSError as ex:
-                if ex.errno == errno.ENOENT:
-                    logger.warning('WARNING: Unable to convert pdf to image. '
-                                   'Is `poppler` installed? '
-                                   'Skipping circuit drawing...')
+            except (OSError, subprocess.CalledProcessError) as ex:
+                logger.warning('WARNING: Unable to convert pdf to image. '
+                               'Is `poppler` installed? '
+                               'Skipping circuit drawing...')
                 raise
         return image
 
@@ -525,7 +559,7 @@ def _latex_circuit_drawer(circuit,
 def _generate_latex_source(circuit, filename=None,
                            scale=0.7, style=None, reverse_bits=False,
                            plot_barriers=True, justify=None, idle_wires=True,
-                           with_layout=True):
+                           with_layout=True, initial_state=False):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -542,6 +576,8 @@ def _generate_latex_source(circuit, filename=None,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
+        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
+
     Returns:
         str: Latex string appropriate for writing to file.
     """
@@ -555,7 +591,8 @@ def _generate_latex_source(circuit, filename=None,
 
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
-                                 reverse_bits=reverse_bits, layout=layout)
+                                 reverse_bits=reverse_bits, layout=layout,
+                                 initial_state=initial_state)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:

@@ -217,6 +217,62 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_barriers_with_blocking_obstacle_narrow(self):
+        """ Test that barriers don't merge if there is an obstacle that
+            is blocking
+                 ░ ┌───┐ ░                     ░ ┌───┐ ░
+        q_0: |0>─░─┤ H ├─░─           q_0: |0>─░─┤ H ├─░─
+                 ░ └───┘ ░     ->              ░ └───┘ ░
+        q_1: |0>─░───────░─           q_1: |0>─░───────░─
+                 ░       ░                     ░       ░
+        """
+        qr = QuantumRegister(2, 'q')
+
+        circuit = QuantumCircuit(qr)
+        circuit.barrier(qr)
+        circuit.h(qr[0])
+        circuit.barrier(qr)
+
+        expected = QuantumCircuit(qr)
+        expected.barrier(qr)
+        expected.h(qr[0])
+        expected.barrier(qr)
+
+        pass_ = MergeAdjacentBarriers()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_barriers_with_blocking_obstacle_twoQ(self):
+        """ Test that barriers don't merge if there is an obstacle that
+            is blocking
+
+                 ░       ░                     ░       ░
+        q_0: |0>─░───────░─           q_0: |0>─░───────░─
+                 ░       ░                     ░       ░
+        q_1: |0>─░───■─────    ->     q_1: |0>─░───■─────
+                 ░ ┌─┴─┐ ░                     ░ ┌─┴─┐ ░
+        q_2: |0>───┤ X ├─░─           q_2: |0>───┤ X ├─░─
+                   └───┘ ░                       └───┘ ░
+
+        """
+        qr = QuantumRegister(3, 'q')
+
+        circuit = QuantumCircuit(qr)
+        circuit.barrier(0, 1)
+        circuit.cx(1, 2)
+        circuit.barrier(0, 2)
+
+        expected = QuantumCircuit(qr)
+        expected.barrier(0, 1)
+        expected.cx(1, 2)
+        expected.barrier(0, 2)
+
+        pass_ = MergeAdjacentBarriers()
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
 
 if __name__ == '__main__':
     unittest.main()

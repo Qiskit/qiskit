@@ -80,6 +80,23 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
+Pulse Visualizations
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   pulse_drawer
+   ~qiskit.visualization.pulse.qcstyle
+   ~qiskit.visualization.pulse.interpolation
+
+Single Qubit State Transition Visualizations
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   visualize_transition
 
 Exceptions
 ==========
@@ -92,6 +109,7 @@ Exceptions
 
 import os
 import sys
+
 from qiskit.util import _has_connection
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.state_visualization import (plot_state_hinton,
@@ -100,15 +118,17 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_state_city,
                                                       plot_state_paulivec,
                                                       plot_state_qsphere)
+from qiskit.visualization.transition_visualization import visualize_transition
 
-from .pulse_visualization import pulse_drawer
 from .circuit_visualization import circuit_drawer, qx_color_scheme
 from .dag_visualization import dag_drawer
-from .pass_manager_visualization import pass_manager_drawer
-from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
-
 from .exceptions import VisualizationError
+from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
 from .matplotlib import HAS_MATPLOTLIB
+from .pass_manager_visualization import pass_manager_drawer
+from .pulse.interpolation import step_wise, linear, cubic_spline
+from .pulse.qcstyle import PulseStyle, SchedStyle
+from .pulse_visualization import pulse_drawer
 
 if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
         or os.getenv('QISKIT_DOCS') == 'TRUE':

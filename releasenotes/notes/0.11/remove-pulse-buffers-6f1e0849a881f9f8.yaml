@@ -1,0 +1,7 @@
+---
+
+deprecations:
+  - Buffers in Pulse are deprecated. If a nonzero buffer is supplied, a warning
+    will be issued with a reminder to use a Delay instead. Other options would
+    include adding samples to a pulse instruction which are :math:`(0.+0.j)` or
+    setting the start time of the next pulse to `schedule.duration + buffer`.

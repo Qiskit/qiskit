@@ -189,7 +189,7 @@ class TestCompiler(QiskitTestCase):
 
         self.assertEqual(compiled_instruction.name, 'u2')
         self.assertEqual(compiled_instruction.qubits, [12])
-        self.assertEqual(str(compiled_instruction.params), str([0, 3.14159265358979]))
+        self.assertEqual(compiled_instruction.params, [0, 3.141592653589793])
 
     def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""
@@ -204,9 +204,7 @@ class TestCompiler(QiskitTestCase):
         qrtrue = assemble(transpile(qc, backend, seed_transpiler=8),
                           seed_simulator=42)
         rtrue = backend.run(qrtrue).result()
-        qrfalse = assemble(transpile(qc, backend, seed_transpiler=8,
-                                     pass_manager=PassManager()),
-                           seed_simulator=42)
+        qrfalse = assemble(PassManager().run(qc), seed_simulator=42)
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 

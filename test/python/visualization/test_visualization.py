@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=anomalous-backslash-in-string
+
 """Tests for visualization tools."""
 
 import os
@@ -20,7 +22,6 @@ import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
-from qiskit.circuit.random import random_circuit
 from qiskit.visualization import utils
 from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
@@ -34,7 +35,8 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path('test_tiny.tex')
-        qc = random_circuit(1, 1, 1)
+        qc = QuantumCircuit(1)
+        qc.h(0)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -45,7 +47,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
         filename = self._get_resource_path('test_normal.tex')
-        qc = random_circuit(5, 5, 3)
+        qc = QuantumCircuit(5)
+        for qubit in range(5):
+            qc.h(qubit)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -56,7 +60,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_wide_circuit(self):
         """Test draw wide circuit."""
         filename = self._get_resource_path('test_wide.tex')
-        qc = random_circuit(100, 1, 1)
+        qc = QuantumCircuit(100)
+        for gate in range(100):
+            qc.h(gate)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -67,7 +73,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path('test_deep.tex')
-        qc = random_circuit(1, 100, 1)
+        qc = QuantumCircuit(1)
+        for _ in range(100):
+            qc.h(0)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -78,7 +86,10 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_huge_circuit(self):
         """Test draw huge circuit."""
         filename = self._get_resource_path('test_huge.tex')
-        qc = random_circuit(40, 40, 1)
+        qc = QuantumCircuit(40)
+        for qubit in range(39):
+            qc.h(qubit)
+            qc.cx(qubit, 39)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -381,6 +392,39 @@ c1_0: 0 ════════════════════════
 
         self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_generate_latex_label_nomathmode(self):
+        """Test generate latex label default."""
+        self.assertEqual('abc', utils.generate_latex_label('abc'))
+
+    def test_generate_latex_label_nomathmode_utf8char(self):
+        """Test generate latex label utf8 characters."""
+        self.assertEqual('{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+                         utils.generate_latex_label('∭X∀Y'))
+
+    def test_generate_latex_label_mathmode_utf8char(self):
+        """Test generate latex label mathtext with utf8."""
+        self.assertEqual(
+            'abc_{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$abc_$∭X∀Y'))
+
+    def test_generate_latex_label_mathmode_underscore_outside(self):
+        """Test generate latex label with underscore outside mathmode."""
+        self.assertEqual(
+            'abc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label('$abc$_∭X∀Y'))
+
+    def test_generate_latex_label_escaped_dollar_signs(self):
+        """Test generate latex label with escaped dollarsign."""
+        self.assertEqual(
+            '{\\$}{\\ensuremath{\\forall}}{\\$}',
+            utils.generate_latex_label(r'\$∀\$'))
+
+    def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
+        """Test generate latex label with escaped dollar sign in mathmode."""
+        self.assertEqual(
+            'a$bc{\\_}{\\ensuremath{\\iiint}}X{\\ensuremath{\\forall}}Y',
+            utils.generate_latex_label(r'$a$bc$_∭X∀Y'))
 
 
 if __name__ == '__main__':

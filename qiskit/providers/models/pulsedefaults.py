@@ -12,126 +12,283 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-type-doc
+
 """Model and schema for pulse defaults."""
+import copy
+import warnings
+from types import SimpleNamespace
+from typing import Any, Dict, List
 
-from marshmallow.validate import Length, Range
-
-from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.base import ObjSchema
-from qiskit.validation.fields import (Integer, List, Nested, Number, String)
-from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema
-from qiskit.pulse import CmdDef
-
-
-class MeasurementKernelSchema(BaseSchema):
-    """Schema for MeasurementKernel."""
-
-    # Optional properties.
-    name = String()
-    params = Nested(ObjSchema)
+from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
+from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.schedule import ParameterizedSchedule
 
 
-class DiscriminatorSchema(BaseSchema):
-    """Schema for Discriminator."""
+class MeasurementKernel:
+    """Class representing a Measurement Kernel."""
 
-    # Optional properties.
-    name = String()
-    params = Nested(ObjSchema)
+    def __init__(self, name, params):
+        """Initialize a MeasurementKernel object
 
-
-class CommandSchema(BaseSchema):
-    """Schema for Command."""
-
-    # Required properties.
-    name = String(required=True)
-
-    # Optional properties.
-    qubits = List(Integer(validate=Range(min=0)),
-                  validate=Length(min=1))
-    sequence = Nested(PulseQobjInstructionSchema, many=True)
-
-
-class PulseDefaultsSchema(BaseSchema):
-    """Schema for PulseDefaults."""
-
-    # Required properties.
-    qubit_freq_est = List(Number(), required=True, validate=Length(min=1))
-    meas_freq_est = List(Number(), required=True, validate=Length(min=1))
-    buffer = Integer(required=True, validate=Range(min=0))
-    pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
-    cmd_def = Nested(CommandSchema, many=True, required=True)
-
-    # Optional properties.
-    meas_kernel = Nested(MeasurementKernelSchema)
-    discriminator = Nested(DiscriminatorSchema)
-
-
-@bind_schema(MeasurementKernelSchema)
-class MeasurementKernel(BaseModel):
-    """Model for MeasurementKernel.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``MeasurementKernelSchema``.
-    """
-    pass
-
-
-@bind_schema(DiscriminatorSchema)
-class Discriminator(BaseModel):
-    """Model for Discriminator.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``DiscriminatorSchema``.
-    """
-    pass
-
-
-@bind_schema(CommandSchema)
-class Command(BaseModel):
-    """Model for Command.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``CommandSchema``.
-
-    Attributes:
-        name (str): Pulse command name.
-    """
-    def __init__(self, name, **kwargs):
+        Args:
+            name (str): The name of the measurement kernel
+            params: The parameters of the measurement kernel
+        """
         self.name = name
+        self.params = params
 
-        super().__init__(**kwargs)
-
-
-@bind_schema(PulseDefaultsSchema)
-class PulseDefaults(BaseModel):
-    """Model for PulseDefaults.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseDefaultsSchema``.
-
-    Attributes:
-        qubit_freq_est (list[number]): Estimated qubit frequencies in GHz.
-        meas_freq_est (list[number]): Estimated measurement cavity frequencies
-            in GHz.
-        buffer (int): Default buffer time (in units of dt) between pulses.
-        pulse_library (list[PulseLibraryItem]): Backend pulse library.
-        cmd_def (list[Command]): Backend command definition.
-    """
-
-    def __init__(self, qubit_freq_est, meas_freq_est, buffer,
-                 pulse_library, cmd_def, **kwargs):
-        self.qubit_freq_est = qubit_freq_est
-        self.meas_freq_est = meas_freq_est
-        self.buffer = buffer
-        self.pulse_library = pulse_library
-        self.cmd_def = cmd_def
-
-        super().__init__(**kwargs)
-
-    def build_cmd_def(self):
-        """Construct the `CmdDef` object for the backend.
+    def to_dict(self):
+        """Return a dictionary format representation of the MeasurementKernel.
 
         Returns:
-            CmdDef: `CmdDef` instance generated from defaults
+            dict: The dictionary form of the MeasurementKernel.
         """
-        return CmdDef.from_defaults(self.cmd_def, self.pulse_library, buffer=self.buffer)
+        return {'name': self.name, 'params': self.params}
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new MeasurementKernel object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the MeasurementKernel
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            MeasurementKernel: The MeasurementKernel from the input dictionary.
+        """
+        return cls(**data)
+
+
+class Discriminator:
+    """Class representing a Discriminator."""
+
+    def __init__(self, name, params):
+        """Initialize a Discriminator object
+
+        Args:
+            name (str): The name of the discriminator
+            params: The parameters of the discriminator
+        """
+        self.name = name
+        self.params = params
+
+    def to_dict(self):
+        """Return a dictionary format representation of the Discriminator.
+
+        Returns:
+            dict: The dictionary form of the Discriminator.
+        """
+        return {'name': self.name, 'params': self.params}
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Discriminator object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Discriminator
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            Discriminator: The Discriminator from the input dictionary.
+        """
+        return cls(**data)
+
+
+class Command(SimpleNamespace):
+    """Class representing a Command.
+
+    Attributes:
+        name: Pulse command name.
+    """
+    def __init__(self, name: str, qubits=None, sequence=None, **kwargs):
+        """Initialize a Command object
+
+        Args:
+            name (str): The name of the command
+            qubits: The qubits for the command
+            sequence (PulseQobjInstruction): The sequence for the Command
+            kwargs: Optional additional fields
+        """
+        self.name = name
+        if qubits is not None:
+            self.qubits = qubits
+        if sequence is not None:
+            self.sequence = sequence
+        self.__dict__.update(kwargs)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the Command.
+
+        Returns:
+            dict: The dictionary form of the Command.
+        """
+        out_dict = {'name': self.name}
+        if hasattr(self, 'qubits'):
+            out_dict['qubits'] = self.qubits
+        if hasattr(self, 'sequence'):
+            out_dict['sequence'] = [x.to_dict() for x in self.sequence]
+        for key, value in self.__dict__.items():
+            if key not in ['name', 'qubits', 'sequence']:
+                out_dict[key] = value
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new Command object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the ``Command``
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            qiskit.providers.model.Command: The ``Command`` from the input
+                dictionary.
+        """
+        in_data = copy.copy(data)
+        if 'sequence' in in_data:
+            in_data['sequence'] = [
+                PulseQobjInstruction.from_dict(x) for x in in_data.pop(
+                    'sequence')]
+        return cls(**in_data)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.name))
+
+
+class PulseDefaults(SimpleNamespace):
+    """Description of default settings for Pulse systems. These are instructions or settings that
+    may be good starting points for the Pulse user. The user may modify these defaults for custom
+    scheduling.
+    """
+
+    def __init__(self,
+                 qubit_freq_est: List[float],
+                 meas_freq_est: List[float],
+                 buffer: int,
+                 pulse_library: List[PulseLibraryItem],
+                 cmd_def: List[Command],
+                 meas_kernel: MeasurementKernel = None,
+                 discriminator: Discriminator = None,
+                 **kwargs: Dict[str, Any]):
+        """
+        Validate and reformat transport layer inputs to initialize.
+
+        Args:
+            qubit_freq_est: Estimated qubit frequencies in GHz.
+            meas_freq_est: Estimated measurement cavity frequencies in GHz.
+            buffer: Default buffer time (in units of dt) between pulses.
+            pulse_library: Pulse name and sample definitions.
+            cmd_def: Operation name and definition in terms of Commands.
+            meas_kernel: The measurement kernels
+            discriminator: The discriminators
+            **kwargs: Other attributes for the super class.
+        """
+        self.buffer = buffer
+        self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
+        """Qubit frequencies in Hertz."""
+        self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+        """Measurement frequencies in Hertz."""
+        self.pulse_library = pulse_library
+        self.cmd_def = cmd_def
+        self.instruction_schedule_map = InstructionScheduleMap()
+
+        self.converter = QobjToInstructionConverter(pulse_library)
+        for inst in cmd_def:
+            pulse_insts = [self.converter(inst) for inst in inst.sequence]
+            schedule = ParameterizedSchedule(*pulse_insts, name=inst.name)
+            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+
+        if meas_kernel is not None:
+            self.meas_kernel = meas_kernel
+        if discriminator is not None:
+            self.discriminator = discriminator
+
+        self.__dict__.update(kwargs)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the PulseDefaults.
+
+        Returns:
+            dict: The dictionary form of the PulseDefaults.
+        """
+        out_dict = {
+            'qubit_freq_est': self.qubit_freq_est,
+            'meas_freq_est': self.qubit_freq_est,
+            'buffer': self.buffer,
+            'pulse_library': [x.to_dict() for x in self.pulse_library],
+            'cmd_def': [x.to_dict() for x in self.cmd_def],
+        }
+        if hasattr(self, 'meas_kernel'):
+            out_dict['meas_kernel'] = self.meas_kernel.to_dict()
+        if hasattr(self, 'discriminator'):
+            out_dict['discriminator'] = self.discriminator.to_dict()
+        for key, value in self.__dict__.items():
+            if key not in ['qubit_freq_est', 'meas_freq_est', 'buffer',
+                           'pulse_library', 'cmd_def', 'meas_kernel',
+                           'discriminator', 'converter',
+                           'instruction_schedule_map']:
+                out_dict[key] = value
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new PulseDefaults object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the PulseDefaults
+                         to create. It will be in the same format as output by
+                         :meth:`to_dict`.
+
+        Returns:
+            PulseDefaults: The PulseDefaults from the input dictionary.
+        """
+        in_data = copy.copy(data)
+        in_data['pulse_library'] = [
+            PulseLibraryItem.from_dict(x) for x in in_data.pop('pulse_library')]
+        in_data['cmd_def'] = [
+            Command.from_dict(x) for x in in_data.pop('cmd_def')]
+        if 'meas_kernel' in in_data:
+            in_data['meas_kernel'] = MeasurementKernel.from_dict(
+                in_data.pop('meas_kernel'))
+        if 'discriminator' in in_data:
+            in_data['discriminator'] = Discriminator.from_dict(
+                in_data.pop('discriminator'))
+        return cls(**in_data)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        return self.from_dict(state)
+
+    def __reduce__(self):
+        return (self.__class__, (self.qubit_freq_est, self.meas_freq_est,
+                                 self.buffer, self.pulse_library,
+                                 self.cmd_def))
+
+    @property
+    def circuit_instruction_map(self):
+        """Deprecated property, use ``instruction_schedule_map`` instead."""
+        warnings.warn("The `circuit_instruction_map` attribute has been renamed to "
+                      "`instruction_schedule_map`.", DeprecationWarning)
+        return self.instruction_schedule_map
+
+    def __str__(self):
+        qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]
+        meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
+        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=qubit_freqs)
+        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=meas_freqs)
+        return ("<{name}({insts}{qfreq}\n{mfreq})>"
+                "".format(name=self.__class__.__name__, insts=str(self.instruction_schedule_map),
+                          qfreq=qfreq, mfreq=mfreq))

@@ -12,21 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
-
 """Test Qiskit's QuantumCircuit class."""
 
-import os
-import tempfile
-import unittest
-
-import qiskit.extensions.simulator
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import random_unitary
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -60,9 +50,9 @@ include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
 creg cr[3];
-u1(0.300000000000000) qr1[0];
-u2(0.200000000000000,0.100000000000000) qr2[0];
-u3(0.300000000000000,0.200000000000000,0.100000000000000) qr2[1];
+u1(0.3) qr1[0];
+u2(0.2,0.1) qr2[0];
+u3(0.3,0.2,0.1) qr2[1];
 s qr2[1];
 sdg qr2[1];
 cx qr1[0],qr2[1];
@@ -77,3 +67,13 @@ measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_pi(self):
+        """Test circuit qasm() method with pi params.
+        """
+        circuit = QuantumCircuit(2)
+        circuit.append(random_unitary(4, seed=1234), [0, 1])
+        circuit = circuit.decompose()
+        qasm_str = circuit.qasm()
+        circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
+        self.assertEqual(circuit, circuit2)

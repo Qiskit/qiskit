@@ -33,17 +33,19 @@ import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.circuit.library.standard_gates.u3 import U3Gate
+from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
+from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
 _CUTOFF_PRECISION = 1e-12
+_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
 def euler_angles_1q(unitary_matrix):
-    """Compute Euler angles for a single-qubit gate.
+    """DEPRECATED: Compute Euler angles for a single-qubit gate.
 
     Find angles (theta, phi, lambda) such that
     unitary_matrix = phase * Rz(phi) * Ry(theta) * Rz(lambda)
@@ -57,6 +59,9 @@ def euler_angles_1q(unitary_matrix):
     Raises:
         QiskitError: if unitary_matrix not 2x2, or failure
     """
+    warnings.warn("euler_angles_q1` is deprecated. "
+                  "Use `synthesis.OneQubitEulerDecomposer().angles instead.",
+                  DeprecationWarning)
     if unitary_matrix.shape != (2, 2):
         raise QiskitError("euler_angles_1q: expected 2x2 matrix")
     phase = la.det(unitary_matrix)**(-1.0/2.0)
@@ -138,6 +143,7 @@ class TwoQubitWeylDecomposition:
     where U ∈ U(4), (K1l|K1r|K2l|K2r) ∈ SU(2), and we stay in the "Weyl Chamber"
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
+
     def __init__(self, unitary_matrix):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
@@ -161,8 +167,9 @@ class TwoQubitWeylDecomposition:
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
-        for _ in range(100):  # FIXME: this randomized algorithm is horrendous
-            M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
+        for i in range(100):  # FIXME: this randomized algorithm is horrendous
+            state = np.random.default_rng(i)
+            M2real = state.normal()*M2.real + state.normal()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
@@ -255,7 +262,7 @@ def Ud(a, b, c):
 
 
 def trace_to_fid(trace):
-    """Average gate fidelity is Fbar = (d + |Tr (Utarget.U^dag)|^2) / d(d+1)
+    """Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + np.abs(trace)**2)/20
 
@@ -273,6 +280,7 @@ class TwoQubitBasisDecomposer():
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.
     """
+
     def __init__(self, gate, basis_fidelity=1.0):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
@@ -344,7 +352,8 @@ class TwoQubitBasisDecomposer():
                                   self.decomp3_supercontrolled]
 
     def traces(self, target):
-        """Give the expected traces |Tr(U.Utarget^dag)| for different number of basis gates"""
+        """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|` for different number of
+        basis gates."""
         # Future gotcha: extending this to non-supercontrolled basis.
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
@@ -360,7 +369,7 @@ class TwoQubitBasisDecomposer():
     def decomp0(target):
         """Decompose target ~Ud(x, y, z) with 0 uses of the basis gate.
         Result Ur has trace:
-        |Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|,
+        :math:`|Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
         which is optimal for all targets and bases"""
 
         U0l = target.K1l.dot(target.K2l)
@@ -371,7 +380,10 @@ class TwoQubitBasisDecomposer():
     def decomp1(self, target):
         """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
         Result Ur has trace:
-        |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|,
+        .. math::
+
+            |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|
+
         which is optimal for all targets and bases with z==0 or c==0"""
         # FIXME: fix for z!=0 and c!=0 using closest reflection (not always in the Weyl chamber)
         U0l = target.K1l.dot(self.basis.K1l.T.conj())
@@ -383,14 +395,19 @@ class TwoQubitBasisDecomposer():
 
     def decomp2_supercontrolled(self, target):
         """Decompose target ~Ud(x, y, z) with 2 uses of the basis gate.
-        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace:
-        |Tr(Ur.Utarget^dag)| = 4cos(z)
-        which is the optimal approximation for basis of CNOT-class ~Ud(pi/4, 0, 0)
-        or DCNOT-class ~Ud(pi/4, pi/4, 0) and any target.
+
+        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace
+        .. math::
+
+            |Tr(Ur.Utarget^dag)| = 4cos(z)
+
+        which is the optimal approximation for basis of CNOT-class ``~Ud(pi/4, 0, 0)``
+        or DCNOT-class ``~Ud(pi/4, pi/4, 0)`` and any target.
         May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
-                B~Ud(pi/4, pi/8, 0), but not this decomposition.)
-        This is an exact decomposition for supercontrolled basis and target ~Ud(x, y, 0).
-        No guarantees for non-supercontrolled basis."""
+        ``B~Ud(pi/4, pi/8, 0)``, but not this decomposition.)
+        This is an exact decomposition for supercontrolled basis and target ``~Ud(x, y, 0)``.
+        No guarantees for non-supercontrolled basis.
+        """
 
         U0l = target.K1l.dot(self.q0l)
         U0r = target.K1r.dot(self.q0r)
@@ -445,7 +462,7 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_angles = [euler_angles_1q(x) for x in decomposition]
+        decomposition_angles = [_DECOMPOSER1Q.angles(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
@@ -476,4 +493,4 @@ class TwoQubitBasisDecomposer():
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
-two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())
+two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())

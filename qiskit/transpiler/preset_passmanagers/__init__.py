@@ -12,7 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Preset PassManager flows."""
+"""
+==================================================================
+Preset Passmanagers (:mod:`qiskit.transpiler.preset_passmanagers`)
+==================================================================
+
+.. currentmodule:: qiskit.transpiler.preset_passmanagers
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   level_0_pass_manager
+   level_1_pass_manager
+   level_2_pass_manager
+   level_3_pass_manager
+"""
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager

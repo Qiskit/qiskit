@@ -14,7 +14,6 @@
 
 """Node for an OPENQASM binary operation expression."""
 
-import sympy
 
 from .node import Node
 
@@ -39,7 +38,14 @@ class BinaryOp(Node):
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
         del prec  # TODO prec ignored
-        return sympy.latex(self.sym(nested_scope))
+        try:
+            from pylatexenc.latexencode import utf8tolatex
+        except ImportError:
+            raise ImportError("To export latex from qasm "
+                              "pylatexenc needs to be installed. Run "
+                              "'pip install pylatexenc' before using this "
+                              "method.")
+        return utf8tolatex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""

@@ -250,7 +250,30 @@
                                 "type": "array",
                                 "minItems": 1,
                                 "description": "Array of dimension n_channels [d->u->m] x n_registers. Latency (in units of dt) to do a conditional operation on channel n from register slot m",
-                                "items": {"type": "array", "minItems": 1, "items": {"type": "number"}}}
+                                "items": {"type": "array", "minItems": 1, "items": {"type": "number"}}},
+                            "parametric_pulses": {
+                                "type": "array",
+                                "minItems": 0,
+                                "description": "A list of available parametric pulse shapes",
+                                "items": {"type": "string"}},
+                            "channels": {
+                                "type": "object",
+                                "patternProperties": {
+                                    "^[a-z0-9]+$": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "purpose": {"type": "string"},
+                                            "operates": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "qubits": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+                                                }
+                                            }
+                                        }}
+                                    },
+                                "description": "A dictionary where each entry represents a channel configuration and contains configuration values such as the channel's mapping to qubits."
+                                }
                             }},
         "gateconfig": {
             "type": "object",

@@ -12,12 +12,47 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tools for QASM.
+"""
+=========================
+Qasm (:mod:`qiskit.qasm`)
+=========================
 
-Use Unrollers in qiskit.unroll to convert a QASM specification to a qiskit circuit.
+.. currentmodule:: qiskit.qasm
+
+QASM Routines
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Qasm
+   QasmError
+
+
+Pygments
+========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OpenQASMLexer
+   QasmHTMLStyle
+   QasmTerminalStyle
+
 """
 
-from sympy import pi
+from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
+try:
+    import pygments
+    HAS_PYGMENTS = True
+except ImportError:
+    HAS_PYGMENTS = False
+
+if HAS_PYGMENTS:
+    try:
+        from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
+    except Exception:  # pylint: disable=broad-except
+        HAS_PYGMENTS = False

@@ -13,49 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-rz gate.
+Controlled-rz gate.
 """
-from qiskit.circuit import Gate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CnotGate
+import warnings
+from qiskit.circuit.library.standard_gates.rz import CrzGate
 
+warnings.warn('This module is deprecated.',
+              category=DeprecationWarning, stacklevel=2)
 
-class CrzGate(Gate):
-    """controlled-rz gate."""
-
-    def __init__(self, theta):
-        """Create new crz gate."""
-        super().__init__("crz", 2, [theta])
-
-    def _define(self):
-        """
-        gate crz(lambda) a,b
-        { u1(lambda/2) b; cx a,b;
-          u1(-lambda/2) b; cx a,b;
-        }
-        """
-        definition = []
-        q = QuantumRegister(2, "q")
-        rule = [
-            (U1Gate(self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
-
-    def inverse(self):
-        """Invert this gate."""
-        return CrzGate(-self.params[0])
-
-
-def crz(self, theta, ctl, tgt):
-    """Apply crz from ctl to tgt with angle theta."""
-    return self.append(CrzGate(theta), [ctl, tgt], [])
-
-
-QuantumCircuit.crz = crz
+__all__ = ['CrzGate']

@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The function ``qiskit.visualization.circuit_drawer.qx_color_scheme()`` has
+    been deprecated. This function is no longer used internally and doesn't
+    reflect the current IBM QX style. If you were using this function to
+    generate a style dict locally you must save the output from it and use
+    that dictionary directly.

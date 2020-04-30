@@ -24,6 +24,11 @@ def _hex_to_bin(hexstring):
     return str(bin(int(hexstring, 16)))[2:]
 
 
+def _bin_to_hex(bitstring):
+    """Convert bitstring readouts (memory) to hexadecimal readouts."""
+    return hex(int(bitstring, 2))
+
+
 def _pad_zeros(bitstring, memory_slots):
     """If the bitstring is truncated, pad extra zeros to make its
     length equal to memory_slots"""

@@ -17,7 +17,7 @@
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
@@ -69,4 +69,4 @@ class TestCircuitMultiRegs(QiskitTestCase):
         """
         qreg0 = QuantumRegister(2, 'q')
         qreg1 = QuantumRegister(3, 'q')
-        self.assertRaises(QiskitError, QuantumCircuit, qreg0, qreg1)
+        self.assertRaises(CircuitError, QuantumCircuit, qreg0, qreg1)

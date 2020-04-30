@@ -17,7 +17,7 @@ Quantum measurement in the computational basis.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class Measure(Instruction):
@@ -38,7 +38,7 @@ class Measure(Instruction):
             for each_carg in carg:
                 yield qarg, [each_carg]
         else:
-            raise QiskitError('register size error')
+            raise CircuitError('register size error')
 
 
 def measure(self, qubit, cbit):
@@ -52,7 +52,7 @@ def measure(self, qubit, cbit):
         qiskit.Instruction: the attached measure instruction.
 
     Raises:
-        QiskitError: if qubit is not in this circuit or bad format;
+        CircuitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
     return self.append(Measure(), [qubit], [cbit])
