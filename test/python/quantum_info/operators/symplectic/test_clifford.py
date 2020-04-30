@@ -84,10 +84,10 @@ def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):
         'swap': (SwapGate(), 2)
     }
 
-    if isinstance(seed, np.random.RandomState):
+    if isinstance(seed, np.random.Generator):
         rng = seed
     else:
-        rng = np.random.RandomState(seed=seed)
+        rng = np.random.default_rng(seed)
 
     samples = rng.choice(gates, num_gates)
 
@@ -392,7 +392,7 @@ class TestCliffordSynthesis(QiskitTestCase):
     @combine(num_qubits=[2, 3])
     def test_decompose_2q_bm(self, num_qubits):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.RandomState(seed=1234)
+        rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
@@ -403,7 +403,7 @@ class TestCliffordSynthesis(QiskitTestCase):
     @combine(num_qubits=[2, 3, 4, 5])
     def test_decompose_2q_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.RandomState(seed=1234)
+        rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)

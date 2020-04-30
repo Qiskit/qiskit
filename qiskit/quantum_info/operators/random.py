@@ -17,7 +17,7 @@ Methods to create random operators.
 """
 
 import numpy as np
-from numpy.random import RandomState
+from numpy.random import default_rng
 from scipy import stats
 
 from qiskit.quantum_info.operators import Operator, Stinespring
@@ -36,18 +36,18 @@ def random_unitary(dims, seed=None):
 
     Args:
         dims (int or tuple): the input dimensions of the Operator.
-        seed (int or RandomState): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         Operator: a unitary operator.
     """
     if seed is None:
-        random_state = np.random
-    elif isinstance(seed, RandomState):
+        random_state = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
         random_state = seed
     else:
-        random_state = RandomState(seed)
+        random_state = default_rng(seed)
 
     dim = np.product(dims)
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
@@ -64,18 +64,18 @@ def random_hermitian(dims, traceless=False, seed=None):
         traceless (bool): Optional. If True subtract diagonal entries to
                           return a traceless hermitian operator
                           (Default: False).
-        seed (int or RandomState): Optional. Set a fixed seed or
-                                      generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         Operator: a Hermitian operator.
     """
     if seed is None:
-        rng = np.random
-    elif isinstance(seed, RandomState):
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     # Total dimension
     dim = np.product(dims)
@@ -113,8 +113,8 @@ def random_quantum_channel(input_dims=None,
         input_dims (int or tuple): the input dimension of the channel.
         output_dims (int or tuple): the input dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
-        seed (int or RandomState): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         Stinespring: a quantum channel operator.

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :meth:`qiskit.circuit.ParameterExpression.subs` had not correctly detected
+    some cases where substituting parameters would result in a two distinct
+    :class:`~qiskit.circuit.Parameters` objects in an expression with the same
+    name. This has been corrected so a ``CircuitError`` will be raised in these
+    cases.

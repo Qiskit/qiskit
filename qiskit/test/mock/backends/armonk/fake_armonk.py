@@ -43,8 +43,7 @@ class FakeArmonk(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 04/10/20.
-        """
+        """Returns a snapshot of device properties"""
         if not self._properties:
             dirname = os.path.dirname(__file__)
             filename = "props_armonk.json"
@@ -54,8 +53,7 @@ class FakeArmonk(FakeBackend):
         return self._properties
 
     def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 04/10/20.
-        """
+        """Returns a snapshot of device defaults"""
         if not self._defaults:
             dirname = os.path.dirname(__file__)
             filename = "defs_armonk.json"
