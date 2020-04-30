@@ -295,7 +295,7 @@ class DAGDependency:
         """Add a DAGnode to the graph.
 
         Args:
-            operation (Instruction): operation as a quantum gate.
+            operation (qiskit.circuit.Instruction): operation as a quantum gate.
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
