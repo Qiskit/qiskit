@@ -66,15 +66,6 @@ Standard Gates
    YGate
    ZGate
 
-
-Blueprint Circuit
-=================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   BlueprintCircuit
-
 Generalized Gates
 =================
 
@@ -82,7 +73,10 @@ Generalized Gates
    :toctree: ../stubs/
 
    Diagonal
+   MCMT
+   MCMTVChain
    Permutation
+   GMS
 
 Boolean Logic Circuits
 ======================
@@ -133,21 +127,17 @@ Comparators
 
    IntegerComparator
 
-Characterization and Validation Circuits
-========================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   QuantumVolume
-
-Quantum Complexity Advantage Circuits
-=====================================
+Particular Quantum Circuits
+===========================
 
 .. autosummary::
    :toctree: ../stubs/
 
    FourierChecking
+   GraphState
+   HiddenLinearFunction
+   IQP
+   QuantumVolume
 
 
 N-local circuits
@@ -158,9 +148,9 @@ N-local circuits
 
    NLocal
    TwoLocal
-   RY
-   RYRZ
-   SwapRZ
+   RealAmplitudes
+   EfficientSU2
+   ExcitationPreserving
 
 
 Data encoding circuits
@@ -169,9 +159,9 @@ Data encoding circuits
 .. autosummary::
    :toctree: ../stubs/
 
-   PauliExpansion
-   FirstOrderExpansion
-   SecondOrderExpansion
+   PauliFeatureMap
+   ZFeatureMap
+   ZZFeatureMap
 
 """
 
@@ -181,8 +171,13 @@ from ..measure import Measure
 from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
-from .generalized_gates import Diagonal
-from .generalized_gates import Permutation
+from .generalized_gates import (
+    Diagonal,
+    MCMT,
+    MCMTVChain,
+    Permutation,
+    GMS
+)
 from .boolean_logic import (
     AND,
     OR,
@@ -198,17 +193,20 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
 )
-from .fourier_checking import FourierChecking
 from .n_local import (
     NLocal,
     TwoLocal,
-    RY,
-    RYRZ,
-    SwapRZ,
+    RealAmplitudes,
+    EfficientSU2,
+    ExcitationPreserving,
 )
-from .data_encoding import (
-    PauliExpansion,
-    FirstOrderExpansion,
-    SecondOrderExpansion
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap
 )
 from .quantum_volume import QuantumVolume
+from .fourier_checking import FourierChecking
+from .graph_state import GraphState
+from .hidden_linear_function import HiddenLinearFunction
+from .iqp import IQP

@@ -50,8 +50,7 @@ class FakeCambridge(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 10/24/19.
-        """
+        """Returns a snapshot of device properties"""
         if not self._properties:
             dirname = os.path.dirname(__file__)
             filename = "props_cambridge.json"
