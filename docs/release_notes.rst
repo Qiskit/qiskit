@@ -3488,7 +3488,7 @@ Upgrade Notes
   improve the performance of the circuits API since we can now assume the
   ``data`` attribute is in a known format. If you were manually modifying
   the ``data`` attribute of a circuit object before this may no longer work
-  if your modifications resulted in an data structure other than the list
+  if your modifications resulted in a data structure other than the list
   of instructions with context in the format ``[(instruction, qargs, cargs)]``
 
 - The transpiler default passmanager for optimization level 2 now uses the
@@ -3756,7 +3756,7 @@ New Features
 - Two new functions, ``sech()`` and ``sech_deriv()`` were added to the pulse
   library module ``qiskit.pulse.pulse_lib`` for creating an unnormalized
   hyperbolic secant ``SamplePulse`` object and an unnormalized hyperbolic
-  secant derviative ``SamplePulse`` object resepctively.
+  secant derviative ``SamplePulse`` object respectively.
 
 - A new kwarg option ``vertical_compression`` was added to the
   ``QuantumCircuit.draw()`` method and the
@@ -3873,7 +3873,7 @@ New Features
   ``qiskit.circuit.random`` module. This function will generate a random
   circuit of a specified size by randomly selecting different gates and
   adding them to the circuit. For example, you can use this to generate a
-  5 qubit circuit with a depth of 10 using::
+  5-qubit circuit with a depth of 10 using::
 
       from qiskit.circuit.random import random_circuit
 
@@ -4341,7 +4341,7 @@ Aer 0.3
 - Now we can measure sampling circuits with read-out errors too, not only ideal
   circuits.
 - We have increased some circuit optimizations with noise presence.
-- A better 2-qubit error aproximations have been included.
+- A better 2-qubit error approximations have been included.
 - Included some tools for making certain noisy simulations easier to craft and
   faster to simulate.
 - Increased performance with simulations that require less floating point
@@ -4416,7 +4416,7 @@ Added
   ``TPBGroupedPauliOperator`` class.
 - Add ``evolution_instruction`` function to get registerless instruction of
   time evolution.
-- Add ``op_converter`` module to unified the place in charge of converting
+- Add ``op_converter`` module to unify the place in charge of converting
   different types of operators.
 - Add ``Z2Symmetries`` class to encapsulate the Z2 symmetries info and has
   helper methods for tapering an Operator.
@@ -4555,7 +4555,7 @@ No Change
 IBM Q Provider 0.3
 ==================
 
-The ``IBMQProvider`` has been updated in order to default to using the new
+The ``IBMQProvider`` has been updated in order to default to use the new
 `IBM Q Experience v2 <https://quantum-computing.ibm.com>`__. Accessing the legacy IBM Q Experience v1 and QConsole
 will still be supported during the 0.3.x line until its final deprecation one
 month from the release. It is encouraged to update to the new IBM Q
@@ -4682,7 +4682,7 @@ Highlights
   visualization, and running them on IBM Q devices.
 - Improved QuantumCircuit and Instruction classes, allowing for the
   composition of arbitrary sub-circuits into larger circuits, and also
-  for creating parametrized circuits.
+  for creating parameterized circuits.
 - A powerful Quantum Info module under ``qiskit.quantum_info``, providing
   tools to work with operators and channels and to use them inside circuits.
 - New transpiler optimization passes and access to predefined transpiling
@@ -5143,7 +5143,7 @@ next release to avoid a breaking change.
 - The functions ``plot_state()`` and ``iplot_state()`` have been depreciated.
   Instead the functions ``plot_state_*()`` and ``iplot_state_*()`` should be
   called for the visualization method required.
-- The ``skip_transpiler`` argumentt has been deprecated from ``compile()`` and
+- The ``skip_transpiler`` argument has been deprecated from ``compile()`` and
   ``execute()``. Instead you can use the ``PassManager`` directly, just set
   the ``pass_manager`` to a blank ``PassManager`` object with ``PassManager()``
 - The ``transpile_dag()`` function ``format`` kwarg for emitting different
@@ -5221,7 +5221,7 @@ do this priort to calling ``circuit_drawer()``. For example::
    from qiskit.tools import visualization
    visualization.circuit_drawer(circuit, basis_gates='x,U,CX')
 
-will have to be adjust to be::
+will have to be adjusted to be::
 
    from qiskit import BasicAer
    from qiskit import transpiler
@@ -5519,7 +5519,7 @@ been expanded, and there are new options that can be used for convenience:
    sessions. This provides a one-off mechanism::
 
      from qiskit import IBMQ
-     IBQM.save_account('MY_API_TOKEN', 'MY_API_URL')
+     IBMQ.save_account('MY_API_TOKEN', 'MY_API_URL')
 
    afterwards, your credentials can be automatically loaded from disk by invoking
    :meth:`~qiskit.backends.ibmq.ibmqprovider.IBMQ.load_accounts`::
