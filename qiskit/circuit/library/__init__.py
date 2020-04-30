@@ -148,9 +148,9 @@ N-local circuits
 
    NLocal
    TwoLocal
-   RY
-   RYRZ
-   SwapRZ
+   RealAmplitudes
+   EfficientSU2
+   ExcitationPreserving
 
 
 Data encoding circuits
@@ -159,9 +159,10 @@ Data encoding circuits
 .. autosummary::
    :toctree: ../stubs/
 
-   PauliExpansion
-   FirstOrderExpansion
-   SecondOrderExpansion
+   PauliFeatureMap
+   ZFeatureMap
+   ZZFeatureMap
+
 """
 
 from .standard_gates import *
@@ -195,14 +196,14 @@ from .arithmetic import (
 from .n_local import (
     NLocal,
     TwoLocal,
-    RY,
-    RYRZ,
-    SwapRZ,
+    RealAmplitudes,
+    EfficientSU2,
+    ExcitationPreserving,
 )
-from .data_encoding import (
-    PauliExpansion,
-    FirstOrderExpansion,
-    SecondOrderExpansion
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
