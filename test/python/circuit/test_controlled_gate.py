@@ -40,7 +40,7 @@ from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         U3Gate, CHGate, CRZGate, CU3Gate,
                                         MSGate, Barrier, RCCXGate, RC3XGate,
                                         MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain)
+                                        MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
@@ -756,7 +756,6 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state = 0
         cgate = base_gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        np.set_printoptions(linewidth=200,)
         self.assertEqual(Operator(cgate), Operator(target_mat))
 
         ctrl_state = 7
@@ -976,6 +975,58 @@ class TestParameterCtrlState(QiskitTestCase):
         # TODO: move this test to
         # self.assertEqual(Operator(gate.control(1, ctrl_state='1')),
         # Operator(controlled_gate.to_matrix()))
+
+
+@ddt
+class TestControlledGateLabel(QiskitTestCase):
+    """Tests for controlled gate labels."""
+    gates_and_args = [(XGate, []),
+                      (YGate, []),
+                      (ZGate, []),
+                      (HGate, []),
+                      (CXGate, []),
+                      (CCXGate, []),
+                      (C3XGate, []),
+                      (C4XGate, []),
+                      (MCXGate, [5]),
+                      (U1Gate, [0.1]),
+                      (CYGate, []),
+                      (CZGate, []),
+                      (CU1Gate, [0.1]),
+                      (SwapGate, []),
+                      (CCXGate, []),
+                      (RZGate, [0.1]),
+                      (RXGate, [0.1]),
+                      (RYGate, [0.1]),
+                      (CRYGate, [0.1]),
+                      (CRXGate, [0.1]),
+                      (CSwapGate, []),
+                      (U3Gate, [0.1, 0.2, 0.3]),
+                      (CHGate, []),
+                      (CRZGate, [0.1]),
+                      (CU3Gate, [0.1, 0.2, 0.3]),
+                      (MSGate, [5, 0.1]),
+                      (RCCXGate, []),
+                      (RC3XGate, []),
+                      (MCU1Gate, [0.1, 1]),
+                      (MCXGate, [5])
+                      ]
+
+    @data(*gates_and_args)
+    @unpack
+    def test_control_label(self, gate, args):
+        """Test gate(label=...).control(label=...)"""
+        cgate = gate(*args, label='a gate').control(label='a controlled gate')
+        self.assertEqual(cgate.label, 'a controlled gate')
+        self.assertEqual(cgate.base_gate.label, 'a gate')
+
+    @data(*gates_and_args)
+    @unpack
+    def test_control_label_1(self, gate, args):
+        """Test gate(label=...).control(1, label=...)"""
+        cgate = gate(*args, label='a gate').control(1, label='a controlled gate')
+        self.assertEqual(cgate.label, 'a controlled gate')
+        self.assertEqual(cgate.base_gate.label, 'a gate')
 
 
 if __name__ == '__main__':

@@ -12,14 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The multi-controlled Toffoli gate moved to qiskit/extensions/standard/x.py."""
-
-import warnings
-from .x import mcx as mct
-
-warnings.warn('The multi_control_toffoli_gate module is deprecated as of 0.13.0 and will be '
-              'removed no earlier than 3 months after this release date. The multi-controlled '
-              'Toffoli and the ``mct`` function can be found in x.py along with the X gates.',
-              DeprecationWarning, stacklevel=2)
-
-__all__ = ['mct']
+"""
+Helpful routines
+"""
+from .pi_check import pi_check

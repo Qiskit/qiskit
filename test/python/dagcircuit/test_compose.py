@@ -80,11 +80,6 @@ class TestDagCompose(QiskitTestCase):
 
         """
         qreg = QuantumRegister(5, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
-        right_qubit2 = qreg[2]
-        right_qubit3 = qreg[3]
-        right_qubit4 = qreg[4]
 
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[3])
@@ -142,8 +137,6 @@ class TestDagCompose(QiskitTestCase):
 
         """
         qreg = QuantumRegister(2, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
 
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[1])
