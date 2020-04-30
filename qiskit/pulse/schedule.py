@@ -749,7 +749,7 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
         return index if new_interval[1] <= intervals[0][0] else index + 1
 
     mid_idx = len(intervals) // 2
-    if new_interval[1] < intervals[mid_idx][0]:
+    if new_interval[1] <= intervals[mid_idx][0]:
         return _insertion_index(intervals[:mid_idx], new_interval, index=index)
     else:
         return _insertion_index(intervals[mid_idx:], new_interval, index=index + mid_idx)
