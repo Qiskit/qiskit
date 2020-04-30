@@ -69,7 +69,7 @@ class Permutation(QuantumCircuit):
                                    "ordering of 0..num_qubits-1 in a list.")
             pattern = np.array(pattern)
         else:
-            rng = np.random.RandomState(seed)
+            rng = np.random.default_rng(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
