@@ -40,12 +40,12 @@ of the complete initial data.
 
 """
 
-from .pauli_expansion import PauliExpansion
-from .first_order_expansion import FirstOrderExpansion
-from .second_order_expansion import SecondOrderExpansion
+from .pauli_feature_map import PauliFeatureMap
+from .z_feature_map import ZFeatureMap
+from .zz_feature_map import ZZFeatureMap
 
 __all__ = [
-    'PauliExpansion',
-    'FirstOrderExpansion',
-    'SecondOrderExpansion',
+    'PauliFeatureMap',
+    'ZFeatureMap',
+    'ZZFeatureMap',
 ]
