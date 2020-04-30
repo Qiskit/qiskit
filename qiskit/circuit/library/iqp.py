@@ -44,7 +44,7 @@ class IQP(QuantumCircuit):
         import qiskit.tools.jupyter
         A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
         circuit = IQP(A)
-        circuit.draw('text')
+        circuit.draw('mpl')
 
     **Expanded Circuit:**
 
