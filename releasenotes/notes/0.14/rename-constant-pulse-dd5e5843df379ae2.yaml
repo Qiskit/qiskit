@@ -1,0 +1,7 @@
+---
+deprecation:
+  - |
+    The ``ConstantPulse`` class from :mod:`qiskit.pulse` has been deprecated
+    and will be removed in a future release. Instead
+    :py:class:`~qiskit.pulse.Constant` should be used moving forward. This new
+    class provides the same exact functionality as the ``ConstantPulse``.
