@@ -641,7 +641,6 @@ class TestPulseAssembler(QiskitTestCase):
         delay_qobj = assemble(delay_schedule, backend)
         validate_qobj_against_schema(delay_qobj)
 
-        test_dict = delay_qobj.experiments[0].to_dict()
         self.assertEqual(orig_qobj.experiments[0].to_dict(),
                          delay_qobj.experiments[0].to_dict())
 
