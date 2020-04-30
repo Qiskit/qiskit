@@ -9,5 +9,5 @@ features:
 deprecations:
   - |
     The ``qiskit.extensions.standard`` module is deprecated and will be
-    removed in a future release. THe gate classes in that module have been
+    removed in a future release. The gate classes in that module have been
     moved to :mod:`qiskit.circuit.library.standard_gates`.
