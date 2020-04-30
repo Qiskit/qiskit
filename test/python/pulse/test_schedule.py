@@ -447,6 +447,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(shifted_sched, reference_sched)
 
     def test_duration(self):
+        """Test schedule.duration."""
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(
             10, Delay(10, DriveChannel(0)))
@@ -462,6 +463,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(reference_sched.duration, 100)
 
     def test_ch_duration(self):
+        """Test schedule.ch_duration."""
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(
             10, Delay(10, DriveChannel(0)))
@@ -479,6 +481,7 @@ class TestScheduleBuilding(BaseTestSchedule):
                          reference_sched.duration)
 
     def test_ch_start_time(self):
+        """Test schedule.ch_start_time."""
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(
             10, Delay(10, DriveChannel(0)))
@@ -494,6 +497,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(reference_sched.ch_start_time(DriveChannel(1)), 10)
 
     def test_ch_stop_time(self):
+        """Test schedule.ch_stop_time."""
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(
             10, Delay(10, DriveChannel(0)))
@@ -509,6 +513,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(reference_sched.ch_stop_time(DriveChannel(1)), 100)
 
     def test_timeslots(self):
+        """Test schedule.timeslots."""
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(
             10, Delay(10, DriveChannel(0)))

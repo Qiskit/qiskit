@@ -37,7 +37,31 @@ class DensityMatrix(QuantumState):
     """DensityMatrix class"""
 
     def __init__(self, data, dims=None):
-        """Initialize a state object."""
+        """Initialize a density matrix object.
+
+        Args:
+            data (matrix_like or vector_like): a density matrix or
+                statevector. If a vector the density matrix is constructed
+                as the projector of that vector.
+            dims (int or tuple or list): Optional. The subsystem dimension
+                    of the state (See additional information).
+
+        Raises:
+            QiskitError: if input data is not valid.
+
+        Additional Information:
+            The ``dims`` kwarg can be None, an integer, or an iterable of
+            integers.
+
+            * ``Iterable`` -- the subsystem dimensions are the values in the list
+              with the total number of subsystems given by the length of the list.
+
+            * ``Int`` or ``None`` -- the leading dimension of the input matrix
+              specifies the total dimension of the density matrix. If it is a
+              power of two the state will be initialized as an N-qubit state.
+              If it is not a power of two the state will have a single
+              d-dimensional subsystem.
+        """
         if isinstance(data, (list, np.ndarray)):
             # Finally we check if the input is a raw matrix in either a
             # python list or numpy array format.
@@ -356,6 +380,34 @@ class DensityMatrix(QuantumState):
                          of the label is larger than an explicitly specified num_qubits.
         """
         return DensityMatrix(Statevector.from_label(label))
+
+    @staticmethod
+    def from_int(i, dims):
+        """Return a computational basis state density matrix.
+
+        Args:
+            i (int): the basis state element.
+            dims (int or tuple or list): The subsystem dimensions of the statevector
+                                         (See additional information).
+
+        Returns:
+            DensityMatrix: The computational basis state :math:`|i\\rangle\\!\\langle i|`.
+
+        Additional Information:
+            The ``dims`` kwarg can be an integer or an iterable of integers.
+
+            * ``Iterable`` -- the subsystem dimensions are the values in the list
+              with the total number of subsystems given by the length of the list.
+
+            * ``Int`` -- the integer specifies the total dimension of the
+              state. If it is a power of two the state will be initialized
+              as an N-qubit state. If it is not a power of  two the state
+              will have a single d-dimensional subsystem.
+        """
+        size = np.product(dims)
+        state = np.zeros((size, size), dtype=complex)
+        state[i, i] = 1.0
+        return DensityMatrix(state, dims=dims)
 
     @classmethod
     def from_instruction(cls, instruction):

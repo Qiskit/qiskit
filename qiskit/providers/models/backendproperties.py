@@ -269,7 +269,8 @@ class BackendProperties(SimpleNamespace):
         out_dict['general'] = [x.to_dict() for x in self.general]
         for key, value in self.__dict__.items():
             if key not in ['backend_name', 'backend_version',
-                           'last_update_date', 'qubits', 'general', 'gates']:
+                           'last_update_date', 'qubits', 'general', 'gates',
+                           '_gates', '_qubits']:
                 out_dict[key] = value
         return out_dict
 
