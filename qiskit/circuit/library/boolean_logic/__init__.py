@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The circuit library module on generalized gates."""
+"""The Boolean logic circuit library."""
 
-from .diagonal import Diagonal
-from .permutation import Permutation
-from .mcmt import MCMT, MCMTVChain
-from .gms import GMS
+from .quantum_and import AND
+from .quantum_or import OR
+from .quantum_xor import XOR
+from .inner_product import InnerProduct

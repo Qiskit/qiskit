@@ -66,15 +66,6 @@ Standard Gates
    YGate
    ZGate
 
-
-Blueprint Circuit
-=================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   BlueprintCircuit
-
 Generalized Gates
 =================
 
@@ -85,6 +76,7 @@ Generalized Gates
    MCMT
    MCMTVChain
    Permutation
+   GMS
 
 Boolean Logic Circuits
 ======================
@@ -144,6 +136,7 @@ Particular Quantum Circuits
    FourierChecking
    GraphState
    HiddenLinearFunction
+   IQP
    QuantumVolume
 
 
@@ -182,7 +175,8 @@ from .generalized_gates import (
     Diagonal,
     MCMT,
     MCMTVChain,
-    Permutation
+    Permutation,
+    GMS
 )
 from .boolean_logic import (
     AND,
@@ -215,3 +209,4 @@ from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
+from .iqp import IQP

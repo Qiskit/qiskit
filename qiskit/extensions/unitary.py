@@ -131,9 +131,8 @@ class UnitaryGate(Gate):
         Raises:
             QiskitError: invalid ctrl_state
         """
-        from qiskit.extensions.quantum_initializer.isometry import Isometry
         cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
-        iso = Isometry(cmat, 0, 0)
+        iso = isometry.Isometry(cmat, 0, 0)
         return ControlledGate('c-unitary', self.num_qubits + num_ctrl_qubits, cmat,
                               definition=iso.definition, label=label)
 
