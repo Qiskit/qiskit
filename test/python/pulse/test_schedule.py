@@ -956,6 +956,11 @@ class TestTimingUtils(QiskitTestCase):
         self.assertEqual(_insertion_index(longer_intervals, (3, 4)), 2)
         self.assertEqual(_insertion_index(longer_intervals, (3, 4)), 2)
 
+        # test when two identical zero duration timeslots are present
+        intervals = [(0, 10), (73, 73), (73, 73), (90, 101)]
+        self.assertEqual(_insertion_index(intervals, (42, 73)), 1)
+        self.assertEqual(_insertion_index(intervals, (73, 81)), 3)
+
     def test_insertion_index_when_overlapping(self):
         """Test that `_insertion_index` raises an error when the new_interval _overlaps."""
         intervals = [(10, 20), (44, 55), (60, 61), (80, 1000)]
