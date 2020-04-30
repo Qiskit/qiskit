@@ -69,15 +69,15 @@ class IQP(QuantumCircuit):
         """Create IQP circuit.
 
         Args:
-            interactions: input n-by-n symetric matrix.
+            interactions: input n-by-n symmetric matrix.
 
         Raises:
-            CircuitError: if the inputs is not as symetric matrix.
+            CircuitError: if the inputs is not as symmetric matrix.
         """
         num_qubits = len(interactions)
         interactions = np.array(interactions)
         if not np.allclose(interactions, interactions.transpose()):
-            raise CircuitError("The interactions matrix is not symetric")
+            raise CircuitError("The interactions matrix is not symmetric")
 
         a_str = np.array_str(interactions)
         a_str.replace('\n', ';')
