@@ -110,7 +110,7 @@ class Schedule(ScheduleComponent):
             scheduled time of each ``ScheduleComponent`` and the component
             itself.
         """
-        return self._children
+        return tuple(self._children)
 
     @property
     def instructions(self):
