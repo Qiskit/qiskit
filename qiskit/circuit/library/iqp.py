@@ -97,4 +97,4 @@ class IQP(QuantumCircuit):
 
         inner.h(range(num_qubits))
         all_qubits = self.qubits
-        self.append(inner, all_qubits, label=name)
+        self.append(inner, all_qubits)
