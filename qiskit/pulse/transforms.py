@@ -186,7 +186,7 @@ def pad(schedule: Schedule,
         until: Optional[int] = None,
         mutate: bool = False
         ) -> Schedule:
-    """Pad the input Schedule with ``Delay``\s on all unoccupied timeslots until
+    r"""Pad the input Schedule with ``Delay``\s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.
 
     Args:

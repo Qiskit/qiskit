@@ -14,7 +14,7 @@
 
 """Scheduling utility functions."""
 
-# pylint: disable=unused-import
+# pylint: disable=invalid-name
 from qiskit.util import deprecate_function
 from qiskit.pulse import macros, utils
 
