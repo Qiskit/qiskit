@@ -206,18 +206,23 @@ class Layout():
 
     def combine_into_edge_map(self, another_layout):
         """Combines self and another_layout into an "edge map".
+
         For example::
+
               self       another_layout  resulting edge map
            qr_1 -> 0        0 <- q_2         qr_1 -> q_2
            qr_2 -> 2        2 <- q_1         qr_2 -> q_1
            qr_3 -> 3        3 <- q_0         qr_3 -> q_0
+
         The edge map is used to compose dags via, for example, compose.
+
         Args:
             another_layout (Layout): The other layout to combine.
         Returns:
             dict: A "edge map".
         Raises:
-            LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
+            LayoutError: another_layout can be bigger than self, but not smaller.
+                Otherwise, raises.
         """
         warnings.warn('combine_into_edge_map is deprecated as of 0.14.0 and '
                       'will be removed in a future release. Instead '
