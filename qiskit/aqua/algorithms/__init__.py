@@ -169,10 +169,10 @@ and its Python API to be installed. See the following for more information:
    :nosignatures:
 
    ClassicalCPLEX
-   IQPEMinimumEigensolver
+   IQPE
    NumPyMinimumEigensolver
    QAOA
-   QPEMinimumEigensolver
+   QPE
    VQE
 
 """
@@ -190,8 +190,7 @@ from .distribution_learners import QGAN
 from .eigen_solvers import NumPyEigensolver, ExactEigensolver, EigensolverResult
 from .factorizers import Shor
 from .linear_solvers import HHL, NumPyLSsolver, ExactLSsolver
-from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEMinimumEigensolver, IQPEResult,
-                                    QPE, QPEMinimumEigensolver, QPEResult,
+from .minimum_eigen_solvers import (VQE, VQEResult, QAOA, IQPE, IQPEResult, QPE, QPEResult,
                                     ClassicalCPLEX, CPLEX_Ising, NumPyMinimumEigensolver,
                                     MinimumEigensolver, MinimumEigensolverResult)
 from .education import EOH, Simon, DeutschJozsa, BernsteinVazirani
@@ -223,10 +222,8 @@ __all__ = [
     'QSVM',
     'Grover',
     'IQPE',
-    'IQPEMinimumEigensolver',
     'IQPEResult',
     'QPE',
-    'QPEMinimumEigensolver',
     'QPEResult',
     'AmplitudeEstimation',
     'IterativeAmplitudeEstimation',
