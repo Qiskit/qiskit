@@ -24,7 +24,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.extensions.standard import (HGate, IGate, SdgGate, SGate, U3Gate,
                                         XGate, YGate, ZGate, CXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
-from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
@@ -437,8 +437,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
     def test_exact_two_qubit_cnot_decompose_paulis(self):
         """Verify exact CNOT decomposition for Paulis
         """
-        pauli_xz = Pauli(label='XZ')
-        unitary = Operator(pauli_xz)
+        unitary = Operator.from_label('XZ')
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     def test_exact_supercontrolled_decompose_random(self, nsamples=10):
