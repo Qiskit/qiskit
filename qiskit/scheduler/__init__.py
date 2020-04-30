@@ -12,7 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Circuit Scheduler (:mod:`qiskit.scheduler`)
+"""
+===========================================
+Circuit Scheduler (:mod:`qiskit.scheduler`)
+===========================================
 
 .. currentmodule:: qiskit.scheduler
 

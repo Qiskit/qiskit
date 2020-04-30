@@ -100,18 +100,6 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
    Schedule
    Instruction
 
-Circuit Scheduler
-=================
-
-The :mod:`~qiskit.pulse.circuit_scheduler` contains a scheduler that will lower
-a :class:`~qiskit.circuit.QuantumCircuit` to a :class:`~qiskit.pulse.Schedule`
-following a configurable scheduling policy.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.pulse.circuit_scheduler
-
 Configuration
 =============
 
