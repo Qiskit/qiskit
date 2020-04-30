@@ -18,7 +18,7 @@ instruction occuring in parallel over multiple signal *channels*.
 """
 
 import abc
-from copy import copy
+import copy
 import itertools
 import multiprocessing as mp
 import sys
@@ -64,18 +64,15 @@ class Schedule(ScheduleComponent):
         self._duration = 0
 
         self._timeslots = {}
-        children = []
+        self._children = []
+
         for sched_pair in schedules:
-            if isinstance(sched_pair, list):
-                sched_pair = tuple(sched_pair)
-            if not isinstance(sched_pair, tuple):
+            try:
+                time, sched = sched_pair
+            except TypeError:
                 # recreate as sequence starting at 0.
-                sched_pair = (0, sched_pair)
-            insert_time, sched = sched_pair
-            # This will also update duration
-            self._add_timeslots(insert_time, sched)
-            children.append(sched_pair)
-        self._children = tuple(children)
+                time, sched = 0, sched_pair
+            self._mutable_insert(time, sched)
 
     @property
     def name(self) -> str:
@@ -136,7 +133,7 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Channels within ``self`` to include.
         """
-        return self.ch_stop_time(channels)
+        return self.ch_stop_time(*channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
@@ -193,10 +190,7 @@ class Schedule(ScheduleComponent):
         """
         warnings.warn("The union method is deprecated. Use insert with start_time=0.",
                       DeprecationWarning)
-        if mutate:
-            return self._mutable_insert(0, *schedules)
-        else:
-            return self._immutable_insert(0, *schedules, name=name)
+        return self.insert(0, *schedules, name=name, mutate=mutate)
 
     # pylint: disable=arguments-differ
     def shift(self,
@@ -252,8 +246,8 @@ class Schedule(ScheduleComponent):
 
         self._duration = self._duration+time
         self._timeslots = timeslots
-        self._children = tuple((orig_time+time, component) for
-                               orig_time, component in self.children)
+        self._children = [(orig_time+time, child) for
+                          orig_time, child in self.children]
         return self
 
     # pylint: disable=arguments-differ
@@ -287,14 +281,8 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to mutably insert.
         """
         self._add_timeslots(start_time, schedule)
-        if isinstance(schedule, Schedule):
-            shifted_children = schedule.children
-            if start_time != 0:
-                shifted_children = tuple((t + start_time, child) for
-                                         t, child in shifted_children)
-            self._children += shifted_children
-        else:  # isinstance(schedule, Instruction)
-            self._children += ((start_time, schedule),)
+        self._children.append((start_time, schedule))
+        return self
 
     def _immutable_insert(self,
                           start_time: int,
@@ -499,7 +487,7 @@ class Schedule(ScheduleComponent):
 
             if channel not in self._timeslots:
                 if time == 0:
-                    self._timeslots[channel] = copy(schedule._timeslots[channel])
+                    self._timeslots[channel] = copy.copy(schedule._timeslots[channel])
                 else:
                     self._timeslots[channel] = [(i[0] + time, i[1] + time)
                                                 for i in schedule._timeslots[channel]]
@@ -758,10 +746,10 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
     if len(intervals) == 1:
         if _overlaps(intervals[0], new_interval):
             raise PulseError("New interval overlaps with existing.")
-        return index if new_interval[0] < intervals[0][0] else index + 1
+        return index if new_interval[1] <= intervals[0][0] else index + 1
 
     mid_idx = len(intervals) // 2
-    if new_interval[0] < intervals[mid_idx][0]:
+    if new_interval[1] < intervals[mid_idx][0]:
         return _insertion_index(intervals[:mid_idx], new_interval, index=index)
     else:
         return _insertion_index(intervals[mid_idx:], new_interval, index=index + mid_idx)

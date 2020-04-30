@@ -278,17 +278,22 @@ def push_append(this: List[interfaces.ScheduleComponent],
     Returns:
         Joined schedule
     """
-    channels = list(set(this.channels) & set(other.channels))
-
+    this_channels = set(this.channels)
+    other_channels = set(other.channels)
+    shared_channels = list(this_channels & other_channels)
     ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-                 for channel in channels]
+                 for channel in shared_channels]
 
     if ch_slacks:
-        slack_chan = channels[np.argmin(ch_slacks)]
-        insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
+        slack_chan = shared_channels[np.argmin(ch_slacks)]
+        shared_insert_time = this.ch_stop_time(slack_chan) - other.ch_start_time(slack_chan)
     else:
-        insert_time = 0
-    return this.insert(insert_time, other, mutate=True)
+        shared_insert_time = 0
+
+    other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
+    insert_time = max(shared_insert_time, other_only_insert_time)
+    a = this.insert(insert_time, other, mutate=True)
+    return a
 
 
 def align_left(schedule: Schedule) -> Schedule:

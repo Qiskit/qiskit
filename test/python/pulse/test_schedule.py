@@ -446,16 +446,84 @@ class TestScheduleBuilding(BaseTestSchedule):
         shifted_sched = reference_sched.shift(10).shift(-10)
         self.assertEqual(shifted_sched, reference_sched)
 
+    def test_duration(self):
+        reference_sched = Schedule()
+        reference_sched = reference_sched.insert(
+            10, Delay(10, DriveChannel(0)))
+        reference_sched = reference_sched.insert(
+            10, Delay(50, DriveChannel(1)))
+        reference_sched = reference_sched.insert(
+            10, ShiftPhase(0.1, DriveChannel(0)))
+
+        reference_sched = reference_sched.insert(
+            100, ShiftPhase(0.1, DriveChannel(1)))
+
+        self.assertEqual(reference_sched.duration, 100)
+        self.assertEqual(reference_sched.duration, 100)
+
+    def test_ch_duration(self):
+        reference_sched = Schedule()
+        reference_sched = reference_sched.insert(
+            10, Delay(10, DriveChannel(0)))
+        reference_sched = reference_sched.insert(
+            10, Delay(50, DriveChannel(1)))
+        reference_sched = reference_sched.insert(
+            10, ShiftPhase(0.1, DriveChannel(0)))
+
+        reference_sched = reference_sched.insert(
+            100, ShiftPhase(0.1, DriveChannel(1)))
+
+        self.assertEqual(reference_sched.ch_duration(DriveChannel(0)), 20)
+        self.assertEqual(reference_sched.ch_duration(DriveChannel(1)), 100)
+        self.assertEqual(reference_sched.ch_duration(*reference_sched.channels),
+                         reference_sched.duration)
+
+    def test_ch_start_time(self):
+        reference_sched = Schedule()
+        reference_sched = reference_sched.insert(
+            10, Delay(10, DriveChannel(0)))
+        reference_sched = reference_sched.insert(
+            10, Delay(50, DriveChannel(1)))
+        reference_sched = reference_sched.insert(
+            10, ShiftPhase(0.1, DriveChannel(0)))
+
+        reference_sched = reference_sched.insert(
+            100, ShiftPhase(0.1, DriveChannel(1)))
+
+        self.assertEqual(reference_sched.ch_start_time(DriveChannel(0)), 10)
+        self.assertEqual(reference_sched.ch_start_time(DriveChannel(1)), 10)
+
     def test_ch_stop_time(self):
         reference_sched = Schedule()
         reference_sched = reference_sched.insert(
             10, Delay(10, DriveChannel(0)))
         reference_sched = reference_sched.insert(
+            10, Delay(50, DriveChannel(1)))
+        reference_sched = reference_sched.insert(
             10, ShiftPhase(0.1, DriveChannel(0)))
-        self.assertEqual(
-            reference_sched.timeslots[DriveChannel(0)], [(10, 10,), (10, 20)])
-        self.assertEqual(reference_sched.duration, 20)
+
+        reference_sched = reference_sched.insert(
+            100, ShiftPhase(0.1, DriveChannel(1)))
+
         self.assertEqual(reference_sched.ch_stop_time(DriveChannel(0)), 20)
+        self.assertEqual(reference_sched.ch_stop_time(DriveChannel(1)), 100)
+
+    def test_timeslots(self):
+        reference_sched = Schedule()
+        reference_sched = reference_sched.insert(
+            10, Delay(10, DriveChannel(0)))
+        reference_sched = reference_sched.insert(
+            10, Delay(50, DriveChannel(1)))
+        reference_sched = reference_sched.insert(
+            10, ShiftPhase(0.1, DriveChannel(0)))
+
+        reference_sched = reference_sched.insert(
+            100, ShiftPhase(0.1, DriveChannel(1)))
+
+        self.assertEqual(
+            reference_sched.timeslots[DriveChannel(0)], [(10, 10), (10, 20)])
+        self.assertEqual(
+            reference_sched.timeslots[DriveChannel(1)], [(10, 60), (100, 100)])
 
 
 class TestDelay(BaseTestSchedule):
@@ -877,6 +945,12 @@ class TestTimingUtils(QiskitTestCase):
         self.assertEqual(_insertion_index(intervals, (5, 6)), 2)
         self.assertEqual(_insertion_index(intervals, (8, 9)), 3)
 
+        longer_intervals = [(1, 2), (2, 3), (4, 5), (5, 6), (7, 9), (11, 11)]
+        self.assertEqual(_insertion_index(longer_intervals, (4, 4)), 2)
+        self.assertEqual(_insertion_index(longer_intervals, (5, 5)), 3)
+        self.assertEqual(_insertion_index(longer_intervals, (3, 4)), 2)
+        self.assertEqual(_insertion_index(longer_intervals, (3, 4)), 2)
+
     def test_insertion_index_when_overlapping(self):
         """Test that `_insertion_index` raises an error when the new_interval _overlaps."""
         intervals = [(10, 20), (44, 55), (60, 61), (80, 1000)]
@@ -884,6 +958,10 @@ class TestTimingUtils(QiskitTestCase):
             _insertion_index(intervals, (60, 62))
         with self.assertRaises(PulseError):
             _insertion_index(intervals, (100, 1500))
+
+        intervals = [(0, 1), (10, 15)]
+        with self.assertRaises(PulseError):
+            _insertion_index(intervals, (7, 13))
 
     def test_insertion_index_empty_list(self):
         """Test that the insertion index is properly found for empty lists."""
