@@ -41,6 +41,9 @@ class Statevector(QuantumState):
             dims (int or tuple or list): Optional. The subsystem dimension of
                                          the state (See additional information).
 
+        Raises:
+            QiskitError: if input data is not valid.
+
         Additional Information:
             The ``dims`` kwarg can be None, an integer, or an iterable of
             integers.
