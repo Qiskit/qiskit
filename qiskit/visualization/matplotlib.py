@@ -37,7 +37,7 @@ except ImportError:
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
-from .tools.pi_check import pi_check
+from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
 
