@@ -27,7 +27,7 @@ import warnings
 
 from abc import ABC
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 
 from ..channels import Channel
@@ -99,7 +99,7 @@ class Instruction(ScheduleComponent, ABC):
         """The associated command. Commands are deprecated, so this method will be deprecated
         shortly.
 
-        Return:
+        Returns:
             ..commands.Command
         """
         return self._command

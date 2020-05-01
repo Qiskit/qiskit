@@ -292,8 +292,7 @@ def push_append(this: List[interfaces.ScheduleComponent],
 
     other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
     insert_time = max(shared_insert_time, other_only_insert_time)
-    a = this.insert(insert_time, other, mutate=True)
-    return a
+    return this.insert(insert_time, other, mutate=True)
 
 
 def align_left(schedule: Schedule) -> Schedule:

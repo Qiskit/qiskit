@@ -232,8 +232,11 @@ class Schedule(ScheduleComponent):
 
         Args:
             time: Time to shift by
+
+        Raises:
+            PulseError: if ``time`` is not an integer.
         """
-        if (not isinstance(time, int)):
+        if not isinstance(time, int):
             raise PulseError(
                 "Schedule start time must be an integer.")
 
@@ -478,7 +481,7 @@ class Schedule(ScheduleComponent):
         Raises:
             PulseError: If timeslots overlap or an invalid start time is provided.
         """
-        if (not isinstance(time, int)):
+        if not isinstance(time, int):
             raise PulseError("Schedule start time must be an integer.")
 
         self._duration = max(self._duration, time + schedule.duration)
@@ -771,12 +774,12 @@ def _overlaps(first: Interval, second: Interval) -> bool:
 def _check_nonnegative_timeslot(timeslots):
     """Test that a channel has no negative timeslots.
 
-    Raise:
+    Raises:
         PulseError: If a channel timeslot is negative.
     """
-    for ch, ch_timeslots in timeslots.items():
-        if ch_timeslots:
-            if ch_timeslots[0][0] < 0:
+    for chan, chan_timeslots in timeslots.items():
+        if chan_timeslots:
+            if chan_timeslots[0][0] < 0:
                 raise PulseError(
                     "An instruction on {} has a negative "
-                    " starting time.".format(ch))
+                    " starting time.".format(chan))

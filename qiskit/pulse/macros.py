@@ -21,13 +21,13 @@ from qiskit.pulse import commands
 from qiskit.pulse import exceptions
 from qiskit.pulse import instructions
 from qiskit.pulse import utils
-from qiskit.pulse import instruction_schedule_map as inst_map
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 
 
 def measure(qubits: List[int],
             backend=None,
-            inst_map: Optional[inst_map.InstructionScheduleMap] = None,
+            inst_map: Optional[InstructionScheduleMap] = None,
             meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None,
             measure_name: str = 'measure') -> Schedule:
