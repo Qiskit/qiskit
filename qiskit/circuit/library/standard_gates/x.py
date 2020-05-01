@@ -471,9 +471,10 @@ class C3XGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        if angle is not None:
+        if angle == numpy.pi / 8:
             import warnings
-            warnings.warn('The parameter C3XGate(angle=...) is going to be removed in the future.',
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
+                          'When angle=pi/8, use C3SqrtXGate()',
                           DeprecationWarning, stacklevel=2)
         else:
             angle = numpy.pi / 4
