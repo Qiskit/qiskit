@@ -23,9 +23,12 @@ from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import execute
+from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.extensions.quantum_initializer import Isometry
+from qiskit.extensions import UnitaryGate
 
 
 class TestIsometry(QiskitTestCase):
@@ -63,6 +66,19 @@ class TestIsometry(QiskitTestCase):
                 iso_from_circuit = unitary[::, 0:2 ** num_q_input]
                 iso_desired = iso
                 self.assertTrue(matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True))
+
+    def test_unitary_isometry_decomposition(self):
+        # This matrix checks a difference in tolerance definitions which existed
+        # between value checks in UnitaryGate and DiagonalGate such that a diagonal
+        # Unitarygate could fail to be a DiagonalGate.
+        U = UnitaryGate([[1, 0], [0, np.sqrt(2)/2*(1+1j) - 1e-9]])
+        iso = Isometry(U.to_matrix(), 0, 0)
+        qc = QuantumCircuit(1)
+        qc.append(iso, [0])
+        try:
+            qc.decompose()
+        except QiskitError:
+            self.fail('Failed to decompose isometry from valid unitary.')
 
 
 if __name__ == '__main__':

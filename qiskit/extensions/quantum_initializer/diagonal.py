@@ -30,6 +30,7 @@ import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -46,28 +47,22 @@ class DiagonalMeta(type):
 
 class DiagonalGate(Gate, metaclass=DiagonalMeta):
     """
-    diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at
-    least two entries.
+    diag (list, ndarray): iterable of the 2^k diagonal entries (for a diagonal gate on k qubits).
+       Must contain at least two entries.
     """
 
     def __init__(self, diag):
         """Check types"""
-        # Check if diag has type "list"
-        if not isinstance(diag, list):
-            raise QiskitError("The diagonal entries are not provided in a list.")
-        # Check if the right number of diagonal entries is provided and if the diagonal entries
-        # have absolute value one.
+        try:
+            diag = np.array(diag, dtype=complex)                
+        except TypeError:
+            raise QiskitError("Not all of the diagonal entries can be converted to "
+                              "complex numbers.")
         num_action_qubits = math.log2(len(diag))
         if num_action_qubits < 1 or not num_action_qubits.is_integer():
             raise QiskitError("The number of diagonal entries is not a positive power of 2.")
-        for z in diag:
-            try:
-                complex(z)
-            except TypeError:
-                raise QiskitError("Not all of the diagonal entries can be converted to "
-                                  "complex numbers.")
-            if not np.abs(z) - 1 < _EPS:
-                raise QiskitError("A diagonal entry has not absolute value one.")
+        if not np.allclose(np.abs(diag), 1, atol=ATOL_DEFAULT, rtol=RTOL_DEFAULT):
+            raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
         super().__init__("diagonal", int(num_action_qubits), diag)
 
