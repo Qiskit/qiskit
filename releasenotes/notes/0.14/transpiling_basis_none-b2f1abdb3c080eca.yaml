@@ -1,10 +1,15 @@
 ---
 fixes:
   - |
-    Bug #3017 is fixed. The function ``qiskit.compiler.transpile()`` honors the parameter ``basis_gates=None`` 
-    to allow any gate in the final tranpiled circuit, including gates added by the transpilation process.
-    This might also have some unintended consequences during optimization. For example,
-    :class:`qiskit.transpiler.passes.Optimize1qGates` only optimizes the chains of u1, u2, and u3 gates:
+    The function :func:`qiskit.compiler.transpile` now correctly handles when
+    the parameter ``basis_gates`` is set to ``None``. This will allow any gate
+    in the output tranpiled circuit, including gates added by the transpilation
+    process. Note that using this parameter may have some
+    unintended consequences during optimization. Some transpiler passes
+    depend on having a ``basis_gates`` set. For example,
+    :class:`qiskit.transpiler.passes.Optimize1qGates` only optimizes the chains
+    of u1, u2, and u3 gates and without ``basis_gates`` it is unable to unroll
+    gates that otherwise could be optimized:
 
     .. code-block:: python
 
@@ -25,3 +30,5 @@ fixes:
           ┌───┐┌─────────────┐┌───┐┌─────────────────┐
      q_0: ┤ H ├┤ U2(0.1,0.3) ├┤ H ├┤ U3(0.1,0.2,0.3) ├
           └───┘└─────────────┘└───┘└─────────────────┘
+
+    Fixes `#3017 <https://github.com/Qiskit/qiskit-terra/issues/3017>`_
