@@ -51,7 +51,7 @@ Qiskit consists of four foundational elements:
   Qiskit Terra <apidoc/terra>
   Qiskit Aer <apidoc/aer>
   Qiskit Ignis <apidoc/ignis>
-  Qiskit Aqua <apidoc/index>
+  Qiskit Aqua <apidoc/aqua>
   Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
 
 .. toctree::
