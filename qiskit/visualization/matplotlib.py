@@ -104,7 +104,7 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None, initial_state=True, 
+                 reverse_bits=False, layout=None, initial_state=True,
                  fold=25, ax=None):
 
         if not HAS_MATPLOTLIB:

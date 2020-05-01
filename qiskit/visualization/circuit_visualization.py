@@ -637,6 +637,7 @@ def _matplotlib_circuit_drawer(circuit,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
         fold (int): amount ops allowed before folding. Default is 25.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
