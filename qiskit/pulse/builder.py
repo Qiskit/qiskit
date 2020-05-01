@@ -12,118 +12,183 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Context based pulse programming interface.
+r"""Context based pulse programming interface with an imperative syntax.
 
-Use the context builder interface to program pulse programs with assembly-like
-syntax. For example::
+The pulse builder interface may be used to program pulse programs with
+assembly-like syntax. To start we must initialize a builder context to build
+our program with::
+
+.. code-block:: python
+    :emphasize-lines: 5, 6
+
+    from qiskit import execute
+    from qiskit import pulse
+
+    d0 = pulse.DriveChannel(0)
+
+    with pulse.build() as pulse_prog:
+        pulse.play(pulse.Constant(100, 1.0), d0)
+
+    # Execute on a real backend.
+    # job = execute(pulse_prog, backend)
+
+We see that the builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
+and then begins to build on top of this within the context. The output pulse
+schedule will survive after the context is exited and can be submitted like a
+normal Qiskit program.
+
+Programming with the pulse builder is super simple, and is done in an
+imperative style. There is little need to deal with classes such as the
+:class:`~qiskit.circuit.QuantumCircuit` or :class:`pulse.Schedule`\s. The pulse
+builder dynamically constructs these intermediate representations (IR) behind
+the scenes for you. This leaves you only to worry about the raw experimental
+physics pulse programming deals with.
+
+We can optionally pass a :class:`~qiskit.providers.BaseBackend` to the builder
+to enable enhanced pulse functionality. Below we prepare a Bell state
+automatically compiling the required pulses, while simultaneously applying a
+long decoupling pulse to a neighboring qubit, followed by a measurement::
 
 .. code-block:: python
 
-    import math
+import math
 
-    import qiskit.pulse as pulse
-    import qiskit.pulse.pulse_lib as pulse_lib
+    from qiskit import pulse
     from qiskit.test.mock import FakeOpenPulse2Q
-    from qiskit import QuantumCircuit
 
-    backend = FakeOpenPulse2Q()
+    backend = FakeOpenPulse3Q()
 
-    with build(backend) as pulse_prog:
-        # Create a pulse.
-        gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
-        # Create a channel type.
-        d0 = drive_channel(0)
-        d1 = drive_channel(1)
-        # Play a pulse at t=0,
-        play(gaussian_pulse, d0)
-        # Play another pulse directly after at t=10,
-        play(gaussian_pulse, d0)
-        # The default scheduling behavior is to schedule pulse in parallel
-        # across independent resources. For example, this
-        # plays the same pulse on a different channel at t=0.
-        play(gaussian_pulse, d1)
+    d2 = pulse.DriveChannel(2)
 
-        # We also provide alignment contexts.
-        # This context starts at t=10 due to earlier pulses.
-        with align_sequential():
-            play(gaussian_pulse, d0)
-            # Play another pulse after at t=20.
-            play(gaussian_pulse, d1)
+    with pulse.build(backend) as bell_prep:
+        pulse.u2(0, math.pi, 0)
+        pulse.cx(0, 1)
 
-            # We can also layer contexts as each instruction is
-            # contained in its local scheduling context.
-            # The output of a child context is a
-            # fixed scheduled block in its parent context.
+    with pulse.build(backend) as decoupled_bell_prep_and_measure:
+        # We call our bell state preparation schedule constructed above.
+        with pulse.align_right():
+            pulse.call(bell_prep)
+            pulse.play(pulse.Constant(bell_prep.duration, 0.02), d2)
+            pulse.barrier(0, 1, 2)
+            registers = pulse.measure_all()
 
-            # Context starts at t=30.
-            with align_left():
-                # Start at t=30.
-                play(gaussian_pulse, d0)
-                # Start at t=30.
-                play(gaussian_pulse, d1)
-            # Context ends at t=40.
+With the pulse builder we are able to blend programming on qubits and channels.
+While, the pulse IR of Qiskit Pulse is based on instructions that operate on
+channels, the pulse builder automatically handles the mappings of qubits to
+channels for you. However, as seen above its still very simple to call an
+instruction on a :class:`~qiskit.pulse.Channel`.
 
-            # We also support different alignment contexts.
-            # The default is,
-            # with align_left():
+Below we demonstrate a more fully featured example of using the pulse builder
+interface::
 
-            # Alignment context where all pulse instructions are
-            # aligned to the right at their end.
-            with align_right():
-                shift_phase(math.pi, d1)
-                # Starts at t=40.
-                delay(100, d0)
-                # Ends at t=140.
+.. code-block:: python
 
-                # Starts at t=130.
-                play(gaussian_pulse, d1)
-                # Ends at t=140.
+import math
 
-            # Acquire a qubit.
-            acquire(100, 0, pulse.MemorySlot(0))
+from qiskit import QuantumCircuit
+import qiskit.pulse as pulse
+import qiskit.pulse.pulse_lib as pulse_lib
+from qiskit.test.mock import FakeOpenPulse2Q
 
-            # We also support a variety of helper functions for common operations.
+backend = FakeOpenPulse2Q()
 
-            # Measure all qubits.
-            measure_all()
+with pulse.build(backend) as pulse_prog:
+    # Create a pulse.
+    gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
+    # Get the qubit's corresponding drive channel from the backend.
+    d0 = pulse.drive_channel(0)
+    d1 = pulse.drive_channel(1)
+    # Play a pulse at t=0.
+    pulse.play(gaussian_pulse, d0)
+    # Play another pulse directly after the previous pulse at t=10.
+    pulse.play(gaussian_pulse, d0)
+    # The default scheduling behavior is to schedule pulses in parallel
+    # across channels. For example, the statement below
+    # plays the same pulse on a different channel at t=0.
+    pulse.play(gaussian_pulse, d1)
 
-            # Delay on a qubit.
-            # This requires knowledge of which channels belong to which qubits.
-            delay_qubits(100, 0)
+    # We also provide pulse scheduling alignment contexts.
+    # The default alignment context is align_left.
 
-            # Call a quantum circuit. This functions by behind the scene by calling
-            # the scheduler on the given quantum circuit to output a new schedule.
-            # NOTE: assumes quantum registers correspond to physical qubit indices.
-            qc = QuantumCircuit(2, 2)
-            qc.cx(0, 1)
-            call(qc)
-            # We will also support decomposing a small set of standard gates
-            # to pulse schedules.
-            u3(0, np.pi, 0, 0)
-            cx(0, 1)
+    # The sequential context schedules pulse instructions sequentially in time.
+    # This context starts at t=10 due to earlier pulses above.
+    with pulse.align_sequential():
+        pulse.play(gaussian_pulse, d0)
+        # Play another pulse after at t=20.
+        pulse.play(gaussian_pulse, d1)
+
+        # We can also nest contexts as each instruction is
+        # contained in its local scheduling context.
+        # The output of a child context is a scheduled block
+        # with the internal instructions timing fixed relative to
+        # one another. This is block is then called in the parent context.
+
+        # Context starts at t=30.
+        with pulse.align_left():
+            # Start at t=30.
+            pulse.play(gaussian_pulse, d0)
+            # Start at t=30.
+            pulse.play(gaussian_pulse, d1)
+        # Context ends at t=40.
+
+        # Alignment context where all pulse instructions are
+        # aligned to the right, ie., as late as possible.
+        with pulse.align_right():
+            # Shift the phase of a pulse channel.
+            pulse.shift_phase(math.pi, d1)
+            # Starts at t=40.
+            pulse.delay(100, d0)
+            # Ends at t=140.
+
+            # Starts at t=130.
+            pulse.play(gaussian_pulse, d1)
+            # Ends at t=140.
+
+        # Acquire data for a qubit and store in a memory slot.
+        pulse.acquire(100, 0, pulse.MemorySlot(0))
+
+        # We also support a variety of macros for common operations.
+
+        # Measure all qubits.
+        pulse.measure_all()
+
+        # Delay on some qubits.
+        # This requires knowledge of which channels belong to which qubits.
+        pulse.delay_qubits(100, 0, 1)
+
+        # Call a quantum circuit. The pulse builder lazily constructs a quantum
+        # circuit which is then transpiled and scheduled before inserting into
+        # a pulse schedule.
+        # NOTE: Quantum register indices correspond to physical qubit indices.
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        pulse.call(qc)
+        # Calling a small set of standard gates and decomposing to pulses is
+        # also supported with more natural syntax.
+        pulse.u3(0, math.pi, 0, 0)
+        pulse.cx(0, 1)
 
 
-            # It is also be possible to call a preexisting
-            # schedule constructed with another
-            # NOTE: once internals are fleshed out, Schedule may not be the default class
-            tmp_sched = Schedule()
-            tmp_sched += pulse.Play(gaussian_pulse, d0)
-            call(tmp_sched)
+        # It is also be possible to call a preexisting schedule
+        tmp_sched = pulse.Schedule()
+        tmp_sched += pulse.Play(gaussian_pulse, d0)
+        pulse.call(tmp_sched)
 
-            # We also support:
+        # We also support:
 
-            # frequency instructions
-            set_frequency(5.0e9, d0)
+        # frequency instructions
+        pulse.set_frequency(5.0e9, d0)
 
-            # phase instructions
-            shift_phase(0.1, d0)
+        # phase instructions
+        pulse.shift_phase(0.1, d0)
 
-            # offset contexts
-            with phase_offset(math.pi, d0):
-                play(gaussian_pulse, d0)
+        # offset contexts
+        with pulse.phase_offset(math.pi, d0):
+            pulse.play(gaussian_pulse, d0)
 
-    # execute on real backend
-    # qiskit.execute(pulse_prog, backend)
+The above is just a small taste of what is possible with the pulse builder
+interface. See the rest of the module documentation for more information on its
+capabilities.
 
 .. warning:: The pulse builder interface is still in development and is
 subject to change.
@@ -182,7 +247,7 @@ __all__ = [
     "drive_channel",
     "measure_channel",
     "acquire_channel",
-    "control_channel",
+    "control_channels",
     "delay",
     "play",
     "acquire",
@@ -1151,7 +1216,7 @@ def acquire_channel(qubit: int) -> channels.AcquireChannel:
     return active_backend().configuration().acquire(qubit)
 
 
-def control_channel(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
+def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
 
     Return the secondary drive channel for the given qubit -- typically
@@ -1165,7 +1230,7 @@ def control_channel(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
 
         backend = FakeOpenPulse2Q()
         with pulse.build(backend):
-            assert pulse.control_channel(0, 1) == [pulse.ControlChannel(0)]
+            assert pulse.control_channels(0, 1) == [pulse.ControlChannel(0)]
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -1666,14 +1731,14 @@ def measure_all() -> List[channels.MemorySlot]:
 
 
 def delay_qubits(duration: int,
-                 qubits: Union[int, Iterable[int]]):
+                 *qubits: Union[int, Iterable[int]]):
     r"""Insert delays on all of the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.
 
     Example Usage::
 
     .. code-block:: python
-        :emphasize-lines: 8
+        :emphasize-lines: 7
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1681,8 +1746,7 @@ def delay_qubits(duration: int,
         backend = FakeOpenPulse2Q()
 
         with pulse.build(backend) as pulse_prog:
-            # Measure all qubits and return associated registers.
-            regs = pulse.delay_qubits(0, 1)
+            regs = pulse.delay_qubits(100, 0, 1, 3)
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -1691,11 +1755,6 @@ def delay_qubits(duration: int,
         qubits: Physical qubits to delay on. Delays will be inserted based on
             the channels returned by :function:`qubit_channels`.
     """
-    try:
-        iter(qubits)
-    except TypeError:
-        qubits = [qubits]
-
     qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for
                                                     qubit in qubits))
     with align_left(), group():

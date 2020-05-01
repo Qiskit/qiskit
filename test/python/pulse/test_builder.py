@@ -258,7 +258,7 @@ class TestTypes(TestBuilder):
     def test_control_channel(self):
         """Text context builder control channel."""
         with pulse.build(self.backend):
-            self.assertEqual(pulse.control_channel((0, 1))[0],
+            self.assertEqual(pulse.control_channels(0, 1)[0],
                              pulse.ControlChannel(0))
 
 
@@ -626,7 +626,7 @@ class TestMacros(TestBuilder):
     def test_delay_qubits(self):
         """Test delaying on multiple qubits to make sure we don't insert delays twice."""
         with pulse.build(self.backend) as schedule:
-            pulse.delay_qubits(10, [0, 1])
+            pulse.delay_qubits(10, 0, 1)
 
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
