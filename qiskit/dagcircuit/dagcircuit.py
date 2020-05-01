@@ -473,7 +473,7 @@ class DAGCircuit:
         """DEPRECATED: Add `dag` at the end of `self`, using `edge_map`.
         """
         warnings.warn("dag.extend_back is deprecated, please use dag.compose.",
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
         edge_map = edge_map or {}
         for qreg in dag.qregs.values():
             if qreg.name not in self.qregs:
@@ -491,7 +491,7 @@ class DAGCircuit:
         """DEPRECATED: use DAGCircuit.compose() instead.
         """
         warnings.warn("dag.compose_back is deprecated, please use dag.compose.",
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
         self.compose(input_circuit, edge_map)
 
     def compose(self, other, edge_map=None, qubits=None, clbits=None, front=False, inplace=True):
@@ -529,7 +529,9 @@ class DAGCircuit:
         if edge_map is not None:
             warnings.warn("edge_map arg as a dictionary is deprecated. "
                           "Use qubits and clbits args to specify a list of "
-                          "self edges to compose onto.", DeprecationWarning)
+                          "self edges to compose onto.", DeprecationWarning,
+                          stacklevel=2)
+
         if qubits is None:
             qubits = []
         if clbits is None:
@@ -1001,7 +1003,7 @@ class DAGCircuit:
         """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
         warnings.warn('deprecated function, use dag.two_qubit_ops(). '
                       'filter output by isinstance(op, Gate) to only get unitary Gates.',
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
         two_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) == 2:
@@ -1012,7 +1014,7 @@ class DAGCircuit:
         """Get list of 3-or-more-qubit gates: (id, data)."""
         warnings.warn('deprecated function, use dag.multi_qubit_ops(). '
                       'filter output by isinstance(op, Gate) to only get unitary Gates.',
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
         three_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) >= 3:
