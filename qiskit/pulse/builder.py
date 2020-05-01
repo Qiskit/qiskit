@@ -34,20 +34,20 @@ syntax. For example::
         d0 = drive_channel(0)
         d1 = drive_channel(1)
         # Play a pulse at t=0,
-        play(d0, gaussian_pulse)
+        play(gaussian_pulse, d0)
         # Play another pulse directly after at t=10,
-        play(d0, gaussian_pulse)
+        play(gaussian_pulse, d0)
         # The default scheduling behavior is to schedule pulse in parallel
         # across independent resources. For example, this
         # plays the same pulse on a different channel at t=0.
-        play(d1, gaussian_pulse)
+        play(gaussian_pulse, d1)
 
         # We also provide alignment contexts.
         # This context starts at t=10 due to earlier pulses.
         with align_sequential():
-            play(d0, gaussian_pulse)
+            play(gaussian_pulse, d0)
             # Play another pulse after at t=20.
-            play(d1, gaussian_pulse)
+            play(gaussian_pulse, d1)
 
             # We can also layer contexts as each instruction is
             # contained in its local scheduling context.
@@ -57,9 +57,9 @@ syntax. For example::
             # Context starts at t=30.
             with align_left():
                 # Start at t=30.
-                play(d0, gaussian_pulse)
+                play(gaussian_pulse, d0)
                 # Start at t=30.
-                play(d1, gaussian_pulse)
+                play(gaussian_pulse, d1)
             # Context ends at t=40.
 
             # We also support different alignment contexts.
@@ -69,17 +69,17 @@ syntax. For example::
             # Alignment context where all pulse instructions are
             # aligned to the right at their end.
             with align_right():
-                shift_phase(d1, math.pi)
+                shift_phase(math.pi, d1)
                 # Starts at t=40.
-                delay(d0, 100)
+                delay(100, d0)
                 # Ends at t=140.
 
                 # Starts at t=130.
-                play(d1, gaussian_pulse)
+                play(gaussian_pulse, d1)
                 # Ends at t=140.
 
             # Acquire a qubit.
-            acquire(0, pulse.MemorySlot(0), 100)
+            acquire(100, 0, pulse.MemorySlot(0))
 
             # We also support a variety of helper functions for common operations.
 
@@ -88,7 +88,7 @@ syntax. For example::
 
             # Delay on a qubit.
             # This requires knowledge of which channels belong to which qubits.
-            delay_qubits(0, 100)
+            delay_qubits(100, 0)
 
             # Call a quantum circuit. This functions by behind the scene by calling
             # the scheduler on the given quantum circuit to output a new schedule.
@@ -98,7 +98,7 @@ syntax. For example::
             call(qc)
             # We will also support decomposing a small set of standard gates
             # to pulse schedules.
-            u3(0, 0, np.pi, 0)
+            u3(0, np.pi, 0, 0)
             cx(0, 1)
 
 
@@ -112,14 +112,14 @@ syntax. For example::
             # We also support:
 
             # frequency instructions
-            set_frequency(d0, 5.0e9)
+            set_frequency(5.0e9, d0)
 
             # phase instructions
-            shift_phase(d0, 0.1)
+            shift_phase(0.1, d0)
 
             # offset contexts
-            with phase_offset(d0, math.pi):
-                play(d0, gaussian_pulse)
+            with phase_offset(math.pi, d0):
+                play(gaussian_pulse, d0)
 """
 import collections
 import contextvars
@@ -735,34 +735,35 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
 
 @contextmanager
-def phase_offset(channel: channels.PulseChannel,
-                 phase: float) -> ContextManager[None]:
+def phase_offset(phase: float,
+                 channel: channels.PulseChannel
+                 ) -> ContextManager[None]:
     """Shift the phase of a channel on entry into context and undo on exit.
 
     Args:
-        channel: Channel to offset phase of.
         phase: Amount of phase offset in radians.
+        channel: Channel to offset phase of.
 
     Yields:
         None
     """
-    shift_phase(channel, phase)
+    shift_phase(phase, channel)
     try:
         yield
     finally:
-        shift_phase(channel, -phase)
+        shift_phase(-phase, channel)
 
 
 @contextmanager
-def frequency_offset(channel: channels.PulseChannel,
-                     frequency: float,
+def frequency_offset(frequency: float,
+                     channel: channels.PulseChannel,
                      compensate_phase: bool = False
                      ) -> ContextManager[None]:
     """Shift the frequency of a channel on entry into context and undo on exit.
 
     Args:
-        channel: Channel to offset phase of.
         frequency: Amount of frequency offset in Hz.
+        channel: Channel to offset phase of.
         compensate_phase: Compensate for accumulated phase in accumulated with
             respect to the channels frame at its initial frequency.
 
@@ -779,8 +780,8 @@ def frequency_offset(channel: channels.PulseChannel,
             duration = builder.block.duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = duration * dt * frequency % (2*np.pi)
-            shift_phase(channel, -accumulated_phase)
-        shift_frequency(channel, -frequency)
+            shift_phase(-accumulated_phase, channel)
+        shift_frequency(-frequency, channel)
 
 
 # Types ########################################################################
@@ -815,13 +816,14 @@ def control_channel(qubits: Iterable[int]) -> List[channels.ControlChannel]:
 
 
 # Base Instructions ############################################################
-def delay(channel: channels.Channel, duration: int):
+def delay(duration: int,
+          channel: channels.Channel):
     """Delay on a ``channel`` for a ``duration``."""
     append_instruction(instructions.Delay(duration, channel))
 
 
-def play(channel: channels.PulseChannel,
-         pulse: Union[pulse_lib.Pulse, np.ndarray]):
+def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
+         channel: channels.PulseChannel):
     """Play a ``pulse`` on a ``channel``."""
 
     if not isinstance(pulse, pulse_lib.Pulse):
@@ -830,9 +832,9 @@ def play(channel: channels.PulseChannel,
     append_instruction(instructions.Play(pulse, channel))
 
 
-def acquire(qubit_or_channel: Union[int, channels.AcquireChannel],
+def acquire(duration: int,
+            qubit_or_channel: Union[int, channels.AcquireChannel],
             register: Union[channels.RegisterSlot, channels.MemorySlot],
-            duration: int,
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
@@ -850,27 +852,32 @@ def acquire(qubit_or_channel: Union[int, channels.AcquireChannel],
             'Register of type: "{}" is not supported'.format(type(register)))
 
 
-def set_frequency(channel: channels.PulseChannel, frequency: float):
+def set_frequency(frequency: float,
+                  channel: channels.PulseChannel):
     """Set the ``frequency`` of a pulse ``channel``."""
     append_instruction(instructions.SetFrequency(frequency, channel))
 
 
-def shift_frequency(channel: channels.PulseChannel, frequency: float):
+def shift_frequency(frequency: float,
+                    channel: channels.PulseChannel):
     """Shift the ``frequency`` of a pulse ``channel``."""
     raise NotImplementedError()
 
 
-def set_phase(channel: channels.PulseChannel, phase: float):
+def set_phase(phase: float,
+              channel: channels.PulseChannel):
     """Set the ``phase`` of a pulse ``channel``."""
     raise NotImplementedError()
 
 
-def shift_phase(channel: channels.PulseChannel, phase: float):
+def shift_phase(phase: float,
+                channel: channels.PulseChannel):
     """Shift the ``phase`` of a pulse ``channel``."""
     append_instruction(instructions.ShiftPhase(phase, channel))
 
 
-def snapshot(label: str, snapshot_type: str = 'statevector'):
+def snapshot(label: str,
+             snapshot_type: str = 'statevector'):
     """Simulator snapshot."""
     append_instruction(
         instructions.Snapshot(label, snapshot_type=snapshot_type))
@@ -972,13 +979,14 @@ def measure_all() -> List[channels.MemorySlot]:
     return registers
 
 
-def delay_qubits(qubits: Union[int, Iterable[int]], duration: int):
+def delay_qubits(duration: int,
+                 qubits: Union[int, Iterable[int]]):
     """Insert delays on all of the :class:`channels.Channel` that belong ``qubits``.
 
     Args:
+        duration: Duration to delay for.
         qubits: Physical qubits to delay on. Delays will be inserted based on
             the channels returned by :function:`qubit_channels`.
-        duration: Duration to delay for.
     """
     try:
         iter(qubits)
@@ -989,7 +997,7 @@ def delay_qubits(qubits: Union[int, Iterable[int]], duration: int):
                                                     qubit in qubits))
     with align_left(), group():
         for chan in qubit_chans:
-            delay(chan, duration)
+            delay(duration, chan)
 
 
 # Gate instructions ############################################################
@@ -1007,17 +1015,17 @@ def cx(control: int, target: int):
     call_gate(gates.CXGate(), (control, target))
 
 
-def u1(qubit: int, theta: float):
+def u1(theta: float, qubit: int):
     """Call a u1 gate on physical qubits."""
     call_gate(gates.U1Gate(theta), qubit)
 
 
-def u2(qubit: int, phi: float, lam: float):
+def u2(phi: float, lam: float, qubit: int):
     """Call a u2 gate on physical qubits."""
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
-def u3(qubit: int, theta: float, phi: float, lam: float):
+def u3(theta: float, phi: float, lam: float, qubit: int):
     """Call a u3 gate on physical qubits."""
     call_gate(gates.U3Gate(theta, phi, lam), qubit)
 
