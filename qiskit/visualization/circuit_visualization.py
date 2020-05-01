@@ -137,7 +137,7 @@ def circuit_drawer(circuit,
             when the ``output`` kwarg is set to use the ``mpl`` backend. It
             will be silently ignored with all other outputs.
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
-            Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+            Used by the ``text``, 'mpl', ``latex`` and ``latex_source`` outputs.
             Default: ``False``.
         cregbundle (bool): Optional. If set True bundle classical registers. Only used by
             the ``text`` output. Default: ``False``.
@@ -319,6 +319,7 @@ def circuit_drawer(circuit,
                                            justify=justify,
                                            idle_wires=idle_wires,
                                            with_layout=with_layout,
+                                           initial_state=initial_state,
                                            fold=fold,
                                            ax=ax)
     else:
@@ -615,6 +616,7 @@ def _matplotlib_circuit_drawer(circuit,
                                justify=None,
                                idle_wires=True,
                                with_layout=True,
+                               initial_state=True,
                                fold=None,
                                ax=None):
     """Draw a quantum circuit based on matplotlib.
@@ -661,5 +663,5 @@ def _matplotlib_circuit_drawer(circuit,
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits, layout=layout,
-                                       fold=fold, ax=ax)
+                                       initial_state=initial_state, fold=fold, ax=ax)
     return qcd.draw(filename)

@@ -104,7 +104,8 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None, fold=25, ax=None):
+                 reverse_bits=False, layout=None, initial_state=True, 
+                 fold=25, ax=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -139,6 +140,7 @@ class MatplotlibDrawer:
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         self.layout = layout
+        self.initial_state = initial_state
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -534,19 +536,26 @@ class MatplotlibDrawer:
     def _draw_regs(self):
 
         len_longest_label = 0
+        if self.initial_state:
+            initial_qbit = ' |0>'
+            initial_cbit = ' 0 '
+        else:
+            initial_qbit = ''
+            initial_cbit = ''
+
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
                 if self.layout is None:
-                    label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
-                                                              index=reg.index)
+                    label = '${{{name}}}_{{{index}}}$'.format(
+                        name=reg.register.name, index=reg.index) + initial_qbit
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
                         index=self.layout[reg.index].index,
-                        physical=reg.index)
+                        physical=reg.index) + initial_qbit
             else:
-                label = '${name}$'.format(name=reg.register.name)
+                label = '${name}$'.format(name=reg.register.name) + initial_qbit
 
             if len(label) > len_longest_label:
                 len_longest_label = len(label)
@@ -569,7 +578,7 @@ class MatplotlibDrawer:
                     self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
-                    label = '${}$'.format(reg.register.name)
+                    label = '${}$'.format(reg.register.name) + initial_cbit
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -579,7 +588,7 @@ class MatplotlibDrawer:
                     if not (not nreg or reg.register != nreg.register):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index) + initial_cbit
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -635,7 +644,7 @@ class MatplotlibDrawer:
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
-                         fontsize=1.5 * self._style.fs,
+                         fontsize=1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
