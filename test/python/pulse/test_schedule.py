@@ -121,7 +121,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = sched.insert(90, Acquire(10,
                                          self.config.acquire(0),
                                          MemorySlot(0),
-                                         RegisterSlot(0)))  # TODO: this shouldn't raise a warning
+                                         reg_slot=RegisterSlot(0)))
         self.assertEqual(0, sched.start_time)
         self.assertEqual(100, sched.stop_time)
         self.assertEqual(100, sched.duration)

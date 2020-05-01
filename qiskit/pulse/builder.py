@@ -142,7 +142,7 @@ from typing import (Any,
 import numpy as np
 
 from qiskit import circuit
-from qiskit.extensions import standard as gates
+from qiskit.circuit.library import standard_gates as gates
 from qiskit.pulse import channels
 from qiskit.pulse import configuration
 from qiskit.pulse import exceptions

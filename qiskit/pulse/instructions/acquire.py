@@ -76,7 +76,8 @@ class Acquire(Instruction):
             warnings.warn('The AcquireInstruction on multiple qubits, multiple '
                           'memory slots and multiple reg slots is deprecated. The '
                           'parameter "mem_slots" has been replaced by "mem_slot" and '
-                          '"reg_slots" has been replaced by "reg_slot"', DeprecationWarning, 3)
+                          '"reg_slots" has been replaced by "reg_slot"',
+                          DeprecationWarning, stacklevel=2)
 
         if not isinstance(channel, list):
             channels = [channel] if channel else None
