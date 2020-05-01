@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The methods on the :class:`qiskit.circuit.QuantumCircuit` class for adding
+    gates (for example :meth:`~qiskit.circuit.QuantumCircuit.h`) which were
+    previously added dynamically at run time to the class definition have been
+    refactored to be statically defined methods of the class. This means that
+    static analyzer (such as IDEs) can now read these methods.
+deprecations:
+  - |
+    The ``qiskit.extensions.standard`` module is deprecated and will be
+    removed in a future release. The gate classes in that module have been
+    moved to :mod:`qiskit.circuit.library.standard_gates`.

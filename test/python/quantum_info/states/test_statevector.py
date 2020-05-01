@@ -812,6 +812,24 @@ class TestStatevector(QiskitTestCase):
                 target = Statevector([0, 0, 1])
                 self.assertEqual(value, target)
 
+    def test_from_int(self):
+        """Test from_int method"""
+
+        with self.subTest(msg='from_int(0, 4)'):
+            target = Statevector([1, 0, 0, 0])
+            value = Statevector.from_int(0, 4)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='from_int(3, 4)'):
+            target = Statevector([0, 0, 0, 1])
+            value = Statevector.from_int(3, 4)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='from_int(8, (3, 3))'):
+            target = Statevector([0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(3, 3))
+            value = Statevector.from_int(8, (3, 3))
+            self.assertEqual(target, value)
+
 
 if __name__ == '__main__':
     unittest.main()
