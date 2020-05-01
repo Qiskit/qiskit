@@ -3,7 +3,7 @@
 # least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
 # Global rule, unless specialized by a later one
-* @ajavadia @kdk @mtreinish @1ucian0
+* @ajavadia @kdk @mtreinish @1ucian0 @jaygambetta
 
 # Individual folders on root directory
 /tools/               @mtreinish @kdk
@@ -12,14 +12,15 @@ test/                 @ajavadia @mtreinish @kdk @1ucian0
 docs/                 @nonhermitian @mtreinish
 
 # Qiskit folders (also their corresponding tests)
-circuit/              @ajavadia @kdk @ewinston @1ucian0 @mtreinish
+circuit/              @ajavadia @kdk @ewinston @1ucian0 @mtreinish @jaygambetta
 extensions/           @ajavadia @kdk @ewinston @1ucian0 @mtreinish
 dagcircuit/           @ajavadia @kdk @1ucian0 @maddy-tod
 providers/            @ajavadia @mtreinish @jyu00 @chriseclectic @ewinston
 basicaer/             @chriseclectic @ajavadia
 pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
+releasenotes/         @1ucian0 @ajavadia @chriseclectic @danpuzzuoli @eggerdj @ewinston @itoko @jaygambetta @jyu00 @kdk @lcapelluto @maddy-tod @mtreinish @nkanazawa1989 @nonhermitian @taalexander
 scheduler/            @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
-quantum_info/         @chriseclectic @ajavadia @ewinston
+quantum_info/         @chriseclectic @ajavadia @ewinston @jaygambetta
 qi/                   @chriseclectic @ajavadia
 result/               @jyu00 @taalexander @mtreinish @ajavadia
 schemas/              @mtreinish @taalexander

@@ -27,7 +27,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
-from .tools.pi_check import pi_check
+from qiskit.circuit.tools.pi_check import pi_check
 from .utils import generate_latex_label
 
 
@@ -211,8 +211,10 @@ class QCircuitImage:
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
                 self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
-                                    "_{" + str(self.ordered_regs[i].index) + "}" + \
-                                    ": 0}"
+                                    "_{" + str(self.ordered_regs[i].index) + "}" + ": "
+                if self.initial_state:
+                    self._latex[i][0] += "0"
+                self._latex[i][0] += "}"
             else:
                 if self.layout is None:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
@@ -588,7 +590,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                     elif len(qarglist) == 2:
-                        if op.name not in ['swap', 'rzz']:
+                        if isinstance(op.op, ControlledGate):
                             cond = str(op.op.ctrl_state)
                         pos_1 = self.img_regs[qarglist[0]]
                         pos_2 = self.img_regs[qarglist[1]]
@@ -793,7 +795,7 @@ class QCircuitImage:
                                                                      nm)
 
                     elif len(qarglist) == 3:
-                        if op.name in ['ccx', 'cswap']:
+                        if isinstance(op.op, ControlledGate):
                             ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]

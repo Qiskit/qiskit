@@ -12,16 +12,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Integer Comparator."""
 
 from typing import List, Optional
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
+from ..boolean_logic import OR
+from ..blueprintcircuit import BlueprintCircuit
 
 
-class IntegerComparator(QuantumCircuit):
+class IntegerComparator(BlueprintCircuit):
     r"""Integer Comparator.
 
     Operator compares basis states :math:`|i\rangle_n` against a classically given integer
@@ -150,17 +154,7 @@ class IntegerComparator(QuantumCircuit):
             [1 if twos_complement[i] == '1' else 0 for i in reversed(range(len(twos_complement)))]
         return twos_complement
 
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return self._data
-
-    def _invalidate(self) -> None:
-        """Invalidate the current build of the circuit."""
-        self._data = None
-
-    def _configuration_is_valid(self, raise_on_failure: bool = True) -> bool:
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         """Check if the current configuration is valid."""
         valid = True
 
@@ -184,13 +178,7 @@ class IntegerComparator(QuantumCircuit):
 
     def _build(self) -> None:
         """Build the comparator circuit."""
-        # set the register
-        if self._data:
-            return
-
-        _ = self._configuration_is_valid()
-
-        self._data = []
+        super()._build()
 
         qr_state = self.qubits[:self.num_state_qubits]
         q_compare = self.qubits[self.num_state_qubits]
@@ -210,14 +198,16 @@ class IntegerComparator(QuantumCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     elif i < self.num_state_qubits - 1:
                         if twos[i] == 1:
-                            self.OR([qr_state[i], qr_ancilla[i - 1]], qr_ancilla[i], None)
+                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
+                                         inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
                             # OR needs the result argument as qubit not register, thus
                             # access the index [0]
-                            self.OR([qr_state[i], qr_ancilla[i - 1]], q_compare, None)
+                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare],
+                                         inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
 
@@ -232,7 +222,8 @@ class IntegerComparator(QuantumCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
-                            self.OR([qr_state[i], qr_ancilla[i - 1]], qr_ancilla[i], None)
+                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
+                                         inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
             else:
