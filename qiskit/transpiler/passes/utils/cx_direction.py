@@ -21,7 +21,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import U2Gate, CXGate
+from qiskit.circuit.library.standard_gates import U2Gate, CXGate
 
 
 class CXDirection(TransformationPass):

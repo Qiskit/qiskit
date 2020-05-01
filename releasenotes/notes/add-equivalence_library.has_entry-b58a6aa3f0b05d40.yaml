@@ -1,6 +1,0 @@
----
-features:
-  - |
-    A new method, ``EquivalenceLibrary.has_entry``, has been added to the
-    ``EquivalenceLibrary`` class to quickly check if a given gate has any known
-    decompositions in the library.
