@@ -112,6 +112,14 @@ def deprecate_arguments(kwarg_map):
 
 
 def deprecate_function(msg):
+    """Emit a warning prior to calling decorated function.
+
+    Args:
+        msg (str): Warning message to emit.
+
+    Returns:
+        Callable: The decorated, deprecated callable.
+    """
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
