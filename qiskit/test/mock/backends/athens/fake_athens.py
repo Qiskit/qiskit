@@ -40,8 +40,7 @@ class FakeAthens(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 04/28/20.
-        """
+        """Returns a snapshot of device properties"""
         if not self._properties:
             dirname = os.path.dirname(__file__)
             filename = "props_athens.json"
@@ -51,8 +50,7 @@ class FakeAthens(FakeBackend):
         return self._properties
 
     def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 04/28/20.
-        """
+        """Returns a snapshot of device defaults"""
         if not self._defaults:
             dirname = os.path.dirname(__file__)
             filename = "defs_athens.json"
