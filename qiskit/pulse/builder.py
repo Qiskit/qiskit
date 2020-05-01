@@ -17,7 +17,8 @@
 Use the context builder interface to program pulse programs with assembly-like
 syntax. For example::
 
-.. code::
+.. code-block:: python
+
     import math
 
     import qiskit.pulse as pulse
@@ -27,7 +28,7 @@ syntax. For example::
 
     backend = FakeOpenPulse2Q()
 
-    with build(backend) as sched:
+    with build(backend) as pulse_prog:
         # Create a pulse.
         gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
         # Create a channel type.
@@ -120,6 +121,12 @@ syntax. For example::
             # offset contexts
             with phase_offset(math.pi, d0):
                 play(gaussian_pulse, d0)
+
+    # execute on real backend
+    # qiskit.execute(pulse_prog, backend)
+
+.. warning:: The pulse builder interface is still in development and is
+subject to change.
 """
 import collections
 import contextvars
@@ -165,7 +172,6 @@ __all__ = [
     "align_left",
     "align_right",
     "align_sequential",
-    "align",
     "group",
     "inline",
     "pad",
@@ -206,9 +212,10 @@ BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 T = TypeVar('T')  # pylint: disable=invalid-name
 
 
-def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]:
-    """Decorator thats schedules and calls the active circuit executing
-    the decorated function."""
+def _compile_lazy_circuit_before(function: Callable[..., T]
+                                 ) -> Callable[..., T]:
+    """Decorator thats schedules and calls the lazily compiled circuit before
+    executing the decorated builder method."""
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         self._compile_lazy_circuit()
@@ -217,12 +224,12 @@ def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]
 
 
 class BackendNotSet(exceptions.PulseError):
-    """Eaised if the builder context does not have a backend."""
+    """Raised if the builder context does not have a backend."""
 
 
 def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
-    """Decorator that will raise if a function is called without a builder.
-    With an active backend.
+    """Decorator a function to raise if it is called without a builder with a
+    set backend.
     """
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
@@ -243,17 +250,21 @@ class _PulseBuilder():
                  default_alignment: Union[str, Callable] = 'left',
                  default_transpiler_settings: Mapping = None,
                  default_circuit_scheduler_settings: Mapping = None):
-        """Initialize builder context.
+        """Initialize the builder context.
 
-        This is not a public class
+        .. note:: At some point we may consider incorpating the builder into
+            the :class:`~qiskit.pulse.Schedule` class. However, the risk of
+            this is tying the user interface to the intermediate
+            representation. For now we avoid this at the cost of some code
+            duplication.
 
         Args:
             backend (BaseBackend): Input backend to use in builder. If not set
                 certain functionality will be unavailable.
-            schedule: Initital schedule block to build off of. If not supplied
+            schedule: Initital schedule block to build off. If not supplied
                 a schedule will be created.
-            default_alignment: Default scheduling alignment for builder.
-                One of 'left', 'right', 'sequential' or an alignment
+            default_alignment: Default scheduling alignment policy for the
+                builder. One of 'left', 'right', 'sequential' or an alignment
                 contextmanager.
             default_transpiler_settings: Default settings for the transpiler.
             default_circuit_scheduler_settings: Default settings for the
@@ -272,7 +283,7 @@ class _PulseBuilder():
         self._lazy_circuit = None
 
         # ContextManager: Default alignment context.
-        self._default_alignment_context = align(default_alignment)
+        self._default_alignment_context = _align(default_alignment)
 
         if default_transpiler_settings is None:
             default_transpiler_settings = {}
@@ -290,10 +301,11 @@ class _PulseBuilder():
         self.set_active_block(Schedule())
 
     def __enter__(self) -> Schedule:
-        """Enter Builder Context.
+        """Enter this builder context and yield either the supplied schedule
+        or the schedule created for the user.
 
         Returns:
-            The schedule to be built.
+            The schedule that the builder will build on.
         """
         self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
         self._default_alignment_context.__enter__()
@@ -301,7 +313,7 @@ class _PulseBuilder():
 
     @_compile_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit Builder Context."""
+        """Exit the builder context and compile the built pulse program."""
         self._default_alignment_context.__exit__(exc_type, exc_val, exc_tb)
         self.compile()
         BUILDER_CONTEXTVAR.reset(self._backend_ctx_token)
@@ -311,7 +323,7 @@ class _PulseBuilder():
         """Returns the builder backend if set.
 
         Returns:
-            exceptions.PulseError: If backend not set.
+            Optional[BaseBackend]: The builder's backend.
         """
         return self._backend
 
@@ -328,7 +340,7 @@ class _PulseBuilder():
 
     @property
     def transpiler_settings(self) -> Mapping:
-        """The active builder transpiler settings."""
+        """The builder's transpiler settings."""
         return self._transpiler_settings
 
     @transpiler_settings.setter
@@ -339,7 +351,7 @@ class _PulseBuilder():
 
     @property
     def circuit_scheduler_settings(self) -> Mapping:
-        """The active builder circuit to pulse scheduler settings."""
+        """The builder's circuit to pulse scheduler settings."""
         return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
@@ -350,7 +362,7 @@ class _PulseBuilder():
 
     @_compile_lazy_circuit_before
     def compile(self) -> Schedule:
-        """Compile and output the built program."""
+        """Compile and output the built pulse program."""
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
@@ -361,7 +373,7 @@ class _PulseBuilder():
 
     @_compile_lazy_circuit_before
     def set_active_block(self, block: Schedule):
-        """Set the active block."""
+        """Set the active block for the builder."""
         assert isinstance(block, Schedule)
         self._block = block
 
@@ -376,7 +388,8 @@ class _PulseBuilder():
         self.block.append(instruction, mutate=True)
 
     def _compile_lazy_circuit(self):
-        """Call a QuantumCircuit."""
+        """Call a QuantumCircuit and append the output pulse schedule
+        to the active block."""
         # check by length, can't check if QuantumCircuit is None
         # so disable pylint error.
         if self._lazy_circuit:
@@ -394,11 +407,11 @@ class _PulseBuilder():
             self.call_schedule(sched)
 
     def call_schedule(self, schedule: Schedule):
-        """Call a schedule."""
+        """Call a schedule and append to the active block."""
         self.append_block(schedule)
 
     def new_circuit(self):
-        """Create a new circuit for scheduling."""
+        """Create a new circuit for lazy circuit scheduling."""
         return circuit.QuantumCircuit(self.num_qubits)
 
     @_requires_backend
@@ -410,10 +423,10 @@ class _PulseBuilder():
         The circuit is assumed to be defined on physical qubits.
 
         If ``lazy == True`` this circuit will extend a lazily constructed
-        quantum circuit. When the given context changes breaking the circuit
-        assumptions such as adding a pulse instruction, changing the alignment
-        context, or using new scheduling instructions the circuit will be
-        transpiled and pulse scheduled.
+        quantum circuit. When an operation occurs that breaks the underlying
+        circuit scheduling assumptions such as adding a pulse instruction or
+        changing the alignment context the circuit will be
+        transpiled and scheduled into pulses with the current active settings.
 
         Args:
             circ: Circuit to call.
@@ -440,11 +453,11 @@ class _PulseBuilder():
 
         The qubits are assumed to be defined on physical qubits.
 
-        If ``lazy == True`` this gate will extend a lazily constructed
-        quantum circuit. When the given context changes breaking the circuit
-        assumptions such as adding a pulse instruction, changing the alignment
-        context, or using new scheduling instructions the circuit will be
-        transpiled and pulse scheduled.
+        If ``lazy == True`` this circuit will extend a lazily constructed
+        quantum circuit. When an operation occurs that breaks the underlying
+        circuit scheduling assumptions such as adding a pulse instruction or
+        changing the alignment context the circuit will be
+        transpiled and scheduled into pulses with the current active settings.
 
         Args:
             gate: Gate to call.
@@ -469,14 +482,32 @@ def build(backend=None,
           default_transpiler_settings: Optional[Dict[str, Any]] = None,
           default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
           ) -> ContextManager[Schedule]:
-    """
-    A context manager for the imperative pulse builder DSL.
+    """A context manager for launching the imperative pulse builder DSL.
+
+    To enter a building context and starting building a pulse program::
+
+    .. code-block:: python
+        :emphasize-lines: 9
+
+        from qiskit import execute
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.play(pulse.Constant(100,0.5), d0)
+
+        # execute on real backend
+        # qiskit.execute(pulse_prog, backend)
 
     Args:
-        backend (BaseBackend): a Qiskit backend. If not supplied certain builder
-            functionality will be unavailable.
-        schedule: a *mutable* pulse Schedule in which to build your
-            pulse program.
+        backend (BaseBackend): A Qiskit backend. If not supplied certain
+            builder functionality will be unavailable.
+        schedule: a *mutable* pulse Schedule in which your pulse program will
+            be built.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment
             contextmanager.
@@ -520,10 +551,11 @@ def _active_builder() -> _PulseBuilder:
 
 
 def active_backend():
-    """Get the backend of the currently active context.
+    """Get the backend of the currently active builder context.
 
     Returns:
-        BaseBackend: The active backend in the currently active builder context.
+        BaseBackend: The active backend in the currently active
+            builder context.
 
     Raises:
         exceptions.BackendNotSet: If the builder does not have a backend set.
@@ -537,25 +569,69 @@ def active_backend():
 
 
 def append_block(block: Schedule):
-    """Append a block to the active block.
-
-    The active block is not changed.
-    """
+    """Call a block by appending to the active builder block."""
     _active_builder().append_block(block)
 
 
 def append_instruction(instruction: instructions.Instruction):
-    """Append an instruction to the currently active builder context."""
+    """Append an instruction to the current active builder context block.
+
+    For example::
+
+    .. code-block:: python
+        :emphasize-lines: 6
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.append_instruction(pulse.Delay(10, d0))
+    """
     _active_builder().append_instruction(instruction)
 
 
 def num_qubits() -> int:
-    """Return number of qubits in currently active backend."""
+    """Return number of qubits in currently active backend.
+
+    For example::
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            print(pulse.num_qubits())
+
+    .. note:: Requires the active builder context to have a backend set.
+    """
     return active_backend().configuration().n_qubits
 
 
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
-    """Returns the 'typical' set of channels associated with a qubit."""
+    """Returns the set of channels associated with a qubit.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            print(pulse.qubit_channels(0))
+
+    .. note:: Requires the active builder context to have a backend set.
+
+    .. note:: A channel may still be associated with another qubit in this list
+        such as in the case where significant crosstalk exists.
+
+    """
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
@@ -565,7 +641,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
     chans = set()
     for channel_or_qubit in channels_or_qubits:
         if isinstance(channel_or_qubit, int):
-            chans += qubit_channels(channel_or_qubit)
+            chans.union(qubit_channels(channel_or_qubit))
         elif isinstance(channel_or_qubit, channels.Channel):
             chans.add(channel_or_qubit)
         else:
@@ -576,13 +652,46 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
 
 
 def active_transpiler_settings() -> Dict[str, Any]:
-    """Return the currently active context transpiler settings."""
+    """Return the current active builder context's transpiler settings.
+
+    .. code-block:: python
+        :emphasize-lines: 10
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        transpiler_settings = {'optimization_level': 3}
+
+        with pulse.build(backend,
+                         default_transpiler_settings=transpiler_settings):
+            print(pulse.active_transpiler_settings())
+
+    """
     return _active_builder().transpiler_settings
 
 
 # pylint: disable=invalid-name
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
-    """Return the currently active context circuit scheduler settings."""
+    """Return the current active builder context's circuti scheduler settings.
+
+    .. code-block:: python
+        :emphasize-lines: 11
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        circuit_scheduler_settings = {'method': 'alap'}
+
+        with pulse.build(
+                backend,
+                default_circuit_scheduler_settings=circuit_scheduler_settings):
+            print(pulse.active_circuit_scheduler_settings())
+
+    """
     return _active_builder().circuit_scheduler_settings
 
 
@@ -590,7 +699,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 def _transform_context(transform: Callable[[Schedule], Schedule],
                        **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
-    """A tranform context generator decorator
+    """A tranform context generator, decorator.
 
     Decorator accepts a transformation function, and then decorates a new
     ContextManager function.
@@ -601,7 +710,8 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     Finally it will reset the initial active block after exiting
     the context and apply the decorated transform function to the
     context Schedule. The output transformed schedule will then be
-    appended to the initial active block.
+    appended to the initial active block. This effectively builds a stack
+    of active blocks that is automatically collapsed upon exiting the context.
 
     Args:
         transform: Transform to decorate as context.
@@ -636,21 +746,85 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
 
 @_transform_context(transforms.align_left)
 def align_left() -> ContextManager[None]:
-    """Left alignment transform builder context."""
+    """Left alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled as early as possible
+    by shifting them left to the earliest available time.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        with pulse.build() as pulse_prog:
+            with pulse.align_left():
+                # this pulse will start at t=0
+                pulse.play(pulse.Constant(100, 1.0), d0)
+                # this pulse will start at t=0
+                pulse.play(pulse.Constant(20, 1.0), d1)
+
+        assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
+    """
 
 
 @_transform_context(transforms.align_right)
 def align_right() -> ContextManager[None]:
-    """Right alignment transform builder context."""
+    """Right alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled as late as possible
+    by shifting them right to the latest available time.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        with pulse.build() as pulse_prog:
+            with pulse.align_right():
+                # this pulse will start at t=0
+                pulse.play(pulse.Constant(100, 1.0), d0)
+                # this pulse will start at t=80
+                pulse.play(pulse.Constant(20, 1.0), d1)
+
+        assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_stop_time(d1)
+    """
 
 
 @_transform_context(transforms.align_sequential)
 def align_sequential() -> ContextManager[None]:
-    """Sequential alignment transform builder context."""
+    """Sequential alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled sequentially in time
+    such that no two instructions will be played at the same time.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        with pulse.build() as pulse_prog:
+            with pulse.align_sequential():
+                # this pulse will start at t=0
+                pulse.play(pulse.Constant(100, 1.0), d0)
+                # this pulse will also start at t=100
+                pulse.play(pulse.Constant(20, 1.0), d1)
+
+        assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_start_time(d1)
+    """
 
 
-def align(alignment: str = 'left') -> ContextManager[None]:
-    """General alignment context.
+def _align(alignment: str = 'left') -> ContextManager[None]:
+    """General alignment context. Used by the :class:`_Builder` to choose the
+    default alignment policy.
 
     Args:
         alignment: Alignment scheduling policy to follow.
@@ -676,12 +850,61 @@ def align(alignment: str = 'left') -> ContextManager[None]:
 
 @_transform_context(transforms.group)
 def group() -> ContextManager[None]:
-    """Group the instructions within this context fixing their relative timing."""
+    """Group the instructions within this context as a :class:`pulse.Schedule`.
+    fixing their relative time in parent contexts.
+
+    .. code-block:: python
+        :emphasize-lines: 11
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
+        with pulse.build() as pulse_prog:
+            # will be ignored due to internal grouping
+            with pulse.align_sequential():
+                pulse.play(pulse.Constant(10, 1.0), d0)
+                with pulse.group():
+                    with pulse.align_left():
+                        # this pulse will start at t=10
+                        pulse.play(pulse.Constant(100, 1.0), d1)
+                        # this pulse will also start at t=10
+                        pulse.play(pulse.Constant(20, 1.0), d2)
+
+        assert pulse_prog.ch_start_time(d1) == pulse_prog.ch_start_time(d2)
+    """
 
 
 @contextmanager
 def inline() -> ContextManager[None]:
-    """Inline all instructions within this context into the parent context.
+    """Inline all instructions within this context into the parent context,
+    inheriting the scheduling policy of the parent context.
+
+    .. code-block:: python
+        :emphasize-lines: 11
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
+        with pulse.build() as pulse_prog:
+            # will be ignored due to internal grouping
+            with pulse.align_left():
+                pulse.play(pulse.Constant(10, 1.0), d0)
+                with pulse.inline():
+                    with pulse.align_right():
+                        # this pulse will start at t=0
+                        pulse.play(pulse.Constant(100, 1.0), d1)
+                        # this pulse will also start at t=0
+                        pulse.play(pulse.Constant(20, 1.0), d2)
+
+        assert (pulse_prog.ch_start_time(d1) ==
+                pulse_prog.ch_start_time(d2) ==
+                pulse_prog.ch_start_time(d1))
 
     .. warning:: This will cause all scheduling directives within this context
         to be ignored.
@@ -702,15 +925,49 @@ def inline() -> ContextManager[None]:
 @_transform_context(transforms.pad, mutate=True)
 def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
     """Pad all availale timeslots with delays upon exiting context.
+
     Args:
         chs: Channels to pad with delays. Defaults to all channels in context
             if none are supplied.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        with pulse.build() as pulse_prog:
+            with pulse.pad():
+                with pulse.align_right():
+                    # this pulse will start at t=0
+                    pulse.play(pulse.Constant(100, 1.0), d0)
+                    # this pulse will start at t=80
+                    # a delay will be inserted from t=0 to t=80
+                    pulse.play(pulse.Constant(20, 1.0), d1)
+        assert pulse_prog.ch_start_time(d0) == pulse_prog.ch_start_time(d1)
+        assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_stop_time(d1)
     """
 
 
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
-    """Set the currently active transpiler settings for this context."""
+    """Set the currently active transpiler settings for this context.
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            print(pulse.active_transpiler_settings())
+            with pulse.transpiler_settings(optimization_level=3):
+                print(pulse.active_transpiler_settings())
+    """
     builder = _active_builder()
     curr_transpiler_settings = builder.transpiler_settings
     builder.transpiler_settings = collections.ChainMap(
@@ -723,7 +980,21 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 
 @contextmanager
 def circuit_scheduler_settings(**settings) -> ContextManager[None]:
-    """Set the currently active circuit scheduling settings for this context."""
+    """Set the currently active circuit scheduler settings for this context.
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            print(pulse.active_circuit_scheduler_settings())
+            with pulse.circuit_scheduler_settings(method='alap'):
+                print(pulse.active_circuit_scheduler_settings())
+    """
     builder = _active_builder()
     curr_circuit_scheduler_settings = builder.circuit_scheduler_settings
     builder.circuit_scheduler_settings = collections.ChainMap(
@@ -739,6 +1010,21 @@ def phase_offset(phase: float,
                  channel: channels.PulseChannel
                  ) -> ContextManager[None]:
     """Shift the phase of a channel on entry into context and undo on exit.
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        import math
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build(backend) as pulse_prog:
+            with pulse.phase_offset(math.pi, d0):
+                pulse.play(pulse.Constant(10, 1.0), d0)
+
+        assert len(pulse_prog.instructions) == 3
 
     Args:
         phase: Amount of phase offset in radians.
@@ -760,6 +1046,29 @@ def frequency_offset(frequency: float,
                      compensate_phase: bool = False
                      ) -> ContextManager[None]:
     """Shift the frequency of a channel on entry into context and undo on exit.
+
+    .. code-block:: python
+        :emphasize-lines: 7, 16
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build(backend) as pulse_prog:
+            # shift frequency by 1GHz
+            with pulse.frequency_offset(1e9, d0):
+                pulse.play(pulse.Constant(10, 1.0), d0)
+
+        assert len(pulse_prog.instructions) == 3
+
+        with pulse.build(backend) as pulse_prog:
+            # Shift frequency by 1GHz.
+            # Undo accumulated phase in the shifted freqeuncy frame
+            # when exiting the context.
+            with pulse.frequency_offset(1e9, d0, compensate_phase=True):
+                pulse.play(pulse.Constant(10, 1.0), d0)
+
+        assert len(pulse_prog.instructions) == 4
 
     Args:
         frequency: Amount of frequency offset in Hz.
@@ -786,31 +1095,87 @@ def frequency_offset(frequency: float,
 
 # Types ########################################################################
 def drive_channel(qubit: int) -> channels.DriveChannel:
-    """Return ``DriveChannel`` for ``qubit`` on the active builder backend."""
+    """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            assert pulse.drive_channel(0) == pulse.DriveChannel(0)
+
+    .. note:: Requires the active builder context to have a backend set.
+    """
     return active_backend().configuration().drive(qubit)
 
 
 def measure_channel(qubit: int) -> channels.MeasureChannel:
-    """Return ``MeasureChannel`` for ``qubit`` on the active builder backend."""
+    """Return ``MeasureChannel`` for ``qubit`` on the active builder backend.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            assert pulse.measure_channel(0) == pulse.MeasureChannel(0)
+
+    .. note:: Requires the active builder context to have a backend set.
+    """
     return active_backend().configuration().measure(qubit)
 
 
 def acquire_channel(qubit: int) -> channels.AcquireChannel:
-    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend."""
+    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend):
+            assert pulse.acquire_channel(0) == pulse.AcquireChannel(0)
+
+    .. note:: Requires the active builder context to have a backend set.
+    """
     return active_backend().configuration().acquire(qubit)
 
 
-def control_channel(qubits: Iterable[int]) -> List[channels.ControlChannel]:
+def control_channel(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
 
-    Return the secondary drive channel for the given qubit -- typically utilized for
-    controlling multiqubit interactions. This channel is derived from other channels.
+    Return the secondary drive channel for the given qubit -- typically
+    utilized for controlling multi-qubit interactions.
+
+    .. code-block:: python
+        :emphasize-lines: 6
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+        with pulse.build(backend):
+            assert pulse.control_channel(0, 1) == [pulse.ControlChannel(0)]
+
+    .. note:: Requires the active builder context to have a backend set.
 
     Args:
-      qubits: Tuple or list of qubits of the form `(control_qubit, target_qubit)`.
+      qubits: Tuple or list of ordered qubits of the form
+        `(control_qubit, target_qubit)`.
 
     Returns:
-      List of control channels.
+        List of control channels associated with the supplied ordered list
+        of qubits.
     """
     return active_backend().configuration().control(qubits=qubits)
 
@@ -818,13 +1183,43 @@ def control_channel(qubits: Iterable[int]) -> List[channels.ControlChannel]:
 # Base Instructions ############################################################
 def delay(duration: int,
           channel: channels.Channel):
-    """Delay on a ``channel`` for a ``duration``."""
+    """Delay on a ``channel`` for a ``duration``.
+
+    .. code-block:: python
+        :emphasize-lines: 6
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.delay(10, d0)
+
+    Args:
+        duration: Number of cycles to delay for on ``channel``.
+        channel: Channel to delay on.
+    """
     append_instruction(instructions.Delay(duration, channel))
 
 
 def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
          channel: channels.PulseChannel):
-    """Play a ``pulse`` on a ``channel``."""
+    """Play a ``pulse`` on a ``channel``.
+
+    .. code-block:: python
+        :emphasize-lines: 6
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.play(pulse.Constant(10, 1.0), d0)
+
+    Args:
+        pulse: Pulse to play.
+        channel: Channel to play pulse on.
+    """
 
     if not isinstance(pulse, pulse_lib.Pulse):
         pulse = pulse_lib.SamplePulse(pulse)
@@ -838,9 +1233,40 @@ def acquire(duration: int,
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
-    in a ``register``."""
+    in a ``register``.
+
+    .. code-block:: python
+        :emphasize-lines: 6, 10
+
+        from qiskit import pulse
+
+        d0 = pulse.MeasureChannel(0)
+        mem0 = pulse.MemorySlot(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.acquire(100, d0, mem0)
+
+            # measurement metadata
+            kernel = pulse.configuration.Kernel('linear_discriminator')
+            pulse.acquire(100, d0, mem0, kernel=kernel)
+
+    .. note:: The type of data acquire will depend on the execution
+        ``meas_level``.
+
+    Args:
+        duration: Duration to acquire data for
+        qubit_or_channel: Either the qubit to acquire data for or the specific
+            :class:`~qiskit.pulse.channels.AcquireChannel` to acquire on.
+        register: Location to store measured result.
+        metadata: Additional metadata for measurement. See
+            :class:`~qiskit.pulse.instructions.Acquire` for more information.
+
+    Raises:
+        exceptions.PulseError: If the register type is not supported.
+    """
     if isinstance(qubit_or_channel, int):
         qubit_or_channel = channels.AcquireChannel(qubit_or_channel)
+
     if isinstance(register, channels.MemorySlot):
         append_instruction(instructions.Acquire(
             duration, qubit_or_channel, mem_slot=register, **metadata))
@@ -854,47 +1280,198 @@ def acquire(duration: int,
 
 def set_frequency(frequency: float,
                   channel: channels.PulseChannel):
-    """Set the ``frequency`` of a pulse ``channel``."""
+    """Set the ``frequency`` of a pulse ``channel``.
+
+    .. code-block:: python
+        :emphasize-lines: 6
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.set_frequency(1e9, d0)
+
+    Args:
+        frequency: Frequency in Hz to set channel to.
+        channel: Channel to set frequency of.
+    """
     append_instruction(instructions.SetFrequency(frequency, channel))
 
 
 def shift_frequency(frequency: float,
                     channel: channels.PulseChannel):
-    """Shift the ``frequency`` of a pulse ``channel``."""
+    """Shift the ``frequency`` of a pulse ``channel``.
+
+
+    .. code-block:: python
+        :emphasize-lines: 6
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.shift_frequency(1e9, d0)
+
+    Args:
+        frequency: Frequency in Hz to shift channel frequency by.
+        channel: Channel to shift frequency of.
+    """
     raise NotImplementedError()
 
 
 def set_phase(phase: float,
               channel: channels.PulseChannel):
-    """Set the ``phase`` of a pulse ``channel``."""
+    """Set the ``phase`` of a pulse ``channel``.
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        import math
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.set_phase(math.pi, d0)
+
+    Args:
+        phase: Phase in radians to set channel carrier signal to.
+        channel: Channel to set phase of.
+    """
     raise NotImplementedError()
 
 
 def shift_phase(phase: float,
                 channel: channels.PulseChannel):
-    """Shift the ``phase`` of a pulse ``channel``."""
+    """Shift the ``phase`` of a pulse ``channel``.
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        import math
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build() as pulse_prog:
+            pulse.shift_phase(math.pi, d0)
+
+    Args:
+        phase: Phase in radians to shift channel carrier signal by.
+        channel: Channel to shift phase of.
+    """
     append_instruction(instructions.ShiftPhase(phase, channel))
 
 
 def snapshot(label: str,
              snapshot_type: str = 'statevector'):
-    """Simulator snapshot."""
+    """Simulator snapshot.
+
+    .. code-block:: python
+        :emphasize-lines: 4
+
+        from qiskit import pulse
+
+        with pulse.build() as pulse_prog:
+            pulse.snapshot('first', 'statevector')
+
+    Args:
+        label: Label for snapshot.
+        snapshot_type: Type of snapshot.
+    """
     append_instruction(
         instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
 def call_schedule(schedule: Schedule):
-    """Call a pulse ``schedule`` in the builder context."""
+    """Call a pulse ``schedule`` in the builder context.
+
+    .. code-block:: python
+        :emphasize-lines: 9
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(pulse.Constant(10, 1.0), d0)
+
+        with pulse.build() as pulse_prog:
+            pulse.call_schedule(sched)
+
+        assert pulse_prog == sched
+
+    Args:
+        Schedule to call.
+    """
     _active_builder().call_schedule(schedule)
 
 
 def call_circuit(circ: circuit.QuantumCircuit):
-    """Call a quantum ``circuit`` within the active builder context."""
+    """Call a quantum ``circuit`` within the active builder context.
+
+    .. code-block:: python
+        :emphasize-lines: 18, 22
+
+        from qiskit import circuit
+        from qiskit import pulse
+        from qiskit import schedule
+        from qiskit import transpile
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        d0 = pulse.DriveChannel(0)
+
+        qc = circuit.QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc_transpiled = transpile(qc, optimization_level=3)
+        sched = schedule(qc_transpiled, backend)
+
+        with pulse.build(backend) as pulse_prog:
+            # with default settings
+            pulse.call_circuit(qc)
+
+        with pulse.build(backend) as pulse_prog:
+            with pulse.transpiler_settings(optimization_level=3):
+                pulse.call_circuit(qc)
+
+        assert pulse_prog == sched
+
+    .. note:: Requires the active builder context to have a backend set.
+
+    Args:
+        Circuit to call.
+    """
     _active_builder().call_circuit(circ, lazy=True)
 
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
     """Call the ``target`` within the currently active builder context.
+
+    .. code-block:: python
+        :emphasize-lines: 15, 16
+
+        from qiskit import circuit
+        from qiskit import pulse
+        from qiskit import schedule
+        from qiskit import transpile
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        qc = circuit.QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc_transpiled = transpile(qc, optimization_level=3)
+        sched = schedule(qc_transpiled, backend)
+
+        with pulse.build(backend) as pulse_prog:
+                pulse.call(sched)
+                pulse.call(qc)
 
     Args:
         target: Target circuit or pulse schedule to call.
@@ -916,17 +1493,63 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
     """Barrier directive for a set of channels and qubits.
 
     This directive prevents the compiler from moving instructions across
-    the barrier.
+    the barrier. Consider the case where we want to enforce that one pulse
+    happens after another on separate channels, this can be done with::
+
+    .. code-block:: python
+        :emphasize-lines: 11
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        with pulse.build(backend) as barrier_pulse_prog:
+            pulse.play(pulse.Constant(10, 1.0), d0)
+            pulse.barrier(d0, d1)
+            pulse.play(pulse.Constant(10, 1.0), d1)
+
+    Of course this could have been accomplished with::
+
+    .. code-block:: python
+
+        with pulse.build(backend) as aligned_pulse_prog:
+            with pulse.align_sequential():
+                pulse.play(pulse.Constant(10, 1.0), d0)
+                pulse.play(pulse.Constant(10, 1.0), d1)
+        assert barrier_pulse_prog == aligned_pulse_prog
+
+    The barrier allows the pulse compiler to take care of more advanced
+    scheduling aligment operations across channels. For example
+    in the case where we are calling an outside circuit or schedule and
+    want to align a pulse at the end of one call::
+
+    .. code-block:: python
+        :emphasize-lines: 9
+
+        import math
+
+        d0 = pulse.DriveChannel(0)
+
+        with pulse.build(backend) as pulse_prog:
+            with pulse.align_right():
+                pulse.x(1)
+                # Barrier qubit 1 and d0.
+                pulse.barrier(1, d0)
+                # Due to barrier this will play before the gate on qubit 1.
+                pulse.play(pulse.Constant(10, 1.0), d0)
+                # This will end at the same time as the pulse above due to
+                # the barrier.
+                pulse.x(1)
+
+    .. note:: Requires the active builder context to have a backend set if
+        qubits are barriered on.
 
     Args:
         channels_or_qubits: Channels or qubits to barrier.
-
-    .. todo:: Implement this as a proper instruction.
-
-    Raises:
-        exceptions.PulseError: If input is not a ``Channel`` or an integer
-            representing a qubit index.
-        NotImplementedError: Barrier has not yet been implemented.
     """
     chans = _qubits_to_channels(*channels_or_qubits)
     append_instruction(directives.RelativeBarrier(*chans))
@@ -938,10 +1561,53 @@ def measure(qubit: int,
             ) -> Union[channels.MemorySlot, channels.RegisterSlot]:
     """Measure a qubit within the currently active builder context.
 
+    At the pulse level a measurement is composed of both a stimulus pulse and
+    an acquisition instruction which tells the systems measurement unit to
+    acquire data and process it. We provide this measurement macro to automate
+    the process for you, but if desired full control is still available with
+    :func:`acquire` and :func:`play`.
+
+    To use the measurement it is as simple as specifying the qubit you wish to
+    measure::
+
+    .. code-block:: python
+        :emphasize-lines: 10
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        qubit = 0
+
+        with pulse.build(backend) as pulse_prog:
+            # Do something to the qubit.
+            qubit_drive_chan = pulse.drive_channel(0)
+            pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
+            # Measure the qubit.
+            reg = pulse.measure(qubit)
+
+    For now it is not possible to do much with the handle to ``reg`` but in the
+    future we will support using this handle to a result register to build
+    up ones program. It is also possible to supply this register::
+
+    .. code-block:: python
+        :emphasize-lines: 5
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
+            # Measure the qubit.
+            mem0 = pulse.MemorySlot(0)
+            reg = pulse.measure(qubit, mem0)
+
+        assert reg == mem0
+
+    .. note:: Requires the active builder context to have a backend set.
+
     Args:
         qubit: Physical qubit to measure.
         register: Register to store result in. If not selected the current
-            behavior is to return the :class:`MemorySlot` with the same
+            behaviour is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
@@ -963,6 +1629,26 @@ def measure(qubit: int,
 def measure_all() -> List[channels.MemorySlot]:
     """Measure all qubits within the currently active builder context.
 
+    A simple macro function to measure all of the qubits in the device at the
+    same time. This is useful for handling device ``meas_map`` and single
+    measurement constraints.
+
+    Example usage::
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            # Measure all qubits and return associated registers.
+            regs = pulse.measure_all()
+
+    .. note:: Requires the active builder context to have a backend set.
+
     Returns:
         The ``register``s the qubit measurement results will be stored in.
     """
@@ -981,7 +1667,24 @@ def measure_all() -> List[channels.MemorySlot]:
 
 def delay_qubits(duration: int,
                  qubits: Union[int, Iterable[int]]):
-    """Insert delays on all of the :class:`channels.Channel` that belong ``qubits``.
+    r"""Insert delays on all of the :class:`channels.Channel`\s that correspond
+    to the input ``qubits`` at the same time.
+
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            # Measure all qubits and return associated registers.
+            regs = pulse.delay_qubits(0, 1)
+
+    .. note:: Requires the active builder context to have a backend set.
 
     Args:
         duration: Duration to delay for.
@@ -1001,35 +1704,174 @@ def delay_qubits(duration: int,
 
 
 # Gate instructions ############################################################
-def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...]):
-    """Call a gate and lower to its corresponding pulse instruction.
+def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
+    """Call a gate and lazily schedule it to its corresponding
+    pulse instruction.
 
-    .. note:: If multiple gates are called in a row they may be optimized by the
-        transpiler, depending on the :function:`active_transpiler_settings``.
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 8
+
+        from qiskit import pulse
+        from qiskit.circuit.library import standard_gates as gates
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.call_gate(gates.CXGate(), (0, 1))
+
+    We can see the role of the transpiler in scheduling gates by optimizing
+    away two consecutive CNOT gates::
+
+    .. code-block:: python
+        :emphasize-lines: 3, 4
+
+        with pulse.build(backend) as pulse_prog:
+            with pulse.transpiler_settings(optimization_level=3):
+                pulse.call_gate(gates.CXGate(), (0, 1))
+                pulse.call_gate(gates.CXGate(), (0, 1))
+
+        assert pulse_prog == pulse.Schedule()
+
+    .. note:: If multiple gates are called in a row they may be optimized by
+        the transpiler, depending on the
+        :function:`active_transpiler_settings``.
+
+    .. note:: Requires the active builder context to have a backend set.
+
+    Args:
+        gate: Circuit gate instance to call.
+        qubits: Qubits to call gate on.
+        lazy: If ``false`` the gate will be compiled immediately, otherwise
+            it will be added onto a lazily evaluated quantum circuit to be
+            compiled when the builder is forced to by a circuit assumption
+            being broken, such as the inclusion of a pulse instruction or
+            new alignment context.
     """
-    _active_builder().call_gate(gate, qubits, lazy=True)
+    _active_builder().call_gate(gate, qubits, lazy=lazy)
 
 
 def cx(control: int, target: int):
-    """Call a cx gate on physical qubits."""
+    """Call a cx gate on physical qubits.
+
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.cx(0, 1)
+
+    :class:`~qiskit.circuit.library.standard_gates.CXGate`: for the full
+    description of the gate.
+    """
     call_gate(gates.CXGate(), (control, target))
 
 
 def u1(theta: float, qubit: int):
-    """Call a u1 gate on physical qubits."""
+    """Call a u1 gate on physical qubits.
+
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 9
+
+        import math
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.u1(math.pi, 1)
+
+    .. seealso::
+
+        :class:`~qiskit.circuit.library.standard_gates.U1Gate`: for the full
+        description of the gate.
+    """
     call_gate(gates.U1Gate(theta), qubit)
 
 
 def u2(phi: float, lam: float, qubit: int):
-    """Call a u2 gate on physical qubits."""
+    """Call a u2 gate on physical qubits.
+
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 9
+
+        import math
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.u2(0, math.pi, 1)
+
+    .. seealso::
+
+        :class:`~qiskit.circuit.library.standard_gates.U2Gate`: for the full
+        description of the gate.
+    """
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
 def u3(theta: float, phi: float, lam: float, qubit: int):
-    """Call a u3 gate on physical qubits."""
+    """Call a u3 gate on physical qubits.
+
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 9
+
+        import math
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.u3(math.pi, 0, math.pi, 1)
+
+    .. seealso::
+
+        :class:`~qiskit.circuit.library.standard_gates.U3Gate`: for the full
+        description of the gate.
+    """
     call_gate(gates.U3Gate(theta, phi, lam), qubit)
 
 
 def x(qubit: int):
-    """Call a x gate on physical qubits."""
+    """Call a x gate on physical qubits.
+
+    Example Usage::
+
+    .. code-block:: python
+        :emphasize-lines: 7
+
+        from qiskit import pulse
+        from qiskit.test.mock import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
+
+        with pulse.build(backend) as pulse_prog:
+            pulse.x(0)
+
+    .. seealso::
+
+        :class:`~qiskit.circuit.library.standard_gates.XGate`: for the full
+        description of the gate.
+    """
     call_gate(gates.XGate(), qubit)
