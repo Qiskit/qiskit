@@ -180,6 +180,7 @@ html_favicon = 'images/favicon.ico'
 html_last_updated_fmt = '%Y/%m/%d'
 
 autosummary_generate = True
+autosummary_generate_overwrite = False
 
 autodoc_default_options = {
     'inherited-members': None,
