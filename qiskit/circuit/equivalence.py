@@ -74,6 +74,23 @@ class EquivalenceLibrary():
 
         self._map[key].equivalences.append(equiv)
 
+    def has_entry(self, gate):
+        """Check if a library contains any decompositions for gate.
+
+        Args:
+            gate (Gate): A Gate instance.
+
+        Returns:
+            Bool: True if gate has a known decomposition in the library.
+                False otherwise.
+        """
+
+        key = Key(name=gate.name,
+                  num_qubits=gate.num_qubits)
+
+        return (key in self._map or
+                (self._base.has_entry(gate) if self._base is not None else False))
+
     def set_entry(self, gate, entry):
         """Set the equivalence record for a Gate. Future queries for the Gate
         will return only the circuits provided.

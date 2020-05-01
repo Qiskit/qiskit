@@ -16,28 +16,9 @@
 
 import unittest
 
-from ddt import ddt, data
-
-import networkx as nx
-
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ClassicalRegister, Clbit
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Measure
-from qiskit.circuit import Reset
-from qiskit.circuit import Gate, Instruction
-from qiskit.extensions.standard.iden import IdGate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.x import CnotGate
-from qiskit.extensions.standard.z import CzGate
-from qiskit.extensions.standard.x import XGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.barrier import Barrier
-from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
-from .test_dagcircuit import raise_if_dagcircuit_invalid
 
 
 class TestDagCompose(QiskitTestCase):
@@ -99,11 +80,6 @@ class TestDagCompose(QiskitTestCase):
 
         """
         qreg = QuantumRegister(5, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
-        right_qubit2 = qreg[2]
-        right_qubit3 = qreg[3]
-        right_qubit4 = qreg[4]
 
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[3])
@@ -161,8 +137,6 @@ class TestDagCompose(QiskitTestCase):
 
         """
         qreg = QuantumRegister(2, 'rqr')
-        right_qubit0 = qreg[0]
-        right_qubit1 = qreg[1]
 
         circuit_right = QuantumCircuit(qreg)
         circuit_right.cx(qreg[0], qreg[1])
