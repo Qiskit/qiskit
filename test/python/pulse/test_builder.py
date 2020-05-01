@@ -280,7 +280,7 @@ class TestInstructions(TestBuilder):
     def test_play_parametric_pulse(self):
         """Test play instruction with parametric pulse."""
         d0 = pulse.DriveChannel(0)
-        test_pulse = pulse_lib.ConstantPulse(10, 1.0)
+        test_pulse = pulse_lib.Constant(10, 1.0)
 
         with pulse.build() as schedule:
             pulse.play(d0, test_pulse)
@@ -760,8 +760,8 @@ class TestBuilderComposition(TestBuilder):
                 pulse.delay(d0, delay_dur)
                 pulse.u2(1, 0, pi/2)
             with pulse.align_right():
-                pulse.play(d1, pulse_lib.ConstantPulse(short_dur, 0.1))
-                pulse.play(d2, pulse_lib.ConstantPulse(long_dur, 0.1))
+                pulse.play(d1, pulse_lib.Constant(short_dur, 0.1))
+                pulse.play(d2, pulse_lib.Constant(long_dur, 0.1))
                 pulse.u2(1, 0, pi/2)
             with pulse.align_left():
                 pulse.u2(0, 0, pi/2)
@@ -788,12 +788,12 @@ class TestBuilderComposition(TestBuilder):
 
         # inner align right
         align_right_reference = pulse.Schedule()
-        align_right_reference += pulse.Play(pulse_lib.ConstantPulse(long_dur, 0.1), d2)
+        align_right_reference += pulse.Play(pulse_lib.Constant(long_dur, 0.1), d2)
         align_right_reference.insert(long_dur-single_u2_sched.duration,
                                      single_u2_sched,
                                      mutate=True)
         align_right_reference.insert(long_dur-single_u2_sched.duration-short_dur,
-                                     pulse.Play(pulse_lib.ConstantPulse(short_dur, 0.1), d1),
+                                     pulse.Play(pulse_lib.Constant(short_dur, 0.1), d1),
                                      mutate=True)
         # inner align left
         align_left_reference = triple_u2_sched
