@@ -451,8 +451,7 @@ class RCCXGate(Gate):
                             [0, 0, 0, 0, 0, 0, 1, 0],
                             [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
 
-
-class C3XGate(ControlledGate):
+class C3RXGate(ControlledGate):
     """The 3-qubit controlled X gate.
 
     This implementation is based on Page 17 of [1].
@@ -461,7 +460,7 @@ class C3XGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
-    def __init__(self, angle=None, label=None, ctrl_state=None):
+    def __init__(self, angle, label=None, ctrl_state=None):
         """Create a new 3-qubit controlled X gate.
 
         Args:
@@ -471,13 +470,6 @@ class C3XGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        if angle == numpy.pi / 8:
-            import warnings
-            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
-                          'When angle=pi/8, use C3SqrtXGate()',
-                          DeprecationWarning, stacklevel=2)
-        else:
-            angle = numpy.pi / 4
         super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
         self.base_gate = XGate()
         self._angle = angle
@@ -577,6 +569,27 @@ class C3XGate(ControlledGate):
     #                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
     #                         [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
 
+class C3XGate(C3RXGate):
+    def __init__(self, angle=None, label=None, ctrl_state=None):
+        import warnings
+        if angle == numpy.pi / 8:
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
+                          'When angle=pi/8, use C3SqrtXGate()',
+                          DeprecationWarning, stacklevel=2)
+        elif angle == numpy.pi / 4:
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
+                          'angle=pi/8, while be the default behavior C3XGate.',
+                          DeprecationWarning, stacklevel=2)
+        elif angle is not None:
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
+                          'When angle!=pi/8, use C3RXGate()',
+                          DeprecationWarning, stacklevel=2)
+
+        super().__init__(angle=angle or numpy.pi/4, label=label, ctrl_state=ctrl_state)
+
+class C3SqrtXGate(C3RXGate):
+    def __init__(self, label=None, ctrl_state=None):
+        super().__init__(angle=numpy.pi/8, label=label, ctrl_state=ctrl_state)
 
 class RC3XGate(Gate):
     """The simplified 3-controlled Toffoli gate.
@@ -712,7 +725,7 @@ class C4XGate(ControlledGate):
             (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-            (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
+            (C3SqrtXGate(), [q[0], q[1], q[2], q[4]], []),
         ]
         self.definition = definition
 
