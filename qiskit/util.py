@@ -123,7 +123,7 @@ def deprecate_function(msg):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(msg, DeprecationWarning)
+            warnings.warn(msg, DeprecationWarning, stacklevel=3)
             return func(*args, **kwargs)
         return wrapper
     return decorator
