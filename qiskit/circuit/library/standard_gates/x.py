@@ -583,9 +583,10 @@ class C3XGate(C3RXGate):
         elif angle is not None:
             warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
                           'When angle!=pi/8, use C3RXGate()',
-                          DeprecationWarning, stacklevel=2)
-
-        super().__init__(angle=angle or numpy.pi/4, label=label, ctrl_state=ctrl_state)
+                          DeprecationWarning, stacklevel=2
+        else:
+            angle = numpy.pi / 4
+        super().__init__(angle=angle, label=label, ctrl_state=ctrl_state)
 
 class C3SqrtXGate(C3RXGate):
     def __init__(self, label=None, ctrl_state=None):
