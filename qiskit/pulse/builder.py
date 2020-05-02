@@ -1146,7 +1146,7 @@ def frequency_offset(frequency: float,
     """
     builder = _active_builder()
     t0 = builder.block.duration
-    shift_frequency(channel, frequency)
+    shift_frequency(frequency, channel)
     try:
         yield
     finally:
@@ -1154,8 +1154,8 @@ def frequency_offset(frequency: float,
             duration = builder.block.duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = duration * dt * frequency % (2*np.pi)
-            shift_phase(-accumulated_phase, channel)
-        shift_frequency(-frequency, channel)
+            shift_phase(channel, -accumulated_phase)
+        shift_frequency(channel, -frequency)
 
 
 # Types ########################################################################

@@ -100,7 +100,7 @@ class Instruction(ScheduleComponent, ABC):
         shortly.
 
         Returns:
-            ..commands.Command: The deprecated command if available.
+            Command: The deprecated command if available.
         """
         return self._command
 
