@@ -58,6 +58,7 @@ from . import (
     RYYGate,
     ZGate,
     CZGate,
+    C3SqrtXGate,
 )
 
 
@@ -204,7 +205,7 @@ for inst, qargs, cargs in [
         (CU1Gate(pi / 2), [q[3], q[4]], []),
         (HGate(), [q[4]], []),
         (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-        (C3XGate(pi / 8), [q[0], q[1], q[2], q[4]], []),
+        (C3SqrtXGate(), [q[0], q[1], q[2], q[4]], []),
 ]:
     def_c4x.append(inst, qargs, cargs)
 _sel.add_equivalence(C4XGate(), def_c4x)
