@@ -15,23 +15,31 @@
 """
 Converters (:mod:`qiskit.aqua.operators.converters`)
 ====================================================
-Converters are objects which manipulate Operators, usually traversing an Operator to
-change certain sub-Operators into a desired representation. Often the converted Operator is
-isomorphic or approximate to the original Operator in some way, but not always. For example,
-a converter may accept ``CircuitOp`` and return a ``SummedOp`` of ``PauliOps`` representing the
-circuit unitary. Converters may not have polynomial space or time scaling in their operations.
-On the contrary, many converters, such as a ``MatrixExpectation`` or ``MatrixEvolution``,
-which convert ``PauliOps`` to ``MatrixOps`` internally, will require time or space exponential
-in the number of qubits unless a clever trick is known (such as the use of sparse matrices).
-
-Note that not all converters are in this module, as Expectations and Evolutions are also
-converters.
 
 .. currentmodule:: qiskit.aqua.operators.converters
 
+Converters are objects which manipulate Operators, usually traversing an Operator to
+change certain sub-Operators into a desired representation. Often the converted Operator is
+isomorphic or approximate to the original Operator in some way, but not always. For example,
+a converter may accept :class:`~qiskit.aqua.operators.primitive_ops.CircuitOp` and return a
+:class:`~qiskit.aqua.operators.list_ops.SummedOp` of
+:class:`~qiskit.aqua.operators.primitive_ops.PauliOp`'s representing the
+circuit unitary. Converters may not have polynomial space or time scaling in their operations.
+On the contrary, many converters, such as a
+:class:`~qiskit.aqua.operators.expectations.MatrixExpectation` or
+:class:`~qiskit.aqua.operators.evolutions.MatrixEvolution`,
+which convert :class:`~qiskit.aqua.operators.primitive_ops.PauliOp`'s to
+:class:`~qiskit.aqua.operators.primitive_ops.MatrixOp`'s internally, will require time or space
+exponential in the number of qubits unless a clever trick is known
+(such as the use of sparse matrices).
+
+Note:
+     Not all converters are in this module, as :mod:`~qiskit.aqua.operators.expectations`
+     and :mod:`~qiskit.aqua.operators.evolutions` are also converters.
+
 Converter Base Class
 ====================
-The converter base class simply enforces the presence of a ``convert`` method.
+The converter base class simply enforces the presence of a :meth:`~ConverterBase.convert` method.
 
 .. autosummary::
    :toctree: ../stubs/

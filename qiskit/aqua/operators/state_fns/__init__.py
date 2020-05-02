@@ -28,11 +28,13 @@ a function over binary strings producing StateFns, such that the probability of 
 a given binary string b from a system with StateFn f is equal to the inner
 product between f and m(b).
 
-Note that all mathematical methods between StateFns are not in-place, meaning that they return a
-new object, but the underlying primitives are not copied.
+Note:
+    All mathematical methods between StateFns are not in-place, meaning that they return a
+    new object, but the underlying primitives are not copied.
 
-NOTE: State functions here are not restricted to wave functions, as there is
-no requirement of normalization.
+Note:
+    State functions here are not restricted to wave functions, as there is
+    no requirement of normalization.
 
 .. currentmodule:: qiskit.aqua.operators.state_fns
 

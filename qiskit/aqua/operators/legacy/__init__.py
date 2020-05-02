@@ -15,11 +15,14 @@
 """
 Legacy Operators (:mod:`qiskit.aqua.operators.legacy`)
 ======================================================
-These are the Operators provided by Aqua up until the 0.6 release. These are being replaced
-by the operator flow function and we encourage you to use this. At some future time this legacy
-operator logic will be deprecated and removed.
 
 .. currentmodule:: qiskit.aqua.operators.legacy
+
+These are the Operators provided by Aqua up until the 0.6 release. These are being replaced
+by the operator flow function and we encourage you to use this.
+
+Note:
+    At some future time this legacy operator logic will be deprecated and removed.
 
 Legacy Operators
 ================

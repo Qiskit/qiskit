@@ -15,6 +15,9 @@
 r"""
 List Operators (:mod:`qiskit.aqua.operators.list_ops`)
 ==============================================================
+
+.. currentmodule:: qiskit.aqua.operators.list_ops
+
 List Operators are classes for storing and manipulating lists of Operators, State functions,
 or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions of the
 list constituents should be combined to form to cumulative Operator function of the
@@ -23,11 +26,11 @@ the Operators in its list are evaluated against some bitstring to produce a list
 we know to add up those results to produce the final result of the :class:`SummedOp`'s evaluation.
 In theory, this ``combo_fn`` can be any function over classical complex values, but for convenience
 we've chosen for them to be defined over NumPy arrays and values. This way, large numbers of
-evaluations, such as after calling :class:`to_matrix` on the list constituents,
+evaluations, such as after calling :meth:`~ListOp.to_matrix` on the list constituents,
 can be efficiently combined. While the combination function is defined over classical values,
 it should be understood as the operation by which each Operators' underlying function is
 combined to form the underlying Operator function of the :class:`ListOp`. In this way, the
-:class:`ListOps` are the basis for constructing large and sophisticated Operators,
+:mod:`.list_ops` are the basis for constructing large and sophisticated Operators,
 State Functions, and Measurements in Aqua.
 
 The base :class:`ListOp` class is particularly interesting, as its ``combo_fn`` is "the identity
@@ -38,35 +41,33 @@ dimensional lists. For example, if we want to estimate the gradient of some Obse
 measurement with respect to some parameters in the State function, we can construct separate
 evaluation Operators for each parameter's gradient which we must keep track of ourselves in a
 list, or we can construct a single :class:`ListOp` containing the evaluation Operators for each
-parameter, so the ``eval()`` function returns the full gradient vector. Another excellent
-example of this power is constructing a Quantum kernel matrix::
+parameter, so the :meth:`~ListOp.eval` function returns the full gradient vector. Another excellent
+example of this power is constructing a Quantum kernel matrix:
 
+.. code-block::
 
     data_sfn_list_op = ListOp(data_circuit_state_fns)
     qkernel_op_circuits = ~data_sfn_list_op @ data_sfn_list_op
     qkernel_sampled = CircuitSampler(backend).convert(qkernel_op_circuits)
     qkernel_sampled.eval()
 
+This will return the two dimensional Quantum kernel matrix, where each element is the inner product
+of some pair of the data State functions, or in other terms, a measurement of one data
+:class:`~.state_fns.CircuitStateFn` by another.
 
-This will return the 2d Quantum kernel matrix, where each element is the inner product of some
-pair of the data State functions, or in other terms, a measurement of one data
-:class:`CircuitStateFn` by another.
-
-You'll encounter the :class:`ListOp` subclasses (:class:`SummedOp`, :class:`ComposeOp`,
+You'll encounter the :class:`ListOp` subclasses (:class:`SummedOp`, :class:`ComposedOp`,
 or :class:`TensoredOp`) more often as lazy results of Operator construction operations than as
 something you need to explicitly construct. Any time we don't know how to efficiently add,
-compose, or tensor two :class:`PrimitiveOps` or :class:`StateFns` together, they're returned in
-a :class:`SummedOp`, :class:`ComposeOp`, or :class:`TensoredOp`, respectively, so we can still work
+compose, or tensor two :mod:`.primitive_ops` or :mod:`.state_fns` together, they're returned in
+a :class:`SummedOp`, :class:`ComposedOp`, or :class:`TensoredOp`, respectively, so we can still work
 with their combined function and perhaps convert them into an efficiently combine-able format later.
 
-Note that combination functions do not always behave predictably, and you must understand the
-conversions you're making when you working with :class:`ListOps`. Most notably - sampling a sum
-of two circuits on Quantum hardware does not incorporate interference between the wavefunctions!
-In this case, we're sending our State functions through a depolarizing channel before adding them,
-rather than adding them directly before the measurement.
-
-
-.. currentmodule:: qiskit.aqua.operators.list_ops
+Note:
+    Combination functions do not always behave predictably, and you must understand the
+    conversions you're making when you working with :mod:`.list_ops`. Most notably - sampling a sum
+    of two circuits on Quantum hardware does not incorporate interference between the
+    wavefunctions! In this case, we're sending our State functions through a depolarizing channel
+    before adding them, rather than adding them directly before the measurement.
 
 List Operators
 ===============

@@ -15,28 +15,33 @@
 """
 Operator Evolutions (:mod:`qiskit.aqua.operators.evolutions`)
 =============================================================
-Evolutions are converters which traverse an Operator tree, replacing any ``EvolvedOp`` `e` with a
-Schrodinger equation-style evolution ``CircuitOp`` equalling or approximating the matrix
-exponential of -i * the Operator contained inside (`e.primitive`). The Evolutions are essentially
-implementations of Hamiltonian Simulation algorithms, including various methods for Trotterization.
-
-The ``EvolvedOp`` is simply a placeholder signifying that the Operator inside it should be
-converted to its exponential by the Evolution converter. All Operators (not ``StateFns``) have
-``.exp_i()`` methods which either return the exponential of the Operator directly,
-or an ``EvolvedOp`` containing the Operator.
-
-Note that Evolutions work with parameterized Operator coefficients, so
-``my_expectation.convert((t * H).exp_i())``, where t is a scalar or Terra Parameter and H is an
-Operator, will produce a ``CircuitOp`` equivalent to e^iHt.
 
 .. currentmodule:: qiskit.aqua.operators.evolutions
+
+Evolutions are converters which traverse an Operator tree, replacing any :class:`EvolvedOp` `e`
+with a Schrodinger equation-style evolution :class:`~qiskit.aqua.operators.primitive_ops.CircuitOp`
+equalling or approximating the matrix exponential of -i * the Operator contained inside
+(`e.primitive`). The Evolutions are essentially implementations of Hamiltonian Simulation
+algorithms, including various methods for Trotterization.
+
+The :class:`EvolvedOp` is simply a placeholder signifying that the Operator inside it should be
+converted to its exponential by the Evolution converter. All Operators
+(not :mod:`~qiskit.aqua.operators.state_fns`) have
+``.exp_i()`` methods which either return the exponential of the Operator directly,
+or an :class:`EvolvedOp` containing the Operator.
+
+Note:
+    Evolutions work with parameterized Operator coefficients, so
+    ``my_expectation.convert((t * H).exp_i())``, where t is a scalar or Terra Parameter and H
+    is an Operator, will produce a :class:`~qiskit.aqua.operators.primitive_ops.CircuitOp`
+    equivalent to e^iHt.
 
 Evolution Base Class
 ====================
 The EvolutionBase class gives an interface for algorithms to ask for Evolutions as
 execution settings. For example, if an algorithm contains an Operator evolution step within it,
-such as QAOA, the algorithm can give the opportunity for the user to pass an EvolutionBase of
-their choice to be used in that evolution step.
+such as :class:`~qiskit.aqua.algorithms.QAOA`, the algorithm can give the opportunity for the user
+to pass an EvolutionBase of their choice to be used in that evolution step.
 
 .. autosummary::
    :toctree: ../stubs/

@@ -14,7 +14,10 @@
 
 """
 Primitive Operators (:mod:`qiskit.aqua.operators.primitive_ops`)
-======================================================================
+================================================================
+
+.. currentmodule:: qiskit.aqua.operators.primitive_ops
+
 Operators are defined to be functions which take State functions to State functions.
 
 PrimitiveOps are the classes for representing basic Operators, backed by computational
@@ -26,10 +29,9 @@ For example, we would not produce an interface in Terra in which
 unitaries, rather than simply appending the circuits. However, within the Operator
 flow summing the unitaries is the expected behavior.
 
-Note that all mathematical methods are not in-place, meaning that they return a
-new object, but the underlying primitives are not copied.
-
-.. currentmodule:: qiskit.aqua.operators.primitive_ops
+Note:
+     All mathematical methods are not in-place, meaning that they return a
+     new object, but the underlying primitives are not copied.
 
 Primitive Operators
 ===================
