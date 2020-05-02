@@ -23,7 +23,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Barrier
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -33,16 +33,16 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
+from qiskit.circuit.library.standard_gates import (CXGate, XGate, YGate, ZGate, U1Gate,
                                         CYGate, CZGate, CU1Gate, SwapGate,
                                         CCXGate, HGate, RZGate, RXGate,
                                         RYGate, CRYGate, CRXGate, CSwapGate,
                                         U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate, Barrier, RCCXGate, RC3XGate,
+                                        MSGate,RCCXGate, RC3XGate,
                                         MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain, C3XGate, C4XGate)
+                                        MCXVChain, C3XGate, C4XGate, C3RXGate)
 from qiskit.circuit._utils import _compute_control_matrix
-import qiskit.extensions.standard as allGates
+import qiskit.circuit.library.standard_gates as allGates
 
 from .gate_utils import _get_free_params
 
@@ -869,7 +869,7 @@ class TestControlledStandardGates(QiskitTestCase):
 
         numargs = len(_get_free_params(gate_class))
         args = [theta] * numargs
-        if gate_class in [MSGate, Barrier]:
+        if gate_class in [MSGate]:
             args[0] = 2
         elif gate_class in [MCU1Gate]:
             args[1] = 2
@@ -1040,6 +1040,20 @@ class TestControlledGateLabel(QiskitTestCase):
         cgate = gate(*args, label='a gate').control(1, label='a controlled gate')
         self.assertEqual(cgate.label, 'a controlled gate')
         self.assertEqual(cgate.base_gate.label, 'a gate')
+
+
+class Test3ControlledRXGate(QiskitTestCase):
+    """Tests for 3-qubit controlled RX gate equivalences."""
+
+    def test_cccxgate(self):
+        """Test C3RXGate(np.pi/4)=C3XGate()"""
+        ccc_x_gate = C3RXGate(np.pi/4)
+        self.assertIsInstance(ccc_x_gate, allGates.C3XGate)
+
+    def test_cccsqrtxgate(self):
+        """Test C3RXGate(np.pi/8)=C3SqrtXGate()"""
+        ccc_sqrt_x_gate = C3RXGate(np.pi/8)
+        self.assertIsInstance(ccc_sqrt_x_gate, allGates.C3SqrtXGate)
 
 
 if __name__ == '__main__':

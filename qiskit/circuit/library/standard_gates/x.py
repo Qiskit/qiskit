@@ -460,6 +460,24 @@ class C3RXGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
+    def __new__(cls, angle=None, label=None, ctrl_state=None):
+        """Create a new C3RXGate instance.
+
+        Depending on the angle, this creates an explicit C3XGate or C3SqrtXGate
+        instance or a generic C3RXGate.
+        """
+        explicit = {
+            pi/4: C3XGate,
+            pi/8: C3SqrtXGate
+        }
+        if angle in explicit.keys():
+            gate_class = explicit[angle]
+            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
+            # if __new__ does not return the same type as cls, init is not called
+            gate.__init__(label=label, ctrl_state=ctrl_state)
+            return gate
+        return super().__new__(cls)
+
     def __init__(self, angle, label=None, ctrl_state=None):
         """Create a new 3-qubit controlled RX gate.
 
@@ -547,7 +565,7 @@ class C3RXGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The C3X is its own inverse."""
-        return C3XGate(angle=self._angle)
+        return C3RXGate(angle=self._angle)
 
 class C3XGate(C3RXGate):
     def __init__(self, angle=None, label=None, ctrl_state=None):
