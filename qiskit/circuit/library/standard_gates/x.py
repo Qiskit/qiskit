@@ -452,7 +452,7 @@ class RCCXGate(Gate):
                             [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
 
 class C3RXGate(ControlledGate):
-    """The 3-qubit controlled X gate.
+    """The 3-qubit controlled RX gate.
 
     This implementation is based on Page 17 of [1].
 
@@ -461,7 +461,7 @@ class C3RXGate(ControlledGate):
     """
 
     def __init__(self, angle, label=None, ctrl_state=None):
-        """Create a new 3-qubit controlled X gate.
+        """Create a new 3-qubit controlled RX gate.
 
         Args:
             angle (float): The angle used in the controlled-U1 gates. An angle of π/4 yields the
@@ -583,7 +583,7 @@ class C3XGate(C3RXGate):
         elif angle is not None:
             warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
                           'When angle!=pi/8, use C3RXGate()',
-                          DeprecationWarning, stacklevel=2
+                          DeprecationWarning, stacklevel=2)
         else:
             angle = numpy.pi / 4
         super().__init__(angle=angle, label=label, ctrl_state=ctrl_state)
