@@ -31,6 +31,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    CU1Gate
    CU3Gate
    C3SqrtXGate
+   C3RXGate
    CXGate
    CYGate
    CZGate
@@ -80,7 +81,7 @@ from .t import TGate, TdgGate
 from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate, CU3Gate
-from .x import XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate, C3SqrtXGate
+from .x import XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate, C3SqrtXGate, C3RXGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
