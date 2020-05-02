@@ -19,19 +19,36 @@
 Pulse (:mod:`qiskit.pulse`)
 ===========================
 
-Qiskit-Pulse is a pulse-level quantum programming kit. This lower level of programming offers the
-user more control than programming with :py:class:`~qiskit.circuit.QuantumCircuit` s.
+Qiskit-Pulse is a pulse-level quantum programming kit. This lower level of
+programming offers the user more control than programming with
+:py:class:`~qiskit.circuit.QuantumCircuit` s.
 
-Extracting the greatest performance from quantum hardware requires real-time pulse-level
-instructions. Pulse answers that need: it enables the quantum physicist *user* to specify the
-exact time dynamics of an experiment. It is especially powerful for error mitigation techniques.
+Extracting the greatest performance from quantum hardware requires real-time
+pulse-level instructions. Pulse answers that need: it enables the quantum
+physicist *user* to specify the exact time dynamics of an experiment.
+It is especially powerful for error mitigation techniques.
 
-The input is given as arbitrary, time-ordered signals (see: :ref:`pulse-insts`) scheduled in
-parallel over multiple virtual hardware or simulator resources (see: :ref:`pulse-channels`). The
-system also allows the user to recover the time dynamics of the measured output.
+The input is given as arbitrary, time-ordered signals (see: :ref:`pulse-insts`)
+scheduled in parallel over multiple virtual hardware or simulator resources
+(see: :ref:`pulse-channels`). The system also allows the user to recover the
+time dynamics of the measured output.
 
-This is sufficient to allow the quantum physicist to explore and correct for noise in a quantum
-system.
+This is sufficient to allow the quantum physicist to explore and correct for
+noise in a quantum system.
+
+
+.. _pulse-builder:
+
+
+Pulse Builder (:mod:`~qiskit.pulse.builder`)
+============================================
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~builder.play
+    ~builder.set_phase
+
 
 .. _pulse-insts:
 
