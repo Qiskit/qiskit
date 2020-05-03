@@ -29,6 +29,7 @@ Layout Selection (Placement)
    TrivialLayout
    DenseLayout
    NoiseAdaptiveLayout
+   SabreLayout
    CSPLayout
    ApplyLayout
    Layout2qDistance
@@ -109,6 +110,7 @@ from .layout import SetLayout
 from .layout import TrivialLayout
 from .layout import DenseLayout
 from .layout import NoiseAdaptiveLayout
+from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance

@@ -26,10 +26,11 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 W = 0.5  # Weight of extened_set (lookahead window) compared to front_layer.
 DELTA = 0.001  # Decay cooefficient for penalizing serial swaps.
+
 
 class SabreSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs.
@@ -88,8 +89,8 @@ class SabreSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Sabre swap runs on physical circuits only.')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
-            raise TranspilerError('More virtual qubits exist than physical qubits.')
+        if len(dag.qubits()) > self.coupling_map.size():
+            raise TranspilerError('More virtual qubits exist than physical.')
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = _copy_circuit_metadata(dag)
@@ -107,8 +108,6 @@ class SabreSwap(TransformationPass):
         front_layer = dag.front_layer()
         applied_gates = set()
         while front_layer:
-            logger.debug('Top-level routing step: %d gates remaining.',
-                         front_layer)
             execute_gate_list = []
 
             # Remove as many immediately applicable gates as possible
@@ -136,10 +135,11 @@ class SabreSwap(TransformationPass):
                         elif _is_resolved(successor, dag, applied_gates):
                             front_layer.append(successor)
 
-                # diagnostics
-                for node in execute_gate_list:
-                    print('free! ', node.name, node.qargs)
-                print('front_layer: ', [(n.name, n.qargs) for n in front_layer])
+                # Diagnostics
+                logger.debug('free! %s',
+                             [(n.name, n.qargs) for n in execute_gate_list])
+                logger.debug('front_layer: %s',
+                             [(n.name, n.qargs) for n in front_layer])
 
                 continue
 
@@ -169,17 +169,16 @@ class SabreSwap(TransformationPass):
                 mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
                 current_layout.swap(*best_swap)
 
-                # diagnostics
-                print()
-                print('<===== SWAP Selection =====>')
-                print('extended_set: ', [(n.name, n.qargs) for n in extended_set])
-                print('swap scores:')
-                for i in range(len(swap_scores)):
-                    print('\t%s: %s' % (swap_candidate_list[i], swap_scores[i]))
-                print('\tbest swap: ', best_swap)
-                print('updated layout:')
-                print(current_layout)
-                print()
+                # Diagnostics
+                logger.debug('SWAP Selection...')
+                logger.debug('extended_set: %s',
+                             [(n.name, n.qargs) for n in extended_set])
+                logger.debug('swap scores: %s',
+                             [(swap_candidate_list[i], swap_scores[i])
+                              for i in range(len(swap_scores))])
+                logger.debug('best swap: %s', best_swap)
+
+        self.property_set['final_layout'] = current_layout
 
         return mapped_dag
 
