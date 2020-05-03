@@ -1,0 +1,49 @@
+---
+upgrade:
+  - |
+    The marshmallow schema classes in :mod:`qiskit.providers.models` have been
+    removed since they are no longer used by the BackendObjects.
+  - |
+    The output of the ``to_dict()`` method for the classes in
+    :mod:`qiskit.providers.models` is no longer in a format for direct JSON
+    serialization. Depending on the content contained in instances of these
+    class there may be numpy arrays and/or complex numbers in the fields of the dict.
+    If you're JSON serializing the output of the to_dict methods you should
+    ensure your JSON encoder can handle numpy arrays and complex numbers. This
+    includes:
+
+    * :meth:`qiskit.providers.models.BackendConfiguration.to_dict`
+    * :meth:`qiskit.providers.models.BackendProperties.to_dict`
+    * :meth:`qiskit.providers.models.BackendStatus.to_dict`
+    * :meth:`qiskit.providers.models.QasmBackendConfiguration.to_dict`
+    * :meth:`qiskit.providers.models.PulseBackendConfiguration.to_dict`
+    * :meth:`qiskit.providers.models.UchannelLO.to_dict`
+    * :meth:`qiskit.providers.models.GateConfig.to_dict`
+    * :meth:`qiskit.providers.models.PulseDefaults.to_dict`
+    * :meth:`qiskit.providers.models.Command.to_dict`
+    * :meth:`qiskit.providers.models.JobStatus.to_dict`
+    * :meth:`qiskit.providers.models.Nduv.to_dict`
+    * :meth:`qiskit.providers.models.Gate.to_dict`
+
+other:
+  - |
+    The objects in :mod:`qiskit.providers.models` which were previously
+    constructed using the marshmallow library have been refactored to not
+    depend on marshmallow. This includes:
+
+    * :class:`~qiskit.providers.models.BackendConfiguration`
+    * :class:`~qiskit.providers.models.BackendProperties`
+    * :class:`~qiskit.providers.models.BackendStatus`
+    * :class:`~qiskit.providers.models.QasmBackendConfiguration`
+    * :class:`~qiskit.providers.models.PulseBackendConfiguration`
+    * :class:`~qiskit.providers.models.UchannelLO`
+    * :class:`~qiskit.providers.models.GateConfig`
+    * :class:`~qiskit.providers.models.PulseDefaults`
+    * :class:`~qiskit.providers.models.Command`
+    * :class:`~qiskit.providers.models.JobStatus`
+    * :class:`~qiskit.providers.models.Nduv`
+    * :class:`~qiskit.providers.models.Gate`
+
+    These should be drop-in replacements without any noticeable change but
+    specifics inherited from marshmallow may not work. Please file issues for
+    any incompatibilities found.

@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-NOT gate.
+Controlled-not gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.x import CnotGate, cx
+from qiskit.circuit.library.standard_gates.x import CnotGate
 
-warnings.warn('This module is deprecated. The CnotGate can now be found in x.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CnotGate']

@@ -24,15 +24,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo
 
-try:
-    import constraint  # pylint: disable=unused-import, import-error
 
-    HAS_CONSTRAINT = True
-except Exception:  # pylint: disable=broad-except
-    HAS_CONSTRAINT = False
-
-
-@unittest.skipIf(not HAS_CONSTRAINT, 'python-constraint not installed.')
 class TestCSPLayout(QiskitTestCase):
     """Tests the CSPLayout pass"""
     seed = 42
@@ -257,7 +249,7 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         runtime = process_time() - start
 
-        self.assertLess(runtime, 2)
+        self.assertLess(runtime, 3)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'time limit reached')
 
     def test_call_limit(self):

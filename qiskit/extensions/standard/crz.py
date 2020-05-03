@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-rz gate.
+Controlled-rz gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.rz import CrzGate, crz
+from qiskit.circuit.library.standard_gates.rz import CrzGate
 
-warnings.warn('This module is deprecated. The CrzGate can now be found in rz.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CrzGate']

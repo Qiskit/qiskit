@@ -20,8 +20,6 @@ from typing import Tuple, List, Union, Optional
 
 from qiskit.pulse.channels import Channel
 
-from .timeslots import TimeslotCollection
-
 # pylint: disable=missing-type-doc
 
 
@@ -75,12 +73,6 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def timeslots(self) -> TimeslotCollection:
-        """Occupied time slots by this schedule component."""
-        pass
-
-    @property
-    @abstractmethod
     def _children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
         """Child nodes of this schedule component. """
         pass
@@ -94,17 +86,6 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def flatten(self) -> 'ScheduleComponent':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
-        pass
-
-    @abstractmethod
-    def union(self, *schedules: List['ScheduleComponent'],
-              name: Optional[str] = None) -> 'ScheduleComponent':
-        """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
-
-        Args:
-            schedules: Schedules to be take the union with the parent `Schedule`.
-            name: Name of the new schedule. Defaults to name of parent
-        """
         pass
 
     @abstractmethod

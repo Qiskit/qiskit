@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-H gate.
+Controlled-H gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.h import HGate, ch
+from qiskit.circuit.library.standard_gates.h import CHGate
 
-warnings.warn('This module is deprecated. The CHGate can now be found in h.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CHGate']
