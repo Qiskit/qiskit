@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new kwarg, ``initial_state`` has been added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the
+    initial state will now be included in circuit visualizations for all drawers.
+    For example:
+    
+    .. jupyter-execute::
+    
+        from qiskit import QuantumCircuit
+
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='mpl', initial_state=True)
