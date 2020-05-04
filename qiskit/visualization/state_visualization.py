@@ -644,6 +644,10 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        show_state_labels (bool): An optional boolean indicating whether to
+            show labels for each basis state
+        show_state_phases (bool): An optional boolean indicating whether to
+            show the phase for each basis state
 
     Returns:
         Figure: A matplotlib figure instance if the ``ax`` kwag is not set
@@ -784,10 +788,8 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
-                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text, 
-                        ha='center', va='center', size=12)
-
-
+                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
+                            ha='center', va='center', size=12)
 
                 ax.plot([xvalue], [yvalue], [zvalue],
                         markerfacecolor=colorstate,
