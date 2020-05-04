@@ -12,6 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Samplers."""
+"""Module for methods which sample continuous functions."""
 
-from .decorators import *
+from .decorators import left, right, midpoint

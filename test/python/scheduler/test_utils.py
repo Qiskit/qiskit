@@ -15,7 +15,7 @@
 """Test cases for Scheduler Utility functions."""
 
 from qiskit.pulse import (Schedule, AcquireChannel, Acquire, InstructionScheduleMap,
-                          MeasureChannel, MemorySlot, GaussianSquare)
+                          MeasureChannel, MemorySlot, GaussianSquare, Play)
 from qiskit.scheduler import measure, measure_all
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -31,30 +31,27 @@ class TestUtils(QiskitTestCase):
 
     def test_measure(self):
         """Test utility function - measure."""
-        acquire = Acquire(duration=10)
         sched = measure(qubits=[0],
                         backend=self.backend)
         expected = Schedule(
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            acquire(AcquireChannel(0), MemorySlot(0)),
-            acquire(AcquireChannel(1), MemorySlot(1)))
+            Acquire(10, AcquireChannel(0), MemorySlot(0)),
+            Acquire(10, AcquireChannel(1), MemorySlot(1)))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_sched_with_qubit_mem_slots(self):
         """Test measure with custom qubit_mem_slots."""
-        acquire = Acquire(duration=10)
         sched = measure(qubits=[0],
                         backend=self.backend,
                         qubit_mem_slots={0: 1})
         expected = Schedule(
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            acquire(AcquireChannel(0), MemorySlot(1)),
-            acquire(AcquireChannel(1), MemorySlot(0)))
+            Acquire(10, AcquireChannel(0), MemorySlot(1)),
+            Acquire(10, AcquireChannel(1), MemorySlot(0)))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_sched_with_meas_map(self):
         """Test measure with custom meas_map as list and dict."""
-        acquire = Acquire(duration=10)
         sched_with_meas_map_list = measure(qubits=[0],
                                            backend=self.backend,
                                            meas_map=[[0, 1]])
@@ -63,15 +60,15 @@ class TestUtils(QiskitTestCase):
                                            meas_map={0: [0, 1], 1: [0, 1]})
         expected = Schedule(
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
-            acquire(AcquireChannel(0), MemorySlot(0)),
-            acquire(AcquireChannel(1), MemorySlot(1)))
+            Acquire(10, AcquireChannel(0), MemorySlot(0)),
+            Acquire(10, AcquireChannel(1), MemorySlot(1)))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
     def test_measure_with_custom_inst_map(self):
         """Test measure with custom inst_map, meas_map with measure_name."""
-        q0_sched = GaussianSquare(1200, 1, 0.4, 1150)(MeasureChannel(0))
-        q0_sched += Acquire(1200)(AcquireChannel(0), MemorySlot(0))
+        q0_sched = Play(GaussianSquare(1200, 1, 0.4, 1150), MeasureChannel(0))
+        q0_sched += Acquire(1200, AcquireChannel(0), MemorySlot(0))
         inst_map = InstructionScheduleMap()
         inst_map.add('my_sched', 0, q0_sched)
         sched = measure(qubits=[0],

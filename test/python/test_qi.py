@@ -28,8 +28,6 @@ from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
 from qiskit.tools.qi.qi import choi_to_pauli
 from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
 from qiskit.quantum_info import purity
-from qiskit.quantum_info.random import random_density_matrix
-from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 
 
@@ -225,16 +223,6 @@ class TestQI(QiskitTestCase):
                              [0.0-0.25j, 0.0+0.5j, -0.5+0.0j, 0.0-1.25j],
                              [0.0+0.j, 0.25+0.0j, 0.0-1.25j, 1.0+0.0j]])
         self.assertTrue(np.array_equal(expected, res))
-
-    def test_random_density_matrix(self):
-        random_hs_matrix = random_density_matrix(2, seed=42)
-        self.assertEqual((2, 2), random_hs_matrix.shape)
-        random_bures_matrix = random_density_matrix(2, method='Bures', seed=40)
-        self.assertEqual((2, 2), random_bures_matrix.shape)
-
-    def test_random_density_matrix_invalid_method(self):
-        self.assertRaises(QiskitError, random_density_matrix, 2,
-                          method='Special')
 
 
 if __name__ == '__main__':

@@ -68,7 +68,7 @@ def graysynth(cnots, angles, section_size=2):
             have to be 't', 'tdg', 's', 'sdg' or 'z'.
 
         section_size (int): the size of every section, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. section_size must be a factor of n_qubits.
+            Patel–Markov–Hayes algorithm. section_size must be a factor of num_qubits.
 
     Returns:
         QuantumCircuit: the quantum circuit
@@ -76,22 +76,23 @@ def graysynth(cnots, angles, section_size=2):
     Raises:
         QiskitError: when dimensions of cnots and angles don't align
     """
-    n_qubits = len(cnots)
+    num_qubits = len(cnots)
 
-    # Create a quantum circuit on n_qubits
-    qcir = QuantumCircuit(n_qubits)
+    # Create a quantum circuit on num_qubits
+    qcir = QuantumCircuit(num_qubits)
 
     if len(cnots[0]) != len(angles):
         raise QiskitError('Size of "cnots" and "angles" do not match.')
 
-    range_list = list(range(n_qubits))
-    epsilon = n_qubits
+    range_list = list(range(num_qubits))
+    epsilon = num_qubits
     sta = []
     cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
-    state = np.eye(n_qubits).astype('int')  # This matrix keeps track of the state in the algorithm
+    # This matrix keeps track of the state in the algorithm
+    state = np.eye(num_qubits).astype('int')
 
     # Check if some phase-shift gates can be applied, before adding any C-NOT gates
-    for qubit in range(n_qubits):
+    for qubit in range(num_qubits):
         index = 0
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
@@ -120,11 +121,11 @@ def graysynth(cnots, angles, section_size=2):
         [cnots, ilist, qubit] = sta.pop()
         if cnots == []:
             continue
-        if 0 <= qubit < n_qubits:
+        if 0 <= qubit < num_qubits:
             condition = True
             while condition:
                 condition = False
-                for j in range(n_qubits):
+                for j in range(num_qubits):
                     if (j != qubit) and (sum(cnots[j]) == len(cnots[j])):
                         condition = True
                         qcir.cx(j, qubit)
@@ -196,7 +197,7 @@ def cnot_synth(state, section_size=2):
         state (list[list] or ndarray): n x n matrix, describing the state
             of the input circuit
         section_size (int): the size of each section, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. section_size must be a factor of n_qubits.
+            Patel–Markov–Hayes algorithm. section_size must be a factor of num_qubits.
 
     Returns:
         QuantumCircuit: a CNOT-only circuit implementing the
@@ -251,17 +252,17 @@ def _lwr_cnot_synth(state, section_size):
         list: a k by 2 list of C-NOT operations that need to be applied
     """
     circuit = []
-    n_qubits = state.shape[0]
+    num_qubits = state.shape[0]
 
     # If the matrix is already an upper triangular one,
     # there is no need for any transformations
     if np.allclose(state, np.triu(state)):
         return [state, circuit]
     # Iterate over column sections
-    for sec in range(1, int(np.ceil(n_qubits/section_size)+1)):
+    for sec in range(1, int(np.ceil(num_qubits/section_size)+1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
-        for row in range((sec-1)*section_size, n_qubits):
+        for row in range((sec-1)*section_size, num_qubits):
             sub_row_patt = copy.deepcopy(state[row, (sec-1)*section_size:sec*section_size])
             if np.sum(sub_row_patt) == 0:
                 continue
@@ -277,7 +278,7 @@ def _lwr_cnot_synth(state, section_size):
             if state[col, col] == 0:
                 diag_one = 0
             # Remove ones in rows below column col
-            for row in range(col+1, n_qubits):
+            for row in range(col+1, num_qubits):
                 if state[row, col] == 1:
                     if diag_one == 0:
                         state[col, :] ^= state[row, :]

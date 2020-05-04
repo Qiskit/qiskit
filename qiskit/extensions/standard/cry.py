@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-ry gate.
+Controlled-ry gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.ry import CryGate, cry
+from qiskit.circuit.library.standard_gates.ry import CryGate
 
-warnings.warn('This module is deprecated. The CryGate can now be found in ry.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CryGate']

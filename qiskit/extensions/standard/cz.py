@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """
-controlled-Phase gate.
+Controlled-Phase gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.z import CzGate, cz
+from qiskit.circuit.library.standard_gates.z import CzGate
 
-warnings.warn('This module is deprecated. The CzGate can now be found in z.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CzGate']

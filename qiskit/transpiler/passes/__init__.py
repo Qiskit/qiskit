@@ -114,6 +114,7 @@ from .layout import FullAncillaAllocation
 
 # routing
 from .routing import BasicSwap
+from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 
@@ -133,6 +134,7 @@ from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
+from .optimization import HoareOptimizer
 
 # circuit analysis
 from .analysis import ResourceEstimation

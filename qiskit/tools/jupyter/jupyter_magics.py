@@ -16,10 +16,12 @@
 
 import time
 import threading
+from IPython import get_ipython
 from IPython.display import display                              # pylint: disable=import-error
 from IPython.core import magic_arguments                         # pylint: disable=import-error
-from IPython.core.magic import (cell_magic, line_magic,
-                                Magics, magics_class)            # pylint: disable=import-error
+from IPython.core.magic import (cell_magic, line_magic,          # pylint: disable=import-error
+                                Magics, magics_class,
+                                register_line_magic)
 
 try:
     import ipywidgets as widgets                                 # pylint: disable=import-error
@@ -27,8 +29,10 @@ except ImportError:
     raise ImportError('These functions  need ipywidgets. '
                       'Run "pip install ipywidgets" before.')
 import qiskit
+from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
+from .library import circuit_library_widget
 
 
 def _html_checker(job_var, interval, status, header,
@@ -186,3 +190,16 @@ class ProgressBarMagic(Magics):
             raise qiskit.QiskitError('Invalid progress bar type.')
 
         return pbar
+
+
+if HAS_MATPLOTLIB and get_ipython():
+    @register_line_magic
+    def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:
+        """Displays library information for a quantum circuit.
+
+        Args:
+            circuit: Input quantum circuit.
+        """
+        shell = get_ipython()
+        circ = shell.ev(circuit)
+        circuit_library_widget(circ)

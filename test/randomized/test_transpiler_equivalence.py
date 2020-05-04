@@ -29,23 +29,23 @@ from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import (FakeYorktown, FakeTenerife, FakeOurense, FakeVigo,
                               FakeMelbourne, FakeRueschlikon,
                               FakeTokyo, FakePoughkeepsie, FakeAlmaden, FakeSingapore,
-                              FakeJohannesburg, FakeBoeblingen, FakeRochester)
+                              FakeJohannesburg, FakeBoeblingen)
 from qiskit.test.base import dicts_almost_equal
 
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.extensions.standard import *
 
-oneQ_gates = [HGate, IdGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
-twoQ_gates = [CnotGate, CyGate, CzGate, SwapGate, CHGate]
-threeQ_gates = [ToffoliGate, FredkinGate]
+oneQ_gates = [HGate, IGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
+twoQ_gates = [CXGate, CYGate, CZGate, SwapGate, CHGate]
+threeQ_gates = [CCXGate, CSwapGate]
 
 oneQ_oneP_gates = [U1Gate, RXGate, RYGate, RZGate]
 oneQ_twoP_gates = [U2Gate]
 oneQ_threeP_gates = [U3Gate]
 
-twoQ_oneP_gates = [CrzGate, RZZGate, Cu1Gate]
-twoQ_threeP_gates = [Cu3Gate]
+twoQ_oneP_gates = [CRZGate, RZZGate, CU1Gate]
+twoQ_threeP_gates = [CU3Gate]
 
 oneQ_oneC_gates = [Measure]
 variadic_gates = [Barrier]
@@ -53,7 +53,9 @@ variadic_gates = [Barrier]
 mock_backends = [FakeYorktown(), FakeTenerife(), FakeOurense(), FakeVigo(),
                  FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie(), FakeAlmaden(), FakeSingapore(),
-                 FakeJohannesburg(), FakeBoeblingen(), FakeRochester()]
+                 FakeJohannesburg(), FakeBoeblingen()]
+
+# FakeRochester disabled until https://github.com/Qiskit/qiskit-aer/pull/693 is released.
 
 
 @settings(report_multiple_bugs=False,
