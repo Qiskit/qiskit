@@ -13,8 +13,6 @@
 # that they have been altered from the originals.
 
 """
-.. currentmodule:: qiskit.pulse
-
 ===========================
 Pulse (:mod:`qiskit.pulse`)
 ===========================
@@ -46,6 +44,7 @@ Pulse Builder (:mod:`~qiskit.pulse.builder`)
 .. autosummary::
     :toctree: ../stubs/
 
+    ~builder
     ~builder.play
     ~builder.set_phase
 

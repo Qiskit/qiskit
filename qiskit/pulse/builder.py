@@ -16,7 +16,7 @@ r"""Context based pulse programming interface with an imperative syntax.
 
 The pulse builder interface may be used to program pulse programs with
 assembly-like syntax. To start we must initialize a builder context to build
-our program with::
+our program with:
 
 .. code-block:: python
     :emphasize-lines: 5, 6
@@ -47,11 +47,11 @@ physics pulse programming deals with.
 We can optionally pass a :class:`~qiskit.providers.BaseBackend` to the builder
 to enable enhanced pulse functionality. Below we prepare a Bell state
 automatically compiling the required pulses, while simultaneously applying a
-long decoupling pulse to a neighboring qubit, followed by a measurement::
+long decoupling pulse to a neighboring qubit, followed by a measurement.
 
 .. code-block:: python
 
-import math
+    import math
 
     from qiskit import pulse
     from qiskit.test.mock import FakeOpenPulse2Q
@@ -79,119 +79,120 @@ channels for you. However, as seen above its still very simple to call an
 instruction on a :class:`~qiskit.pulse.Channel`.
 
 Below we demonstrate a more fully featured example of using the pulse builder
-interface::
+interface:
 
 .. code-block:: python
 
-import math
+    import math
 
-from qiskit import QuantumCircuit
-import qiskit.pulse as pulse
-import qiskit.pulse.pulse_lib as pulse_lib
-from qiskit.test.mock import FakeOpenPulse2Q
+    from qiskit import QuantumCircuit
+    import qiskit.pulse as pulse
+    import qiskit.pulse.pulse_lib as pulse_lib
+    from qiskit.test.mock import FakeOpenPulse2Q
 
-backend = FakeOpenPulse2Q()
+    backend = FakeOpenPulse2Q()
 
-with pulse.build(backend) as pulse_prog:
-    # Create a pulse.
-    gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
-    # Get the qubit's corresponding drive channel from the backend.
-    d0 = pulse.drive_channel(0)
-    d1 = pulse.drive_channel(1)
-    # Play a pulse at t=0.
-    pulse.play(gaussian_pulse, d0)
-    # Play another pulse directly after the previous pulse at t=10.
-    pulse.play(gaussian_pulse, d0)
-    # The default scheduling behavior is to schedule pulses in parallel
-    # across channels. For example, the statement below
-    # plays the same pulse on a different channel at t=0.
-    pulse.play(gaussian_pulse, d1)
-
-    # We also provide pulse scheduling alignment contexts.
-    # The default alignment context is align_left.
-
-    # The sequential context schedules pulse instructions sequentially in time.
-    # This context starts at t=10 due to earlier pulses above.
-    with pulse.align_sequential():
+    with pulse.build(backend) as pulse_prog:
+        # Create a pulse.
+        gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
+        # Get the qubit's corresponding drive channel from the backend.
+        d0 = pulse.drive_channel(0)
+        d1 = pulse.drive_channel(1)
+        # Play a pulse at t=0.
         pulse.play(gaussian_pulse, d0)
-        # Play another pulse after at t=20.
+        # Play another pulse directly after the previous pulse at t=10.
+        pulse.play(gaussian_pulse, d0)
+        # The default scheduling behavior is to schedule pulses in parallel
+        # across channels. For example, the statement below
+        # plays the same pulse on a different channel at t=0.
         pulse.play(gaussian_pulse, d1)
 
-        # We can also nest contexts as each instruction is
-        # contained in its local scheduling context.
-        # The output of a child context is a scheduled block
-        # with the internal instructions timing fixed relative to
-        # one another. This is block is then called in the parent context.
+        # We also provide pulse scheduling alignment contexts.
+        # The default alignment context is align_left.
 
-        # Context starts at t=30.
-        with pulse.align_left():
-            # Start at t=30.
+        # The sequential context schedules pulse instructions sequentially in time.
+        # This context starts at t=10 due to earlier pulses above.
+        with pulse.align_sequential():
             pulse.play(gaussian_pulse, d0)
-            # Start at t=30.
+            # Play another pulse after at t=20.
             pulse.play(gaussian_pulse, d1)
-        # Context ends at t=40.
 
-        # Alignment context where all pulse instructions are
-        # aligned to the right, ie., as late as possible.
-        with pulse.align_right():
-            # Shift the phase of a pulse channel.
-            pulse.shift_phase(math.pi, d1)
-            # Starts at t=40.
-            pulse.delay(100, d0)
-            # Ends at t=140.
+            # We can also nest contexts as each instruction is
+            # contained in its local scheduling context.
+            # The output of a child context is a scheduled block
+            # with the internal instructions timing fixed relative to
+            # one another. This is block is then called in the parent context.
 
-            # Starts at t=130.
-            pulse.play(gaussian_pulse, d1)
-            # Ends at t=140.
+            # Context starts at t=30.
+            with pulse.align_left():
+                # Start at t=30.
+                pulse.play(gaussian_pulse, d0)
+                # Start at t=30.
+                pulse.play(gaussian_pulse, d1)
+            # Context ends at t=40.
 
-        # Acquire data for a qubit and store in a memory slot.
-        pulse.acquire(100, 0, pulse.MemorySlot(0))
+            # Alignment context where all pulse instructions are
+            # aligned to the right, ie., as late as possible.
+            with pulse.align_right():
+                # Shift the phase of a pulse channel.
+                pulse.shift_phase(math.pi, d1)
+                # Starts at t=40.
+                pulse.delay(100, d0)
+                # Ends at t=140.
 
-        # We also support a variety of macros for common operations.
+                # Starts at t=130.
+                pulse.play(gaussian_pulse, d1)
+                # Ends at t=140.
 
-        # Measure all qubits.
-        pulse.measure_all()
+            # Acquire data for a qubit and store in a memory slot.
+            pulse.acquire(100, 0, pulse.MemorySlot(0))
 
-        # Delay on some qubits.
-        # This requires knowledge of which channels belong to which qubits.
-        pulse.delay_qubits(100, 0, 1)
+            # We also support a variety of macros for common operations.
 
-        # Call a quantum circuit. The pulse builder lazily constructs a quantum
-        # circuit which is then transpiled and scheduled before inserting into
-        # a pulse schedule.
-        # NOTE: Quantum register indices correspond to physical qubit indices.
-        qc = QuantumCircuit(2, 2)
-        qc.cx(0, 1)
-        pulse.call(qc)
-        # Calling a small set of standard gates and decomposing to pulses is
-        # also supported with more natural syntax.
-        pulse.u3(0, math.pi, 0, 0)
-        pulse.cx(0, 1)
+            # Measure all qubits.
+            pulse.measure_all()
+
+            # Delay on some qubits.
+            # This requires knowledge of which channels belong to which qubits.
+            pulse.delay_qubits(100, 0, 1)
+
+            # Call a quantum circuit. The pulse builder lazily constructs a quantum
+            # circuit which is then transpiled and scheduled before inserting into
+            # a pulse schedule.
+            # NOTE: Quantum register indices correspond to physical qubit indices.
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            pulse.call(qc)
+            # Calling a small set of standard gates and decomposing to pulses is
+            # also supported with more natural syntax.
+            pulse.u3(0, math.pi, 0, 0)
+            pulse.cx(0, 1)
 
 
-        # It is also be possible to call a preexisting schedule
-        tmp_sched = pulse.Schedule()
-        tmp_sched += pulse.Play(gaussian_pulse, d0)
-        pulse.call(tmp_sched)
+            # It is also be possible to call a preexisting schedule
+            tmp_sched = pulse.Schedule()
+            tmp_sched += pulse.Play(gaussian_pulse, d0)
+            pulse.call(tmp_sched)
 
-        # We also support:
+            # We also support:
 
-        # frequency instructions
-        pulse.set_frequency(5.0e9, d0)
+            # frequency instructions
+            pulse.set_frequency(5.0e9, d0)
 
-        # phase instructions
-        pulse.shift_phase(0.1, d0)
+            # phase instructions
+            pulse.shift_phase(0.1, d0)
 
-        # offset contexts
-        with pulse.phase_offset(math.pi, d0):
-            pulse.play(gaussian_pulse, d0)
+            # offset contexts
+            with pulse.phase_offset(math.pi, d0):
+                pulse.play(gaussian_pulse, d0)
 
 The above is just a small taste of what is possible with the pulse builder
 interface. See the rest of the module documentation for more information on its
 capabilities.
 
-.. warning:: The pulse builder interface is still in development and is
-subject to change.
+.. warning::
+    The pulse builder interface is still in development and is
+    subject to change.
 """
 import collections
 import contextvars
@@ -317,7 +318,8 @@ class _PulseBuilder():
                  default_circuit_scheduler_settings: Mapping = None):
         """Initialize the builder context.
 
-        .. note:: At some point we may consider incorpating the builder into
+        .. note::
+            At some point we may consider incorpating the builder into
             the :class:`~qiskit.pulse.Schedule` class. However, the risk of
             this is tying the user interface to the intermediate
             representation. For now we avoid this at the cost of some code
@@ -549,7 +551,7 @@ def build(backend=None,
           ) -> ContextManager[Schedule]:
     """A context manager for launching the imperative pulse builder DSL.
 
-    To enter a building context and starting building a pulse program::
+    To enter a building context and starting building a pulse program:
 
     .. code-block:: python
         :emphasize-lines: 9
@@ -641,7 +643,7 @@ def append_block(block: Schedule):
 def append_instruction(instruction: instructions.Instruction):
     """Append an instruction to the current active builder context block.
 
-    For example::
+    For example:
 
     .. code-block:: python
         :emphasize-lines: 6
@@ -659,7 +661,7 @@ def append_instruction(instruction: instructions.Instruction):
 def num_qubits() -> int:
     """Return number of qubits in currently active backend.
 
-    For example::
+    For example:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -739,7 +741,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
 
 # pylint: disable=invalid-name
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
-    """Return the current active builder context's circuti scheduler settings.
+    """Return the current active builder context's circuit scheduler settings.
 
     .. code-block:: python
         :emphasize-lines: 11
@@ -994,6 +996,8 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
     Args:
         chs: Channels to pad with delays. Defaults to all channels in context
             if none are supplied.
+
+    Example:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -1559,7 +1563,7 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
 
     This directive prevents the compiler from moving instructions across
     the barrier. Consider the case where we want to enforce that one pulse
-    happens after another on separate channels, this can be done with::
+    happens after another on separate channels, this can be done with:
 
     .. code-block:: python
         :emphasize-lines: 11
@@ -1577,7 +1581,7 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
             pulse.barrier(d0, d1)
             pulse.play(pulse.Constant(10, 1.0), d1)
 
-    Of course this could have been accomplished with::
+    Of course this could have been accomplished with:
 
     .. code-block:: python
 
@@ -1590,7 +1594,7 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
     The barrier allows the pulse compiler to take care of more advanced
     scheduling aligment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
-    want to align a pulse at the end of one call::
+    want to align a pulse at the end of one call:
 
     .. code-block:: python
         :emphasize-lines: 9
@@ -1633,7 +1637,7 @@ def measure(qubit: int,
     :func:`acquire` and :func:`play`.
 
     To use the measurement it is as simple as specifying the qubit you wish to
-    measure::
+    measure:
 
     .. code-block:: python
         :emphasize-lines: 10
@@ -1654,7 +1658,7 @@ def measure(qubit: int,
 
     For now it is not possible to do much with the handle to ``reg`` but in the
     future we will support using this handle to a result register to build
-    up ones program. It is also possible to supply this register::
+    up ones program. It is also possible to supply this register:
 
     .. code-block:: python
         :emphasize-lines: 5
@@ -1692,13 +1696,13 @@ def measure(qubit: int,
 
 
 def measure_all() -> List[channels.MemorySlot]:
-    """Measure all qubits within the currently active builder context.
+    r"""Measure all qubits within the currently active builder context.
 
     A simple macro function to measure all of the qubits in the device at the
     same time. This is useful for handling device ``meas_map`` and single
     measurement constraints.
 
-    Example usage::
+    Example:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1712,10 +1716,11 @@ def measure_all() -> List[channels.MemorySlot]:
             # Measure all qubits and return associated registers.
             regs = pulse.measure_all()
 
-    .. note:: Requires the active builder context to have a backend set.
+    .. note::
+        Requires the active builder context to have a backend set.
 
     Returns:
-        The ``register``s the qubit measurement results will be stored in.
+        The ``register``\s the qubit measurement results will be stored in.
     """
     backend = active_backend()
     qubits = range(num_qubits())
@@ -1735,7 +1740,7 @@ def delay_qubits(duration: int,
     r"""Insert delays on all of the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -1753,7 +1758,7 @@ def delay_qubits(duration: int,
     Args:
         duration: Duration to delay for.
         qubits: Physical qubits to delay on. Delays will be inserted based on
-            the channels returned by :function:`qubit_channels`.
+            the channels returned by :func:`pulse.qubit_channels`.
     """
     qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for
                                                     qubit in qubits))
@@ -1767,7 +1772,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1782,7 +1787,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
             pulse.call_gate(gates.CXGate(), (0, 1))
 
     We can see the role of the transpiler in scheduling gates by optimizing
-    away two consecutive CNOT gates::
+    away two consecutive CNOT gates:
 
     .. code-block:: python
         :emphasize-lines: 3, 4
@@ -1796,7 +1801,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
     .. note:: If multiple gates are called in a row they may be optimized by
         the transpiler, depending on the
-        :function:`active_transpiler_settings``.
+        :func:`pulse.active_transpiler_settings``.
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -1815,7 +1820,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 def cx(control: int, target: int):
     """Call a cx gate on physical qubits.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -1837,7 +1842,7 @@ def cx(control: int, target: int):
 def u1(theta: float, qubit: int):
     """Call a u1 gate on physical qubits.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 9
@@ -1863,7 +1868,7 @@ def u1(theta: float, qubit: int):
 def u2(phi: float, lam: float, qubit: int):
     """Call a u2 gate on physical qubits.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 9
@@ -1889,7 +1894,7 @@ def u2(phi: float, lam: float, qubit: int):
 def u3(theta: float, phi: float, lam: float, qubit: int):
     """Call a u3 gate on physical qubits.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 9
@@ -1915,7 +1920,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 def x(qubit: int):
     """Call a x gate on physical qubits.
 
-    Example Usage::
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
