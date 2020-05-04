@@ -2365,7 +2365,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
     def test_controlled_composite_gate_top_bot(self):
         """Controlled composite gates (top and bottom) """
         expected = '\n'.join(["                ",
-                              "q_0: |0>───■────",
+                              "q_0: |0>───o────",
                               "        ┌──┴───┐",
                               "q_1: |0>┤0     ├",
                               "        │      │",
@@ -2373,7 +2373,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
                               "        │      │",
                               "q_3: |0>┤2     ├",
                               "        └──┬───┘",
-                              "q_4: |0>───o────",
+                              "q_4: |0>───■────",
                               "                "])
         ghz_circuit = QuantumCircuit(3, name='ghz')
         ghz_circuit.h(0)
