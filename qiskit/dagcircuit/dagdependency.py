@@ -384,7 +384,7 @@ class DAGDependency:
         Use _gather_succ and merge_no_duplicates to create the list of successors
         for each node. Update DAGcanonical with attributes successors.
         """
-        for node_id in range(len(self._multi_graph)-1, 0, -1):
+        for node_id in range(len(self._multi_graph)-1, -1, -1):
 
             direct_successors = self.direct_successors(node_id)
 
