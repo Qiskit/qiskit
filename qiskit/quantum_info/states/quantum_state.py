@@ -134,10 +134,10 @@ class QuantumState(ABC):
         """Set the seed for the quantum state RNG."""
         if value is None:
             self._rng_generator = None
-        elif isinstance(value, np.random.RandomState):
+        elif isinstance(value, np.random.Generator):
             self._rng_generator = value
         else:
-            self._rng_generator = np.random.RandomState(value)
+            self._rng_generator = np.random.default_rng(value)
 
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):

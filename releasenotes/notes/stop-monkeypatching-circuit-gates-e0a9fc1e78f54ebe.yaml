@@ -1,9 +1,0 @@
----
-features:
-  - |
-    The quantum circuit gates are visible in IDE detection, since these
-    methods are now defined in the circuit class itself.
-deprecations:
-  - |
-    The `qiskit.extensions.standard` module is deprecated and the gates
-    have been moved to `qiskit.circuit.library.standard_gates`.

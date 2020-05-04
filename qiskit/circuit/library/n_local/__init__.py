@@ -16,14 +16,14 @@
 
 from .n_local import NLocal
 from .two_local import TwoLocal
-from .ry import RY
-from .ryrz import RYRZ
-from .swaprz import SwapRZ
+from .real_amplitudes import RealAmplitudes
+from .efficient_su2 import EfficientSU2
+from .excitation_preserving import ExcitationPreserving
 
 __all__ = [
     'NLocal',
     'TwoLocal',
-    'RY',
-    'RYRZ',
-    'SwapRZ'
+    'RealAmplitudes',
+    'EfficientSU2',
+    'ExcitationPreserving'
 ]
