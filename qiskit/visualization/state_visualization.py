@@ -632,7 +632,7 @@ def phase_to_rgb(complex_number):
 
 
 def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
-                       show_state_phases=True, use_degrees=True):
+                       show_state_phases=True, use_degrees=False):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
