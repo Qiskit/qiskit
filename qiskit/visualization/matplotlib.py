@@ -22,6 +22,7 @@ import itertools
 import json
 import logging
 import math
+from warnings import warn
 
 import numpy as np
 
@@ -104,7 +105,8 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None, fold=25, ax=None):
+                 reverse_bits=False, layout=None, fold=25, ax=None,
+                 initial_state=False, cregbundle=True):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -139,6 +141,13 @@ class MatplotlibDrawer:
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         self.layout = layout
+        if style and 'cregbundle' in style.keys():
+            self.cregbundle = style['cregbundle']
+            warn("The style dictionary key 'cregbundle' has been deprecated and will be removed"
+                 " in a future release. cregbundle can now be passed as an argument to draw()."
+                 " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
+        else:
+            self.cregbundle = cregbundle
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -390,7 +399,7 @@ class MatplotlibDrawer:
                                     ec=None)
         self.ax.add_artist(arrowhead)
         # target
-        if self._style.bundle:
+        if self.cregbundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
                          fontsize=0.8 * self._style.fs,
                          color=self._style.tc,
@@ -577,7 +586,7 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(
                     self._creg, n_creg)):
                 pos = y_off - idx
-                if self._style.bundle:
+                if self.cregbundle:
                     label = '${}$'.format(reg.register.name)
                     label = _fix_double_script(label)
                     self._creg_dict[ii] = {
@@ -833,7 +842,7 @@ class MatplotlibDrawer:
                     for xy, m in zip(c_xy, cmask):
                         if m == '1':
                             if xy not in xy_plot:
-                                if vlist[v_ind] == '1' or self._style.bundle:
+                                if vlist[v_ind] == '1' or self.cregbundle:
                                     self._conds(xy, istrue=True)
                                 else:
                                     self._conds(xy, istrue=False)

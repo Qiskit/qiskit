@@ -320,7 +320,9 @@ def circuit_drawer(circuit,
                                            idle_wires=idle_wires,
                                            with_layout=with_layout,
                                            fold=fold,
-                                           ax=ax)
+                                           ax=ax,
+                                           initial_state=initial_state,
+                                           cregbundle=cregbundle)
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
@@ -616,7 +618,9 @@ def _matplotlib_circuit_drawer(circuit,
                                idle_wires=True,
                                with_layout=True,
                                fold=None,
-                               ax=None):
+                               ax=None,
+                               initial_state=False,
+                               cregbundle=True):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -661,5 +665,6 @@ def _matplotlib_circuit_drawer(circuit,
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits, layout=layout,
-                                       fold=fold, ax=ax)
+                                       fold=fold, ax=ax, initial_state=initial_state,
+                                       cregbundle=cregbundle)
     return qcd.draw(filename)

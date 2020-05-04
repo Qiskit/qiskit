@@ -96,7 +96,7 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.bundle = True
+        self.bundle = True  # Deprecated. Now argument to draw().
         self.index = False
         self.figwidth = -1
         self.dpi = 150
@@ -118,7 +118,7 @@ class DefaultStyle:
         self.disptex = dic.pop('displaytext', self.disptex)
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.bundle = dic.pop('cregbundle', self.bundle)
+        self.bundle = dic.pop('cregbundle', self.bundle)    # Deprecated. Now argument to draw().
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
@@ -193,7 +193,7 @@ class BWStyle:
             'multi': '#000000'
         }
         self.latexmode = False
-        self.bundle = True
+        self.bundle = True  # Deprecated. Now argument to draw().
         self.index = False
         self.figwidth = -1
         self.dpi = 150
@@ -217,7 +217,7 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.bundle = dic.pop('cregbundle', self.bundle)
+        self.bundle = dic.pop('cregbundle', self.bundle)    # Deprecated. Now argument to draw().
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
