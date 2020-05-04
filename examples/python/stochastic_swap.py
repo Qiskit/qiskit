@@ -93,7 +93,7 @@ expected.measure(qr[0], cr[1])
 expected_dag = circuit_to_dag(expected)
 
 # Run the pass on the dag from the input circuit
-pass_ = StochasticSwap(coupling, 20, 13)
+pass_ = StochasticSwap(coupling, 20, 999)
 after = pass_.run(dag)
 # Verify the output of the pass matches our expectation
 assert expected_dag == after

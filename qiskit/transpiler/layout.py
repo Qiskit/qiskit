@@ -19,6 +19,8 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
+import warnings
+
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -219,8 +221,13 @@ class Layout():
         Returns:
             dict: A "edge map".
         Raises:
-            LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
+            LayoutError: another_layout can be bigger than self, but not smaller.
+                Otherwise, raises.
         """
+        warnings.warn('combine_into_edge_map is deprecated as of 0.14.0 and '
+                      'will be removed in a future release. Instead '
+                      'reorder_bits() should be used', DeprecationWarning,
+                      stacklevel=2)
         edge_map = dict()
 
         for virtual, physical in self.get_virtual_bits().items():
@@ -230,6 +237,26 @@ class Layout():
             edge_map[virtual] = another_layout[physical]
 
         return edge_map
+
+    def reorder_bits(self, bits):
+        """Given an ordered list of bits, reorder them according to this layout.
+
+        The list of bits must exactly match the virtual bits in this layout.
+
+        Args:
+            bits (list[Bit]): the bits to reorder.
+
+        Returns:
+            List: ordered bits.
+        """
+        order = [0] * len(bits)
+
+        # the i-th bit is now sitting in position j
+        for i, v in enumerate(bits):
+            j = self[v]
+            order[i] = j
+
+        return order
 
     @staticmethod
     def generate_trivial_layout(*regs):

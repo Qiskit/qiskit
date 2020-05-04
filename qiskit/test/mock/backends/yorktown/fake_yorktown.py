@@ -19,8 +19,7 @@ Fake Yorktown device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
-                                     BackendProperties)
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -35,29 +34,17 @@ class FakeYorktown(FakeBackend):
             | /
             4
         """
-        cmap = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
+        dirname = os.path.dirname(__file__)
+        filename = "conf_yorktown.json"
+        with open(os.path.join(dirname, filename), "r") as f_conf:
+            conf = json.load(f_conf)
 
-        configuration = QasmBackendConfiguration(
-            backend_name='fake_yorktown',
-            backend_version='0.0.0',
-            n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-            simulator=False,
-            local=True,
-            conditional=False,
-            open_pulse=False,
-            memory=False,
-            max_shots=65536,
-            max_experiments=75,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
-            coupling_map=cmap,
-        )
-
+        configuration = QasmBackendConfiguration.from_dict(conf)
+        configuration.backend_name = 'fake_yorktown'
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 8/30/19.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_yorktown.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:

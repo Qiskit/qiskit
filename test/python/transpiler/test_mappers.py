@@ -15,7 +15,7 @@
 """Meta tests for mappers.
 
 The test checks the output of the swapper to a ground truth DAG (one for each
-test/swapper) saved in as a pickle (in `test/python/pickles/`). If they need
+test/swapper) saved in as a QASM (in `test/python/qasm/`). If they need
 to be regenerated, the DAG candidate is compiled and run in a simulator and
 the count is checked before being saved. This happens with (in the root
 directory):
@@ -43,7 +43,7 @@ To **add a test for all the swappers**, add a new method ``test_foo``to the
     * use the ``self.assertResult`` assertion for comparing for regeneration of the
       ground truth.
     * explicitly set a unique ``name`` of the ``QuantumCircuit``, as it it used
-      for the name of the pickle file of the ground truth.
+      for the name of the QASM file of the ground truth.
 
 For example::
 
@@ -57,7 +57,7 @@ For example::
         qr = QuantumRegister(3, 'q')               #
         cr = ClassicalRegister(3, 'c')             # Set the circuit to test
         circuit = QuantumCircuit(qr, cr,           # and don't forget to put a name
-                                 name='some_name') # (it will be used to save the pickle
+                                 name='some_name') # (it will be used to save the QASM
         circuit.h(qr[1])                           #
         circuit.cx(qr[1], qr[2])                   #
         circuit.measure(qr, cr)                    #
@@ -71,7 +71,6 @@ For example::
 # pylint: disable=attribute-defined-outside-init
 
 import unittest
-import pickle
 import sys
 import os
 
@@ -83,7 +82,7 @@ from qiskit.transpiler import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
 
-DIRNAME = QiskitTestCase._get_resource_path('pickles')
+DIRNAME = QiskitTestCase._get_resource_path('qasm')
 
 
 class CommonUtilitiesMixin:
@@ -120,31 +119,29 @@ class CommonUtilitiesMixin:
         """Generates the expected result into a file.
 
         Checks if transpiled_result matches self.counts by running in a backend
-        (self.create_backend()). That's saved in a pickle in filename.
+        (self.create_backend()). That's saved in a QASM in filename.
 
         Args:
             transpiled_result (DAGCircuit): The DAGCircuit to execute.
-            filename (string): Where the pickle is saved.
+            filename (string): Where the QASM is saved.
         """
         sim_backend = self.create_backend()
         job = execute(transpiled_result, sim_backend, seed_simulator=self.seed_simulator,
                       seed_transpiler=self.seed_transpiler, shots=self.shots)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
-        with open(filename, "wb") as output_file:
-            pickle.dump(transpiled_result, output_file)
+        transpiled_result.qasm(formatted=False, filename=filename)
 
     def assertResult(self, result, circuit):
-        """Fetches the pickle in circuit.name file and compares it with result."""
-        picklename = '%s_%s.pickle' % (type(self).__name__, circuit.name)
-        filename = os.path.join(DIRNAME, picklename)
+        """Fetches the QASM in circuit.name file and compares it with result."""
+        qasm_name = '%s_%s.qasm' % (type(self).__name__, circuit.name)
+        filename = os.path.join(DIRNAME, qasm_name)
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
             self.generate_ground_truth(result, filename)
 
-        with open(filename, "rb") as input_file:
-            expected = pickle.load(input_file)
+        expected = QuantumCircuit.from_qasm_file(filename)
 
         self.assertEqual(result, expected)
 
@@ -291,8 +288,8 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == 'regenerate':
         CommonUtilitiesMixin.regenerate_expected = True
 
-        for picklefilename in os.listdir(DIRNAME):
-            os.remove(os.path.join(DIRNAME, picklefilename))
+        for qasm_filename in os.listdir(DIRNAME):
+            os.remove(os.path.join(DIRNAME, qasm_filename))
 
         del sys.argv[1]
     unittest.main()
