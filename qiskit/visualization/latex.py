@@ -211,8 +211,10 @@ class QCircuitImage:
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
                 self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
-                                    "_{" + str(self.ordered_regs[i].index) + "}" + \
-                                    ": 0}"
+                                    "_{" + str(self.ordered_regs[i].index) + "}" + ": "
+                if self.initial_state:
+                    self._latex[i][0] += "0"
+                self._latex[i][0] += "}"
             else:
                 if self.layout is None:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(

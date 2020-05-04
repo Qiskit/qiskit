@@ -12,11 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Test QuantumCircuit.compose()."""
 
 import unittest
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
 
 
@@ -349,6 +352,50 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
 
         self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_gate(self):
+        """Composing with a gate.
+
+                    ┌───┐                                ┌───┐    ┌───┐
+        lqr_1_0: ───┤ H ├───                 lqr_1_0: ───┤ H ├────┤ X ├
+                    ├───┤                                ├───┤    └─┬─┘
+        lqr_1_1: ───┤ X ├───                 lqr_1_1: ───┤ X ├──────┼───
+                 ┌──┴───┴──┐     ───■───              ┌──┴───┴──┐   │
+        lqr_1_2: ┤ U1(0.1) ├  +   ┌─┴─┐   =  lqr_1_2: ┤ U1(0.1) ├───┼───
+                 └─────────┘     ─┤ X ├─              └─────────┘   │
+        lqr_2_0: ─────■─────      └───┘      lqr_2_0: ─────■────────┼──
+                    ┌─┴─┐                                ┌─┴─┐      │
+        lqr_2_1: ───┤ X ├───                 lqr_2_1: ───┤ X ├──────■───
+                    └───┘                                └───┘
+        lcr_0: 0 ═══════════                 lcr_0: 0 ═══════════
+
+        lcr_1: 0 ═══════════                 lcr_1: 0 ═══════════
+
+        """
+        circuit_composed = self.circuit_left.compose(CXGate(), qubits=[4, 0])
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.cx(self.left_qubit4, self.left_qubit0)
+
+        self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_one_liner(self):
+        """Test building a circuit in one line, for fun.
+        """
+        circ = QuantumCircuit(3)
+        h = HGate()
+        rz = RZGate(0.1)
+        cx = CXGate()
+        ccx = CCXGate()
+        circ = circ.compose(h, [0]).compose(cx, [0, 2]).compose(ccx, [2, 1, 0]).compose(rz, [1])
+
+        expected = QuantumCircuit(3)
+        expected.h(0)
+        expected.cx(0, 2)
+        expected.ccx(2, 1, 0)
+        expected.rz(0.1, 1)
+
+        self.assertEqual(circ, expected)
 
 
 if __name__ == '__main__':

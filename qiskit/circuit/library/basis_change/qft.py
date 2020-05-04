@@ -130,7 +130,7 @@ class QFT(BlueprintCircuit):
             self._invalidate()
 
             if num_qubits:
-                self.qregs = [QuantumRegister(num_qubits)]
+                self.qregs = [QuantumRegister(num_qubits, name='q')]
             else:
                 self.qregs = []
 
@@ -218,7 +218,21 @@ class QFT(BlueprintCircuit):
         Returns:
             The inverted circuit.
         """
-        inverted = super().inverse()
+
+        if self.name in ('qft', 'iqft'):
+            name = 'qft' if self._inverse else 'iqft'
+        else:
+            name = self.name + '_dg'
+
+        inverted = self.copy(name=name)
+        inverted._data = []
+
+        from qiskit.circuit.parametertable import ParameterTable
+        inverted._parameter_table = ParameterTable()
+
+        for inst, qargs, cargs in reversed(self._data):
+            inverted._append(inst.inverse(), qargs, cargs)
+
         inverted._inverse = not self._inverse
         return inverted
 

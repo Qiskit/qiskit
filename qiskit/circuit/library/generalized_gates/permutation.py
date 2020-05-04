@@ -62,22 +62,24 @@ class Permutation(QuantumCircuit):
                 circuit = Permutation(5, A)
                 %circuit_library_info circuit.decompose()
         """
-        inner = QuantumCircuit(num_qubits)
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
                 raise CircuitError("Permutation pattern must be some "
                                    "ordering of 0..num_qubits-1 in a list.")
             pattern = np.array(pattern)
         else:
-            rng = np.random.RandomState(seed)
+            rng = np.random.default_rng(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
-        name = "Permutation:" + np.array_str(pattern)
+        name = "permutation_" + np.array_str(pattern).replace(' ', ',')
+
+        inner = QuantumCircuit(num_qubits, name=name)
+
         super().__init__(num_qubits, name=name)
         for i in range(num_qubits):
             if (pattern[i] != -1) and (pattern[i] != i):
                 inner.swap(i, int(pattern[i]))
                 pattern[pattern[i]] = -1
         all_qubits = self.qubits
-        self.append(inner, all_qubits, label=name)
+        self.append(inner, all_qubits)

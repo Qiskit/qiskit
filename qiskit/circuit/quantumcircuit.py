@@ -25,7 +25,6 @@ from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
@@ -197,6 +196,7 @@ class QuantumCircuit:
         # below will also empty data_input, so make a shallow copy first.
         data_input = data_input.copy()
         self._data = []
+        self._parameter_table = ParameterTable()
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
@@ -252,10 +252,11 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: the mirrored circuit
         """
-        reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ._data = []
+        reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_mirror')
+
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.append(inst.mirror(), qargs, cargs)
+            reverse_circ._append(inst.mirror(), qargs, cargs)
         return reverse_circ
 
     def inverse(self):
@@ -269,10 +270,11 @@ class QuantumCircuit:
         Raises:
             CircuitError: if the circuit cannot be inverted.
         """
-        inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ._data = []
+        inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_dg')
+
         for inst, qargs, cargs in reversed(self._data):
-            inverse_circ._data.append((inst.inverse(), qargs, cargs))
+            inverse_circ._append(inst.inverse(), qargs, cargs)
         return inverse_circ
 
     def combine(self, rhs):
@@ -352,12 +354,13 @@ class QuantumCircuit:
         return self
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
-        """Compose circuit with ``other`` circuit, optionally permuting wires.
+        """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
 
         Args:
-            other (QuantumCircuit): circuit to compose with self.
+            other (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
+                (sub)circuit to compose onto self.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet).
@@ -369,21 +372,54 @@ class QuantumCircuit:
         Raises:
             CircuitError: if composing on the front.
             QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+
+        Examples:
+
+            >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+
+            .. parsed-literal::
+
+                            ┌───┐                   ┌─────┐                ┌───┐
+                lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
+                            ├───┤              ┌─┴─┐└─────┘                ├───┤
+                lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
+                         ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
+                lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
+                         └─────────┘                                    └─────────┘└─┬─┘┌─────┐
+                lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
+                            ┌─┴─┐                                          ┌─┴─┐        └─────┘
+                lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
+                            └───┘                                          └───┘
+                lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+
+                lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
+
         """
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-        from qiskit.converters.dag_to_circuit import dag_to_circuit
         if front:
             raise CircuitError("Front composition of QuantumCircuit not supported yet.")
 
-        dag_self = circuit_to_dag(self)
-        dag_other = circuit_to_dag(other)
-        dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
-        composed_circuit = dag_to_circuit(dag_self)
-        if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
-            self.__dict__.update(composed_circuit.__dict__)
-            return None
-        else:
-            return dag_to_circuit(dag_self)
+        if isinstance(other, QuantumCircuit):
+            from qiskit.converters.circuit_to_dag import circuit_to_dag
+            from qiskit.converters.dag_to_circuit import dag_to_circuit
+
+            dag_self = circuit_to_dag(self)
+            dag_other = circuit_to_dag(other)
+            dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
+            composed_circuit = dag_to_circuit(dag_self)
+            if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
+                self.__dict__.update(composed_circuit.__dict__)
+                return None
+            else:
+                return composed_circuit
+
+        else:  # fall back to append which accepts Instruction and BaseOperator
+            if inplace:
+                self.append(other, qargs=qubits, cargs=clbits)
+                return None
+            else:
+                new_circuit = self.copy()
+                new_circuit.append(other, qargs=qubits, cargs=clbits)
+                return new_circuit
 
     @property
     def qubits(self):
@@ -485,41 +521,22 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None, label=None):
+    def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator): instruction
-                to append.
-            qargs (list(argument)): qubits to attach instruction to.
-            cargs (list(argument)): clbits to attach instruction to.
-            label (str): An optional label for the appended instruction (will override
-                any existing gate label).
+            instruction (qiskit.circuit.Instruction): Instruction instance to append
+            qargs (list(argument)): qubits to attach instruction to
+            cargs (list(argument)): clbits to attach instruction to
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
-        Raises:
-            CircuitError: If it is not possible to append the operator.
         """
-        from qiskit.quantum_info.operators.base_operator import BaseOperator
         # Convert input to Instruction
-        if isinstance(instruction, QuantumCircuit):
-            try:
-                instruction = instruction.to_gate()
-            except QiskitError:
-                instruction = instruction.to_instruction()
-        elif isinstance(instruction, BaseOperator):
-            try:
-                instruction = instruction.to_instruction()
-            except AttributeError:
-                raise CircuitError('Unable to append operator to circuit.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
-
-        if label is not None:
-            instruction.label = label
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -564,7 +581,7 @@ class QuantumCircuit:
     def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
-                current_parameters = self.parameters
+                current_parameters = self._parameter_table
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
@@ -572,7 +589,7 @@ class QuantumCircuit:
                                                           instruction, param_index):
                             self._parameter_table[parameter].append((instruction, param_index))
                     else:
-                        if parameter.name in {p.name for p in current_parameters}:
+                        if parameter.name in self._parameter_table.get_names():
                             raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
@@ -750,7 +767,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -824,7 +841,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-                the ``text`` output. Default: ``True``.
+                the ``text`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -1223,12 +1240,11 @@ class QuantumCircuit:
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
 
-        cpy._parameter_table = ParameterTable()
-        cpy._parameter_table._table = {
+        cpy._parameter_table = ParameterTable({
             param: [(instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]]
             for param in self._parameter_table
-        }
+        })
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
                      for inst, qargs, cargs in self._data]
@@ -1381,7 +1397,7 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return set(self._parameter_table.keys())
+        return self._parameter_table.get_keys()
 
     @property
     def num_parameters(self):
@@ -1448,9 +1464,9 @@ class QuantumCircuit:
         unrolled_param_dict = self._unroll_param_dict(param_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_param_dict.keys() > self.parameters:
+        if unrolled_param_dict.keys() > self._parameter_table.keys():
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in param_dict.keys() - self.parameters]))
+                [str(p) for p in param_dict.keys() - self._parameter_table]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
@@ -1484,9 +1500,9 @@ class QuantumCircuit:
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         # check that only existing parameters are in the parameter dictionary
-        if unrolled_value_dict.keys() > self.parameters:
+        if len(unrolled_value_dict) > len(self._parameter_table):
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in value_dict.keys() - self.parameters]))
+                [str(p) for p in value_dict.keys() - self._parameter_table.keys()]))
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_value_dict.items():

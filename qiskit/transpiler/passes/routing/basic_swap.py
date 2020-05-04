@@ -92,14 +92,14 @@ class BasicSwap(TransformationPass):
                                                         cargs=[])
 
                     # layer insertion
-                    edge_map = current_layout.combine_into_edge_map(trivial_layout)
-                    new_dag.compose(swap_layer, edge_map)
+                    order = current_layout.reorder_bits(new_dag.qubits())
+                    new_dag.compose(swap_layer, qubits=order)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-            edge_map = current_layout.combine_into_edge_map(trivial_layout)
-            new_dag.compose(subdag, edge_map)
+            order = current_layout.reorder_bits(new_dag.qubits())
+            new_dag.compose(subdag, qubits=order)
 
         return new_dag

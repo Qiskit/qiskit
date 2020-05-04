@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new method, :meth:`~qiskit.circuit.EquivalenceLibrary.has_entry`, has been
+    added to the :class:`qiskit.circuit.EquivalenceLibrary` class to quickly
+    check if a given gate has any known decompositions in the library.
