@@ -630,7 +630,7 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-def plot_state_qsphere(rho, figsize=None, ax=None):
+def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_state_phases=True):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
@@ -774,6 +774,21 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
                 if yvalue >= 0.1:
                     alfa = 1.0 - yvalue
 
+                if prob > 0 and show_state_labels:
+                    rprime = 1.3
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                    zvalue_text = rprime * np.cos(angle_theta)
+                    element_text = '$\\vert' + element + '\\rangle$'
+                    if show_state_phases:
+                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                        element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text, 
+                        ha='center', va='center', size=12)
+
+
+
                 ax.plot([xvalue], [yvalue], [zvalue],
                         markerfacecolor=colorstate,
                         markeredgecolor=colorstate,
@@ -807,20 +822,20 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
     ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
-    ax2.text(0, 0, 'Phase', horizontalalignment='center',
+    ax2.text(0, 0, 'Phase\n(Deg)', horizontalalignment='center',
              verticalalignment='center', fontsize=14)
 
     offset = 0.95  # since radius of sphere is one.
 
     ax2.text(offset, 0, r'$0$', horizontalalignment='center',
              verticalalignment='center', fontsize=14)
-    ax2.text(0, offset, r'$\pi/2$', horizontalalignment='center',
+    ax2.text(0, offset, r'$90$', horizontalalignment='center',
              verticalalignment='center', fontsize=14)
 
-    ax2.text(-offset, 0, r'$\pi$', horizontalalignment='center',
+    ax2.text(-offset, 0, r'$180$', horizontalalignment='center',
              verticalalignment='center', fontsize=14)
 
-    ax2.text(0, -offset, r'$3\pi/2$', horizontalalignment='center',
+    ax2.text(0, -offset, r'$270$', horizontalalignment='center',
              verticalalignment='center', fontsize=14)
 
     if return_fig:
