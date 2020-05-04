@@ -33,6 +33,5 @@ Exceptions
 .. autosummary::
    :toctree: ../stubs/
 
-   ModelValidationError
    jsonschema.SchemaValidationError
 """
