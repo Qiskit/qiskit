@@ -45,8 +45,6 @@ Pulse Builder (:mod:`~qiskit.pulse.builder`)
     :toctree: ../stubs/
 
     ~builder
-    ~builder.play
-    ~builder.set_phase
 
 
 .. _pulse-insts:

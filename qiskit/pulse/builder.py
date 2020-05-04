@@ -18,8 +18,7 @@ The pulse builder interface may be used to program pulse programs with
 assembly-like syntax. To start we must initialize a builder context to build
 our program with:
 
-.. code-block:: python
-    :emphasize-lines: 5, 6
+.. jupyter-execute::
 
     from qiskit import execute
     from qiskit import pulse
@@ -29,6 +28,7 @@ our program with:
     with pulse.build() as pulse_prog:
         pulse.play(pulse.Constant(100, 1.0), d0)
 
+    pulse_prog.draw()
     # Execute on a real backend.
     # job = execute(pulse_prog, backend)
 
@@ -49,12 +49,12 @@ to enable enhanced pulse functionality. Below we prepare a Bell state
 automatically compiling the required pulses, while simultaneously applying a
 long decoupling pulse to a neighboring qubit, followed by a measurement.
 
-.. code-block:: python
+.. jupyter-execute::
 
     import math
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeOpenPulse2Q
+    from qiskit.test.mock import FakeOpenPulse3Q
 
     backend = FakeOpenPulse3Q()
 
@@ -72,6 +72,8 @@ long decoupling pulse to a neighboring qubit, followed by a measurement.
             pulse.barrier(0, 1, 2)
             registers = pulse.measure_all()
 
+    decoupled_bell_prep_and_measure.draw()
+
 With the pulse builder we are able to blend programming on qubits and channels.
 While, the pulse IR of Qiskit Pulse is based on instructions that operate on
 channels, the pulse builder automatically handles the mappings of qubits to
@@ -81,7 +83,7 @@ instruction on a :class:`~qiskit.pulse.Channel`.
 Below we demonstrate a more fully featured example of using the pulse builder
 interface:
 
-.. code-block:: python
+.. jupyter-execute::
 
     import math
 
@@ -186,8 +188,8 @@ interface:
             with pulse.phase_offset(math.pi, d0):
                 pulse.play(gaussian_pulse, d0)
 
-The above is just a small taste of what is possible with the pulse builder
-interface. See the rest of the module documentation for more information on its
+The above is just a small taste of what is possible with the pulse.
+See the rest of the module documentation for more information on its
 capabilities.
 
 .. warning::
@@ -229,7 +231,6 @@ from qiskit.pulse.schedule import Schedule
 __all__ = [
     "build",
     "active_backend",
-    "append_block",
     "append_instruction",
     "num_qubits",
     "qubit_channels",
@@ -446,12 +447,20 @@ class _PulseBuilder():
 
     @_compile_lazy_circuit_before
     def append_block(self, block: Schedule):
-        """Add a block to the active block."""
+        """Add a block to the active schedule block.
+
+        Args:
+            block: Schedule to append to the active schedule block.
+        """
         self.block.append(block, mutate=True)
 
     @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
-        """Add an instruction to the active block."""
+        """Add an instruction to the active schedule block.
+
+        Args:
+            instruction: Instruction to append.
+        """
         self.block.append(instruction, mutate=True)
 
     def _compile_lazy_circuit(self):
@@ -643,7 +652,7 @@ def append_block(block: Schedule):
 def append_instruction(instruction: instructions.Instruction):
     """Append an instruction to the current active builder context block.
 
-    For example:
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 6
@@ -659,9 +668,9 @@ def append_instruction(instruction: instructions.Instruction):
 
 
 def num_qubits() -> int:
-    """Return number of qubits in currently active backend.
+    """Return number of qubits in the currently active backend.
 
-    For example:
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -681,6 +690,8 @@ def num_qubits() -> int:
 
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """Returns the set of channels associated with a qubit.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -721,6 +732,8 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
 def active_transpiler_settings() -> Dict[str, Any]:
     """Return the current active builder context's transpiler settings.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 10
 
@@ -742,6 +755,8 @@ def active_transpiler_settings() -> Dict[str, Any]:
 # pylint: disable=invalid-name
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return the current active builder context's circuit scheduler settings.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 11
@@ -818,6 +833,8 @@ def align_left() -> ContextManager[None]:
     Pulse instructions within this context are scheduled as early as possible
     by shifting them left to the earliest available time.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 7
 
@@ -844,6 +861,8 @@ def align_right() -> ContextManager[None]:
     Pulse instructions within this context are scheduled as late as possible
     by shifting them right to the latest available time.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 7
 
@@ -869,6 +888,8 @@ def align_sequential() -> ContextManager[None]:
 
     Pulse instructions within this context are scheduled sequentially in time
     such that no two instructions will be played at the same time.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -920,6 +941,8 @@ def group() -> ContextManager[None]:
     """Group the instructions within this context as a :class:`pulse.Schedule`.
     fixing their relative time in parent contexts.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 11
 
@@ -948,6 +971,8 @@ def group() -> ContextManager[None]:
 def inline() -> ContextManager[None]:
     """Inline all instructions within this context into the parent context,
     inheriting the scheduling policy of the parent context.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 11
@@ -997,7 +1022,7 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
         chs: Channels to pad with delays. Defaults to all channels in context
             if none are supplied.
 
-    Example:
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -1023,6 +1048,8 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the currently active transpiler settings for this context.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1050,6 +1077,8 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 @contextmanager
 def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     """Set the currently active circuit scheduler settings for this context.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1079,6 +1108,8 @@ def phase_offset(phase: float,
                  channel: channels.PulseChannel
                  ) -> ContextManager[None]:
     """Shift the phase of a channel on entry into context and undo on exit.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1115,6 +1146,8 @@ def frequency_offset(frequency: float,
                      compensate_phase: bool = False
                      ) -> ContextManager[None]:
     """Shift the frequency of a channel on entry into context and undo on exit.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7, 16
@@ -1166,6 +1199,8 @@ def frequency_offset(frequency: float,
 def drive_channel(qubit: int) -> channels.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 7
 
@@ -1185,6 +1220,8 @@ def drive_channel(qubit: int) -> channels.DriveChannel:
 def measure_channel(qubit: int) -> channels.MeasureChannel:
     """Return ``MeasureChannel`` for ``qubit`` on the active builder backend.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 7
 
@@ -1203,6 +1240,8 @@ def measure_channel(qubit: int) -> channels.MeasureChannel:
 
 def acquire_channel(qubit: int) -> channels.AcquireChannel:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 7
@@ -1225,6 +1264,8 @@ def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
 
     Return the secondary drive channel for the given qubit -- typically
     utilized for controlling multi-qubit interactions.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 6
@@ -1254,6 +1295,8 @@ def delay(duration: int,
           channel: channels.Channel):
     """Delay on a ``channel`` for a ``duration``.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 6
 
@@ -1274,6 +1317,8 @@ def delay(duration: int,
 def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
          channel: channels.PulseChannel):
     """Play a ``pulse`` on a ``channel``.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 6
@@ -1303,6 +1348,8 @@ def acquire(duration: int,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 6, 10
@@ -1351,6 +1398,8 @@ def set_frequency(frequency: float,
                   channel: channels.PulseChannel):
     """Set the ``frequency`` of a pulse ``channel``.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 6
 
@@ -1372,6 +1421,7 @@ def shift_frequency(frequency: float,
                     channel: channels.PulseChannel):
     """Shift the ``frequency`` of a pulse ``channel``.
 
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 6
@@ -1393,6 +1443,8 @@ def shift_frequency(frequency: float,
 def set_phase(phase: float,
               channel: channels.PulseChannel):
     """Set the ``phase`` of a pulse ``channel``.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1417,6 +1469,8 @@ def shift_phase(phase: float,
                 channel: channels.PulseChannel):
     """Shift the ``phase`` of a pulse ``channel``.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 8
 
@@ -1440,6 +1494,8 @@ def snapshot(label: str,
              snapshot_type: str = 'statevector'):
     """Simulator snapshot.
 
+    Example Usage:
+
     .. code-block:: python
         :emphasize-lines: 4
 
@@ -1458,6 +1514,8 @@ def snapshot(label: str,
 
 def call_schedule(schedule: Schedule):
     """Call a pulse ``schedule`` in the builder context.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 9
@@ -1482,6 +1540,8 @@ def call_schedule(schedule: Schedule):
 
 def call_circuit(circ: circuit.QuantumCircuit):
     """Call a quantum ``circuit`` within the active builder context.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 18, 22
@@ -1521,6 +1581,8 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
     """Call the ``target`` within the currently active builder context.
+
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 15, 16
@@ -1702,7 +1764,7 @@ def measure_all() -> List[channels.MemorySlot]:
     same time. This is useful for handling device ``meas_map`` and single
     measurement constraints.
 
-    Example:
+    Example Usage:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1743,7 +1805,7 @@ def delay_qubits(duration: int,
     Example Usage:
 
     .. code-block:: python
-        :emphasize-lines: 7
+        :emphasize-lines: 8
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1751,6 +1813,7 @@ def delay_qubits(duration: int,
         backend = FakeOpenPulse2Q()
 
         with pulse.build(backend) as pulse_prog:
+            # Delay for 100 cycles on qubits 0, 1 and 3.
             regs = pulse.delay_qubits(100, 0, 1, 3)
 
     .. note:: Requires the active builder context to have a backend set.
@@ -1818,7 +1881,8 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
 
 def cx(control: int, target: int):
-    """Call a cx gate on physical qubits.
+    """Call a :class:`~qiskit.circuit.library.standard_gates.CXGate` on the
+    input physical qubits.
 
     Example Usage:
 
@@ -1833,14 +1897,13 @@ def cx(control: int, target: int):
         with pulse.build(backend) as pulse_prog:
             pulse.cx(0, 1)
 
-    :class:`~qiskit.circuit.library.standard_gates.CXGate`: for the full
-    description of the gate.
     """
     call_gate(gates.CXGate(), (control, target))
 
 
 def u1(theta: float, qubit: int):
-    """Call a u1 gate on physical qubits.
+    """Call a :class:`~qiskit.circuit.library.standard_gates.U1Gate` on the
+    input physical qubit.
 
     Example Usage:
 
@@ -1857,16 +1920,13 @@ def u1(theta: float, qubit: int):
         with pulse.build(backend) as pulse_prog:
             pulse.u1(math.pi, 1)
 
-    .. seealso::
-
-        :class:`~qiskit.circuit.library.standard_gates.U1Gate`: for the full
-        description of the gate.
     """
     call_gate(gates.U1Gate(theta), qubit)
 
 
 def u2(phi: float, lam: float, qubit: int):
-    """Call a u2 gate on physical qubits.
+    """Call a :class:`~qiskit.circuit.library.standard_gates.U2Gate` on the
+    input physical qubit.
 
     Example Usage:
 
@@ -1883,16 +1943,13 @@ def u2(phi: float, lam: float, qubit: int):
         with pulse.build(backend) as pulse_prog:
             pulse.u2(0, math.pi, 1)
 
-    .. seealso::
-
-        :class:`~qiskit.circuit.library.standard_gates.U2Gate`: for the full
-        description of the gate.
     """
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
 def u3(theta: float, phi: float, lam: float, qubit: int):
-    """Call a u3 gate on physical qubits.
+    """Call a :class:`~qiskit.circuit.library.standard_gates.U3Gate` on the
+    input physical qubit.
 
     Example Usage:
 
@@ -1909,16 +1966,13 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
         with pulse.build(backend) as pulse_prog:
             pulse.u3(math.pi, 0, math.pi, 1)
 
-    .. seealso::
-
-        :class:`~qiskit.circuit.library.standard_gates.U3Gate`: for the full
-        description of the gate.
     """
     call_gate(gates.U3Gate(theta, phi, lam), qubit)
 
 
 def x(qubit: int):
-    """Call a x gate on physical qubits.
+    """Call a :class:`~qiskit.circuit.library.standard_gates.XGate` on the
+    input physical qubit.
 
     Example Usage:
 
@@ -1933,9 +1987,5 @@ def x(qubit: int):
         with pulse.build(backend) as pulse_prog:
             pulse.x(0)
 
-    .. seealso::
-
-        :class:`~qiskit.circuit.library.standard_gates.XGate`: for the full
-        description of the gate.
     """
     call_gate(gates.XGate(), qubit)
