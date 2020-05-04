@@ -10,7 +10,7 @@ features:
     `graph algorithm library
     <https://networkx.github.io/documentation/stable/reference/algorithms/index.html>`__
     if a function is missing from the
-    `retworkx API<https://retworkx.readthedocs.io/en/latest/api.html>`_.
+    `retworkx API <https://retworkx.readthedocs.io/en/latest/api.html>`_.
     Although, hopefully in such casses an issue will be opened with
     `retworkx issue tracker <https://github.com/Qiskit/retworkx/issues>`__ (or
     even better a pull request submitted).
