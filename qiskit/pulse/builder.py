@@ -12,11 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""Context based pulse programming interface with an imperative syntax.
+r"""The pulse builder is the primary pulse programming entrypoint and allows
+the programming of pulse programs with an imperative assembly-like syntax.
 
-The pulse builder interface may be used to program pulse programs with
-assembly-like syntax. To start we must initialize a builder context to build
-our program with:
+To begin pulse programming we must first initialize our program builder
+context with :func:`build`, after which we can begin
+adding program statements. For example, below we write a simple program that
+:func:`play`\s a pulse:
 
 .. jupyter-execute::
 
@@ -29,25 +31,29 @@ our program with:
         pulse.play(pulse.Constant(100, 1.0), d0)
 
     pulse_prog.draw()
+
     # Execute on a real backend.
     # job = execute(pulse_prog, backend)
 
-We see that the builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
-and then begins to build on top of this within the context. The output pulse
-schedule will survive after the context is exited and can be submitted like a
-normal Qiskit program.
+The builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
+and then begins to construct the program within the context. The output pulse
+schedule will survive after the context is exited and can be executed like a
+normal Qiskit program ``qiskit.execute(pulse_prog, backend)``.
 
-Programming with the pulse builder is super simple, and is done in an
-imperative style. There is little need to deal with classes such as the
-:class:`~qiskit.circuit.QuantumCircuit` or :class:`pulse.Schedule`\s. The pulse
-builder dynamically constructs these intermediate representations (IR) behind
-the scenes for you. This leaves you only to worry about the raw experimental
-physics pulse programming deals with.
+Pulse programming has a simple imperative style. There is little need to deal
+with classes such as the :class:`~qiskit.circuit.QuantumCircuit` or
+:class:`pulse.Schedule`\s. The pulse builder dynamically constructs these
+intermediate representations (IR) behind the scenes. This leaves the programmer
+to worry about the raw experimental physics of pulse programming and not
+constructing cumbersome data structures.
 
-We can optionally pass a :class:`~qiskit.providers.BaseBackend` to the builder
-to enable enhanced pulse functionality. Below we prepare a Bell state
-automatically compiling the required pulses, while simultaneously applying a
-long decoupling pulse to a neighboring qubit, followed by a measurement.
+We can optionally pass a :class:`~qiskit.providers.BaseBackend` to
+:func:`build` to enable enhanced functionality. Below, we prepare a Bell state
+by automatically compiling the required pulses from their gate-level
+representations, while simultaneously applying a long decoupling pulse to a
+neighboring qubit. We terminate the experiment with a measurement to see which
+state we prepared. This program which mixes circuits and pulses will be
+automatically lowered to be run as a pulse program:
 
 .. jupyter-execute::
 
@@ -75,13 +81,11 @@ long decoupling pulse to a neighboring qubit, followed by a measurement.
     decoupled_bell_prep_and_measure.draw()
 
 With the pulse builder we are able to blend programming on qubits and channels.
-While, the pulse IR of Qiskit Pulse is based on instructions that operate on
-channels, the pulse builder automatically handles the mappings of qubits to
-channels for you. However, as seen above its still very simple to call an
-instruction on a :class:`~qiskit.pulse.Channel`.
+While, the pulse IR of Qiskit is based on instructions that operate on
+channels, the pulse builder automatically handles the mapping from qubits to
+channels for you.
 
-Below we demonstrate a more fully featured example of using the pulse builder
-interface:
+In the example below we demonstrate some more features of the pulse builder:
 
 .. jupyter-execute::
 
@@ -188,8 +192,8 @@ interface:
             with pulse.phase_offset(math.pi, d0):
                 pulse.play(gaussian_pulse, d0)
 
-The above is just a small taste of what is possible with the pulse.
-See the rest of the module documentation for more information on its
+The above is just a small taste of what is possible with the builder. See the
+rest of the module documentation for more information on its
 capabilities.
 
 .. warning::
@@ -332,7 +336,7 @@ class _PulseBuilder():
             schedule: Initital schedule block to build off. If not supplied
                 a schedule will be created.
             default_alignment: Default scheduling alignment policy for the
-                builder. One of 'left', 'right', 'sequential' or an alignment
+                builder. One of 'left', 'right', 'sequential', or an alignment
                 contextmanager.
             default_transpiler_settings: Default settings for the transpiler.
             default_circuit_scheduler_settings: Default settings for the
@@ -654,8 +658,7 @@ def append_instruction(instruction: instructions.Instruction):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 6
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -663,6 +666,8 @@ def append_instruction(instruction: instructions.Instruction):
 
         with pulse.build() as pulse_prog:
             pulse.append_instruction(pulse.Delay(10, d0))
+
+        print(pulse_prog.instructions)
     """
     _active_builder().append_instruction(instruction)
 
@@ -672,8 +677,7 @@ def num_qubits() -> int:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -693,8 +697,7 @@ def qubit_channels(qubit: int) -> Set[channels.Channel]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -734,8 +737,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 10
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -749,7 +751,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
             print(pulse.active_transpiler_settings())
 
     """
-    return _active_builder().transpiler_settings
+    return dict(_active_builder().transpiler_settings)
 
 
 # pylint: disable=invalid-name
@@ -758,8 +760,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 11
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -774,7 +775,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
             print(pulse.active_circuit_scheduler_settings())
 
     """
-    return _active_builder().circuit_scheduler_settings
+    return dict(_active_builder().circuit_scheduler_settings)
 
 
 # Contexts ###########################################################
@@ -835,8 +836,7 @@ def align_left() -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -863,8 +863,7 @@ def align_right() -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -891,8 +890,7 @@ def align_sequential() -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -943,8 +941,7 @@ def group() -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 11
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -974,8 +971,7 @@ def inline() -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 11
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1024,8 +1020,7 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1051,8 +1046,7 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1080,8 +1074,7 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1111,8 +1104,7 @@ def phase_offset(phase: float,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         import math
 
@@ -1201,8 +1193,7 @@ def drive_channel(qubit: int) -> channels.DriveChannel:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1222,8 +1213,7 @@ def measure_channel(qubit: int) -> channels.MeasureChannel:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1243,8 +1233,7 @@ def acquire_channel(qubit: int) -> channels.AcquireChannel:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1267,8 +1256,7 @@ def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 6
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1297,8 +1285,7 @@ def delay(duration: int,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 6
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1320,8 +1307,7 @@ def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 6
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1351,8 +1337,7 @@ def acquire(duration: int,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 6, 10
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1400,8 +1385,7 @@ def set_frequency(frequency: float,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 6
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1471,8 +1455,7 @@ def shift_phase(phase: float,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         import math
 
@@ -1496,8 +1479,7 @@ def snapshot(label: str,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 4
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1517,8 +1499,7 @@ def call_schedule(schedule: Schedule):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 9
+    .. jupyter-execute::
 
         from qiskit import pulse
 
@@ -1543,8 +1524,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 18, 22
+    .. jupyter-execute::
 
         from qiskit import circuit
         from qiskit import pulse
@@ -1584,8 +1564,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 15, 16
+    .. jupyter-execute::
 
         from qiskit import circuit
         from qiskit import pulse
@@ -1627,8 +1606,10 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
     the barrier. Consider the case where we want to enforce that one pulse
     happens after another on separate channels, this can be done with:
 
-    .. code-block:: python
-        :emphasize-lines: 11
+    .. jupyter-kernel:: python3
+        :id: barrier
+
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1645,7 +1626,7 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
 
     Of course this could have been accomplished with:
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         with pulse.build(backend) as aligned_pulse_prog:
             with pulse.align_sequential():
@@ -1658,8 +1639,7 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
-    .. code-block:: python
-        :emphasize-lines: 9
+    .. jupyter-execute::
 
         import math
 
@@ -1701,8 +1681,10 @@ def measure(qubit: int,
     To use the measurement it is as simple as specifying the qubit you wish to
     measure:
 
-    .. code-block:: python
-        :emphasize-lines: 10
+    .. jupyter-kernel:: python3
+        :id: measure
+
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1722,8 +1704,7 @@ def measure(qubit: int,
     future we will support using this handle to a result register to build
     up ones program. It is also possible to supply this register:
 
-    .. code-block:: python
-        :emphasize-lines: 5
+    .. jupyter-execute::
 
         with pulse.build(backend) as pulse_prog:
             pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
@@ -1766,8 +1747,7 @@ def measure_all() -> List[channels.MemorySlot]:
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1804,17 +1784,16 @@ def delay_qubits(duration: int,
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.test.mock import FakeOpenPulse3Q
 
-        backend = FakeOpenPulse2Q()
+        backend = FakeOpenPulse3Q()
 
         with pulse.build(backend) as pulse_prog:
-            # Delay for 100 cycles on qubits 0, 1 and 3.
-            regs = pulse.delay_qubits(100, 0, 1, 3)
+            # Delay for 100 cycles on qubits 0, 1 and 2.
+            regs = pulse.delay_qubits(100, 0, 1, 2)
 
     .. note:: Requires the active builder context to have a backend set.
 
@@ -1835,10 +1814,12 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
 
+    .. jupyter-kernel:: python3
+        :id: call_gate
+
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.circuit.library import standard_gates as gates
@@ -1852,8 +1833,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     We can see the role of the transpiler in scheduling gates by optimizing
     away two consecutive CNOT gates:
 
-    .. code-block:: python
-        :emphasize-lines: 3, 4
+    .. jupyter-execute::
 
         with pulse.build(backend) as pulse_prog:
             with pulse.transpiler_settings(optimization_level=3):
@@ -1886,8 +1866,7 @@ def cx(control: int, target: int):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1907,8 +1886,7 @@ def u1(theta: float, qubit: int):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 9
+    .. jupyter-execute::
 
         import math
 
@@ -1930,8 +1908,7 @@ def u2(phi: float, lam: float, qubit: int):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 9
+    .. jupyter-execute::
 
         import math
 
@@ -1953,8 +1930,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 9
+    .. jupyter-execute::
 
         import math
 
@@ -1976,8 +1952,7 @@ def x(qubit: int):
 
     Example Usage:
 
-    .. code-block:: python
-        :emphasize-lines: 7
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
