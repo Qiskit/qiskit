@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Support for the use of the ``USE_RETWORKX`` environment variable which was
+    introduced in the 0.13.0 release to provide an optional fallback to the
+    legacy networkx based :class:`qiskit.dagcircuit.DAGCircuit` implementation
+    has been removed. This flag was only intended as provide a relief valve for
+    any users that encountered a problem with the new implementation for one
+    release during the transition.
