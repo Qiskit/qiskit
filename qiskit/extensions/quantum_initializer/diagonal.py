@@ -54,7 +54,7 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
     def __init__(self, diag):
         """Check types"""
         try:
-            diag = np.array(diag, dtype=complex)                
+            diag = np.array(diag, dtype=complex)
         except TypeError:
             raise QiskitError("Not all of the diagonal entries can be converted to "
                               "complex numbers.")

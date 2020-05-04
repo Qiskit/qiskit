@@ -68,11 +68,12 @@ class TestIsometry(QiskitTestCase):
                 self.assertTrue(matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True))
 
     def test_unitary_isometry_decomposition(self):
+        """test valid Unitarygate and Isometry can be decomposed"""
         # This matrix checks a difference in tolerance definitions which existed
         # between value checks in UnitaryGate and DiagonalGate such that a diagonal
         # Unitarygate could fail to be a DiagonalGate.
-        U = UnitaryGate([[1, 0], [0, np.sqrt(2)/2*(1+1j) - 1e-9]])
-        iso = Isometry(U.to_matrix(), 0, 0)
+        ugate = UnitaryGate([[1, 0], [0, np.sqrt(2)/2*(1+1j) - 1e-9]])
+        iso = Isometry(ugate.to_matrix(), 0, 0)
         qc = QuantumCircuit(1)
         qc.append(iso, [0])
         try:
