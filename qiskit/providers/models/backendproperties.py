@@ -18,6 +18,7 @@ import copy
 import datetime
 from types import SimpleNamespace
 from typing import Any, Iterable, Tuple, Union
+import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
 
@@ -170,8 +171,8 @@ class BackendProperties(SimpleNamespace):
         Args:
             backend_name (str): Backend name.
             backend_version (str): Backend version in the form X.Y.Z.
-            last_update_date (datetime): Last date/time that a property was
-                                         updated.
+            last_update_date (datetime or str): Last date/time that a property was
+                updated. If specified as a ``str``, it must be in ISO format.
             qubits (list): System qubit parameters as a list of lists of
                            :class:`Nduv` objects
             gates (list): System gate parameters as a list of :class:`Gate`
@@ -182,6 +183,8 @@ class BackendProperties(SimpleNamespace):
         """
         self.backend_name = backend_name
         self.backend_version = backend_version
+        if isinstance(last_update_date, str):
+            last_update_date = dateutil.parser.isoparse(last_update_date)
         self.last_update_date = last_update_date
         self.general = general
         self.qubits = qubits
@@ -266,7 +269,8 @@ class BackendProperties(SimpleNamespace):
         out_dict['general'] = [x.to_dict() for x in self.general]
         for key, value in self.__dict__.items():
             if key not in ['backend_name', 'backend_version',
-                           'last_update_date', 'qubits', 'general', 'gates']:
+                           'last_update_date', 'qubits', 'general', 'gates',
+                           '_gates', '_qubits']:
                 out_dict[key] = value
         return out_dict
 

@@ -204,6 +204,29 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         self.assertEqual(qc, qc1)
 
+    def test_consolidate_blocks_big(self):
+        """Test ConsolidateBlocks with U2(<big numbers>)
+        https://github.com/Qiskit/qiskit-terra/issues/3637#issuecomment-612954865
+
+             ┌────────────────┐     ┌───┐
+        q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
+             ├────────────────┤┌─┴─┐└─┬─┘
+        q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
+             └────────────────┘└───┘
+        """
+        circuit = QuantumCircuit(2)
+        circuit.u2(-804.15, np.pi, 0)
+        circuit.u2(-6433.2, np.pi, 1)
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        result = pass_manager.run(circuit)
+
+        self.assertEqual(circuit, result)
+
     def test_node_added_after_block(self):
         """Test that a node after the block remains after the block
 

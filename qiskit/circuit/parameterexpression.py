@@ -108,7 +108,8 @@ class ParameterExpression():
         """
 
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
-        self._raise_if_parameter_names_conflict(parameter_map.keys())
+        self._raise_if_parameter_names_conflict(parameter_map.values(),
+                                                parameter_map.keys())
 
         from sympy import Symbol
         new_parameter_symbols = {p: Symbol(p.name)
@@ -141,13 +142,17 @@ class ParameterExpression():
             raise CircuitError('Expression cannot bind non-real or non-numeric '
                                'values ({}).'.format(nonreal_parameter_values))
 
-    def _raise_if_parameter_names_conflict(self, other_parameters):
-        self_names = {p.name: p for p in self.parameters}
-        other_names = {p.name: p for p in other_parameters}
+    def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
+        if outbound_parameters is None:
+            outbound_parameters = set()
 
-        shared_names = self_names.keys() & other_names.keys()
+        self_names = {p.name: p for p in self.parameters}
+        inbound_names = {p.name: p for p in inbound_parameters}
+        outbound_names = {p.name: p for p in outbound_parameters}
+
+        shared_names = (self_names.keys() - outbound_names.keys()) & inbound_names.keys()
         conflicting_names = {name for name in shared_names
-                             if self_names[name] != other_names[name]}
+                             if self_names[name] != inbound_names[name]}
         if conflicting_names:
             raise CircuitError('Name conflict applying operation for parameters: '
                                '{}'.format(conflicting_names))

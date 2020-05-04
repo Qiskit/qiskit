@@ -19,11 +19,12 @@ Arbitrary unitary circuit instruction.
 from collections import OrderedDict
 import numpy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.exceptions import QiskitError
-from qiskit.extensions.standard import U3Gate
+from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
@@ -109,10 +110,11 @@ class UnitaryGate(Gate):
             theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
             self.definition = [(U3Gate(theta, phi, lam), [q[0]], [])]
         elif self.num_qubits == 2:
-            self.definition = two_qubit_cnot_decompose(self.to_matrix())
+            self.definition = two_qubit_cnot_decompose(self.to_matrix()).data
         else:
-            raise NotImplementedError("Not able to generate a subcircuit for "
-                                      "a {}-qubit unitary".format(self.num_qubits))
+            q = QuantumRegister(self.num_qubits, "q")
+            self.definition = [(isometry.Isometry(self.to_matrix(), 0, 0),
+                                q[:], [])]
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         r"""Return controlled version of gate
@@ -130,7 +132,9 @@ class UnitaryGate(Gate):
             QiskitError: invalid ctrl_state
         """
         cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
-        return UnitaryGate(cmat, label=label)
+        iso = isometry.Isometry(cmat, 0, 0)
+        return ControlledGate('c-unitary', self.num_qubits + num_ctrl_qubits, cmat,
+                              definition=iso.definition, label=label)
 
     def qasm(self):
         """ The qasm for a custom unitary gate
@@ -182,54 +186,8 @@ class UnitaryGate(Gate):
         return self._qasm_definition + self._qasmif(self._qasm_name)
 
 
-def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
-    r"""
-    Compute the controlled version of the input matrix with qiskit ordering.
-    This function computes the controlled unitary with :math:`n` control qubits
-    and :math:`m` target qubits,
-
-    .. math::
-
-        V_n^j(U_{2^m}) = (U_{2^m} \otimes |j\rangle\!\langle j|) +
-                         (I_{2^m} \otimes (I_{2^n} - |j\rangle\!\langle j|)).
-
-    where :math:`|j\rangle \in \mathcal{H}^{2^n}` is the control state.
-
-    Args:
-        base_mat (ndarray): unitary to be controlled
-        num_ctrl_qubits (int): number of controls for new unitary
-        ctrl_state (int or str or None): The control state in decimal or as
-            a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
-
-    Returns:
-        ndarray: controlled version of base matrix.
-
-    Raises:
-        QiskitError: unrecognized mode or invalid ctrl_state
-    """
-    num_target = int(numpy.log2(base_mat.shape[0]))
-    ctrl_dim = 2**num_ctrl_qubits
-    ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim-1])
-    if ctrl_state is None:
-        ctrl_state = ctrl_dim - 1
-    elif isinstance(ctrl_state, str):
-        ctrl_state = int(ctrl_state, 2)
-    if isinstance(ctrl_state, int):
-        if not 0 <= ctrl_state < ctrl_dim:
-            raise QiskitError('Invalid control state value specified.')
-    else:
-        raise QiskitError('Invalid control state type specified.')
-    full_mat_dim = ctrl_dim * base_mat.shape[0]
-    full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
-    ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_state))
-    full_mat = (numpy.kron(numpy.eye(2**num_target),
-                           numpy.eye(ctrl_dim) - ctrl_proj)
-                + numpy.kron(base_mat, ctrl_proj))
-    return full_mat
-
-
 def unitary(self, obj, qubits, label=None):
-    """Apply u2 to q."""
+    """Apply unitary gate to q."""
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     return self.append(UnitaryGate(obj, label=label), qubits, [])
