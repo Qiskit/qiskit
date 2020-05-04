@@ -24,6 +24,7 @@ import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
+from qiskit.circuit.tools.pi_check import pi_check
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
@@ -630,7 +631,8 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_state_phases=True):
+def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
+                       show_state_phases=True, use_degrees=True):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
@@ -645,9 +647,11 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
         show_state_labels (bool): An optional boolean indicating whether to
-            show labels for each basis state
+            show labels for each basis state.
         show_state_phases (bool): An optional boolean indicating whether to
-            show the phase for each basis state
+            show the phase for each basis state.
+        use_degrees (bool): An optional boolean indicating whether to use
+            radians or degrees for the phase values in the plot.
 
     Returns:
         Figure: A matplotlib figure instance if the ``ax`` kwag is not set
@@ -787,7 +791,12 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_
                     element_text = '$\\vert' + element + '\\rangle$'
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
-                        element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                        if use_degrees:
+                            element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                        else:
+                            element_angle = pi_check(element_angle, ndigits=3, output='latex')
+                            print(element_angle)
+                            element_text += '\n$%s$' % (element_angle)
                     ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
                             ha='center', va='center', size=12)
 
@@ -824,21 +833,30 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True, show_
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
     ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
-    ax2.text(0, 0, 'Phase\n(Deg)', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-
     offset = 0.95  # since radius of sphere is one.
 
-    ax2.text(offset, 0, r'$0$', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(0, offset, r'$90$', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-
-    ax2.text(-offset, 0, r'$180$', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-
-    ax2.text(0, -offset, r'$270$', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
+    if use_degrees:
+        ax2.text(0, 0, 'Phase\n(Deg)', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(offset, 0, r'0', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(0, offset, r'90', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(-offset, 0, r'180   ', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(0, -offset, r'270', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+    else:
+        ax2.text(0, 0, 'Phase', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(offset, 0, r'$0$', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(0, offset, r'$\pi/2$', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(-offset, 0, r'$\pi$', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
+        ax2.text(0, -offset, r'$3\pi/2$', horizontalalignment='center',
+                 verticalalignment='center', fontsize=14)
 
     if return_fig:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
