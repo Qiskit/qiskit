@@ -803,8 +803,8 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     Returns:
         A function that generates a new transformation ``ContextManager``.
     """
-    @functools.wraps(transform)
     def wrap(function):  # pylint: disable=unused-argument
+        @functools.wraps(function)
         @contextmanager
         def wrapped_transform(*args, **kwargs):
             builder = _active_builder()

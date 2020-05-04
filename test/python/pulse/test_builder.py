@@ -528,7 +528,7 @@ class TestUtilities(TestBuilder):
 
         schedule = pulse.Schedule()
         with pulse.build() as schedule:
-            pulse.append_block(block)
+            builder.append_block(block)
 
         self.assertEqual(schedule, block)
 
