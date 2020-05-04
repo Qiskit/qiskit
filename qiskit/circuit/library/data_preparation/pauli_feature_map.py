@@ -46,7 +46,8 @@ class PauliFeatureMap(NLocal):
 
         \phi_S(\vec{x}) = \begin{cases}
             x_0 \text{ if } k = 1 \\
-            \prod_{j \in S} (\pi - x_j)
+            \prod_{j \in S} (\pi - x_j) \text{ otherwise }
+            \end{cases}
 
     For example, if the Pauli strings are chosen to be :math:`P_0 = Z` and :math:`P_{0,1} = YY` on
     2 qubits and with 1 repetition using the default data-mapping, the Pauli evolution feature map
