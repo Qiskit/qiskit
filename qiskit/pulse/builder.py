@@ -12,8 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""The pulse builder is the primary pulse programming entrypoint and allows
-the programming of pulse programs with an imperative assembly-like syntax.
+r"""Use the pulse builder to program pulse programs with an imperative
+assembly-like syntax.
 
 To begin pulse programming we must first initialize our program builder
 context with :func:`build`, after which we can begin
