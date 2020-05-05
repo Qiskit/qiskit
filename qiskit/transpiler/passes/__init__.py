@@ -74,6 +74,7 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   SimplifyU3
 
 Circuit Analysis
 ================
@@ -130,6 +131,7 @@ from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import Approx2qDecompose
 
 # optimization
 from .optimization import Optimize1qGates
@@ -143,6 +145,7 @@ from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
+from .optimization import SimplifyU3
 
 # circuit analysis
 from .analysis import ResourceEstimation

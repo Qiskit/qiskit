@@ -49,6 +49,8 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import SimplifyU3
+from qiskit.transpiler.passes import Approx2qDecompose
 
 from qiskit.transpiler import TranspilerError
 
@@ -88,10 +90,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
-    # 1. Unroll to the basis first, to prepare for noise-adaptive layout
-    _unroll = Unroller(basis_gates)
-
-    # 2. Layout on good qubits if calibration info available, otherwise on dense links
+    # 1. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -109,16 +108,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 3. Extend dag/layout with ancillas using the full coupling map
+    # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 4. Unroll to 1q or 2q gates, swap to fit the coupling map
+    # 3. Unroll to 1q or 2q gates
+    _unroll3q = Unroll3qOrMore()
+
+    # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
 
-    _swap = [BarrierBeforeFinalMeasurements(), Unroll3qOrMore()]
+    _swap = [BarrierBeforeFinalMeasurements()]
     if routing_method == 'basic':
         _swap += [BasicSwap(coupling_map)]
     elif routing_method == 'stochastic':
@@ -130,17 +132,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 5. 1q rotation merge and commutative cancellation iteratively until no more change in depth
-    _depth_check = [Depth(), FixedPoint('depth')]
-
-    def _opt_control(property_set):
-        return not property_set['depth_fixed_point']
-
-    _opt = [RemoveResetInZeroState(),
-            Collect2qBlocks(), ConsolidateBlocks(),
-            Unroller(basis_gates),  # unroll unitaries
-            Optimize1qGates(basis_gates), CommutativeCancellation(),
-            OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+    # 5. Unroll to the basis
+    _unroll = Unroller(basis_gates)
 
     # 6. Fix any CX direction mismatch
     _direction_check = [CheckCXDirection(coupling_map)]
@@ -150,19 +143,39 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
+    # 7. Remove zero-state reset
+    _reset = RemoveResetInZeroState()
+
+    # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    _depth_check = [Depth(), FixedPoint('depth')]
+
+    def _opt_control(property_set):
+        return not property_set['depth_fixed_point']
+
+    _opt = [Collect2qBlocks(), ConsolidateBlocks(),
+            Approx2qDecompose(fidelity=1.0),
+            Optimize1qGates(basis_gates), CommutativeCancellation(),
+            SimplifyU3()]
+
+    # 9. Remove useless gates before measure.
+    _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+
     # Build pass manager
     pm3 = PassManager()
-    pm3.append(_unroll)
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
         pm3.append(_embed)
+        pm3.append(_unroll3q)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
-    pm3.append(_depth_check + _opt, do_while=_opt_control)
+    pm3.append(_unroll)
     if coupling_map and not coupling_map.is_symmetric:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
+    pm3.append(_reset)
+    pm3.append(_depth_check + _opt, do_while=_opt_control)
+    pm3.append(_meas)
 
     return pm3
