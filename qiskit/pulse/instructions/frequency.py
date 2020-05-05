@@ -63,9 +63,9 @@ class SetFrequency(Instruction):
 
 
 class ShiftFrequency(Instruction):
-    r"""Shift the channel frequency away from the LO frequency."""
+    """Shift the channel frequency away from the set frequency."""
     def __init__(self, frequency: float,
-                 channel: Optional[PulseChannel],
+                 channel: PulseChannel,
                  name: Optional[str] = None):
         """Creates a new shift frequency instruction.
 
@@ -80,7 +80,7 @@ class ShiftFrequency(Instruction):
 
     @property
     def frequency(self) -> float:
-        """New frequency."""
+        """Frequency shift from the set frequency."""
         return self._frequency
 
     @property
