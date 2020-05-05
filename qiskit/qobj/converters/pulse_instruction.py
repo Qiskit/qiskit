@@ -274,7 +274,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(instructions.ShiftFrequency)
-    def convert_set_frequency(self, shift, instruction):
+    def convert_shift_frequency(self, shift, instruction):
         """Return converted `ShiftFrequency`.
 
         Args:

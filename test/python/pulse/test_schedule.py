@@ -611,7 +611,6 @@ class TestScheduleFilter(BaseTestSchedule):
     def test_filter_channels(self):
         """Test filtering over channels."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        import ipdb; ipdb.set_trace()
         sched = Schedule(name='fake_experiment')
         sched = sched.insert(0, Play(lp0, self.config.drive(0)))
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
