@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    A new kwarg, ``cregbundle`` has been added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the
+    cregs will be bundled into a single line in circuit visualizations for the
+    ``text`` and ``mpl`` drawers. The default value is ``True``.
+    For example:
+    
+    .. jupyter-execute::
+    
+        from qiskit import QuantumCircuit
+
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='mpl', cregbundle=True)
+
+deprecations:
+  - |
+    The style dictionary key ``cregbundle`` has been deprecated and will be
+    removed in a future release. This has been replaced by the
+    kwarg ``cregbundle`` added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`.
+    The default value is ``True``.
