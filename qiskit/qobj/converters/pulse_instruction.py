@@ -545,6 +545,21 @@ class QobjToInstructionConverter:
 
         return instructions.SetFrequency(frequency, channel) << t0
 
+    @bind_name('delay')
+    def convert_delay(self, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            instruction (Delay): Delay qobj instruction
+
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        duration = instruction.duration
+        return instructions.Delay(duration, channel) << t0
+
     @bind_name('pv')
     def convert_persistent_value(self, instruction):
         """Return converted `PersistentValueInstruction`.
