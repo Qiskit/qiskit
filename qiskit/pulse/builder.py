@@ -206,18 +206,20 @@ import contextvars
 import functools
 import itertools
 from contextlib import contextmanager
-from typing import (Any,
-                    Callable,
-                    ContextManager,
-                    Dict,
-                    Iterable,
-                    List,
-                    Mapping,
-                    Optional,
-                    Set,
-                    Tuple,
-                    TypeVar,
-                    Union)
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union
+    )
 
 import numpy as np
 
@@ -232,51 +234,6 @@ from qiskit.pulse import pulse_lib
 from qiskit.pulse import transforms
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
-
-__all__ = [
-    "build",
-    "active_backend",
-    "append_instruction",
-    "num_qubits",
-    "qubit_channels",
-    "active_transpiler_settings",
-    "active_circuit_scheduler_settings",
-    "align_left",
-    "align_right",
-    "align_sequential",
-    "group",
-    "inline",
-    "pad",
-    "transpiler_settings",
-    "circuit_scheduler_settings",
-    "phase_offset",
-    "frequency_offset",
-    "drive_channel",
-    "measure_channel",
-    "acquire_channel",
-    "control_channels",
-    "delay",
-    "play",
-    "acquire",
-    "set_frequency",
-    "shift_frequency",
-    "set_phase",
-    "shift_phase",
-    "snapshot",
-    "call_schedule",
-    "call_circuit",
-    "call",
-    "barrier",
-    "measure",
-    "measure_all",
-    "delay_qubits",
-    "call_gate",
-    "cx",
-    "u1",
-    "u2",
-    "u3",
-    "x",
-]
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")

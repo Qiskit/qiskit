@@ -144,36 +144,97 @@ Exceptions
    PulseError
 
 """
-from qiskit.pulse.builder import *
-from qiskit.pulse.channels import (DriveChannel,
-                                   MeasureChannel,
-                                   AcquireChannel,
-                                   ControlChannel,
-                                   RegisterSlot,
-                                   MemorySlot)
-from qiskit.pulse.commands import (AcquireInstruction,
-                                   FrameChange,
-                                   PersistentValue)
-from qiskit.pulse.configuration import (LoConfig,
-                                        LoRange,
-                                        Kernel,
-                                        Discriminator)
+
+# Builder imports.
+from qiskit.pulse.builder import (
+    # builder construction methods.
+    active_backend,
+    active_transpiler_settings,
+    active_circuit_scheduler_settings,
+    append_instruction,
+    build,
+    num_qubits,
+    qubit_channels,
+    # builder instructions.
+    acquire,
+    barrier,
+    call,
+    call_schedule,
+    delay,
+    play,
+    set_frequency,
+    set_phase,
+    shift_frequency,
+    shift_phase,
+    snapshot,
+    # builder channels.
+    acquire_channel,
+    control_channels,
+    drive_channel,
+    measure_channel,
+    # builder contexts.
+    align_left,
+    align_right,
+    align_sequential,
+    circuit_scheduler_settings,
+    frequency_offset,
+    group,
+    inline,
+    pad,
+    phase_offset,
+    transpiler_settings,
+    # builder macros.
+    measure,
+    measure_all,
+    delay_qubits,
+    # builder circuit instructions.
+    call_circuit,
+    call_gate,
+    cx,
+    u1,
+    u2,
+    u3,
+    x
+    )
+from qiskit.pulse.channels import (
+    AcquireChannel,
+    ControlChannel,
+    DriveChannel,
+    MeasureChannel,
+    MemorySlot,
+    RegisterSlot,
+    )
+from qiskit.pulse.commands import (
+    AcquireInstruction,
+    FrameChange,
+    PersistentValue
+    )
+from qiskit.pulse.configuration import (
+    Discriminator,
+    Kernel,
+    LoConfig,
+    LoRange,
+    )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.instructions import (Acquire,
-                                       Instruction,
-                                       Delay,
-                                       Play,
-                                       ShiftPhase,
-                                       Snapshot,
-                                       SetFrequency)
+from qiskit.pulse.instructions import (
+    Acquire,
+    Delay,
+    Instruction,
+    Play,
+    SetFrequency,
+    ShiftPhase,
+    Snapshot,
+    )
 from qiskit.pulse.interfaces import ScheduleComponent
-from qiskit.pulse.pulse_lib import (SamplePulse,
-                                    Gaussian,
-                                    GaussianSquare,
-                                    Drag,
-                                    Constant,
-                                    ConstantPulse,
-                                    ParametricPulse)
+from qiskit.pulse.pulse_lib import (
+    Constant,
+    ConstantPulse,
+    Drag,
+    Gaussian,
+    GaussianSquare,
+    ParametricPulse,
+    SamplePulse
+    )
 from qiskit.pulse.pulse_lib.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule
