@@ -143,8 +143,9 @@ class MatplotlibDrawer:
         self.layout = layout
         if style and 'cregbundle' in style.keys():
             self.cregbundle = style['cregbundle']
+            del style['cregbundle']
             warn("The style dictionary key 'cregbundle' has been deprecated and will be removed"
-                 " in a future release. cregbundle can now be passed as an argument to draw()."
+                 " in a future release. cregbundle is now a parameter to draw()."
                  " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
         else:
             self.cregbundle = cregbundle

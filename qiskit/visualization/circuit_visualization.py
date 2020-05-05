@@ -66,7 +66,7 @@ def circuit_drawer(circuit,
                    fold=None,
                    ax=None,
                    initial_state=False,
-                   cregbundle=False):
+                   cregbundle=True):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -140,7 +140,7 @@ def circuit_drawer(circuit,
             Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
             Default: ``False``.
         cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-            the ``text`` output. Default: ``False``.
+            the ``text`` and ``mpl`` output. Default: ``True``.
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:
@@ -644,6 +644,11 @@ def _matplotlib_circuit_drawer(circuit,
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+            Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+            Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Used by
+            the ``text`` and ``mpl`` output. Default: ``True``.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
