@@ -604,8 +604,6 @@ class QobjToInstructionConverter:
         duration = instruction.duration
         return instructions.Delay(duration, channel) << t0
 
-
-
     @bind_name('pv')
     def convert_persistent_value(self, instruction):
         """Return converted `PersistentValueInstruction`.
