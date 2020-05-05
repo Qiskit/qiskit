@@ -532,7 +532,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(
             reference_sched.timeslots[DriveChannel(1)], [(10, 60), (100, 100)])
 
-    def test_len_methods(self):
+    def test_len(self):
         """Test __len__ method"""
         sched = Schedule()
         self.assertEqual(len(sched), 0)
