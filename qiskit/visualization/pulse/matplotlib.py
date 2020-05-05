@@ -36,7 +36,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
 from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent)
+                          Instruction, ScheduleComponent, ShiftFrequency)
 
 
 class EventsOutputChannels:
@@ -100,6 +100,14 @@ class EventsOutputChannels:
     @property
     def frequencychanges(self) -> Dict[int, SetFrequency]:
         """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
+
+    @property
+    def frequencyshift(self) -> Dict[int, ShiftFrequency]:
+        """Set the frequency changes."""
         if self._frequencychanges is None:
             self._build_waveform()
 
@@ -193,6 +201,8 @@ class EventsOutputChannels:
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
+                elif isinstance(command, ShiftFrequency):
                     tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
