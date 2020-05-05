@@ -22,7 +22,7 @@ Models and Schemas (:mod:`qiskit.validation`)
 JSON Schema
 ===========
 
-,, autosummary::
+.. autosummary::
    :toctree: ../stubs/
 
    jsonschema.validate_json_against_schema

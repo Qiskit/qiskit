@@ -29,9 +29,6 @@ from qiskit.qobj import QobjHeader
 class Result:
     """Model for Results.
 
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``ResultSchema``.
-
     Attributes:
         backend_name (str): backend name.
         backend_version (str): backend version, in the form X.Y.Z.
