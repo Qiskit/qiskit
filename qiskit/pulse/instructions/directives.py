@@ -43,3 +43,8 @@ class RelativeBarrier(Directive):
             name: Name of the delay for display purposes.
         """
         super().__init__(tuple(channels), 0, tuple(channels), name=name)
+
+    def __eq__(self, other):
+        """Verify two barriers are equivalent."""
+        return (isinstance(other, type(self)) and
+                set(self.channels) == set(other.channels))

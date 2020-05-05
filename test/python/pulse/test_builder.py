@@ -24,6 +24,8 @@ from qiskit import compiler
 from qiskit import pulse
 from qiskit.pulse import builder
 from qiskit.pulse import macros
+from qiskit.pulse import transforms
+from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse import pulse_lib, instructions
@@ -475,6 +477,8 @@ class TestDirectives(TestBuilder):
                     pulse.delay(5, d1)
                     pulse.delay(7, d0)
 
+        schedule = transforms.remove_directives(schedule)
+
         reference = pulse.Schedule()
         # d0
         reference = reference.insert(0, instructions.Delay(3, d0))
@@ -501,6 +505,8 @@ class TestDirectives(TestBuilder):
                     pulse.delay(5, d1)
                     pulse.delay(7, d0)
 
+        schedule = transforms.remove_directives(schedule)
+
         reference = pulse.Schedule()
         # d0
         reference += instructions.Delay(3, d0)
@@ -510,6 +516,24 @@ class TestDirectives(TestBuilder):
         # d2
         reference = reference.insert(3, instructions.Delay(11, d2))
 
+        self.assertEqual(schedule, reference)
+
+    def test_barrier_on_qubits(self):
+        """Test barrier directive on qubits."""
+        with pulse.build(self.backend) as schedule:
+            pulse.barrier(0, 1)
+
+        reference = pulse.Schedule()
+        reference += directives.RelativeBarrier(
+            pulse.DriveChannel(0),
+            pulse.DriveChannel(1),
+            pulse.MeasureChannel(0),
+            pulse.MeasureChannel(1),
+            pulse.ControlChannel(0),
+            pulse.ControlChannel(1),
+            pulse.AcquireChannel(0),
+            pulse.AcquireChannel(1)
+        )
         self.assertEqual(schedule, reference)
 
 

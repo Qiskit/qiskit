@@ -62,6 +62,7 @@ automatically lowered to be run as a pulse program:
     from qiskit import pulse
     from qiskit.test.mock import FakeOpenPulse3Q
 
+    # TODO: This example should use a real mock backend.
     backend = FakeOpenPulse3Q()
 
     d2 = pulse.DriveChannel(2)
@@ -320,7 +321,8 @@ class _PulseBuilder():
                  schedule: Optional[Schedule] = None,
                  default_alignment: Union[str, Callable] = 'left',
                  default_transpiler_settings: Mapping = None,
-                 default_circuit_scheduler_settings: Mapping = None):
+                 default_circuit_scheduler_settings: Mapping = None,
+                 passmanager: Callable[[Schedule], Schedule] = None):
         """Initialize the builder context.
 
         .. note::
@@ -341,6 +343,8 @@ class _PulseBuilder():
             default_transpiler_settings: Default settings for the transpiler.
             default_circuit_scheduler_settings: Default settings for the
                 circuit to pulse scheduler.
+            passmanager: Pass manager that may be called with the program to
+                compile the program.
         """
         #: BaseBackend: Backend instance for context builder.
         self._backend = backend
@@ -438,8 +442,7 @@ class _PulseBuilder():
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
-        built_program = transforms.remove_directives(self.block)
-        program = self._schedule.append(built_program, mutate=True)
+        program = self._schedule.append(self.block, mutate=True)
         self.set_active_block(Schedule())
         return program
 
@@ -722,7 +725,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
     chans = set()
     for channel_or_qubit in channels_or_qubits:
         if isinstance(channel_or_qubit, int):
-            chans.union(qubit_channels(channel_or_qubit))
+            chans |= qubit_channels(channel_or_qubit)
         elif isinstance(channel_or_qubit, channels.Channel):
             chans.add(channel_or_qubit)
         else:
