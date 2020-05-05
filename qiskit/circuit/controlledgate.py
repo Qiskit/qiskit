@@ -169,6 +169,25 @@ class ControlledGate(Gate):
             raise CircuitError('invalid control state specification: {}'.format(
                 repr(ctrl_state)))
 
+    @property
+    def params(self):
+        """Get parameters from base_gate"""
+        if hasattr(self, 'base_gate'):
+            return self.base_gate.params
+        else:
+            return None
+            # raise CircuitError('Controlled gate does not define base gate for '
+            #                    'for extracting params')
+
+    @params.setter
+    def params(self, parameters):
+        if hasattr(self, 'base_gate'):
+            self.base_gate.params = parameters[:]
+        else:
+            return None
+            # raise CircuitError('Controlled gate does not define base gate for '
+            #                    'for extracting params')
+
     def __eq__(self, other) -> bool:
         return (isinstance(other, ControlledGate) and
                 self.num_ctrl_qubits == other.num_ctrl_qubits and

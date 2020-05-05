@@ -668,7 +668,7 @@ class TestControlledGate(QiskitTestCase):
                         output_ctrl != input_ctrl)
 
     @data(*ControlledGate.__subclasses__())
-    def test_base_gate_setting(self, gate_class):
+    def test_standard_base_gate_setting(self, gate_class):
         """Test all gates in standard extensions which are of type ControlledGate
         and have a base gate setting.
         """
@@ -780,6 +780,25 @@ class TestControlledGate(QiskitTestCase):
             base_gate.control(num_ctrl_qubits, ctrl_state=2 ** num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
+
+    def test_base_gate_params_reference(self):
+        """
+        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        setting have params which reference the one in their base gate.
+        """
+        num_ctrl_qubits = 1
+        for gate_class in ControlledGate.__subclasses__():
+            with self.subTest(i=repr(gate_class)):
+                num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
+                free_params = [0.1 * i for i in range(num_free_params)]
+                if gate_class in [MCU1Gate]:
+                    free_params[1] = 3
+                elif gate_class in [MCXGate]:
+                    free_params[0] = 3
+                base_gate = gate_class(*free_params)
+                if base_gate.params:
+                    cgate = base_gate.control(num_ctrl_qubits)
+                    self.assertIs(cgate.base_gate.params, cgate.params)
 
 
 @ddt
