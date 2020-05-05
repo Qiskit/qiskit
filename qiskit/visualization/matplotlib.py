@@ -1044,7 +1044,8 @@ class MatplotlibDrawer:
                     # custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     text=getattr(op.op, 'label', None) or op.op.name)
+                                                     text=getattr(op.op,
+                                                                  'label') or op.op.name)
 
                 # draw custom multi-qubit gate
                 elif len(q_xy) > 5:
