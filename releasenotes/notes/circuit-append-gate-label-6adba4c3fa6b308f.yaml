@@ -1,8 +1,0 @@
----
-features:
-  - |
-    An optional `label` argument is added to the
-    :meth:`qiskit.circuit.QuantumCircuit.append()` method. This allows
-    setting a label attribute for the added instruction, which can be
-    useful for visualization or specialized simulations of that circuit
-    instruction.

@@ -23,7 +23,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Gaussian, GaussianSquare, Constant, Drag)
-from qiskit.pulse.instructions import ShiftPhase, SetFrequency, ShiftFrequency, Play
+from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play, Delay
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -337,6 +337,17 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.duration, 0)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
         self.assertTrue('frequency' in qobj.to_dict())
+
+    def test_delay(self):
+        """Test converted qobj from Delay."""
+        instruction = Delay(10, DriveChannel(0))
+
+        qobj = PulseQobjInstruction(name='delay', ch='d0', t0=0, duration=10)
+        converted_instruction = self.converter(qobj)
+
+        self.assertTrue('delay' in qobj.to_dict().values())
+        self.assertEqual(converted_instruction.duration, instruction.duration)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""

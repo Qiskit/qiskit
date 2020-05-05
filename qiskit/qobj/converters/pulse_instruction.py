@@ -569,7 +569,8 @@ class QobjToInstructionConverter:
         """Return converted `ShiftFrequency`.
 
         Args:
-            instruction (PulseQobjInstruction): set frequency qobj instruction
+            instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+
         Returns:
             Schedule: Converted and scheduled Instruction
         """
@@ -587,6 +588,23 @@ class QobjToInstructionConverter:
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
         return instructions.ShiftFrequency(frequency, channel) << t0
+
+    @bind_name('delay')
+    def convert_delay(self, instruction):
+        """Return converted `Delay`.
+
+        Args:
+            instruction (Delay): Delay qobj instruction
+
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        duration = instruction.duration
+        return instructions.Delay(duration, channel) << t0
+
+
 
     @bind_name('pv')
     def convert_persistent_value(self, instruction):
