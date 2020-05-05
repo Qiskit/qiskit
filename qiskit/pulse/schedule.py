@@ -551,6 +551,15 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
+    def __len__(self, flag=0):
+        """Return number of instructions in schedule."""
+        print('This is a __len__() test.')
+        if flag:
+            print('len(self._children):', end="")
+            return len(self._children)
+        print('len(self.instructions):', end="")
+        return len(self.instructions)
+
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
