@@ -23,7 +23,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Gaussian, GaussianSquare, Constant, Drag)
-from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play, Delay
+from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play, Delay, ShiftFrequency
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
