@@ -83,8 +83,26 @@ def main():
             if config:
                 config_path = os.path.join(args.dir, name,
                                            'conf_%s.json' % name)
+                config_dict = config.to_dict()
+                if 'dt' in config_dict:
+                    config_dict['dt'] /= 1e-9
+                if 'dtm' in config_dict:
+                    config_dict['dtm'] /= 1e-9
+                if 'qubit_lo_range'in config_dict:
+                    config_dict['qubit_lo_range'] = [
+                        [min_range / 1e9, max_range / 1e9] for
+                        (min_range,
+                         max_range) in config_dict['qubit_lo_range']]
+                if 'meas_lo_range' in config_dict:
+                    config_dict['meas_lo_range'] = [
+                        [min_range / 1e9, max_range / 1e9] for
+                        (min_range, max_range) in config_dict['meas_lo_range']]
+                if 'rep_times' in config_dict:
+                    config_dict['rep_times'] = [
+                        _rt / 1e-6 for _rt in config_dict['rep_times']]
+
                 with open(config_path, 'w') as fd:
-                    fd.write(json.dumps(config.to_dict(),
+                    fd.write(json.dumps(config_dict,
                                         cls=BackendEncoder))
             if props:
                 props_path = os.path.join(args.dir, name,
