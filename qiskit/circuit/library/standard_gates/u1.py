@@ -258,10 +258,10 @@ class MCU1Gate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(self, lam, num_ctrl_qubits, label=None):
         """Create new MCU1 gate."""
         super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
-                         label=label, ctrl_state=ctrl_state)
+                         label=label)
         self.base_gate = U1Gate(lam)
 
     def _define(self):
@@ -291,10 +291,12 @@ class MCU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-                            label=label, ctrl_state=ctrl_state)
-        gate.base_gate.label = self.label
-        return gate
+        if ctrl_state is None:
+            gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                            label=label)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
