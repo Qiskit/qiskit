@@ -29,10 +29,12 @@ from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
+from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
+from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
@@ -96,6 +98,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _improve_layout = DenseLayout(coupling_map, backend_properties)
     elif layout_method == 'noise_adaptive':
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
+    elif layout_method == 'sabre':
+        _choose_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
@@ -122,6 +126,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
+    elif routing_method == 'sabre':
+        _swap += [SabreSwap(coupling_map, heuristic='advanced')]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
