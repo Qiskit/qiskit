@@ -138,7 +138,7 @@ class SabreLayout(AnalysisPass):
 
             # Diagnostics
             logger.info('After round %d, num_swaps: %d' %
-                        (i+1, new_circ.count_ops().get('swap')))
+                        (i+1, new_circ.count_ops().get('swap', 0)))
             logger.info('new initial layout')
             logger.info(initial_layout)
 

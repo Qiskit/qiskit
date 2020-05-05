@@ -224,10 +224,6 @@ class Layout():
             LayoutError: another_layout can be bigger than self, but not smaller.
                 Otherwise, raises.
         """
-        warnings.warn('combine_into_edge_map is deprecated as of 0.14.0 and '
-                      'will be removed in a future release. Instead '
-                      'reorder_bits() should be used', DeprecationWarning,
-                      stacklevel=2)
         edge_map = dict()
 
         for virtual, physical in self.get_virtual_bits().items():
