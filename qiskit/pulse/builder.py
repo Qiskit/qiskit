@@ -321,8 +321,7 @@ class _PulseBuilder():
                  schedule: Optional[Schedule] = None,
                  default_alignment: Union[str, Callable] = 'left',
                  default_transpiler_settings: Mapping = None,
-                 default_circuit_scheduler_settings: Mapping = None,
-                 passmanager: Callable[[Schedule], Schedule] = None):
+                 default_circuit_scheduler_settings: Mapping = None):
         """Initialize the builder context.
 
         .. note::
@@ -343,8 +342,6 @@ class _PulseBuilder():
             default_transpiler_settings: Default settings for the transpiler.
             default_circuit_scheduler_settings: Default settings for the
                 circuit to pulse scheduler.
-            passmanager: Pass manager that may be called with the program to
-                compile the program.
         """
         #: BaseBackend: Backend instance for context builder.
         self._backend = backend
@@ -1631,10 +1628,14 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
 
     .. jupyter-execute::
 
+        from qiskit.pulse import transforms
+
         with pulse.build(backend) as aligned_pulse_prog:
             with pulse.align_sequential():
                 pulse.play(pulse.Constant(10, 1.0), d0)
                 pulse.play(pulse.Constant(10, 1.0), d1)
+
+        barrier_pulse_prog = transforms.remove_directives(barrier_pulse_prog)
         assert barrier_pulse_prog == aligned_pulse_prog
 
     The barrier allows the pulse compiler to take care of more advanced
