@@ -51,11 +51,17 @@ from the multiprocessing library.
 """
 
 import os
+import sys
 import platform
-from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 from qiskit.exceptions import QiskitError
 from qiskit.util import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
+
+if sys.platform == 'darwin':
+    Pool = multiprocessing.get_context('fork').Pool
+else:
+    Pool = multiprocessing.Pool
 
 # Set parallel flag
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
@@ -116,12 +122,18 @@ def parallel_map(  # pylint: disable=dangerous-default-value
        and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
-            results = []
-            with ProcessPoolExecutor(max_workers=num_processes) as executor:
-                param = map(lambda value: (task, value, task_args, task_kwargs), values)
-                future = executor.map(_task_wrapper, param)
+            pool = Pool(processes=CPU_COUNT)
 
-            results = list(future)
+            async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs)
+                         for value in values]
+
+            while not all([ar.ready() for ar in async_res]):
+                for ar in async_res:
+                    ar.wait(timeout=0.1)
+
+            results = [ar.get() for ar in async_res]
+            pool.terminate()
+            pool.join()
             Publisher().publish("terra.parallel.done", len(results))
 
         except (KeyboardInterrupt, Exception) as error:
