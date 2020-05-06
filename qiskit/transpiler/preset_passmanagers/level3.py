@@ -89,8 +89,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     routing_method = pass_manager_config.routing_method or 'stochastic'
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    synthesis_fidelity = pass_manager_config.synthesis_fidelity
 
-    # 1. Layout on good qubits if calibration info available, otherwise on dense links
+    # 1. Unroll to 1q or 2q gates
+    _unroll3q = Unroll3qOrMore()
+
+    # 2. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -108,11 +112,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Unroll to 1q or 2q gates
-    _unroll3q = Unroll3qOrMore()
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -153,7 +154,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['depth_fixed_point']
 
     _opt = [Collect2qBlocks(), ConsolidateBlocks(),
-            Approx2qDecompose(fidelity=1.0),
+            Approx2qDecompose(fidelity=synthesis_fidelity),
             Optimize1qGates(basis_gates), CommutativeCancellation(),
             SimplifyU3()]
 
@@ -162,20 +163,21 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build pass manager
     pm3 = PassManager()
+    pm3.append(_unroll3q)
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
         pm3.append(_embed)
-        pm3.append(_unroll3q)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
+    pm3.append(_depth_check + _opt, do_while=_opt_control)
     pm3.append(_unroll)
+    pm3.append(_depth_check + _opt, do_while=_opt_control)
     if coupling_map and not coupling_map.is_symmetric:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
-    pm3.append(_depth_check + _opt, do_while=_opt_control)
     pm3.append(_meas)
 
     return pm3

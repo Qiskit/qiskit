@@ -17,9 +17,9 @@
 
 import numpy as np
 
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.circuit.library.standard_gates import U1Gate
+from qiskit.circuit.library.standard_gates import U2Gate
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.add_control import add_control
 from qiskit.transpiler.basepasses import TransformationPass
@@ -34,6 +34,7 @@ class SimplifyU3(TransformationPass):
     The cost metric is the number of X90 pulses required to implement the gate.
     Can convert U3 -> U2 OR U1 OR None. 
     Also makes all Euler angles modulo 2*pi.
+
     Additional Information
     ----------------------
     U3(θ,φ,λ) is a generic single-qubit gate (generic Bloch sphere rotation).

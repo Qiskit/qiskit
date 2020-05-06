@@ -46,6 +46,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               backend_properties: Optional[BackendProperties] = None,
               initial_layout: Optional[Union[Layout, Dict, List]] = None,
               layout_method: Optional[str] = None,
+              synthesis_fidelity: Optional[float] = None,
               routing_method: Optional[str] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
@@ -119,6 +120,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             Sometimes a perfect layout can be available in which case the layout_method
             may not run.
         routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
+        synthesis_fidelity (float): tolerable fidelity for approximate synthesis.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -185,7 +187,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
                                     initial_layout=initial_layout, layout_method=layout_method,
-                                    routing_method=routing_method, backend=backend)
+                                    routing_method=routing_method,
+                                    synthesis_fidelity=synthesis_fidelity,
+                                    backend=backend)
 
         warnings.warn("The parameter pass_manager in transpile is being deprecated. "
                       "The preferred way to tranpile a circuit using a custom pass manager is"
@@ -200,7 +204,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
-                                           layout_method, routing_method,
+                                           layout_method, routing_method, synthesis_fidelity,
                                            seed_transpiler, optimization_level,
                                            callback, output_name)
 
@@ -310,8 +314,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method,
-                          seed_transpiler, optimization_level,
-                          callback, output_name) -> List[Dict]:
+                          synthesis_fidelity, seed_transpiler,
+                          optimization_level, callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -336,6 +340,7 @@ def _parse_transpile_args(circuits, backend,
     initial_layout = _parse_initial_layout(initial_layout, circuits)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
+    synthesis_fidelity = _parse_synthesis_fidelity(synthesis_fidelity, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -344,18 +349,19 @@ def _parse_transpile_args(circuits, backend,
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, layout_method, routing_method,
-                    seed_transpiler, optimization_level,
-                    output_name, callback):
+                    synthesis_fidelity, seed_transpiler,
+                    optimization_level, output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
                                                                    backend_properties=args[2],
                                                                    initial_layout=args[3],
                                                                    layout_method=args[4],
                                                                    routing_method=args[5],
-                                                                   seed_transpiler=args[6]),
-                          'optimization_level': args[7],
-                          'output_name': args[8],
-                          'callback': args[9]}
+                                                                   synthesis_fidelity=args[6],
+                                                                   seed_transpiler=args[7]),
+                          'optimization_level': args[8],
+                          'output_name': args[9],
+                          'callback': args[10]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -444,6 +450,12 @@ def _parse_routing_method(routing_method, num_circuits):
     if not isinstance(routing_method, list):
         routing_method = [routing_method] * num_circuits
     return routing_method
+
+
+def _parse_synthesis_fidelity(synthesis_fidelity, num_circuits):
+    if not isinstance(synthesis_fidelity, list):
+        synthesis_fidelity = [synthesis_fidelity] * num_circuits
+    return synthesis_fidelity
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
