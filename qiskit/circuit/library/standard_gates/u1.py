@@ -260,7 +260,7 @@ class MCU1Gate(ControlledGate):
     def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
         """Create new MCU1 gate."""
         super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
-                         label=label, base_gate=U1Gate(lam), ctrl_state=ctrl_state)
+                         label=label, ctrl_state=ctrl_state, base_gate=U1Gate(lam))
 
     def _define(self):
         q = QuantumRegister(self.num_qubits, 'q')
@@ -289,11 +289,13 @@ class MCU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
+        if ctrl_state is None:
+            ctrl_state = 2**num_ctrl_qubits - 1
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-                        label=label, ctrl_state=ctrl_state)
+                        label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
         return gate
-        #return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
