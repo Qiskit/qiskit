@@ -20,7 +20,7 @@ from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
 from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
+from qiskit.test.mock.utils import ConfigurableBackend
 
 
 def get_test_circuit():
@@ -39,7 +39,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     """Generated fake backends test."""
 
     def setUp(self) -> None:
-        self.backend = FakeBackendBuilder("Tashkent", n_qubits=4).build()
+        self.backend = ConfigurableBackend("Tashkent", n_qubits=4)
 
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""

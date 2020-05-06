@@ -12,17 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test of fake backend generation."""
+"""Test of configurable backend generation."""
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.utils.fake_backend_builder import FakeBackendBuilder
+from qiskit.test.mock.utils import ConfigurableBackend
 
 
-class TestFakeBackendBuilder(QiskitTestCase):
-    """Fake backend builder test."""
+class TestConfigurableBackend(QiskitTestCase):
+    """Configurable backend test."""
 
     def test_default_parameters(self):
         """Test default parameters."""
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=10)
 
         properties = fake_backend.properties()
         self.assertEqual(len(properties.qubits), 10)
@@ -41,15 +41,15 @@ class TestFakeBackendBuilder(QiskitTestCase):
         """Test parameters setting."""
         for n_qubits in range(10, 100, 30):
             with self.subTest(n_qubits=n_qubits):
-                fake_backend = FakeBackendBuilder("Tashkent",
-                                                  n_qubits=n_qubits,
-                                                  version="0.0.1",
-                                                  basis_gates=['u1'],
-                                                  qubit_t1=99.,
-                                                  qubit_t2=146.,
-                                                  qubit_frequency=5.,
-                                                  qubit_readout_error=0.01,
-                                                  single_qubit_gates=['u1']).build()
+                fake_backend = ConfigurableBackend("Tashkent",
+                                                   n_qubits=n_qubits,
+                                                   version="0.0.1",
+                                                   basis_gates=['u1'],
+                                                   qubit_t1=99.,
+                                                   qubit_t2=146.,
+                                                   qubit_frequency=5.,
+                                                   qubit_readout_error=0.01,
+                                                   single_qubit_gates=['u1'])
 
                 properties = fake_backend.properties()
                 self.assertEqual(properties.backend_version, "0.0.1")
@@ -65,13 +65,13 @@ class TestFakeBackendBuilder(QiskitTestCase):
 
     def test_gates(self):
         """Test generated gates."""
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=4).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=4)
         properties = fake_backend.properties()
 
         self.assertEqual(len(properties.gates), 22)
 
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=4,
-                                          basis_gates=['u1', 'u2', 'cx']).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=4,
+                                           basis_gates=['u1', 'u2', 'cx'])
         properties = fake_backend.properties()
 
         self.assertEqual(len(properties.gates), 14)
@@ -79,7 +79,7 @@ class TestFakeBackendBuilder(QiskitTestCase):
 
     def test_coupling_map_generation(self):
         """Test generation of default coupling map."""
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=10)
         cmap = fake_backend.configuration().coupling_map
         target = [
             [0, 1], [0, 4], [1, 2], [1, 5],
@@ -95,7 +95,7 @@ class TestFakeBackendBuilder(QiskitTestCase):
 
     def test_configuration(self):
         """Test backend configuration."""
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=10)
         configuration = fake_backend.configuration()
 
         self.assertEqual(configuration.n_qubits, 10)
@@ -108,7 +108,7 @@ class TestFakeBackendBuilder(QiskitTestCase):
 
     def test_defaults(self):
         """Test backend defaults."""
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=10).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=10)
         defaults = fake_backend.defaults()
 
         self.assertEqual(len(defaults.cmd_def), 54)
@@ -118,8 +118,8 @@ class TestFakeBackendBuilder(QiskitTestCase):
     def test_with_coupling_map(self):
         """Test backend generation with coupling map."""
         target_coupling_map = [[0, 1], [1, 2], [2, 3]]
-        fake_backend = FakeBackendBuilder("Tashkent", n_qubits=4,
-                                          coupling_map=target_coupling_map).build()
+        fake_backend = ConfigurableBackend("Tashkent", n_qubits=4,
+                                           coupling_map=target_coupling_map)
         cmd_def = fake_backend.defaults().cmd_def
         configured_cmap = fake_backend.configuration().coupling_map
         controlled_not_qubits = [cmd.qubits for cmd in cmd_def if cmd.name == 'cx']

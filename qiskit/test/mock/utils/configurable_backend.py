@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Fake backend generation."""
+"""Configurable backend."""
 import itertools
 from datetime import datetime
 from typing import Optional, List, Union
@@ -28,8 +28,8 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class FakeBackendBuilder:
-    """FakeBackend builder."""
+class ConfigurableBackend(FakeBackend):
+    """Configurable backend."""
 
     def __init__(self,
                  name: str,
@@ -45,7 +45,7 @@ class FakeBackendBuilder:
                  dt: Optional[float] = None,
                  std: Optional[float] = None,
                  seed: Optional[int] = None):
-        """Creates fake backend builder.
+        """Creates backend based on provided configuration.
 
         Args:
             name: Name of the backend.
@@ -116,6 +116,21 @@ class FakeBackendBuilder:
             coupling_map = self._generate_cmap()
         self.coupling_map = coupling_map
 
+        configuration = self._build_conf()
+        self._configuration = configuration
+        self._defaults = self._build_defaults()
+        self._properties = self._build_props()
+
+        super().__init__(configuration)
+
+    def defaults(self):
+        """Return backend defaults."""
+        return self._defaults
+
+    def properties(self):
+        """Return backend properties"""
+        return self._properties
+
     def _generate_cmap(self) -> List[List[int]]:
         """Generate default grid-like coupling map."""
         cmap = []
@@ -134,7 +149,7 @@ class FakeBackendBuilder:
 
         return cmap
 
-    def build_props(self) -> BackendProperties:
+    def _build_props(self) -> BackendProperties:
         """Build properties for backend."""
         qubits = []
         gates = []
@@ -177,7 +192,7 @@ class FakeBackendBuilder:
                                  gates=gates,
                                  general=[])
 
-    def build_conf(self) -> PulseBackendConfiguration:
+    def _build_conf(self) -> PulseBackendConfiguration:
         """Build configuration for backend."""
         h_str = [
             ",".join(["_SUM[i,0,{n_qubits}".format(n_qubits=self.n_qubits),
@@ -244,7 +259,7 @@ class FakeBackendBuilder:
             hamiltonian=hamiltonian
         )
 
-    def build_defaults(self) -> PulseDefaults:
+    def _build_defaults(self) -> PulseDefaults:
         """Build backend defaults."""
 
         qubit_freq_est = self.qubit_frequency
@@ -322,10 +337,3 @@ class FakeBackendBuilder:
             'pulse_library': pulse_library,
             'cmd_def': cmd_def
         })
-
-    def build(self):
-        """Builds fake backend with specified parameters."""
-        backend = FakeBackend(self.build_conf())
-        backend.defaults = self.build_defaults
-        backend.properties = self.build_props
-        return backend
