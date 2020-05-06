@@ -84,7 +84,7 @@ def swap_trial(int num_qubits, NLayout int_layout, int[::1] int_qubit_subset,
         cdist (ndarray): Array of doubles that gives the distance graph.
         edges (ndarray): Int array of edges in coupling map.
         scale (ndarray): A double array that holds the perturbed cdist2 array.
-        rng (RandomState): An instance of the NumPy RandomState.
+        rng (default_rng): An instance of the NumPy default_rng.
 
     Returns:
         double: Best distance achieved in this trial.

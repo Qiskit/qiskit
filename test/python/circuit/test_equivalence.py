@@ -127,6 +127,27 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         with self.assertRaises(CircuitError):
             eq_lib.add_equivalence(gate, equiv)
 
+    def test_has_entry(self):
+        """Verify we find an entry defined in the library."""
+
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        equiv = QuantumCircuit(1)
+        equiv.h(0)
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        self.assertTrue(eq_lib.has_entry(gate))
+        self.assertTrue(eq_lib.has_entry(OneQubitZeroParamGate()))
+
+    def test_has_not_entry(self):
+        """Verify we don't find an entry not defined in the library."""
+
+        eq_lib = EquivalenceLibrary()
+
+        self.assertFalse(eq_lib.has_entry(OneQubitZeroParamGate()))
+
 
 class TestEquivalenceLibraryWithBase(QiskitTestCase):
     """Test cases for EquivalenceLibrary with base library."""
@@ -203,6 +224,39 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
 
         self.assertEqual(len(entry), 1)
         self.assertEqual(entry[0], second_equiv)
+
+    def test_has_entry_in_base(self):
+        """Verify we find an entry defined in the base library."""
+
+        base_eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        equiv = QuantumCircuit(1)
+        equiv.h(0)
+
+        base_eq_lib.add_equivalence(gate, equiv)
+
+        eq_lib = EquivalenceLibrary(base=base_eq_lib)
+
+        self.assertTrue(eq_lib.has_entry(gate))
+        self.assertTrue(eq_lib.has_entry(OneQubitZeroParamGate()))
+
+        gate = OneQubitZeroParamGate()
+        equiv2 = QuantumCircuit(1)
+        equiv.u2(0, np.pi, 0)
+
+        eq_lib.add_equivalence(gate, equiv2)
+
+        self.assertTrue(eq_lib.has_entry(gate))
+        self.assertTrue(eq_lib.has_entry(OneQubitZeroParamGate()))
+
+    def test_has_not_entry_in_base(self):
+        """Verify we find an entry not defined in the base library."""
+
+        base_eq_lib = EquivalenceLibrary()
+        eq_lib = EquivalenceLibrary(base=base_eq_lib)
+
+        self.assertFalse(eq_lib.has_entry(OneQubitZeroParamGate()))
 
 
 class TestEquivalenceLibraryWithParameters(QiskitTestCase):

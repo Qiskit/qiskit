@@ -25,7 +25,7 @@ try:
     from pygments.formatters import HtmlFormatter
     from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
     HAS_PYGMENTS = True
-except ImportError:
+except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 
@@ -41,9 +41,7 @@ def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
 
     ops = circuit.count_ops()
 
-    num_cx = None
-    if 'cx' in ops.keys():
-        num_cx = ops['cx']
+    num_nl = circuit.num_nonlocal_gates()
 
     html = "<table>"
     html += """<style>
@@ -60,7 +58,7 @@ th {
     width: 100%;
     background-color: #3700BE;
     color: #fff;
-    font-size: 18px;
+    font-size: 16px;
     border-left: 2px solid #3700BE;
 }
 
@@ -69,18 +67,17 @@ td {
     text-align: left;
     padding: 5px 5px 5px 5px;
     width: 100%;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: medium;
 }
 
 tr:nth-child(even) {background-color: #f6f6f6;}
 </style>"""
     html += "<tr><th>{}</th><th></tr>".format(circuit.name)
-
     html += "<tr><td>Width</td><td>{}</td></tr>".format(circuit.width())
     html += "<tr><td>Depth</td><td>{}</td></tr>".format(circuit.depth())
-    html += "<tr><td>Gate Count</td><td>{}</td></tr>".format(sum(ops.values()))
-    html += "<tr><td>CX Count</td><td>{}</td></tr>".format(num_cx)
+    html += "<tr><td>Total Gates</td><td>{}</td></tr>".format(sum(ops.values()))
+    html += "<tr><td>Non-local Gates</td><td>{}</td></tr>".format(num_nl)
     html += "</table>"
 
     out_wid = wid.HTML(html)
@@ -88,13 +85,13 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
 
 head_style = 'font-family: IBM Plex Sans, Arial, Helvetica, sans-serif;' \
-             ' font-size: 22px; font-weight: medium;'
+             ' font-size: 20px; font-weight: medium;'
 
-detail_label = wid.HTML("<p style='{}'>Circuit Details</p>".format(head_style),
-                        layout=wid.Layout(margin='0px 0px 10px 0px'))
+property_label = wid.HTML("<p style='{}'>Circuit Properties</p>".format(head_style),
+                          layout=wid.Layout(margin='0px 0px 10px 0px'))
 
 
-def details_widget(circuit: QuantumCircuit) -> wid.VBox:
+def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Create a HTML table widget with header for a given quantum circuit.
 
     Args:
@@ -103,11 +100,11 @@ def details_widget(circuit: QuantumCircuit) -> wid.VBox:
     Returns:
         Output widget.
     """
-    details = wid.VBox(children=[detail_label,
-                                 circuit_data_table(circuit)],
-                       layout=wid.Layout(width='30%',
-                                         height='auto'))
-    return details
+    properties = wid.VBox(children=[property_label,
+                                    circuit_data_table(circuit)],
+                          layout=wid.Layout(width='40%',
+                                            height='auto'))
+    return properties
 
 
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
@@ -123,7 +120,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
         ImportError: If pygments is not installed
     """
     if not HAS_PYGMENTS:
-        raise ImportError("pygments must be installed for to use the qasm "
+        raise ImportError("pygments>2.4 must be installed for to use the qasm "
                           'widget. To install run "pip install pygments"')
     qasm_code = circuit.qasm()
     code = pygments.highlight(qasm_code, OpenQASMLexer(),
@@ -147,24 +144,21 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     out = wid.HTML(code_style+code,
                    layout=wid.Layout(max_height='500px',
                                      height='auto',
-                                     overflow='hidden scroll'))
+                                     overflow='scroll scroll'))
 
-    out_label = wid.HTML("<p style='{}'>Circuit QASM</p>".format(head_style),
+    out_label = wid.HTML("<p style='{}'>OpenQASM</p>".format(head_style),
                          layout=wid.Layout(margin='0px 0px 10px 0px'))
 
     qasm = wid.VBox(children=[out_label, out],
-                    layout=wid.Layout(height='auto', max_height='500px', width='70%',
+                    layout=wid.Layout(height='auto', max_height='500px', width='60%',
                                       margin='0px 0px 0px 20px'))
 
     qasm._code_length = len(qasm_code.split('\n'))
     return qasm
 
 
-def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.Box:
+def circuit_diagram_widget() -> wid.Box:
     """Create a circuit diagram widget.
-
-    Args:
-        circuit: Input quantum circuit.
 
     Returns:
         Output widget.
@@ -175,8 +169,6 @@ def circuit_diagram_widget(circuit: QuantumCircuit) -> wid.Box:
                                            height='auto',
                                            max_height='1000px',
                                            overflow='hidden scroll',))
-    with top_out:
-        display(circuit.draw(output='mpl'))
 
     top = wid.Box(children=[top_out], layout=wid.Layout(width='100%', height='auto'))
 
@@ -198,13 +190,16 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
                    layout=wid.Layout(height='auto',
                                      max_height='495px',
                                      margin='40px 0px 0px 20px'))
-    bottom = wid.HBox(children=[details_widget(circuit),
+    bottom = wid.HBox(children=[properties_widget(circuit),
                                 sep,
                                 qasm_widget(circuit)],
-                      layout=wid.Layout(max_height='500px',
+                      layout=wid.Layout(max_height='550px',
                                         height='auto'))
 
-    top = circuit_diagram_widget(circuit)
+    top = circuit_diagram_widget()
+
+    with top.children[0]:
+        display(circuit.draw(output='mpl'))
 
     display(wid.VBox(children=[top, bottom],
                      layout=wid.Layout(width='100%',
