@@ -191,8 +191,7 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""
         super().__init__('cswap', 3, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = SwapGate()
+                         ctrl_state=ctrl_state, base_gate=SwapGate())
 
     def _define(self):
         """

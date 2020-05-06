@@ -176,8 +176,8 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
     def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""
         super().__init__('cu3', 2, [theta, phi, lam], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = U3Gate(theta, phi, lam)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=U3Gate(theta, phi, lam))
 
     def _define(self):
         """

@@ -188,8 +188,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
     def __init__(self, ctrl_state=None, label=None):
         """Create new CX gate."""
         super().__init__('cx', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a controlled-X gate with more control lines.
@@ -317,8 +316,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CCX gate."""
         super().__init__('ccx', 3, [], num_ctrl_qubits=2, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     def _define(self):
         """
@@ -471,8 +469,9 @@ class C3XGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+        super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label,
+                         ctrl_state=ctrl_state, base_gate=XGate())
+        
         self._angle = angle
 
     def _define(self):
@@ -664,8 +663,8 @@ class C4XGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create a new 4-qubit controlled X gate."""
-        super().__init__('mcx', 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+        super().__init__('mcx', 5, [], num_ctrl_qubits=4, label=label,
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     def _define(self):
         """
@@ -762,8 +761,8 @@ class MCXGate(ControlledGate):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
         super().__init__('mcx', num_ctrl_qubits + 1 + num_ancilla_qubits, [],
-                         num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+                         num_ctrl_qubits=num_ctrl_qubits, label=label,
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='noancilla'):

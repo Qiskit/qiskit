@@ -176,8 +176,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = YGate()
+                         ctrl_state=ctrl_state, base_gate=YGate())
 
     def _define(self):
         """

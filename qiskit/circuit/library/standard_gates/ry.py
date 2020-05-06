@@ -165,8 +165,7 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRY gate."""
         super().__init__('cry', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = RYGate(theta)
+                         ctrl_state=ctrl_state, base_gate=RYGate(theta))
 
     def _define(self):
         """

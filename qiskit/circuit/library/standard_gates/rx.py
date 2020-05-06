@@ -165,8 +165,8 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRX gate."""
         super().__init__('crx', 2, [theta], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = RXGate(theta)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=RXGate(theta))
 
     def _define(self):
         """

@@ -31,7 +31,8 @@ class ControlledGate(Gate):
     def __init__(self, name: str, num_qubits: int, params: List,
                  label: Optional[str] = None, num_ctrl_qubits: Optional[int] = 1,
                  definition: Optional[List[Tuple[Gate, List[Qubit], List[Clbit]]]] = None,
-                 ctrl_state: Optional[Union[int, str]] = None):
+                 ctrl_state: Optional[Union[int, str]] = None,
+                 base_gate: Optional[Gate] = None):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
 
@@ -48,6 +49,7 @@ class ControlledGate(Gate):
                 a bitstring (e.g. '111'). If specified as a bitstring the length
                 must equal num_ctrl_qubits, MSB on left. If None, use
                 2**num_ctrl_qubits-1.
+            base_gate: Gate object to be controlled.
 
         Raises:
             CircuitError: If ``num_ctrl_qubits`` >= ``num_qubits``.
@@ -84,20 +86,13 @@ class ControlledGate(Gate):
            qc2.append(custom, [0, 3, 1, 2])
            qc2.draw()
         """
+        self.base_gate = base_gate
         super().__init__(name, num_qubits, params, label=label)
         if num_ctrl_qubits < num_qubits:
             self.num_ctrl_qubits = num_ctrl_qubits
         else:
             raise CircuitError('number of control qubits must be less than the number of qubits')
-        self.base_gate = None
-        if definition:
-            self.definition = definition
-            if len(definition) == 1:
-                base_gate = definition[0][0]
-                if isinstance(base_gate, ControlledGate):
-                    self.base_gate = base_gate.base_gate
-                else:
-                    self.base_gate = base_gate
+        self.definition = definition
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
 
@@ -171,22 +166,35 @@ class ControlledGate(Gate):
 
     @property
     def params(self):
-        """Get parameters from base_gate"""
-        if hasattr(self, 'base_gate'):
+        """Get parameters from base_gate.
+
+        Returns:
+            List of gate parameters.
+
+        Raises:
+            CircuitError: Controlled gate does not define a base gate
+        """
+        if self.base_gate:
             return self.base_gate.params
         else:
-            return None
-            # raise CircuitError('Controlled gate does not define base gate for '
-            #                    'for extracting params')
+            raise CircuitError('Controlled gate does not define base gate for '
+                               'for extracting params')
 
     @params.setter
     def params(self, parameters):
-        if hasattr(self, 'base_gate'):
-            self.base_gate.params = parameters[:]
+        """Set base gate parameters.
+
+        Args:
+            parameters (list): The list of parameters to set.
+
+        Raises:
+            CircuitError: If controlled gate does not define a base gate.
+        """
+        if self.base_gate:
+            self.base_gate.params = parameters
         else:
-            return None
-            # raise CircuitError('Controlled gate does not define base gate for '
-            #                    'for extracting params')
+            raise CircuitError('Controlled gate does not define base gate for '
+                               'for extracting params')
 
     def __eq__(self, other) -> bool:
         return (isinstance(other, ControlledGate) and

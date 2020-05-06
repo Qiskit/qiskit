@@ -124,7 +124,7 @@ class TestControlledGate(QiskitTestCase):
         """Test the instantiation of a controlled swap gate with explicit definition."""
         swap = SwapGate()
         cswap = ControlledGate('cswap', 3, [], num_ctrl_qubits=1,
-                               definition=swap.definition)
+                               definition=swap.definition, base_gate=swap)
         self.assertEqual(swap.definition, cswap.definition)
 
     def test_multi_controlled_composite_gate(self):
@@ -872,6 +872,12 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
+def print_gate(gate):
+    qc = QuantumCircuit(gate.num_qubits)
+    qr = QuantumRegister(gate.num_qubits)
+    for subgate, qreg, creg in gate.definition:
+        qc.append(subgate, qreg, creg)
+    print(qc)
 
 @ddt
 class TestControlledStandardGates(QiskitTestCase):
@@ -894,7 +900,6 @@ class TestControlledStandardGates(QiskitTestCase):
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
-
         gate = gate_class(*args)
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
             with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
@@ -916,6 +921,9 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
+                omat = Operator(cgate).data
+                np.set_printoptions(linewidth=200, precision=2)
+                import ipdb;ipdb.set_trace()
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
 

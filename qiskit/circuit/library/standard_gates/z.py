@@ -152,8 +152,7 @@ class CZGate(ControlledGate, metaclass=CZMeta):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CZ gate."""
         super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1,
-                         ctrl_state=ctrl_state)
-        self.base_gate = ZGate()
+                         ctrl_state=ctrl_state, base_gate=ZGate())
 
     def _define(self):
         """
