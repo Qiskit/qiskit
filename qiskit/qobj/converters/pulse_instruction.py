@@ -269,7 +269,7 @@ class InstructionToQobjConverter:
             'name': 'setf',
             't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
-            'frequency': instruction.frequency * 1e9
+            'frequency': instruction.frequency / 1e9
         }
         return self._qobj_model(**command_dict)
 
@@ -532,7 +532,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency / 1e9
+        frequency = instruction.frequency * 1e9
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
