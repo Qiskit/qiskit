@@ -12,6 +12,7 @@ trigger:
     include:
       - '*'
 pr:
+  autoCancel: true
   branches:
     include:
     - '*'  # must quote since "*" is a YAML reserved character; we want a string
@@ -120,25 +121,34 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_and_Tests'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    dependsOn: []
     jobs:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python37:
             python.version: '3.7'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -178,19 +188,29 @@ stages:
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'Lint'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python37:
             python.version: '3.7'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -204,20 +224,30 @@ stages:
           displayName: 'Style and lint'
     - job: 'Docs'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python37:
             python.version: '3.7'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - checkout: self
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
@@ -240,21 +270,30 @@ stages:
             ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python37:
             python.version: '3.7'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -296,7 +335,6 @@ stages:
     jobs:
     - job: 'Windows_Tests'
       pool: {vmImage: 'vs2017-win2016'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python35:
@@ -309,14 +347,24 @@ stages:
             python.version: '3.8'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -355,7 +403,6 @@ stages:
             testRunTitle: 'Test results for Windows Python $(python.version)'
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python36:
@@ -366,14 +413,24 @@ stages:
             python.version: '3.8'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -413,7 +470,6 @@ stages:
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
-      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
       strategy:
         matrix:
           Python36:
@@ -424,14 +480,24 @@ stages:
             python.version: '3.8'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
       steps:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt

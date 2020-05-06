@@ -16,8 +16,9 @@
 Controlled-Y gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.y import CyGate, cy
+from qiskit.circuit.library.standard_gates.y import CyGate
 
-warnings.warn('This module is deprecated. The CyGate can now be found in y.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CyGate']
