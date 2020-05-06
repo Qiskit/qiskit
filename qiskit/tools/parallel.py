@@ -129,7 +129,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
             while not all([ar.ready() for ar in async_res]):
                 for ar in async_res:
-                    ar.wait(timeout=0.1)
+                    ar.wait(timeout=0.01)
 
             results = [ar.get() for ar in async_res]
             pool.terminate()
