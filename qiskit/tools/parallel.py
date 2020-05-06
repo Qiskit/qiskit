@@ -59,9 +59,9 @@ from qiskit.util import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 
 if sys.platform == 'darwin':
-    Pool = multiprocessing.get_context('fork').Pool
+    POOL = multiprocessing.get_context('fork').Pool
 else:
-    Pool = multiprocessing.Pool
+    POOL = multiprocessing.Pool
 
 # Set parallel flag
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
@@ -122,7 +122,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
        and os.getenv('QISKIT_IN_PARALLEL') == 'FALSE':
         os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
         try:
-            pool = Pool(processes=CPU_COUNT)
+            pool = POOL(processes=CPU_COUNT)
 
             async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs)
                          for value in values]
