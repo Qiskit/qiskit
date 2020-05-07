@@ -137,6 +137,8 @@ class Instruction:
     @params.setter
     def params(self, parameters):
         self._params = []
+        # if self.name == 'cry':
+        #     import ipdb;ipdb.set_trace()
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, (ParameterExpression)):
