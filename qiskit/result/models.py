@@ -14,88 +14,77 @@
 
 """Schema and helper models for schema-conformant Results."""
 
-from marshmallow.validate import Length, OneOf, Regexp, Range
+import copy
 
-from qiskit.validation.base import BaseModel, BaseSchema, ObjSchema, bind_schema
-from qiskit.validation.fields import Complex, ByType
-from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested
-from qiskit.validation.fields import Raw, String, NumpyArray
-from qiskit.validation.validate import PatternProperties
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
+from qiskit.qobj import QobjExperimentHeader
+from qiskit.exceptions import QiskitError
 
 
-class ExperimentResultDataSchema(BaseSchema):
-    """Schema for ExperimentResultData."""
+class ExperimentResultData:
+    """Class representing experiment result data"""
 
-    counts = Nested(ObjSchema,
-                    validate=PatternProperties(
-                        {Regexp('^0x([0-9A-Fa-f])+$'): Integer()}))
-    snapshots = Nested(ObjSchema)
-    memory = List(Raw(),
-                  validate=Length(min=1))
-    statevector = NumpyArray(Complex(),
-                             validate=Length(min=1))
-    unitary = NumpyArray(NumpyArray(Complex(),
-                                    validate=Length(min=1)),
-                         validate=Length(min=1))
+    def __init__(self, counts=None, snapshots=None, memory=None,
+                 statevector=None, unitary=None):
+        """Initialize an ExperimentalResult Data class
 
+        Args:
+            counts (dict): A dictionary where the keys are the result in
+                hexadecimal as string of the format "0xff" and the value
+                is the number of counts for that result
+            snapshots (dict): A dictionary where the key is the snapshot
+                slot and the value is a dictionary of the snapshots for
+                that slot.
+            memory (list): A list of results per shot if the run had
+                memory enabled
+            statevector (list or numpy.array): A list or numpy array of the
+                statevector result
+            unitary (list or numpy.array): A list or numpy arrray of the
+                unitary result
+        """
 
-class ExperimentResultSchema(BaseSchema):
-    """Schema for ExperimentResult."""
+        if counts is not None:
+            self.counts = counts
+        if snapshots is not None:
+            self.snapshots = snapshots
+        if memory is not None:
+            self.memory = memory
+        if statevector is not None:
+            self.statevector = statevector
+        if unitary is not None:
+            self.unitary = unitary
 
-    # Required fields.
-    shots = ByType([Integer(), List(Integer(validate=Range(min=1)),
-                                    validate=Length(equal=2))],
-                   required=True)
-    success = Boolean(required=True)
-    data = Nested(ExperimentResultDataSchema, required=True)
+    def to_dict(self):
+        """Return a dictionary format representation of the ExperimentResultData
 
-    # Optional fields.
-    status = String()
-    seed = Integer()
-    meas_level = Integer(validate=OneOf(choices=(MeasLevel.RAW,
-                                                 MeasLevel.KERNELED,
-                                                 MeasLevel.CLASSIFIED)))
-    meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
-                                                 MeasReturnType.SINGLE)))
-    header = Nested(ObjSchema)
+        Returns:
+            dict: The dictionary form of the ExperimentResultData
+        """
+        out_dict = {}
+        for field in ['counts', 'snapshots', 'memory', 'statevector',
+                      'unitary']:
+            if hasattr(self, field):
+                out_dict[field] = getattr(self, field)
+        return out_dict
 
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new ExperimentResultData object from a dictionary.
 
-class ResultSchema(BaseSchema):
-    """Schema for Result."""
-
-    # Required fields.
-    backend_name = String(required=True)
-    backend_version = String(required=True,
-                             validate=Regexp('[0-9]+.[0-9]+.[0-9]+$'))
-    qobj_id = String(required=True)
-    job_id = String(required=True)
-    success = Boolean(required=True)
-    results = Nested(ExperimentResultSchema, required=True, many=True)
-
-    # Optional fields.
-    date = DateTime()
-    status = String()
-    header = Nested(ObjSchema)
-
-
-@bind_schema(ExperimentResultDataSchema)
-class ExperimentResultData(BaseModel):
-    """Model for ExperimentResultData.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check
-    ``ExperimentResultDataSchema``.
-    """
-    pass
+        Args:
+            data (dict): A dictionary representing the ExperimentResultData to
+                         create. It will be in the same format as output by
+                         :meth:`to_dict`
+        Returns:
+            ExperimentResultData: The ``ExperimentResultData`` object from the
+                                  input dictionary.
+        """
+        in_data = copy.copy(data)
+        return cls(**in_data)
 
 
-@bind_schema(ExperimentResultSchema)
-class ExperimentResult(BaseModel):
-    """Model for ExperimentResult.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``ExperimentResultSchema``.
+class ExperimentResult:
+    """Class representing an Experiment Result.
 
     Attributes:
         shots (int or tuple): the starting and ending shot for this data.
@@ -104,10 +93,96 @@ class ExperimentResult(BaseModel):
         meas_level (int): Measurement result level.
     """
 
-    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED, **kwargs):
+    _metadata = {}
+
+    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED,
+                 status=None, seed=None, meas_return=None, header=None,
+                 **kwargs):
+        """Initialize an ExperimentResult object.
+
+        Args:
+            shots(int or tuple): if an integer the number of shots or if a
+                tuple the starting and ending shot for this data
+            success (bool): True if the experiment was successful
+            data (ExperimentResultData): The data for the experiment's
+                result
+            meas_level (int): Measurement result level
+            status (str): The status of the experiment
+            seed (int): The seed used for simulation (if run on a simulator)
+            meas_return (str): The type of measurement returned
+            header (qiskit.qobj.QobjExperimentHeader): A free form dictionary
+                header for the experiment
+            kwargs: Arbitrary extra fields
+
+        Raises:
+            QiskitError: If meas_return or meas_level are not valid values
+        """
+        self._metadata = {}
         self.shots = shots
         self.success = success
         self.data = data
         self.meas_level = meas_level
+        if header is not None:
+            self.header = header
+        if status is not None:
+            self.status = status
+        if seed is not None:
+            self.seed = seed
+        if meas_return is not None:
+            if meas_return not in list(MeasReturnType):
+                raise QiskitError('%s not a valid meas_return value')
+            self.meas_return = meas_return
+        self._metadata.update(kwargs)
 
-        super().__init__(**kwargs)
+    def __getattr__(self, name):
+        try:
+            return self._metadata[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the ExperimentResult
+
+        Returns:
+            dict: The dictionary form of the ExperimentResult
+        """
+        out_dict = {
+            'shots': self.shots,
+            'success': self.success,
+            'data': self.data.to_dict(),
+            'meas_level': self.meas_level,
+        }
+        if hasattr(self, 'header'):
+            out_dict['header'] = self.header.to_dict()
+        if hasattr(self, 'status'):
+            out_dict['status'] = self.status
+        if hasattr(self, 'seed'):
+            out_dict['seed'] = self.seed
+        if hasattr(self, 'meas_return'):
+            out_dict['meas_return'] = self.meas_return
+        out_dict.update(self._metadata)
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new ExperimentResult object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the ExperimentResult to
+                         create. It will be in the same format as output by
+                         :meth:`to_dict`
+
+        Returns:
+            ExperimentResult: The ``ExperimentResult`` object from the input
+                              dictionary.
+        """
+
+        in_data = copy.copy(data)
+        data_obj = ExperimentResultData.from_dict(in_data.pop('data'))
+        if 'header' in in_data:
+            in_data['header'] = QobjExperimentHeader.from_dict(
+                in_data.pop('header'))
+        shots = in_data.pop('shots')
+        success = in_data.pop('success')
+
+        return cls(shots, success, data_obj, **in_data)
