@@ -77,8 +77,8 @@ class QuantumVolume(QuantumCircuit):
         width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
 
         if seed is None:
-            rng_set = np.random.RandomState()
-            seed = rng_set.randint(low=1, high=1000)
+            rng_set = np.random.default_rng()
+            seed = rng_set.integers(low=1, high=1000)
 
         name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
 
@@ -90,7 +90,7 @@ class QuantumVolume(QuantumCircuit):
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
-        inner = QuantumCircuit(num_qubits)
+        inner = QuantumCircuit(num_qubits, name=name)
         perm_0 = list(range(num_qubits))
         for d in range(depth):
             perm = rng.permutation(perm_0)

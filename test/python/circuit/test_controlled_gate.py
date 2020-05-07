@@ -904,6 +904,8 @@ class TestControlledStandardGates(QiskitTestCase):
 class TestDeprecatedGates(QiskitTestCase):
     """Test controlled of deprecated gates."""
 
+    import qiskit.extensions as ext
+
     import qiskit.extensions.standard.i as i
     import qiskit.extensions.standard.rx as rx
     import qiskit.extensions.standard.ry as ry
@@ -938,7 +940,18 @@ class TestDeprecatedGates(QiskitTestCase):
           (x.CXGate, x.CnotGate, []),
           (x.CCXGate, x.ToffoliGate, []),
           (y.CYGate, y.CyGate, []),
-          (z.CZGate, z.CzGate, []))
+          (z.CZGate, z.CzGate, []),
+          (i.IGate, ext.IdGate, []),
+          (rx.CRXGate, ext.CrxGate, [0.1]),
+          (ry.CRYGate, ext.CryGate, [0.1]),
+          (rz.CRZGate, ext.CrzGate, [0.1]),
+          (swap.CSwapGate, ext.FredkinGate, []),
+          (u1.CU1Gate, ext.Cu1Gate, [0.1]),
+          (u3.CU3Gate, ext.Cu3Gate, [0.1, 0.2, 0.3]),
+          (x.CXGate, ext.CnotGate, []),
+          (x.CCXGate, ext.ToffoliGate, []),
+          (y.CYGate, ext.CyGate, []),
+          (z.CZGate, ext.CzGate, []))
     @unpack
     def test_deprecated_gates(self, new, old, params):
         """Test types of the deprecated gate classes."""

@@ -84,7 +84,7 @@ def random_circuit(num_qubits, depth, max_operands=3, measure=False,
 
     if seed is None:
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-    rng = np.random.RandomState(seed)
+    rng = np.random.default_rng(seed)
 
     # apply arbitrary random operations at every depth
     for _ in range(depth):
@@ -116,7 +116,7 @@ def random_circuit(num_qubits, depth, max_operands=3, measure=False,
 
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
-                value = rng.randint(0, np.power(2, num_qubits))
+                value = rng.integers(0, np.power(2, num_qubits))
                 op.condition = (cr, value)
 
             qc.append(op, register_operands)
