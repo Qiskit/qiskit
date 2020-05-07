@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for the pulse rescheduler."""
+"""Test cases for the pulse Schedule transforms."""
 import unittest
 from typing import List, Set
 
@@ -26,7 +26,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-from qiskit.pulse.reschedule import add_implicit_acquires, align_measures, pad, compress_pulses
+from qiskit.pulse.transforms import add_implicit_acquires, align_measures, pad, compress_pulses
 
 
 class TestAutoMerge(QiskitTestCase):
