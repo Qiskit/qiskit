@@ -72,8 +72,8 @@ class EigensolverResult(AlgorithmResult):
             warnings.warn('eigvals deprecated, use eigenvalues property.', DeprecationWarning)
             return super().__getitem__('eigenvalues')
         elif key == 'eigvecs':
-            warnings.warn('eigvecs deprecated, use eigenstate property.', DeprecationWarning)
-            return super().__getitem__('eigenstate')
+            warnings.warn('eigvecs deprecated, use eigenstates property.', DeprecationWarning)
+            return super().__getitem__('eigenstates')
         elif key == 'aux_ops':
             warnings.warn('aux_ops deprecated, use aux_operator_eigenvalues property.',
                           DeprecationWarning)
