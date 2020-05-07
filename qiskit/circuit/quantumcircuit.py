@@ -840,8 +840,8 @@ class QuantumCircuit:
             initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
-            cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-                the ``text`` output. Default: ``False``.
+            cregbundle (bool): Optional. If set True bundle classical registers. Not used by
+                the ``matplotlib`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
