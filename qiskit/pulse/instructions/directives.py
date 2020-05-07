@@ -29,6 +29,7 @@ class Directive(instruction.Instruction, ABC):
 
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
+
     def __init__(self,
                  *channels: chans.Channel,
                  name: Optional[str] = None):
