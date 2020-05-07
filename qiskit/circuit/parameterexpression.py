@@ -93,8 +93,8 @@ class ParameterExpression():
 
         Args:
             parameter_map (dict): Mapping from Parameters in self to the
-                                  Parameter instances with which they should be
-                                  replaced.
+                                  ParameterExpression instances with which they
+                                  should be replaced.
 
         Raises:
             CircuitError:
@@ -107,21 +107,27 @@ class ParameterExpression():
                                  replaced.
         """
 
+        inbound_parameters = {p
+                              for replacement_expr in parameter_map.values()
+                              for p in replacement_expr.parameters}
+
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
-        self._raise_if_parameter_names_conflict(parameter_map.values(),
-                                                parameter_map.keys())
+        self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
 
         from sympy import Symbol
         new_parameter_symbols = {p: Symbol(p.name)
-                                 for p in parameter_map.values()}
+                                 for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
         new_parameter_symbols.update({p: s
                                       for p, s in self._parameter_symbols.items()
                                       if p not in parameter_map})
 
+        # If new_param is an expr, we'll need to construct a matching sympy expr
+        # but with our sympy symbols instead of theirs.
+
         symbol_map = {
-            self._parameter_symbols[old_param]: new_parameter_symbols[new_param]
+            self._parameter_symbols[old_param]: new_param._symbol_expr
             for old_param, new_param in parameter_map.items()
         }
 
