@@ -97,6 +97,7 @@
                                     "pv",
                                     "fc",
                                     "setf",
+                                    "shiftf",
                                     "acquire",
                                     "delay",
                                     "parametric_pulse"
@@ -174,6 +175,24 @@
                         "ch"
                     ],
                     "title": "Set frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftf"
+                            ]
+                        },
+                        "frequency": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift frequency"
                 },
                 {
                     "properties": {
