@@ -474,7 +474,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_cx_equivalence_0cx(self, seed=0):
         """Check circuits with  0 cx gates locally equivalent to identity
         """
-        state = np.random.RandomState(seed)
+        state = np.random.default_rng(seed)
         rnd = 2 * np.pi * state.random(size=6)
 
         qr = QuantumRegister(2, name='q')
