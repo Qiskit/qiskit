@@ -14,23 +14,20 @@
 
 """Model for schema-conformant Results."""
 
+import copy
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import Statevector
-
-from qiskit.validation.base import BaseModel, bind_schema
+from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.qobj.utils import MeasLevel
-from .models import ResultSchema
+from qiskit.qobj import QobjHeader
 
 
-@bind_schema(ResultSchema)
-class Result(BaseModel):
+class Result:
     """Model for Results.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``ResultSchema``.
 
     Attributes:
         backend_name (str): backend name.
@@ -43,16 +40,73 @@ class Result(BaseModel):
             experiments of the input qobj
     """
 
+    _metadata = {}
+
     def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
-                 results, **kwargs):
+                 results, date=None, status=None, header=None, **kwargs):
+        self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.qobj_id = qobj_id
         self.job_id = job_id
         self.success = success
         self.results = results
+        if date is not None:
+            self.date = date
+        if status is not None:
+            self.status = status
+        if header is not None:
+            self.header = header
+        self._metadata.update(kwargs)
 
-        super().__init__(**kwargs)
+    def to_dict(self):
+        """Return a dictionary format representation of the Result
+
+        Returns:
+            dict: The dictionary form of the Result
+        """
+        out_dict = {
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'qobj_id': self.qobj_id,
+            'job_id': self.job_id,
+            'success': self.success,
+            'results': [x.to_dict() for x in self.results]
+        }
+        if hasattr(self, 'date'):
+            out_dict['date'] = self.date
+        if hasattr(self, 'status'):
+            out_dict['status'] = self.status
+        if hasattr(self, 'header'):
+            out_dict['header'] = self.header.to_dict()
+        out_dict.update(self._metadata)
+        return out_dict
+
+    def __getattr__(self, name):
+        try:
+            return self._metadata[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new ExperimentResultData object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Result to create. It
+                         will be in the same format as output by
+                         :meth:`to_dict`.
+        Returns:
+            Result: The ``Result`` object from the input dictionary.
+
+        """
+
+        in_data = copy.copy(data)
+        in_data['results'] = [
+            ExperimentResult.from_dict(x) for x in in_data.pop('results')]
+        if 'header' in in_data:
+            in_data['header'] = QobjHeader.from_dict(in_data.pop('header'))
+        return cls(**in_data)
 
     def data(self, experiment=None):
         """Get the raw data for an experiment.
