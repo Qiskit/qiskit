@@ -24,8 +24,7 @@ from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
 
 
 class MinimumEigensolver(ABC):
-    """
-    The Minimum Eigensolver Interface.
+    """The Minimum Eigensolver Interface.
 
     Algorithms that can compute a minimum eigenvalue for an operator
     may implement this interface to allow different algorithms to be
@@ -59,10 +58,11 @@ class MinimumEigensolver(ABC):
         pass
 
     def supports_aux_operators(self) -> bool:
-        """
+        """Whether computing the expectation value of auxiliary operators is supported.
+
         If the minimum eigensolver computes an eigenstate of the main operator then it
         can compute the expectation value of the aux_operators for that state. Otherwise
-        they will be ignored
+        they will be ignored.
 
         Returns:
             True if aux_operator expectations can be evaluated, False otherwise
@@ -72,28 +72,28 @@ class MinimumEigensolver(ABC):
     @property
     @abstractmethod
     def operator(self) -> Optional[Union[OperatorBase, LegacyBaseOperator]]:
-        """ returns operator """
-        pass
+        """Return the operator."""
+        raise NotImplementedError
 
     @operator.setter
     @abstractmethod
     def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
-        """ set operator """
-        pass
+        """Set the operator."""
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
-        """ returns aux operators """
-        pass
+        """Returns the auxiliary operators."""
+        raise NotImplementedError
 
     @aux_operators.setter
     @abstractmethod
     def aux_operators(self,
                       aux_operators: Optional[List[Optional[Union[OperatorBase,
                                                                   LegacyBaseOperator]]]]) -> None:
-        """ set aux operators """
-        pass
+        """Set the auxiliary operators."""
+        raise NotImplementedError
 
 
 class MinimumEigensolverResult(AlgorithmResult):
