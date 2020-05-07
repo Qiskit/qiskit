@@ -576,7 +576,7 @@ class C3XGate(C3RXGate):
                           DeprecationWarning, stacklevel=2)
         elif angle == numpy.pi / 4:
             warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
-                          'angle=pi/8, while be the default behavior C3XGate.',
+                          'angle=pi/4, while be the default behavior C3XGate.',
                           DeprecationWarning, stacklevel=2)
         elif angle is not None:
             warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
