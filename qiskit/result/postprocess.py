@@ -187,9 +187,12 @@ def format_statevector(vec, decimals=None):
     if isinstance(vec, np.ndarray):
         return vec
     num_basis = len(vec)
-    vec_complex = np.zeros(num_basis, dtype=complex)
-    for i in range(num_basis):
-        vec_complex[i] = vec[i][0] + 1j * vec[i][1]
+    if vec and isinstance(vec[0], complex):
+        vec_complex = np.array(vec, dtype=complex)
+    else:
+        vec_complex = np.zeros(num_basis, dtype=complex)
+        for i in range(num_basis):
+            vec_complex[i] = vec[i][0] + 1j * vec[i][1]
     if decimals:
         vec_complex = np.around(vec_complex, decimals=decimals)
     return vec_complex
