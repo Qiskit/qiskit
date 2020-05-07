@@ -34,13 +34,13 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.standard_gates import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                        CYGate, CZGate, CU1Gate, SwapGate,
-                                        CCXGate, HGate, RZGate, RXGate,
-                                        RYGate, CRYGate, CRXGate, CSwapGate,
-                                        U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate,RCCXGate, RC3XGate,
-                                        MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain, C3XGate, C4XGate, C3RXGate)
+                                                   CYGate, CZGate, CU1Gate, SwapGate,
+                                                   CCXGate, HGate, RZGate, RXGate,
+                                                   RYGate, CRYGate, CRXGate, CSwapGate,
+                                                   U3Gate, CHGate, CRZGate, CU3Gate,
+                                                   MSGate, RCCXGate, RC3XGate,
+                                                   MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
+                                                   MCXVChain, C3XGate, C4XGate, C3RXGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 
@@ -1047,12 +1047,12 @@ class Test3ControlledRXGate(QiskitTestCase):
 
     def test_cccxgate(self):
         """Test C3RXGate(np.pi/4)=C3XGate()"""
-        ccc_x_gate = C3RXGate(np.pi/4)
+        ccc_x_gate = C3RXGate(np.pi / 4)
         self.assertIsInstance(ccc_x_gate, allGates.C3XGate)
 
     def test_cccsqrtxgate(self):
         """Test C3RXGate(np.pi/8)=C3SqrtXGate()"""
-        ccc_sqrt_x_gate = C3RXGate(np.pi/8)
+        ccc_sqrt_x_gate = C3RXGate(np.pi / 8)
         self.assertIsInstance(ccc_sqrt_x_gate, allGates.C3SqrtXGate)
 
 
