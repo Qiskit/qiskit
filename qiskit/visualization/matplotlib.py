@@ -533,6 +533,14 @@ class MatplotlibDrawer:
 
     def _draw_regs(self):
 
+        def _fix_double_script(label):
+            words = label.split(' ')
+            words = [word.replace('_', r'\_') if word.count('_') > 1 else word
+                     for word in words]
+            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word
+                     for word in words]
+            return ' '.join(words)
+
         len_longest_label = 0
         # quantum register
         for ii, reg in enumerate(self._qreg):
@@ -548,6 +556,7 @@ class MatplotlibDrawer:
             else:
                 label = '${name}$'.format(name=reg.register.name)
 
+            label = _fix_double_script(label)
             if len(label) > len_longest_label:
                 len_longest_label = len(label)
 
@@ -570,6 +579,7 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -580,6 +590,7 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
