@@ -156,6 +156,37 @@ class TestEvolution(QiskitAquaTestCase):
         ref_mat = scipy.linalg.expm(-1j * op.to_matrix())
         np.testing.assert_array_almost_equal(ref_mat, exp_mat)
 
+    def test_log_i(self):
+        """ MatrixOp.log_i() test """
+        op = (-1.052373245772859 * I ^ I) + \
+             (0.39793742484318045 * I ^ Z) + \
+             (0.18093119978423156 * X ^ X) + \
+             (-0.39793742484318045 * Z ^ I) + \
+             (-0.01128010425623538 * Z ^ Z) * np.pi/2
+        # Test with CircuitOp
+        log_exp_op = op.to_matrix_op().exp_i().log_i().to_pauli_op()
+        np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
+
+        # Test with MatrixOp
+        log_exp_op = op.to_matrix_op().exp_i().to_matrix_op().log_i().to_pauli_op()
+        np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
+
+        # Test with PauliOp
+        log_exp_op = op.to_matrix_op().exp_i().to_pauli_op().log_i().to_pauli_op()
+        np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
+
+        # Test with EvolvedOp
+        log_exp_op = op.exp_i().to_pauli_op().log_i().to_pauli_op()
+        np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
+
+        # Test with proper ListOp
+        op = ListOp([(0.39793742484318045 * I ^ Z),
+                     (0.18093119978423156 * X ^ X),
+                     (-0.39793742484318045 * Z ^ I),
+                     (-0.01128010425623538 * Z ^ Z) * np.pi / 2])
+        log_exp_op = op.to_matrix_op().exp_i().to_matrix_op().log_i().to_pauli_op()
+        np.testing.assert_array_almost_equal(op.to_matrix(), log_exp_op.to_matrix())
+
     def test_matrix_op_parameterized_evolution(self):
         """ parameterized MatrixOp evolution test """
         # pylint: disable=no-member
