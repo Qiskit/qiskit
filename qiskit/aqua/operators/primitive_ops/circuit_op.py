@@ -214,8 +214,9 @@ class CircuitOp(PrimitiveOp):
     # Warning - modifying immutable object!!
     def reduce(self) -> OperatorBase:
         if self.primitive.data is not None:
-            for i, inst_context in enumerate(self.primitive.data):
-                [gate, _, _] = inst_context
+            # Need to do this from the end because we're deleting items!
+            for i in reversed(range(len(self.primitive.data))):
+                [gate, _, _] = self.primitive.data[i]
                 if isinstance(gate, IGate):
                     del self.primitive.data[i]
         return self
