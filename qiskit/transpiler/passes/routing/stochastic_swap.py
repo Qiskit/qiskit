@@ -85,7 +85,7 @@ class StochasticSwap(TransformationPass):
         """
 
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('Basic swap runs on physical circuits only')
+            raise TranspilerError('StochasticSwap runs on physical circuits only')
 
         if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
