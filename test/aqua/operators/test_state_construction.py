@@ -22,7 +22,7 @@ from qiskit import QuantumCircuit, BasicAer, execute
 from qiskit.quantum_info import Statevector
 
 from qiskit.aqua.operators import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
-                                   SummedOp, H, I, Z, X, Y, CircuitStateFn, DictToCircuitSum)
+                                   SummedOp, H, I, Z, X, Y, CX, CircuitStateFn, DictToCircuitSum)
 
 
 # pylint: disable=invalid-name
@@ -178,6 +178,19 @@ class TestStateConstruction(QiskitAquaTestCase):
         self.assertIsInstance(circuit_state_3q_vect, CircuitStateFn)
         np.testing.assert_array_almost_equal(vect_state_3q.to_matrix(),
                                              circuit_state_3q_vect.to_matrix())
+
+    def test_circuit_permute(self):
+        r""" Test the CircuitStateFn's .permute method """
+        perm = range(7)[::-1]
+        c_op = (((CX ^ 3) ^ X) @
+                (H ^ 7) @
+                (X ^ Y ^ Z ^ I ^ X ^ X ^ X) @
+                (Y ^ (CX ^ 3)) @
+                (X ^ Y ^ Z ^ I ^ X ^ X ^ X)) @ Zero
+        c_op_perm = c_op.permute(perm)
+        self.assertNotEqual(c_op, c_op_perm)
+        c_op_id = c_op_perm.permute(perm)
+        self.assertEqual(c_op, c_op_id)
 
 
 if __name__ == '__main__':

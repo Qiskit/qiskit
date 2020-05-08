@@ -50,7 +50,7 @@ class TestOpConstruction(QiskitAquaTestCase):
 
     def test_composed_eval(self):
         """ Test eval of ComposedOp """
-        self.assertAlmostEqual(Minus.eval('1'), -.5**.5)
+        self.assertAlmostEqual(Minus.eval('1'), -.5 ** .5)
 
     def test_evals(self):
         """ evals test """
@@ -207,6 +207,19 @@ class TestOpConstruction(QiskitAquaTestCase):
         for p in pauli_op:
             self.assertIsInstance(p, PauliOp)
         np.testing.assert_array_almost_equal(mat_op.to_matrix(), pauli_op.to_matrix())
+
+    def test_circuit_permute(self):
+        r""" Test the CircuitOp's .permute method """
+        perm = range(7)[::-1]
+        c_op = (((CX ^ 3) ^ X) @
+                (H ^ 7) @
+                (X ^ Y ^ Z ^ I ^ X ^ X ^ X) @
+                (Y ^ (CX ^ 3)) @
+                (X ^ Y ^ Z ^ I ^ X ^ X ^ X))
+        c_op_perm = c_op.permute(perm)
+        self.assertNotEqual(c_op, c_op_perm)
+        c_op_id = c_op_perm.permute(perm)
+        self.assertEqual(c_op, c_op_id)
 
 
 if __name__ == '__main__':
