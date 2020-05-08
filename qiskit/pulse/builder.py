@@ -16,9 +16,9 @@ r"""Use the pulse builder to write pulse programs with an imperative,
 assembly-like syntax.
 
 To begin pulse programming we must first initialize our program builder
-context with :func:`build`, after which we can begin
-adding program statements. For example, below we write a simple program that
-:func:`play`\s a pulse:
+context with :func:`build`, after which we can begin adding program
+statements. For example, below we write a simple program that :func:`play`\s
+a pulse:
 
 .. jupyter-execute::
 
