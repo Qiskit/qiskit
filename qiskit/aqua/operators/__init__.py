@@ -86,7 +86,7 @@ One qubit Pauli operators:
    :attr:`X`, :attr:`Y`, :attr:`Z`, :attr:`I`
 
 Clifford+T, and some other common non-parameterized gates:
-   :attr:`CX`, :attr:`S`, :attr:`H`, :attr:`T`, :attr:`Swap`
+   :attr:`CX`, :attr:`S`, :attr:`H`, :attr:`T`, :attr:`Swap`, :attr:`CZ`
 
 One qubit states:
    :attr:`Zero`, :attr:`One`, :attr:`Plus`, :attr:`Minus`
@@ -153,7 +153,10 @@ from .evolutions import (EvolutionBase, EvolutionFactory, EvolvedOp, PauliTrotte
                          Suzuki, QDrift)
 
 # Convenience immutable instances
-from .operator_globals import EVAL_SIG_DIGITS, X, Y, Z, I, CX, S, H, T, Swap, Zero, One, Plus, Minus
+from .operator_globals import (EVAL_SIG_DIGITS,
+                               X, Y, Z, I,
+                               CX, S, H, T, Swap, CZ,
+                               Zero, One, Plus, Minus)
 
 __all__ = [
     # Common
@@ -176,5 +179,5 @@ __all__ = [
     'EvolutionBase', 'EvolvedOp', 'EvolutionFactory', 'PauliTrotterEvolution', 'MatrixEvolution',
     'TrotterizationBase', 'TrotterizationFactory', 'Trotter', 'Suzuki', 'QDrift',
     # Convenience immutable instances
-    'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'Zero', 'One', 'Plus', 'Minus'
+    'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus'
 ]
