@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""Use the pulse builder to program pulse programs with an imperative
+r"""Use the pulse builder to write pulse programs with an imperative,
 assembly-like syntax.
 
 To begin pulse programming we must first initialize our program builder
