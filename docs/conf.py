@@ -73,6 +73,7 @@ extensions = [
 ]
 
 nbsphinx_timeout = 60
+nbsphinx_execute = 'never'
 html_sourcelink_suffix = ''
 exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
@@ -252,6 +253,20 @@ def load_api_sources(app):
     for package in qiskit_elements:
         _git_copy(package, meta_versions[package], api_docs_dir)
 
+def load_tutorials(app):
+    tutorials_dir = os.path.join(app.srcdir, 'tutorials')
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            github_source = 'https://github.com/Qiskit/qiskit-tutorials'
+            subprocess.run(['git', 'clone', github_source, temp_dir],
+                           capture_output=True)
+            dir_util.copy_tree(
+                os.path.join(temp_dir, 'tutorials'),
+                tutorials_dir)
+    except FileNotFoundError:
+        warnings.warn('Copy from git failed for %s at %s, skipping...' %
+                      (package, sha1), RuntimeWarning)
+
 
 def clean_api_source(app, exc):
     api_docs_dir = os.path.join(app.srcdir, 'apidoc')
@@ -265,10 +280,16 @@ def clean_api_source(app, exc):
         return
     shutil.rmtree(api_docs_dir)
 
+def clean_tutorials(app, exc):
+    tutorials_dir = os.path.join(app.srcdir, 'tutorials')
+    shutil.rmtree(tutorials_dir)
+
 # -- Extension configuration -------------------------------------------------
 
 def setup(app):
     load_api_sources(app)
+    load_tutorials(app)
     app.setup_extension('versionutils')
     app.add_css_file('css/theme-override.css')
     app.connect('build-finished', clean_api_source)
+    app.connect('build-finished', clean_tutorials)
