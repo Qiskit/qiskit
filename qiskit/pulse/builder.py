@@ -38,7 +38,7 @@ a pulse:
 The builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
 schedule will survive after the context is exited and can be executed like a
-normal Qiskit program ``qiskit.execute(pulse_prog, backend)``.
+normal Qiskit program using ``qiskit.execute(pulse_prog, backend)``.
 
 Pulse programming has a simple imperative style. There is little need to deal
 with classes such as the :class:`~qiskit.circuit.QuantumCircuit` or
