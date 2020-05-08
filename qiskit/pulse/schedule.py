@@ -207,9 +207,9 @@ class Schedule(ScheduleComponent):
                 a new ``Schedule``.
         """
         if mutate:
-            return self._immutable_shift(time, name=name)
-        else:
             return self._mutable_shift(time)
+        else:
+            return self._immutable_shift(time, name=name)
 
     def _immutable_shift(self,
                          time: int,

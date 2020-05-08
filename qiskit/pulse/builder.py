@@ -458,7 +458,7 @@ class _PulseBuilder():
         for creg in circ.cregs:
             try:
                 self._lazy_circuit.add_register(creg)
-            except circuit.CircuitError:
+            except circuit.exceptions.CircuitError:
                 pass
         self._lazy_circuit.compose(circ, inplace=True)
 
@@ -655,6 +655,34 @@ def num_qubits() -> int:
     .. note:: Requires the active builder context to have a backend set.
     """
     return active_backend().configuration().n_qubits
+
+
+def time_to_samples(time: float) -> int:
+    """Obtain the number of samples that will elapse in ``time`` for the
+    active backend.
+
+    Rounds down.
+
+    Args:
+        time: Time in seconds.
+
+    Returns:
+        The number of samples for the time elapse
+    """
+    return int(time / active_backend().configuration().dt)
+
+
+def samples_to_time(samples: float) -> float:
+    """Obtain the time that will elapse for the number of samples for the
+    active backend.
+
+    Args:
+        samples: Time in seconds.
+
+    Returns:
+        The number of samples for the time elapse
+    """
+    return samples * active_backend().configuration().dt
 
 
 def qubit_channels(qubit: int) -> Set[channels.Channel]:

@@ -599,6 +599,24 @@ class TestUtilities(TestBuilder):
         with pulse.build(self.backend):
             self.assertEqual(pulse.num_qubits(), 2)
 
+    def test_samples_to_time(self):
+        """Test samples to time"""
+        config = self.backend.configuration()
+        config.dt = 0.1
+        with pulse.build(self.backend):
+            time = pulse.samples_to_time(100)
+            self.assertTrue(isinstance(time, float))
+            self.assertEqual(pulse.samples_to_time(100), 10)
+
+    def test_time_to_samples(self):
+        """Test samples to time"""
+        config = self.backend.configuration()
+        config.dt = 0.1
+        with pulse.build(self.backend):
+            samples = pulse.time_to_samples(10)
+            self.assertTrue(isinstance(samples, int))
+            self.assertEqual(pulse.time_to_samples(10), 100)
+
 
 class TestMacros(TestBuilder):
     """test context builder macros."""

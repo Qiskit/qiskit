@@ -155,6 +155,8 @@ from qiskit.pulse.builder import (
     build,
     num_qubits,
     qubit_channels,
+    samples_to_time,
+    time_to_samples,
     # builder instructions.
     acquire,
     barrier,
