@@ -38,6 +38,16 @@ Qiskit consists of four foundational elements:
 
 .. toctree::
   :maxdepth: 1
+  :caption: Tutorials
+  :hidden:
+
+  Terra <tutorials/terra/index.rst>
+  Aer <tutorials/aer/index.rst>
+  Ignis <tutorials/ignis/index.rst>
+  Aqua <tutorials/aqua/index.rst>
+
+.. toctree::
+  :maxdepth: 1
   :caption: Libraries
   :hidden:
 
