@@ -784,6 +784,22 @@ class TestGates(TestBuilder):
             with pulse.build():
                 pulse.x(0)
 
+    def test_call_circuit_with_cregs(self):
+        """Test calling of circuit wiht classical registers."""
+
+        qc = circuit.QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        with pulse.build(self.backend) as schedule:
+            pulse.call(qc)
+
+        reference_qc = compiler.transpile(qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertEqual(schedule, reference)
+
 
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
