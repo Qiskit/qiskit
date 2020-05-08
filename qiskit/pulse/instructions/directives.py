@@ -29,6 +29,7 @@ class Directive(instruction.Instruction, ABC):
 
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
+
     def __init__(self,
                  *channels: chans.Channel,
                  name: Optional[str] = None):
@@ -40,7 +41,7 @@ class RelativeBarrier(Directive):
 
         Args:
             channels: The channel that the barrier applies to.
-            name: Name of the delay for display purposes.
+            name: Name of the directive for display purposes.
         """
         super().__init__(tuple(channels), 0, tuple(channels), name=name)
 
