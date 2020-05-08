@@ -213,7 +213,7 @@ class ListOp(OperatorBase):
                 ' Set massive=True if you want to proceed.'.format(2**self.num_qubits))
 
         # Combination function must be able to handle classical values
-        return self.combo_fn([op.to_matrix() for op in self.oplist]) * self.coeff
+        return self.combo_fn([op.to_matrix() * self.coeff for op in self.oplist])
 
     def to_spmatrix(self) -> Union[spmatrix, List[spmatrix]]:
         """ Returns SciPy sparse matrix representation of the Operator.
@@ -277,6 +277,19 @@ class ListOp(OperatorBase):
         # pylint: disable=import-outside-toplevel
         from qiskit.aqua.operators import EvolvedOp
         return EvolvedOp(self)
+
+    def log_i(self, massive: bool = False) -> OperatorBase:
+        """Return a ``MatrixOp`` equivalent to log(H)/-i for this operator H. This
+        function is the effective inverse of exp_i, equivalent to finding the Hermitian
+        Operator which produces self when exponentiated. For proper ListOps, applies ``log_i``
+        to all ops in oplist.
+        """
+        if self.__class__.__name__ == ListOp.__name__:
+            return ListOp([op.log_i(massive=massive) for op in self.oplist],
+                          coeff=self.coeff,
+                          abelian=False)
+
+        return self.to_matrix_op(massive=massive).log_i(massive=massive)
 
     def __str__(self) -> str:
         main_string = "{}(\n[{}])".format(self.__class__.__name__, ',\n'.join(

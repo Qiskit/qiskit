@@ -14,7 +14,7 @@
 
 """ EvolutionOp Class """
 
-from typing import Optional, Union, Set
+from typing import Optional, Union, Set, List
 import logging
 import numpy as np
 import scipy
@@ -23,6 +23,8 @@ from qiskit.circuit import ParameterExpression, Instruction
 
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
+from ..primitive_ops.matrix_op import MatrixOp
+from ..list_ops import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.tensored_op import TensoredOp
@@ -111,8 +113,6 @@ class EvolvedOp(PrimitiveOp):
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                # pylint: disable=import-outside-toplevel
-                from ..list_ops.list_op import ListOp
                 return ListOp([self.bind_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
@@ -124,10 +124,26 @@ class EvolvedOp(PrimitiveOp):
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
         return self.to_matrix_op().eval(front=front)
 
-    def to_matrix(self, massive: bool = False) -> np.ndarray:
+    def to_matrix(self, massive: bool = False) -> Union[np.ndarray, List[np.ndarray]]:
+        if self.primitive.__class__.__name__ == ListOp.__name__:
+            return [op.exp_i().to_matrix() * self.primitive.coeff * self.coeff
+                    for op in self.primitive.oplist]
+
         prim_mat = -1.j * self.primitive.to_matrix()
         # pylint: disable=no-member
         return scipy.linalg.expm(prim_mat) * self.coeff
+
+    def to_matrix_op(self, massive: bool = False) -> OperatorBase:
+        """ Returns a ``MatrixOp`` equivalent to this Operator. """
+        if self.primitive.__class__.__name__ == ListOp.__name__:
+            return ListOp([op.exp_i().to_matrix_op() for op in self.primitive.oplist],
+                          coeff=self.primitive.coeff * self.coeff)
+
+        prim_mat = EvolvedOp(self.primitive).to_matrix(massive=massive)
+        return MatrixOp(prim_mat, coeff=self.coeff)
+
+    def log_i(self, massive: bool = False) -> OperatorBase:
+        return self.primitive * self.coeff
 
     # pylint: disable=arguments-differ
     def to_instruction(self, massive: bool = False) -> Instruction:

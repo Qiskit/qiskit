@@ -114,12 +114,6 @@ class MatrixOp(PrimitiveOp):
         return ComposedOp([self, other])
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        if self.num_qubits > 16 and not massive:
-            raise ValueError(
-                'to_matrix will return an exponentially large matrix, '
-                'in this case {0}x{0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2**self.num_qubits))
-
         return self.primitive.data * self.coeff
 
     def __str__(self) -> str:
