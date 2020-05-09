@@ -474,6 +474,8 @@ class QCircuitImage:
                                      'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
+                    if op.cargs:
+                        qarglist += op.cargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
