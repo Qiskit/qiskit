@@ -28,7 +28,7 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class ConfigurableBackend(FakeBackend):
+class ConfigurableFakeBackend(FakeBackend):
     """Configurable backend."""
 
     def __init__(self,
@@ -225,7 +225,7 @@ class ConfigurableBackend(FakeBackend):
         meas_map = [list(range(self.n_qubits))]
         qubit_lo_range = [[freq - 0.5, freq + 0.5] for freq in self.qubit_frequency]
         meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
-        u_channel_lo = [[UchannelLO(q=i, scale=[1.0, 0])] for i in range(len(self.coupling_map))]
+        u_channel_lo = [[UchannelLO(q=i, scale=1.0+0.0j)] for i in range(len(self.coupling_map))]
 
         return PulseBackendConfiguration(
             backend_name=self.name,

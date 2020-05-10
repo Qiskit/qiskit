@@ -16,4 +16,4 @@
 Utils for test backends.
 """
 
-from .configurable_backend import ConfigurableBackend
+from .configurable_backend import ConfigurableFakeBackend
