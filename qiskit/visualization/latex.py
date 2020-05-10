@@ -24,6 +24,7 @@ import re
 
 import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
@@ -476,6 +477,10 @@ class QCircuitImage:
                     qarglist = op.qargs
                     if op.cargs:
                         qarglist += op.cargs
+                    q_end = 0
+                    for reg in self.qregs:
+                        if isinstance(reg, QuantumRegister):
+                            q_end += self.qregs[reg]
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
@@ -696,6 +701,25 @@ class QCircuitImage:
                                     (max(pos_1, pos_2), self.parse_params(op.op.params[0]))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
+                            else:
+                                start_pos = min([pos_1, pos_2])
+                                stop_pos = max([pos_1, pos_2])
+                                if stop_pos - start_pos >= 2:
+                                    delta = stop_pos - start_pos
+                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
+                                                                      % (delta, nm))
+                                    for i_pos in range(start_pos + 1, stop_pos + 1):
+                                        if i_pos < q_end:
+                                            self._latex[i_pos][column] = ("\\ghost{%s}"
+                                                                          % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cghost{%s}"
+                                                                          % nm)
+                                else:
+                                    self._latex[start_pos][column] = ("\\multigate{1}{%s}"
+                                                                      % nm)
+                                    self._latex[stop_pos][column] = ("\\ghost{%s}" %
+                                                                     nm)
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -847,6 +871,27 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = "\\qswap"
                                 self._latex[pos_3][column] = \
                                     "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                            else:
+                                start_pos = min([pos_1, pos_2, pos_3])
+                                stop_pos = max([pos_1, pos_2, pos_3])
+                                if stop_pos - start_pos >= 3:
+                                    delta = stop_pos - start_pos
+                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
+                                                                      (delta, nm))
+                                    for i_pos in range(start_pos + 1, stop_pos + 1):
+                                        if i_pos < q_end:
+                                            self._latex[i_pos][column] = ("\\ghost{%s}"
+                                                                          % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cghost{%s}"
+                                                                          % nm)
+                                else:
+                                    self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
+                                                                  nm)
+                                    self._latex[pos_2][column] = ("\\ghost{%s}" %
+                                                                  nm)
+                                    self._latex[pos_3][column] = ("\\ghost{%s}" %
+                                                                  nm)
                         else:
                             if nm == "ccx":
                                 if cond_1 == '0':
@@ -893,15 +938,37 @@ class QCircuitImage:
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
+
+                        if op.condition:
+                            c_pos = self.img_regs[if_reg[0]]
+                            temp = [self.img_regs[qarglist[ind]] for ind in range(len(qarglist))]
+                            bottom = temp[-1]
+                            gap = c_pos - bottom
+                            if gap > 0:
+                                for i in range(self.cregs[if_reg]):
+                                    if if_value[i] == '1':
+                                        self._latex[c_pos + i][column] = \
+                                            "\\control \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
+                                    else:
+                                        self._latex[c_pos + i][column] = \
+                                            "\\controlo \\cw \\cwx[-" + str(gap) + "]"
+                                        gap = 1
                         pos_array = [self.img_regs[qarglist[0]]]
                         for i in range(1, nbits):
                             pos_array.append(self.img_regs[qarglist[i]])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
+                        delta = pos_stop - pos_start
                         self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
-                                                          (nbits - 1, nm))
-                        for pos in range(pos_start + 1, pos_stop + 1):
-                            self._latex[pos][column] = ("\\ghost{%s}" % nm)
+                                                          (delta, nm))
+                        for i_pos in range(pos_start + 1, pos_stop + 1):
+                            if i_pos < q_end:
+                                self._latex[i_pos][column] = ("\\ghost{%s}"
+                                                              % nm)
+                            else:
+                                self._latex[i_pos][column] = ("\\cghost{%s}"
+                                                              % nm)
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
