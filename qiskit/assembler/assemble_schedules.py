@@ -19,7 +19,7 @@ import hashlib
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Delay, Play, reschedule
-from qiskit.pulse.pulse_lib import ParametricPulse, SamplePulse
+from qiskit.pulse.pulse_lib import ParametricPulse, Waveform
 from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
                                    DelayInstruction, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
@@ -184,12 +184,12 @@ def _assemble_instructions(
                                    name=instruction.name)
 
         if isinstance(instruction, PulseInstruction):  # deprecated
-            instruction = Play(SamplePulse(name=name, samples=instruction.command.samples),
+            instruction = Play(Waveform(name=name, samples=instruction.command.samples),
                                instruction.channels[0], name=name)
 
-        if isinstance(instruction, Play) and isinstance(instruction.pulse, SamplePulse):
+        if isinstance(instruction, Play) and isinstance(instruction.pulse, Waveform):
             name = hashlib.sha256(instruction.pulse.samples).hexdigest()
-            instruction = Play(SamplePulse(name=name, samples=instruction.pulse.samples),
+            instruction = Play(Waveform(name=name, samples=instruction.pulse.samples),
                                channel=instruction.channel,
                                name=name)
             user_pulselib[name] = instruction.pulse.samples

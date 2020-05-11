@@ -27,7 +27,7 @@ A sampler is a function that takes an continuous pulse function with signature:
         ...
     ```
 and returns a new function:
-    def f(duration: int, *args, **kwargs) -> SamplePulse:
+    def f(duration: int, *args, **kwargs) -> Waveform:
         ...
 
 Samplers are used to build up pulse commands from continuous pulse functions.
@@ -141,7 +141,7 @@ from . import strategies
 
 
 def functional_pulse(func: Callable) -> Callable:
-    """A decorator for generating SamplePulse from python callable.
+    """A decorator for generating Waveform from python callable.
 
     Args:
         func: A function describing pulse envelope.
@@ -151,7 +151,7 @@ def functional_pulse(func: Callable) -> Callable:
     """
     @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
-        """Return SamplePulse."""
+        """Return Waveform."""
         if isinstance(duration, (int, np.integer)) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
@@ -220,7 +220,7 @@ def sampler(sample_function: Callable) -> Callable:
     Where `times` is a numpy array of floats with length n_times and the output array
     is a complex numpy array with length n_times. The output of the decorator is an
     instance of `FunctionalPulse` with signature:
-        `def g(duration: int, *args, **kwargs) -> SamplePulse`
+        `def g(duration: int, *args, **kwargs) -> Waveform`
 
     Note if your continuous pulse function outputs a `complex` scalar rather than a
     `np.ndarray`, you should first vectorize it before applying a sampler.
