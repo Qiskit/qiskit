@@ -1085,10 +1085,10 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                               "                └──────┘"])
         qr = QuantumRegister(2, 'q')
         circ = QuantumCircuit(qr)
-        h = HGate(label='my h')
-        ch = h.control(label='my ch')
-        circ.append(h, [0])
-        circ.append(ch, [0,1])
+        hgate = HGate(label='my h')
+        controlh = hgate.control(label='my ch')
+        circ.append(hgate, [0])
+        circ.append(controlh, [0, 1])
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
