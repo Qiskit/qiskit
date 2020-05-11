@@ -904,7 +904,7 @@ class TextDrawing():
         box_label = None
         conditional = False
         multi_qubit_instruction = len(instruction.qargs) >= 2 and \
-                not instruction.cargs
+            not instruction.cargs
         label_multibox = False
         base_gate = getattr(instruction.op, 'base_gate', None)
 

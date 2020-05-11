@@ -1074,6 +1074,24 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
+    def test_control_gate_with_base_label_4361(self):
+        """ If a control gate has a label and a base gate with a label, put the
+        base label in the box and the label on the bullet.
+        See https://github.com/Qiskit/qiskit-terra/issues/4361 """
+        expected = '\n'.join(["        ┌──────┐ my ch  ",
+                              "q_0: |0>┤ my h ├───■────",
+                              "        └──────┘┌──┴───┐",
+                              "q_1: |0>────────┤ my h ├",
+                              "                └──────┘"])
+        qr = QuantumRegister(2, 'q')
+        circ = QuantumCircuit(qr)
+        h = HGate(label='my h')
+        ch = h.control(label='my ch')
+        circ.append(h, [0])
+        circ.append(ch, [0,1])
+
+        self.assertEqual(str(_text_circuit_drawer(circ)), expected)
+
 
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
