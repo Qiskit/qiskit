@@ -58,7 +58,7 @@ test:
 
 # Use pytest to run tests
 pytest:
-	pytest test/python test/mock
+	pytest test/python
 
 # Use pytest to run randomized tests
 pytest_randomized:
