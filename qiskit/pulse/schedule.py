@@ -18,13 +18,16 @@ instruction occuring in parallel over multiple signal *channels*.
 """
 
 import abc
+import itertools
+import multiprocessing as mp
+import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type
 import warnings
 
-from .timeslots import Interval
+from qiskit.util import is_main_process
+from .timeslots import Interval, TimeslotCollection
 from .channels import Channel
 from .interfaces import ScheduleComponent
-from .timeslots import TimeslotCollection
 from .exceptions import PulseError
 
 # pylint: disable=missing-return-doc
@@ -358,18 +361,30 @@ class Schedule(ScheduleComponent):
         def only_channels(channels: Channel) -> Callable:
             channels = if_scalar_cast_to_list(channels)
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+                """Filter channel.
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
         def only_instruction_types(types: Optional[Iterable[abc.ABCMeta]] = None) -> Callable:
             types = if_scalar_cast_to_list(types)
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+                """Filter instruction.
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
         def only_intervals(ranges: Interval) -> Callable:
             ranges = if_scalar_cast_to_list(ranges)
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+                """Filter interval.
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 for i in ranges:
                     if all([(i.start <= ts.interval.shift(time_inst[0]).start
                              and ts.interval.shift(time_inst[0]).stop <= i.stop)
@@ -377,6 +392,7 @@ class Schedule(ScheduleComponent):
                         return True
                 return False
             return interval_filter
+        
         filter_func_list = list(filter_funcs)
         if channels is not None:
             filter_func_list.append(only_channels(channels))
