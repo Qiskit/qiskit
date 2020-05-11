@@ -299,11 +299,11 @@ def _apply_ucg(m, k, single_qubit_gates):
     for j in range(2 ** (num_qubits - 1)):
         i = (j // spacing) * spacing + j
         gate_index = i // (2 ** (num_qubits - k))
-        for j in range(num_col):
-            m[np.array([i, i + spacing]), np.array([j, j])] = \
+        for col in range(num_col):
+            m[np.array([i, i + spacing]), np.array([col, col])] = \
                 np.ndarray.flatten(
-                    single_qubit_gates[gate_index].dot(np.array([[m[i, j]],
-                                                                 [m[i + spacing, j]]]))).tolist()
+                    single_qubit_gates[gate_index].dot(np.array([[m[i, col]],
+                                                                 [m[i + spacing, col]]]))).tolist()
     return m
 
 
