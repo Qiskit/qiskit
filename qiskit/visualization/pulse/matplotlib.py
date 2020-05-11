@@ -813,7 +813,7 @@ class ScheduleDrawer:
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
             if channels:
-                tf = schedule.timeslots.ch_duration(*channels)
+                tf = schedule.ch_duration(*channels)
             else:
                 tf = schedule.stop_time
             tf = tf or 1
