@@ -89,7 +89,7 @@ class VQAlgorithm(QuantumAlgorithm):
         """ Sets variational form """
         if isinstance(var_form, QuantumCircuit):
             # store the parameters
-            self._var_form_params = list(var_form.parameters)
+            self._var_form_params = sorted(var_form.parameters, key=lambda p: p.name)
             self._var_form = var_form
         elif isinstance(var_form, VariationalForm):
             self._var_form_params = ParameterVector('θ', length=var_form.num_parameters)

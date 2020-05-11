@@ -75,6 +75,15 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     If the variational form provides ``None`` as the lower bound, then VQE
     will default it to :math:`-2\pi`; similarly, if the variational form returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
+
+    .. note::
+
+        The VQE stores the parameters of ``var_form`` sorted by name to map the values
+        provided by the optimizer to the circuit. This is done to ensure reproducible results,
+        for example such that running the optimization twice with same random seeds yields the
+        same result. Also, the ``optimal_point`` of the result object can be used as initial
+        point of another VQE run by passing it as ``initial_point`` to the initializer.
+
     """
 
     def __init__(self,
@@ -226,7 +235,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                 # try to set the number of qubits on the variational form, if possible
                 try:
                     self.var_form.num_qubits = self.operator.num_qubits
-                    self._var_form_params = list(self.var_form.parameters)
+                    self._var_form_params = sorted(self.var_form.parameters, key=lambda p: p.name)
                 except AttributeError:
                     raise AquaError("The number of qubits of the variational form does not match "
                                     "the operator, and the variational form does not allow setting "

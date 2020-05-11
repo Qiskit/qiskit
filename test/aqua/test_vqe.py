@@ -122,6 +122,9 @@ class TestVQE(QiskitAquaTestCase):
 
         if mode == 'wrapped':
             warnings.filterwarnings('ignore', category=DeprecationWarning)
+            reference_energy = -1.86823
+        else:
+            reference_energy = -1.87019
         vqe = VQE(self.qubit_op, wavefunction, optimizer, max_evals_grouped=1)
         if mode == 'wrapped':
             warnings.filterwarnings('always', category=DeprecationWarning)
@@ -131,7 +134,7 @@ class TestVQE(QiskitAquaTestCase):
                                            seed_simulator=self.seed,
                                            seed_transpiler=self.seed)
         result = vqe.run(quantum_instance)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
+        self.assertAlmostEqual(result.eigenvalue.real, reference_energy, places=2)
 
     @data('wrapped', 'circuit', 'library')
     def test_vqe_statevector_snapshot_mode(self, mode):
