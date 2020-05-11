@@ -905,15 +905,8 @@ class TextDrawing():
         conditional = False
         multi_qubit_instruction = len(instruction.qargs) >= 2 and \
                 not instruction.cargs
-        print('***instruction***')
-        print('conditional: ' + str(conditional))
-        print('multi_qubit_instruction: ' + str(multi_qubit_instruction))
-        print('name: ' + str(instruction.op.name))
-        print('label: ' + str(instruction.op.label))
+        label_multibox = False
         base_gate = getattr(instruction.op, 'base_gate', None)
-        if base_gate:
-            print('base gate name: ' + str(base_gate.name))
-            print('base gate label: ' + str(base_gate.label))
 
         if instruction.condition is not None:
             # conditional
@@ -931,20 +924,19 @@ class TextDrawing():
 
         if multi_qubit_instruction and \
                 getattr(instruction.op, 'label', None) is not None and \
-                getattr(instruction.op.base_gate, 'label', None) is not None:
+                getattr(base_gate, 'label', None) is not None:
             # If a multi qubit instruction has a label, and the base gate has a
             # label, the label is applied to the bullet instead of the box.
-            print('bullet label')
             ctrl_label = getattr(instruction.op, 'label', None)
-            box_label = getattr(instruction.op.base_gate, 'label', None)
+            box_label = getattr(base_gate, 'label', None)
 
         elif multi_qubit_instruction and \
                 getattr(instruction.op, 'label', None) is not None:
             # If a multi qubit instruction has a label, it is a box
-            print('box label')
+            label_multibox = True
             layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
                                 conditional=conditional)
-        print('multibox: ' + str(layer.multibox))
+
         if isinstance(instruction.op, MeasureInstruction):
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
@@ -982,27 +974,25 @@ class TextDrawing():
                             BoxOnQuWire(TextDrawing.label_for_box(instruction),
                                         conditional=conditional))
 
-        elif isinstance(instruction.op, ControlledGate) and not layer.multibox:
-            print('control gate not multibox')
+        elif isinstance(instruction.op, ControlledGate) and not label_multibox:
             label = box_label if box_label is not None \
                     else TextDrawing.label_for_box(instruction, controlled=True)
-            print('assigned label: ' + str(label))
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(instruction, conditional, ctrl_label,
                                          bool(controlled_bot))
-            if instruction.op.base_gate.name == 'z':
+            if base_gate.name == 'z':
                 # cz
                 gates.append(Bullet(conditional=conditional))
-            elif instruction.op.base_gate.name == 'u1':
+            elif base_gate.name == 'u1':
                 # cu1
                 connection_label = TextDrawing.params_for_label(instruction)[0]
                 gates.append(Bullet(conditional=conditional))
-            elif instruction.op.base_gate.name == 'swap':
+            elif base_gate.name == 'swap':
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
                 add_connected_gate(instruction, gates, layer, current_cons)
-            elif instruction.op.base_gate.name == 'rzz':
+            elif base_gate.name == 'rzz':
                 # crzz
                 connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
@@ -1016,7 +1006,7 @@ class TextDrawing():
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
-            elif instruction.op.base_gate.name == 'z':
+            elif base_gate.name == 'z':
                 gates.append(Bullet(conditional=conditional))
             else:
                 gates.append(BoxOnQuWire(label, conditional=conditional))
@@ -1090,7 +1080,6 @@ class Layer:
         self.connections = []
         self.clbit_layer = [None] * len(cregs)
         self.cregbundle = cregbundle
-        self.multibox = False
 
     @property
     def full_layer(self):
@@ -1124,7 +1113,6 @@ class Layer:
 
     def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None,
                       bot_connect=None, conditional=False, controlled_edge=None):
-        self.multibox = True
         if qubits is not None and clbits is not None:
             qubits = list(qubits)
             clbits = list(clbits)
