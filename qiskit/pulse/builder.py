@@ -1660,7 +1660,8 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
         channels_or_qubits: Channels or qubits to barrier.
     """
     chans = _qubits_to_channels(*channels_or_qubits)
-    append_instruction(directives.RelativeBarrier(*chans))
+    if len(chans) > 1:
+        append_instruction(directives.RelativeBarrier(*chans))
 
 
 # Macros #######################################################################

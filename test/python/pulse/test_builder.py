@@ -536,6 +536,13 @@ class TestDirectives(TestBuilder):
         )
         self.assertEqual(schedule, reference)
 
+    def test_trivial_barrier(self):
+        """Test that trivial barrier is not added."""
+        with pulse.build() as schedule:
+            pulse.barrier(pulse.DriveChannel(0))
+
+        self.assertEqual(schedule, pulse.Schedule())
+
 
 class TestUtilities(TestBuilder):
     """test context builder utilities."""
