@@ -1515,6 +1515,11 @@ def call_schedule(schedule: Schedule):
 def call_circuit(circ: circuit.QuantumCircuit):
     """Call a quantum ``circuit`` within the active builder context.
 
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
+
     Example Usage:
 
     .. jupyter-execute::
@@ -1812,6 +1817,11 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
 
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
+
     .. jupyter-kernel:: python3
         :id: call_gate
 
@@ -1862,6 +1872,11 @@ def cx(control: int, target: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.CXGate` on the
     input physical qubits.
 
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
+
     Example Usage:
 
     .. jupyter-execute::
@@ -1881,6 +1896,11 @@ def cx(control: int, target: int):
 def u1(theta: float, qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.U1Gate` on the
     input physical qubit.
+
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
 
     Example Usage:
 
@@ -1904,6 +1924,11 @@ def u2(phi: float, lam: float, qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.U2Gate` on the
     input physical qubit.
 
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
+
     Example Usage:
 
     .. jupyter-execute::
@@ -1926,6 +1951,11 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.U3Gate` on the
     input physical qubit.
 
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
+
     Example Usage:
 
     .. jupyter-execute::
@@ -1947,6 +1977,11 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
 def x(qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.XGate` on the
     input physical qubit.
+
+    .. note::
+        Calling gates directly within the pulse builder namespace will be
+        deprecated in the future in favour of tight integration with a circuit
+        builder interface which is under development.
 
     Example Usage:
 
