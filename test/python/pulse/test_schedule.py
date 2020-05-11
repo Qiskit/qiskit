@@ -653,7 +653,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(10, Play(lp0, self.config.drive(1)))
         sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0)))
-        sched = sched.insert(50, ShiftFrequency(4.0, self.config.drive(0)))
+        sched = sched.insert(50, ShiftFrequency(4.0e6, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))

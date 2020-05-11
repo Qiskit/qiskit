@@ -160,7 +160,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_shift_frequency(self):
         """Test converted qobj from ShiftFrequency."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = ShiftFrequency(8e9, DriveChannel(0))
+        instruction = ShiftFrequency(8.0e9, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
             name='shiftf',
@@ -328,7 +328,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_shift_frequency(self):
         """Test converted qobj from ShiftFrequency."""
-        instruction = ShiftFrequency(8e9, DriveChannel(0))
+        instruction = ShiftFrequency(8.0e9, DriveChannel(0))
 
         qobj = PulseQobjInstruction(name='shiftf', ch='d0', t0=0, frequency=8.0)
         converted_instruction = self.converter(qobj)
