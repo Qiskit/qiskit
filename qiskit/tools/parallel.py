@@ -64,7 +64,8 @@ else:
     POOL = multiprocessing.Pool
 
 # Set parallel flag
-os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+if os.getenv('QISKIT_IN_PARALLEL') is None:
+    os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 
 # Number of local physical cpus
 CPU_COUNT = local_hardware_info()['cpus']
