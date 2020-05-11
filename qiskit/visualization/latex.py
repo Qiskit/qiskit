@@ -812,8 +812,12 @@ class QCircuitImage:
                                     self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
                                                                       % (delta, nm))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}"
-                                                                      % nm)
+                                        if i_pos < q_end:
+                                            self._latex[i_pos][column] = ("\\ghost{%s}"
+                                                                          % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cghost{%s}"
+                                                                          % nm)
                                 else:
                                     self._latex[start_pos][column] = ("\\multigate{1}{%s}"
                                                                       % nm)
@@ -926,8 +930,12 @@ class QCircuitImage:
                                     self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
                                                                       (delta, nm))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = ("\\ghost{%s}" %
-                                                                      nm)
+                                        if i_pos < q_end:
+                                            self._latex[i_pos][column] = ("\\ghost{%s}"
+                                                                          % nm)
+                                        else:
+                                            self._latex[i_pos][column] = ("\\cghost{%s}"
+                                                                          % nm)
                                 else:
                                     self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
                                                                   nm)
