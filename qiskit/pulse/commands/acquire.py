@@ -18,10 +18,13 @@ import itertools
 
 from typing import Optional, Union, List
 
-from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot
-from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.instructions import Acquire, Instruction
+from ..channels import MemorySlot, RegisterSlot, AcquireChannel
+from ..exceptions import PulseError
+
 # pylint: disable=unused-import
+
+from ..instructions import Acquire
+from ..instructions import Instruction
 
 
 class AcquireInstruction(Instruction):
