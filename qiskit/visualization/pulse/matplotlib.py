@@ -258,7 +258,8 @@ class SamplePulseDrawer:
     def draw(self, pulse: SamplePulse,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None):
+             scale: float = 1, scaling: float = None,
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -267,6 +268,7 @@ class SamplePulseDrawer:
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
             scaling: Deprecated, see `scale`.
+            draw_title: When set 'True' plot will have title.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
@@ -308,7 +310,10 @@ class SamplePulseDrawer:
         bbox = ax.get_position()
 
         if self.style.title_font_size > 0:
-            figure.suptitle(str(pulse.name),
+            title = str('')
+            if draw_title:
+                title = str(pulse.name)
+            figure.suptitle(title,
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
                             va='bottom')
@@ -753,7 +758,8 @@ class ScheduleDrawer:
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List[Channel] = None,
-             show_framechange_channels: bool = True):
+             show_framechange_channels: bool = True,
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -778,10 +784,10 @@ class ScheduleDrawer:
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
+            draw_title: When set 'True' plot will have title.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
-
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
@@ -863,9 +869,11 @@ class ScheduleDrawer:
             bbox = ax.get_position()
 
         if self.style.title_font_size > 0:
-            figure.suptitle(str(schedule.name),
+            title = str('')
+            if draw_title:
+                title = str(schedule.name)
+            figure.suptitle(title,
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
                             va='bottom')
-
         return figure
