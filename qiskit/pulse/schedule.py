@@ -334,7 +334,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+                          instruction_types: Optional[Iterable['Instruction']] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """
