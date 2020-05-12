@@ -87,8 +87,8 @@ In the example below we demonstrate some more features of the pulse builder:
     import math
 
     from qiskit import QuantumCircuit
-    import qiskit.pulse as pulse
-    import qiskit.pulse.pulse_lib as pulse_lib
+    from qiskit import pulse
+    from qiskit.pulse import pulse_lib
     from qiskit.test.mock import FakeOpenPulse2Q
 
     backend = FakeOpenPulse2Q()
