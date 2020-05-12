@@ -98,8 +98,7 @@ class RXXGate(Gate):
     def _matrix_definition(self):
         """Return a Numpy.array for the RXX gate."""
         theta = float(self.params[0])
-        return np.array([
-           [np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
-           [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-           [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-           [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
+        return np.array([[np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
+                         [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
+                         [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+                         [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)

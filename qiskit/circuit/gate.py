@@ -52,9 +52,11 @@ class Gate(Instruction):
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
 
+        Returns:
+            np.ndarray: the matrix representaiton of the gate.
+
         Raises:
-            CircuitError: If a Gate subclass does not implement this method an
-                exception will be raised when this base class method is called.
+            CircuitError: If a Gate subclass does not have a _matrix_definition.
         """
         # pylint: disable=assignment-from-none
         mat = self._matrix_definition()
