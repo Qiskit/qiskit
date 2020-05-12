@@ -37,10 +37,7 @@ and then begins to construct the program within the context. The output pulse
 schedule will survive after the context is exited and can be executed like a
 normal Qiskit program using ``qiskit.execute(pulse_prog, backend)``.
 
-Pulse programming has a simple imperative style. There is little need to deal
-with classes such as the :class:`~qiskit.circuit.QuantumCircuit` or
-:class:`pulse.Schedule`\s. The pulse builder dynamically constructs these
-intermediate representations (IR) behind the scenes. This leaves the programmer
+Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
 constructing cumbersome data structures.
 
