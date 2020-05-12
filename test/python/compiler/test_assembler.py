@@ -388,7 +388,7 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
-        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test1'),
+        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
         schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),
