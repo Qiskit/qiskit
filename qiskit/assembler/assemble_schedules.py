@@ -187,7 +187,7 @@ def _assemble_instructions(
             instruction = Play(Waveform(name=name, samples=instruction.command.samples),
                                instruction.channels[0], name=name)
 
-        if isinstance(instruction, Play) and isinstance(instruction.pulse, Waveform):
+        if isinstance(instruction, Play) and isinstance(instruction.pulse, (SamplePulse, Waveform)):
             name = hashlib.sha256(instruction.pulse.samples).hexdigest()
             instruction = Play(Waveform(name=name, samples=instruction.pulse.samples),
                                channel=instruction.channel,
