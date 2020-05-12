@@ -606,11 +606,12 @@ class DensityMatrix(QuantumState):
         evals, evecs = np.linalg.eig(self._data)
 
         nonzero_evals = evals[abs(evals) > atol]
-        if len(nonzero_evals) != 1 or not np.isclose(abs(nonzero_evals[0]), 1,
+        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1,
                                                      atol=atol, rtol=rtol):
             raise QiskitError("Density matrix is not a pure state")
 
-        return Statevector(np.sqrt(np.max(evals)) * evals[:, np.argmax(evals)])
+        psi = evecs[:, np.argmax(evals)]  # eigenvalues returned in columns.
+        return Statevector(psi)
 
     def to_counts(self):
         """Returns the density matrix as a counts dict of probabilities.
