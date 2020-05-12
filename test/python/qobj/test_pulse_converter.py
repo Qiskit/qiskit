@@ -36,7 +36,8 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_deprecated_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = Waveform(np.arange(0, 0.01), name='linear')
+        with self.assertWarns(DeprecationWarning):
+            command = SamplePulse(np.arange(0, 0.01), name='linear')
         with self.assertWarns(DeprecationWarning):
             instruction = command(DriveChannel(0))
 
