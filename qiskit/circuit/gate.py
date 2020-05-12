@@ -60,7 +60,12 @@ class Gate(Instruction):
         mat = self._matrix_definition()
         if mat is None:
             raise CircuitError("to_matrix not defined for this {}".format(type(self)))
-        return cmath.exp(1j * self._phase) * mat if self._phase else mat
+        # Call float to enable conversion of bound ParameterExpressions
+        phase = float(self._phase)
+        if phase == 0:
+            # Case for default value to avoid numerical error
+            return mat
+        return cmath.exp(1j * phase) * mat
 
     def power(self, exponent: float):
         """Creates a unitary gate as `gate^exponent`.
