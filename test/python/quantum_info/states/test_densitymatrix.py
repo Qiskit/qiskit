@@ -365,7 +365,7 @@ class TestDensityMatrix(QiskitTestCase):
         psi = Statevector(state)
         rho = DensityMatrix(psi)
         phi = rho.to_statevector()
-        self.assertAlmostEqual(psi, phi)
+        self.assertTrue(psi.equiv(phi))
 
     def test_densitymatrix_to_statevector_mixed(self):
         """Test converting a pure density matrix to statevector."""

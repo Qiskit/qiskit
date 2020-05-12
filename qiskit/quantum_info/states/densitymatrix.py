@@ -585,7 +585,7 @@ class DensityMatrix(QuantumState):
         vec._append_instruction(obj, qargs=qargs)
         return vec
 
-    def to_statevector(self):
+    def to_statevector(self, atol=None, rtol=None):
         """Return a statevector from a pure density matrix.
 
         Returns:
@@ -595,13 +595,22 @@ class DensityMatrix(QuantumState):
         Raises:
             QiskitError: if the state is not pure.
         """
-        if not np.isclose(self.purity(), 1):
-            raise QiskitError(
-                    "Cannot obtain statevector from non-pure density matrix.")
+        if atol is None:
+            atol = self.atol
+        if rtol is None:
+            rtol = self.rtol
 
-        eigvals, eigvecs = np.linalg.eig(self.data)
-        psi = eigvecs[:, np.argmax(eigvals)]  # eigenvector are in columns.
-        return Statevector(psi)
+        if not is_hermitian_matrix(self._data, atol=atol, rtol=rtol):
+            raise QiskitError("Not a valid density matrix (non-hermitian).")
+
+        evals, evecs = np.linalg.eig(self._data)
+
+        nonzero_evals = evals[abs(evals) > atol]
+        if len(nonzero_evals) != 1 or not np.isclose(abs(nonzero_evals[0]), 1,
+                                                     atol=atol, rtol=rtol):
+            raise QiskitError("Density matrix is not a pure state")
+
+        return Statevector(np.sqrt(np.max(evals)) * evals[:, np.argmax(evals)])
 
     def to_counts(self):
         """Returns the density matrix as a counts dict of probabilities.
