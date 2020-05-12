@@ -805,8 +805,7 @@
                         },
                         "init_qubits": {
                             "description": "Whether to initialize the qubits in the ground state before each shot.",
-                            "type": "boolean",
-                            "default": true
+                            "type": "boolean"
                         }
                     },
                     "title": "Experiment level configuration",
