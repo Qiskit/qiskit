@@ -587,11 +587,11 @@ class DensityMatrix(QuantumState):
 
     def to_statevector(self):
         """Return a statevector from a pure density matrix.
-        
+
         Returns:
             Statevector: The pure density matrix's corresponding statevector.
                 Corresponds to the eigenvector of the only non-zero eigenvalue.
-        
+
         Raises:
             QiskitError: if the state is not pure.
         """
