@@ -14,6 +14,8 @@
 
 """Rotation around the Z axis."""
 
+import numpy as np
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -56,23 +58,20 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi, label=None):
+    def __init__(self, phi, phase=0, label=None):
         """Create new RZ gate."""
-        super().__init__('rz', 1, [phi], label=label)
+        super().__init__('rz', 1, [phi], phase=phase, label=label)
 
     def _define(self):
         """
         gate rz(phi) a { u1(phi) a; }
         """
         from .u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
-            (U1Gate(self.params[0]), [q[0]], [])
+        phase = self.phase + 0.5 * float(self.params[0])
+        self.definition = [
+            (U1Gate(self.params[0], phase=phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RZ gate.
@@ -86,7 +85,7 @@ class RZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if num_ctrl_qubits == 1 and self.phase == 0:
             gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
@@ -97,15 +96,13 @@ class RZGate(Gate):
 
         :math:`RZ(\lambda){\dagger} = RZ(-\lambda)`
         """
-        return RZGate(-self.params[0])
+        return RZGate(-self.params[0], phase=-self.phase)
 
-    # TODO: this is the correct matrix however the control mechanism
-    # cannot distinguish U1 and RZ yet.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZ gate."""
-    #    lam = float(self.params[0])
-    #    return np.array([[np.exp(-1j * lam / 2), 0],
-    #                     [0, np.exp(1j * lam / 2)]], dtype=complex)
+    def _matrix_definition(self):
+        """Return a numpy.array for the RZ gate."""
+        lam = float(self.params[0])
+        return np.array([[np.exp(-1j * lam / 2), 0],
+                         [0, np.exp(1j * lam / 2)]], dtype=complex)
 
 
 class CRZMeta(type):

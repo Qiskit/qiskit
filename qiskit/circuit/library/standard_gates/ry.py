@@ -46,23 +46,19 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta, phase=0, label=None):
         """Create new RY gate."""
-        super().__init__('ry', 1, [theta], label=label)
+        super().__init__('ry', 1, [theta], phase=phase, label=label)
 
     def _define(self):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
         from .r import RGate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
-            (RGate(self.params[0], pi / 2), [q[0]], [])
+        self.definition = [
+            (RGate(self.params[0], pi / 2, phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RY gate.
@@ -76,7 +72,7 @@ class RYGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if num_ctrl_qubits == 1 and self.phase == 0:
             gate = CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
@@ -87,9 +83,9 @@ class RYGate(Gate):
 
         :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
-        return RYGate(-self.params[0])
+        return RYGate(-self.params[0], phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
