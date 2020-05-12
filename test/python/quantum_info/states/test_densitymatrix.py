@@ -359,6 +359,22 @@ class TestDensityMatrix(QiskitTestCase):
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
 
+    def test_densitymatrix_to_statevector_pure(self):
+        """Test converting a pure density matrix to statevector."""
+        state = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        psi = Statevector(state)
+        rho = DensityMatrix(psi)
+        phi = rho.to_statevector()
+        self.assertAlmostEqual(psi, phi)
+
+    def test_densitymatrix_to_statevector_mixed(self):
+        """Test converting a pure density matrix to statevector."""
+        state_1 = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        state_2 = 1/np.sqrt(2) * (np.array([0, 0, 0, 0, 0, 0, 1, 1]))
+        psi = 0.5 * (Statevector(state_1) + Statevector(state_2))
+        rho = DensityMatrix(psi)
+        self.assertRaises(QiskitError, rho.to_statevector)
+
     def test_probabilities_product(self):
         """Test probabilities method for product state"""
 

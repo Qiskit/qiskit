@@ -585,6 +585,24 @@ class DensityMatrix(QuantumState):
         vec._append_instruction(obj, qargs=qargs)
         return vec
 
+    def to_statevector(self):
+        """Return a statevector from a pure density matrix.
+        
+        Returns:
+            Statevector: The pure density matrix's corresponding statevector.
+                Corresponds to the eigenvector of the only non-zero eigenvalue.
+        
+        Raises:
+            QiskitError: if the state is not pure.
+        """
+        if not np.isclose(self.purity(), 1):
+            raise QiskitError(
+                    "Cannot obtain statevector from non-pure density matrix.")
+
+        eigvals, eigvecs = np.linalg.eig(self.data)
+        psi = eigvecs[:, np.argmax(eigvals)]  # eigenvector are in columns.
+        return Statevector(psi)
+
     def to_counts(self):
         """Returns the density matrix as a counts dict of probabilities.
 
