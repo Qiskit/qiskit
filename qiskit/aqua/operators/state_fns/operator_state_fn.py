@@ -202,7 +202,7 @@ class OperatorStateFn(StateFn):
             return front.combo_fn([self.eval(front.coeff * front_elem)
                                    for front_elem in front.oplist])
 
-        return front.adjoint().eval(self.primitive.eval(front))
+        return front.adjoint().eval(self.primitive.eval(front)) * self.coeff
 
     def sample(self,
                shots: int = 1024,

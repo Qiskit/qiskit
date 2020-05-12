@@ -108,12 +108,12 @@ class EvolvedOp(PrimitiveOp):
     def reduce(self) -> OperatorBase:
         return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)
 
-    def bind_parameters(self, param_dict: dict) -> OperatorBase:
+    def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                return ListOp([self.bind_parameters(param_dict) for param_dict in unrolled_dict])
+                return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
                 param_value = float(self.coeff.bind(binds))

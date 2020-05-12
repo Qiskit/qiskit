@@ -262,7 +262,7 @@ class CircuitSampler(ConverterBase):
                 ready_circs = self._transpiled_circ_cache
                 self._prepare_parameterized_run_config(param_bindings)
             else:
-                ready_circs = [circ.bind_parameters(binding)
+                ready_circs = [circ.assign_parameters(binding)
                                for circ in self._transpiled_circ_cache
                                for binding in param_bindings]
         else:

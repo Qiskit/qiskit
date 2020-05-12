@@ -306,16 +306,16 @@ class ListOp(OperatorBase):
                                                      self.coeff,
                                                      self.abelian)
 
-    def bind_parameters(self, param_dict: dict) -> OperatorBase:
+    def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
         if isinstance(self.coeff, ParameterExpression):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
-                return ListOp([self.bind_parameters(param_dict) for param_dict in unrolled_dict])
+                return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
                 param_value = float(self.coeff.bind(binds))
-        return self.traverse(lambda x: x.bind_parameters(param_dict), coeff=param_value)
+        return self.traverse(lambda x: x.assign_parameters(param_dict), coeff=param_value)
 
     def reduce(self) -> OperatorBase:
         reduced_ops = [op.reduce() for op in self.oplist]
