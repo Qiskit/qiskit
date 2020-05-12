@@ -307,18 +307,15 @@ class _PulseBuilder():
         # ContextManager: Default alignment context.
         self._default_alignment_context = _align(default_alignment)
 
-        if default_transpiler_settings is None:
-            default_transpiler_settings = {}
-        self._transpiler_settings = default_transpiler_settings
+        self._transpiler_settings = default_transpiler_settings or {}
 
         if default_circuit_scheduler_settings is None:
             default_circuit_scheduler_settings = {}
-        self._circuit_scheduler_settings = default_circuit_scheduler_settings
+        self._circuit_scheduler_settings = \
+            default_circuit_scheduler_settings or {}
 
-        if schedule is None:
-            schedule = Schedule()
         # pulse.Schedule: Root program block
-        self._schedule = schedule
+        self._schedule = schedule or Schedule()
 
         self.set_active_block(Schedule())
 
