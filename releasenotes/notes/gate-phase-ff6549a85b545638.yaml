@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Adds `phase` attribute to the :class:`qiskit.circuit.Gate` class that can be
+    used set a custom phase coefficient to a gate. This will be reflected in
+    the :meth:`~qiskit.circuit.Gate.to_matrix` method which will return the
+    matrix :math:`e^{-i \theta} U` where :math:`U` is the canonical matrix
+    definition of the gate.
+  - |
+    Updates :class:`qiskit.circuit.library.RZGate` to have correct phase
+    when unrolled to a :class:`qiskit.circuit.library.U1Gate`.
+  - |
+    Updates :class:`qiskit.quantum_info.synthesis.OneQubitEulerDecomposer` to
+    perform phase correct synthesis of any single-qubit unitary matrix.
