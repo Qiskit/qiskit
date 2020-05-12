@@ -15,6 +15,11 @@
 r"""Use the pulse builder to write pulse programs with an imperative,
 assembly-like syntax.
 
+.. warning::
+    The pulse builder interface is still in active development and may have
+    breaking API changes without deprecation warnings in future releases until
+    otherwise indicated.
+
 To begin pulse programming we must first initialize our program builder
 context with :func:`build`, after which we can begin adding program
 statements. For example, below we write a simple program that :func:`play`\s
@@ -191,10 +196,6 @@ In the example below we demonstrate some more features of the pulse builder:
 The above is just a small taste of what is possible with the builder. See the
 rest of the module documentation for more information on its
 capabilities.
-
-.. warning::
-    The pulse builder interface is still in development and is
-    subject to change.
 """
 import collections
 import contextvars
