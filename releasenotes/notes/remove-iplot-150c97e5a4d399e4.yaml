@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The interactive plotting functions from :mod:`qiskit.visualizations`,
+    ``iplot_bloch_multivector``, ``iplot_state_city``, ``iplot_state_qsphere``,
+    ``iplot_state_hinton``, ``iplot_histogram``, ``iplot_state_paulivec`` have
+    been removed. The hosted static JS code that these functions relied on
+    has been removed and they no longer could work. A deprecation wasn't
+    possible because the site they depended on no longer exists.
