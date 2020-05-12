@@ -155,6 +155,7 @@ In the example below we demonstrate some more features of the pulse builder:
 
             # Delay on some qubits.
             # This requires knowledge of which channels belong to which qubits.
+            # delay for 100 cycles on qubits 0 and 1.
             pulse.delay_qubits(100, 0, 1)
 
             # Call a quantum circuit. The pulse builder lazily constructs a quantum
