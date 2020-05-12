@@ -32,9 +32,6 @@ a pulse:
 
     pulse_prog.draw()
 
-    # Execute on a real backend.
-    # job = execute(pulse_prog, backend)
-
 The builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
 schedule will survive after the context is exited and can be executed like a
