@@ -193,8 +193,8 @@ class ControlledGate(Gate):
         """
         import copy
         if self.base_gate:
-            self.base_gate.params = copy.deepcopy(parameters)
-            #super(Gate, self.__class__).params.fset(self, parameters)            
+            #self.base_gate.params = copy.deepcopy(parameters)
+            super(Gate, self.__class__).params.fset(self, copy.deepcopy(parameters))
         else:
             raise CircuitError('Controlled gate does not define base gate for '
                                'for extracting params')

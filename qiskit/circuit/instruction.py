@@ -293,7 +293,9 @@ class Instruction:
 
     def __deepcopy__(self, _memo=None):
         cpy = copy.copy(self)
-        cpy._params = copy.copy(self._params)
+        cpy._params = copy.deepcopy(self._params)
+        if self.name == 'cry':
+            import ipdb;ipdb.set_trace()
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, _memo)
         return cpy
