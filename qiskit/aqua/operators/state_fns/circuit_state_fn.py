@@ -235,7 +235,9 @@ class CircuitStateFn(StateFn):
         statevector = execute(qc,
                               statevector_backend,
                               optimization_level=0).result().get_statevector()
-        return statevector * self.coeff
+        # pylint: disable=cyclic-import
+        from ..operator_globals import EVAL_SIG_DIGITS
+        return np.round(statevector * self.coeff, decimals=EVAL_SIG_DIGITS)
 
     def __str__(self) -> str:
         qc = self.reduce().to_circuit()
@@ -344,7 +346,10 @@ class CircuitStateFn(StateFn):
             # Need to do this from the end because we're deleting items!
             for i in reversed(range(len(self.primitive.data))):
                 [gate, _, _] = self.primitive.data[i]
-                if isinstance(gate, IGate):
+                # Check if Identity or empty instruction (need to check that type is exactly
+                # Instruction because some gates have lazy gate.definition population)
+                # pylint: disable=unidiomatic-typecheck
+                if isinstance(gate, IGate) or (type(gate) == Instruction and gate.definition == []):
                     del self.primitive.data[i]
         return self
 

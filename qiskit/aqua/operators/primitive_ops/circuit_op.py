@@ -219,7 +219,10 @@ class CircuitOp(PrimitiveOp):
             # Need to do this from the end because we're deleting items!
             for i in reversed(range(len(self.primitive.data))):
                 [gate, _, _] = self.primitive.data[i]
-                if isinstance(gate, IGate):
+                # Check if Identity or empty instruction (need to check that type is exactly
+                # Instruction because some gates have lazy gate.definition population)
+                # pylint: disable=unidiomatic-typecheck
+                if isinstance(gate, IGate) or (type(gate) == Instruction and gate.definition == []):
                     del self.primitive.data[i]
         return self
 
