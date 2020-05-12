@@ -214,8 +214,8 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
-    Union
-    )
+    Union,
+)
 
 import numpy as np
 
