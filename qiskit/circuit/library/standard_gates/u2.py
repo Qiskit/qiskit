@@ -59,27 +59,25 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
-    def __init__(self, phi, lam, label=None):
+    def __init__(self, phi, lam, phase=0, label=None):
         """Create new U2 gate."""
-        super().__init__('u2', 1, [phi, lam], label=label)
+        super().__init__('u2', 1, [phi, lam], phase=0, label=label)
 
     def _define(self):
         from .u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        self.definition = [
+            (U3Gate(pi / 2, self.params[0], self.params[1], phase=self.phase), [q[0]], [])
+        ]
 
     def inverse(self):
         r"""Return inverted U2 gate.
 
         :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
         """
-        return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
+        return U2Gate(-self.params[1] - pi, -self.params[0] + pi, phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params

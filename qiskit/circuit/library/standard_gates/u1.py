@@ -75,20 +75,16 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta, phase=0, label=None):
         """Create new U1 gate."""
-        super().__init__('u1', 1, [theta], label=label)
+        super().__init__('u1', 1, [theta], phase=phase, label=label)
 
     def _define(self):
         from .u3 import U3Gate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
-            (U3Gate(0, 0, self.params[0]), [q[0]], [])
+        self.definition = [
+            (U3Gate(0, 0, self.params[0], phase=self.phase), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-U1 gate.
@@ -114,9 +110,9 @@ class U1Gate(Gate):
 
     def inverse(self):
         r"""Return inverted U1 gate (:math:`U1(\lambda){\dagger} = U1(-\lambda)`)"""
-        return U1Gate(-self.params[0])
+        return U1Gate(-self.params[0], phase=-self.phase)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a numpy.array for the U1 gate."""
         lam = self.params[0]
         lam = float(lam)

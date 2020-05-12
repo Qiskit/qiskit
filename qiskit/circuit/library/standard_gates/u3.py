@@ -59,16 +59,16 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(self, theta, phi, lam, phase=0, label=None):
         """Create new U3 gate."""
-        super().__init__('u3', 1, [theta, phi, lam], label=label)
+        super().__init__('u3', 1, [theta, phi, lam], phase=phase, label=label)
 
     def inverse(self):
         r"""Return inverted U3 gate.
 
         :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\phi,-\lambda)`)
         """
-        return U3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return U3Gate(-self.params[0], -self.params[2], -self.params[1], phase=-self.phase)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-U3 gate.
@@ -82,13 +82,13 @@ class U3Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if num_ctrl_qubits == 1 and self.phase == 0:
             gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def to_matrix(self):
+    def _matrix_definition(self):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
