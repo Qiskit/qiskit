@@ -81,7 +81,7 @@ automatically lowered to be run as a pulse program:
     decoupled_bell_prep_and_measure.draw()
 
 With the pulse builder we are able to blend programming on qubits and channels.
-While, the pulse IR of Qiskit is based on instructions that operate on
+While the pulse IR of Qiskit is based on instructions that operate on
 channels, the pulse builder automatically handles the mapping from qubits to
 channels for you.
 
