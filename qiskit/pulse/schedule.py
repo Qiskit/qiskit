@@ -555,6 +555,10 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
 
+    def __len__(self) -> int:
+        """Return number of instructions in the schedule."""
+        return len(self.instructions)
+
     def __repr__(self):
         name = format(self._name) if self._name else ""
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])

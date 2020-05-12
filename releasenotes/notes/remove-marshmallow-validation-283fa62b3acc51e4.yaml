@@ -1,0 +1,24 @@
+---
+upgrade:
+  - |
+    The validation components using marshmallow from :mod:`qiskit.validation`
+    have been removed from terra. Since they are no longer used to build
+    any objects in terra.
+  - |
+    The marshmallow schema classes in :mod:`qiskit.results` have been removed
+    since they are no longer used by the :class:`qiskit.result.Result` class.
+  - The output of the :meth:`~qiskit.result.Result.to_dict` method for the
+    :class:`qiskit.result.Result` class is no longer in a format for direct
+    JSON serialization. Depending on the content contained in instances of
+    these classes there may be types that the default JSON encoder doesn't know
+    how to handle, for example complex numbers or numpy arrays. If you're JSON
+    serializing the output of the ``to_dict()`` method directly you should
+    ensure that your JSON encoder can handle these types.
+
+other:
+  - |
+    The :class:`qiskit.result.Result` class which was previously constructed
+    using the marshmallow library has been refactored to not depend on
+    marshmallow anymore. This new implementation should be a seemless transition
+    but some specific behavior that was previously inherited from marshmallow
+    may not work. Please file issues for any incompatibilities found.
