@@ -248,10 +248,6 @@ def _compile_lazy_circuit_before(function: Callable[..., T]
     return wrapper
 
 
-class BackendNotSet(exceptions.PulseError):
-    """Raised if the builder context does not have a backend."""
-
-
 def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     """Decorator a function to raise if it is called without a builder with a
     set backend.
@@ -259,7 +255,7 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         if self.backend is None:
-            raise BackendNotSet(
+            raise exceptions.BackendNotSet(
                 'This function requires the builder to '
                 'have a "backend" set.')
         return function(self, *args, **kwargs)
@@ -603,7 +599,7 @@ def active_backend():
     """
     builder = _active_builder().backend
     if builder is None:
-        raise BackendNotSet(
+        raise exceptions.BackendNotSet(
             'This function requires the active builder to '
             'have a "backend" set.')
     return builder

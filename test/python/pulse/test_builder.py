@@ -23,6 +23,7 @@ from qiskit import circuit
 from qiskit import compiler
 from qiskit import pulse
 from qiskit.pulse import builder
+from qiskit.pulse import exceptions
 from qiskit.pulse import macros
 from qiskit.pulse import transforms
 from qiskit.pulse.instructions import directives
@@ -787,7 +788,7 @@ class TestGates(TestBuilder):
 
     def test_backend_require(self):
         """Test that a backend is required to use a gate."""
-        with self.assertRaises(builder.BackendNotSet):
+        with self.assertRaises(exceptions.BackendNotSet):
             with pulse.build():
                 pulse.x(0)
 
