@@ -48,7 +48,7 @@ def execute(experiments, backend,
             meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
-            init_qubits=True,
+            init_qubits=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
