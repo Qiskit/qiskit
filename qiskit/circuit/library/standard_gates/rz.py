@@ -68,7 +68,7 @@ class RZGate(Gate):
         """
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
-        phase = self.phase + 0.5 * float(self.params[0])
+        phase = self.phase - 0.5 * float(self.params[0])
         self.definition = [
             (U1Gate(self.params[0], phase=phase), [q[0]], [])
         ]

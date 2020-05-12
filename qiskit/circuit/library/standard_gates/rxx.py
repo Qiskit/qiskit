@@ -14,6 +14,8 @@
 
 """Two-qubit XX-rotation gate."""
 
+import numpy as np
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -68,43 +70,36 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, phase=0):
         """Create new RXX gate."""
-        super().__init__('rxx', 2, [theta])
+        super().__init__('rxx', 2, [theta], phase=phase)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         from .x import CXGate
-        from .u1 import U1Gate
+        from .rz import RZGate
         from .h import HGate
-        definition = []
         q = QuantumRegister(2, 'q')
         theta = self.params[0]
-        rule = [
+        self.definition = [
             (HGate(), [q[0]], []),
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(theta), [q[1]], []),
+            (RZGate(theta, phase=self.phase), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
             (HGate(), [q[0]], []),
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
-        return RXXGate(-self.params[0])
+        return RXXGate(-self.params[0], phase=-self.phase)
 
-    # NOTE: we should use the following as the canonical matrix
-    # definition but we don't include it yet since it differs from
-    # the circuit decomposition matrix by a global phase
-    # def to_matrix(self):
-    #   """Return a Numpy.array for the RXX gate."""
-    #    theta = float(self.params[0])
-    #    return np.array([
-    #        [np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
-    #        [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-    #        [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-    #        [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
+    def _matrix_definition(self):
+        """Return a Numpy.array for the RXX gate."""
+        theta = float(self.params[0])
+        return np.array([
+           [np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
+           [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
+           [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+           [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
