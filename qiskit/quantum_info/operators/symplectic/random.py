@@ -107,7 +107,7 @@ def random_clifford(num_qubits, seed=None):
     _fill_tril(delta1, rng)
     _fill_tril(delta2, rng)
 
-    # For large num_qubits numpy.inv function called bellow can
+    # For large num_qubits numpy.inv function called below can
     # return invalid output leading to a non-symplectic Clifford
     # being generated. This can be prevented by manually forcing
     # block inversion of the matrix.
