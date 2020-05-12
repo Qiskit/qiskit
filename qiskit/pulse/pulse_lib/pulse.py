@@ -69,7 +69,7 @@ class Pulse(ABC):
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
             scaling: Deprecated, see `scale`
-            draw_title(Optional[bool]): When set 'True' plot will have title.
+            draw_title: Add a title to the plot when ``True``.
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
