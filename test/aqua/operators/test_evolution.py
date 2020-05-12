@@ -76,7 +76,7 @@ class TestEvolution(QiskitAquaTestCase):
         evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
-        wf = wf.bind_parameters({thetas: np.arange(10, 16)})
+        wf = wf.assign_parameters({thetas: np.arange(10, 16)})
         mean = evolution.convert(wf)
         circuit_params = mean.to_circuit().parameters
         # Check that the no parameters are in the circuit
@@ -96,7 +96,7 @@ class TestEvolution(QiskitAquaTestCase):
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         evo = evolution.convert(wf)
-        mean = evo.bind_parameters({thetas: np.arange(10, 16)})
+        mean = evo.assign_parameters({thetas: np.arange(10, 16)})
         # Check that the no parameters are in the circuit
         for p in thetas[1:]:
             self.assertNotIn(p, mean.to_circuit().parameters)
@@ -119,7 +119,7 @@ class TestEvolution(QiskitAquaTestCase):
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         evo = evolution.convert(wf)
         param_list = np.transpose([np.arange(10, 16), np.arange(2, 8), np.arange(30, 36)]).tolist()
-        means = evo.bind_parameters({thetas: param_list})
+        means = evo.assign_parameters({thetas: param_list})
         self.assertIsInstance(means, ListOp)
         # Check that the no parameters are in the circuit
         for p in thetas[1:]:
@@ -200,12 +200,12 @@ class TestEvolution(QiskitAquaTestCase):
         wf = (op.to_matrix_op().exp_i()) @ CX @ (H ^ I) @ Zero
         self.assertIn(theta, wf.to_circuit().parameters)
 
-        op = op.bind_parameters({theta: 1})
+        op = op.assign_parameters({theta: 1})
         exp_mat = op.to_matrix_op().exp_i().to_matrix()
         ref_mat = scipy.linalg.expm(-1j * op.to_matrix())
         np.testing.assert_array_almost_equal(ref_mat, exp_mat)
 
-        wf = wf.bind_parameters({theta: 3})
+        wf = wf.assign_parameters({theta: 3})
         self.assertNotIn(theta, wf.to_circuit().parameters)
 
     def test_mixed_evolution(self):
@@ -220,7 +220,7 @@ class TestEvolution(QiskitAquaTestCase):
         evolution = PauliTrotterEvolution(trotter_mode='trotter', reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
-        wf = wf.bind_parameters({thetas: np.arange(10, 16)})
+        wf = wf.assign_parameters({thetas: np.arange(10, 16)})
         mean = evolution.convert(wf)
         circuit_params = mean.to_circuit().parameters
         # Check that the no parameters are in the circuit
