@@ -421,9 +421,7 @@ def remove_directives(schedule: Schedule) -> Schedule:
 def remove_trivial_barriers(schedule: Schedule) -> Schedule:
     """Remove trivial barriers with 0 or 1 channels."""
     def filter_func(inst):
-        if (isinstance(inst[1], directives.RelativeBarrier) and
-                len(inst[1].channels) < 2):
-            return True
-        return False
+        return (isinstance(inst[1], directives.RelativeBarrier) and
+                len(inst[1].channels) < 2)
 
     return schedule.exclude(filter_func)
