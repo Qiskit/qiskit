@@ -22,7 +22,7 @@ from copy import copy
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type, Set
 import warnings
 
 from qiskit.util import is_main_process
@@ -330,7 +330,7 @@ class Schedule(ScheduleComponent):
                           instruction_types: Optional[Iterable['Instruction']] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
-        """
+         """
         Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
         iff the input satisfies all of the criteria specified by the arguments; i.e. iff every
         function in filter_funcs returns True, the instruction occurs on a channel type contained
@@ -345,59 +345,47 @@ class Schedule(ScheduleComponent):
             instruction_types: For example, [PulseInstruction, AcquireInstruction] or DelayInstruction
             time_ranges: For example, [(0, 5), (6, 10)] or (0, 5)
             intervals: For example, [Interval(0, 5), Interval(6, 10)] or Interval(0, 5)
-
         """
+
         def if_scalar_cast_to_list(to_list):
-            if str(type(to_list)) != "<class 'list'>":
-                to_list = [to_list, to_list]
+            try:
+                iter(to_list)
+            except TypeError:
+                to_list = [to_list]
             return to_list
 
-        def only_channels(channels: Channel) -> Callable:
+        def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
             channels = if_scalar_cast_to_list(channels)
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                """Filter channel.
-                Args:
-                    time_inst (Tuple[int, Instruction]): Time
-                """
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
-        def only_instruction_types(types: Optional[Iterable[abc.ABCMeta]] = None) -> Callable:
+        def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
             types = if_scalar_cast_to_list(types)
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                """Filter instruction.
-                Args:
-                    time_inst (Tuple[int, Instruction]): Time
-                """
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
-        def only_intervals(ranges: Interval) -> Callable:
+        def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
             ranges = if_scalar_cast_to_list(ranges)
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                """Filter interval.
-                Args:
-                    time_inst (Tuple[int, Instruction]): Time
-                """
                 for i in ranges:
-                    inst_start = time_inst[0]
-                    inst_stop = inst_start + time_inst[1].duration
-                    if i[0] <= inst_start and inst_stop <= i[1]:
+                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
+                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
+                            for ts in time_inst[1].timeslots.timeslots]):
                         return True
                 return False
             return interval_filter
-        
+
         filter_func_list = list(filter_funcs)
         if channels is not None:
             filter_func_list.append(only_channels(channels))
         if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges is not None:
-
             time_ranges = if_scalar_cast_to_list(time_ranges)
-            filter_func_list.append(only_intervals([Interval(start, stop)
-                                                    for start, stop in time_ranges]))
-
+            filter_func_list.append(
+                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
