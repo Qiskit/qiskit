@@ -22,7 +22,7 @@ from copy import copy
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional, Type, Set
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
 from qiskit.util import is_main_process
@@ -49,7 +49,6 @@ class Schedule(ScheduleComponent):
     def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
                  name: Optional[str] = None):
         """Create an empty schedule.
-
         Args:
             *schedules: Child Schedules of this parent Schedule. May either be passed as
                         the list of schedules, or a list of ``(start_time, schedule)`` pairs.
@@ -110,7 +109,6 @@ class Schedule(ScheduleComponent):
     @property
     def instructions(self):
         """Get the time-ordered instructions from self.
-
         ReturnType:
             Tuple[Tuple[int, Instruction], ...]
         """
@@ -124,7 +122,6 @@ class Schedule(ScheduleComponent):
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
-
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -132,7 +129,6 @@ class Schedule(ScheduleComponent):
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
-
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -145,7 +141,6 @@ class Schedule(ScheduleComponent):
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum start time over supplied channels.
-
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -158,10 +153,8 @@ class Schedule(ScheduleComponent):
 
     def _instructions(self, time: int = 0):
         """Iterable for flattening Schedule tree.
-
         Args:
             time: Shifted time due to parent.
-
         Yields:
             Iterable[Tuple[int, Instruction]]: Tuple containing the time each
                 :class:`~qiskit.pulse.Instruction`
@@ -173,7 +166,6 @@ class Schedule(ScheduleComponent):
     def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of both ``self`` and ``schedules``.
-
         Args:
             *schedules: Schedules to be take the union with this ``Schedule``.
             name: Name of the new schedule. Defaults to the name of self.
@@ -192,7 +184,6 @@ class Schedule(ScheduleComponent):
 
     def _insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
-
         Args:
             start_time: Time to insert the second schedule.
             schedule: Schedule to mutably insert.
@@ -208,7 +199,6 @@ class Schedule(ScheduleComponent):
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by ``time``.
-
         Args:
             time: Time to shift by.
             name: Name of the new schedule. Defaults to the name of self.
@@ -220,7 +210,6 @@ class Schedule(ScheduleComponent):
     def insert(self, start_time: int, schedule: ScheduleComponent,
                name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
-
         Args:
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
@@ -237,12 +226,9 @@ class Schedule(ScheduleComponent):
                name: Optional[str] = None) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
-
         .. math::
-
             t = \textrm{max}(\texttt{x.stop_time} |\texttt{x} \in
                 \texttt{self.channels} \cap \texttt{schedule.channels})
-
         Args:
             schedule: Schedule to be appended.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
@@ -266,9 +252,7 @@ class Schedule(ScheduleComponent):
         ``channels``, the instruction type is contained in ``instruction_types``, and the period
         over which the instruction operates is *fully* contained in one specified in
         ``time_ranges`` or ``intervals``.
-
         If no arguments are provided, ``self`` is returned.
-
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
@@ -293,9 +277,7 @@ class Schedule(ScheduleComponent):
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a Schedule with only the instructions from this Schedule *failing* at least one
         of the provided filters. This method is the complement of ``self.filter``, so that::
-
             self.filter(args) | self.exclude(args) == self
-
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
@@ -316,7 +298,6 @@ class Schedule(ScheduleComponent):
     def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
         """Return a Schedule containing only the instructions from this Schedule for which
         ``filter_func`` returns ``True``.
-
         Args:
             filter_func: Function of the form (int, ScheduleComponent) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
@@ -327,7 +308,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable['Instruction']] = None,
+                          instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
          """
@@ -346,22 +327,26 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)] or (0, 5)
             intervals: For example, [Interval(0, 5), Interval(6, 10)] or Interval(0, 5)
         """
+
         def if_scalar_cast_to_list(to_list):
             try:
                 iter(to_list)
             except TypeError:
                 to_list = [to_list]
             return to_list
+
         def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
             channels = if_scalar_cast_to_list(channels)
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
+
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
             types = if_scalar_cast_to_list(types)
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
+
         def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
             ranges = if_scalar_cast_to_list(ranges)
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
@@ -372,6 +357,7 @@ class Schedule(ScheduleComponent):
                         return True
                 return False
             return interval_filter
+
         filter_func_list = list(filter_funcs)
         if channels is not None:
             filter_func_list.append(only_channels(channels))
@@ -387,13 +373,12 @@ class Schedule(ScheduleComponent):
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
+
     def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
         """Update all time tracking within this schedule based on the given schedule.
-
         Args:
             time: The time to insert the schedule into self.
             schedule: The schedule to insert into self.
-
         Raises:
             PulseError: If timeslots overlap or an invalid start time is provided.
         """
@@ -442,7 +427,6 @@ class Schedule(ScheduleComponent):
              channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True):
         r"""Plot the schedule.
-
         Args:
             dt: Time interval of samples.
             style (Optional[SchedStyle]): A style sheet to configure plot appearance.
@@ -461,20 +445,16 @@ class Schedule(ScheduleComponent):
             scaling: Deprecated, see ``scale``.
             channels: A list of channel names to plot.
             show_framechange_channels: Plot channels with only framechanges.
-
         Additional Information:
             If you want to manually rescale the waveform amplitude of channels one by one,
             you can set ``channel_scales`` argument instead of ``scale``.
             The ``channel_scales`` should be given as a python dictionary::
-
                 channel_scales = {pulse.DriveChannels(0): 10.0,
                                   pulse.MeasureChannels(0): 5.0}
-
             When the channel to plot is not included in the ``channel_scales`` dictionary,
             scaling factor of that channel is overwritten by the value of ``scale`` argument.
             In default, waveform amplitude is normalized by the maximum amplitude of the channel.
             The scaling factor is displayed under the channel name alias.
-
         Returns:
             matplotlib.Figure: A matplotlib figure object of the pulse schedule.
         """
@@ -501,14 +481,10 @@ class Schedule(ScheduleComponent):
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
-
         Equality is checked by verifying there is an equal instruction at every time
         in ``other`` for every instruction in this ``Schedule``.
-
         .. warning::
-
             This does not check for logical equivalency. Ie.,
-
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))
@@ -562,12 +538,9 @@ class Schedule(ScheduleComponent):
 
 class ParameterizedSchedule:
     """Temporary parameterized schedule class.
-
     This should not be returned to users as it is currently only a helper class.
-
     This class is takes an input command definition that accepts
     a set of parameters. Calling ``bind`` on the class will return a ``Schedule``.
-
     # TODO: In the near future this will be replaced with proper incorporation of parameters
             into the ``Schedule`` class.
     """
@@ -648,16 +621,13 @@ class ParameterizedSchedule:
 def _insertion_index(intervals: List[Interval], new_interval: Interval, index: int = 0) -> int:
     """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
-
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         new_interval: The interval for which the index into intervals will be found.
         index: A running tally of the index, for recursion. The user should not pass a value.
-
     Returns:
         The index into intervals that new_interval should be inserted to maintain a sorted list
         of intervals.
-
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
@@ -677,7 +647,6 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
 
 def _overlaps(first: Interval, second: Interval) -> bool:
     """Return True iff first and second overlap.
-
     Note: first.stop may equal second.start, since Interval stop times are exclusive.
     """
     if first[0] == second[0] == second[1]:
