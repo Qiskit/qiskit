@@ -69,36 +69,44 @@ class RYYGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta, phase=0):
+    def __init__(self, theta):
         """Create new RYY gate."""
-        super().__init__('ryy', 2, [theta], phase=phase)
+        super().__init__('ryy', 2, [theta])
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         from .x import CXGate
         from .rx import RXGate
-        from .rz import RZGate
+        from .u1 import U1Gate
+
+        definition = []
         q = QuantumRegister(2, 'q')
         theta = self.params[0]
-        self.definition = [
+        rule = [
             (RXGate(np.pi / 2), [q[0]], []),
             (RXGate(np.pi / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta, phase=self.phase), [q[1]], []),
+            (U1Gate(theta), [q[1]], []),  # Should be RZGate
             (CXGate(), [q[0], q[1]], []),
             (RXGate(-np.pi / 2), [q[0]], []),
             (RXGate(-np.pi / 2), [q[1]], []),
         ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
-        return RYYGate(-self.params[0], phase=-self.phase)
+        return RYYGate(-self.params[0])
 
-    def _matrix_definition(self):
-        """Return a numpy.array for the RYY gate."""
-        theta = self.params[0]
-        return np.array([
-            [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
-            [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-            [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-            [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
+    # def to_matrix(self):
+    #     """Return a numpy.array for the RYY gate."""
+    #     theta = self.params[0]
+    #     return np.exp(0.5j * theta) * np.array([
+    #         [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
+    #         [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
+    #         [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+    #         [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]
+    #     ], dtype=complex)

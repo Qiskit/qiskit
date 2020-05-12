@@ -14,8 +14,6 @@
 
 """Two-qubit ZZ-rotation gate."""
 
-import numpy as np
-
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -83,31 +81,37 @@ class RZZGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta, phase=0):
+    def __init__(self, theta):
         """Create new RZZ gate."""
-        super().__init__('rzz', 2, [theta], phase=phase)
+        super().__init__('rzz', 2, [theta])
 
     def _define(self):
         """
         gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
         """
-        from .rz import RZGate
+        from .u1 import U1Gate
         from .x import CXGate
+        definition = []
         q = QuantumRegister(2, 'q')
-        self.definition = [
+        rule = [
             (CXGate(), [q[0], q[1]], []),
-            (RZGate(self.params[0], phase=self.phase), [q[1]], []),
+            (U1Gate(self.params[0]), [q[1]], []),  # Should be RZGate
             (CXGate(), [q[0], q[1]], [])
         ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
-        return RZZGate(-self.params[0], phase=-self.phase)
+        return RZZGate(-self.params[0])
 
-    def _matrix_definition(self):
-        """Return a numpy.array for the RZZ gate."""
-        theta = float(self.params[0])
-        return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
-                         [0, np.exp(1j*theta/2), 0, 0],
-                         [0, 0, np.exp(1j*theta/2), 0],
-                         [0, 0, 0, np.exp(-1j*theta/2)]], dtype=complex)
+    # TODO: this is the correct matrix and is equal to the definition above,
+    # however the control mechanism cannot distinguish U1 and RZ yet.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the RZZ gate."""
+    #    theta = float(self.params[0])
+    #    return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
+    #                     [0, np.exp(1j*theta/2), 0, 0],
+    #                     [0, 0, np.exp(1j*theta/2), 0],
+    #                     [0, 0, 0, np.exp(-1j*theta/2)]], dtype=complex)

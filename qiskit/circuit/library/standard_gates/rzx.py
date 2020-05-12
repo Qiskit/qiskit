@@ -14,11 +14,9 @@
 
 """Two-qubit ZX-rotation gate."""
 
-import numpy as np
-
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from .rz import RZGate
+from .u1 import U1Gate
 from .h import HGate
 from .x import CXGate
 
@@ -119,9 +117,9 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta, phase=0):
+    def __init__(self, theta):
         """Create new RZX gate."""
-        super().__init__('rzx', 2, [theta], phase=phase)
+        super().__init__('rzx', 2, [theta])
 
     def _define(self):
         """
@@ -131,20 +129,22 @@ class RZXGate(Gate):
         self.definition = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (RZGate(self.params[0], phase=self.phase), [q[1]], []),
+            (U1Gate(self.params[0]), [q[1]], []),  # Should be RZGate
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
 
     def inverse(self):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
-        return RZXGate(-self.params[0], phase=-self.phase)
+        return RZXGate(-self.params[0])
 
-    def _matrix_definition(self):
-        """Return a numpy.array for the RZX gate."""
-        theta = self.params[0]
-        return np.array([[np.cos(theta/2), 0, -1j*np.sin(theta/2), 0],
-                         [0, np.cos(theta/2), 0, 1j*np.sin(theta/2)],
-                         [-1j*np.sin(theta/2), 0, np.cos(theta/2), 0],
-                         [0, 1j*np.sin(theta/2), 0, np.cos(theta/2)]],
-                        dtype=complex)
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the RZX gate."""
+    #    theta = self.params[0]
+    #    return np.array([[np.cos(theta/2), 0, -1j*np.sin(theta/2), 0],
+    #                     [0, np.cos(theta/2), 0, 1j*np.sin(theta/2)],
+    #                     [-1j*np.sin(theta/2), 0, np.cos(theta/2), 0],
+    #                     [0, 1j*np.sin(theta/2), 0, np.cos(theta/2)]],
+    #                    dtype=complex)
