@@ -14,6 +14,8 @@
 
 """Unitary gate."""
 
+import math
+import cmath
 from typing import List, Optional, Union, Tuple
 import numpy as np
 from scipy.linalg import schur
@@ -26,6 +28,7 @@ class Gate(Instruction):
     """Unitary gate."""
 
     def __init__(self, name: str, num_qubits: int, params: List,
+                 phase: Optional[float] = 0,
                  label: Optional[str] = None) -> None:
         """Create a new gate.
 
@@ -33,11 +36,18 @@ class Gate(Instruction):
             name: The Qobj name of the gate.
             num_qubits: The number of qubits the gate acts on.
             params: A list of parameters.
+            phase: Phase of the gate.
             label: An optional label for the gate.
         """
+        self._phase = phase
         self._label = label
         self.definition = None
         super().__init__(name, num_qubits, 0, params)
+
+    def _matrix_definition(self):
+        """Return the canonical matrix definition of the gate with phase = 0."""
+        # This should be set in classes that derive from Gate.
+        return None
 
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
@@ -46,7 +56,11 @@ class Gate(Instruction):
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
-        raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        # pylint: disable=assignment-from-none
+        mat = self._matrix_definition()
+        if mat is None:
+            raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        return cmath.exp(1j * self._phase) * mat if self._phase else mat
 
     def power(self, exponent: float):
         """Creates a unitary gate as `gate^exponent`.
@@ -80,7 +94,7 @@ class Gate(Instruction):
 
     def _return_repeat(self, exponent: float) -> 'Gate':
         return Gate(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
-                    params=self.params)
+                    params=self.params, phase=exponent * self._phase)
 
     def assemble(self) -> 'Instruction':
         """Assemble a QasmQobjInstruction"""
@@ -88,6 +102,23 @@ class Gate(Instruction):
         if self.label:
             instruction.label = self.label
         return instruction
+
+    @property
+    def phase(self) -> float:
+        """Return the phase of the gate."""
+        return self._phase
+
+    @phase.setter
+    def phase(self, angle: float):
+        """Set the phase of the gate."""
+        # Set the phase to the [-2 * pi, 2 * pi] interval
+        angle = float(angle)
+        if not angle:
+            self._phase = 0
+        elif angle < 0:
+            self._phase = angle % (-2 * math.pi)
+        else:
+            self._phase = angle % (2 * math.pi)
 
     @property
     def label(self) -> str:
