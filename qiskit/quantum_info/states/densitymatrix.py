@@ -610,7 +610,7 @@ class DensityMatrix(QuantumState):
                                                      atol=atol, rtol=rtol):
             raise QiskitError("Density matrix is not a pure state")
 
-        psi = evecs[:, np.argmax(evals)]  # eigenvalues returned in columns.
+        psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
 
     def to_counts(self):
