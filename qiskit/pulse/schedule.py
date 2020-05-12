@@ -447,7 +447,7 @@ class Schedule(ScheduleComponent):
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True, scaling: float = None,
              channels: Optional[List[Channel]] = None,
-             show_framechange_channels: bool = True, 
+             show_framechange_channels: bool = True,
              draw_title: bool = False):
         r"""Plot the schedule.
 
