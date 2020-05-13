@@ -1167,7 +1167,7 @@ def frequency_offset(frequency: float,
         shift_frequency(channel, -frequency)
 
 
-# Types
+# Channels
 def drive_channel(qubit: int) -> channels.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 

@@ -147,7 +147,7 @@ Exceptions
 
 # Builder imports.
 from qiskit.pulse.builder import (
-    # builder construction methods.
+    # Construction methods.
     active_backend,
     active_transpiler_settings,
     active_circuit_scheduler_settings,
@@ -157,7 +157,7 @@ from qiskit.pulse.builder import (
     qubit_channels,
     samples_to_seconds,
     seconds_to_samples,
-    # builder instructions.
+    # Instructions.
     acquire,
     barrier,
     call,
@@ -169,12 +169,12 @@ from qiskit.pulse.builder import (
     shift_frequency,
     shift_phase,
     snapshot,
-    # builder channels.
+    # Channels.
     acquire_channel,
     control_channels,
     drive_channel,
     measure_channel,
-    # builder contexts.
+    # Contexts.
     align_left,
     align_right,
     align_sequential,
@@ -185,19 +185,19 @@ from qiskit.pulse.builder import (
     pad,
     phase_offset,
     transpiler_settings,
-    # builder macros.
+    # Macros.
     measure,
     measure_all,
     delay_qubits,
-    # builder circuit instructions.
+    # Circuit instructions.
     call_circuit,
     call_gate,
     cx,
     u1,
     u2,
     u3,
-    x
-    )
+    x,
+)
 from qiskit.pulse.channels import (
     AcquireChannel,
     ControlChannel,
@@ -205,18 +205,18 @@ from qiskit.pulse.channels import (
     MeasureChannel,
     MemorySlot,
     RegisterSlot,
-    )
+)
 from qiskit.pulse.commands import (
     AcquireInstruction,
     FrameChange,
-    PersistentValue
-    )
+    PersistentValue,
+)
 from qiskit.pulse.configuration import (
     Discriminator,
     Kernel,
     LoConfig,
     LoRange,
-    )
+)
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
@@ -227,7 +227,7 @@ from qiskit.pulse.instructions import (
     SetFrequency,
     ShiftPhase,
     Snapshot,
-    )
+)
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.pulse_lib import (
     Constant,
@@ -236,7 +236,7 @@ from qiskit.pulse.pulse_lib import (
     Gaussian,
     GaussianSquare,
     ParametricPulse,
-    SamplePulse
-    )
+    SamplePulse,
+)
 from qiskit.pulse.pulse_lib.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule

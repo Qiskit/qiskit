@@ -249,8 +249,8 @@ class TestContexts(TestBuilder):
         self.assertEqual(schedule, reference)
 
 
-class TestTypes(TestBuilder):
-    """Test builder types."""
+class TestChannels(TestBuilder):
+    """Test builder channels."""
 
     def test_drive_channel(self):
         """Text context builder drive channel."""
