@@ -208,7 +208,11 @@ class TestContexts(TestBuilder):
 
     @unittest.expectedFailure
     def test_frequency_offset(self):
-        """Test the frequency offset context."""
+        """Test the frequency offset context.
+
+        .. note::
+            Expected to fail as ``ShiftFrequency`` is not yet implemented.
+        """
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
@@ -224,7 +228,12 @@ class TestContexts(TestBuilder):
 
     @unittest.expectedFailure
     def test_phase_compensated_frequency_offset(self):
-        """Test that the phase offset context properly compensates for phase accumulation."""
+        """Test that the phase offset context properly compensates for phase
+        accumulation.
+
+        .. note::
+            Expected to fail as ``ShiftFrequency`` is not yet implemented.
+        """
         d0 = pulse.DriveChannel(0)
 
         with pulse.build(self.backend) as schedule:
@@ -373,7 +382,11 @@ class TestInstructions(TestBuilder):
 
     @unittest.expectedFailure
     def test_shift_frequency(self):  # pylint: disable=no-member
-        """Test shift frequency instruction."""
+        """Test shift frequency instruction.
+
+        .. note::
+            Expected to fail as ``ShiftFrequency`` is not yet implemented.
+        """
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
@@ -386,7 +399,11 @@ class TestInstructions(TestBuilder):
 
     @unittest.expectedFailure
     def test_set_phase(self):  # pylint: disable=no-member
-        """Test set phase instruction."""
+        """Test set phase instruction.
+
+        .. note::
+            Expected to fail as ``SetPhase`` is not yet implemented.
+        """
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
