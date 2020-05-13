@@ -45,7 +45,7 @@ class TestBuilder(QiskitTestCase):
 
 
 class TestContexts(TestBuilder):
-    """test context builder contexts."""
+    """Test builder contexts."""
     def test_align_sequential(self):
         """Test the sequential alignment context."""
         d0 = pulse.DriveChannel(0)
@@ -241,7 +241,7 @@ class TestContexts(TestBuilder):
 
 
 class TestTypes(TestBuilder):
-    """test context builder types."""
+    """Test builder types."""
 
     def test_drive_channel(self):
         """Text context builder drive channel."""
@@ -266,7 +266,7 @@ class TestTypes(TestBuilder):
 
 
 class TestInstructions(TestBuilder):
-    """test context builder instructions."""
+    """Test builder instructions."""
 
     def test_delay(self):
         """Test delay instruction."""
@@ -461,7 +461,7 @@ class TestInstructions(TestBuilder):
 
 
 class TestDirectives(TestBuilder):
-    """Test context builder directives."""
+    """Test builder directives."""
 
     def test_barrier_with_align_right(self):
         """Test barrier directive with right alignment context."""
@@ -546,7 +546,7 @@ class TestDirectives(TestBuilder):
 
 
 class TestUtilities(TestBuilder):
-    """test context builder utilities."""
+    """Test builder utilities."""
     def test_active_backend(self):
         """Test getting active builder backend."""
         with pulse.build(self.backend):
@@ -627,7 +627,7 @@ class TestUtilities(TestBuilder):
 
 
 class TestMacros(TestBuilder):
-    """test context builder macros."""
+    """Test builder macros."""
 
     def test_measure(self):
         """Test utility function - measure."""
@@ -701,7 +701,7 @@ class TestMacros(TestBuilder):
 
 
 class TestGates(TestBuilder):
-    """test context builder gates."""
+    """Test builder gates."""
 
     def test_cx(self):
         """Test cx gate."""
