@@ -22,6 +22,7 @@ from qiskit import pulse
 from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
                           Gaussian, GaussianSquare, Constant)
 from qiskit.pulse import transforms
+from qiskit.pulse import instructions
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import directives
@@ -409,6 +410,262 @@ class TestCompressTransform(QiskitTestCase):
         compressed_pulse_ids = get_pulse_ids(compressed_schedule)
         self.assertEqual(len(original_pulse_ids), 6)
         self.assertEqual(len(compressed_pulse_ids), 2)
+
+
+class TestAlignSequential(QiskitTestCase):
+    """Test sequential alignment transform."""
+
+    def test_align_sequential(self):
+        """Test sequential alignment without a barrier."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        schedule = pulse.Schedule()
+        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
+        schedule = schedule.insert(4, instructions.Delay(5, d1), mutate=True)
+        schedule = schedule.insert(12, instructions.Delay(7, d0), mutate=True)
+
+        schedule = transforms.remove_directives(transforms.align_sequential(schedule))
+
+        reference = pulse.Schedule()
+        # d0
+        reference.insert(0, instructions.Delay(3, d0), mutate=True)
+        reference.insert(8, instructions.Delay(7, d0), mutate=True)
+        # d1
+        reference.insert(3, instructions.Delay(5, d1), mutate=True)
+
+        self.assertEqual(schedule, reference)
+
+    def test_align_sequential_with_barrier(self):
+        """Test sequential alignment with a barrier."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        schedule = pulse.Schedule()
+        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
+        schedule.append(directives.RelativeBarrier(d0, d1), mutate=True)
+        schedule = schedule.insert(4, instructions.Delay(5, d1), mutate=True)
+        schedule = schedule.insert(12, instructions.Delay(7, d0), mutate=True)
+
+        schedule = transforms.remove_directives(
+            transforms.align_sequential(schedule))
+
+        reference = pulse.Schedule()
+        # d0
+        reference.insert(0, instructions.Delay(3, d0), mutate=True)
+        reference.insert(8, instructions.Delay(7, d0), mutate=True)
+        # d1
+        reference.insert(3, instructions.Delay(5, d1), mutate=True)
+
+        self.assertEqual(schedule, reference)
+
+
+class TestAlignLeft(QiskitTestCase):
+    """Test left alignment transform."""
+
+    def test_align_right(self):
+        """Test left alignment without a barrier."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
+        schedule = pulse.Schedule()
+        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+
+        sched_grouped = pulse.Schedule()
+        sched_grouped += instructions.Delay(5, d1)
+        sched_grouped += instructions.Delay(7, d0)
+        schedule.append(sched_grouped, mutate=True)
+
+        schedule = transforms.align_left(schedule)
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        reference += instructions.Delay(7, d0)
+        # d1
+        reference = reference.insert(3, instructions.Delay(5, d1))
+        # d2
+        reference += instructions.Delay(11, d2)
+
+        self.assertEqual(schedule, reference)
+
+    def test_align_left_with_barrier(self):
+        """Test left alignment with a barrier."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
+        schedule = pulse.Schedule()
+        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
+        schedule.append(directives.RelativeBarrier(d0, d1, d2), mutate=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+
+        sched_grouped = pulse.Schedule()
+        sched_grouped += instructions.Delay(5, d1)
+        sched_grouped += instructions.Delay(7, d0)
+        schedule.append(sched_grouped, mutate=True)
+        schedule = transforms.remove_directives(
+            transforms.align_left(schedule))
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        reference += instructions.Delay(7, d0)
+        # d1
+        reference = reference.insert(3, instructions.Delay(5, d1))
+        # d2
+        reference = reference.insert(3, instructions.Delay(11, d2))
+
+        self.assertEqual(schedule, reference)
+
+
+class TestAlignRight(QiskitTestCase):
+    """Test right alignment transform."""
+
+    def test_align_right(self):
+        """Test right alignment without a barrier."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
+        schedule = pulse.Schedule()
+        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+
+        sched_grouped = pulse.Schedule()
+        sched_grouped.insert(2, instructions.Delay(5, d1), mutate=True)
+        sched_grouped += instructions.Delay(7, d0)
+
+        schedule.append(sched_grouped, mutate=True)
+        schedule = transforms.align_right(schedule)
+
+        reference = pulse.Schedule()
+        # d0
+        reference = reference.insert(1, instructions.Delay(3, d0))
+        reference = reference.insert(4, instructions.Delay(7, d0))
+        # d1
+        reference = reference.insert(6, instructions.Delay(5, d1))
+        # d2
+        reference += instructions.Delay(11, d2)
+        self.assertEqual(schedule, reference)
+
+    def test_align_right_with_barrier(self):
+        """Test right alignment with a barrier."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+        d2 = pulse.DriveChannel(2)
+
+        schedule = pulse.Schedule()
+        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
+        schedule.append(directives.RelativeBarrier(d0, d1, d2), mutate=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+
+        sched_grouped = pulse.Schedule()
+        sched_grouped.insert(2, instructions.Delay(5, d1), mutate=True)
+        sched_grouped += instructions.Delay(7, d0)
+
+        schedule.append(sched_grouped, mutate=True)
+        schedule = transforms.remove_directives(transforms.align_right(schedule))
+
+        reference = pulse.Schedule()
+        # d0
+        reference = reference.insert(0, instructions.Delay(3, d0))
+        reference = reference.insert(7, instructions.Delay(7, d0))
+        # d1
+        reference = reference.insert(9, instructions.Delay(5, d1))
+        # d2
+        reference = reference.insert(3, instructions.Delay(11, d2))
+
+        self.assertEqual(schedule, reference)
+
+
+class TestGroup(QiskitTestCase):
+    """Test grouping transform."""
+
+    def test_group(self):
+        """Test grouping transform."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        schedule = pulse.Schedule()
+        schedule += instructions.Delay(3, d0)
+
+        grouped = pulse.Schedule()
+        grouped += instructions.Delay(5, d1)
+        grouped += instructions.Delay(7, d0)
+        grouped = transforms.group(grouped)
+
+        schedule = transforms.align_left(schedule+grouped)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        reference += instructions.Delay(7, d0)
+        # d1
+        reference = reference.insert(3, instructions.Delay(5, d1))
+        self.assertEqual(schedule, reference)
+
+
+class TestFlatten(QiskitTestCase):
+    """Test flattening transform."""
+
+    def test_flatten(self):
+        """Test the flatten transform."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        schedule = pulse.Schedule()
+        schedule += instructions.Delay(3, d0)
+
+        grouped = pulse.Schedule()
+        grouped += instructions.Delay(5, d1)
+        grouped += instructions.Delay(7, d0)
+        # include a grouped schedule
+        grouped = transforms.group(grouped)
+        grouped = schedule+grouped
+
+        # flatten the schedule inline internal groups
+        flattened = transforms.flatten(grouped)
+
+        # align all the instructions to the left after flattening
+        schedule = transforms.align_left(flattened)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        reference += instructions.Delay(7, d0)
+        # d1
+        reference += instructions.Delay(5, d1)
+        self.assertEqual(schedule, reference)
+
+
+class _TestDirective(directives.Directive):
+    """Pulse ``RelativeBarrier`` directive."""
+
+    def __init__(self, *channels):
+        """Test directive"""
+        super().__init__(tuple(channels), 0, tuple(channels))
+
+
+class TestRemoveDirectives(QiskitTestCase):
+    """Test removing of directives."""
+
+    def test_remove_directives(self):
+        """Test that all directives are removed."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(1)
+
+        schedule = pulse.Schedule()
+        schedule += _TestDirective(d0, d1)
+        schedule += instructions.Delay(3, d0)
+        schedule += _TestDirective(d0, d1)
+        schedule = transforms.remove_directives(schedule)
+
+        reference = pulse.Schedule()
+        # d0
+        reference += instructions.Delay(3, d0)
+        self.assertEqual(schedule, reference)
 
 
 class TestRemoveTrivialBarriers(QiskitTestCase):

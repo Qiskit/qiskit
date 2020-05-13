@@ -263,9 +263,9 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
-def push_append(this: List[interfaces.ScheduleComponent],
-                other: List[interfaces.ScheduleComponent],
-                ) -> Schedule:
+def _push_append(this: List[interfaces.ScheduleComponent],
+                 other: List[interfaces.ScheduleComponent],
+                 ) -> Schedule:
     r"""Return a ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
 
@@ -308,7 +308,7 @@ def align_left(schedule: Schedule) -> Schedule:
     """
     aligned = Schedule()
     for _, child in schedule.children:
-        push_append(aligned, child)
+        _push_append(aligned, child)
 
     return aligned
 
@@ -358,46 +358,6 @@ def align_sequential(schedule: Schedule) -> Schedule:
     for _, child in schedule.children:
         aligned.insert(aligned.duration, child, mutate=True)
     return aligned
-
-
-def barrier_left(schedule: Schedule,
-                 channels: Optional[Iterable[chans.Channel]] = None
-                 ) -> Schedule:
-    """Align on the left and create a barrier so that pulses cannot be inserted
-        within this pulse interval.
-
-    Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
-        channels: Channels to barrier. Defaults to all channels in ``schedule``
-            if not in supplied.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        left barriered.
-    """
-    aligned = align_left(schedule)
-    return pad(aligned, channels=channels)
-
-
-def barrier_right(schedule: Schedule,
-                  channels: Optional[Iterable[chans.Channel]] = None
-                  ) -> Schedule:
-    """Align on the right and create a barrier so that pulses cannot be
-        inserted within this pulse interval.
-
-    Args:
-        schedule: Input schedule of which top-level ``child`` nodes will be
-            reschedulued.
-        channels: Channels to barrier. Defaults to all channels in ``schedule``
-            if not in supplied.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        right barriered.
-    """
-    aligned = align_left(schedule)
-    return pad(aligned, channels=channels)
 
 
 def group(schedule: Schedule) -> Schedule:
