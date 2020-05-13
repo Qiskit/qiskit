@@ -411,15 +411,22 @@ class TestCompressTransform(QiskitTestCase):
         self.assertEqual(len(compressed_pulse_ids), 2)
 
 
-class TestSchedulingTransforms(QiskitTestCase):
+class TestRemoveTrivialBarriers(QiskitTestCase):
     """Test scheduling transforms."""
 
     def test_remove_trivial_barriers(self):
         """Test that trivial barriers are properly removed."""
         schedule = pulse.Schedule()
+        schedule += directives.RelativeBarrier()
         schedule += directives.RelativeBarrier(pulse.DriveChannel(0))
+        schedule += directives.RelativeBarrier(pulse.DriveChannel(0),
+                                               pulse.DriveChannel(1))
         schedule = transforms.remove_trivial_barriers(schedule)
-        self.assertEqual(schedule, pulse.Schedule())
+
+        reference = pulse.Schedule()
+        reference += directives.RelativeBarrier(pulse.DriveChannel(0),
+                                                pulse.DriveChannel(1))
+        self.assertEqual(schedule, reference)
 
 
 if __name__ == '__main__':
