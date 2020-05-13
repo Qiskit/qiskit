@@ -31,8 +31,7 @@ def measure(qubits: List[int],
             meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
             qubit_mem_slots: Optional[Dict[int, int]] = None,
             measure_name: str = 'measure') -> Schedule:
-    """
-    Return a schedule which measures the requested qubits according to the given
+    """Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
 
     By default, the measurement results for each qubit are trivially mapped to the qubit
