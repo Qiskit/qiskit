@@ -562,7 +562,7 @@ def build(backend=None,
         default_circuit_scheduler_settings=default_circuit_scheduler_settings)
 
 
-# Builder Utilities ############################################################
+# Builder Utilities
 class NoActiveBuilder(exceptions.PulseError):
     """Raised if no builder context is active."""
 
@@ -762,7 +762,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
     return dict(_active_builder().circuit_scheduler_settings)
 
 
-# Contexts ###########################################################
+# Contexts
 def _transform_context(transform: Callable[[Schedule], Schedule],
                        **transform_kwargs: Any
                        ) -> Callable[..., ContextManager[None]]:
@@ -1171,7 +1171,7 @@ def frequency_offset(frequency: float,
         shift_frequency(channel, -frequency)
 
 
-# Types ########################################################################
+# Types
 def drive_channel(qubit: int) -> channels.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 
@@ -1262,7 +1262,7 @@ def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
     return active_backend().configuration().control(qubits=qubits)
 
 
-# Base Instructions ############################################################
+# Base Instructions
 def delay(duration: int,
           channel: channels.Channel):
     """Delay on a ``channel`` for a ``duration``.
@@ -1587,7 +1587,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
             'Target of type "{}" is not supported.'.format(type(target)))
 
 
-# Directives ###################################################################
+# Directives
 def barrier(*channels_or_qubits: Union[channels.Channel, int]):
     """Barrier directive for a set of channels and qubits.
 
@@ -1660,7 +1660,7 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
         append_instruction(directives.RelativeBarrier(*chans))
 
 
-# Macros #######################################################################
+# Macros
 def measure(qubit: int,
             register: Union[channels.MemorySlot, channels.RegisterSlot] = None,
             ) -> Union[channels.MemorySlot, channels.RegisterSlot]:
@@ -1803,7 +1803,7 @@ def delay_qubits(duration: int,
             delay(duration, chan)
 
 
-# Gate instructions ############################################################
+# Gate instructions
 def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
