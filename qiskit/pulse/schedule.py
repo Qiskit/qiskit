@@ -327,7 +327,6 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)] or (0, 5)
             intervals: For example, [Interval(0, 5), Interval(6, 10)] or Interval(0, 5)
         """
-
         def if_scalar_cast_to_list(to_list):
             try:
                 iter(to_list)
