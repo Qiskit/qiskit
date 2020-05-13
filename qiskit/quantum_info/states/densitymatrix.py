@@ -588,11 +588,13 @@ class DensityMatrix(QuantumState):
     def to_statevector(self, atol=None, rtol=None):
         """Return a statevector from a pure density matrix.
 
+        Args:
+            atol (float): Absolute tolerance for checking operation validity.
+            rtol (float): Relative tolerance for checking operation validity.
+
         Returns:
             Statevector: The pure density matrix's corresponding statevector.
                 Corresponds to the eigenvector of the only non-zero eigenvalue.
-            atol (float): Absolute tolerance for checking operation validity.
-            rtol (float): Relative tolerance for checking operation validity.
 
         Raises:
             QiskitError: if the state is not pure.
