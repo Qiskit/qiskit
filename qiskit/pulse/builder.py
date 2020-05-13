@@ -437,17 +437,6 @@ class _PulseBuilder():
         """Create a new circuit for lazy circuit scheduling."""
         return circuit.QuantumCircuit(self.num_qubits)
 
-    def _call_circuit(self, circ):
-        if self._lazy_circuit is None:
-            self._lazy_circuit = self.new_circuit()
-
-        for creg in circ.cregs:
-            try:
-                self._lazy_circuit.add_register(creg)
-            except circuit.exceptions.CircuitError:
-                pass
-        self._lazy_circuit.compose(circ, inplace=True)
-
     @_requires_backend
     def call_circuit(self,
                      circ: circuit.QuantumCircuit,
@@ -474,6 +463,17 @@ class _PulseBuilder():
             self._compile_lazy_circuit()
             self._call_circuit(circ)
             self._compile_lazy_circuit()
+
+    def _call_circuit(self, circ):
+        if self._lazy_circuit is None:
+            self._lazy_circuit = self.new_circuit()
+
+        for creg in circ.cregs:
+            try:
+                self._lazy_circuit.add_register(creg)
+            except circuit.exceptions.CircuitError:
+                pass
+        self._lazy_circuit.compose(circ, inplace=True)
 
     @_requires_backend
     def call_gate(self,
