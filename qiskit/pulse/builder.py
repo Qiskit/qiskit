@@ -517,8 +517,7 @@ def build(backend=None,
 
     To enter a building context and starting building a pulse program:
 
-    .. code-block:: python
-        :emphasize-lines: 9
+    .. jupyter-execute::
 
         from qiskit import execute
         from qiskit import pulse
@@ -531,8 +530,14 @@ def build(backend=None,
         with pulse.build() as pulse_prog:
             pulse.play(pulse.Constant(100, 0.5), d0)
 
-        # execute on real backend
-        # qiskit.execute(pulse_prog, backend)
+
+    While the output program ``pulse_prog`` cannot be executed as we are using
+    a mock backend. If a real backend is being used, executing the program is
+    done with:
+
+    .. code-block:: python
+
+        qiskit.execute(pulse_prog, backend)
 
     Args:
         backend (BaseBackend): A Qiskit backend. If not supplied certain
