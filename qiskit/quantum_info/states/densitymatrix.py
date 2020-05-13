@@ -591,6 +591,8 @@ class DensityMatrix(QuantumState):
         Returns:
             Statevector: The pure density matrix's corresponding statevector.
                 Corresponds to the eigenvector of the only non-zero eigenvalue.
+            atol (float): Absolute tolerance for checking operation validity.
+            rtol (float): Relative tolerance for checking operation validity.
 
         Raises:
             QiskitError: if the state is not pure.
