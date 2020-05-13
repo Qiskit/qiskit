@@ -26,7 +26,6 @@ from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, 
 import warnings
 
 from qiskit.util import is_main_process
-from .timeslots import TimeslotCollection, Interval
 from .channels import Channel
 from .interfaces import ScheduleComponent
 from .exceptions import PulseError
