@@ -415,8 +415,6 @@ class _PulseBuilder():
     def _compile_lazy_circuit(self):
         """Call a QuantumCircuit and append the output pulse schedule
         to the active block."""
-        # check by length, can't check if QuantumCircuit is None
-        # so disable pylint error.
         if self._lazy_circuit:
             import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
