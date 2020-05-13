@@ -311,7 +311,7 @@ class Schedule(ScheduleComponent):
                           instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
-         """
+        """
         Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
         iff the input satisfies all of the criteria specified by the arguments; i.e. iff every
         function in filter_funcs returns True, the instruction occurs on a channel type contained
