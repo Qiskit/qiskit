@@ -415,8 +415,7 @@ class TestSchedulingTransforms(QiskitTestCase):
     """Test scheduling transforms."""
 
     def test_remove_trivial_barriers(self):
-        """Test that trivial barriers are properly transforms.removed."""
-
+        """Test that trivial barriers are properly removed."""
         schedule = pulse.Schedule()
         schedule += directives.RelativeBarrier(pulse.DriveChannel(0))
         schedule = transforms.remove_trivial_barriers(schedule)
