@@ -231,7 +231,7 @@ class TestPulseQobj(QiskitTestCase):
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
                     PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
                     PulseQobjInstruction(name='pv', t0=10, ch='d0', val='P1'),
-                    PulseQobjInstruction(name='sf', t0=10, ch='d0', frequency=8.),
+                    PulseQobjInstruction(name='setf', t0=10, ch='d0', frequency=8.0),
                     PulseQobjInstruction(name='acquire', t0=15, duration=5,
                                          qubits=[0], memory_slot=[0],
                                          kernels=[
@@ -265,7 +265,7 @@ class TestPulseQobj(QiskitTestCase):
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
                     {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 0.1+0j},
                     {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
-                    {'name': 'sf', 't0': 10, 'ch': 'd0', 'frequency': 8.0},
+                    {'name': 'setf', 't0': 10, 'ch': 'd0', 'frequency': 8.0},
                     {'name': 'acquire', 't0': 15, 'duration': 5,
                      'qubits': [0], 'memory_slot': [0],
                      'kernels': [{'name': 'boxcar',
