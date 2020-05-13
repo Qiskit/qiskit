@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Introduced an update to ``plot_state_qsphere`` that shows the basis states next
+    to each blob by default. This feature can be disabled using the ``show_state_labels``
+    argument.
+  - |
+    Introduced an argument to ``plot_state_qsphere`` called ``show_state_phases`` which is 
+    set to ``False`` by default. When enabled, it displays the phase of each basis state. 
+  - |
+    Introduced an argument to ``plot_state_qsphere`` called ``use_degrees`` which is 
+    set to ``False`` by default. When enabled, it displays the phase of each basis state
+    in degrees, along with the phase circle at the bottom right.
