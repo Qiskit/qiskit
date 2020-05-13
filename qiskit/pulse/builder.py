@@ -392,7 +392,6 @@ class _PulseBuilder():
     @_compile_lazy_circuit_before
     def set_active_block(self, block: Schedule):
         """Set the active block for the builder."""
-        assert isinstance(block, Schedule)
         self._block = block
 
     @_compile_lazy_circuit_before
