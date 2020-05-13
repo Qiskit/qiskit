@@ -32,7 +32,7 @@ from .exceptions import PulseError
 
 # pylint: disable=missing-return-doc
 
-Interval = tuple(int, int)
+Interval = List[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
 
 
