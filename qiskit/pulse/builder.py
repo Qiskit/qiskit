@@ -529,7 +529,7 @@ def build(backend=None,
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as pulse_prog:
-            pulse.play(pulse.Constant(100,0.5), d0)
+            pulse.play(pulse.Constant(100, 0.5), d0)
 
         # execute on real backend
         # qiskit.execute(pulse_prog, backend)
