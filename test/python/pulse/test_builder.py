@@ -564,6 +564,7 @@ class TestDirectives(TestBuilder):
 
 class TestUtilities(TestBuilder):
     """Test builder utilities."""
+
     def test_active_backend(self):
         """Test getting active builder backend."""
         with pulse.build(self.backend):

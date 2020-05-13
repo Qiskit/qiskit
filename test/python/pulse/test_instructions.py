@@ -198,6 +198,7 @@ class TestPlay(QiskitTestCase):
 
 class TestDirectives(QiskitTestCase):
     """Test pulse directives."""
+
     def test_relative_barrier(self):
         """Test the relative barrier directive."""
         # pylint: disable=invalid-name
