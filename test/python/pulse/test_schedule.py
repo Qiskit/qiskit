@@ -186,9 +186,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, sched.start_time)
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
+        self.assertEqual(0, len(sched))
         self.assertEqual((), sched.children)
         self.assertEqual({}, sched.timeslots)
         self.assertEqual([], list(sched.instructions))
+        self.assertFalse(sched)
 
     def test_overlapping_schedules(self):
         """Test overlapping schedules."""
@@ -529,6 +531,16 @@ class TestScheduleBuilding(BaseTestSchedule):
             reference_sched.timeslots[DriveChannel(0)], [(10, 10), (10, 20)])
         self.assertEqual(
             reference_sched.timeslots[DriveChannel(1)], [(10, 60), (100, 100)])
+
+    def test_len(self):
+        """Test __len__ method"""
+        sched = Schedule()
+        self.assertEqual(len(sched), 0)
+
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        for j in range(1, 10):
+            sched = sched.append(Play(lp0, self.config.drive(0)))
+            self.assertEqual(len(sched), j)
 
 
 class TestDelay(BaseTestSchedule):
