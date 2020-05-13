@@ -31,3 +31,7 @@ class PulseError(QiskitError):
 
 class BackendNotSet(PulseError):
     """Raised if the builder context does not have a backend."""
+
+
+class NoActiveBuilder(PulseError):
+    """Raised if no builder context is active."""

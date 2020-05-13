@@ -563,10 +563,6 @@ def build(backend=None,
 
 
 # Builder Utilities
-class NoActiveBuilder(exceptions.PulseError):
-    """Raised if no builder context is active."""
-
-
 def _active_builder() -> _PulseBuilder:
     """Get the active builder in the active context.
 
@@ -574,13 +570,13 @@ def _active_builder() -> _PulseBuilder:
         The active active builder in this context.
 
     Raises:
-        NoActiveBuilder: If a pulse builder function is called outside of a
-            builder context.
+        exceptions.NoActiveBuilder: If a pulse builder function is called
+        outside of a builder context.
     """
     try:
         return BUILDER_CONTEXTVAR.get()
     except LookupError:
-        raise NoActiveBuilder(
+        raise exceptions.NoActiveBuilder(
             'A Pulse builder function was called outside of '
             'a builder context. Try calling within a builder '
             'context, eg., "with pulse.build() as schedule: ...".')
