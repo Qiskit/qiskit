@@ -16,7 +16,7 @@
 
 from typing import List, Union
 import copy
-from functools import reduce, partial
+from functools import reduce
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
@@ -41,10 +41,10 @@ class SummedOp(ListOp):
         Args:
             oplist: The Operators being summed.
             coeff: A coefficient multiplying the operator
-            abelian: Indicates whether the Operators in ``oplist`` are know to mutually commute.
+            abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
         """
         super().__init__(oplist,
-                         combo_fn=partial(reduce, lambda x, y: np.sum([x, y], axis=0)),
+                         combo_fn=lambda x: np.sum(x, axis=0),
                          coeff=coeff,
                          abelian=abelian)
 

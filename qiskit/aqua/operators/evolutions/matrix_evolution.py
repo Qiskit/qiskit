@@ -46,8 +46,17 @@ class MatrixEvolution(EvolutionBase):
             The converted operator.
         """
         if isinstance(operator, EvolvedOp):
+            if not {'Matrix'} == operator.primitive_strings():
+                logger.warning('Evolved Hamiltonian is not composed of only MatrixOps, converting '
+                               'to Matrix representation, which can be expensive.')
+                # Setting massive=False because this conversion is implicit. User can perform this
+                # action on the Hamiltonian with massive=True explicitly if they so choose.
+                # TODO explore performance to see whether we should avoid doing this repeatedly
+                matrix_ham = operator.primitive.to_matrix_op(massive=False)
+                operator = EvolvedOp(matrix_ham, coeff=operator.coeff)
+
             if isinstance(operator.primitive, ListOp):
-                return operator.primitive.to_matrix_op().exp_i() * operator.coeff
+                return operator.primitive.exp_i() * operator.coeff
             elif isinstance(operator.primitive, (MatrixOp, PauliOp)):
                 return operator.primitive.exp_i()
         elif isinstance(operator, ListOp):

@@ -42,7 +42,7 @@ class ComposedOp(ListOp):
         Args:
             oplist: The Operators being composed.
             coeff: A coefficient multiplying the operator
-            abelian: Indicates whether the Operators in ``oplist`` are know to mutually commute.
+            abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
         """
         super().__init__(oplist,
                          combo_fn=partial(reduce, np.dot),

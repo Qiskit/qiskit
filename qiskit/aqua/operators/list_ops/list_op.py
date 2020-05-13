@@ -63,7 +63,7 @@ class ListOp(OperatorBase):
             combo_fn (callable): The recombination function to combine classical results of the
                 ``oplist`` Operators' eval functions (e.g. sum).
             coeff: A coefficient multiplying the operator
-            abelian: Indicates whether the Operators in ``oplist`` are know to mutually commute.
+            abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
 
             Note that the default "recombination function" lambda above is essentially the
             identity - it accepts the list of values, and returns them in a list.
@@ -274,6 +274,10 @@ class ListOp(OperatorBase):
 
     def exp_i(self) -> OperatorBase:
         """ Return an ``OperatorBase`` equivalent to an exponentiation of self * -i, e^(-i*op)."""
+        # pylint: disable=unidiomatic-typecheck
+        if type(self) == ListOp:
+            return ListOp([op.exp_i() for op in self.oplist], coeff=self.coeff)
+
         # pylint: disable=import-outside-toplevel
         from qiskit.aqua.operators import EvolvedOp
         return EvolvedOp(self)
