@@ -699,7 +699,7 @@ class TestControlledGate(QiskitTestCase):
         """test unrolling of open control gates when gate is in basis"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
-        ccx = CCXGate(ctrl_state = 0)
+        ccx = CCXGate(ctrl_state=0)
         qc.append(ccx, [0, 1, 2])
         dag = circuit_to_dag(qc)
         unroller = Unroller(['x', 'ccx'])
@@ -729,7 +729,6 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['x', 'u1', 'cbell'])
         unrolled_dag = unroller.run(dag)
-        uqc = dag_to_circuit(unrolled_dag)
         # create reference circuit
         ref_circuit = QuantumCircuit(cqreg)
         ref_circuit.x(cqreg[0])

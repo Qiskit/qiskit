@@ -93,9 +93,11 @@ class ControlledGate(Gate):
         if definition:
             self.definition = definition
             if len(definition) == 1:
-                gate = definition[0][0]
-                if isinstance(gate, ControlledGate):
-                    self.base_gate = gate.base_gate
+                base_gate = definition[0][0]
+                if isinstance(base_gate, ControlledGate):
+                    self.base_gate = base_gate.base_gate
+                else:
+                    self.base_gate = base_gate
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
 
@@ -113,7 +115,7 @@ class ControlledGate(Gate):
             from qiskit.circuit.library.standard_gates import XGate
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
             qreg = QuantumRegister(self.num_qubits)
-            definition = [(closed_gate, [qubit for qubit in qreg], [])]
+            definition = list((closed_gate, [qubit for qubit in qreg], []))
             open_rules = []
             for qind, val in enumerate(bit_ctrl_state[::-1]):
                 if val == '0':
