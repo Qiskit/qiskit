@@ -512,7 +512,6 @@ class Operator(BaseOperator):
         # If the instruction doesn't have a matrix defined we use its
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
-        #import ipdb;ipdb.set_trace()
         if obj.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
         for instr, qregs, cregs in obj.definition:
