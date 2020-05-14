@@ -32,8 +32,37 @@ from .exceptions import PulseError
 
 # pylint: disable=missing-return-doc
 
-Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
+class Interval:
+    def __init__(self, start: int, stop: int):
+        """Create an interval, (start, stop).
+
+            Args:
+                start: Starting value of interval
+                stop: Stopping value of interval
+
+            Raises:
+                PulseError: when invalid time or duration is specified
+        """
+        if start < 0:
+            raise PulseError("Cannot create Interval with negative starting value")
+        if stop < 0:
+            raise PulseError("Cannot create Interval with negative stopping value")
+        if start > stop:
+            raise PulseError("Cannot create Interval with value start after stop")
+        self._start = start
+        self._stop = stop
+    
+    def start(self):
+        """Start of interval."""
+        return self._start
+
+    @property
+    def stop(self):
+        """Stop of interval."""
+        return self._stop
+    
+
 
 
 class Schedule(ScheduleComponent):
@@ -365,7 +394,7 @@ class Schedule(ScheduleComponent):
         if time_ranges is not None:
             time_ranges = if_scalar_cast_to_list(time_ranges)
             filter_func_list.append(
-                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
+                only_intervals([Interval(start=start, stop=stop) for start, stop in time_ranges]))
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
