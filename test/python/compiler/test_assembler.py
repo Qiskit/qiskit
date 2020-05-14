@@ -327,7 +327,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
 
     def test_init_qubits(self):
-        """Check that the ``init_qubits`` assemble option is passed on to the qobj."""
+        """Check that the init_qubits assemble option is passed on to the qobj."""
         qobj = assemble(self.circ)
         self.assertRaises(AttributeError, getattr, qobj.config, 'init_qubits')
         qobj = assemble(self.circ, init_qubits=True)
