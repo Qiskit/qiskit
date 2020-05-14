@@ -29,6 +29,8 @@ from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
+# pylint: disable=invalid-name
+
 
 class TestAutoMerge(QiskitTestCase):
     """Test the helper function which aligns acquires."""
