@@ -116,3 +116,13 @@ from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_visualization import pulse_drawer
+
+if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
+        or os.getenv('QISKIT_DOCS') == 'TRUE':
+    if _has_connection('qvisualization.mybluemix.net', 443):
+        from qiskit.visualization.interactive import (iplot_bloch_multivector,
+                                                      iplot_state_city,
+                                                      iplot_state_qsphere,
+                                                      iplot_state_hinton,
+                                                      iplot_histogram,
+                                                      iplot_state_paulivec)
