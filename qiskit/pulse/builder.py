@@ -608,7 +608,7 @@ def append_block(block: Schedule):
 def append_instruction(instruction: instructions.Instruction):
     """Append an instruction to the current active builder context block.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -627,7 +627,7 @@ def append_instruction(instruction: instructions.Instruction):
 def num_qubits() -> int:
     """Return number of qubits in the currently active backend.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -675,7 +675,7 @@ def samples_to_seconds(samples: Union[float, np.ndarray]) -> float:
 def qubit_channels(qubit: int) -> Set[channels.Channel]:
     """Returns the set of channels associated with a qubit.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -715,7 +715,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
 def active_transpiler_settings() -> Dict[str, Any]:
     """Return the current active builder context's transpiler settings.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -738,7 +738,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return the current active builder context's circuit scheduler settings.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -814,7 +814,7 @@ def align_left() -> ContextManager[None]:
     Pulse instructions within this context are scheduled as early as possible
     by shifting them left to the earliest available time.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -841,7 +841,7 @@ def align_right() -> ContextManager[None]:
     Pulse instructions within this context are scheduled as late as possible
     by shifting them right to the latest available time.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -868,7 +868,7 @@ def align_sequential() -> ContextManager[None]:
     Pulse instructions within this context are scheduled sequentially in time
     such that no two instructions will be played at the same time.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -919,7 +919,7 @@ def group() -> ContextManager[None]:
     """Group the instructions within this context as a :class:`pulse.Schedule`.
     fixing their relative time in parent contexts.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -949,7 +949,7 @@ def inline() -> ContextManager[None]:
     """Inline all instructions within this context into the parent context,
     inheriting the scheduling policy of the parent context.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -998,7 +998,7 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
         chs: Channels to pad with delays. Defaults to all channels in context
             if none are supplied.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1024,7 +1024,7 @@ def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unus
 def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the currently active transpiler settings for this context.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1052,7 +1052,7 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     """Set the currently active circuit scheduler settings for this context.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1082,7 +1082,7 @@ def phase_offset(phase: float,
                  ) -> ContextManager[None]:
     """Shift the phase of a channel on entry into context and undo on exit.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1119,7 +1119,7 @@ def frequency_offset(frequency: float,
                      ) -> ContextManager[None]:
     """Shift the frequency of a channel on entry into context and undo on exit.
 
-    Example Usage:
+    Examples:
 
     .. code-block:: python
         :emphasize-lines: 7, 16
@@ -1171,7 +1171,7 @@ def frequency_offset(frequency: float,
 def drive_channel(qubit: int) -> channels.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1191,7 +1191,7 @@ def drive_channel(qubit: int) -> channels.DriveChannel:
 def measure_channel(qubit: int) -> channels.MeasureChannel:
     """Return ``MeasureChannel`` for ``qubit`` on the active builder backend.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1211,7 +1211,7 @@ def measure_channel(qubit: int) -> channels.MeasureChannel:
 def acquire_channel(qubit: int) -> channels.AcquireChannel:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1234,7 +1234,7 @@ def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
     Return the secondary drive channel for the given qubit -- typically
     utilized for controlling multi-qubit interactions.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1263,7 +1263,7 @@ def delay(duration: int,
           channel: channels.Channel):
     """Delay on a ``channel`` for a ``duration``.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1285,7 +1285,7 @@ def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
          channel: channels.PulseChannel):
     """Play a ``pulse`` on a ``channel``.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1315,7 +1315,7 @@ def acquire(duration: int,
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1363,7 +1363,7 @@ def set_frequency(frequency: float,
                   channel: channels.PulseChannel):
     """Set the ``frequency`` of a pulse ``channel``.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1385,7 +1385,7 @@ def shift_frequency(frequency: float,
                     channel: channels.PulseChannel):
     """Shift the ``frequency`` of a pulse ``channel``.
 
-    Example Usage:
+    Examples:
 
     .. code-block:: python
         :emphasize-lines: 6
@@ -1408,7 +1408,7 @@ def set_phase(phase: float,
               channel: channels.PulseChannel):
     """Set the ``phase`` of a pulse ``channel``.
 
-    Example Usage:
+    Examples:
 
     .. code-block:: python
         :emphasize-lines: 8
@@ -1433,7 +1433,7 @@ def shift_phase(phase: float,
                 channel: channels.PulseChannel):
     """Shift the ``phase`` of a pulse ``channel``.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1457,7 +1457,7 @@ def snapshot(label: str,
              snapshot_type: str = 'statevector'):
     """Simulator snapshot.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1477,7 +1477,7 @@ def snapshot(label: str,
 def call_schedule(schedule: Schedule):
     """Call a pulse ``schedule`` in the builder context.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1507,7 +1507,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
         deprecated in the future in favour of tight integration with a circuit
         builder interface which is under development.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1547,7 +1547,7 @@ def call_circuit(circ: circuit.QuantumCircuit):
 def call(target: Union[circuit.QuantumCircuit, Schedule]):
     """Call the ``target`` within the currently active builder context.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1735,7 +1735,7 @@ def measure_all() -> List[channels.MemorySlot]:
     same time. This is useful for handling device ``meas_map`` and single
     measurement constraints.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1772,7 +1772,7 @@ def delay_qubits(duration: int,
     r"""Insert delays on all of the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1812,7 +1812,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     .. jupyter-kernel:: python3
         :id: call_gate
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1864,7 +1864,7 @@ def cx(control: int, target: int):
         deprecated in the future in favour of tight integration with a circuit
         builder interface which is under development.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1889,7 +1889,7 @@ def u1(theta: float, qubit: int):
         deprecated in the future in favour of tight integration with a circuit
         builder interface which is under development.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1916,7 +1916,7 @@ def u2(phi: float, lam: float, qubit: int):
         deprecated in the future in favour of tight integration with a circuit
         builder interface which is under development.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1943,7 +1943,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):
         deprecated in the future in favour of tight integration with a circuit
         builder interface which is under development.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
@@ -1970,7 +1970,7 @@ def x(qubit: int):
         deprecated in the future in favour of tight integration with a circuit
         builder interface which is under development.
 
-    Example Usage:
+    Examples:
 
     .. jupyter-execute::
 
