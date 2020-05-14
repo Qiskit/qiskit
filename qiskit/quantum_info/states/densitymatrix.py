@@ -37,43 +37,64 @@ class DensityMatrix(QuantumState):
     """DensityMatrix class"""
 
     def __init__(self, data, dims=None):
-        """Initialize a state object."""
-        if isinstance(data, Statevector):
-            # We convert a statevector into a density matrix by taking the projector
-            state_vec = data.data
-            mat = np.outer(state_vec, np.conjugate(state_vec))
-            if dims is None:
-                dims = data.dims()
+        """Initialize a density matrix object.
+
+        Args:
+            data (matrix_like or vector_like): a density matrix or
+                statevector. If a vector the density matrix is constructed
+                as the projector of that vector.
+            dims (int or tuple or list): Optional. The subsystem dimension
+                    of the state (See additional information).
+
+        Raises:
+            QiskitError: if input data is not valid.
+
+        Additional Information:
+            The ``dims`` kwarg can be None, an integer, or an iterable of
+            integers.
+
+            * ``Iterable`` -- the subsystem dimensions are the values in the list
+              with the total number of subsystems given by the length of the list.
+
+            * ``Int`` or ``None`` -- the leading dimension of the input matrix
+              specifies the total dimension of the density matrix. If it is a
+              power of two the state will be initialized as an N-qubit state.
+              If it is not a power of two the state will have a single
+              d-dimensional subsystem.
+        """
+        if isinstance(data, (list, np.ndarray)):
+            # Finally we check if the input is a raw matrix in either a
+            # python list or numpy array format.
+            self._data = np.asarray(data, dtype=complex)
         elif hasattr(data, 'to_operator'):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
             # an Operator object.
-            data = data.to_operator()
-            mat = data.data
+            op = data.to_operator()
+            self._data = op.data
             if dims is None:
-                dims = data.output_dims()
+                dims = op._output_dims
         elif hasattr(data, 'to_matrix'):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
-            mat = np.asarray(data.to_matrix(), dtype=complex)
-        elif isinstance(data, (list, np.ndarray)):
-            # Finally we check if the input is a raw matrix in either a
-            # python list or numpy array format.
-            mat = np.asarray(data, dtype=complex)
+            self._data = np.asarray(data.to_matrix(), dtype=complex)
         else:
             raise QiskitError("Invalid input data format for DensityMatrix")
         # Convert statevector into a density matrix
-        if mat.ndim == 2 and mat.shape[1] == 1:
-            mat = np.reshape(mat, mat.shape[0])
-        if mat.ndim == 1:
-            mat = np.outer(mat, np.conj(mat))
-        # Determine input and output dimensions
-        if mat.ndim != 2 or mat.shape[0] != mat.shape[1]:
+        ndim = self._data.ndim
+        shape = self._data.shape
+        if ndim == 2 and shape[0] == shape[1]:
+            pass  # We good
+        elif ndim == 1:
+            self._data = np.outer(self._data, np.conj(self._data))
+        elif ndim == 2 and shape[1] == 1:
+            self._data = np.reshape(self._data, shape[0])
+            shape = self._data.shape
+        else:
             raise QiskitError(
                 "Invalid DensityMatrix input: not a square matrix.")
-        self._data = mat
-        super().__init__(self._automatic_dims(dims, self._data.shape[0]))
+        super().__init__(self._automatic_dims(dims, shape[0]))
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(
@@ -224,11 +245,13 @@ class DensityMatrix(QuantumState):
 
         # Evolution by a QuantumChannel
         if hasattr(other, 'to_quantumchannel'):
-            other = other.to_quantumchannel()
+            return other.to_quantumchannel()._evolve(self, qargs=qargs)
         if isinstance(other, QuantumChannel):
             return other._evolve(self, qargs=qargs)
 
         # Unitary evolution by an Operator
+        if not isinstance(other, Operator):
+            other = Operator(other)
         return self._evolve_operator(other, qargs=qargs)
 
     def probabilities(self, qargs=None, decimals=None):
@@ -358,6 +381,34 @@ class DensityMatrix(QuantumState):
         """
         return DensityMatrix(Statevector.from_label(label))
 
+    @staticmethod
+    def from_int(i, dims):
+        """Return a computational basis state density matrix.
+
+        Args:
+            i (int): the basis state element.
+            dims (int or tuple or list): The subsystem dimensions of the statevector
+                                         (See additional information).
+
+        Returns:
+            DensityMatrix: The computational basis state :math:`|i\\rangle\\!\\langle i|`.
+
+        Additional Information:
+            The ``dims`` kwarg can be an integer or an iterable of integers.
+
+            * ``Iterable`` -- the subsystem dimensions are the values in the list
+              with the total number of subsystems given by the length of the list.
+
+            * ``Int`` -- the integer specifies the total dimension of the
+              state. If it is a power of two the state will be initialized
+              as an N-qubit state. If it is not a power of  two the state
+              will have a single d-dimensional subsystem.
+        """
+        size = np.product(dims)
+        state = np.zeros((size, size), dtype=complex)
+        state[i, i] = 1.0
+        return DensityMatrix(state, dims=dims)
+
     @classmethod
     def from_instruction(cls, instruction):
         """Return the output density matrix of an instruction.
@@ -383,7 +434,7 @@ class DensityMatrix(QuantumState):
         num_qubits = instruction.num_qubits
         init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
-        vec = DensityMatrix(init, dims=num_qubits * [2])
+        vec = DensityMatrix(init, dims=num_qubits * (2, ))
         vec._append_instruction(instruction)
         return vec
 
@@ -458,16 +509,15 @@ class DensityMatrix(QuantumState):
 
     def _evolve_operator(self, other, qargs=None):
         """Evolve density matrix by an operator"""
-        if not isinstance(other, Operator):
-            other = Operator(other)
         if qargs is None:
             # Evolution on full matrix
             if self._dim != other._input_dim:
                 raise QiskitError(
                     "Operator input dimension is not equal to density matrix dimension."
                 )
-            mat = np.dot(other.data, self.data).dot(other.adjoint().data)
-            return DensityMatrix(mat, dims=other.output_dims())
+            op_mat = other.data
+            mat = np.dot(op_mat, self.data).dot(op_mat.T.conj())
+            return DensityMatrix(mat, dims=other._output_dims)
         # Otherwise we are applying an operator only to subsystems
         # Check dimensions of subsystems match the operator
         if self.dims(qargs) != other.input_dims():
@@ -531,9 +581,41 @@ class DensityMatrix(QuantumState):
         """Return a new statevector by applying an instruction."""
         if isinstance(obj, QuantumCircuit):
             obj = obj.to_instruction()
-        vec = DensityMatrix(self.data, dims=self.dims())
+        vec = DensityMatrix(self.data, dims=self._dims)
         vec._append_instruction(obj, qargs=qargs)
         return vec
+
+    def to_statevector(self, atol=None, rtol=None):
+        """Return a statevector from a pure density matrix.
+
+        Args:
+            atol (float): Absolute tolerance for checking operation validity.
+            rtol (float): Relative tolerance for checking operation validity.
+
+        Returns:
+            Statevector: The pure density matrix's corresponding statevector.
+                Corresponds to the eigenvector of the only non-zero eigenvalue.
+
+        Raises:
+            QiskitError: if the state is not pure.
+        """
+        if atol is None:
+            atol = self.atol
+        if rtol is None:
+            rtol = self.rtol
+
+        if not is_hermitian_matrix(self._data, atol=atol, rtol=rtol):
+            raise QiskitError("Not a valid density matrix (non-hermitian).")
+
+        evals, evecs = np.linalg.eig(self._data)
+
+        nonzero_evals = evals[abs(evals) > atol]
+        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1,
+                                                     atol=atol, rtol=rtol):
+            raise QiskitError("Density matrix is not a pure state")
+
+        psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
+        return Statevector(psi)
 
     def to_counts(self):
         """Returns the density matrix as a counts dict of probabilities.

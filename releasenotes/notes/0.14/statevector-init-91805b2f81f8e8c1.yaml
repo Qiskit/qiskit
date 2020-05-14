@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Improve performance of :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` for low-qubit circuit
+    simulations by optimizing the class ``__init__`` methods. Fixes
+    `#4281 <https://github.com/Qiskit/qiskit-terra/issues/4281>`_

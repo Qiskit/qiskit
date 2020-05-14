@@ -16,7 +16,7 @@ Random symplectic operator functions
 """
 
 import numpy as np
-from numpy.random import RandomState
+from numpy.random import default_rng
 
 from .clifford import Clifford
 from .stabilizer_table import StabilizerTable
@@ -29,20 +29,20 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or RandomState): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         PauliTable: a random PauliTable.
     """
     if seed is None:
-        rng = np.random
-    elif isinstance(seed, RandomState):
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
-    table = rng.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
     return PauliTable(table)
 
 
@@ -52,21 +52,21 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     Args:
         num_qubits (int): the number of qubits.
         size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or RandomState): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         PauliTable: a random StabilizerTable.
     """
     if seed is None:
-        rng = np.random
-    elif isinstance(seed, RandomState):
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
-    table = rng.randint(2, size=(size, 2 * num_qubits)).astype(np.bool)
-    phase = rng.randint(2, size=size).astype(np.bool)
+    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(np.bool)
+    phase = rng.integers(2, size=size).astype(np.bool)
     return StabilizerTable(table, phase)
 
 
@@ -77,8 +77,8 @@ def random_clifford(num_qubits, seed=None):
 
     Args:
         num_qubits (int): the number of qubits for the Clifford
-        seed (int or RandomState): Optional. Set a fixed seed or
-                                   generator for RNG.
+        seed (int or np.random.Generator): Optional. Set a fixed seed or
+                                           generator for RNG.
 
     Returns:
         Clifford: a random Clifford operator.
@@ -89,16 +89,16 @@ def random_clifford(num_qubits, seed=None):
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
     if seed is None:
-        rng = np.random
-    elif isinstance(seed, RandomState):
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
-        rng = RandomState(seed)
+        rng = default_rng(seed)
 
     had, perm = _sample_qmallows(num_qubits, rng)
 
-    gamma1 = np.diag(rng.randint(2, size=num_qubits, dtype=np.int8))
-    gamma2 = np.diag(rng.randint(2, size=num_qubits, dtype=np.int8))
+    gamma1 = np.diag(rng.integers(2, size=num_qubits, dtype=np.int8))
+    gamma2 = np.diag(rng.integers(2, size=num_qubits, dtype=np.int8))
     delta1 = np.eye(num_qubits, dtype=np.int8)
     delta2 = delta1.copy()
 
@@ -107,12 +107,18 @@ def random_clifford(num_qubits, seed=None):
     _fill_tril(delta1, rng)
     _fill_tril(delta2, rng)
 
+    # For large num_qubits numpy.inv function called below can
+    # return invalid output leading to a non-symplectic Clifford
+    # being generated. This can be prevented by manually forcing
+    # block inversion of the matrix.
+    block_inverse_threshold = 50
+
     # Compute stabilizer table
     zero = np.zeros((num_qubits, num_qubits), dtype=np.int8)
     prod1 = np.matmul(gamma1, delta1) % 2
     prod2 = np.matmul(gamma2, delta2) % 2
-    inv1 = _inverse_tril(delta1).transpose()
-    inv2 = _inverse_tril(delta2).transpose()
+    inv1 = _inverse_tril(delta1, block_inverse_threshold).transpose()
+    inv2 = _inverse_tril(delta2, block_inverse_threshold).transpose()
     table1 = np.block([[delta1, zero], [prod1, inv1]])
     table2 = np.block([[delta2, zero], [prod2, inv2]])
 
@@ -130,7 +136,7 @@ def random_clifford(num_qubits, seed=None):
     table = np.mod(np.matmul(table1, table), 2).astype(np.bool)
 
     # Generate random phases
-    phase = rng.randint(2, size=2 * num_qubits).astype(np.bool)
+    phase = rng.integers(2, size=2 * num_qubits).astype(np.bool)
     return Clifford(StabilizerTable(table, phase))
 
 
@@ -138,7 +144,7 @@ def _sample_qmallows(n, rng=None):
     """Sample from the quantum Mallows distribution"""
 
     if rng is None:
-        rng = np.random
+        rng = np.random.default_rng()
 
     # Hadmard layer
     had = np.zeros(n, dtype=np.bool)
@@ -151,7 +157,7 @@ def _sample_qmallows(n, rng=None):
         m = n - i
         eps = 4 ** (-m)
         r = rng.uniform(0, 1)
-        index = int(np.ceil(np.log2(1 + (1 - r) * eps)))
+        index = -int(np.ceil(np.log2(r + (1 - r) * eps)))
         had[i] = index < m
         if index < m:
             k = index
@@ -170,19 +176,19 @@ def _fill_tril(mat, rng, symmetric=False):
         return
 
     if dim <= 4:
-        mat[1, 0] = rng.randint(2, dtype=np.int8)
+        mat[1, 0] = rng.integers(2, dtype=np.int8)
         if symmetric:
             mat[0, 1] = mat[1, 0]
         if dim > 2:
-            mat[2, 0] = rng.randint(2, dtype=np.int8)
-            mat[2, 1] = rng.randint(2, dtype=np.int8)
+            mat[2, 0] = rng.integers(2, dtype=np.int8)
+            mat[2, 1] = rng.integers(2, dtype=np.int8)
             if symmetric:
                 mat[0, 2] = mat[2, 0]
                 mat[1, 2] = mat[2, 1]
         if dim > 3:
-            mat[3, 0] = rng.randint(2, dtype=np.int8)
-            mat[3, 1] = rng.randint(2, dtype=np.int8)
-            mat[3, 2] = rng.randint(2, dtype=np.int8)
+            mat[3, 0] = rng.integers(2, dtype=np.int8)
+            mat[3, 1] = rng.integers(2, dtype=np.int8)
+            mat[3, 2] = rng.integers(2, dtype=np.int8)
             if symmetric:
                 mat[0, 3] = mat[3, 0]
                 mat[1, 3] = mat[3, 1]
@@ -191,13 +197,13 @@ def _fill_tril(mat, rng, symmetric=False):
 
     # Use numpy indices for larger dimensions
     rows, cols = np.tril_indices(dim, -1)
-    vals = rng.randint(2, size=rows.size, dtype=np.int8)
+    vals = rng.integers(2, size=rows.size, dtype=np.int8)
     mat[(rows, cols)] = vals
     if symmetric:
         mat[(cols, rows)] = vals
 
 
-def _inverse_tril(mat):
+def _inverse_tril(mat, block_inverse_threshold):
     """Invert a lower-triangular matrix with unit diagonal."""
     # Optimized inversion function for low dimensions
     dim = mat.shape[0]
@@ -221,8 +227,7 @@ def _inverse_tril(mat):
     # For higher dimensions we use Numpy's inverse function
     # however this function tends to fail and result in a non-symplectic
     # final matrix if n is too large.
-    max_np_inv = 150
-    if dim <= max_np_inv:
+    if dim <= block_inverse_threshold:
         return np.linalg.inv(mat).astype(np.int8) % 2
 
     # For very large matrices  we divide the matrix into 4 blocks of
@@ -232,8 +237,8 @@ def _inverse_tril(mat):
     # call the inverse function recursively to compute inv(A) and invD
 
     dim1 = dim // 2
-    mat_a = _inverse_tril(mat[0:dim1, 0:dim1])
-    mat_d = _inverse_tril(mat[dim1:dim, dim1:dim])
+    mat_a = _inverse_tril(mat[0:dim1, 0:dim1], block_inverse_threshold)
+    mat_d = _inverse_tril(mat[dim1:dim, dim1:dim], block_inverse_threshold)
     mat_c = np.matmul(np.matmul(mat_d, mat[dim1:dim, 0:dim1]), mat_a)
     inv = np.block([[mat_a, np.zeros((dim1, dim - dim1), dtype=int)], [mat_c, mat_d]])
     return inv % 2

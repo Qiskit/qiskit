@@ -42,16 +42,24 @@ def circuit_2532():
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
-    @combine(level=[0, 1, 2, 3],
-             dsc='Test that coupling_map can be None (level={level})',
-             name='coupling_map_none_level{level}')
+    @combine(level=[0, 1, 2, 3], name='level{level}')
     def test_no_coupling_map(self, level):
-        """Test that coupling_map can be None"""
+        """Test that coupling_map can be None (level={level})"""
         q = QuantumRegister(2, name='q')
         circuit = QuantumCircuit(q)
         circuit.cz(q[0], q[1])
         result = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
+
+    @combine(level=[0, 1, 2, 3], name='level{level}')
+    def test_no_basis_gates(self, level):
+        """Test that basis_gates can be None (level={level})"""
+        q = QuantumRegister(2, name='q')
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cz(q[0], q[1])
+        result = transpile(circuit, basis_gates=None, optimization_level=level)
+        self.assertEqual(result, circuit)
 
 
 @ddt

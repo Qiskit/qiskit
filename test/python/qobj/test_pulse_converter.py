@@ -23,7 +23,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Gaussian, GaussianSquare, Constant, Drag)
-from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play
+from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play, Delay
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -146,7 +146,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_set_frequency(self):
         """Test converted qobj from SetFrequency."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = SetFrequency(8.0, DriveChannel(0))
+        instruction = SetFrequency(8.0e9, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
             name='setf',
@@ -286,7 +286,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
             t0=0,
             parameters={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
         converted_instruction = self.converter(qobj)
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.start_time, 0)
+        self.assertEqual(converted_instruction.duration, 25)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_frame_change(self):
@@ -295,19 +296,32 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         converted_instruction = self.converter(qobj)
 
         instruction = ShiftPhase(0.1, MeasureChannel(0))
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.start_time, 0)
+        self.assertEqual(converted_instruction.duration, 0)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_set_frequency(self):
         """Test converted qobj from FrameChangeInstruction."""
-        instruction = SetFrequency(8.0, DriveChannel(0))
+        instruction = SetFrequency(8.0e9, DriveChannel(0))
 
         qobj = PulseQobjInstruction(name='setf', ch='d0', t0=0, frequency=8.0)
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.start_time, 0)
+        self.assertEqual(converted_instruction.duration, 0)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
         self.assertTrue('frequency' in qobj.to_dict())
+
+    def test_delay(self):
+        """Test converted qobj from Delay."""
+        instruction = Delay(10, DriveChannel(0))
+
+        qobj = PulseQobjInstruction(name='delay', ch='d0', t0=0, duration=10)
+        converted_instruction = self.converter(qobj)
+
+        self.assertTrue('delay' in qobj.to_dict().values())
+        self.assertEqual(converted_instruction.duration, instruction.duration)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""
@@ -320,7 +334,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.start_time, 0)
+        self.assertEqual(converted_instruction.duration, 0)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_acquire(self):
@@ -340,7 +355,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
                                         name='test_disc', params={'test_params': 1.0})])
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, schedule.timeslots)
+        self.assertEqual(converted_instruction.start_time, 0)
+        self.assertEqual(converted_instruction.duration, 10)
         self.assertEqual(converted_instruction.instructions[0][-1].duration, 10)
         self.assertEqual(converted_instruction.instructions[0][-1].kernel.params,
                          {'test_params': 'test'})
@@ -348,18 +364,20 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
-        inst = Snapshot(label='label', snapshot_type='type')
-        instruction = inst << 10
+        instruction = Snapshot(label='label', snapshot_type='type')
+        shifted = instruction << 10
 
         qobj = PulseQobjInstruction(name='snapshot', t0=10, label='label', type='type')
         converted_instruction = self.converter(qobj)
 
-        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
-        self.assertEqual(converted_instruction.instructions[0][-1], inst)
+        self.assertEqual(converted_instruction.start_time, shifted.start_time)
+        self.assertEqual(converted_instruction.duration, shifted.duration)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_parameterized_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
         instruction = ShiftPhase(4., MeasureChannel(0))
+        shifted = instruction << 10
 
         qobj = PulseQobjInstruction(name='fc', ch='m0', t0=10, phase='P1**2')
         converted_instruction = self.converter(qobj)
@@ -368,7 +386,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         evaluated_instruction = converted_instruction.bind_parameters(2.)
 
-        self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(evaluated_instruction.start_time, shifted.start_time)
+        self.assertEqual(evaluated_instruction.duration, shifted.duration)
         self.assertEqual(evaluated_instruction.instructions[0][-1], instruction)
 
     def test_parameterized_persistent_value(self):
@@ -386,7 +405,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             evaluated_instruction = converted_instruction.bind_parameters(P1=0.5, P2=0.)
 
-        self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(evaluated_instruction.start_time, instruction.start_time)
+        self.assertEqual(evaluated_instruction.duration, instruction.duration)
         self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
 
 

@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Tuple
 import hashlib
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, Acquire, Delay, Play
+from qiskit.pulse import Schedule, Acquire, Delay, Play, transforms
 from qiskit.pulse.pulse_lib import ParametricPulse, SamplePulse
 from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
                                    DelayInstruction, ParametricInstruction)
@@ -97,10 +97,11 @@ def _assemble_experiments(
 
     instruction_converter = getattr(run_config, 'instruction_converter', InstructionToQobjConverter)
     instruction_converter = instruction_converter(PulseQobjInstruction, **run_config.to_dict())
+    compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
     experiments = []
-    for idx, schedule in enumerate(schedules):
+    for idx, schedule in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
             schedule,
             instruction_converter,
