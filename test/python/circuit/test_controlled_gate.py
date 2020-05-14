@@ -210,10 +210,11 @@ class TestControlledGate(QiskitTestCase):
                                 num_ctrl_qubits=num_ctrl_qubits,
                                 ctrl_state=ctrl_state)
         copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        new_ctrl_state = ctrl_state << num_ctrl_qubits | ctrl_state
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
         self.assertFalse(copaque.definition)
-        self.assertEqual(copaque.ctrl_state, ctrl_state)
+        self.assertEqual(copaque.ctrl_state, new_ctrl_state)
 
     def test_transpile_controlled_opaque(self):
         """Test transpiling controlled opaque gate"""
