@@ -243,21 +243,45 @@ class QuantumCircuit:
             has_reg = True
         return has_reg
 
-    def mirror(self):
-        """Mirror the circuit by reversing the instructions.
+    def reverse(self):
+        """Reverse the circuit by reversing the order of instructions.
 
-        This is done by recursively mirroring all instructions.
+        This is done by recursively reversing all instructions.
         It does not invert any gate.
 
         Returns:
-            QuantumCircuit: the mirrored circuit
+            QuantumCircuit: the reversed circuit
         """
         reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                      name=self.name + '_mirror')
+                                      name=self.name + '_reverse')
 
         for inst, qargs, cargs in reversed(self.data):
             reverse_circ._append(inst.mirror(), qargs, cargs)
         return reverse_circ
+
+    def mirror(self):
+        """Returns a mirrored circuit by permuting qubits and clbits.
+
+        The mirrored circuit is "vertically" flipped. This operation flattens
+        the registers and the original registers will not be maintained.
+
+        Returns:
+            QuantumCircuit: the mirrored circuit.
+        """
+        mirror_circ = QuantumCircuit(self.width(),
+                                     name=self.name + '_mirror')
+        num_qubits = self.num_qubits
+        old_qubits = self.qubits
+        old_clbits = self.clbits
+        new_qubits = mirror_circ.qubits
+        new_clbits = mirror_circ.clbits
+
+        for inst, qargs, cargs in self.data:
+            new_qargs = [new_qubits[num_qubits - old_qubits.index(q) - 1] for q in qargs]
+            new_cargs = [new_clbits[num_clbits - old_clbits.index(c) - 1] for c in cargs]
+
+            mirror_circ._append(inst, new_qargs, new_cargs)
+        return mirror_circ
 
     def inverse(self):
         """Invert this circuit.
