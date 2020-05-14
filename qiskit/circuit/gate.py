@@ -46,7 +46,15 @@ class Gate(Instruction):
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
-        raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        if self.definition:
+            # Initialize an identity operator of the correct size of the circuit
+            from qiskit.quantum_info import Operator
+            op = Operator(np.eye(2 ** self.num_qubits))
+            op._definition_to_matrix(self.definition)
+            return op.data
+        else:
+            raise CircuitError('neither to_matrix nor definition defined '
+                               'for gate "{}": {}'.format(self.name, repr(self)))
 
     def power(self, exponent: float):
         """Creates a unitary gate as `gate^exponent`.

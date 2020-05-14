@@ -508,6 +508,24 @@ class Operator(BaseOperator):
                 pass
         return mat
 
+    def _definition_to_matrix(self, definition, qargs=None):
+        # If the instruction doesn't have a matrix defined we use its
+        # circuit decomposition definition if it exists, otherwise we
+        # cannot compose this gate and raise an error.
+        if definition is None:
+            raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+        for instr, qregs, cregs in definition:
+            if cregs:
+                raise QiskitError(
+                    'Cannot apply instruction with classical registers: {}'.format(
+                        instr.name))
+            # Get the integer position of the flat register
+            if qargs is None:
+                new_qargs = [tup.index for tup in qregs]
+            else:
+                new_qargs = [qargs[tup.index] for tup in qregs]
+            self._append_instruction(instr, qargs=new_qargs)
+
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
         mat = self._instruction_to_matrix(obj)
@@ -517,19 +535,4 @@ class Operator(BaseOperator):
             op = self.compose(mat, qargs=qargs)
             self._data = op.data
         else:
-            # If the instruction doesn't have a matrix defined we use its
-            # circuit decomposition definition if it exists, otherwise we
-            # cannot compose this gate and raise an error.
-            if obj.definition is None:
-                raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-            for instr, qregs, cregs in obj.definition:
-                if cregs:
-                    raise QiskitError(
-                        'Cannot apply instruction with classical registers: {}'.format(
-                            instr.name))
-                # Get the integer position of the flat register
-                if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
-                else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+            self._definition_to_matrix(obj.definition, qargs=qargs)
