@@ -200,6 +200,7 @@ class QasmBackendConfiguration(SimpleNamespace):
         memory: backend supports memory.
         max_shots: maximum number of shots supported.
     """
+
     def __init__(self, backend_name, backend_version, n_qubits,
                  basis_gates, gates, local, simulator,
                  conditional, open_pulse, memory,
@@ -286,7 +287,7 @@ class QasmBackendConfiguration(SimpleNamespace):
         if 'dtm' in kwargs.keys():
             kwargs['dtm'] *= 1e-9
 
-        if 'qubit_lo_range'in kwargs.keys():
+        if 'qubit_lo_range' in kwargs.keys():
             kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
                                         (min_range, max_range) in kwargs['qubit_lo_range']]
 

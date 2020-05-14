@@ -17,8 +17,22 @@
 import io
 from collections import namedtuple
 
+import networkx as nx
+
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
+
+try:
+    import pydot  # pylint: disable=unused-import
+    HAS_PYDOT = True
+except ImportError:
+    HAS_PYDOT = False
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
 
 Key = namedtuple('Key', ['name',
                          'num_qubits'])
@@ -147,8 +161,12 @@ class EquivalenceLibrary():
         return [_rebind_equiv(equiv, query_params)
                 for equiv in self._get_equivalences(key)]
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draws the equivalence relations available in the library.
+
+        Args:
+            filename (str): An optional path to write the output image to
+                if specified this method will return None.
 
         Returns:
             PIL.Image: Drawn equivalence library.
@@ -156,20 +174,22 @@ class EquivalenceLibrary():
         Raises:
             ImportError: when pydot or pillow are not installed.
         """
-        import networkx as nx
-        try:
-            import pydot  # pylint: disable=unused-import
-            from PIL import Image
-        except ImportError:
-            raise ImportError('EquivalenceLibrary.draw requires')
+        if not HAS_PYDOT:
+            raise ImportError('EquivalenceLibrary.draw requires pydot. '
+                              "You can use 'pip install pydot' to install")
+        if not HAS_PIL and not filename:
+            raise ImportError('EquivalenceLibrary.draw requires pillow. '
+                              "You can use 'pip install pillow' to install")
 
         dot = nx.drawing.nx_pydot.to_pydot(self._build_basis_graph())
+        if filename:
+            extension = filename.split('.')[-1]
+            dot.write(filename, format=extension)
+            return None
         png = dot.create_png(prog='dot')
-
         return Image.open(io.BytesIO(png))
 
     def _build_basis_graph(self):
-        import networkx as nx
         graph = nx.MultiDiGraph()
 
         for key in self._get_all_keys():
@@ -186,9 +206,11 @@ class EquivalenceLibrary():
                 graph.add_node(basis, label=str(set(basis)))
                 graph.add_node(decomp_basis, label=str(set(decomp_basis)))
 
+                label = "%s\n%s" % (
+                    str(params), str(decomp) if num_qubits <= 5 else '...')
                 graph.add_edge(basis,
                                decomp_basis,
-                               label=str(params) + '\n' + str(decomp) if num_qubits <= 5 else '...',
+                               label=label,
                                fontname='Courier',
                                fontsize=8)
 
