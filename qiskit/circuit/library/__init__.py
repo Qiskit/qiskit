@@ -166,7 +166,7 @@ Data encoding circuits
 
 """
 
-from .standard_gates import *
+from ..standard_gates import *
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset

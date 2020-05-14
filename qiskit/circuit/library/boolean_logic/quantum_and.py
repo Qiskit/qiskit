@@ -19,7 +19,7 @@
 from typing import List, Optional
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library.standard_gates import MCXGate
+from qiskit.circuit.standard_gates import MCXGate
 
 
 class AND(QuantumCircuit):

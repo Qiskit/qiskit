@@ -15,7 +15,7 @@
 """The standard gates moved to qiskit/circuit/library."""
 
 import warnings
-from qiskit.circuit.library.standard_gates.u1 import Cu1Gate
+from qiskit.circuit.standard_gates.u1 import Cu1Gate
 
 warnings.warn('This module is deprecated. The Cu1Gate can now be found in u1.py',
               category=DeprecationWarning, stacklevel=2)

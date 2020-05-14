@@ -14,6 +14,6 @@
 
 """Standard gates."""
 
-from qiskit.circuit.library.standard_gates.equivalence_library import StandardEquivalenceLibrary
+from qiskit.circuit.standard_gates.equivalence_library import StandardEquivalenceLibrary
 
 __all__ = ['StandardEquivalenceLibrary']

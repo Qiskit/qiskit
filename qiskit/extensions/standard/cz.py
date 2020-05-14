@@ -16,7 +16,7 @@
 Controlled-Phase gate.
 """
 import warnings
-from qiskit.circuit.library.standard_gates.z import CzGate
+from qiskit.circuit.standard_gates.z import CzGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

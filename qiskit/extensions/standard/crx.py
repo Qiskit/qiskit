@@ -16,7 +16,7 @@
 Controlled-rx gate.
 """
 import warnings
-from qiskit.circuit.library.standard_gates.rx import CrxGate
+from qiskit.circuit.standard_gates.rx import CrxGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

@@ -40,7 +40,7 @@ except ImportError:
     HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
+from qiskit.circuit.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
 from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.exceptions import TranspilerError

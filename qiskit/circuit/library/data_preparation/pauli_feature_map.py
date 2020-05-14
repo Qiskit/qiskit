@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.circuit.library.standard_gates import HGate
+from qiskit.circuit.standard_gates import HGate
 
 from ..n_local.n_local import NLocal
 

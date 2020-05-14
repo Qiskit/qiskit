@@ -85,8 +85,6 @@ from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
 
-from .multi_control_rotation_gates import mcrx, mcry, mcrz
-
 # deprecated gates
 from .boolean_logical_gates import logical_and, logical_or
 from .u1 import Cu1Gate

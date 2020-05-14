@@ -16,11 +16,11 @@
 
 from typing import Optional
 from abc import ABC, abstractmethod
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit import quantumcircuit
+from qiskit.circuit import parametertable
 
 
-class BlueprintCircuit(QuantumCircuit, ABC):
+class BlueprintCircuit(quantumcircuit.QuantumCircuit, ABC):
     """Blueprint circuit object.
 
     In many applications it is necessary to pass around the structure a circuit will have without
@@ -71,7 +71,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
         self._data = None
-        self._parameter_table = ParameterTable()
+        self._parameter_table = parametertable.ParameterTable()
 
     @property
     def qregs(self):

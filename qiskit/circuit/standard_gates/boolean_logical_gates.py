@@ -15,7 +15,6 @@
 """The Boolean Logical AND and OR Gates."""
 
 import warnings
-from qiskit.circuit import QuantumCircuit
 
 
 def logical_and(self, qr_variables, qb_target, qr_ancillae, flags=None, mct_mode='no-ancilla'):
@@ -70,7 +69,3 @@ def logical_or(self, qr_variables, qb_target, qr_ancillae, flags=None, mct_mode=
         qubits += qr_ancillae[:or_circuit.num_ancilla_qubits]
 
     self.append(or_circuit.to_gate(), qubits)
-
-
-QuantumCircuit.AND = logical_and
-QuantumCircuit.OR = logical_or

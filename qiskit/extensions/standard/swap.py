@@ -14,6 +14,6 @@
 
 """The standard gates moved to qiskit/circuit/library."""
 
-from qiskit.circuit.library.standard_gates.swap import SwapGate, CSwapGate, FredkinGate
+from qiskit.circuit.standard_gates.swap import SwapGate, CSwapGate, FredkinGate
 
 __all__ = ['SwapGate', 'CSwapGate', 'FredkinGate']

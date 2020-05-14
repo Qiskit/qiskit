@@ -27,8 +27,8 @@ from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.standard_gates.ry import RYGate
+from qiskit.circuit.standard_gates.rz import RZGate
 
 from qiskit.util import deprecate_arguments
 

@@ -15,7 +15,7 @@
 """Remove diagonal gates (including diagonal 2Q gates) before a measurement."""
 
 from qiskit.circuit import Measure
-from qiskit.circuit.library.standard_gates import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, \
+from qiskit.circuit.standard_gates import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, \
     U1Gate, CZGate, CRZGate, CU1Gate, RZZGate
 from qiskit.transpiler.basepasses import TransformationPass
 

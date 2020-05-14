@@ -22,8 +22,8 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
-                                                   RGate)
+from qiskit.circuit.standard_gates import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
+                                           RGate)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 

@@ -17,7 +17,7 @@
 from typing import Union, Optional, List, Tuple, Callable, Any
 import numpy as np
 
-from qiskit.circuit.library.standard_gates import RYGate, CXGate
+from qiskit.circuit.standard_gates import RYGate, CXGate
 from .two_local import TwoLocal
 
 

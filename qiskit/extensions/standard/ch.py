@@ -16,7 +16,7 @@
 Controlled-H gate.
 """
 import warnings
-from qiskit.circuit.library.standard_gates.h import CHGate
+from qiskit.circuit.standard_gates.h import CHGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

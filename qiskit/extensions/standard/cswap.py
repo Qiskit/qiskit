@@ -16,7 +16,7 @@
 Controlled-Swap gate or Fredkin gate.
 """
 import warnings
-from qiskit.circuit.library.standard_gates.swap import FredkinGate
+from qiskit.circuit.standard_gates.swap import FredkinGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

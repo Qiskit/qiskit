@@ -14,6 +14,6 @@
 
 """The Boolean Logical AND and OR Gates."""
 
-from qiskit.circuit.library.standard_gates import logical_and, logical_or
+from qiskit.circuit.standard_gates import logical_and, logical_or
 
 __all__ = ['logical_and', 'logical_or']

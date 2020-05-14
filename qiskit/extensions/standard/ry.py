@@ -14,6 +14,6 @@
 
 """The standard gates moved to qiskit/circuit/library."""
 
-from qiskit.circuit.library.standard_gates.ry import RYGate, CRYGate, CryGate
+from qiskit.circuit.standard_gates.ry import RYGate, CRYGate, CryGate
 
 __all__ = ['RYGate', 'CRYGate', 'CryGate']

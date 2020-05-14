@@ -16,7 +16,7 @@
 Identity gate.
 """
 import warnings
-from qiskit.circuit.library.standard_gates.i import IdGate
+from qiskit.circuit.standard_gates.i import IdGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)

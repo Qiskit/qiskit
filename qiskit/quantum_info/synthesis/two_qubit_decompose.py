@@ -33,8 +33,8 @@ import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates.u3 import U3Gate
-from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.standard_gates.u3 import U3Gate
+from qiskit.circuit.standard_gates.x import CXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates

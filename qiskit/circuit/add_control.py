@@ -100,7 +100,7 @@ def control(operation: Union[Gate, ControlledGate],
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
-    import qiskit.circuit.library.standard_gates.multi_control_rotation_gates
+    import qiskit.circuit.standard_gates.multi_control_rotation_gates
 
     # check args
     if num_ctrl_qubits == 0:

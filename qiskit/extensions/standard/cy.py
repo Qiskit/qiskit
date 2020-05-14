@@ -16,7 +16,7 @@
 Controlled-Y gate.
 """
 import warnings
-from qiskit.circuit.library.standard_gates.y import CyGate
+from qiskit.circuit.standard_gates.y import CyGate
 
 warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
