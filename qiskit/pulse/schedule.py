@@ -375,9 +375,7 @@ class Schedule(ScheduleComponent):
         if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges is not None:
-            time_ranges = if_scalar_cast_to_list(time_ranges)
-            filter_func_list.append(
-                only_intervals([Interval(start=start, stop=stop) for start, stop in time_ranges]))
+            filter_func_list.append(only_intervals(time_ranges))
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
 
