@@ -696,12 +696,18 @@ class TestPulseAssembler(QiskitTestCase):
         qobj_insts = qobj.experiments[0].instructions
         self.assertFalse(hasattr(qobj_insts[0], 'pulse_shape'))
 
-    def test_init_qubits(self):
-        """Check that the ``init_qubits`` assemble option is passed on to the qobj."""
+    def test_init_qubits_default(self):
+        """Check that the init_qubits=None assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend)
         self.assertRaises(AttributeError, getattr, qobj.config, 'init_qubits')
+
+    def test_init_qubits_true(self):
+        """Check that the init_qubits=True assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend, init_qubits=True)
         self.assertEqual(qobj.config.init_qubits, True)
+  
+    def test_init_qubits_false(self):
+        """Check that the init_qubits=False assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
