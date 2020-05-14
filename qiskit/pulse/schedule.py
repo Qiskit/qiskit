@@ -32,7 +32,7 @@ from .exceptions import PulseError
 
 # pylint: disable=missing-return-doc
 
-Interval = List[int, int]
+Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
 
 
@@ -40,7 +40,7 @@ class Schedule(ScheduleComponent):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
     """
-
+    
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
