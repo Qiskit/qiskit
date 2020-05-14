@@ -42,15 +42,19 @@ class Gate(Instruction):
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
 
+        Returns:
+            ndarray: Matrix representation of gate.
+
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
         """
         if self.definition:
             # Initialize an identity operator of the correct size of the circuit
+            # pylint: disable=cyclic-import
             from qiskit.quantum_info import Operator
             op = Operator(np.eye(2 ** self.num_qubits))
-            op._definition_to_matrix(self.definition)
+            op._definition_to_matrix(self)
             return op.data
         else:
             raise CircuitError('neither to_matrix nor definition defined '

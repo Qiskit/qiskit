@@ -1358,35 +1358,38 @@ class TestStandardMethods(QiskitTestCase):
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
-            sig = signature(gate_class)
-            if gate_class == MSGate:
-                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
-                # 3 arguments but really its only 2. This if can be removed once the deprecated
-                # n_qubits argument is no longer supported.
-                free_params = 2
-            else:
-                free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
-            try:
-                gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
-                self.log.info(
-                    'Cannot init gate with params only. Skipping %s',
-                    gate_class)
-                continue
-            if gate.name in ['U', 'CX']:
-                continue
-            circ = QuantumCircuit(gate.num_qubits)
-            circ.append(gate, range(gate.num_qubits))
-            try:
-                gate_matrix = gate.to_matrix()
-            except CircuitError:
-                # gate doesn't implement to_matrix method: skip
-                self.log.info('to_matrix method FAILED for "%s" gate',
-                              gate.name)
-                continue
-            definition_unitary = execute([circ], simulator).result().get_unitary()
-            self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
-            self.assertTrue(is_unitary_matrix(gate_matrix))
+            with self.subTest(i=gate_class):
+                sig = signature(gate_class)
+                if gate_class == MSGate:
+                    # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature
+                    # detects 3 arguments but really its only 2. This if can be removed once
+                    # the deprecated qubits argument is no longer supported.
+                    free_params = 2
+                else:
+                    free_params = len([p for p in sig.parameters.values()
+                                       if p != p.POSITIONAL_ONLY])
+                try:
+                    gate = gate_class(*params[0:free_params])
+                except (CircuitError, QiskitError, AttributeError):
+                    self.log.info(
+                        'Cannot init gate with params only. Skipping %s',
+                        gate_class)
+                    continue
+                if gate.name in ['U', 'CX']:
+                    continue
+                circ = QuantumCircuit(gate.num_qubits)
+                circ.append(gate, range(gate.num_qubits))
+                try:
+                    gate_matrix = gate.to_matrix()
+                except CircuitError:
+                    # gate doesn't implement to_matrix method: skip
+                    self.log.info('to_matrix method FAILED for "%s" gate',
+                                  gate.name)
+                    continue
+                definition_unitary = execute([circ],
+                                             simulator).result().get_unitary()
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+                self.assertTrue(is_unitary_matrix(gate_matrix))
 
 
 @ddt

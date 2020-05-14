@@ -508,13 +508,13 @@ class Operator(BaseOperator):
                 pass
         return mat
 
-    def _definition_to_matrix(self, definition, qargs=None):
+    def _definition_to_matrix(self, obj, qargs=None):
         # If the instruction doesn't have a matrix defined we use its
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
-        if definition is None:
+        if obj.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-        for instr, qregs, cregs in definition:
+        for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
                     'Cannot apply instruction with classical registers: {}'.format(

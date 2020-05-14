@@ -14,16 +14,13 @@
 
 """Test Qiskit's Gate class."""
 
-import unittest
 
 import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit import Parameter
-from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister
-from qiskit.quantum_info import Operator
+from qiskit.circuit import QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 
@@ -40,6 +37,17 @@ class TestGate(QiskitTestCase):
         gate_matrix = circ.to_gate().to_matrix()
         self.assertIsInstance(gate_matrix, np.ndarray)
         self.assertEqual(gate_matrix.shape, (4, 4))
+
+    def test_to_matrix_from_parameterized_definition(self):
+        """Test generating matrix from definition."""
+        # Although this currently fails it could be allowed if Operator
+        # could do symbolic composition.
+        qr = QuantumRegister(1)
+        angle = Parameter('α')
+        circ = QuantumCircuit(qr, name='circ')
+        circ.u1(angle, qr[0])
+        with self.assertRaises(TypeError):
+            circ.to_gate().to_matrix()
 
     def test_to_matrix_from_opaque_gate(self):
         """Test to_matrix raises for opaque gate."""
