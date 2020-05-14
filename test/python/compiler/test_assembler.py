@@ -326,12 +326,18 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(_qobj_inst_params(7, 0), [1, 0])
         self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
 
-    def test_init_qubits(self):
-        """Check that the init_qubits assemble option is passed on to the qobj."""
+    def test_init_qubits_default(self):
+        """Check that the init_qubits=None assemble option is passed on to the qobj."""
         qobj = assemble(self.circ)
-        self.assertRaises(AttributeError, getattr, qobj.config, 'init_qubits')
+        self.assertEqual(qobj.config.init_qubits, True)
+
+    def test_init_qubits_true(self):
+        """Check that the init_qubits=True assemble option is passed on to the qobj."""
         qobj = assemble(self.circ, init_qubits=True)
         self.assertEqual(qobj.config.init_qubits, True)
+
+    def test_init_qubits_false(self):
+        """Check that the init_qubits=False assemble option is passed on to the qobj."""
         qobj = assemble(self.circ, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
@@ -699,13 +705,13 @@ class TestPulseAssembler(QiskitTestCase):
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend)
-        self.assertRaises(AttributeError, getattr, qobj.config, 'init_qubits')
+        self.assertEqual(qobj.config.init_qubits, True)
 
     def test_init_qubits_true(self):
         """Check that the init_qubits=True assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend, init_qubits=True)
         self.assertEqual(qobj.config.init_qubits, True)
-  
+
     def test_init_qubits_false(self):
         """Check that the init_qubits=False assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend, init_qubits=False)
