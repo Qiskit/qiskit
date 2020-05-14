@@ -32,37 +32,8 @@ from .exceptions import PulseError
 
 # pylint: disable=missing-return-doc
 
+Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
-class Interval:
-    def __init__(self, start: int, stop: int):
-        """Create an interval, (start, stop).
-
-            Args:
-                start: Starting value of interval
-                stop: Stopping value of interval
-
-            Raises:
-                PulseError: when invalid time or duration is specified
-        """
-        if start < 0:
-            raise PulseError("Cannot create Interval with negative starting value")
-        if stop < 0:
-            raise PulseError("Cannot create Interval with negative stopping value")
-        if start > stop:
-            raise PulseError("Cannot create Interval with value start after stop")
-        self._start = start
-        self._stop = stop
-    
-    def start(self):
-        """Start of interval."""
-        return self._start
-
-    @property
-    def stop(self):
-        """Stop of interval."""
-        return self._stop
-    
-
 
 
 class Schedule(ScheduleComponent):
@@ -365,23 +336,35 @@ class Schedule(ScheduleComponent):
 
         def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
             channels = if_scalar_cast_to_list(channels)
-            def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def channel_filter(time_inst) -> bool:
+                """Filter channel.
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
             types = if_scalar_cast_to_list(types)
-            def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def instruction_filter(time_inst) -> bool:
+                """Filter instruction.
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
         def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
             ranges = if_scalar_cast_to_list(ranges)
-            def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+            def interval_filter(time_inst) -> bool:
+                """Filter interval.
+                Args:
+                    time_inst (Tuple[int, Instruction]): Time
+                """
                 for i in ranges:
-                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
-                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
-                            for ts in time_inst[1].timeslots.timeslots]):
+                    inst_start = time_inst[0]
+                    inst_stop = inst_start + time_inst[1].duration
+                    if i[0] <= inst_start and inst_stop <= i[1]:
                         return True
                 return False
             return interval_filter
