@@ -142,6 +142,22 @@ class TestDensityMatrix(QiskitTestCase):
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
 
+        # Test initialize instruction
+        init = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
+        target = DensityMatrix(init)
+        circuit = QuantumCircuit(2)
+        circuit.initialize(init.data, [0, 1])
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test reset instruction
+        target = DensityMatrix([1, 0])
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.reset(0)
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
     def test_from_instruction(self):
         """Test initialization from an instruction."""
         target_vec = Statevector(np.dot(HGate().to_matrix(), [1, 0]))
