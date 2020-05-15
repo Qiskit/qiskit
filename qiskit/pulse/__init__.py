@@ -137,7 +137,8 @@ from .commands import AcquireInstruction, FrameChange, PersistentValue
 from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot, SetFrequency
+from .instructions import (Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot,
+                           SetFrequency, ShiftFrequency)
 from .interfaces import ScheduleComponent
 from .pulse_lib import (SamplePulse, Gaussian, GaussianSquare, Drag,
                         Constant, ConstantPulse, ParametricPulse)
