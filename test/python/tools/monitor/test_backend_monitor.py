@@ -24,12 +24,9 @@ import qiskit
 from qiskit import providers
 from qiskit.tools.monitor import backend_overview, backend_monitor
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeProvider
+from qiskit.test.mock import FakeProviderFactory
 from qiskit.test.mock import FakeBackend
 from qiskit.test.mock import FakeVigo
-
-
-FAKE_PROV = FakeProvider()
 
 
 class TestBackendOverview(QiskitTestCase):
@@ -45,11 +42,22 @@ class TestBackendOverview(QiskitTestCase):
         else:
             del providers.ibmq
 
+    def _restore_ibmq_mod(self):
+        if self.ibmq_module_backup is not None:
+            sys.modules['qiskit.providers.ibmq'] = self.ibmq_module_backup
+        else:
+            sys.modules.pop('qiskit.providers.ibmq')
+
     def setUp(self):
         super().setUp()
         ibmq_mock = MagicMock()
         ibmq_mock.IBMQBackend = FakeBackend
+        if 'qiskit.providers.ibmq' in sys.modules:
+            self.ibmq_module_backup = sys.modules['qiskit.providers.ibmq']
+        else:
+            self.ibmq_module_backup = None
         sys.modules['qiskit.providers.ibmq'] = ibmq_mock
+        self.addCleanup(self._restore_ibmq_mod)
 
         if hasattr(qiskit, 'IBMQ'):
             self.import_error = False
@@ -57,7 +65,7 @@ class TestBackendOverview(QiskitTestCase):
             self.import_error = True
             qiskit.IBMQ = None
         self.ibmq_back = qiskit.IBMQ
-        qiskit.IBMQ = FakeProvider()
+        qiskit.IBMQ = FakeProviderFactory()
         self.addCleanup(self._restore_ibmq)
         if hasattr(providers, 'ibmq'):
             self.prov_backup = providers.ibmq

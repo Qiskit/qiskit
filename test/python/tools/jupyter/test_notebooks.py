@@ -50,9 +50,9 @@ class TestJupyter(QiskitTestCase):
         import qiskit
         import sys
         from unittest.mock import create_autospec, MagicMock
-        from qiskit.test.mock import FakeProvider
+        from qiskit.test.mock import FakeProviderFactory
         from qiskit.providers import basicaer
-        fake_prov = FakeProvider()
+        fake_prov = FakeProviderFactory()
         qiskit.IBMQ = fake_prov
         ibmq_mock = create_autospec(basicaer)
         ibmq_mock.IBMQJobApiError = MagicMock()
