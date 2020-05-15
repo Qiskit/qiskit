@@ -802,6 +802,10 @@
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
+                        },
+                        "init_qubits": {
+                            "description": "Whether to initialize the qubits in the ground state before each shot.",
+                            "type": "boolean"
                         }
                     },
                     "title": "Experiment level configuration",
