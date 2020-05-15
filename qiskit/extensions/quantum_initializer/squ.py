@@ -25,6 +25,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
 from qiskit.circuit.gate import Gate
+from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates.ry import RYGate
@@ -35,7 +36,7 @@ from qiskit.util import deprecate_arguments
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class SingleQubitUnitary(Gate):
+class SingleQubitUnitary(UnitaryGate):
     """
     u = 2*2 unitary (given as a (complex) numpy.ndarray)
 
@@ -63,7 +64,7 @@ class SingleQubitUnitary(Gate):
         self._diag = None
 
         # Create new gate
-        super().__init__("unitary", 1, [unitary_matrix])
+        super().__init__(unitary_matrix)
 
     @property
     def diag(self):
