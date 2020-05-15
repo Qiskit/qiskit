@@ -1345,6 +1345,7 @@ class TestStandard3Q(QiskitTestCase):
                          [self.qr[1], self.qr2[1], self.qr3[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
+
 @ddt
 class TestStandardMethods(QiskitTestCase):
     """Standard Extension Test."""
@@ -1388,8 +1389,6 @@ class TestStandardMethods(QiskitTestCase):
             return
         definition_unitary = execute([circ],
                                      self.simulator).result().get_unitary()
-        if not matrix_equal(definition_unitary, gate_matrix):
-            import ipdb;ipdb.set_trace()
         self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
         self.assertTrue(is_unitary_matrix(gate_matrix))
 
