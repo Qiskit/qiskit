@@ -308,7 +308,13 @@ class TestDagCompose(QiskitTestCase):
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
-        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
+        dag_left = circuit_to_dag(self.circuit_left)
+        dag_right = circuit_to_dag(circuit_right)
+
+        # permuted subset of qubits and clbits
+        dag_left.compose(dag_right, qubits=[self.left_qubit1, self.left_qubit4],
+                         clbits=[self.left_clbit1, self.left_clbit0])
+        circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.x(self.left_qubit4).c_if(*self.condition)
