@@ -22,8 +22,7 @@ import numpy as np
 
 from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
                                    ListOp, Zero, One, Plus, Minus, StateFn,
-                                   PauliExpectation, AbelianGrouper,
-                                   CircuitSampler)
+                                   PauliExpectation, CircuitSampler)
 
 from qiskit import BasicAer
 
@@ -149,24 +148,6 @@ class TestPauliExpectation(QiskitAquaTestCase):
 
         converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
         np.testing.assert_array_almost_equal(converted_meas.eval(), [[1, -1, 0], [1, -1, 0]])
-
-    def test_abelian_grouper(self):
-        """ abelian grouper test """
-        two_qubit_H2 = (-1.052373245772859 * I ^ I) + \
-                       (0.39793742484318045 * I ^ Z) + \
-                       (-0.39793742484318045 * Z ^ I) + \
-                       (-0.01128010425623538 * Z ^ Z) + \
-                       (0.18093119978423156 * X ^ X)
-        grouped_sum = AbelianGrouper().convert(two_qubit_H2)
-        self.assertEqual(len(grouped_sum.oplist), 2)
-        paulis = (I ^ I ^ X ^ X * 0.2) + \
-                 (Z ^ Z ^ X ^ X * 0.3) + \
-                 (Z ^ Z ^ Z ^ Z * 0.4) + \
-                 (X ^ X ^ Z ^ Z * 0.5) + \
-                 (X ^ X ^ X ^ X * 0.6) + \
-                 (I ^ X ^ X ^ X * 0.7)
-        grouped_sum = AbelianGrouper().convert(paulis)
-        self.assertEqual(len(grouped_sum.oplist), 4)
 
     def test_grouped_pauli_expectation(self):
         """ grouped pauli expectation test """
