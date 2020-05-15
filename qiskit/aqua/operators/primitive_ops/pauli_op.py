@@ -248,8 +248,8 @@ class PauliOp(PrimitiveOp):
         if not isinstance(other_op, PauliOp):
             return False
         # Don't use compose because parameters will break this
-        self_bits = self.primitive.z.astype(int) + 2 * self.primitive.x.astype(int)
-        other_bits = other_op.primitive.z.astype(int) + 2 * other_op.primitive.x.astype(int)
+        self_bits = self.primitive.z + 2 * self.primitive.x
+        other_bits = other_op.primitive.z + 2 * other_op.primitive.x
         return all((self_bits * other_bits) * (self_bits - other_bits) == 0)
 
     def to_circuit(self) -> QuantumCircuit:
