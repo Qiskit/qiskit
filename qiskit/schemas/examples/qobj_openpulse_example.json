@@ -13,6 +13,7 @@
         "meas_level": 2,
         "memory_slot_size": 1,
         "rep_time": 1000,
+        "init_qubits": false,
         "qubit_lo_freq": [5.2,5.15,5.05],
         "meas_lo_freq": [6.9,6.8,6.7],
         "pulse_library": [
