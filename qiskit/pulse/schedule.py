@@ -40,7 +40,7 @@ class Schedule(ScheduleComponent):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
     over all input signal *channels* and supporting special syntaxes for building.
     """
-    
+
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
@@ -323,7 +323,8 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool
             channels: For example, [DriveChannel(0), AcquireChannel(0)] or DriveChannel(0)
-            instruction_types: For example, [PulseInstruction, AcquireInstruction] or DelayInstruction
+            instruction_types: For example, [PulseInstruction, AcquireInstruction]
+                               or DelayInstruction
             time_ranges: For example, [(0, 5), (6, 10)] or (0, 5)
             intervals: For example, [Interval(0, 5), Interval(6, 10)] or Interval(0, 5)
         """
@@ -336,6 +337,7 @@ class Schedule(ScheduleComponent):
 
         def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
             channels = if_scalar_cast_to_list(channels)
+
             def channel_filter(time_inst) -> bool:
                 """Filter channel.
                 Args:
@@ -346,6 +348,7 @@ class Schedule(ScheduleComponent):
 
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
             types = if_scalar_cast_to_list(types)
+
             def instruction_filter(time_inst) -> bool:
                 """Filter instruction.
                 Args:
@@ -356,6 +359,7 @@ class Schedule(ScheduleComponent):
 
         def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
             ranges = if_scalar_cast_to_list(ranges)
+
             def interval_filter(time_inst) -> bool:
                 """Filter interval.
                 Args:
@@ -378,10 +382,8 @@ class Schedule(ScheduleComponent):
             filter_func_list.append(only_intervals(time_ranges))
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
-
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
-
 
     def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
         """Update all time tracking within this schedule based on the given schedule.
