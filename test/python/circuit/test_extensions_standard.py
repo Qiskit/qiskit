@@ -1354,8 +1354,7 @@ class TestStandardMethods(QiskitTestCase):
         self.params = [0.1 * i for i in range(10)]
         self.simulator = BasicAer.get_backend('unitary_simulator')
 
-    @data(*[gate for gate in
-            Gate.__subclasses__() + ControlledGate.__subclasses__()])
+    @data(*(Gate.__subclasses__() + ControlledGate.__subclasses__()))
     def test_to_matrix(self, gate_class):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
