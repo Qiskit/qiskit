@@ -37,7 +37,7 @@ class ExcitationPreserving(TwoLocal):
         1 & 0 & 0 & 0 \\
         0 & \cos(\th) & -\sin(\th) & 0 \\
         0 & \sin(\th) & \cos(\th) & 0 \\
-        0 & 0 & 0 e^{-i\phi}
+        0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
     for the mode ``'fsim'`` or with :math:`e^{-i\phi} = 1` for the mode ``'iswap'``.
@@ -105,7 +105,7 @@ class ExcitationPreserving(TwoLocal):
 
         Args:
             num_qubits: The number of qubits of the ExcitationPreserving circuit.
-            mode: aa
+            mode: Choose the entangler mode, can be `'iswap'` or `'fsim'`.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
                 layer is repeated.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'

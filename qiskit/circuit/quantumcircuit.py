@@ -30,7 +30,6 @@ from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parameter import Parameter
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
@@ -1508,7 +1507,7 @@ class QuantumCircuit:
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
-            if isinstance(value, Parameter):
+            if isinstance(value, ParameterExpression):
                 bound_circuit._substitute_parameter(parameter, value)
             else:
                 bound_circuit._bind_parameter(parameter, value)
@@ -1572,13 +1571,16 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
 
-    def _substitute_parameter(self, old_parameter, new_parameter):
+    def _substitute_parameter(self, old_parameter, new_parameter_expr):
         """Substitute an existing parameter in all circuit instructions and the parameter table."""
         for instr, param_index in self._parameter_table[old_parameter]:
-            new_param = instr.params[param_index].subs({old_parameter: new_parameter})
+            new_param = instr.params[param_index].subs({old_parameter: new_parameter_expr})
             instr.params[param_index] = new_param
-            self._rebind_definition(instr, old_parameter, new_parameter)
-        self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+            self._rebind_definition(instr, old_parameter, new_parameter_expr)
+
+        entry = self._parameter_table.pop(old_parameter)
+        for new_parameter in new_parameter_expr.parameters:
+            self._parameter_table[new_parameter] = entry
 
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
