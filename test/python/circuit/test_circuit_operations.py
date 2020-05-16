@@ -265,6 +265,41 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_pauli(self):
+        """Test measurements in Pauli X and Y basis."""
+        circuit = QuantumCircuit(3, 3)
+        circuit.measure_pauli('x', 0, 0)
+        circuit.measure_pauli('y', 1, 1)
+        circuit.measure_pauli('z', 2, 2)
+
+        expected = QuantumCircuit(3, 3)
+        # measurement in X basis
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.h(0)
+
+        # measurement in Y basis
+        expected.sdg(1)
+        expected.h(1)
+        expected.measure(1, 1)
+        expected.h(1)
+        expected.s(1)
+
+        # measurement in Z basis
+        expected.measure(2, 2)
+
+        self.assertEqual(expected, circuit.decompose())
+
+    def test_measure_pauli_broadcast(self):
+        """Test broadcasting works properly."""
+        circuit = QuantumCircuit(3, 3)
+        circuit.measure_pauli('z', [0, 1, 2], [0, 1, 2])
+
+        expected = QuantumCircuit(3, 3)
+        expected.measure([0, 1, 2], [0, 1, 2])
+
+        self.assertEqual(expected, circuit.decompose())
+
     def test_measure_all_copy(self):
         """Test measure_all with inplace=False
         """
