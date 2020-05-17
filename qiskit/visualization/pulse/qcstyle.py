@@ -129,12 +129,12 @@ class SchedStyle:
 
 class PulseStyle:
     """Style sheet for Qiskit-Pulse sample pulse drawer."""
-    def __init__(self, figsize: Tuple[float, float] = None,
-                 title_font_size: int = None,
-                 wave_color: List[str] = None,
-                 bg_color: str = None,
-                 num_points: int = None,
-                 dpi: int = None):
+    def __init__(self, figsize: Tuple[float, float] = mpl.rcParams['figure.figsize'],
+                 title_font_size: int = mpl.rcParams['figure.titlesize'],
+                 wave_color: List[str] = mpl.rcParams['axes.prop_cycle'].by_key()['color'][:2],
+                 bg_color: str = mpl.rcParams['axes.facecolor'],
+                 num_points: int = 1000,
+                 dpi: int = mpl.rcParams['figure.dpi']):
         """Create new style sheet.
 
         Args:
@@ -146,9 +146,9 @@ class PulseStyle:
             num_points: Number of points for interpolation.
             dpi: Resolution in the unit of dot per inch to save image.
         """
-        self.figsize = figsize or mpl.rcParams['figure.figsize']
-        self.title_font_size = title_font_size or mpl.rcParams['figure.titlesize']
-        self.wave_color = wave_color or mpl.rcParams['axes.prop_cycle'].by_key()['color'][:2]
-        self.bg_color = bg_color or mpl.rcParams['axes.facecolor']
-        self.num_points = num_points or 1000
-        self.dpi = dpi or mpl.rcParams['figure.dpi']
+        self.figsize = figsize
+        self.title_font_size = title_font_size
+        self.wave_color = wave_color
+        self.bg_color = bg_color
+        self.num_points = num_points
+        self.dpi = dpi
