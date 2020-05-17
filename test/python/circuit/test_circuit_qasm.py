@@ -14,6 +14,8 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import re
+import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import random_unitary
@@ -77,3 +79,26 @@ measure qr2[1] -> cr[2];\n"""
         qasm_str = circuit.qasm()
         circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
         self.assertEqual(circuit, circuit2)
+
+    def test_single_qubit_unitary_qasm(self):
+        """Test circuit qasm() method with SingleQubitUnitary gate.
+        """
+        register = QuantumRegister(1)
+        circuit = QuantumCircuit(register)
+        sqrtx_array = np.array(
+            [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]], dtype=np.complex
+        )
+        circuit.squ(sqrtx_array, register[0])
+        expected_qasm = (
+            r"OPENQASM 2.0;.*"
+            r'include "qelib1.inc";.*'
+            r"qreg q.*\[1\];.*"
+            r"gate unitary.* p0 \{.*"
+            r"rz\(-pi/2\) p0;.*"
+            r"ry\(-pi/2\) p0;.*"
+            r"rz\(pi/2\) p0;.*\}.*"
+            r"unitary.*q.*\[0\];"
+        )
+        self.assertIsNotNone(
+            re.search(expected_qasm, circuit.qasm(), re.DOTALL), circuit.qasm()
+        )
