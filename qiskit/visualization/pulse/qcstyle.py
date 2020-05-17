@@ -17,7 +17,7 @@
 """
 Style sheets for pulse visualization.
 """
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 import matplotlib as mpl
 
@@ -131,7 +131,7 @@ class SchedStyle:
 class PulseStyle:
     """Style sheet for Qiskit-Pulse sample pulse drawer."""
     def __init__(self, figsize: Tuple[float, float] = mpl.rcParams['figure.figsize'],
-                 title_font_size: int = mpl.rcParams['figure.titlesize'],
+                 title_font_size: Union[int, str] = mpl.rcParams['figure.titlesize'],
                  wave_color: List[str] = mpl.rcParams['axes.prop_cycle'].by_key()['color'][:2],
                  bg_color: str = mpl.rcParams['axes.facecolor'],
                  num_points: int = 1000,
