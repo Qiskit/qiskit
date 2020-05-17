@@ -19,6 +19,7 @@ Style sheets for pulse visualization.
 """
 from typing import Tuple, List
 
+import matplotlib as mpl
 
 class SchedStyle:
     """Style sheet for Qiskit-Pulse schedule drawer."""
@@ -128,8 +129,8 @@ class SchedStyle:
 
 class PulseStyle:
     """Style sheet for Qiskit-Pulse sample pulse drawer."""
-    def __init__(self, figsize: Tuple[float, float] = (7, 5),
-                 title_font_size: int = 18,
+    def __init__(self, figsize: Tuple[float, float] = None,
+                 title_font_size: int = None,
                  wave_color: List[str] = None,
                  bg_color: str = None,
                  num_points: int = None,
@@ -145,9 +146,9 @@ class PulseStyle:
             num_points: Number of points for interpolation.
             dpi: Resolution in the unit of dot per inch to save image.
         """
-        self.figsize = figsize
-        self.title_font_size = title_font_size
-        self.wave_color = wave_color or ['#ff0000', '#0000ff']
-        self.bg_color = bg_color or '#f2f3f4'
+        self.figsize = figsize or mpl.rcParams['figure.figsize']
+        self.title_font_size = title_font_size or mpl.rcParams['figure.titlesize']
+        self.wave_color = wave_color or mpl.rcParams['axes.prop_cycle'].by_key()['color'][:2]
+        self.bg_color = bg_color or mpl.rcParams['axes.facecolor']
         self.num_points = num_points or 1000
-        self.dpi = dpi or 150
+        self.dpi = dpi or mpl.rcParams['figure.dpi']
