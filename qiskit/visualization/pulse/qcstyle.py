@@ -21,9 +21,10 @@ from typing import Tuple, List
 
 import matplotlib as mpl
 
+
 class SchedStyle:
     """Style sheet for Qiskit-Pulse schedule drawer."""
-    def __init__(self, figsize: Tuple[float, float] = (10, 12),
+    def __init__(self, figsize: Tuple[float, float] = (10.0, 12.0),
                  fig_unit_h_table: float = 0.4,
                  use_table: bool = True,
                  table_columns: int = 2,
@@ -88,7 +89,7 @@ class SchedStyle:
         Example:
             Height of the event table is decided by multiple parameters.::
 
-                figsize = (10, 12)
+                figsize = (10.0, 12.0)
                 fig_unit_h_table = 0.4
                 table_columns = 2
                 max_table_ratio = 0.5
