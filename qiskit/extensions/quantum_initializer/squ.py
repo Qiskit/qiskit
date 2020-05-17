@@ -24,7 +24,6 @@ import cmath
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
-from qiskit.circuit.gate import Gate
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
