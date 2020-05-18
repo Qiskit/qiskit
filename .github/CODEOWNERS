@@ -6,8 +6,9 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-circuit/              @Qiskit/terra-core @cryoris
-extensions/           @Qiskit/terra-core @cryoris
+circuit/              @Qiskit/terra-core @cryoris @ewinston
+extensions/           @Qiskit/terra-core @cryoris @ewinston
+quantum_info/         @Qiskit/terra-core @ewinston
 providers/            @Qiskit/terra-core @jyu00
 pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
 scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
