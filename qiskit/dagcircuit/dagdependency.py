@@ -47,11 +47,11 @@ class DAGDependency:
 
     .. parsed-literal::
 
-                 ┌───┐
-        qr_0: |0>┤ H ├──■──
-                 └───┘┌─┴─┐
-        qr_1: |0>─────┤ X ├
-                      └───┘
+              ┌───┐
+        qr_0: ┤ H ├──■──
+              └───┘┌─┴─┐
+        qr_1: ─────┤ X ├
+                   └───┘
 
     The dependency DAG for the above circuit is represented by two nodes.
     The first one corresponds to Hadamard gate, the second one to the CNOT gate
