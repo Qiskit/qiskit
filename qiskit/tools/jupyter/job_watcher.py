@@ -18,7 +18,11 @@
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
 from qiskit.tools.events.pubsub import Subscriber
-from qiskit.providers.ibmq.job.exceptions import IBMQJobApiError
+try:
+    from qiskit.providers.ibmq.job.exceptions import IBMQJobApiError
+    HAS_IBMQ = True
+except ImportError:
+    HAS_IBMQ = False
 from .job_widgets import (build_job_viewer, make_clear_button,
                           make_labels, create_job_widget)
 from .watcher_monitor import _job_monitor
@@ -29,6 +33,10 @@ class JobWatcher(Subscriber):
     """
     def __init__(self):
         super().__init__()
+        if not HAS_IBMQ:
+            raise ImportError("qiskit-ibmq-provider is required to use the "
+                              "job watcher. To install it run 'pip install "
+                              "qiskit-ibmq-provider'")
         self.jobs = []
         self._init_subscriber()
         self.job_viewer = None
