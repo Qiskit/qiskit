@@ -29,8 +29,7 @@ from qiskit.quantum_info.operators import Operator
 
 
 class DAGDependency:
-    """
-    Object to represent a quantum circuit as a directed acyclic graph
+    r"""Object to represent a quantum circuit as a directed acyclic graph
     via operation dependencies (i.e. lack of commutation).
 
     The nodes in the graph are operations represented by quantum gates.
@@ -57,8 +56,8 @@ class DAGDependency:
     qr_1: |0>─────┤ X ├
                   └───┘
 
-    The dependency DAG for the above circuit is represented by two nodes (1 and 2):
-    the first one corresponds to Hadamard gate, the second one to the CNOT gate
+    The dependency DAG for the above circuit is represented by two nodes.
+    The first one corresponds to Hadamard gate, the second one to the CNOT gate
     as the gates do not commute there is an edge between the two nodes.
 
     **Reference:**
@@ -66,6 +65,7 @@ class DAGDependency:
     [1] Iten, R., Sutter, D. and Woerner, S., 2019.
     Efficient template matching in quantum circuits.
     `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
+
     """
 
     def __init__(self):
