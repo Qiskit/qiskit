@@ -41,20 +41,24 @@ class DAGDependency:
     The attributes are 'operation', 'successors', 'predecessors'.
     The retworkx PyDAG takes the following form:
 
-    [{'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bad0>,
-     'successors': [2], 'predecessors': []}),
-     { 'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bdd0>,
-    'successors': [], 'predecessors': [1]}]
+    .. parsed-literal::
+
+        [{'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bad0>,
+         'successors': [2], 'predecessors': []}),
+         { 'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bdd0>,
+        'successors': [], 'predecessors': [1]}]
 
     **Example:**
 
     Bell circuit with no measurement.
 
-             ┌───┐
-    qr_0: |0>┤ H ├──■──
-             └───┘┌─┴─┐
-    qr_1: |0>─────┤ X ├
-                  └───┘
+    .. parsed-literal::
+
+                 ┌───┐
+        qr_0: |0>┤ H ├──■──
+                 └───┘┌─┴─┐
+        qr_1: |0>─────┤ X ├
+                      └───┘
 
     The dependency DAG for the above circuit is represented by two nodes.
     The first one corresponds to Hadamard gate, the second one to the CNOT gate
@@ -65,7 +69,6 @@ class DAGDependency:
     [1] Iten, R., Sutter, D. and Woerner, S., 2019.
     Efficient template matching in quantum circuits.
     `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
-
     """
 
     def __init__(self):
@@ -473,18 +476,15 @@ def _commute(node1, node2):
             commute_measurement = True
         return commute_measurement
 
-    # Commutation for barrier
-    if node1.name == 'barrier' or node2.name == 'barrier':
+    # Commutation for barrier-like directives
+    directives = ['barrier', 'snapshot']
+    if node1.name in directives or node2.name in directives:
         intersection = set(qarg1).intersection(set(qarg2))
         if intersection:
-            commute_barrier = False
+            commute_directive = False
         else:
-            commute_barrier = True
-        return commute_barrier
-
-    # Commutation for snapshot
-    if node1.name == 'snapshot' or node2.name == 'snapshot':
-        return False
+            commute_directive = True
+        return commute_directive
 
     # List of non commuting gates (TO DO: add more elements)
     non_commute_list = [set(['x', 'y']), set(['x', 'z'])]
