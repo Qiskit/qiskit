@@ -39,8 +39,7 @@ class FakeRome(FakeBackend):
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 04/28/20.
-        """
+        """Returns a snapshot of device properties"""
         if not self._properties:
             dirname = os.path.dirname(__file__)
             filename = "props_rome.json"

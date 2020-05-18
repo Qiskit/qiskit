@@ -485,28 +485,25 @@ class MatplotlibDrawer:
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
                      color=color, linewidth=2, zorder=PORDER_LINE + 1)
 
-    def _barrier(self, config, anc):
+    def _barrier(self, config):
         xys = config['coord']
         group = config['group']
         y_reg = []
         for qreg in self._qreg_dict.values():
             if qreg['group'] in group:
                 y_reg.append(qreg['y'])
-        x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
-        box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
-                                width=0.6 * WID, height=box_y1 - box_y0,
-                                fc=self._style.bc, ec=None, alpha=0.6,
-                                linewidth=1.5, zorder=PORDER_GRAY)
-        self.ax.add_patch(box)
         for xy in xys:
             xpos, ypos = xy
             self.ax.plot([xpos, xpos], [ypos + 0.5, ypos - 0.5],
                          linewidth=1, linestyle="dashed",
                          color=self._style.lc,
                          zorder=PORDER_TEXT)
+            box = patches.Rectangle(xy=(xpos - (0.3 * WID), ypos - 0.5),
+                                    width=0.6 * WID, height=1,
+                                    fc=self._style.bc, ec=None, alpha=0.6,
+                                    linewidth=1.5, zorder=PORDER_GRAY)
+            self.ax.add_patch(box)
 
     def _linefeed_mark(self, xy):
         xpos, ypos = xy
@@ -544,6 +541,14 @@ class MatplotlibDrawer:
 
     def _draw_regs(self):
 
+        def _fix_double_script(label):
+            words = label.split(' ')
+            words = [word.replace('_', r'\_') if word.count('_') > 1 else word
+                     for word in words]
+            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word
+                     for word in words]
+            return ' '.join(words)
+
         len_longest_label = 0
         # quantum register
         for ii, reg in enumerate(self._qreg):
@@ -559,6 +564,7 @@ class MatplotlibDrawer:
             else:
                 label = '${name}$'.format(name=reg.register.name)
 
+            label = _fix_double_script(label)
             if len(label) > len_longest_label:
                 len_longest_label = len(label)
 
@@ -581,6 +587,7 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -591,6 +598,7 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -850,8 +858,7 @@ class MatplotlibDrawer:
                             _barriers['group'].append(q_group)
                         _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
-                        self._barrier(_barriers, this_anc)
-
+                        self._barrier(_barriers)
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
                     label = None if not hasattr(op.op, 'label') else op.op.label
@@ -1020,6 +1027,8 @@ class MatplotlibDrawer:
                     else:
                         self._custom_multiqubit_gate(
                             q_xy[num_ctrl_qubits:], wide=True, fc=color, text=disp)
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
+                                                     text=op.op.label or op.name)
 
                 # draw custom multi-qubit gate
                 else:

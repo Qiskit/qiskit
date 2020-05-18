@@ -48,6 +48,7 @@ def execute(experiments, backend,
             meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
+            init_qubits=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -196,6 +197,9 @@ def execute(experiments, backend,
         scheduling_method (str or list(str)):
             Optionally specify a particular scheduling method.
 
+        init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
+                            Default: ``True``.
+
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
             Refer to the backend documentation for details on these arguments.
@@ -275,8 +279,8 @@ def execute(experiments, backend,
                     rep_time=rep_time,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    **run_config
-                    )
+                    init_qubits=init_qubits,
+                    **run_config)
 
     # executing the circuits on the backend and returning the job
     start_time = time()

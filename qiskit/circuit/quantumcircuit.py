@@ -25,12 +25,10 @@ from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parameter import Parameter
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
@@ -522,41 +520,22 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None, label=None):
+    def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
-                instruction to append.
-            qargs (list(argument)): qubits to attach instruction to.
-            cargs (list(argument)): clbits to attach instruction to.
-            label (str): An optional label for the appended instruction (will override
-                any existing gate label).
+            instruction (qiskit.circuit.Instruction): Instruction instance to append
+            qargs (list(argument)): qubits to attach instruction to
+            cargs (list(argument)): clbits to attach instruction to
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
-        Raises:
-            CircuitError: If it is not possible to append the operator.
         """
-        from qiskit.quantum_info.operators.base_operator import BaseOperator
         # Convert input to Instruction
-        if isinstance(instruction, QuantumCircuit):
-            try:
-                instruction = instruction.to_gate()
-            except QiskitError:
-                instruction = instruction.to_instruction()
-        elif isinstance(instruction, BaseOperator):
-            try:
-                instruction = instruction.to_instruction()
-            except AttributeError:
-                raise CircuitError('Unable to append operator to circuit.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
-
-        if label is not None:
-            instruction.label = label
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -1490,7 +1469,7 @@ class QuantumCircuit:
 
         # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_param_dict.items():
-            if isinstance(value, Parameter):
+            if isinstance(value, ParameterExpression):
                 bound_circuit._substitute_parameter(parameter, value)
             else:
                 bound_circuit._bind_parameter(parameter, value)
@@ -1554,13 +1533,16 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
 
-    def _substitute_parameter(self, old_parameter, new_parameter):
+    def _substitute_parameter(self, old_parameter, new_parameter_expr):
         """Substitute an existing parameter in all circuit instructions and the parameter table."""
         for instr, param_index in self._parameter_table[old_parameter]:
-            new_param = instr.params[param_index].subs({old_parameter: new_parameter})
+            new_param = instr.params[param_index].subs({old_parameter: new_parameter_expr})
             instr.params[param_index] = new_param
-            self._rebind_definition(instr, old_parameter, new_parameter)
-        self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+            self._rebind_definition(instr, old_parameter, new_parameter_expr)
+
+        entry = self._parameter_table.pop(old_parameter)
+        for new_parameter in new_parameter_expr.parameters:
+            self._parameter_table[new_parameter] = entry
 
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
