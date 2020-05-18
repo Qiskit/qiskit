@@ -12,38 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Object to represent a quantum circuit as a directed acyclic graph
-in the dependency form (commutation).
-
-The nodes in the graph are operation represented by quantum gates.
-The edges correspond to non-commutation between two operations
-(i.e. a dependency). A directed edge from node A to node B means that
-operation A does not commute with operation B.
-The object's methods allow circuits to be constructed.
-
-e.g. Bell circuit with no measurement
-
-         ┌───┐
-qr_0: |0>┤ H ├──■──
-         └───┘┌─┴─┐
-qr_1: |0>─────┤ X ├
-              └───┘
-
-In the dag dependency form the circuit is represented by two nodes (1 and 2):
-the first one corresponds to Hamdamard gate, the second one to the CNot gate
-as the gates do not commute there is an edge between the wo noodes.
-
-The attributes are 'operation', 'successors', 'predecessors'
-In the Bell circuit, the retwork PyDAG takes the following form:
-
-[{'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bad0>,
- 'successors': [2], 'predecessors': []}),
- { 'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bdd0>,
-'successors': [], 'predecessors': [1]}]
-
-The reference paper is https://arxiv.org/abs/1909.05270v1
-
+"""DAGDependency class for representing non-commutativity in a circuit.
 """
 
 import heapq
@@ -61,7 +30,42 @@ from qiskit.quantum_info.operators import Operator
 
 class DAGDependency:
     """
-    Object to represent a quantum circuit as a DAG in the dependency form.
+    Object to represent a quantum circuit as a directed acyclic graph
+    via operation dependencies (i.e. lack of commutation).
+
+    The nodes in the graph are operations represented by quantum gates.
+    The edges correspond to non-commutation between two operations
+    (i.e. a dependency). A directed edge from node A to node B means that
+    operation A does not commute with operation B.
+    The object's methods allow circuits to be constructed.
+
+    The attributes are 'operation', 'successors', 'predecessors'.
+    The retworkx PyDAG takes the following form:
+
+    [{'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bad0>,
+     'successors': [2], 'predecessors': []}),
+     { 'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bdd0>,
+    'successors': [], 'predecessors': [1]}]
+
+    **Example:**
+
+    Bell circuit with no measurement.
+
+             ┌───┐
+    qr_0: |0>┤ H ├──■──
+             └───┘┌─┴─┐
+    qr_1: |0>─────┤ X ├
+                  └───┘
+
+    The dependency DAG for the above circuit is represented by two nodes (1 and 2):
+    the first one corresponds to Hadamard gate, the second one to the CNOT gate
+    as the gates do not commute there is an edge between the two nodes.
+
+    **Reference:**
+
+    [1] Iten, R., Sutter, D. and Woerner, S., 2019.
+    Efficient template matching in quantum circuits.
+    `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
     """
 
     def __init__(self):
