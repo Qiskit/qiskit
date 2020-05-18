@@ -38,15 +38,8 @@ class DAGDependency:
     operation A does not commute with operation B.
     The object's methods allow circuits to be constructed.
 
-    The attributes are 'operation', 'successors', 'predecessors'.
-    The retworkx PyDAG takes the following form:
-
-    .. parsed-literal::
-
-        [{'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bad0>,
-         'successors': [2], 'predecessors': []}),
-         { 'operation': <qiskit.dagcircuit.dagnode.DAGNode object at 0x12207bdd0>,
-        'successors': [], 'predecessors': [1]}]
+    The nodes in the graph have the following attributes:
+    'operation', 'successors', 'predecessors'.
 
     **Example:**
 
@@ -73,7 +66,7 @@ class DAGDependency:
 
     def __init__(self):
         """
-        Create an empty directed acyclis graph (dependency form)
+        Create an empty DAGDependency.
         """
         # Circuit name
         self.name = None
@@ -368,7 +361,7 @@ class DAGDependency:
         """
         Function to verify the commutation relation and reachability
         for predecessors, the nodes do not commute and
-        if the predecessor is reachable. Update the DAGcanonical by
+        if the predecessor is reachable. Update the DAGDependency by
         introducing edges and predecessors(attribute)
         """
         max_node_id = len(self._multi_graph) - 1
@@ -389,7 +382,7 @@ class DAGDependency:
     def add_successors(self):
         """
         Use _gather_succ and merge_no_duplicates to create the list of successors
-        for each node. Update DAGcanonical with attributes successors.
+        for each node. Update DAGDependency with attributes successors.
         """
         for node_id in range(len(self._multi_graph)-1, -1, -1):
 
@@ -400,9 +393,9 @@ class DAGDependency:
             self._multi_graph.get_node_data(node_id)['successors'] = list(
                 merge_no_duplicates(*(self._multi_graph.get_node_data(node_id)['successors'])))
 
-    def draw(self, scale=0.7, filename=None, style='color', category='dependency'):
+    def draw(self, scale=0.7, filename=None, style='color'):
         """
-        Draws the DAG canonical circuit.
+        Draws the DAGDependency graph.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
@@ -412,14 +405,14 @@ class DAGDependency:
             filename (str): file path to save image to (format inferred from name)
             style (str): 'plain': B&W graph
                          'color' (default): color input/output/op nodes
-            category(str): 'canonical' Other type of DAG
 
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
                 otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
-        return dag_drawer(dag=self, scale=scale, filename=filename, style=style, category=category)
+        return dag_drawer(dag=self, scale=scale, filename=filename,
+                          style=style, category='dependency')
 
 
 def merge_no_duplicates(*iterables):
