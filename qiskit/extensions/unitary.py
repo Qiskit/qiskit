@@ -133,8 +133,10 @@ class UnitaryGate(Gate):
         """
         cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
         iso = isometry.Isometry(cmat, 0, 0)
-        return ControlledGate('c-unitary', self.num_qubits + num_ctrl_qubits, cmat,
-                              definition=iso.definition, label=label)
+        cunitary = ControlledGate('c-unitary', self.num_qubits + num_ctrl_qubits, cmat,
+                                  definition=iso.definition, label=label)
+        cunitary.base_gate.label = self.label
+        return cunitary
 
     def qasm(self):
         """ The qasm for a custom unitary gate
