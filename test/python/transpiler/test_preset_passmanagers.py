@@ -70,6 +70,7 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
+
 @ddt
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
