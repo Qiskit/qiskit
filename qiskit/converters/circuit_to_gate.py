@@ -20,7 +20,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
 
 
-def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
+def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
     """Build a ``Gate`` object from a ``QuantumCircuit``.
 
     The gate is anonymous (not tied to a named quantum register),
@@ -35,6 +35,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
            Gate.
         equivalence_library (EquivalenceLibrary): Optional equivalence library
            where the converted gate will be registered.
+        label (str): Optional gate label. If not provided it takes the circuit name.
 
     Raises:
         QiskitError: if circuit is non-unitary or if
@@ -67,7 +68,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
 
     gate = Gate(name=circuit.name,
                 num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=sorted(parameter_dict.values(), key=lambda p: p.name))
+                params=sorted(parameter_dict.values(), key=lambda p: p.name),
+                label=label or circuit.name)
     gate.condition = None
 
     def find_bit_position(bit):
