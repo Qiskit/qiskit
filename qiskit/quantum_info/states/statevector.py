@@ -595,29 +595,40 @@ class Statevector(QuantumState):
 
     def _append_instruction(self, obj, qargs=None):
         """Update the current Statevector by applying an instruction."""
+        from qiskit.circuit.reset import Reset
+        from qiskit.circuit.barrier import Barrier
+
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
             # Perform the composition and inplace update the current state
             # of the operator
-            state = self.evolve(mat, qargs=qargs)
-            self._data = state.data
-        else:
-            # If the instruction doesn't have a matrix defined we use its
-            # circuit decomposition definition if it exists, otherwise we
-            # cannot compose this gate and raise an error.
-            if obj.definition is None:
-                raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-            for instr, qregs, cregs in obj.definition:
-                if cregs:
-                    raise QiskitError(
-                        'Cannot apply instruction with classical registers: {}'.format(
-                            instr.name))
-                # Get the integer position of the flat register
-                if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
-                else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+            self._data = self.evolve(mat, qargs=qargs).data
+            return
+
+        # Special instruction types
+        if isinstance(obj, Reset):
+            self._data = self.reset(qargs)._data
+            return
+        if isinstance(obj, Barrier):
+            return
+
+        # If the instruction doesn't have a matrix defined we use its
+        # circuit decomposition definition if it exists, otherwise we
+        # cannot compose this gate and raise an error.
+        if obj.definition is None:
+            raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+
+        for instr, qregs, cregs in obj.definition:
+            if cregs:
+                raise QiskitError(
+                    'Cannot apply instruction with classical registers: {}'.format(
+                        instr.name))
+            # Get the integer position of the flat register
+            if qargs is None:
+                new_qargs = [tup.index for tup in qregs]
+            else:
+                new_qargs = [qargs[tup.index] for tup in qregs]
+            self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""

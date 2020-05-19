@@ -269,7 +269,26 @@ class InstructionToQobjConverter:
             'name': 'setf',
             't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
-            'frequency': instruction.frequency
+            'frequency': instruction.frequency / 1e9
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.ShiftFrequency)
+    def convert_shift_frequency(self, shift, instruction):
+        """Return converted `ShiftFrequency`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (ShiftFrequency): Shift frequency instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'shiftf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency / 1e9
         }
         return self._qobj_model(**command_dict)
 
@@ -532,7 +551,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = instruction.frequency
+        frequency = instruction.frequency * 1e9
 
         if isinstance(frequency, str):
             frequency_expr = parse_string_expr(frequency, partial_binding=False)
@@ -544,6 +563,31 @@ class QobjToInstructionConverter:
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
         return instructions.SetFrequency(frequency, channel) << t0
+
+    @bind_name('shiftf')
+    def convert_shift_frequency(self, instruction):
+        """Return converted `ShiftFrequency`.
+
+        Args:
+            instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        frequency = instruction.frequency * 1e9
+
+        if isinstance(frequency, str):
+            frequency_expr = parse_string_expr(frequency, partial_binding=False)
+
+            def gen_sf_schedule(*args, **kwargs):
+                _frequency = frequency_expr(*args, **kwargs)
+                return instructions.ShiftFrequency(_frequency, channel) << t0
+
+            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+
+        return instructions.ShiftFrequency(frequency, channel) << t0
 
     @bind_name('delay')
     def convert_delay(self, instruction):

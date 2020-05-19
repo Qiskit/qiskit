@@ -107,12 +107,18 @@ def random_clifford(num_qubits, seed=None):
     _fill_tril(delta1, rng)
     _fill_tril(delta2, rng)
 
+    # For large num_qubits numpy.inv function called below can
+    # return invalid output leading to a non-symplectic Clifford
+    # being generated. This can be prevented by manually forcing
+    # block inversion of the matrix.
+    block_inverse_threshold = 50
+
     # Compute stabilizer table
     zero = np.zeros((num_qubits, num_qubits), dtype=np.int8)
     prod1 = np.matmul(gamma1, delta1) % 2
     prod2 = np.matmul(gamma2, delta2) % 2
-    inv1 = _inverse_tril(delta1).transpose()
-    inv2 = _inverse_tril(delta2).transpose()
+    inv1 = _inverse_tril(delta1, block_inverse_threshold).transpose()
+    inv2 = _inverse_tril(delta2, block_inverse_threshold).transpose()
     table1 = np.block([[delta1, zero], [prod1, inv1]])
     table2 = np.block([[delta2, zero], [prod2, inv2]])
 
@@ -197,7 +203,7 @@ def _fill_tril(mat, rng, symmetric=False):
         mat[(cols, rows)] = vals
 
 
-def _inverse_tril(mat):
+def _inverse_tril(mat, block_inverse_threshold):
     """Invert a lower-triangular matrix with unit diagonal."""
     # Optimized inversion function for low dimensions
     dim = mat.shape[0]
@@ -221,8 +227,7 @@ def _inverse_tril(mat):
     # For higher dimensions we use Numpy's inverse function
     # however this function tends to fail and result in a non-symplectic
     # final matrix if n is too large.
-    max_np_inv = 150
-    if dim <= max_np_inv:
+    if dim <= block_inverse_threshold:
         return np.linalg.inv(mat).astype(np.int8) % 2
 
     # For very large matrices  we divide the matrix into 4 blocks of
@@ -232,8 +237,8 @@ def _inverse_tril(mat):
     # call the inverse function recursively to compute inv(A) and invD
 
     dim1 = dim // 2
-    mat_a = _inverse_tril(mat[0:dim1, 0:dim1])
-    mat_d = _inverse_tril(mat[dim1:dim, dim1:dim])
+    mat_a = _inverse_tril(mat[0:dim1, 0:dim1], block_inverse_threshold)
+    mat_d = _inverse_tril(mat[dim1:dim, dim1:dim], block_inverse_threshold)
     mat_c = np.matmul(np.matmul(mat_d, mat[dim1:dim, 0:dim1]), mat_a)
     inv = np.block([[mat_a, np.zeros((dim1, dim - dim1), dtype=int)], [mat_c, mat_d]])
     return inv % 2
