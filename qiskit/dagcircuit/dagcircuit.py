@@ -152,6 +152,31 @@ class DAGCircuit:
 
         return G
 
+    @classmethod
+    def from_networkx(cls, graph):
+        """Take a networkx MultiDigraph and create a new DAGCircuit.
+
+        Args:
+            graph (networkx.MultiDiGraph): The graph to create a DAGCircuit
+                object from. The format of this MultiDiGraph format must be
+                in the same format as returned by to_networkx.
+
+        Returns:
+            DAGCircuit: The dagcircuit object created from the networkx
+                MultiDiGraph.
+        """
+
+        dag = DAGCircuit()
+        for node in nx.topological_sort(graph):
+            if node.type == 'out':
+                continue
+            if node.type == 'in':
+                dag._add_wire(node.wire)
+            elif node.type == 'op':
+                dag.apply_operation_back(node.op.copy(), node.qargs,
+                                         node.cargs, node.condition)
+        return dag
+
     def qubits(self):
         """Return a list of qubits (as a list of Qubit instances)."""
         return [qubit for qreg in self.qregs.values() for qubit in qreg]
