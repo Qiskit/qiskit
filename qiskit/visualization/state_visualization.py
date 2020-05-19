@@ -820,7 +820,7 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
         else:
             break
 
-    n = 32
+    n = 64
     theta = np.ones(n)
 
     ax2 = fig.add_subplot(gs[2:, 2:])
