@@ -448,7 +448,7 @@ class Schedule(ScheduleComponent):
              framechange: bool = True, scaling: float = None,
              channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True,
-             title: bool = False):
+             draw_title: bool = False):
         r"""Plot the schedule.
 
         Args:
@@ -469,7 +469,7 @@ class Schedule(ScheduleComponent):
             scaling: Deprecated, see ``scale``.
             channels: A list of channel names to plot.
             show_framechange_channels: Plot channels with only framechanges.
-            title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set "True".
 
         Additional Information:
             If you want to manually rescale the waveform amplitude of channels one by one,
@@ -507,7 +507,7 @@ class Schedule(ScheduleComponent):
                                           interactive=interactive, table=table, label=label,
                                           framechange=framechange, channels=channels,
                                           show_framechange_channels=show_framechange_channels,
-                                          title=title)
+                                          draw_title=draw_title)
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.

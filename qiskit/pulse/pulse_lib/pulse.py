@@ -57,7 +57,7 @@ class Pulse(ABC):
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
              scaling: float = None,
-             title: bool = False):
+             draw_title: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -69,7 +69,7 @@ class Pulse(ABC):
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
             scaling: Deprecated, see `scale`
-            title: Add a title to the plot when "True".
+            draw_title: Add a title to the plot when "True".
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope

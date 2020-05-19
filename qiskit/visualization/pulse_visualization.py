@@ -50,7 +50,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                  channels: List[Channel] = None,
                  scaling: float = None,
                  show_framechange_channels: bool = True,
-                 title: bool = False):
+                 draw_title: bool = False):
     """Plot the interpolated envelope of pulse and schedule.
 
     Args:
@@ -80,7 +80,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
             All non-empty channels are shown if not provided.
         show_framechange_channels: When set `True` plot channels
             with only framechange instructions.
-        title: Add a title to the plot when set "True".
+        draw_title: Add a title to the plot when set "True".
 
     Returns:
         matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -163,7 +163,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
     if isinstance(data, SamplePulse):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
-                            title=title)
+                            draw_title=draw_title)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
@@ -171,7 +171,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                             plot_all=plot_all, table=table, label=label,
                             framechange=framechange, channels=channels,
                             show_framechange_channels=show_framechange_channels,
-                            title=title)
+                            draw_title=draw_title)
     else:
         raise VisualizationError('This data cannot be visualized.')
 

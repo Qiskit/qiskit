@@ -259,7 +259,7 @@ class SamplePulseDrawer:
              dt: float = 1.0,
              interp_method: Callable = None,
              scale: float = 1, scaling: float = None,
-             title: bool = False):
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -268,7 +268,7 @@ class SamplePulseDrawer:
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
             scaling: Deprecated, see `scale`.
-            title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set "True".
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
@@ -311,7 +311,7 @@ class SamplePulseDrawer:
 
         if self.style.title_font_size > 0:
             title_label = str('')
-            if title:
+            if draw_title:
                 title_label = str(pulse.name)
             figure.suptitle(title_label,
                             fontsize=self.style.title_font_size,
@@ -759,7 +759,7 @@ class ScheduleDrawer:
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List[Channel] = None,
              show_framechange_channels: bool = True,
-             title: bool = False):
+             draw_title: bool = False):
         """Draw figure.
 
         Args:
@@ -784,7 +784,7 @@ class ScheduleDrawer:
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
                 with only framechange instructions.
-            title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set "True".
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
@@ -870,7 +870,7 @@ class ScheduleDrawer:
 
         if self.style.title_font_size > 0:
             title_label = str('')
-            if title:
+            if draw_title:
                 title_label = str(schedule.name)
             figure.suptitle(title_label,
                             fontsize=self.style.title_font_size,

@@ -92,7 +92,7 @@ class ParametricPulse(Pulse):
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
              scaling: float = None,
-             title: bool = False):
+             draw_title: bool = False):
         """Plot the pulse.
 
         Args:
@@ -104,13 +104,13 @@ class ParametricPulse(Pulse):
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
             scaling: Deprecated, see `scale`
-            title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set "True".
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         return self.get_sample_pulse().draw(dt=dt, style=style, filename=filename,
                                             interp_method=interp_method, scale=scale,
-                                            interactive=interactive, title=title)
+                                            interactive=interactive, draw_title=draw_title)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters

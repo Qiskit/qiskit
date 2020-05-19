@@ -103,7 +103,7 @@ class SamplePulse(Pulse):
              interp_method: Optional[Callable] = None,
              scale: float = 1, interactive: bool = False,
              scaling: float = None,
-             title: bool = False):
+             draw_title: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -115,7 +115,7 @@ class SamplePulse(Pulse):
             interactive: When set true show the circuit in a new window.
                          (This depends on the matplotlib backend being used.)
             scaling: Deprecated, see `scale`,
-            title: Add a title to the plot when set "True".
+            draw_title: Add a title to the plot when set "True".
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -131,7 +131,7 @@ class SamplePulse(Pulse):
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
                                           interp_method=interp_method, scale=scale,
-                                          interactive=interactive, title=title)
+                                          interactive=interactive, draw_title=draw_title)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.samples.shape == other.samples.shape and \
