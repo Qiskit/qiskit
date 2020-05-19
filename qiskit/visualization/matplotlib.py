@@ -155,6 +155,10 @@ class MatplotlibDrawer:
             self.ax = ax
             self.figure = ax.get_figure()
 
+        self._text_figure = plt.figure()
+        self._renderer = self._text_figure.canvas.get_renderer()
+        self._reg_long_text = 0
+
         self.fold = fold
         if self.fold < 2:
             self.fold = -1
@@ -177,6 +181,13 @@ class MatplotlibDrawer:
     @property
     def ast(self):
         return self._ast
+
+    # This is a maplotlib trick for getting the actual text width in some coords.
+    # The / 39.0 converts to x coords. If Latex formatting is used, it must be
+    # removed or raw text used to get an accurate width.
+    def _get_text_width(self, text):
+        t = plt.text(0.5,0.5,text)
+        return t.get_window_extent(renderer=self._renderer).width / 39.0
 
     def _custom_multiqubit_gate(self, xy, cxy=None, fc=None, wide=True, text=None,
                                 subtext=None):
@@ -494,8 +505,9 @@ class MatplotlibDrawer:
                 y_reg.append(qreg['y'])
         x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
+        fold = self.fold if self.fold > 0 else 20
+        box_y0 = min(y_reg) - int(anc / fold) * (self._cond['n_lines'] + 1) - 0.5
+        box_y1 = max(y_reg) - int(anc / fold) * (self._cond['n_lines'] + 1) + 0.5
         box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
                                 width=0.6 * WID, height=box_y1 - box_y0,
                                 fc=self._style.bc, ec=None, alpha=0.6,
@@ -533,6 +545,8 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
+
+        plt.close(self._text_figure)
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
@@ -543,24 +557,28 @@ class MatplotlibDrawer:
             return self.figure
 
     def _draw_regs(self):
+        longest_label_width = 0
 
-        len_longest_label = 0
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
                                                               index=reg.index)
+                    twidth = self._get_text_width(reg.register.name+'i')
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
                         index=self.layout[reg.index].index,
                         physical=reg.index)
+                    # Add XXX to include mapsto symbol and extra number width
+                    twidth = self._get_text_width(self.layout[reg.index].register.name+'XXX')
             else:
                 label = '${name}$'.format(name=reg.register.name)
+                twidth = self._get_text_width(reg.register.name)
 
-            if len(label) > len_longest_label:
-                len_longest_label = len(label)
+            if twidth > longest_label_width:
+                longest_label_width = twidth
 
             pos = -ii
             self._qreg_dict[ii] = {
@@ -570,6 +588,7 @@ class MatplotlibDrawer:
                 'group': reg.register
             }
             self._cond['n_lines'] += 1
+
         # classical register
         if self._creg:
             n_creg = self._creg.copy()
@@ -581,6 +600,9 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
+                    twidth = self._get_text_width(reg.register.name)
+                    if twidth > longest_label_width:
+                        longest_label_width = twidth
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -591,20 +613,21 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    twidth = self._get_text_width(reg.register.name)
+                    if twidth > longest_label_width:
+                        longest_label_width = twidth
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
                         'group': reg.register
                     }
-                if len(label) > len_longest_label:
-                    len_longest_label = len(label)
 
                 self._cond['n_lines'] += 1
                 idx += 1
 
-        # 7 is the length of the smallest possible label
-        self.x_offset = -.5 + 0.18 * (len_longest_label - 7)
+        self._reg_long_text = longest_label_width
+        self.x_offset = -1.25 + self._reg_long_text
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -646,7 +669,7 @@ class MatplotlibDrawer:
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
-                         fontsize=1.5 * self._style.fs,
+                         fontsize=1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -1045,7 +1068,10 @@ class MatplotlibDrawer:
             max_anc = max(anchors)
         else:
             max_anc = 0
-        n_fold = max(0, max_anc - 1) // self.fold
+        if self.fold > 0:
+            n_fold = max(0, max_anc - 1) // self.fold
+        else:
+            n_fold = 0
         # window size
         if max_anc > self.fold > 0:
             self._cond['xmax'] = self.fold + 1 + self.x_offset
@@ -1058,14 +1084,14 @@ class MatplotlibDrawer:
             feedline_r = (n_fold > 0 and n_fold > ii)
             feedline_l = (ii > 0)
             self._draw_regs_sub(ii, feedline_l, feedline_r)
-        # draw gate number
+        # draw anchor index number
         if self._style.index:
             for ii in range(max_anc):
                 if self.fold > 0:
-                    x_coord = ii % self.fold + 1
+                    x_coord = ii % self.fold + self._reg_long_text - 0.25
                     y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
-                    x_coord = ii + 1
+                    x_coord = ii + self._reg_long_text - 0.25
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
