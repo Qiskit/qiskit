@@ -26,7 +26,8 @@ class U3Gate(Gate):
     Implemented using two X90 pulses on IBM Quantum systems:
 
     .. math::
-        U2(\phi, \lambda) = RZ(\phi+\pi/2) RX(\frac{\pi}{2}) RZ(\lambda-\pi/2)
+        U3(\theta, \phi, \lambda) =
+            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
 
     **Circuit symbol:**
 
@@ -44,8 +45,8 @@ class U3Gate(Gate):
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & e^{-i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
+                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     **Examples:**
