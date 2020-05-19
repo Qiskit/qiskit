@@ -724,12 +724,6 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
                     loc = j
                     break
 
-            # remove the global phase
-            angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
-            angleset = np.exp(-1j * angles)
-            state = angleset * state
-            state.flatten()
-
             # start the plotting
             # Plot semi-transparent sphere
             u = np.linspace(0, 2 * np.pi, 25)
