@@ -1086,7 +1086,13 @@
                         },
                         "rep_time": {
                             "minimum": 1,
-                            "type": "integer"
+                            "description": "Execution time of circuit (microseconds).",
+                            "type": "number"
+                        },
+                        "rep_delay": {
+                            "minimum": 1,
+                            "description": "Delay between circuits (microseconds).",
+                            "type": "number"
                         }
                     },
                     "required": [

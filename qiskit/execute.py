@@ -46,9 +46,9 @@ def execute(experiments, backend,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
-            memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-            schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
-            init_qubits=None,
+            memory_slots=None, memory_slot_size=100, rep_time=None, rep_delay=None,
+            parameter_binds=None, schedule_circuit=False, inst_map=None, meas_map=None,
+            scheduling_method=None, init_qubits=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -172,9 +172,11 @@ def execute(experiments, backend,
 
         memory_slot_size (int): Size of each memory slot if the output is Level 0.
 
-        rep_time (int): repetition time of the experiment in μs.
-            The delay between experiments will be rep_time.
-            Must be from the list provided by the device.
+        rep_time (float): Repetition time of the experiment in sec. Gives the time per
+            circuit execution. Must be from the list provided by the device.
+
+        rep_delay (float): Delay between circuits in sec. Defines dynamic rep rate and
+            overrides ``rep_time``. Must be from the list provided by the device.
 
         parameter_binds (list[dict]): List of Parameter bindings over which the set of
             experiments will be executed. Each list element (bind) should be of the form
@@ -277,6 +279,7 @@ def execute(experiments, backend,
                     memory_slots=memory_slots,
                     memory_slot_size=memory_slot_size,
                     rep_time=rep_time,
+                    rep_delay=rep_delay,
                     parameter_binds=parameter_binds,
                     backend=backend,
                     init_qubits=init_qubits,
