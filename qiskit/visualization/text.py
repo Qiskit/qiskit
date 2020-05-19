@@ -908,7 +908,7 @@ class TextDrawing():
         box_label = None
         conditional = False
         multi_qubit_instruction = len(instruction.qargs) >= 2 and \
-            not instruction.cargs
+                                  not instruction.cargs
         label_multibox = False
         base_gate = getattr(instruction.op, 'base_gate', None)
 
@@ -980,7 +980,7 @@ class TextDrawing():
 
         elif isinstance(instruction.op, ControlledGate) and not label_multibox:
             label = box_label if box_label is not None \
-                    else TextDrawing.label_for_box(instruction, controlled=True)
+                else TextDrawing.label_for_box(instruction, controlled=True)
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(instruction, conditional, ctrl_label,
