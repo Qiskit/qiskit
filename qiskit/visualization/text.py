@@ -678,6 +678,10 @@ class TextDrawing():
         for top, bot in zip(top_line, bot_line):
             if top == '┴' and bot == '┬':
                 return False
+        for line in (bot_line, top_line):
+            no_spaces = line.replace(' ', '')
+            if len(no_spaces) > 0 and all(c.isalpha() or c.isnumeric() for c in no_spaces):
+                return False
         return True
 
     def draw_wires(self, wires):
@@ -813,7 +817,7 @@ class TextDrawing():
                 ret += "╫"
             elif topc in '║╫╬' and botc in " ":
                 ret += "║"
-            elif topc == '└' and botc == "┌":
+            elif topc == '└' and botc == "┌" and icod == 'top':
                 ret += "├"
             elif topc == '┘' and botc == "┐":
                 ret += "┤"

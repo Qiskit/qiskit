@@ -1092,10 +1092,39 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circ)), expected)
 
+    def test_control_gate_label_with_cond_1_low(self):
+        """Control gate has a label and a conditional (compression=low)
+        See https://github.com/Qiskit/qiskit-terra/issues/4361 """
+        expected = '\n'.join(["         my ch  ",
+                              "q_0: |0>───■────",
+                              "           │    ",
+                              "        ┌──┴───┐",
+                              "q_1: |0>┤ my h ├",
+                              "        └──┬───┘",
+                              "        ┌──┴──┐ ",
+                              " c_0: 0 ╡ = 1 ╞═",
+                              "        └─────┘ "])
+
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(1, 'c')
+        circ = QuantumCircuit(qr, cr)
+        hgate = HGate(label='my h')
+        controlh = hgate.control(label='my ch').c_if(cr, 1)
+        circ.append(controlh, [0, 1])
+
+        self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression='low')), expected)
+
     def test_control_gate_label_with_cond_1_med(self):
         """Control gate has a label and a conditional (compression=med)
         See https://github.com/Qiskit/qiskit-terra/issues/4361 """
-        expected = '\n'.join([])
+        expected = '\n'.join(["         my ch  ",
+                              "q_0: |0>───■────",
+                              "        ┌──┴───┐",
+                              "q_1: |0>┤ my h ├",
+                              "        └──┬───┘",
+                              "        ┌──┴──┐ ",
+                              " c_0: 0 ╡ = 1 ╞═",
+                              "        └─────┘ "])
 
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(1, 'c')
@@ -1129,7 +1158,14 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
     def test_control_gate_label_with_cond_2_med(self):
         """Control gate has a label and a conditional (on label, compression=med)
         See https://github.com/Qiskit/qiskit-terra/issues/4361 """
-        expected = '\n'.join([])
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_0: |0>┤ my h ├",
+                              "        └──┬───┘",
+                              "q_1: |0>───■────",
+                              "         my ch  ",
+                              "        ┌──┴──┐ ",
+                              " c_0: 0 ╡ = 1 ╞═",
+                              "        └─────┘ "])
 
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(1, 'c')
