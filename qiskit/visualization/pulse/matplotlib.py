@@ -285,11 +285,12 @@ class SamplePulseDrawer:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
-        figure = plt.figure()
+        # If these self.style.dpi or self.style.figsize are None, they will
+        # revert back to their default rcParam keys.
+        figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
 
-        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
 
@@ -320,7 +321,7 @@ class SamplePulseDrawer:
         # This check is here for backwards compatibility. Before, the check was around
         # the suptitle line, however since the font style can take on a type of string
         # we need to unfortunately check both the type and the value of the object.
-        if type(self.style.title_font_size) == int and self.style.title_font_size < 0:
+        if isinstance(self.style.title_font_size, int) and self.style.title_font_size < 0:
             return figure
 
         figure.suptitle(str(pulse.name),
@@ -499,14 +500,14 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_size = self.style.max_table_ratio * figure.get_size_inches()[1]
             max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
             nrows = int(min(nrows, max_rows))
             # don't overflow plot with table data
             table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
-            h_waves = (self.style.figsize[1] - h_table)
+            h_waves = (figure.get_size_inches()[1] - h_table)
 
             # create subplots
             gs = gridspec.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
@@ -538,8 +539,6 @@ class ScheduleDrawer:
         else:
             tb = None
             ax = figure.add_subplot(111)
-
-        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         return tb, ax
 
@@ -804,7 +803,7 @@ class ScheduleDrawer:
             warnings.warn('The parameter "scaling" is being replaced by "scale"',
                           DeprecationWarning, 3)
             scale = scaling
-        figure = plt.figure()
+        figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels_to_plot is not None:
             warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
@@ -839,7 +838,6 @@ class ScheduleDrawer:
                                                    show_framechange_channels)
 
         # count numbers of valid waveform
-
         scale_dict = self._scale_channels(output_channels,
                                           scale=scale,
                                           channel_scales=channel_scales,
@@ -851,7 +849,6 @@ class ScheduleDrawer:
         else:
             tb = None
             ax = figure.add_subplot(111)
-            figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         ax.set_facecolor(self.style.bg_color)
 
@@ -877,10 +874,15 @@ class ScheduleDrawer:
         else:
             bbox = ax.get_position()
 
-        if self.style.title_font_size > 0:
-            figure.suptitle(str(schedule.name),
-                            fontsize=self.style.title_font_size,
-                            y=bbox.y1 + 0.02,
-                            va='bottom')
+        # This check is here for backwards compatibility. Before, the check was around
+        # the suptitle line, however since the font style can take on a type of string
+        # we need to unfortunately check both the type and the value of the object.
+        if isinstance(self.style.title_font_size, int) and self.style.title_font_size < 0:
+            return figure
+
+        figure.suptitle(str(schedule.name),
+                        fontsize=self.style.title_font_size,
+                        y=bbox.y1 + 0.02,
+                        va='bottom')
 
         return figure
