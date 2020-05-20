@@ -117,23 +117,23 @@ class TestDagNodeEdge(QiskitTestCase):
 
         circuit.h(self.qreg[0])
         self.dag.add_op_node(circuit.data[0][0], circuit.data[0][1], circuit.data[0][2])
-        self.assertIsInstance(self.dag.get_node(0)['operation'].op, HGate)
+        self.assertIsInstance(self.dag.get_node(0).op, HGate)
 
         circuit.measure(self.qreg[0], self.creg[0])
         self.dag.add_op_node(circuit.data[1][0], circuit.data[1][1], circuit.data[1][2])
-        self.assertIsInstance(self.dag.get_node(1)['operation'].op, Measure)
+        self.assertIsInstance(self.dag.get_node(1).op, Measure)
 
         nodes = list(self.dag.get_nodes())
         self.assertEqual(len(list(nodes)), 2)
 
         for node in nodes:
-            self.assertIsInstance(node['operation'].op, Instruction)
+            self.assertIsInstance(node.op, Instruction)
 
         node_1 = nodes.pop()
         node_2 = nodes.pop()
 
-        self.assertIsInstance(node_1['operation'].op, Measure)
-        self.assertIsInstance(node_2['operation'].op, HGate)
+        self.assertIsInstance(node_1.op, Measure)
+        self.assertIsInstance(node_2.op, HGate)
 
     def test_add_edge(self):
         """Test that add_edge(), get_edges(), get_all_edges(),

@@ -24,12 +24,12 @@ import numpy as np
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.dagcircuit.exceptions import DAGDependencyError
-from qiskit.dagcircuit.dagnode import DAGNode
+from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.quantum_info.operators import Operator
 
 
 class DAGDependency:
-    r"""Object to represent a quantum circuit as a directed acyclic graph
+    """Object to represent a quantum circuit as a directed acyclic graph
     via operation dependencies (i.e. lack of commutation).
 
     The nodes in the graph are operations represented by quantum gates.
@@ -89,12 +89,11 @@ class DAGDependency:
         dag_networkx = nx.MultiDiGraph()
 
         for node in self.get_nodes():
-            dag_networkx.add_node(node['operation']._node_id, operation=node['operation'],
-                                  successors=node['successors'], predecessors=node['predecessors'])
+            dag_networkx.add_node(node)
         for node in self.topological_nodes():
             for source_id, dest_id, edge in \
-                    self.get_in_edges(node['operation']._node_id):
-                dag_networkx.add_edge(source_id, dest_id, **edge)
+                    self.get_in_edges(node.node_id):
+                dag_networkx.add_edge(self.get_node(source_id), self.get_node(dest_id), **edge)
         return dag_networkx
 
     def to_retworkx(self):
@@ -140,13 +139,13 @@ class DAGDependency:
     def _add_multi_graph_node(self, node):
         """
         Args:
-            node (DAGNode): considered node.
+            node (DAGDepNode): considered node.
 
         Returns:
             node_id(int): corresponding label to the added node.
         """
         node_id = self._multi_graph.add_node(node)
-        node['operation']._node_id = node_id
+        node.node_id = node_id
         return node_id
 
     def get_nodes(self):
@@ -202,7 +201,7 @@ class DAGDependency:
         return [(src, dest, data)
                 for src_node in self._multi_graph.nodes()
                 for (src, dest, data)
-                in self._multi_graph.out_edges(src_node['operation']._node_id)]
+                in self._multi_graph.out_edges(src_node.node_id)]
 
     def get_in_edges(self, node_id):
         """
@@ -262,7 +261,7 @@ class DAGDependency:
         Returns:
             List: all successors id as a sorted list
         """
-        return self._multi_graph.get_node_data(node_id)['successors']
+        return self._multi_graph.get_node_data(node_id).successors
 
     def predecessors(self, node_id):
         """
@@ -274,7 +273,7 @@ class DAGDependency:
         Returns:
             List: all predecessors id as a sorted list
         """
-        return self._multi_graph.get_node_data(node_id)['predecessors']
+        return self._multi_graph.get_node_data(node_id).predecessors
 
     def topological_nodes(self):
         """
@@ -285,24 +284,25 @@ class DAGDependency:
         """
 
         def _key(x):
-            return x['operation'].sort_key
+            return x.sort_key
 
         return iter(rx.lexicographical_topological_sort(
             self._multi_graph,
             key=_key))
 
     def add_op_node(self, operation, qargs, cargs):
-        """Add a DAGnode to the graph.
+        """Add a DAGDepNode to the graph and update the edges.
 
         Args:
             operation (qiskit.circuit.Instruction): operation as a quantum gate.
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
-        new_node = DAGNode(type="op", op=operation, name=operation.name, qargs=qargs,
-                           cargs=cargs, condition=operation.condition)
-        operation_node = {'operation': new_node, 'successors': [], 'predecessors': []}
-        self._add_multi_graph_node(operation_node)
+        new_node = DAGDepNode(type="op", op=operation, name=operation.name, qargs=qargs,
+                              cargs=cargs, condition=operation.condition, successors=[],
+                              predecessors=[])
+        self._add_multi_graph_node(new_node)
+        self._update_edges()
 
     def _gather_pred(self, node_id, direct_pred):
         """Function set an attribute predecessors and gather multiple lists
@@ -317,11 +317,11 @@ class DAGDependency:
             the lists of direct successors are put into a single one
         """
         gather = self._multi_graph
-        gather.get_node_data(node_id)['predecessors'] = []
+        gather.get_node_data(node_id).predecessors = []
         for d_pred in direct_pred:
-            gather.get_node_data(node_id)['predecessors'].append([d_pred])
-            pred = self._multi_graph.get_node_data(d_pred)['predecessors']
-            gather.get_node_data(node_id)['predecessors'].append(pred)
+            gather.get_node_data(node_id).predecessors.append([d_pred])
+            pred = self._multi_graph.get_node_data(d_pred).predecessors
+            gather.get_node_data(node_id).predecessors.append(pred)
         return gather
 
     def _gather_succ(self, node_id, direct_succ):
@@ -339,9 +339,9 @@ class DAGDependency:
         """
         gather = self._multi_graph
         for d_succ in direct_succ:
-            gather.get_node_data(node_id)['successors'].append([d_succ])
-            succ = gather.get_node_data(d_succ)['successors']
-            gather.get_node_data(node_id)['successors'].append(succ)
+            gather.get_node_data(node_id).successors.append([d_succ])
+            succ = gather.get_node_data(d_succ).successors
+            gather.get_node_data(node_id).successors.append(succ)
         return gather
 
     def _list_pred(self, node_id):
@@ -354,10 +354,10 @@ class DAGDependency:
         """
         direct_pred = self.direct_predecessors(node_id)
         self._multi_graph = self._gather_pred(node_id, direct_pred)
-        self._multi_graph.get_node_data(node_id)['predecessors'] = list(
-            merge_no_duplicates(*(self._multi_graph.get_node_data(node_id)['predecessors'])))
+        self._multi_graph.get_node_data(node_id).predecessors = list(
+            merge_no_duplicates(*(self._multi_graph.get_node_data(node_id).predecessors)))
 
-    def add_edge(self):
+    def _update_edges(self):
         """
         Function to verify the commutation relation and reachability
         for predecessors, the nodes do not commute and
@@ -365,33 +365,51 @@ class DAGDependency:
         introducing edges and predecessors(attribute)
         """
         max_node_id = len(self._multi_graph) - 1
-        max_node = self._multi_graph.get_node_data(max_node_id)['operation']
+        max_node = self._multi_graph.get_node_data(max_node_id)
 
         for current_node_id in range(0, max_node_id):
-            self._multi_graph.get_node_data(current_node_id)['reachable'] = True
+            self._multi_graph.get_node_data(current_node_id).reachable = True
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            if self._multi_graph.get_node_data(prev_node_id)['reachable'] and not _commute(
-                    self._multi_graph.get_node_data(prev_node_id)['operation'], max_node):
+            if self._multi_graph.get_node_data(prev_node_id).reachable and not _commute(
+                    self._multi_graph.get_node_data(prev_node_id), max_node):
                 self._multi_graph.add_edge(prev_node_id, max_node_id, {'commute': False})
                 self._list_pred(max_node_id)
-                list_predecessors = self._multi_graph.get_node_data(max_node_id)['predecessors']
+                list_predecessors = self._multi_graph.get_node_data(max_node_id).predecessors
                 for pred_id in list_predecessors:
-                    self._multi_graph.get_node_data(pred_id)['reachable'] = False
+                    self._multi_graph.get_node_data(pred_id).reachable = False
 
-    def add_successors(self):
+    def _add_successors(self):
         """
         Use _gather_succ and merge_no_duplicates to create the list of successors
-        for each node. Update DAGDependency with attributes successors.
+        for each node. Update DAGDependency 'successors' attribute. It has to
+        be used when the DAGDependency() object is complete (i.e. converters).
         """
-        for node_id in range(len(self._multi_graph)-1, -1, -1):
-
+        for node_id in range(len(self._multi_graph) - 1, -1, -1):
             direct_successors = self.direct_successors(node_id)
 
             self._multi_graph = self._gather_succ(node_id, direct_successors)
 
-            self._multi_graph.get_node_data(node_id)['successors'] = list(
-                merge_no_duplicates(*(self._multi_graph.get_node_data(node_id)['successors'])))
+            self._multi_graph.get_node_data(node_id).successors = list(
+                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors))
+
+    def copy(self):
+        """
+        Function to copy a DAGDependency object.
+        Returns:
+            DAGDependency: a copy of a DAGDependency object.
+        """
+
+        dag = DAGDependency()
+        dag.name = self.name
+        dag.cregs = self.cregs.copy()
+        dag.qregs = self.qregs.copy()
+
+        for node in self.get_nodes():
+            dag._multi_graph.add_node(node.copy())
+        for edges in self.get_all_edges():
+            dag._multi_graph.add_edge(edges[0], edges[1], edges[2])
+        return dag
 
     def draw(self, scale=0.7, filename=None, style='color'):
         """

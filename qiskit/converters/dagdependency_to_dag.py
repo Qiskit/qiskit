@@ -39,11 +39,10 @@ def dagdependency_to_dag(dagdependency):
         dagcircuit.add_creg(register)
 
     for node in dagdependency.get_nodes():
-        node_op = node['operation']
         # Get arguments for classical control (if any)
-        inst = node_op.op.copy()
-        inst.condition = node_op.condition
+        inst = node.op.copy()
+        inst.condition = node.condition
 
-        dagcircuit.apply_operation_back(inst, node_op.qargs, node_op.cargs, inst.condition)
+        dagcircuit.apply_operation_back(inst, node.qargs, node.cargs, inst.condition)
 
     return dagcircuit

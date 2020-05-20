@@ -121,23 +121,23 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', category=None):
         if style == 'plain':
             pass
         elif style == 'color':
-            for node in G.nodes(data='operation'):
-                n = G.nodes[node[0]]
-                n['label'] = str(node[0]+1) + ': ' + node[1].name
-                if node[1].name == 'measure':
+            for node in G.nodes:
+                n = G.nodes[node]
+                n['label'] = str(node.node_id) + ': ' + node.name
+                if node.name == 'measure':
                     n['color'] = 'blue'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'lightblue'
-                if node[1].name == 'barrier':
+                if node.name == 'barrier':
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'green'
-                if node[1].name == 'snapshot':
+                if node.name == 'snapshot':
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'red'
-                if node[1].condition:
-                    n['label'] = str(node[0]) + ': ' + node[1].name + ' (conditional)'
+                if node.condition:
+                    n['label'] = str(node.node_id) + ': ' + node.name + ' (conditional)'
                     n['color'] = 'black'
                     n['style'] = 'filled'
                     n['fillcolor'] = 'lightgreen'

@@ -37,8 +37,7 @@ def circuit_to_dagdependency(circuit):
 
     for operation, qargs, cargs in circuit.data:
         dagdependency.add_op_node(operation, qargs, cargs)
-        dagdependency.add_edge()
 
-    dagdependency.add_successors()
+    dagdependency._add_successors()
 
     return dagdependency

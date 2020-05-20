@@ -43,8 +43,7 @@ def dag_to_dagdependency(dag):
         inst = node.op.copy()
         inst.condition = node.condition
         dagdependency.add_op_node(inst, node.qargs, node.cargs)
-        dagdependency.add_edge()
 
-    dagdependency.add_successors()
+    dagdependency._add_successors()
 
     return dagdependency
