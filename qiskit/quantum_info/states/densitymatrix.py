@@ -547,12 +547,22 @@ class DensityMatrix(QuantumState):
 
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
+        from qiskit.circuit.reset import Reset
+        from qiskit.circuit.barrier import Barrier
 
         # Try evolving by a matrix operator (unitary-like evolution)
         mat = Operator._instruction_to_matrix(other)
         if mat is not None:
             self._data = self._evolve_operator(Operator(mat), qargs=qargs).data
             return
+
+        # Special instruction types
+        if isinstance(other, Reset):
+            self._data = self.reset(qargs)._data
+            return
+        if isinstance(other, Barrier):
+            return
+
         # Otherwise try evolving by a Superoperator
         chan = SuperOp._instruction_to_superop(other)
         if chan is not None:

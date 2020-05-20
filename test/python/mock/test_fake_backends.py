@@ -14,6 +14,7 @@
 
 """Test of generated fake backends."""
 import math
+import unittest
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
                     schedule, transpile, assemble)
@@ -21,6 +22,8 @@ from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.utils import ConfigurableBackend
+
+from qiskit.test.mock.fake_backend import HAS_AER
 
 
 def get_test_circuit():
@@ -41,6 +44,8 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     def setUp(self) -> None:
         self.backend = ConfigurableBackend("Tashkent", n_qubits=4)
 
+    @unittest.skip('Skipped until qiskit-aer#741 is fixed and released')
+    @unittest.skipUnless(HAS_AER, 'qiskit-aer is required to run this test')
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
         qc = get_test_circuit()
