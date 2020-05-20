@@ -532,6 +532,9 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
+        Raises:
+            CircuitError: if object passed is a subclass of Instruction
+            CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
