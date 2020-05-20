@@ -539,7 +539,8 @@ class QuantumCircuit:
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
             if issubclass(instruction, Instruction):
-                raise CircuitError('Object is a subclass of Instruction, please add () to pass an instance of this object.')
+                raise CircuitError('Object is a subclass of Instruction, 
+                                    please add () to pass an instance of this object.')
             else:
                 raise CircuitError('Object is neither subclass nor an instance of Instruction.')
         elif not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):

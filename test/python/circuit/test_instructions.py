@@ -337,5 +337,6 @@ class TestInstructions(QiskitTestCase):
         qc = QuantumCircuit(qr)
         self.assertRaises(CircuitError, qc.append(HGate, qr[:], []))
 
+
 if __name__ == '__main__':
     unittest.main()
