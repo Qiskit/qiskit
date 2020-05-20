@@ -23,6 +23,7 @@ from functools import reduce
 import colorsys
 import numpy as np
 import scipy.linalg as la
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from qiskit.circuit.tools.pi_check import pi_check
 from .matplotlib import HAS_MATPLOTLIB
@@ -658,7 +659,8 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
 
     Raises:
         ImportError: Requires matplotlib.
-        TypeError: Input statevector does not have valid dimensions.
+
+        QiskitError: Input statevector does not have valid dimensions.
 
     Example:
         .. jupyter-execute::
@@ -694,7 +696,7 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
         IS_DM = True
     else:
         if np.log2(rho.shape[0]) % 1:
-            raise TypeError('Incorrect statevector dimensions.')
+            raise QiskitError('Incorrect statevector dimensions.')
     num = int(np.log2(rho.shape[0]))
 
     # Do eigendecomposition if input is DM
