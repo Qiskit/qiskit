@@ -72,17 +72,7 @@ class TestCircuitToGate(QiskitTestCase):
         qr1 = QuantumRegister(2, 'qr1')
         circ = QuantumCircuit(qr1, name='a circuit name')
         circ.cx(qr1[1], qr1[0])
-
         gate = circ.to_gate(label='a label')
 
         self.assertEqual(gate.label, 'a label')
 
-    def test_default_label(self):
-        """If no label, then the circuit name is used."""
-        qr1 = QuantumRegister(2, 'qr1')
-        circ = QuantumCircuit(qr1, name='a circuit name')
-        circ.cx(qr1[1], qr1[0])
-
-        gate = circ.to_gate()
-
-        self.assertEqual(gate.label, 'a circuit name')
