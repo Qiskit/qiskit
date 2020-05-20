@@ -431,20 +431,24 @@ class BackendProperties(SimpleNamespace):
         Raises:
             BackendPropertyError: If the units aren't recognized.
         """
-        prefixes = {
-            'p': 1e-12,
-            'n': 1e-9,
-            'u': 1e-6,
-            'µ': 1e-6,
-            'm': 1e-3,
+        downfactors = {
+            'p': 1e12,
+            'n': 1e9,
+            'u': 1e6,
+            'µ': 1e6,
+            'm': 1e3
+        }
+        upfactors = {
             'k': 1e3,
             'M': 1e6,
             'G': 1e9
         }
         if not unit:
             return value
-        try:
-            return value * prefixes[unit[0]]
-        except KeyError:
+        if unit[0] in downfactors:
+            return value / downfactors[unit[0]]
+        elif unit[0] in upfactors:
+            return value * upfactors[unit[0]]
+        else:
             raise BackendPropertyError(
                 "Could not understand units: {u}".format(u=unit))
