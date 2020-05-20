@@ -90,7 +90,7 @@ class QuantumVolume(QuantumCircuit):
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
-        inner = QuantumCircuit(num_qubits)
+        inner = QuantumCircuit(num_qubits, name=name)
         perm_0 = list(range(num_qubits))
         for d in range(depth):
             perm = rng.permutation(perm_0)

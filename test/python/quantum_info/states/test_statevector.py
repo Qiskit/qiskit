@@ -130,6 +130,21 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
+        # Test initialize instruction
+        target = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
+        circuit = QuantumCircuit(2)
+        circuit.initialize(target.data, [0, 1])
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test reset instruction
+        target = Statevector([1, 0])
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.reset(0)
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
     def test_from_instruction(self):
         """Test initialization from an instruction."""
         target = np.dot(HGate().to_matrix(), [1, 0])
