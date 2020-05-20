@@ -658,6 +658,7 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
 
     Raises:
         ImportError: Requires matplotlib.
+        TypeError: Input statevector does not have valid dimensions.
 
     Example:
         .. jupyter-execute::
