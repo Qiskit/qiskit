@@ -75,4 +75,3 @@ class TestCircuitToGate(QiskitTestCase):
         gate = circ.to_gate(label='a label')
 
         self.assertEqual(gate.label, 'a label')
-
