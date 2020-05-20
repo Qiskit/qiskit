@@ -673,7 +673,7 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
 
            backend = BasicAer.get_backend('statevector_simulator')
            job = execute(qc, backend).result()
-           plot_state_qsphere(job.get_statevector(qc))
+           plot_state_qsphere(job.get_statevector(qc), show_state_phases=True)
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
