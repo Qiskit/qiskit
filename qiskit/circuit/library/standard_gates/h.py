@@ -117,12 +117,11 @@ class CHGate(ControlledGate):
 
         CH\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
-            \frac{1}{\sqrt{2}}
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 1 \\
+                0 & \frac{1}{\sqrt{2}} & 0 & \frac{1}{\sqrt{2}} \\
                 0 & 0 & 1 & 0 \\
-                0 & 1 & 0 & -1
+                0 & \frac{1}{\sqrt{2}} & 0 & -\frac{1}{\sqrt{2}}
             \end{pmatrix}
 
     .. note::

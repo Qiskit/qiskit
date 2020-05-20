@@ -210,6 +210,16 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         """Return inverse RZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0])
 
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CRZ gate."""
+    #    arg = 1j * self.params[0] / 2
+    #    return numpy.array([[1,               0, 0,              0],
+    #                        [0, numpy.exp(-arg), 0,              0],
+    #                        [0,               0, 1,              0],
+    #                        [0,               0, 0, numpy.exp(arg)]],
+    #                       dtype=complex)
 
 class CrzGate(CRZGate, metaclass=CRZMeta):
     """The deprecated CRZGate class."""
