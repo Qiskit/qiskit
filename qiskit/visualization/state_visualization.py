@@ -22,6 +22,7 @@ Visualization functions for quantum states.
 from functools import reduce
 import colorsys
 import numpy as np
+import scipy.linalg as la
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from qiskit.circuit.tools.pi_check import pi_check
 from .matplotlib import HAS_MATPLOTLIB
@@ -630,7 +631,7 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
+def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
                        show_state_phases=False, use_degrees=False):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
@@ -638,7 +639,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     the phase.
 
     Args:
-        state (ndarray): State vector representation of quantum state.
+        rho (ndarray): State vector or density matrix representation of
+            quantum state.
         figsize (tuple): Figure size in inches.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
@@ -683,7 +685,23 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                           'plot_state_qsphere. To install, run "pip install seaborn".')
     if figsize is None:
         figsize = (7, 7)
-    num = int(np.log2(state.shape[0]))
+
+    IS_DM = False
+    # Input is a DM
+    if len(rho.shape) == 2:
+        rho = _validate_input_state(rho)
+        IS_DM = True
+    else:
+        if np.log2(rho.shape[0]) % 1:
+            raise TypeError('Incorrect statevector dimensions.')
+    num = int(np.log2(rho.shape[0]))
+
+    # Do eigendecomposition if input is DM
+    if IS_DM:
+        eigvals, eigvecs = la.eigh(rho)
+    else:
+        eigvals = np.array([1])
+        eigvecs = rho
 
     if ax is None:
         return_fig = True
@@ -726,73 +744,88 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.set_yticks([])
     ax.set_zticks([])
 
-    d = num
-    for i in range(2 ** num):
+    # traversing the eigvals/vecs backward as sorted low->high
+    for idx in range(eigvals.shape[0]-1, -1, -1):
+        if eigvals[idx] > 0.001:
+            # get the max eigenvalue
+            if IS_DM:
+                state = eigvecs[:, idx]
+                loc = np.absolute(state).argmax()
+                # remove the global phase from max element
+                angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
+                angleset = np.exp(-1j * angles)
+                state = angleset * state
+            else:
+                state = eigvecs
 
-        # get x,y,z points
-        element = bin(i)[2:].zfill(num)
-        weight = element.count("1")
-        zvalue = -2 * weight / d + 1
-        number_of_divisions = n_choose_k(d, weight)
-        weight_order = bit_string_index(element)
-        angle = (float(weight) / d) * (np.pi * 2) + \
-                (weight_order * 2 * (np.pi / number_of_divisions))
+            d = num
+            for i in range(2 ** num):
+                # get x,y,z points
+                element = bin(i)[2:].zfill(num)
+                weight = element.count("1")
+                zvalue = -2 * weight / d + 1
+                number_of_divisions = n_choose_k(d, weight)
+                weight_order = bit_string_index(element)
+                angle = (float(weight) / d) * (np.pi * 2) + \
+                        (weight_order * 2 * (np.pi / number_of_divisions))
 
-        if (weight > d / 2) or (((weight == d / 2) and
-                                 (weight_order >= number_of_divisions / 2))):
-            angle = np.pi - angle - (2 * np.pi / number_of_divisions)
+                if (weight > d / 2) or (((weight == d / 2) and
+                                         (weight_order >= number_of_divisions / 2))):
+                    angle = np.pi - angle - (2 * np.pi / number_of_divisions)
 
-        xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
-        yvalue = np.sqrt(1 - zvalue ** 2) * np.sin(angle)
+                xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
+                yvalue = np.sqrt(1 - zvalue ** 2) * np.sin(angle)
 
-        # get prob and angle - prob will be shade and angle color
-        prob = np.real(np.dot(state[i], state[i].conj()))
-        colorstate = phase_to_rgb(state[i])
+                # get prob and angle - prob will be shade and angle color
+                prob = np.real(np.dot(state[i], state[i].conj()))
+                colorstate = phase_to_rgb(state[i])
 
-        alfa = 1
-        if yvalue >= 0.1:
-            alfa = 1.0 - yvalue
+                alfa = 1
+                if yvalue >= 0.1:
+                    alfa = 1.0 - yvalue
 
-        if prob > 0 and show_state_labels:
-            rprime = 1.3
-            angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
-            xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
-            yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
-            zvalue_text = rprime * np.cos(angle_theta)
-            element_text = '$\\vert' + element + '\\rangle$'
-            if show_state_phases:
-                element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
-                if use_degrees:
-                    element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
-                else:
-                    element_angle = pi_check(element_angle, ndigits=3).replace('pi', '\\pi')
-                    element_text += '\n$%s$' % (element_angle)
-            ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
-                    ha='center', va='center', size=12)
+                if prob > 0 and show_state_labels:
+                    rprime = 1.3
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                    zvalue_text = rprime * np.cos(angle_theta)
+                    element_text = '$\\vert' + element + '\\rangle$'
+                    if show_state_phases:
+                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                        if use_degrees:
+                            element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                        else:
+                            element_angle = pi_check(element_angle, ndigits=3).replace('pi', '\\pi')
+                            element_text += '\n$%s$' % (element_angle)
+                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
+                            ha='center', va='center', size=12)
 
-        ax.plot([xvalue], [yvalue], [zvalue],
-                markerfacecolor=colorstate,
-                markeredgecolor=colorstate,
-                marker='o', markersize=np.sqrt(prob) * 30, alpha=alfa)
+                ax.plot([xvalue], [yvalue], [zvalue],
+                        markerfacecolor=colorstate,
+                        markeredgecolor=colorstate,
+                        marker='o', markersize=np.sqrt(prob) * 30, alpha=alfa)
 
-        a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue],
-                    mutation_scale=20, alpha=prob, arrowstyle="-",
-                    color=colorstate, lw=2)
-        ax.add_artist(a)
+                a = Arrow3D([0, xvalue], [0, yvalue], [0, zvalue],
+                            mutation_scale=20, alpha=prob, arrowstyle="-",
+                            color=colorstate, lw=2)
+                ax.add_artist(a)
 
-    # add weight lines
-    for weight in range(d + 1):
-        theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
-        z = -2 * weight / d + 1
-        r = np.sqrt(1 - z ** 2)
-        x = r * np.cos(theta)
-        y = r * np.sin(theta)
-        ax.plot(x, y, z, color=(.5, .5, .5), lw=1, ls=':', alpha=.5)
+            # add weight lines
+            for weight in range(d + 1):
+                theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
+                z = -2 * weight / d + 1
+                r = np.sqrt(1 - z ** 2)
+                x = r * np.cos(theta)
+                y = r * np.sin(theta)
+                ax.plot(x, y, z, color=(.5, .5, .5), lw=1, ls=':', alpha=.5)
 
-    # add center point
-    ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
-            markeredgecolor=(.5, .5, .5), marker='o', markersize=3,
-            alpha=1)
+            # add center point
+            ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
+                    markeredgecolor=(.5, .5, .5), marker='o', markersize=3,
+                    alpha=1)
+        else:
+            break
 
     n = 64
     theta = np.ones(n)
