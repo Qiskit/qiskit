@@ -533,8 +533,13 @@ class QuantumCircuit:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
         """
-        # Convert input to Instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
+            if issubclass(instruction, Instruction):
+                raise CircuitError('Object is a subclass of Instruction, please add () to pass an instance of this object.')
+            else:
+                raise CircuitError('Object is neither subclass nor an instance of Instruction.')
+        elif not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
