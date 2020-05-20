@@ -114,7 +114,7 @@ class ControlledGate(Gate):
         if not self._definition:
             # still no definition? opaque gate
             return []  # empty list instead of None for Unroller.
-        from qiskit.extensions.standard import XGate, CXGate
+        from qiskit.circuit.library.standard_gates import XGate, CXGate
         bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
         # hacky way to get register assuming single register
         if self._definition:
