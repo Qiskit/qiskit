@@ -674,7 +674,7 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                gate. If None, existing circuit parameters will also
                parameterize the gate.
-            label (str): Optional gate label. If not provided it takes the circuit name.
+            label (str): Optional gate label.
 
         Returns:
             Gate: a composite gate encapsulating this circuit
