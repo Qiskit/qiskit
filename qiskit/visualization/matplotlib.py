@@ -183,30 +183,22 @@ class MatplotlibDrawer:
         return self._ast
 
     # This is a maplotlib trick for getting the actual text width in some coords.
-    # The / 39.0 converts to x coords. If Latex formatting is used, it must be
+    # The / 38.0 converts to x coords. If Latex formatting is used, it must be
     # removed or raw text used to get an accurate width.
     def _get_text_width(self, text):
         t = plt.text(0.5,0.5,text)
-        return t.get_window_extent(renderer=self._renderer).width / 39.0
+        return t.get_window_extent(renderer=self._renderer).width / 38.0
 
-    def _custom_multiqubit_gate(self, xy, cxy=None, fc=None, wide=True, text=None,
-                                subtext=None):
+    def _custom_multiqubit_gate(self, xy, fc=None, text=None, subtext=None):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        if cxy:
-            ypos = min([y[1] for y in cxy])
-        if wide:
-            tlen = (len(text) + 3.0) / 7.0
-            if subtext:
-                slen = (len(subtext) + 8.0) / 13.0
-                boxes_length = math.floor(max(tlen, slen)) or 1
-            else:
-                boxes_length = math.floor(tlen) or 1
-            wid = WID * 2.5 * boxes_length
+        if text[0].islower():
+            dtext = text.capitalize()
         else:
-            wid = WID
+            dtext = text
+        wid = .2 + self._get_text_width(dtext)
 
         if fc:
             _fc = fc
@@ -242,7 +234,7 @@ class MatplotlibDrawer:
             else:
                 disp_text = text
             if disp_text[0].islower():
-                disp_text = disp_text.title()
+                disp_text = disp_text.capitalize()
             if subtext:
                 self.ax.text(xpos+.07, ypos + 0.4 * height, disp_text, ha='center',
                              va='center', fontsize=self._style.fs,
@@ -565,7 +557,7 @@ class MatplotlibDrawer:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
                                                               index=reg.index)
-                    twidth = self._get_text_width(reg.register.name+'i')
+                    twidth = self._get_text_width(reg.register.name)
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
@@ -598,9 +590,9 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(
                     self._creg, n_creg)):
                 pos = y_off - idx
+                twidth = self._get_text_width(reg.register.name)
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
-                    twidth = self._get_text_width(reg.register.name)
                     if twidth > longest_label_width:
                         longest_label_width = twidth
                     self._creg_dict[ii] = {
@@ -613,7 +605,6 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
-                    twidth = self._get_text_width(reg.register.name)
                     if twidth > longest_label_width:
                         longest_label_width = twidth
                     self._creg_dict[ii] = {
@@ -771,6 +762,7 @@ class MatplotlibDrawer:
 
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+                print("OPNAME BASENAME", op.name, base_name)
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
                                    'noise', 'cswap', 'swap', 'measure',
@@ -878,23 +870,18 @@ class MatplotlibDrawer:
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
                     label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, wide=True,
-                                                 text=label or "|psi>",
-                                                 subtext=vec)
+                    self._custom_multiqubit_gate(q_xy, text=label or "|psi>", subtext=vec)
                 elif op.name == 'unitary':
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
                     label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, wide=True,
-                                                 text=label or "Unitary")
+                    self._custom_multiqubit_gate(q_xy, text=label or "Unitary")
                 elif op.name == 'hamiltonian':
                     label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, wide=True,
-                                                 text=label or "Hamiltonian")
+                    self._custom_multiqubit_gate(q_xy, text=label or "Hamiltonian")
                 elif op.name == 'isometry':
                     label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, wide=True,
-                                                 text=label or " Isometry")
+                    self._custom_multiqubit_gate(q_xy, text=label or "Isometry")
                 #
                 # draw single qubit gates
                 #
@@ -911,7 +898,7 @@ class MatplotlibDrawer:
                 #
 
                 # cx's
-                elif op.name in ['cx', 'ccx', 'c3x', 'c4x']:
+                elif op.name in ['cx', 'ccx', 'c3x', 'c4x', 'mcx']:
                     if self._style.dispcol['cx'] != '#ffffff':
                         add_width = self._style.colored_add_width
                     else:
@@ -1010,13 +997,11 @@ class MatplotlibDrawer:
 
                 # rxx, ryy, rzx
                 elif op.name in ['rxx', 'ryy', 'rzx']:
-                    self._custom_multiqubit_gate(q_xy, c_xy, wide=False,
-                                                 fc=self._style.dispcol[op.name], text=op.name)
+                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name], text=op.name)
 
                 # dcx and iswap gate
                 elif op.name in ['dcx', 'iswap']:
-                    self._custom_multiqubit_gate(q_xy, c_xy, wide=True,
-                                                 fc=self._style.dispcol[op.name], text=op.name)
+                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name], text=op.name)
 
                 elif isinstance(op.op, ControlledGate):
                     disp = op.op.base_gate.name
@@ -1041,16 +1026,14 @@ class MatplotlibDrawer:
                         else:
                             self._gate(q_xy[num_ctrl_qubits], wide=_iswide, text=disp, fc=color)
                     else:
-                        self._custom_multiqubit_gate(
-                            q_xy[num_ctrl_qubits:], wide=True, fc=color, text=disp)
+                        self._custom_multiqubit_gate(q_xy[num_ctrl_qubits:], fc=color, text=disp)
 
                 # draw custom multi-qubit gate
                 else:
                     subt = ""
                     if param:
                         subt = '{}'.format(param)
-                    self._custom_multiqubit_gate(q_xy, c_xy, wide=True,
-                                                 text=op.name, subtext=subt)
+                    self._custom_multiqubit_gate(q_xy, text=op.name, subtext=subt)
 
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0
