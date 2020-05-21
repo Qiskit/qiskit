@@ -29,6 +29,7 @@ from qiskit import BasicAer
 
 # pylint: disable=invalid-name
 
+
 class TestPauliExpectation(QiskitAquaTestCase):
     """Pauli Change of Basis Expectation tests."""
 

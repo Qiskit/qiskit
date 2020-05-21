@@ -282,7 +282,7 @@ class Grover(QuantumAlgorithm):
             else:
                 current_max_num_iterations = 1
                 while current_max_num_iterations < self._max_num_iterations:
-                    target_num_iterations = self.random.randint(current_max_num_iterations) + 1
+                    target_num_iterations = self.random.integers(current_max_num_iterations) + 1
                     assignment, oracle_evaluation = _try_target_num_iterations()
                     if oracle_evaluation:
                         break

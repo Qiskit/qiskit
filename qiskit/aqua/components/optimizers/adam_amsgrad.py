@@ -219,7 +219,7 @@ class ADAM(Optimizer):
         super().optimize(num_vars, objective_function, gradient_function,
                          variable_bounds, initial_point)
         if initial_point is None:
-            initial_point = aqua_globals.random.rand(num_vars)
+            initial_point = aqua_globals.random.random(num_vars)
         if gradient_function is None:
             gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff,
                                                         (objective_function, self._eps))

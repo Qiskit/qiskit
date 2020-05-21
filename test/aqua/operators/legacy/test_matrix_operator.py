@@ -33,7 +33,7 @@ class TestMatrixOperator(QiskitAquaTestCase):
 
         self.num_qubits = 3
         m_size = np.power(2, self.num_qubits)
-        matrix = aqua_globals.random.rand(m_size, m_size)
+        matrix = aqua_globals.random.random((m_size, m_size))
         self.qubit_op = MatrixOperator(matrix=matrix)
 
     def test_num_qubits(self):
