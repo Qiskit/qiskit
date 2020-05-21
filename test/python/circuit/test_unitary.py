@@ -14,7 +14,7 @@
 
 # pylint: disable=arguments-differ,method-hidden
 
-"""Quick program to test the qi tools modules."""
+""" UnitaryGate tests """
 
 import json
 import numpy
@@ -23,11 +23,11 @@ from numpy.testing import assert_allclose
 import qiskit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.test import QiskitTestCase
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.operators import Operator
 from qiskit.transpiler.passes import CXCancellation
 
 
@@ -102,7 +102,6 @@ class TestUnitaryCircuit(QiskitTestCase):
 
     def test_2q_unitary(self):
         """test 2 qubit unitary matrix"""
-        backend = BasicAer.get_backend('qasm_simulator')
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -114,7 +113,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
         passman.append(CXCancellation())
-        qc2 = transpile(qc, backend, pass_manager=passman)
+        qc2 = passman.run(qc)
         # test of qasm output
         self.log.info(qc2.qasm())
         # test of text drawer
@@ -215,7 +214,7 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "qreg q0[2];\ncreg c0[1];\n" \
                         "x q0[0];\n" \
                         "gate custom_gate p0 {\n" \
-                        "\tu3(0.0,0.0,0.0) p0;\n" \
+                        "\tu3(0,0,0) p0;\n" \
                         "}\n" \
                         "custom_gate q0[0];\n" \
                         "custom_gate q0[1];\n"
@@ -239,7 +238,7 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "qreg q0[2];\ncreg c0[1];\n" \
                         "x q0[0];\n" \
                         "gate custom_gate p0 {\n" \
-                        "\tu3(0.0,0.0,0.0) p0;\n" \
+                        "\tu3(0,0,0) p0;\n" \
                         "}\n" \
                         "custom_gate q0[0];\n" \
                         "custom_gate q0[1];\n"
@@ -264,9 +263,15 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "creg c0[1];\n" \
                         "x q0[0];\n" \
                         "gate custom_gate p0,p1 {\n" \
-                        "\tu3(0.0,0.0,0.0) p0;\n" \
-                        "\tu3(0.0,0.0,0.0) p1;\n" \
+                        "\tu3(0,0,0) p0;\n" \
+                        "\tu3(0,0,0) p1;\n" \
                         "}\n" \
                         "custom_gate q0[0],q0[1];\n" \
                         "custom_gate q0[1],q0[0];\n"
         self.assertEqual(expected_qasm, qc.qasm())
+
+    def test_unitary_decomposition(self):
+        """Test decomposition for unitary gates over 2 qubits."""
+        qc = QuantumCircuit(3)
+        qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
+        self.assertTrue(Operator(qc).equiv(Operator(qc.decompose())))

@@ -174,6 +174,20 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc, qc.copy())
 
+    def test_copy_copies_registers(self):
+        """Test copy copies the registers not via reference."""
+        qc = QuantumCircuit(1, 1)
+        copied = qc.copy()
+
+        copied.add_register(QuantumRegister(1, 'additional_q'))
+        copied.add_register(ClassicalRegister(1, 'additional_c'))
+
+        self.assertEqual(len(qc.qregs), 1)
+        self.assertEqual(len(copied.qregs), 2)
+
+        self.assertEqual(len(qc.cregs), 1)
+        self.assertEqual(len(copied.cregs), 2)
+
     def test_measure_active(self):
         """Test measure_active
         Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
@@ -240,7 +254,7 @@ class TestCircuitOperations(QiskitTestCase):
         store those measured values.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         circuit.measure_all()
@@ -255,7 +269,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test measure_all with inplace=False
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr)
         new_circuit = circuit.measure_all(inplace=False)
@@ -286,7 +300,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -301,7 +315,7 @@ class TestCircuitOperations(QiskitTestCase):
         Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2, 'measure')
+        cr = ClassicalRegister(2, 'meas')
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)

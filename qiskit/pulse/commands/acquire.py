@@ -14,6 +14,7 @@
 
 """Acquire. Deprecated path."""
 import warnings
+import itertools
 
 from typing import Optional, Union, List
 
@@ -78,7 +79,9 @@ class AcquireInstruction(Instruction):
         else:
             reg_slot = []
 
-        super().__init__(command, *acquire, *mem_slot, *reg_slot, name=name)
+        all_channels = [group for group in [acquire, mem_slot, reg_slot] if group is not None]
+        flattened_channels = tuple(itertools.chain.from_iterable(all_channels))
+        super().__init__((), command, flattened_channels, name=name)
 
         self._acquires = acquire
         self._mem_slots = mem_slot

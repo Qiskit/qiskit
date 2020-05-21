@@ -14,15 +14,18 @@
 
 """Map input circuit onto a backend topology via insertion of SWAPs."""
 
+import logging
 from copy import deepcopy
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
+
+logger = logging.getLogger()
 
 
 class LookaheadSwap(TransformationPass):
@@ -102,11 +105,21 @@ class LookaheadSwap(TransformationPass):
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:
+            logger.debug('Top-level routing step: %d gates remaining.',
+                         len(gates_remaining))
+
             best_step = _search_forward_n_swaps(current_layout,
                                                 gates_remaining,
                                                 self.coupling_map,
                                                 self.search_depth,
                                                 self.search_width)
+
+            if best_step is None:
+                raise TranspilerError('Lookahead failed to find a swap which mapped '
+                                      'gates or improved layout score.')
+
+            logger.debug('Found best step: mapped %d gates. Added swaps: %s.',
+                         len(best_step['gates_mapped']), best_step['swaps_added'])
 
             current_layout = best_step['layout']
             gates_mapped = best_step['gates_mapped']
@@ -133,8 +146,10 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
         depth (int): Number of SWAP layers to search before choosing a result.
         width (int): Number of SWAPs to consider at each layer.
     Returns:
-        dict: Describes solution step found.
+        optional(dict): Describes solution step found. If None, no swaps leading
+            to an improvement were found. Keys:
             layout (Layout): Virtual to physical qubit map after SWAPs.
+            swaps_added (list): List of qargs of swap gates introduced.
             gates_remaining (list): Gates that could not be mapped.
             gates_mapped (list): Gates that were mapped, including added SWAPs.
 
@@ -142,14 +157,17 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
     gates_mapped, gates_remaining = _map_free_gates(layout, gates, coupling_map)
 
     base_step = {'layout': layout,
-                 'swaps_added': 0,
+                 'swaps_added': [],
                  'gates_mapped': gates_mapped,
                  'gates_remaining': gates_remaining}
 
     if not gates_remaining or depth == 0:
         return base_step
 
-    possible_swaps = coupling_map.get_edges()
+    # Include symmetric 2q gates (e.g coupling maps with both [0,1] and [1,0])
+    # as one available swap.
+    possible_swaps = set(tuple(sorted(edge))
+                         for edge in coupling_map.get_edges())
 
     def _score_swap(swap):
         """Calculate the relative score for a given SWAP."""
@@ -158,22 +176,52 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
         return _calc_layout_distance(gates, coupling_map, trial_layout)
 
     ranked_swaps = sorted(possible_swaps, key=_score_swap)
+    logger.debug('At depth %d, ranked candidate swaps: %s...',
+                 depth, [(swap, _score_swap(swap)) for swap in ranked_swaps[:width*2]])
 
     best_swap, best_step = None, None
-    for swap in ranked_swaps[:width]:
+    for rank, swap in enumerate(ranked_swaps):
         trial_layout = layout.copy()
         trial_layout.swap(*swap)
         next_step = _search_forward_n_swaps(trial_layout, gates_remaining,
                                             coupling_map, depth - 1, width)
 
+        if next_step is None:
+            continue
+
         # ranked_swaps already sorted by distance, so distance is the tie-breaker.
         if best_swap is None or _score_step(next_step) > _score_step(best_step):
+            logger.debug('At depth %d, updating best step: %s (score: %f).',
+                         depth, [swap] + next_step['swaps_added'], _score_step(next_step))
             best_swap, best_step = swap, next_step
+
+        if (
+                rank >= min(width, len(ranked_swaps)-1)
+                and best_step is not None
+                and (
+                    len(best_step['gates_mapped']) > depth
+                    or len(best_step['gates_remaining']) < len(gates_remaining)
+                    or (_calc_layout_distance(best_step['gates_remaining'],
+                                              coupling_map,
+                                              best_step['layout'])
+                        < _calc_layout_distance(gates_remaining,
+                                                coupling_map,
+                                                layout)))):
+            # Once we've examined either $WIDTH swaps, or all available swaps,
+            # return the best-scoring swap provided it leads to an improvement
+            # in either the number of gates mapped, number of gates left to be
+            # mapped, or in the score of the ending layout.
+            break
+    else:
+        return None
+
+    logger.debug('At depth %d, best_swap set: %s.',
+                 depth, [best_swap] + best_step['swaps_added'])
 
     best_swap_gate = _swap_ops_from_edge(best_swap, layout)
     return {
         'layout': best_step['layout'],
-        'swaps_added': 1 + best_step['swaps_added'],
+        'swaps_added': [best_swap] + best_step['swaps_added'],
         'gates_remaining': best_step['gates_remaining'],
         'gates_mapped': gates_mapped + best_swap_gate + best_step['gates_mapped'],
     }
@@ -248,7 +296,7 @@ def _score_step(step):
     """Count the mapped two-qubit gates, less the number of added SWAPs."""
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']
-                if len(g.qargs) == 2]) - 3 * step['swaps_added']
+                if len(g.qargs) == 2]) - 3 * len(step['swaps_added'])
 
 
 def _copy_circuit_metadata(source_dag, coupling_map):
@@ -287,5 +335,5 @@ def _swap_ops_from_edge(edge, layout):
 
     # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        DAGNode({'op': SwapGate(), 'qargs': qreg_edge, 'cargs': [], 'type': 'op'})
+        DAGNode(op=SwapGate(), qargs=qreg_edge, cargs=[], type='op')
     ]

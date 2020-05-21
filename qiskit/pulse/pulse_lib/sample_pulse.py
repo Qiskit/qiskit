@@ -18,6 +18,7 @@ from typing import Callable, Union, List, Optional
 
 import numpy as np
 
+from ..channels import PulseChannel
 from ..exceptions import PulseError
 from .pulse import Pulse
 
@@ -41,6 +42,7 @@ class SamplePulse(Pulse):
                 norm is greater than 1+epsilon an error will be raised.
         """
         samples = np.asarray(samples, dtype=np.complex_)
+        self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
 
@@ -129,23 +131,24 @@ class SamplePulse(Pulse):
                                           interp_method=interp_method, scale=scale,
                                           interactive=interactive)
 
-    def __eq__(self, other: 'SamplePulse') -> bool:
-        """Two SamplePulses are the same if they are of the same type
-        and have the same name and samples.
+    def __eq__(self, other: Pulse) -> bool:
+        return super().__eq__(other) and self.samples.shape == other.samples.shape and \
+               np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
 
-        Args:
-            other: Object to compare to.
-
-        Returns:
-            True iff self and other are equal.
-        """
-        return super().__eq__(other) and (self.samples == other.samples).all()
-
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.samples.tostring())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         opt = np.get_printoptions()
         np.set_printoptions(threshold=50)
         np.set_printoptions(**opt)
-        return '{}({}, name="{}")'.format(self.__class__.__name__, repr(self.samples), self.name)
+        return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
+                                 ", name='{}'".format(self.name) if self.name is not None else "")
+
+    def __call__(self, channel: PulseChannel):
+        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
+                      "instruction directly with a pulse and a channel. In this case, please "
+                      "use: `Play(SamplePulse(samples), {})`."
+                      "".format(self.__class__.__name__, channel),
+                      DeprecationWarning)
+        return super().__call__(channel)

@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    :func:`qiskit.compiler.transpile()` has two new kwargs, ``layout_method``
+    and ``routing_method``. These allow you to select a particular method for
+    placement and routing of circuits on constrained architectures. For,
+    example::
+
+        transpile(circ, backend, layout_method='dense',
+                  routing_method='lookahead')
+
+    will run :class:`~qiskit.transpiler.passes.DenseLayout` layout pass and
+    :class:`~qiskit.transpiler.passes.LookaheadSwap` routing pass.

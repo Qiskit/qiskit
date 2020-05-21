@@ -13,15 +13,19 @@
 # that they have been altered from the originals.
 """Pygments tools for Qasm.
 """
-from pygments.lexer import RegexLexer
-from pygments.token import (Comment, String, Keyword,
-                            Name, Number, Text)
-from pygments.style import Style
+
+try:
+    from pygments.lexer import RegexLexer
+    from pygments.token import (Comment, String, Keyword,
+                                Name, Number, Text)
+    from pygments.style import Style
+except ImportError:
+    raise ImportError("To use 'qiskit.qasm.pygments' pygments>2.4 must be "
+                      'installed. To install run "pip install pygments".')
 
 
 class QasmTerminalStyle(Style):
-    """A style for OpenQasm in a Terminal env (e.g. Jupyter print)
-    """
+    """A style for OpenQasm in a Terminal env (e.g. Jupyter print)."""
     styles = {
         String:              'ansibrightred',
         Number:              'ansibrightcyan',
@@ -33,8 +37,7 @@ class QasmTerminalStyle(Style):
 
 
 class QasmHTMLStyle(Style):
-    """A style for OpenQasm in a HTML env (e.g. Jupyter widget)
-    """
+    """A style for OpenQasm in a HTML env (e.g. Jupyter widget)."""
     styles = {
         String:              'ansired',
         Number:              'ansicyan',
@@ -46,17 +49,16 @@ class QasmHTMLStyle(Style):
 
 
 class OpenQASMLexer(RegexLexer):
-    """A pygments lexer for OpenQasm
-    """
+    """A pygments lexer for OpenQasm."""
     name = 'OpenQASM'
     aliases = ['qasm']
     filenames = ['*.qasm']
 
     gates = ['id', 'cx', 'x', 'y', 'z', 's', 'sdg', 'h',
-             't', 'tdg', 'ccx', 'rx', 'ry', 'rz',
-             'cz', 'cy', 'ch', 'swap', 'cswap', 'crx',
-             'cry', 'crz', 'cu1', 'cu3', 'rxx', 'rzz',
-             'rccx', 'rcccx', 'u1', 'u2', 'u3']
+             't', 'tdg', 'ccx', 'c3x', 'c4x', 'c3sqrtx',
+             'rx', 'ry', 'rz', 'cz', 'cy', 'ch', 'swap',
+             'cswap', 'crx', 'cry', 'crz', 'cu1', 'cu3',
+             'rxx', 'rzz', 'rccx', 'rc3x', 'u1', 'u2', 'u3']
 
     tokens = {
         'root': [
@@ -98,11 +100,12 @@ class OpenQASMLexer(RegexLexer):
 
         'params': [(r"[a-zA-Z_][a-zA-Z0-9_]*", Text, '#push'),
                    (r'\d+', Number, '#push'),
-                   (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?', Number, '#push'),
+                   (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?',
+                    Number, '#push'),
                    (r'\)', Text)],
 
         'gate': [(r'[unitary\d+]', Keyword.Type, '#push'),
                  (r'p\d+', Text, '#push')],
 
         'index': [(r"\d+", Number, '#pop')]
-        }
+    }

@@ -23,7 +23,7 @@ from qiskit.pulse import pulse_lib
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import FrameChange
-from qiskit.pulse.instructions import SetFrequency, Play, Acquire, Delay, Snapshot
+from qiskit.pulse.instructions import SetFrequency, Play, Acquire, Delay, Snapshot, ShiftFrequency
 from qiskit.pulse.schedule import Schedule
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization import pulse_drawer
@@ -42,7 +42,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     parametric_matplotlib_reference = path_to_diagram_reference('parametric_matplotlib_ref.png')
 
     def setUp(self):
-        self.schedule = Schedule()
+        self.schedule = Schedule(name='test_schedule')
 
     def sample_pulse(self):
         """Generate a sample pulse."""
@@ -62,12 +62,13 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
         delay = Delay(100)
-        sched = Schedule()
+        sched = Schedule(name='test_schedule')
         sched = sched.append(gp0(DriveChannel(0)))
-        sched = sched.insert(0, pulse_lib.ConstantPulse(duration=60, amp=0.2 + 0.4j)(
+        sched = sched.insert(0, pulse_lib.Constant(duration=60, amp=0.2 + 0.4j)(
             ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
         sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
+        sched = sched.insert(70, ShiftFrequency(4.0e6, DriveChannel(0)))
         sched = sched.insert(30, gp1(DriveChannel(1)))
         sched = sched.insert(60, gp0(ControlChannel(0)))
         sched = sched.insert(60, gs0(MeasureChannel(0)))
@@ -154,7 +155,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_truncate_acquisition(self):
-        sched = Schedule()
+        sched = Schedule(name='test_schedule')
         acquire = Acquire(30)
         sched = sched.insert(0, acquire(AcquireChannel(1),
                                         MemorySlot(1),
@@ -169,7 +170,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     def test_schedule_drawer_show_framechange(self):
         filename = self._get_resource_path('current_show_framechange_ref.png')
         gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
-        sched = Schedule()
+        sched = Schedule(name='test_schedule')
         sched = sched.append(gp0(DriveChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
         sched = sched.insert(30, FrameChange(phase=-1.50)(DriveChannel(1)))

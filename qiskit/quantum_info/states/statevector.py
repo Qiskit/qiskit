@@ -34,33 +34,72 @@ class Statevector(QuantumState):
     """Statevector class"""
 
     def __init__(self, data, dims=None):
-        """Initialize a state object."""
-        if isinstance(data, Statevector):
-            # Shallow copy constructor
-            vec = data.data
+        """Initialize a statevector object.
+
+        Args:
+            data (vector_like): a complex statevector.
+            dims (int or tuple or list): Optional. The subsystem dimension of
+                                         the state (See additional information).
+
+        Raises:
+            QiskitError: if input data is not valid.
+
+        Additional Information:
+            The ``dims`` kwarg can be None, an integer, or an iterable of
+            integers.
+
+            * ``Iterable`` -- the subsystem dimensions are the values in the list
+              with the total number of subsystems given by the length of the list.
+
+            * ``Int`` or ``None`` -- the length of the input vector
+              specifies the total dimension of the density matrix. If it is a
+              power of two the state will be initialized as an N-qubit state.
+              If it is not a power of two the state will have a single
+              d-dimensional subsystem.
+        """
+        if isinstance(data, (list, np.ndarray)):
+            # Finally we check if the input is a raw vector in either a
+            # python list or numpy array format.
+            self._data = np.asarray(data, dtype=complex)
+        elif isinstance(data, Statevector):
+            self._data = data._data
             if dims is None:
-                dims = data.dims()
+                dims = data._dims
         elif isinstance(data, Operator):
             # We allow conversion of column-vector operators to Statevectors
             input_dim, output_dim = data.dim
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
-            vec = np.reshape(data.data, output_dim)
-        elif isinstance(data, (list, np.ndarray)):
-            # Finally we check if the input is a raw vector in either a
-            # python list or numpy array format.
-            vec = np.array(data, dtype=complex)
+            self._data = np.ravel(data.data)
         else:
             raise QiskitError("Invalid input data format for Statevector")
         # Check that the input is a numpy vector or column-vector numpy
         # matrix. If it is a column-vector matrix reshape to a vector.
-        if vec.ndim not in [1, 2] or (vec.ndim == 2 and vec.shape[1] != 1):
-            raise QiskitError("Invalid input: not a vector or column-vector.")
-        if vec.ndim == 2 and vec.shape[1] == 1:
-            vec = np.reshape(vec, vec.shape[0])
-        dim = vec.shape[0]
-        subsystem_dims = self._automatic_dims(dims, dim)
-        super().__init__('Statevector', vec, subsystem_dims)
+        ndim = self._data.ndim
+        shape = self._data.shape
+        if ndim != 1:
+            if ndim == 2 and shape[1] == 1:
+                self._data = np.reshape(self._data, shape[0])
+            elif ndim != 2 or shape[1] != 1:
+                raise QiskitError("Invalid input: not a vector or column-vector.")
+        super().__init__(self._automatic_dims(dims, shape[0]))
+
+    def __eq__(self, other):
+        return super().__eq__(other) and np.allclose(
+            self._data, other._data, rtol=self.rtol, atol=self.atol)
+
+    def __repr__(self):
+        prefix = 'Statevector('
+        pad = len(prefix) * ' '
+        return '{}{},\n{}dims={})'.format(
+            prefix, np.array2string(
+                self.data, separator=', ', prefix=prefix),
+            pad, self._dims)
+
+    @property
+    def data(self):
+        """Return data."""
+        return self._data
 
     def is_valid(self, atol=None, rtol=None):
         """Return True if a Statevector has norm 1."""
@@ -128,14 +167,14 @@ class Statevector(QuantumState):
         data = np.kron(other._data, self._data)
         return Statevector(data, dims)
 
-    def add(self, other):
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
             other (Statevector): a quantum state object.
 
         Returns:
-            LinearOperator: the linear combination self + other.
+            Statevector: the linear combination self + other.
 
         Raises:
             QiskitError: if other is not a quantum state, or has
@@ -147,33 +186,14 @@ class Statevector(QuantumState):
             raise QiskitError("other Statevector has different dimensions.")
         return Statevector(self.data + other.data, self.dims())
 
-    def subtract(self, other):
-        """Return the linear operator self - other.
-
-        Args:
-            other (Statevector): a quantum state object.
-
-        Returns:
-            LinearOperator: the linear combination self - other.
-
-        Raises:
-            QiskitError: if other is not a quantum state, or has
-                         incompatible dimensions.
-        """
-        if not isinstance(other, Statevector):
-            other = Statevector(other)
-        if self.dim != other.dim:
-            raise QiskitError("other Statevector has different dimensions.")
-        return Statevector(self.data - other.data, self.dims())
-
-    def multiply(self, other):
-        """Return the linear operator self * other.
+    def _multiply(self, other):
+        """Return the scalar multiplied state self * other.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            Operator: the linear combination other * self.
+            Statevector: the scalar multiplied state other * self.
 
         Raises:
             QiskitError: if other is not a valid complex number.
@@ -319,6 +339,52 @@ class Statevector(QuantumState):
             probs = probs.round(decimals=decimals)
         return probs
 
+    def reset(self, qargs=None):
+        """Reset state or subsystems to the 0-state.
+
+        Args:
+            qargs (list or None): subsystems to reset, if None all
+                                  subsystems will be reset to their 0-state
+                                  (Default: None).
+
+        Returns:
+            Statevector: the reset state.
+
+        Additional Information:
+            If all subsystems are reset this will return the ground state
+            on all subsystems. If only a some subsystems are reset this
+            function will perform a measurement on those subsystems and
+            evolve the subsystems so that the collapsed post-measurement
+            states are rotated to the 0-state. The RNG seed for this
+            sampling can be set using the :meth:`seed` method.
+        """
+        if qargs is None:
+            # Resetting all qubits does not require sampling or RNG
+            state = np.zeros(self._dim, dtype=complex)
+            state[0] = 1
+            return Statevector(state, dims=self._dims)
+
+        # Sample a single measurement outcome
+        dims = self.dims(qargs)
+        probs = self.probabilities(qargs)
+        sample = self._rng.choice(len(probs), p=probs, size=1)
+
+        # Convert to projector for state update
+        proj = np.zeros(len(probs), dtype=complex)
+        proj[sample] = 1 / np.sqrt(probs[sample])
+
+        # Rotate outcome to 0
+        reset = np.eye(len(probs))
+        reset[0, 0] = 0
+        reset[sample, sample] = 0
+        reset[0, sample] = 1
+
+        # compose with reset projection
+        reset = np.dot(reset, np.diag(proj))
+        return self.evolve(
+            Operator(reset, input_dims=dims, output_dims=dims),
+            qargs=qargs)
+
     def to_counts(self):
         """Returns the statevector as a counts dict
         of probabilities.
@@ -404,6 +470,34 @@ class Statevector(QuantumState):
                     state = state.evolve(y_mat, qargs=[qubit])
         return state
 
+    @staticmethod
+    def from_int(i, dims):
+        """Return a computational basis statevector.
+
+        Args:
+            i (int): the basis state element.
+            dims (int or tuple or list): The subsystem dimensions of the statevector
+                                         (See additional information).
+
+        Returns:
+            Statevector: The computational basis state :math:`|i\\rangle`.
+
+        Additional Information:
+            The ``dims`` kwarg can be an integer or an iterable of integers.
+
+            * ``Iterable`` -- the subsystem dimensions are the values in the list
+              with the total number of subsystems given by the length of the list.
+
+            * ``Int`` -- the integer specifies the total dimension of the
+              state. If it is a power of two the state will be initialized
+              as an N-qubit state. If it is not a power of  two the state
+              will have a single d-dimensional subsystem.
+        """
+        size = np.product(dims)
+        state = np.zeros(size, dtype=complex)
+        state[i] = 1.0
+        return Statevector(state, dims=dims)
+
     @classmethod
     def from_instruction(cls, instruction):
         """Return the output statevector of an instruction.
@@ -427,8 +521,8 @@ class Statevector(QuantumState):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         init = np.zeros(2 ** instruction.num_qubits, dtype=complex)
-        init[0] = 1
-        vec = Statevector(init, dims=instruction.num_qubits * [2])
+        init[0] = 1.0
+        vec = Statevector(init, dims=instruction.num_qubits * (2,))
         vec._append_instruction(instruction)
         return vec
 
@@ -501,28 +595,40 @@ class Statevector(QuantumState):
 
     def _append_instruction(self, obj, qargs=None):
         """Update the current Statevector by applying an instruction."""
+        from qiskit.circuit.reset import Reset
+        from qiskit.circuit.barrier import Barrier
+
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
             # Perform the composition and inplace update the current state
             # of the operator
             self._data = self.evolve(mat, qargs=qargs).data
-        else:
-            # If the instruction doesn't have a matrix defined we use its
-            # circuit decomposition definition if it exists, otherwise we
-            # cannot compose this gate and raise an error.
-            if obj.definition is None:
-                raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-            for instr, qregs, cregs in obj.definition:
-                if cregs:
-                    raise QiskitError(
-                        'Cannot apply instruction with classical registers: {}'.format(
-                            instr.name))
-                # Get the integer position of the flat register
-                if qargs is None:
-                    new_qargs = [tup.index for tup in qregs]
-                else:
-                    new_qargs = [qargs[tup.index] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+            return
+
+        # Special instruction types
+        if isinstance(obj, Reset):
+            self._data = self.reset(qargs)._data
+            return
+        if isinstance(obj, Barrier):
+            return
+
+        # If the instruction doesn't have a matrix defined we use its
+        # circuit decomposition definition if it exists, otherwise we
+        # cannot compose this gate and raise an error.
+        if obj.definition is None:
+            raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+
+        for instr, qregs, cregs in obj.definition:
+            if cregs:
+                raise QiskitError(
+                    'Cannot apply instruction with classical registers: {}'.format(
+                        instr.name))
+            # Get the integer position of the flat register
+            if qargs is None:
+                new_qargs = [tup.index for tup in qregs]
+            else:
+                new_qargs = [qargs[tup.index] for tup in qregs]
+            self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""

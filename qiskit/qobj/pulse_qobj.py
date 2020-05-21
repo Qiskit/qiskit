@@ -19,6 +19,7 @@
 
 import copy
 import json
+import pprint
 
 import numpy
 
@@ -174,6 +175,30 @@ class PulseQobjInstruction:
                 x.to_dict() for x in self.discriminators]
         return out_dict
 
+    def __repr__(self):
+        out = "PulseQobjInstruction(name='%s', t0=%s" % (self.name, self.t0)
+        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
+                     'qubits', 'memory_slot', 'register_slot',
+                     'label', 'type', 'pulse_shape', 'parameters']:
+            attr_val = getattr(self, attr, None)
+            if attr_val is not None:
+                if isinstance(attr_val, str):
+                    out += ', %s="%s"' % (attr, attr_val)
+                else:
+                    out += ", %s=%s" % (attr, attr_val)
+        out += ')'
+        return out
+
+    def __str__(self):
+        out = "Instruction: %s\n" % self.name
+        out += "\t\tt0: %s\n" % self.t0
+        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
+                     'qubits', 'memory_slot', 'register_slot',
+                     'label', 'type', 'pulse_shape', 'parameters']:
+            if hasattr(self, attr):
+                out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
+        return out
+
     @classmethod
     def from_dict(cls, data):
         """Create a new PulseQobjExperimentConfig object from a dictionary.
@@ -322,6 +347,36 @@ class PulseQobjExperiment:
             out_dict['header'] = self.header.to_dict()
         return out_dict
 
+    def __repr__(self):
+        instructions_str = [repr(x) for x in self.instructions]
+        instructions_repr = '[' + ', '.join(instructions_str) + ']'
+        out = "PulseQobjExperiment("
+        out += instructions_repr
+        if hasattr(self, 'config') or hasattr(self, 'header'):
+            out += ', '
+        if hasattr(self, 'config'):
+            out += "config=" + str(repr(self.config)) + ", "
+        if hasattr(self, 'header'):
+            out += "header=" + str(repr(self.header)) + ", "
+        out += ')'
+        return out
+
+    def __str__(self):
+        out = '\nPulse Experiment:\n'
+        if hasattr(self, 'config'):
+            config = pprint.pformat(self.config.to_dict())
+        else:
+            config = '{}'
+        if hasattr(self, 'header'):
+            header = pprint.pformat(self.header.to_dict() or {})
+        else:
+            header = '{}'
+        out += 'Header:\n%s\n' % header
+        out += 'Config:\n%s\n\n' % config
+        for instruction in self.instructions:
+            out += '\t%s\n' % instruction
+        return out
+
     @classmethod
     def from_dict(cls, data):
         """Create a new PulseQobjExperiment object from a dictionary.
@@ -386,7 +441,11 @@ class PulseLibraryItem:
                 shape.
         """
         self.name = name
-        self.samples = samples
+        if isinstance(samples[0], list):
+            self.samples = numpy.array(
+                [complex(sample[0], sample[1]) for sample in samples])
+        else:
+            self.samples = samples
 
     def to_dict(self):
         """Return a dictionary format representation of the pulse library item.
@@ -407,6 +466,13 @@ class PulseLibraryItem:
             PulseLibraryItem: The object from the input dictionary.
         """
         return cls(**data)
+
+    def __repr__(self):
+        return "PulseLibraryItem(%s, %s)" % (self.name, repr(self.samples))
+
+    def __str__(self):
+        return "Pulse Library Item:\n\tname: %s\n\tsamples: %s" % (
+            self.name, self.samples)
 
     def __eq__(self, other):
         if isinstance(other, PulseLibraryItem):
@@ -453,6 +519,25 @@ class PulseQobj:
 
         json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
         validator(json.loads(json_str))
+
+    def __repr__(self):
+        experiments_str = [repr(x) for x in self.experiments]
+        experiments_repr = '[' + ', '.join(experiments_str) + ']'
+        out = "PulseQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+            self.qobj_id, repr(self.config), experiments_repr,
+            repr(self.header))
+        return out
+
+    def __str__(self):
+        out = "Pulse Qobj: %s:\n" % self.qobj_id
+        config = pprint.pformat(self.config.to_dict())
+        out += "Config: %s\n" % str(config)
+        header = pprint.pformat(self.header.to_dict())
+        out += "Header: %s\n" % str(header)
+        out += "Experiments:\n"
+        for experiment in self.experiments:
+            out += "%s" % str(experiment)
+        return out
 
     def to_dict(self, validate=False):
         """Return a dictionary format representation of the Pulse Qobj.

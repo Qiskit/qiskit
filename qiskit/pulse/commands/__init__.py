@@ -14,31 +14,13 @@
 
 # pylint: disable=cyclic-import
 
+"""Supported command types in Pulse. This directory is deprecated.
+
+AcquireInstruction, FrameChange, FrameChangeInstruction, PersistentValue,
+PersistentValueInstruction, PulseInstruction, DelayInstruction and ParametricInstruction are all
+deprecated. When they are removed, this ``pulse.commands`` import path for the remaining objects
+can also be deprecated.
 """
-Supported command types in Pulse.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Acquire
-   FrameChange
-   SamplePulse
-   Snapshot
-   Delay
-   Gaussian
-   GaussianSquare
-   Drag
-   ConstantPulse
-
-Abstract Classes
-----------------
-.. autosummary::
-   :toctree: ../stubs/
-
-   ParametricPulse
-   Command
-
- """
 from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel
@@ -49,4 +31,4 @@ from .sample_pulse import SamplePulse, PulseInstruction
 from .snapshot import Snapshot
 from .delay import Delay, DelayInstruction
 from .parametric_pulses import (ParametricPulse, ParametricInstruction, Gaussian, GaussianSquare,
-                                Drag, ConstantPulse)
+                                Drag, Constant)

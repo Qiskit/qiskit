@@ -36,7 +36,7 @@ $ python
 >>> qc.cx(0, 1)
 >>> qc.measure([0,1], [0,1])
 >>> backend_sim = BasicAer.get_backend('qasm_simulator')
->>> result = execute(qc, backend_sim).result()
+>>> result = backend_sim.run(assemble(qc)).result()
 >>> print(result.get_counts(qc))
 ```
 
@@ -95,7 +95,7 @@ If you'd like to contribute to Qiskit Terra, please take a look at our
 [contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
-[join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/enQtODQ2NTIyOTgwMTQ3LTI0NzM2NzkzZjJhNDgzZjY5MTQzNDY3MGNiZGQzNTNkZTE4Nzg1MjMwMmFjY2UwZTgyNDlmYWQwYmZjMjE1ZTM)
+[join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/zt-e4sscbg2-p8NHTezPVkC3r8nV6BIUVw)
 and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
 For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
