@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit.quantum_info import Statevector
 from qiskit.circuit import ParameterExpression
+from qiskit.aqua import aqua_globals
 
 from ..operator_base import OperatorBase
 from .state_fn import StateFn
@@ -172,9 +173,9 @@ class VectorStateFn(StateFn):
         deterministic_counts = self.primitive.probabilities_dict()
         # Don't need to square because probabilities_dict already does.
         probs = np.array(list(deterministic_counts.values()))
-        unique, counts = np.unique(np.random.choice(list(deterministic_counts.keys()),
-                                                    size=shots,
-                                                    p=(probs / sum(probs))),
+        unique, counts = np.unique(aqua_globals.random.choice(list(deterministic_counts.keys()),
+                                                              size=shots,
+                                                              p=(probs / sum(probs))),
                                    return_counts=True)
         counts = dict(zip(unique, counts))
         if reverse_endianness:

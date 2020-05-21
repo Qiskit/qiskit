@@ -21,6 +21,7 @@ from scipy import sparse
 
 from qiskit.result import Result
 from qiskit.circuit import ParameterExpression
+from qiskit.aqua import aqua_globals
 
 from ..operator_base import OperatorBase
 from .state_fn import StateFn
@@ -236,9 +237,9 @@ class DictStateFn(StateFn):
                massive: bool = False,
                reverse_endianness: bool = False) -> dict:
         probs = np.array(list(self.primitive.values()))**2
-        unique, counts = np.unique(np.random.choice(list(self.primitive.keys()),
-                                                    size=shots,
-                                                    p=(probs / sum(probs))),
+        unique, counts = np.unique(aqua_globals.random.choice(list(self.primitive.keys()),
+                                                              size=shots,
+                                                              p=(probs / sum(probs))),
                                    return_counts=True)
         counts = dict(zip(unique, counts))
         if reverse_endianness:

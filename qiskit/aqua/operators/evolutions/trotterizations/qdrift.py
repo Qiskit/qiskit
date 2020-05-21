@@ -19,6 +19,7 @@ QDrift Class
 
 import numpy as np
 
+from qiskit.aqua import aqua_globals
 from .trotterization_base import TrotterizationBase
 from ...operator_base import OperatorBase
 from ...list_ops.summed_op import SummedOp
@@ -53,6 +54,7 @@ class QDrift(TrotterizationBase):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator.oplist]
-        sampled_ops = np.random.choice(scaled_ops, size=(int(N * self.reps),), p=weights / lambd)
+        sampled_ops = aqua_globals.random.choice(scaled_ops,
+                                                 size=(int(N * self.reps),), p=weights / lambd)
 
         return ComposedOp(sampled_ops).reduce()
