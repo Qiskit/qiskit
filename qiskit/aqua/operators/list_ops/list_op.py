@@ -14,15 +14,15 @@
 
 """ ListOp Operator Class """
 
-from typing import List, Union, Optional, Callable, Iterator, Set, Dict
 from functools import reduce
+from typing import List, Union, Optional, Callable, Iterator, Set, Dict
+
 import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit.circuit import ParameterExpression
-
-from ..operator_base import OperatorBase
 from ..legacy.base_operator import LegacyBaseOperator
+from ..operator_base import OperatorBase
 
 
 class ListOp(OperatorBase):
@@ -158,7 +158,8 @@ class ListOp(OperatorBase):
         if not isinstance(other, type(self)) or not len(self.oplist) == len(other.oplist):
             return False
         # Note, ordering matters here (i.e. different list orders will return False)
-        return all([op1 == op2 for op1, op2 in zip(self.oplist, other.oplist)])
+        return self.coeff == other.coeff and all(
+            op1 == op2 for op1, op2 in zip(self.oplist, other.oplist))
 
     # We need to do this because otherwise Numpy takes over scalar multiplication and wrecks it if
     # isinstance(scalar, np.number) - this started happening when we added __get_item__().
@@ -210,7 +211,7 @@ class ListOp(OperatorBase):
             raise ValueError(
                 'to_matrix will return an exponentially large matrix, '
                 'in this case {0}x{0} elements.'
-                ' Set massive=True if you want to proceed.'.format(2**self.num_qubits))
+                ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
 
         # Combination function must be able to handle classical values
         return self.combo_fn([op.to_matrix() * self.coeff for op in self.oplist])
@@ -265,9 +266,9 @@ class ListOp(OperatorBase):
                                       r'Listops.')
 
         evals = [(self.coeff * op).eval(front) for op in self.oplist]
-        if all([isinstance(op, OperatorBase) for op in evals]):
+        if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)
-        elif any([isinstance(op, OperatorBase) for op in evals]):
+        elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError('Cannot handle mixed scalar and Operator eval results.')
         else:
             return self.combo_fn(evals)
