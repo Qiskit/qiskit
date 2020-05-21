@@ -141,7 +141,7 @@ class AQGD(Optimizer):
         if self._previous_loss is None:
             self._previous_loss = [objval + 2 * self._tol] * n
 
-        if all([absolute(objval - prev) < self._tol for prev in self._previous_loss]):
+        if all(absolute(objval - prev) < self._tol for prev in self._previous_loss):
             # converged
             return True
 
