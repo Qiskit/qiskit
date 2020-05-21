@@ -155,6 +155,7 @@ class MatplotlibDrawer:
             self.ax = ax
             self.figure = ax.get_figure()
 
+        # Used to compute text widths
         self._text_figure = plt.figure()
         self._renderer = self._text_figure.canvas.get_renderer()
         self._reg_long_text = 0
@@ -183,22 +184,29 @@ class MatplotlibDrawer:
         return self._ast
 
     # This is a maplotlib trick for getting the actual text width in some coords.
-    # The / 38.0 converts to x coords. If Latex formatting is used, it must be
-    # removed or raw text used to get an accurate width.
-    def _get_text_width(self, text):
-        t = plt.text(0.5,0.5,text)
-        return t.get_window_extent(renderer=self._renderer).width / 38.0
+    # Factor of 51.2 used for qregs and 57.0 for gates to convert to x coords
+    def _get_text_width(self, text, fontsize, factor=57.0):
+        t = plt.text(0.5, 0.5, text, fontsize=fontsize)
+        return t.get_window_extent(renderer=self._renderer).width / factor
 
     def _custom_multiqubit_gate(self, xy, fc=None, text=None, subtext=None):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        if text[0].islower():
-            dtext = text.capitalize()
+        if text in self._style.disptex:
+            disp_text = "${}$".format(self._style.disptex[text])
         else:
-            dtext = text
-        wid = .2 + self._get_text_width(dtext)
+            disp_text = "${}$".format(text.capitalize())
+        text_width = self._get_text_width(disp_text, self._style.fs) + .2
+        subtext_width = self._get_text_width(subtext, self._style.sfs) + .2
+
+        if subtext_width > text_width and subtext_width > WID:
+            wid = subtext_width
+        elif text_width > WID:
+            wid = text_width
+        else:
+            wid = WID
 
         if fc:
             _fc = fc
@@ -218,7 +226,7 @@ class MatplotlibDrawer:
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
             width=wid, height=height,
             fc=_fc,
-            ec=self._style.dispcol['multi'],
+            ec=_fc,
             linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
@@ -229,23 +237,17 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
-            if text in self._style.disptex:
-                disp_text = "${}$".format(self._style.disptex[text])
-            else:
-                disp_text = text
-            if disp_text[0].islower():
-                disp_text = disp_text.capitalize()
             if subtext:
-                self.ax.text(xpos+.07, ypos + 0.4 * height, disp_text, ha='center',
+                self.ax.text(xpos+.1, ypos + 0.4 * height, disp_text, ha='center',
                              va='center', fontsize=self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT)
-                self.ax.text(xpos+.07, ypos + 0.2 * height, subtext, ha='center',
+                self.ax.text(xpos+.1, ypos + 0.2 * height, subtext, ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos+.07, ypos + .5 * (qubit_span - 1), disp_text,
+                self.ax.text(xpos+.1, ypos + .5 * (qubit_span - 1), disp_text,
                              ha='center',
                              va='center',
                              fontsize=self._style.fs,
@@ -254,25 +256,24 @@ class MatplotlibDrawer:
                              zorder=PORDER_TEXT,
                              wrap=True)
 
-    def _gate(self, xy, fc=None, wide=False, text=None, subtext=None):
+    def _gate(self, xy, fc=None, text=None, subtext=None):
         xpos, ypos = xy
 
-        if wide:
-            if subtext:
-                subtext_len = len(subtext)
-                if '$\\pi$' in subtext:
-                    pi_count = subtext.count('pi')
-                    subtext_len = subtext_len - (4 * pi_count)
+        if text in self._style.disptex:
+            disp_text = "${}$".format(self._style.disptex[text])
+        else:
+            disp_text = text
 
-                boxes_wide = round(max(subtext_len, len(text)) / 10, 1) or 1
-                wid = WID * 1.5 * boxes_wide
-            else:
-                boxes_wide = round(len(text) / 10) or 1
-                wid = WID * 2.2 * boxes_wide
-            if wid < WID:
-                wid = WID
+        text_width = self._get_text_width(disp_text, self._style.fs)
+        subtext_width = self._get_text_width(subtext, self._style.sfs)
+
+        if subtext_width > text_width and subtext_width > WID:
+            wid = subtext_width
+        elif text_width > WID:
+            wid = text_width
         else:
             wid = WID
+
         if fc:
             _fc = fc
         elif self._style.gc != DefaultStyle().gc:
@@ -301,10 +302,6 @@ class MatplotlibDrawer:
                 disp_color = self._style.gt
                 sub_color = self._style.sc
 
-            if text in self._style.disptex:
-                disp_text = "${}$".format(self._style.disptex[text])
-            else:
-                disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
                              va='center', fontsize=font_size,
@@ -557,20 +554,19 @@ class MatplotlibDrawer:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
                                                               index=reg.index)
-                    twidth = self._get_text_width(reg.register.name)
+                    text_width = self._get_text_width(label, self._style.fs, 51.2)
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
                         index=self.layout[reg.index].index,
                         physical=reg.index)
-                    # Add XXX to include mapsto symbol and extra number width
-                    twidth = self._get_text_width(self.layout[reg.index].register.name+'XXX')
+                    text_width = self._get_text_width(label, self._style.fs, 51.2)
             else:
                 label = '${name}$'.format(name=reg.register.name)
-                twidth = self._get_text_width(reg.register.name)
+                text_width = self._get_text_width(label, self._style.fs, 51.2)
 
-            if twidth > longest_label_width:
-                longest_label_width = twidth
+            if text_width > longest_label_width:
+                longest_label_width = text_width
 
             pos = -ii
             self._qreg_dict[ii] = {
@@ -590,11 +586,11 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(
                     self._creg, n_creg)):
                 pos = y_off - idx
-                twidth = self._get_text_width(reg.register.name)
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
-                    if twidth > longest_label_width:
-                        longest_label_width = twidth
+                    text_width = self._get_text_width(reg.register.name, self._style.fs, 51.2)
+                    if text_width > longest_label_width:
+                        longest_label_width = text_width
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -605,8 +601,9 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
-                    if twidth > longest_label_width:
-                        longest_label_width = twidth
+                    text_width = self._get_text_width(reg.register.name, self._style.fs, 51.2)
+                    if text_width > longest_label_width:
+                        longest_label_width = text_width
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -618,7 +615,7 @@ class MatplotlibDrawer:
                 idx += 1
 
         self._reg_long_text = longest_label_width
-        self.x_offset = -1.25 + self._reg_long_text
+        self.x_offset = -1.2 + self._reg_long_text
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -677,9 +674,8 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         _narrow_gate = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                        'rxx', 'ryy', 'rzx', 'u1', 'swap']
-        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'cu1', 'rzz']
-        _other_gate = ['iswap', 'initialize', 'unitary', 'hamiltonian']
+                        'rxx', 'ryy', 'rzx', 'u1', 'swap', 'initialize', 'reset']
+        _array_gate = ['iswap', 'dcx', 'unitary', 'hamiltonian', 'isometry']
         _special_gate = ['barrier', 'snapshot', 'load', 'save', 'noise', 'measure']
         _barriers = {'coord': [], 'group': []}
 
@@ -701,73 +697,44 @@ class MatplotlibDrawer:
         #
         prev_anc = -1
         for layer in self._ops:
-            layer_width = 1
-
+            widest_box = 0.0
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
 
                 # Narrow gates are all layer_width 1
-                if op.name in _narrow_gate or (base_name != 'u1' and base_name in _narrow_gate):
+                if (op.name in _narrow_gate or (base_name != 'u1' and base_name in _narrow_gate)
+                        or op.name in _special_gate):
+                    box_width = WID
                     continue
 
-                # If one of the standard wide gates
-                if op.name in _wide_gate or base_name in _wide_gate:
+                text_width = self._get_text_width(op.name, fontsize=self._style.fs)
+                if op.name not in _array_gate and op.type == 'op' and hasattr(op.op, 'params'):
+                    param = self.param_parse(op.op.params)
+                    param_width = self._get_text_width(param, fontsize=self._style.sfs)
 
-                    if op.name in ['rzz', 'cu1'] or base_name in ['rzz', 'u3']:
-                        layer_width = 2
-
-                    elif op.type == 'op' and hasattr(op.op, 'params'):
-                        param = self.param_parse(op.op.params)
-                        if '$\\pi$' in param:
-                            pi_count = param.count('pi')
-                            len_param = len(param) - (4 * pi_count)
+                    if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
+                        tname = 'cu1' if op.name == 'cu1' else 'zz'
+                        side_width = self._get_text_width(tname + ' ',
+                                                          fontsize=self._style.sfs) + param_width
+                        box_width = WID + 0.15 + side_width
+                    else:
+                        if param_width > text_width and param_width > WID:
+                            box_width = param_width
+                        elif text_width > WID:
+                            box_width = text_width
                         else:
-                            len_param = len(param)
-                        if len_param > len(op.name):
-                            box_width = math.floor(len_param / 5.5)
-                            layer_width = box_width
-                            continue
+                            box_width = WID
+                else:
+                    box_width = WID if text_width + 0.2 < WID else text_width + 0.2
 
-                # if custom gate with a longer than standard name determine
-                # width
-                elif (op.name not in _narrow_gate+_wide_gate+_other_gate+_special_gate
-                      or (op.name not in _special_gate and len(op.name) >= 4)):
-                    box_width = math.ceil(len(op.name) / 6)
+                if box_width > widest_box:
+                    widest_box = box_width
 
-                    # handle params/subtext longer than op names
-                    if (op.type == 'op' and hasattr(op.op, 'params')
-                            and op.name != 'unitary' and op.name != 'hamiltonian'
-                            and op.name != 'isometry'):
-                        param = self.param_parse(op.op.params)
-                        if '$\\pi$' in param:
-                            pi_count = param.count('pi')
-                            len_param = len(param) - (4 * pi_count)
-                        else:
-                            len_param = len(param)
-                        if len_param > len(op.name):
-                            box_width = math.floor((len(param) + 4.0) / 11.0)
-                            # If more than 4 characters min width is 2
-                            if box_width <= 1:
-                                box_width = 2
-                            if layer_width < box_width:
-                                if box_width > 2:
-                                    layer_width = box_width * 2
-                                else:
-                                    layer_width = 2
-                            continue
-                    # If more than 4 characters min width is 2
-                    layer_width = math.ceil(box_width * WID * 2.5)
-
+            layer_width = int(widest_box) + 1
             this_anc = prev_anc + 1
 
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                print("OPNAME BASENAME", op.name, base_name)
-                _iswide = op.name in _wide_gate
-                if op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                   'noise', 'cswap', 'swap', 'measure',
-                                   'reset'] and len(op.name) >= 4:
-                    _iswide = True
 
                 # get qreg index
                 q_idxs = []
@@ -856,6 +823,7 @@ class MatplotlibDrawer:
                 if op.name == 'measure':
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv)
+
                 elif op.name in ['barrier', 'snapshot', 'load', 'save', 'noise']:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
@@ -871,27 +839,23 @@ class MatplotlibDrawer:
                     vec = '[%s]' % param
                     label = None if not hasattr(op.op, 'label') else op.op.label
                     self._custom_multiqubit_gate(q_xy, text=label or "|psi>", subtext=vec)
-                elif op.name == 'unitary':
-                    # TODO(mtreinish): Look into adding the unitary to the
-                    # subtext
+
+                elif op.name in _array_gate:
                     label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, text=label or "Unitary")
-                elif op.name == 'hamiltonian':
-                    label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, text=label or "Hamiltonian")
-                elif op.name == 'isometry':
-                    label = None if not hasattr(op.op, 'label') else op.op.label
-                    self._custom_multiqubit_gate(q_xy, text=label or "Isometry")
+                    if op.name in self._style.dispcol:
+                        fc = self._style.dispcol[op.name]
+                    else:
+                        fc = self._style.dispcol['multi']
+                    self._custom_multiqubit_gate(q_xy, text=label or op.name, fc=fc)
                 #
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        self._gate(q_xy[0], wide=_iswide, text=disp,
-                                   subtext=str(param))
+                        self._gate(q_xy[0], text=disp, subtext=str(param))
                     else:
-                        self._gate(q_xy[0], wide=_iswide, text=disp)
+                        self._gate(q_xy[0], text=disp)
 
                 #
                 # draw controlled and special gates
@@ -959,7 +923,7 @@ class MatplotlibDrawer:
                     color = self._style.dispcol['multi']
                     self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                     self._ctrl_qubit(q_xy[1], fc=color, ec=color)
-                    self._sidetext(qreg_b, text='zz({})'.format(param))
+                    self._sidetext(qreg_b, text='zz ({})'.format(param))
 
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=color)
@@ -972,7 +936,7 @@ class MatplotlibDrawer:
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=color, ec=color)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=color, ec=color)
-                    self._sidetext(qreg_b, text='zz({})'.format(param))
+                    self._sidetext(qreg_b, text='zz ({})'.format(param))
 
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=color)
@@ -1019,12 +983,12 @@ class MatplotlibDrawer:
                     self._line(qreg_b, qreg_t, lc=color)
                     if num_qargs == 1:
                         if param:
-                            self._gate(q_xy[num_ctrl_qubits], wide=_iswide,
+                            self._gate(q_xy[num_ctrl_qubits], 
                                        text=disp,
                                        fc=color,
                                        subtext='{}'.format(param))
                         else:
-                            self._gate(q_xy[num_ctrl_qubits], wide=_iswide, text=disp, fc=color)
+                            self._gate(q_xy[num_ctrl_qubits], text=disp, fc=color)
                     else:
                         self._custom_multiqubit_gate(q_xy[num_ctrl_qubits:], fc=color, text=disp)
 
@@ -1071,10 +1035,10 @@ class MatplotlibDrawer:
         if self._style.index:
             for ii in range(max_anc):
                 if self.fold > 0:
-                    x_coord = ii % self.fold + self._reg_long_text - 0.25
+                    x_coord = ii % self.fold + self._reg_long_text - 0.2
                     y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
-                    x_coord = ii + self._reg_long_text - 0.25
+                    x_coord = ii + self._reg_long_text - 0.2
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
