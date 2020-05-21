@@ -42,7 +42,7 @@ class U2Gate(Gate):
 
         U2(\phi, \lambda) = \frac{1}{\sqrt{2}}
             \begin{pmatrix}
-                1          & e^{-i\lambda} \\
+                1          & -e^{i\lambda} \\
                 e^{i\phi} & e^{i(\phi+\lambda)}
             \end{pmatrix}
 
@@ -50,7 +50,7 @@ class U2Gate(Gate):
 
     .. math::
 
-        U2(\pi, 0) = H
+        U2(0, \pi) = H
 
     .. seealso::
 
