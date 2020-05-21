@@ -524,25 +524,6 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         self.assertEqual(out_dag.count_ops(), {'u1': 6, 'cx': 4})
 
-    def test_definition_unroll_parameterized_with_expressions(self):
-        """Verify that unrolling complex gates with parameter expressions raises."""
-        qr = QuantumRegister(2)
-        qc = QuantumCircuit(qr)
-
-        theta = Parameter('theta')
-        phi = Parameter('phi')
-        sum_ = theta + phi
-
-        qc.cu1(sum_, qr[0], qr[1])
-        dag = circuit_to_dag(qc)
-
-        with self.assertRaisesRegex(QiskitError, 'unsupported'):
-            pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
-            dag = pass_.run(dag)
-
-            BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
-            raise QiskitError('unsupported')
-
     def test_unrolling_parameterized_composite_gates(self):
         """Verify unrolling circuits with parameterized composite gates."""
         mock_sel = EquivalenceLibrary(base=std_eqlib)
