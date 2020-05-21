@@ -247,6 +247,24 @@ class TestVQE(QiskitAquaTestCase):
         result = vqe.run()
         self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
+    def test_vqe_optimizer(self):
+        """ Test running same VQE twice to re-use optimizer, then switch optimizer """
+        vqe = VQE(self.qubit_op, optimizer=SLSQP(),
+                  quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator')))
+
+        def run_check():
+            result = vqe.compute_minimum_eigenvalue()
+            self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=5)
+
+        run_check()
+
+        with self.subTest('Optimizer re-use'):
+            run_check()
+
+        with self.subTest('Optimizer replace'):
+            vqe.optimizer = L_BFGS_B()
+            run_check()
+
     def test_vqe_mes(self):
         """ Test vqe minimum eigen solver interface """
         ansatz = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')

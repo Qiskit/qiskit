@@ -127,8 +127,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         """
         validate_min('max_evals_grouped', max_evals_grouped, 1)
         if var_form is None:
-            if operator is not None:
-                var_form = RealAmplitudes()
+            var_form = RealAmplitudes()
 
         if optimizer is None:
             optimizer = SLSQP()
@@ -215,7 +214,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                       aux_operators: Optional[List[Optional[Union[OperatorBase,
                                                                   LegacyBaseOperator]]]]) -> None:
         """ Set aux operators """
-        # This is all terrible code to deal with weight 0-qubit None aux_ops.
+        # We need to handle the array entries being Optional i.e. having value None
         self._aux_op_nones = None
         if isinstance(aux_operators, list):
             self._aux_op_nones = [op is None for op in aux_operators]
@@ -244,7 +243,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
     @VQAlgorithm.optimizer.setter
     def optimizer(self, optimizer: Optimizer):
         """ Sets optimizer """
-        super().optimizer = optimizer
+        super(VQE, self.__class__).optimizer.__set__(self, optimizer)
         if optimizer is not None:
             optimizer.set_max_evals_grouped(self._max_evals_grouped)
 
