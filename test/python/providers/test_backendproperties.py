@@ -95,7 +95,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
     def test_apply_prefix(self):
         """Testing unit conversions."""
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'µs'),
-                         7.195004210055389e-05)
+                         7.19500421005539e-05)
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'ms'),
                          0.0719500421005539)
 
