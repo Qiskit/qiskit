@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The :py:class:`~qiskit.pulse.instructions.ShiftFrequency` instruction allows users
+    to shift the frequency from the set frequency. For example::
+
+       sched += ShiftFrequency(-340e6, DriveChannel(0))
+
+    In this example, all the pulses applied to ``DriveChannel(0)`` after the
+    ``ShiftFrequency`` command will have the envelope a frequency decremented by 340MHz.
