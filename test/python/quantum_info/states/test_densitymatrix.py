@@ -142,6 +142,22 @@ class TestDensityMatrix(QiskitTestCase):
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
 
+        # Test initialize instruction
+        init = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
+        target = DensityMatrix(init)
+        circuit = QuantumCircuit(2)
+        circuit.initialize(init.data, [0, 1])
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test reset instruction
+        target = DensityMatrix([1, 0])
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.reset(0)
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
     def test_from_instruction(self):
         """Test initialization from an instruction."""
         target_vec = Statevector(np.dot(HGate().to_matrix(), [1, 0]))
@@ -358,6 +374,22 @@ class TestDensityMatrix(QiskitTestCase):
                     key = '{1},{0}|{1},{0}'.format(i, j)
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
+
+    def test_densitymatrix_to_statevector_pure(self):
+        """Test converting a pure density matrix to statevector."""
+        state = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        psi = Statevector(state)
+        rho = DensityMatrix(psi)
+        phi = rho.to_statevector()
+        self.assertTrue(psi.equiv(phi))
+
+    def test_densitymatrix_to_statevector_mixed(self):
+        """Test converting a pure density matrix to statevector."""
+        state_1 = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        state_2 = 1/np.sqrt(2) * (np.array([0, 0, 0, 0, 0, 0, 1, 1]))
+        psi = 0.5 * (Statevector(state_1) + Statevector(state_2))
+        rho = DensityMatrix(psi)
+        self.assertRaises(QiskitError, rho.to_statevector)
 
     def test_probabilities_product(self):
         """Test probabilities method for product state"""

@@ -28,7 +28,7 @@ from qiskit.transpiler.runningpassmanager import DoWhileController, ConditionalC
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
-                            PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
+                            PassI_Bad_AP, PassJ_Bad_NoReturn,
                             PassK_check_fixed_point_property, PassM_AP_NR_NP)
 
 
@@ -276,13 +276,6 @@ class TestUseCases(SchedulerTestCase):
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 3'])
 
-    def test_fenced_property_set(self):
-        """Transformation passes are not allowed to modify the property set."""
-        self.passmanager.append(PassH_Bad_TP())
-        self.assertSchedulerRaises(self.circuit, self.passmanager,
-                                   ['run transformation pass PassH_Bad_TP'],
-                                   TranspilerError)
-
     def test_fenced_dag(self):
         """Analysis passes are not allowed to modified the DAG."""
         qr = QuantumRegister(2)
@@ -470,6 +463,15 @@ class TestControlFlowPlugin(SchedulerTestCase):
     def test_remove_nonexistent_plugin(self):
         """Tries to remove a plugin that does not exist."""
         self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
+
+    def test_bad_conditional(self):
+        """Flow controller are not allowed to modify the property set."""
+
+        def bad_condition(property_set):
+            property_set['property'] = 'forbidden write'
+
+        self.passmanager.append(PassA_TP_NR_NP(), condition=bad_condition)
+        self.assertRaises(TranspilerError, self.passmanager.run, self.circuit)
 
 
 class TestDumpPasses(SchedulerTestCase):
