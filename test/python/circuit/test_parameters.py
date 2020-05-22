@@ -187,7 +187,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
-        self.assertEqual(theta.name,'θ')
+        self.assertEqual(theta.name, 'θ')
         self.assertEqual(qc.parameters, {theta, x})
 
     def test_partial_binding(self):
