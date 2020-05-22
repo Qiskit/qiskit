@@ -35,7 +35,7 @@ from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 try:
@@ -844,6 +844,12 @@ class TestDagEquivalence(QiskitTestCase):
         dag2 = circuit_to_dag(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
+
+    def test_dag_from_networkx(self):
+        """Test DAG from networkx creates an expected DAGCircuit object."""
+        nx_graph = self.dag1.to_networkx()
+        from_nx_dag = DAGCircuit.from_networkx(nx_graph)
+        self.assertEqual(self.dag1, from_nx_dag)
 
 
 class TestDagSubstitute(QiskitTestCase):

@@ -65,7 +65,8 @@ def circuit_drawer(circuit,
                    with_layout=True,
                    fold=None,
                    ax=None,
-                   initial_state=False):
+                   initial_state=False,
+                   cregbundle=False):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -78,7 +79,8 @@ def circuit_drawer(circuit,
 
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
-        scale (float): scale of image to draw (shrink if < 1)
+        scale (float): scale of image to draw (shrink if < 1). Only used by the ``mpl``,
+            ``latex``, and ``latex_source`` outputs.
         filename (str): file path to save image to
         style (dict or str): dictionary of style or file name of style file.
             This option is only used by the ``mpl`` output type. If a str is
@@ -137,6 +139,8 @@ def circuit_drawer(circuit,
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
             Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
+            the ``text`` output. Default: ``False``.
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:
@@ -286,7 +290,8 @@ def circuit_drawer(circuit,
                                     idle_wires=idle_wires,
                                     with_layout=with_layout,
                                     fold=fold,
-                                    initial_state=initial_state)
+                                    initial_state=initial_state,
+                                    cregbundle=cregbundle)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
@@ -406,7 +411,8 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
-                         idle_wires=True, with_layout=True, fold=None, initial_state=True):
+                         idle_wires=True, with_layout=True, fold=None, initial_state=True,
+                         cregbundle=False):
     """Draws a circuit using ascii art.
 
     Args:
@@ -428,6 +434,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                     `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
         initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
+        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
+            the ``text`` output. Default: ``False``.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -442,7 +450,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     if line_length:
         warn('The parameter "line_length" is being replaced by "fold"', DeprecationWarning, 3)
         fold = line_length
-    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
+                                     cregbundle=cregbundle)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
