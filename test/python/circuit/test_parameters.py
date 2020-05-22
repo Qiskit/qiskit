@@ -178,7 +178,7 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
-     
+
     def test_multiple_named_parameters(self):
         """Test setting multiple named/keyword argument based parameters"""
         theta = Parameter(name='θ')
