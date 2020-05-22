@@ -48,6 +48,7 @@ def execute(experiments, backend,
             meas_return=MeasReturnType.AVERAGE,
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
+            init_qubits=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -196,6 +197,9 @@ def execute(experiments, backend,
         scheduling_method (str or list(str)):
             Optionally specify a particular scheduling method.
 
+        init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
+                            Default: ``True``.
+
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
             Refer to the backend documentation for details on these arguments.
@@ -224,14 +228,23 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-    # transpiling the circuits using given transpile options
-    if pass_manager is not None:
-        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
-                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
+    if isinstance(experiments, Schedule) or (isinstance(experiments, list) and
+                                             isinstance(experiments[0], Schedule)):
+        # do not transpile a schedule circuit
+        if schedule_circuit:
+            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
+    elif pass_manager is not None:
+        # transpiling using pass_manager
+        _check_conflicting_argument(optimization_level=optimization_level,
+                                    basis_gates=basis_gates,
+                                    coupling_map=coupling_map,
+                                    seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
-                                    initial_layout=initial_layout, backend=backend)
+                                    initial_layout=initial_layout,
+                                    backend=backend)
         experiments = pass_manager.run(experiments)
     else:
+        # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
                                 coupling_map=coupling_map,
@@ -242,14 +255,11 @@ def execute(experiments, backend,
                                 backend=backend)
 
     if schedule_circuit:
-        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
-            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
         experiments = schedule(circuits=experiments,
                                backend=backend,
                                inst_map=inst_map,
                                meas_map=meas_map,
-                               method=scheduling_method
-                               )
+                               method=scheduling_method)
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,
@@ -269,8 +279,8 @@ def execute(experiments, backend,
                     rep_time=rep_time,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    **run_config
-                    )
+                    init_qubits=init_qubits,
+                    **run_config)
 
     # executing the circuits on the backend and returning the job
     start_time = time()
