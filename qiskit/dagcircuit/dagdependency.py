@@ -298,9 +298,27 @@ class DAGDependency:
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
+        all_qubits = self.qubits()
+        all_clbits = self.clbits()
+
+        directives = ['measure', 'barrier', 'snapshot']
+        if operation.name not in directives:
+            qindices_list = []
+            for elem in qargs:
+                qindices_list.append(all_qubits.index(elem))
+            if operation.condition:
+                for clbit in all_clbits:
+                    if clbit.register == operation.condition[0]:
+                        initial = all_clbits.index(clbit)
+                        final = all_clbits.index(clbit) + clbit.register.size
+                        cindices_list = range(initial, final)
+                        break
+            else:
+                cindices_list = []
+
         new_node = DAGDepNode(type="op", op=operation, name=operation.name, qargs=qargs,
                               cargs=cargs, condition=operation.condition, successors=[],
-                              predecessors=[])
+                              predecessors=[], qindices=qindices_list, cindices=cindices_list)
         self._add_multi_graph_node(new_node)
         self._update_edges()
 

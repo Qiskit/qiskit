@@ -28,11 +28,13 @@ class DAGDepNode:
 
     __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition',
                  'sort_key', 'node_id', 'successors', 'predecessors',
-                 'reachable', 'matchedwith', 'isblocked', 'successorstovisit']
+                 'reachable', 'matchedwith', 'isblocked', 'successorstovisit',
+                 'qindices', 'cindices']
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
                  condition=None, successors=None, predecessors=None, reachable=None,
-                 matchedwith=None, successorstovisit=None, isblocked=None, nid=-1):
+                 matchedwith=None, successorstovisit=None, isblocked=None, qindices=None,
+                 cindices=None, nid=-1):
 
         self.type = type
         self._op = op
@@ -48,6 +50,8 @@ class DAGDepNode:
         self.matchedwith = matchedwith if matchedwith is not None else []
         self.isblocked = isblocked
         self.successorstovisit = successorstovisit if successorstovisit is not None else []
+        self.qindices = qindices if qindices is not None else []
+        self.cindices = cindices if cindices is not None else []
 
     @property
     def op(self):
@@ -121,5 +125,7 @@ class DAGDepNode:
         dagdepnode.matchedwith = self.matchedwith.copy()
         dagdepnode.isblocked = self.isblocked
         dagdepnode.successorstovisit = self.successorstovisit.copy()
+        dagdepnode.qindices = self.qindices.copy()
+        dagdepnode.cindices = self.cindices.copy()
 
         return dagdepnode
