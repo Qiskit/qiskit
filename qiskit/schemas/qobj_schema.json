@@ -96,7 +96,10 @@
                                 "enum": [
                                     "pv",
                                     "fc",
+                                    "setf",
+                                    "shiftf",
                                     "acquire",
+                                    "delay",
                                     "parametric_pulse"
                                 ]
                             }
@@ -152,6 +155,62 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "setf"
+                            ]
+                        },
+                        "frequency": {
+                            "OneOf":[
+                            {"type": "number"},
+                            {"type": "string"}]
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftf"
+                            ]
+                        },
+                        "frequency": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "delay"
+                            ]
+                        },
+                        "duration": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "duration",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Delay in pulse"
                 },
                 {
                     "properties": {
@@ -743,6 +802,10 @@
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
+                        },
+                        "init_qubits": {
+                            "description": "Whether to initialize the qubits in the ground state before each shot.",
+                            "type": "boolean"
                         }
                     },
                     "title": "Experiment level configuration",

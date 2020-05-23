@@ -51,13 +51,16 @@ def weyl_coordinates(U):
     # P ∈ SO(4), D is diagonal with unit-magnitude elements.
     # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
     for _ in range(3):  # FIXME: this randomized algorithm is horrendous
-        M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
+        M2real = np.random.normal()*M2.real + np.random.normal()*M2.imag
         _, P = la.eigh(M2real)
         D = P.T.dot(M2).dot(P).diagonal()
-        if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
+        if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-10, atol=1.0e-10):
             break
     else:
-        raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
+        raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2. "
+                          "Please submit this output to "
+                          "https://github.com/Qiskit/qiskit-terra/issues/4159 "
+                          "Input %s" % U.tolist())
 
     d = -np.angle(D)/2
     d[3] = -d[0]-d[1]-d[2]
