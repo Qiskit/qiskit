@@ -27,6 +27,7 @@ DAG Circuits
 
    DAGCircuit
    DAGNode
+   DAGDepNode
    DAGDependency
 
 Exceptions
@@ -39,5 +40,6 @@ Exceptions
 """
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode
+from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 from .dagdependency import DAGDependency
