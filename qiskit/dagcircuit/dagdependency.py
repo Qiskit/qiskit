@@ -315,6 +315,9 @@ class DAGDependency:
                         break
             else:
                 cindices_list = []
+        else:
+            qindices_list = []
+            cindices_list = []
 
         new_node = DAGDepNode(type="op", op=operation, name=operation.name, qargs=qargs,
                               cargs=cargs, condition=operation.condition, successors=[],

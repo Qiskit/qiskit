@@ -119,13 +119,13 @@ class DAGDepNode:
         dagdepnode.condition = self.condition
         dagdepnode.node_id = self.node_id
         dagdepnode.sort_key = self.sort_key
-        dagdepnode.successors = self.successors.copy()
-        dagdepnode.predecessors = self.predecessors.copy()
+        dagdepnode.successors = self.successors
+        dagdepnode.predecessors = self.predecessors
         dagdepnode.reachable = self.reachable
-        dagdepnode.matchedwith = self.matchedwith.copy()
         dagdepnode.isblocked = self.isblocked
-        dagdepnode.successorstovisit = self.successorstovisit.copy()
-        dagdepnode.qindices = self.qindices.copy()
-        dagdepnode.cindices = self.cindices.copy()
+        dagdepnode.successorstovisit = self.successorstovisit
+        dagdepnode.qindices = self.qindices
+        dagdepnode.cindices = self.cindices
+        dagdepnode.matchedwith = self.matchedwith.copy()
 
         return dagdepnode
