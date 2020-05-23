@@ -155,9 +155,6 @@ class MatplotlibDrawer:
             self.ax = ax
             self.figure = ax.get_figure()
 
-        # Used to compute text widths
-        self._text_figure = plt.figure()
-        self._renderer = self._text_figure.canvas.get_renderer()
         self._reg_long_text = 0
 
         self.fold = fold
@@ -170,6 +167,40 @@ class MatplotlibDrawer:
                             labelleft=False, labelright=False)
 
         self.x_offset = 0
+        self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right', '\\dagger', '\\rangle')
+        self._latex_chars1 = ('\\mapsto', '\\pi')
+        self._char_list = {' ': (0.1009, 0.0614), '!': (0.1272, 0.0768), '"': (0.1469, 0.0921),
+                           '#': (0.2654, 0.1645), '$': (0.2018, 0.1228), '%': (0.3004, 0.1864),
+                           '&': (0.2456, 0.1535), "'": (0.0877, 0.0548), '(': (0.1228, 0.0768),
+                           ')': (0.1228, 0.0768), '*': (0.1579, 0.0987), '+': (0.2632, 0.1645),
+                           ',': (0.1009, 0.0614), '-': (0.114, 0.0702), '.': (0.1009, 0.0636),
+                           '/': (0.1075, 0.0658), '0': (0.1974, 0.1228), '1': (0.1996, 0.1228),
+                           '2': (0.2018, 0.125), '3': (0.2018, 0.1228), '4': (0.2018, 0.125),
+                           '5': (0.2018, 0.1228), '6': (0.1996, 0.1228), '7': (0.2018, 0.125),
+                           '8': (0.1996, 0.125), '9': (0.2018, 0.125), ':': (0.1075, 0.0636),
+                           ';': (0.1075, 0.0636), '<': (0.2632, 0.1623), '=': (0.2632, 0.1645),
+                           '>': (0.2632, 0.1623), '?': (0.1667, 0.1031), '@': (0.3136, 0.1952),
+                           'A': (0.2171, 0.1338), 'B': (0.2149, 0.1338), 'C': (0.2193, 0.136),
+                           'D': (0.2434, 0.1491), 'E': (0.1974, 0.1228), 'F': (0.1798, 0.1118),
+                           'G': (0.2434, 0.1513), 'H': (0.2368, 0.1469), 'I': (0.0921, 0.057),
+                           'J': (0.0921, 0.057), 'K': (0.2061, 0.1272), 'L': (0.1754, 0.1096),
+                           'M': (0.2719, 0.1689), 'N': (0.2368, 0.1469), 'O': (0.2478, 0.1535),
+                           'P': (0.1908, 0.1184), 'Q': (0.2478, 0.1535), 'R': (0.2193, 0.136),
+                           'S': (0.1996, 0.125), 'T': (0.1952, 0.1184), 'U': (0.2325, 0.1425),
+                           'V': (0.2171, 0.1338), 'W': (0.3114, 0.193), 'X': (0.2171, 0.1338),
+                           'Y': (0.193, 0.1184), 'Z': (0.2149, 0.1338), '[': (0.1228, 0.0789),
+                           '\\': (0.1075, 0.0658), ']': (0.1228, 0.0768), '^': (0.2654, 0.1645),
+                           '_': (0.1601, 0.0987), '`': (0.1579, 0.0987), 'a': (0.1952, 0.1206),
+                           'b': (0.2018, 0.1228), 'c': (0.1732, 0.1075), 'd': (0.1996, 0.125),
+                           'e': (0.1952, 0.1206), 'f': (0.1096, 0.0702), 'g': (0.1996, 0.125),
+                           'h': (0.1996, 0.125), 'i': (0.0899, 0.0548), 'j': (0.0899, 0.0548),
+                           'k': (0.182, 0.114), 'l': (0.0899, 0.0548), 'm': (0.307, 0.1908),
+                           'n': (0.1996, 0.125), 'o': (0.193, 0.1184), 'p': (0.2018, 0.1228),
+                           'q': (0.1996, 0.125), 'r': (0.1316, 0.0811), 's': (0.1645, 0.1009),
+                           't': (0.1228, 0.0768), 'u': (0.1996, 0.125), 'v': (0.1864, 0.1162),
+                           'w': (0.2588, 0.1601), 'x': (0.1864, 0.1162), 'y': (0.1864, 0.1162),
+                           'z': (0.1645, 0.1031), '{': (0.2018, 0.125), '|': (0.1053, 0.0636),
+                           '}': (0.1996, 0.125)}
 
     def _registers(self, creg, qreg):
         self._creg = []
@@ -183,11 +214,22 @@ class MatplotlibDrawer:
     def ast(self):
         return self._ast
 
-    # This is a maplotlib trick for getting the actual text width in some coords.
-    # Factor of 51.2 used for qregs and 57.0 for gates to convert to x coords
-    def _get_text_width(self, text, fontsize, factor=57.0):
-        t = plt.text(0.5, 0.5, text, fontsize=fontsize)
-        return t.get_window_extent(renderer=self._renderer).width / factor
+    # This computes the width of a string in the default font
+    def _get_text_width(self, text, fontsize):
+        if text is None:
+            return 0.0
+
+        # Remove any latex chars before getting width
+        for t in self._latex_chars1:
+            text = text.replace(t, 'x')
+        for t in self._latex_chars:
+            text = text.replace(t, '')
+
+        char_sum = 0
+        f = 0 if fontsize == self._style.fs else 1
+        for c in text:
+            char_sum += self._char_list[c][f]
+        return char_sum / 1.2
 
     def _custom_multiqubit_gate(self, xy, fc=None, text=None, subtext=None):
         xpos = min([x[0] for x in xy])
@@ -534,11 +576,11 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
+        self.figure.tight_layout()
 
-        plt.close(self._text_figure)
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
-                                bbox_inches='tight')
+                                bbox_inches='tight', facecolor=self.figure.get_facecolor())
         if self.return_fig:
             if get_backend() in ['module://ipykernel.pylab.backend_inline',
                                  'nbAgg']:
@@ -554,16 +596,16 @@ class MatplotlibDrawer:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
                                                               index=reg.index)
-                    text_width = self._get_text_width(label, self._style.fs, 51.2)
+                    text_width = self._get_text_width(label, self._style.fs)
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
                         index=self.layout[reg.index].index,
                         physical=reg.index)
-                    text_width = self._get_text_width(label, self._style.fs, 51.2)
+                    text_width = self._get_text_width(label, self._style.fs)
             else:
                 label = '${name}$'.format(name=reg.register.name)
-                text_width = self._get_text_width(label, self._style.fs, 51.2)
+                text_width = self._get_text_width(label, self._style.fs)
 
             if text_width > longest_label_width:
                 longest_label_width = text_width
@@ -588,7 +630,7 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
-                    text_width = self._get_text_width(reg.register.name, self._style.fs, 51.2)
+                    text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
                     self._creg_dict[ii] = {
@@ -601,7 +643,7 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
-                    text_width = self._get_text_width(reg.register.name, self._style.fs, 51.2)
+                    text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
                     self._creg_dict[ii] = {
@@ -961,11 +1003,13 @@ class MatplotlibDrawer:
 
                 # rxx, ryy, rzx
                 elif op.name in ['rxx', 'ryy', 'rzx']:
-                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name], text=op.name)
+                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name],
+                                                 text=op.name)
 
                 # dcx and iswap gate
                 elif op.name in ['dcx', 'iswap']:
-                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name], text=op.name)
+                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name],
+                                                 text=op.name)
 
                 elif isinstance(op.op, ControlledGate):
                     disp = op.op.base_gate.name
@@ -983,7 +1027,7 @@ class MatplotlibDrawer:
                     self._line(qreg_b, qreg_t, lc=color)
                     if num_qargs == 1:
                         if param:
-                            self._gate(q_xy[num_ctrl_qubits], 
+                            self._gate(q_xy[num_ctrl_qubits],
                                        text=disp,
                                        fc=color,
                                        subtext='{}'.format(param))
