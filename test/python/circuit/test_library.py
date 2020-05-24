@@ -30,7 +30,7 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
-                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS)
+                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS, HiddenLinearFunction)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -142,6 +142,34 @@ class TestPermutationLibrary(QiskitTestCase):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
+class TestHiddenLinearFunctionLibrary(QiskitTestCase):
+    """Test library of Hidden Linear Function circuits."""
+
+    def test_hidden_linear_function(self):
+        """
+        Test hidden linear function circuit.
+        The following circuit is being tested for
+                ┌───┐   ┌───┐┌───┐     
+        q_0: |0>┤ H ├─■─┤ S ├┤ H ├─────
+                ├───┤ │ └───┘├───┤     
+        q_1: |0>┤ H ├─■───■──┤ H ├─────
+                ├───┤     │  ├───┤┌───┐
+        q_2: |0>┤ H ├─────■──┤ S ├┤ H ├
+                └───┘        └───┘└───┘
+
+        """
+        A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+        circuit = HiddenLinearFunction(A)
+        expected = QuantumCircuit(3)
+        expected.h([0, 1, 2])
+        expected.cz(0, 1)
+        expected.cz(1, 2)
+        expected.s(0)
+        expected.s(2)
+        expected.h([0, 1, 2])
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))    
 
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
