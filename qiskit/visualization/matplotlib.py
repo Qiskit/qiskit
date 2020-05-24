@@ -297,7 +297,7 @@ class MatplotlibDrawer:
                 disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
-                             va='center', fontsize=.35 * self._scale *  font_size,
+                             va='center', fontsize=.35 * self._scale * font_size,
                              color=disp_color, clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center',
