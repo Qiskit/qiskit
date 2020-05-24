@@ -925,7 +925,7 @@ class TextDrawing():
                 return layer, current_cons, connection_label
 
             for qubit in instruction.qargs:
-                    layer.set_qubit(qubit, Barrier()
+                layer.set_qubit(qubit, Barrier())
 
         elif isinstance(instruction.op, SwapGate):
             # swap
