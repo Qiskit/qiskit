@@ -81,7 +81,7 @@ class HiddenLinearFunction(QuantumCircuit):
             adjacency_matrix: a symmetric n-by-n list of 0-1 lists.
                 n will be the number of qubits.
         """
-        adjacency_matrix = np.array(adjacency_matrix)
+        adjacency_matrix = np.asarray(adjacency_matrix)
         if not np.allclose(adjacency_matrix, adjacency_matrix.transpose()):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
