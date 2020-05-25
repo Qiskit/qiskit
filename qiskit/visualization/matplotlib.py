@@ -103,7 +103,7 @@ class Anchor:
 
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
-                 scale=1.0, style=None, plot_barriers=True,
+                 scale=.7, style=None, plot_barriers=True,
                  reverse_bits=False, layout=None, fold=25, ax=None):
 
         if not HAS_MATPLOTLIB:
@@ -116,9 +116,7 @@ class MatplotlibDrawer:
         self._qreg = []
         self._registers(cregs, qregs)
         self._ops = ops
-        self._factor = 1
-        if scale != 1.0 or scale != 1:
-            self._factor *= .35
+        self._factor = .35
 
         self._qreg_dict = collections.OrderedDict()
         self._creg_dict = collections.OrderedDict()
