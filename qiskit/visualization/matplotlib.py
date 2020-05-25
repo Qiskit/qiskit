@@ -239,7 +239,7 @@ class MatplotlibDrawer:
         if text in self._style.disptex:
             disp_text = "${}$".format(self._style.disptex[text])
         else:
-            disp_text = "${}$".format(text.capitalize())
+            disp_text = "${}$".format(text[0].upper()+text[1:])
         text_width = self._get_text_width(disp_text, self._style.fs) + .2
         subtext_width = self._get_text_width(subtext, self._style.sfs) + .2
 
@@ -252,6 +252,7 @@ class MatplotlibDrawer:
 
         if fc:
             _fc = fc
+            _ec = fc
         else:
             if self._style.name != 'bw':
                 if self._style.gc != DefaultStyle().gc:
@@ -268,7 +269,7 @@ class MatplotlibDrawer:
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
             width=wid, height=height,
             fc=_fc,
-            ec=_fc,
+            ec=_ec,
             linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
@@ -304,7 +305,7 @@ class MatplotlibDrawer:
         if text in self._style.disptex:
             disp_text = "${}$".format(self._style.disptex[text])
         else:
-            disp_text = text
+            disp_text = "${}$".format(text[0].upper()+text[1:])
 
         text_width = self._get_text_width(disp_text, self._style.fs)
         subtext_width = self._get_text_width(subtext, self._style.sfs)
@@ -483,39 +484,30 @@ class MatplotlibDrawer:
             fc_open_close = color if cstate[i] == '1' else self._style.bg
             self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=color)
 
-    def _x_tgt_qubit(self, xy, fc=None, ec=None, ac=None,
-                     add_width=None):
+    def _x_tgt_qubit(self, xy, fc=None, ec=None, ac=None):
         if self._style.gc != DefaultStyle().gc:
-            fc = self._style.gc
-            ec = self._style.gc
+            fc = self._style.gt
+            ec = self._style.gt
         if fc is None:
             fc = self._style.dispcol['target']
         if ec is None:
             ec = self._style.lc
         if ac is None:
             ac = self._style.lc
-        if add_width is None:
-            add_width = 0.35
 
         linewidth = 2
-
-        if self._style.dispcol['target'] == '#ffffff':
-            add_width = self._style.colored_add_width
-
         xpos, ypos = xy
-
         box = patches.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
                              fc=fc, ec=ec, linewidth=linewidth,
                              zorder=PORDER_GATE)
         self.ax.add_patch(box)
+
         # add '+' symbol
-        self.ax.plot([xpos, xpos], [ypos - add_width * HIG,
-                                    ypos + add_width * HIG],
+        self.ax.plot([xpos, xpos], [ypos - 0.2 * HIG, ypos + 0.2 * HIG],
                      color=ac, linewidth=linewidth, zorder=PORDER_GATE + 1)
 
-        self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG],
-                     [ypos, ypos], color=ac, linewidth=linewidth,
-                     zorder=PORDER_GATE + 1)
+        self.ax.plot([xpos - 0.2 * HIG, xpos + 0.2 * HIG], [ypos, ypos],
+                     color=ac, linewidth=linewidth, zorder=PORDER_GATE + 1)
 
     def _swap(self, xy, color):
         xpos, ypos = xy
@@ -904,27 +896,19 @@ class MatplotlibDrawer:
                 #
 
                 # cx's
-                elif op.name in ['cx', 'ccx', 'c3x', 'c4x', 'mcx']:
-                    if self._style.dispcol['cx'] != '#ffffff':
-                        add_width = self._style.colored_add_width
-                    else:
-                        add_width = None
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                elif isinstance(op.op, ControlledGate) and base_name == 'x':
                     # set the ctrl qbits to open or closed
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
                     opname = 'cx' if op.name == 'cx' else 'multi'
                     color = self._style.dispcol[opname]
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
 
                     if self._style.name != 'bw':
-                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color,
-                                          ec=color,
-                                          ac=self._style.dispcol['target'],
-                                          add_width=add_width)
+                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color, ec=color,
+                                          ac=self._style.dispcol['target'])
                     else:
-                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color,
-                                          ec=color,
-                                          ac=self._style.dispcol['target'],
-                                          add_width=add_width)
+                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color, ec=color,
+                                          ac=self._style.dispcol['target'])
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=color)
 
@@ -1041,7 +1025,8 @@ class MatplotlibDrawer:
                     subt = ""
                     if param:
                         subt = '{}'.format(param)
-                    self._custom_multiqubit_gate(q_xy, text=op.name, subtext=subt)
+                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol['multi'], 
+                                                 text=op.name, subtext=subt)
 
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0

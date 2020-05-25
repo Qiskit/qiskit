@@ -45,7 +45,6 @@ class DefaultStyle:
         self.math_fs = 15
         self.fs = 13
         self.sfs = 8
-        self.colored_add_width = 0.2
         self.disptex = {
             'id': 'I',
             'u0': 'U_0',
@@ -156,7 +155,6 @@ class BWStyle:
         self.edge_color = '#000000'
         self.fs = 13
         self.math_fs = 15
-        self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
             'id': 'I',
