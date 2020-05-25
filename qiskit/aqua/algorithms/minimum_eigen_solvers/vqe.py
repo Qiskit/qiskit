@@ -364,14 +364,14 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                     self._eval_time, self._ret['opt_params'], self._eval_count)
         self._ret['eval_count'] = self._eval_count
 
-        self._ret['energy'] = self.get_optimal_cost()
-        self._ret['eigvals'] = np.asarray([self._ret['energy']])
-        self._ret['eigvecs'] = np.asarray([self.get_optimal_vector()])
-
         result = VQEResult()
         result.combine(vqresult)
         result.eigenvalue = vqresult.optimal_value + 0j
         result.eigenstate = self.get_optimal_vector()
+
+        self._ret['energy'] = self.get_optimal_cost()
+        self._ret['eigvals'] = np.asarray([self._ret['energy']])
+        self._ret['eigvecs'] = np.asarray([result.eigenstate])
 
         if self.aux_operators:
             self._eval_aux_ops()
