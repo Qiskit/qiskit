@@ -117,7 +117,7 @@ class MatplotlibDrawer:
         self._registers(cregs, qregs)
         self._ops = ops
         self._factor = 1
-        if scale != 1.0:
+        if scale != 1.0 or scale != 1:
             self._factor *= .35
 
         self._qreg_dict = collections.OrderedDict()
