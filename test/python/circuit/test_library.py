@@ -143,6 +143,7 @@ class TestPermutationLibrary(QiskitTestCase):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
+
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
 
@@ -170,6 +171,7 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
+
 
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
