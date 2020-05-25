@@ -144,35 +144,6 @@ class TestPermutationLibrary(QiskitTestCase):
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
 
-class TestHiddenLinearFunctionLibrary(QiskitTestCase):
-    """Test library of Hidden Linear Function circuits."""
-
-    def test_hidden_linear_function(self):
-        """
-        Test hidden linear function circuit.
-        The following circuit is being tested for
-                ┌───┐   ┌───┐┌───┐
-        q_0: |0>┤ H ├─■─┤ S ├┤ H ├─────
-                ├───┤ │ └───┘├───┤
-        q_1: |0>┤ H ├─■───■──┤ H ├─────
-                ├───┤     │  ├───┤┌───┐
-        q_2: |0>┤ H ├─────■──┤ S ├┤ H ├
-                └───┘        └───┘└───┘
-        """
-        hidden_function = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-        circuit = HiddenLinearFunction(hidden_function)
-        expected = QuantumCircuit(3)
-        expected.h([0, 1, 2])
-        expected.cz(0, 1)
-        expected.cz(1, 2)
-        expected.s(0)
-        expected.s(2)
-        expected.h([0, 1, 2])
-        expected = Operator(expected)
-        simulated = Operator(circuit)
-        self.assertTrue(expected.equiv(simulated))
-
-
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
 
