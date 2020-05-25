@@ -30,7 +30,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
-                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS, HiddenLinearFunction)
+                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
+                                    HiddenLinearFunction)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -149,17 +150,16 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         """
         Test hidden linear function circuit.
         The following circuit is being tested for
-                ┌───┐   ┌───┐┌───┐     
+                ┌───┐   ┌───┐┌───┐
         q_0: |0>┤ H ├─■─┤ S ├┤ H ├─────
-                ├───┤ │ └───┘├───┤     
+                ├───┤ │ └───┘├───┤
         q_1: |0>┤ H ├─■───■──┤ H ├─────
                 ├───┤     │  ├───┤┌───┐
         q_2: |0>┤ H ├─────■──┤ S ├┤ H ├
                 └───┘        └───┘└───┘
-
         """
-        A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-        circuit = HiddenLinearFunction(A)
+        hidden_function = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+        circuit = HiddenLinearFunction(hidden_function)
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
         expected.cz(0, 1)
@@ -169,7 +169,7 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         expected.h([0, 1, 2])
         expected = Operator(expected)
         simulated = Operator(circuit)
-        self.assertTrue(expected.equiv(simulated))    
+        self.assertTrue(expected.equiv(simulated))
 
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
