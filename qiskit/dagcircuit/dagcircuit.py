@@ -585,7 +585,7 @@ class DAGCircuit:
             return None
 
     def idle_wires(self):
-        """Return idle wires
+        """Return idle wires.
 
         Yields:
             Bit: Bit in idle wire.
