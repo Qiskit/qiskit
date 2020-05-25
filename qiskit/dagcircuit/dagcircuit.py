@@ -592,6 +592,7 @@ class DAGCircuit:
         """
         for wire in self._wires:
             nodes = self.nodes_on_wire(wire, only_ops=False)
+        if len(list(nodes)) == 2:
                 yield wire
 
     def size(self):
