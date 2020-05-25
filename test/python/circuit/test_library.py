@@ -30,8 +30,7 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
-                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction)
+                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
