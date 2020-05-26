@@ -16,7 +16,6 @@
 
 import unittest
 import os
-from PIL import Image
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import visualization
@@ -90,13 +89,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         self.addCleanup(os.remove, filename)
 
         ref_filename = self._get_resource_path(
-            'visualization/references/matplotlib_barriers_ref2.png')
-        print('ref image')
-        ref_temp = Image.open(ref_filename)
-        ref_temp.show()
-        print('created image')
-        filename_temp = Image.open(filename)
-        filename_temp.show()
+            'visualization/references/matplotlib_barriers_ref.png')
         self.assertImagesAreEqual(filename, ref_filename)
 
         # check that the barrier aren't plotted when plot_barriers = False
