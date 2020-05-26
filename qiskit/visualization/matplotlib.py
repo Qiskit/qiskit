@@ -365,7 +365,7 @@ class MatplotlibDrawer:
                          linestyle=linestyle,
                          zorder=zorder)
 
-    def _measure(self, qxy, cxy, cid):
+    def _measure(self, qxy, cxy, cid, basis='z'):
         qx, qy = qxy
         cx, cy = cxy
 
@@ -380,6 +380,7 @@ class MatplotlibDrawer:
         self.ax.plot([qx, qx + 0.35 * WID],
                      [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.not_gate_lc, linewidth=2, zorder=PORDER_GATE)
+
         # arrow
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc,
                    ls=self._style.cline)
@@ -396,6 +397,12 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
+
+        # measurement basis label
+        if basis != 'z':
+            self.ax.text(qx - 0.4 * WID, qy + 0.25 * HIG, basis.upper(), color='red',
+                         clip_on=True, zorder=PORDER_TEXT, fontsize=0.5 * self._style.fs,
+                         fontweight='bold')
 
     def _conds(self, xy, istrue=False):
         xpos, ypos = xy
@@ -730,7 +737,8 @@ class MatplotlibDrawer:
                 # if custom gate with a longer than standard name determine
                 # width
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                     'noise', 'cswap', 'swap', 'measure'] and len(op.name) >= 4:
+                                     'noise', 'cswap', 'swap', 'measure',
+                                     'measure_x', 'measure_y', 'measure_z'] and len(op.name) >= 4:
                     box_width = math.ceil(len(op.name) / 6)
 
                     # handle params/subtext longer than op names
@@ -761,6 +769,7 @@ class MatplotlibDrawer:
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
                                    'noise', 'cswap', 'swap', 'measure',
+                                   'measure_x', 'measure_y', 'measure_z',
                                    'reset'] and len(op.name) >= 4:
                     _iswide = True
 
@@ -846,9 +855,14 @@ class MatplotlibDrawer:
                 #
                 # draw special gates
                 #
-                if op.name == 'measure':
+                if op.name[:7] == 'measure':
                     vv = self._creg_dict[c_idxs[0]]['index']
-                    self._measure(q_xy[0], c_xy[0], vv)
+                    if len(op.name) == 9:
+                        basis = op.name[-1]
+                    else:
+                        basis = 'z'
+
+                    self._measure(q_xy[0], c_xy[0], vv, basis)
                 elif op.name in ['barrier', 'snapshot', 'load', 'save',
                                  'noise']:
                     _barriers = {'coord': [], 'group': []}
