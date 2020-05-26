@@ -37,7 +37,7 @@ class DefaultStyle:
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'
-        self.gc = '#ffffff'
+        self.gc = other_color
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
@@ -170,10 +170,18 @@ class BWStyle:
             'sdg': 'S^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
+            'iswap': 'Iswap',
+            'dcx': 'Dcx',
+            'ms': 'MS',
+            'diagonal': 'Diagonal',
+            'unitary': 'Unitary',
             'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
+            'rxx': 'R_{xx}',
+            'ryy': 'R_{yy}',
+            'rzx': 'R_{zx}',
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
@@ -188,7 +196,7 @@ class BWStyle:
             'h': '#ffffff',
             'cx': '#000000',
             'cy': '#ffffff',
-            'cz': '#ffffff',
+            'cz': '#000000',
             'swap': '#000000',
             's': '#ffffff',
             'sdg': '#ffffff',
