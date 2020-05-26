@@ -232,9 +232,26 @@ class BackwardMatch:
         return carg_indices
 
     def _is_same_op(self, node_circuit, node_template):
+        """
+        Check if two instructions are the same.
+        Args:
+            node_circuit (DAGDepNode): node in the circuit.
+            node_template (DAGDepNode): node in the template.
+        Returns:
+            bool: True if the same, False otherwise.
+        """
         return node_circuit.op == node_template.op
 
     def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
+        """
+        Check if the qubits configurations are compatible.
+        Args:
+            node_circuit (DAGDepNode): node in the circuit.
+            node_template (DAGDepNode): node in the template.
+            qarg_circuit (list): qubits configuration for the Instruction in the circuit.
+        Returns:
+            bool: True if possible, False otherwise.
+        """
 
         if isinstance(node_circuit.op, ControlledGate):
 
@@ -252,7 +269,8 @@ class BackwardMatch:
                     target_qubits_template = node_template.qindices[c_template::]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
-                    if node_template.op.base_gate.name in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
+                    if node_template.op.base_gate.name\
+                            in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
                         return set(target_qubits_template) == set(target_qubits_circuit)
                     else:
                         return target_qubits_template == target_qubits_circuit
@@ -265,6 +283,15 @@ class BackwardMatch:
                 return qarg_circuit == node_template.qindices
 
     def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
+        """
+        Check if the clbits configurations are compatible.
+        Args:
+            node_circuit (DAGDepNode): node in the circuit.
+            node_template (DAGDepNode): node in the template.
+            carg_circuit (list): clbits configuration for the Instruction in the circuit.
+        Returns:
+            bool: True if possible, False otherwise.
+        """
         if node_circuit.condition and node_template.conditon:
             if set(carg_circuit) != set(node_template.cindices):
                 return False
