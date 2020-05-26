@@ -16,7 +16,6 @@
 
 import unittest
 import os
-#delete after test
 from PIL import Image
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
