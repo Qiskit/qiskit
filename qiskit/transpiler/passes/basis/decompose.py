@@ -18,7 +18,7 @@ from typing import Type
 
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
 class Decompose(TransformationPass):

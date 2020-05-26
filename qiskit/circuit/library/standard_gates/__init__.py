@@ -23,6 +23,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    C3XGate
    C4XGate
    CCXGate
+   DCXGate
    CHGate
    CRXGate
    CRYGate
@@ -51,7 +52,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    SdgGate
    SwapGate
    iSwapGate
-   DCXGate
+   TGate
    TdgGate
    U1Gate
    U2Gate
