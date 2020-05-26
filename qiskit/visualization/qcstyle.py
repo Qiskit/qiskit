@@ -177,29 +177,36 @@ class BWStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#ffffff',
             'u0': '#ffffff',
             'u1': '#ffffff',
             'u2': '#ffffff',
             'u3': '#ffffff',
+            'id': '#ffffff',
             'x': '#ffffff',
             'y': '#ffffff',
             'z': '#ffffff',
             'h': '#ffffff',
             'cx': '#000000',
+            'cy': '#ffffff',
+            'cz': '#ffffff',
+            'swap': '#000000',
             's': '#ffffff',
             'sdg': '#ffffff',
+            'dcx': '#ffffff',
+            'iswap': '#ffffff',
             't': '#ffffff',
             'tdg': '#ffffff',
             'r': '#ffffff',
             'rx': '#ffffff',
             'ry': '#ffffff',
             'rz': '#ffffff',
+            'rxx': '#ffffff',
+            'ryy': '#ffffff',
+            'rzx': '#ffffff',
             'reset': '#ffffff',
             'target': '#ffffff',
-            'meas': '#ffffff',
-            'swap': '#000000',
-            'multi': '#000000'
+            'multi': '#ffffff',
+            'meas': '#ffffff'
         }
         self.latexmode = False
         self.bundle = True

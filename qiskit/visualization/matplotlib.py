@@ -236,7 +236,9 @@ class MatplotlibDrawer:
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        if text in self._style.disptex:
+        if text is None:
+            disp_text = ''
+        elif text in self._style.disptex:
             disp_text = "${}$".format(self._style.disptex[text])
         else:
             disp_text = "${}$".format(text[0].upper()+text[1:])
@@ -250,18 +252,15 @@ class MatplotlibDrawer:
         else:
             wid = WID
 
-        if fc:
-            _fc = fc
-            _ec = fc
-        else:
-            if self._style.name != 'bw':
-                if self._style.gc != DefaultStyle().gc:
-                    _fc = self._style.gc
-                else:
-                    _fc = self._style.dispcol['multi']
-                _ec = self._style.dispcol['multi']
-            else:
+        if self._style.name != 'bw':
+            if self._style.gc != DefaultStyle().gc:
                 _fc = self._style.gc
+            else:
+                _fc = self._style.dispcol['multi']
+            _ec = self._style.dispcol['multi']
+        else:
+            _fc = self._style.gc
+            _ec = self._style.lc
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -302,7 +301,9 @@ class MatplotlibDrawer:
     def _gate(self, xy, fc=None, text=None, subtext=None):
         xpos, ypos = xy
 
-        if text in self._style.disptex:
+        if text is None:
+            disp_text = ''
+        elif text in self._style.disptex:
             disp_text = "${}$".format(self._style.disptex[text])
         else:
             disp_text = "${}$".format(text[0].upper()+text[1:])
@@ -461,11 +462,11 @@ class MatplotlibDrawer:
         self.ax.add_patch(box)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None):
-        if self._style.gc != DefaultStyle().gc:
+        """if self._style.gc != DefaultStyle().gc:
             fc = self._style.gc
-            ec = self._style.gc
+            ec = self._style.lc"""
         if fc is None:
-            fc = self._style.lc
+            fc = self._style.gc
         if ec is None:
             ec = self._style.lc
         xpos, ypos = xy
@@ -479,10 +480,12 @@ class MatplotlibDrawer:
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         if reverse:
             cstate = cstate[::-1]
+        print('colors', color)
         for i in range(num_ctrl_qubits):
             # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
             fc_open_close = color if cstate[i] == '1' else self._style.bg
-            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=color)
+            ec = color if self._style.name != 'bw' else self._style.lc
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec)
 
     def _x_tgt_qubit(self, xy, fc=None, ec=None, ac=None):
         if self._style.gc != DefaultStyle().gc:
@@ -906,11 +909,11 @@ class MatplotlibDrawer:
                     if self._style.name != 'bw':
                         self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color, ec=color,
                                           ac=self._style.dispcol['target'])
+                        self._line(qreg_b, qreg_t, lc=color)
                     else:
-                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color, ec=color,
+                        self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=self._style.lc, ec=self._style.lc,
                                           ac=self._style.dispcol['target'])
-                    # add qubit-qubit wiring
-                    self._line(qreg_b, qreg_t, lc=color)
+                        self._line(qreg_b, qreg_t, lc=self._style.lc)
 
                 # cz for latexmode
                 elif op.name == 'cz':
