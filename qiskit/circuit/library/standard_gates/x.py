@@ -572,7 +572,17 @@ class C3RXGate(ControlledGate):
 
 
 class C3XGate(C3RXGate):
+    """The 3-qubit controlled X gate."""
     def __init__(self, angle=None, label=None, ctrl_state=None):
+        """Create a new 3-qubit controlled X gate.
+
+        Args:
+            angle (float): The angle used in the controlled-U1 gates. An angle of π/4 yields the
+                3-qubit controlled X gate, an angle of π/8 the 3-qubit controlled sqrt(X) gate.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+        """
         import warnings
         if angle == numpy.pi / 8:
             warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
@@ -611,7 +621,15 @@ class C3XGate(C3RXGate):
 
 
 class C3SqrtXGate(C3RXGate):
+    """The 3-qubit controlled √X gate."""
     def __init__(self, label=None, ctrl_state=None):
+        """The 3-qubit controlled √X gate. Equivalent to C3RXGate(angle=numpy.pi/8)
+
+        Args:
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+        """
         super().__init__(angle=numpy.pi / 8, label=label, ctrl_state=ctrl_state)
 
 
