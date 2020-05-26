@@ -225,11 +225,8 @@ class MatplotlibDrawer:
         for t in self._latex_chars:
             text = text.replace(t, '')
 
-        char_sum = 0
         f = 0 if fontsize == self._style.fs else 1
-        for c in text:
-            char_sum += self._char_list[c][f]
-        return char_sum / 1.2
+        return sum([self._char_list[c][f] for c in text]) / 1.2
 
     def _custom_multiqubit_gate(self, xy, fc=None, text=None, subtext=None):
         xpos = min([x[0] for x in xy])
@@ -339,7 +336,6 @@ class MatplotlibDrawer:
             if text in ['reset']:
                 disp_color = self._style.not_gate_lc
                 sub_color = self._style.not_gate_lc
-                font_size = self._style.math_fs
 
             else:
                 disp_color = self._style.gt
