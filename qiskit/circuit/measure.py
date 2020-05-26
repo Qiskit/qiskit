@@ -24,9 +24,9 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self):
+    def __init__(self, name='measure'):
         """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [])
+        super().__init__(name, 1, 1, [])
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
@@ -62,7 +62,7 @@ def measure(self, qubit, cbit):
 QuantumCircuit.measure = measure
 
 
-class MeasurePauli(Instruction):
+class MeasurePauli(Measure):
     """Perform a measurement with preceding basis change operations."""
 
     def __init__(self, basis):
@@ -74,7 +74,7 @@ class MeasurePauli(Instruction):
         Raises:
             ValueError: If an unsupported basis is specified.
         """
-        super().__init__('measure_' + basis, len(basis), len(basis), [])
+        super().__init__(name='measure_' + basis)
 
         transformations = []
 
@@ -119,20 +119,20 @@ class MeasurePauli(Instruction):
         self.definition = definition
 
 
-def measure_pauli(self, basis, qubits, cbits):
+def measure_pauli(self, basis, qubit, cbit):
     """Measure in the Pauli-X basis."""
     # transform to list if they are not already
-    qubits = qubits if hasattr(qubits, '__len__') else [qubits]
-    cbits = cbits if hasattr(cbits, '__len__') else [cbits]
+    # qubits = qubits if hasattr(qubits, '__len__') else [qubits]
+    # cbits = cbits if hasattr(cbits, '__len__') else [cbits]
 
-    # if only one Pauli basis is specified, broadcast to all qubits
-    if len(basis) == 1:
-        basis *= len(qubits)
+    # # if only one Pauli basis is specified, broadcast to all qubits
+    # if len(basis) == 1:
+    #     basis *= len(qubits)
 
-    if len(basis) != len(qubits):
-        raise ValueError('Number of qubits does not match basis arguments.')
+    # if len(basis) != len(qubits):
+    #     raise ValueError('Number of qubits does not match basis arguments.')
 
-    return self.append(MeasurePauli(basis=basis), qubits, cbits)
+    return self.append(MeasurePauli(basis=basis), [qubit], [cbit])
 
 
 QuantumCircuit.measure_pauli = measure_pauli
