@@ -1046,21 +1046,6 @@ class QasmParser:
         column = (token.lexpos - last_cr) + 1
         return column
 
-    def get_tokens(self):
-        """Deprecated. Use read_tokens()."""
-        warnings.warn('The method get_tokens() is being replaced by read_tokens()',
-                      DeprecationWarning, 2)
-        try:
-            while True:
-                token = self.lexer.token()
-
-                if not token:
-                    break
-
-                yield token
-        except QasmError as e:
-            print('Exception tokenizing qasm file:', e.msg)
-
     def read_tokens(self):
         """finds and reads the tokens."""
         try:
