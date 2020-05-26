@@ -33,4 +33,7 @@ except ImportError:
     HAS_PYGMENTS = False
 
 if HAS_PYGMENTS:
-    from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle
+    try:
+        from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle
+    except Exception:  # pylint: disable=broad-except
+        HAS_PYGMENTS = False

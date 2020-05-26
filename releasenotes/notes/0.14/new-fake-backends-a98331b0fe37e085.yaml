@@ -1,0 +1,10 @@
+---
+features:
+  - 
+    New fake backends are added under :mod:`qiskit.test.mock`. These include
+    mocked versions of ``ibmq_armonk``, ``ibmq_essex``, ``ibmq_london``,
+    ``ibmq_valencia``, ``ibmq_cambridge``, ``ibmq_paris``, ``ibmq_rome``, and
+    ``ibmq_athens``. As with other fake backends, these include snapshots of
+    calibration data (i.e. ``backend.defaults()``) and error data (i.e.
+    ``backend.properties()``) taken from the real system, and can be used for
+    local testing, compilation and simulation.

@@ -12,10 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
 
 """Fourier checking circuit."""
 
-from typing import List, Optional
+from typing import List
 
 import math
 from qiskit.circuit import QuantumCircuit
@@ -55,15 +56,12 @@ class FourierChecking(QuantumCircuit):
 
     def __init__(self,
                  f: List[int],
-                 g: List[int]) -> QuantumCircuit:
+                 g: List[int]) -> None:
         """Create Fourier checking circuit.
 
         Args:
             f: truth table for f, length 2**n list of {1,-1}.
             g: truth table for g, length 2**n list of {1,-1}.
-
-        Returns:
-            QuantumCircuit: Fourier checking circuit for functions f and g.
 
         Raises:
             CircuitError: if the inputs f and g are not valid.
