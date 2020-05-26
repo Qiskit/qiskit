@@ -78,8 +78,7 @@ class MeasurePauli(Instruction):
 
         transformations = []
 
-        from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.s import SGate, SdgGate
+        from .library.standard_gates import HGate, SGate, SdgGate
 
         for qubit_basis in basis:
             if qubit_basis.lower() == 'x':
