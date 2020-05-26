@@ -47,12 +47,6 @@ def circuit_to_gate(circuit, parameter_map=None):
         raise QiskitError('Circuit with classical bits cannot be converted '
                           'to gate.')
 
-    for inst, _, _ in circuit.data:
-        if not isinstance(inst, Gate):
-            raise QiskitError(('One or more instructions cannot be converted to'
-                               ' a gate. "{}" is not a gate instruction').format(
-                                   inst.name))
-
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
     else:
@@ -81,12 +75,23 @@ def circuit_to_gate(circuit, parameter_map=None):
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
+    unrolled_definition = []
+    to_process = target.data[::-1]  # reverse to always pop from the end
+    while len(to_process) > 0:
+        inst, qargs, _ = to_process.pop(-1)  # get the next instruction
+        if isinstance(inst, Gate):  # append if Gate
+            unrolled_definition.append([inst, qargs, []])
+        else:  # otherwise try unrolling
+            if inst.definition is not None:
+                to_process += inst.definition
+            else:
+                raise QiskitError(('One or more instructions cannot be converted to'
+                                   ' a gate. "{}" is not a gate instruction').format(inst.name))
+
     # pylint: disable=cyclic-import
     from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
     # pylint: enable=cyclic-import
     sel.add_equivalence(gate, target)
-
-    definition = target.data
 
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')
@@ -98,7 +103,7 @@ def circuit_to_gate(circuit, parameter_map=None):
         lambda x: (x[0],
                    list(map(lambda y: q[find_bit_position(y)], x[1])),
                    []),
-        definition))
+        unrolled_definition))
     gate.definition = definition
 
     return gate
