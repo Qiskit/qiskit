@@ -128,7 +128,7 @@ class QCircuitImage:
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         if cregbundle:
-            self.img_width = len(qubits) + 1
+            self.img_width = len(qubits) + len(self.cregs)
         else:
             self.img_width = len(self.img_regs)
         self.wire_type = {}
@@ -214,12 +214,19 @@ class QCircuitImage:
              else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
+        if self.cregbundle:
+            offset = 0
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
-                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name
-                if not self.cregbundle:
-                    self._latex[i][0] += "_{" + str(self.ordered_regs[i].index) + "}"
-                self._latex[i][0] += ":"
+                if self.cregbundle:
+                    self._latex[i][0] = \
+                        "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
+                    clbitsize = self.cregs[self.ordered_regs[i + offset].register]
+                    self._latex[i][1] = "{/_{_{" + str(clbitsize) + "}}} \\cw"
+                    offset += clbitsize - 1
+                else:
+                    self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
+                                            "_{" + str(self.ordered_regs[i].index) + "}:"
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
@@ -236,8 +243,6 @@ class QCircuitImage:
                     label += "\\ket{{0}}"
                 label += " }"
                 self._latex[i][0] = label
-        if self.cregbundle:
-            self._latex[len(self.qubit_list)][1] = "{/_{_" + str(len(self.clbit_list)) + "}} \\cw"
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
@@ -287,8 +292,8 @@ class QCircuitImage:
         # wires in the beginning and end
         columns = 2
 
-        # add column to display number of classical registers
-        if self.cregbundle:
+        # add extra column if needed
+        if self.cregbundle and self.ops[0][0].name == "measure":
             columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
@@ -382,8 +387,8 @@ class QCircuitImage:
             qregdata = self.qregs
 
         column = 1
-        # Leave a column to display number of classical registers
-        if self.cregbundle:
+        # Leave a column to display number of classical registers if needed
+        if self.cregbundle and self.ops[0][0].name == "measure":
             column += 1
         for layer in self.ops:
             num_cols_used = 1
@@ -936,6 +941,13 @@ class QCircuitImage:
                     pos_1 = self.img_regs[op.qargs[0]]
                     if self.cregbundle:
                         pos_2 = self.img_regs[self.clbit_list[0]]
+                        cregindex = self.img_regs[op.cargs[0]] - pos_2
+                        for creg_size in self.cregs.values():
+                            if cregindex >= creg_size:
+                                cregindex -= creg_size
+                                pos_2 += 1
+                            else:
+                                break
                     else:
                         pos_2 = self.img_regs[op.cargs[0]]
 
@@ -943,7 +955,7 @@ class QCircuitImage:
                         self._latex[pos_1][column] = "\\meter"
                         if self.cregbundle:
                             self._latex[pos_2][column] = \
-                                "\\dstick{" + str(self.img_regs[op.cargs[0]] - pos_2) + "} " + \
+                                "\\dstick{" + str(cregindex) + "} " + \
                                 "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                         else:
                             self._latex[pos_2][column] = \
