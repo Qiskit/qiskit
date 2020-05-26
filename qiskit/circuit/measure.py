@@ -120,18 +120,7 @@ class MeasurePauli(Measure):
 
 
 def measure_pauli(self, basis, qubit, cbit):
-    """Measure in the Pauli-X basis."""
-    # transform to list if they are not already
-    # qubits = qubits if hasattr(qubits, '__len__') else [qubits]
-    # cbits = cbits if hasattr(cbits, '__len__') else [cbits]
-
-    # # if only one Pauli basis is specified, broadcast to all qubits
-    # if len(basis) == 1:
-    #     basis *= len(qubits)
-
-    # if len(basis) != len(qubits):
-    #     raise ValueError('Number of qubits does not match basis arguments.')
-
+    """Measure in the the Pauli X, Y or Z basis."""
     return self.append(MeasurePauli(basis=basis), [qubit], [cbit])
 
 
