@@ -60,6 +60,7 @@ logger = logging.getLogger(__name__)
 
 MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
+
 class QasmSimulatorTarget(Target):
     @property
     def num_qubits(self):

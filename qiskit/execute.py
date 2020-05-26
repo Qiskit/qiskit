@@ -302,7 +302,6 @@ def execute(experiments, backend,
         return job
 
 
-
 def _check_conflicting_argument(**kargs):
     conflicting_args = [arg for arg, value in kargs.items() if value]
     if conflicting_args:

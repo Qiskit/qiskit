@@ -32,4 +32,3 @@ class BasicAerJob(Job):
 
     def wait_for_final_state(self):
         return True
-

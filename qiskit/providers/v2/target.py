@@ -15,6 +15,7 @@
 from abc import ABC
 from abc import abstractmethod
 
+
 class Target(ABC):
     """Abstract class for Backend Target
 

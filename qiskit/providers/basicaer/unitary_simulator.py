@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 MAX_QUBITS_MEMORY = int(
     log2(sqrt(local_hardware_info()['memory'] * (1024 ** 3) / 16)))
 
+
 class QasmUnitarySimulatorTarget(Target):
     @property
     def num_qubits(self):
@@ -111,12 +112,8 @@ class QasmUnitarySimulatorTarget(Target):
         ]
 
 
-
-
-
 # TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
-
 class UnitarySimulatorPy(Backend):
     """Python implementation of a unitary simulator."""
     @property
