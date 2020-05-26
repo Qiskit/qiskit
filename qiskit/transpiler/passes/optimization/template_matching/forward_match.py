@@ -26,6 +26,8 @@ Efficient template matching in quantum circuits.
 
 """
 
+from qiskit.circuit.controlledgate import ControlledGate
+
 
 class ForwardMatch:
     """
@@ -240,6 +242,72 @@ class ForwardMatch:
             if len(carg) != len(self.carg_indices):
                 self.carg_indices = []
 
+    def _is_same_op(self, node_circuit, node_template):
+        """
+        Check if two instructions are the same.
+        Args:
+            node_circuit (DAGDepNode): node in the circuit.
+            node_template (DAGDepNode): node in the template.
+        Returns:
+            bool: True if the same, False otherwise.
+        """
+        return node_circuit.op == node_template.op
+
+    def _is_same_q_conf(self, node_circuit, node_template):
+        """
+        Check if the qubits configurations are compatible.
+        Args:
+            node_circuit (DAGDepNode): node in the circuit.
+            node_template (DAGDepNode): node in the template.
+        Returns:
+            bool: True if possible, False otherwise.
+        """
+
+        if isinstance(node_circuit.op, ControlledGate):
+
+            c_template = node_template.op.num_ctrl_qubits
+
+            if c_template == 1:
+                return self.qarg_indices == node_template.qindices
+
+            else:
+                control_qubits_template = node_template.qindices[:c_template]
+                control_qubits_circuit = self.qarg_indices[:c_template]
+
+                if set(control_qubits_circuit) == set(control_qubits_template):
+
+                    target_qubits_template = node_template.qindices[c_template::]
+                    target_qubits_circuit = self.qarg_indices[c_template::]
+
+                    if node_template.op.base_gate.name\
+                            in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
+                        return set(target_qubits_template) == set(target_qubits_circuit)
+                    else:
+                        return target_qubits_template == target_qubits_circuit
+                else:
+                    return False
+        else:
+            if node_template.op.name in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
+                return set(self.qarg_indices) == set(node_template.qindices)
+            else:
+                return self.qarg_indices == node_template.qindices
+
+    def _is_same_c_conf(self, node_circuit, node_template):
+        """
+        Check if the clbits configurations are compatible.
+        Args:
+            node_circuit (DAGDepNode): node in the circuit.
+            node_template (DAGDepNode): node in the template.
+        Returns:
+            bool: True if possible, False otherwise.
+        """
+        if node_circuit.condition and node_template.conditon:
+            if set(self.carg_indices) != set(node_template.cindices):
+                return False
+            if node_circuit.condition[1] != node_template.conditon[1]:
+                return False
+        return True
+
     def run_forward_match(self):
         """
         Apply the forward match algorithm and returns the list of matches given an initial match
@@ -303,46 +371,43 @@ class ForwardMatch:
 
             for i in self.candidates:
 
-                # Break the for loop if a match is found
+                # Break the for loop if a match is already found
                 if match:
                     break
 
-                # Get the list of qubit on which the node operation is acting (template)
-                qarg2 = self.template_dag.get_node(i).qindices
-                carg2 = self.template_dag.get_node(i).cindices
-
                 # Compare the indices of qubits and the operation,
-                # if both are True; a match is found
-                if (set(self.qarg_indices) == set(qarg2)) and (self.qarg_indices[-1] == qarg2[-1])\
-                        and (self.circuit_dag.get_node(label).op ==
-                             self.template_dag.get_node(i).op) \
-                        and (set(self.carg_indices) == set(carg2)):
-                    if self.circuit_dag.get_node(label).condition or \
-                            self.template_dag.get_node(i).condition:
-                        if self.circuit_dag.get_node(label).condition[1] != \
-                                self.template_dag.get_node(i).condition[1]:
-                            continue
-                    else:
-                        v[1].matchedwith = [i]
+                # if True; a match is found
+                node_circuit = self.circuit_dag.get_node(label)
+                node_template = self.template_dag.get_node(i)
 
-                        self.template_dag.get_node(i).matchedwith = [label]
+                if len(self.qarg_indices) != len(node_template.qindices) \
+                        or set(self.qarg_indices) != set(node_template.qindices)\
+                        or node_circuit.name != node_template.name:
+                    continue
 
-                        self.match.append([i, label])
+                if self._is_same_q_conf(node_circuit, node_template)\
+                        and self._is_same_c_conf(node_circuit, node_template)\
+                        and self._is_same_op(node_circuit, node_template):
+                    v[1].matchedwith = [i]
 
-                        potential = self.circuit_dag.direct_successors(label)
+                    self.template_dag.get_node(i).matchedwith = [label]
 
-                        for potential_id in potential:
-                            if self.circuit_dag.get_node(potential_id).isblocked | \
-                                    (self.circuit_dag.get_node(potential_id).matchedwith != []):
-                                potential.remove(potential_id)
+                    self.match.append([i, label])
 
-                        sorted_potential = sorted(potential)
-                        v[1].successorstovisit = sorted_potential
+                    potential = self.circuit_dag.direct_successors(label)
 
-                        self.matched_nodes_list.append([v[0], v[1]])
-                        self.matched_nodes_list.sort(key=lambda x: x[1].successorstovisit)
-                        match = True
-                        continue
+                    for potential_id in potential:
+                        if self.circuit_dag.get_node(potential_id).isblocked | \
+                                (self.circuit_dag.get_node(potential_id).matchedwith != []):
+                            potential.remove(potential_id)
+
+                    sorted_potential = sorted(potential)
+                    v[1].successorstovisit = sorted_potential
+
+                    self.matched_nodes_list.append([v[0], v[1]])
+                    self.matched_nodes_list.sort(key=lambda x: x[1].successorstovisit)
+                    match = True
+                    continue
 
             # If no match is found, block the node and all the successors
             if not match:

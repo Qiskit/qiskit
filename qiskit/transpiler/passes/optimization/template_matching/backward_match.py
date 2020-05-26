@@ -27,6 +27,8 @@ Efficient template matching in quantum circuits.
 
 """
 
+from qiskit.circuit.controlledgate import ControlledGate
+
 
 class Match:
     """
@@ -229,6 +231,47 @@ class BackwardMatch:
                 carg_indices = []
         return carg_indices
 
+    def _is_same_op(self, node_circuit, node_template):
+        return node_circuit.op == node_template.op
+
+    def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
+
+        if isinstance(node_circuit.op, ControlledGate):
+
+            c_template = node_template.op.num_ctrl_qubits
+
+            if c_template == 1:
+                return qarg_circuit == node_template.qindices
+
+            else:
+                control_qubits_template = node_template.qindices[:c_template]
+                control_qubits_circuit = qarg_circuit[:c_template]
+
+                if set(control_qubits_circuit) == set(control_qubits_template):
+
+                    target_qubits_template = node_template.qindices[c_template::]
+                    target_qubits_circuit = qarg_circuit[c_template::]
+
+                    if node_template.op.base_gate.name in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
+                        return set(target_qubits_template) == set(target_qubits_circuit)
+                    else:
+                        return target_qubits_template == target_qubits_circuit
+                else:
+                    return False
+        else:
+            if node_template.op.name in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
+                return set(qarg_circuit) == set(node_template.qindices)
+            else:
+                return qarg_circuit == node_template.qindices
+
+    def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
+        if node_circuit.condition and node_template.conditon:
+            if set(carg_circuit) != set(node_template.cindices):
+                return False
+            if node_circuit.condition[1] != node_template.conditon[1]:
+                return False
+        return True
+
     def run_backward_match(self):
         """
         Apply the forward match algorithm and returns the list of matches given an initial match
@@ -296,15 +339,18 @@ class BackwardMatch:
 
             for template_id in candidates_indices:
                 actual_match = False
-                qarg2 = template_scenario.get_node(template_id).qindices
-                carg2 = template_scenario.get_node(template_id).cindices
 
-                if (set(qarg1) == set(qarg2)) and (qarg1[-1] == qarg2[-1]) and \
-                        (v.op == self.template_dag.get_node(template_id).op) \
-                        and (carg1 == carg2):
-                    if v.condition or self.template_dag.get_node(template_id).condition:
-                        if v.condition[1] != self.template_dag.get_node(template_id).condition[1]:
-                            continue
+                node_template = self.template_dag.get_node(template_id)
+                qarg2 = self.template_dag.get_node(template_id).qindices
+
+                if len(qarg1) != len(qarg2) \
+                        or set(qarg1) != set(qarg2)\
+                        or v.name != node_template.name:
+                    continue
+
+                if self._is_same_q_conf(v, node_template, qarg1)\
+                        and self._is_same_c_conf(v, node_template, carg1)\
+                        and self._is_same_op(v, node_template):
 
                     tree = tree + 1
 

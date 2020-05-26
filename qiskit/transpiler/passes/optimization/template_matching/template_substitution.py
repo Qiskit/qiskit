@@ -71,11 +71,11 @@ class TemplateSubstitution:
         Returns:
             list: List of predecessors of the current match circuit configuration.
         """
-        predecessors = {}
+        predecessors = set()
         for index in circuit_sublist:
             predecessors = predecessors | set(self.circuit_dag_dep.get_node(index).predecessors)
 
-        exclude = {}
+        exclude = set()
         for elem in self.substitution_list:
             exclude = exclude | elem.circuit_config | elem.pred_block
 
@@ -179,7 +179,7 @@ class TemplateSubstitution:
         for elem in self.substitution_list:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
-        self.unmatched_list = list({range(0, self.circuit_dag_dep.size())}
+        self.unmatched_list = list(set(range(0, self.circuit_dag_dep.size()))
                                    - set(circuit_list))
 
         self.substitution_list.sort(key=lambda x: x.circuit_config[0])
