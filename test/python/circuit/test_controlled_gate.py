@@ -875,6 +875,8 @@ class TestControlledStandardGates(QiskitTestCase):
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
+        elif gate_class in [C3RXGate]:
+            args = [theta]
 
         gate = gate_class(*args)
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:

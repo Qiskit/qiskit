@@ -25,6 +25,7 @@ from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
 from .u2 import U2Gate
+from .rx import RXGate
 
 
 class XGate(Gate):
@@ -492,8 +493,10 @@ class C3RXGate(ControlledGate):
                 string (e.g. '110'), or None. If None, use all 1s.
         """
         super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
-        self._angle = angle
+        if angle:
+            self.base_gate = RXGate(angle)
+        else:
+            self.base_gate = XGate()
 
     def _define(self):
         """
@@ -518,31 +521,31 @@ class C3RXGate(ControlledGate):
         q = QuantumRegister(4, name='q')
         definition = [
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[0], q[3]], []),
+            (CU1Gate(-self.base_gate._params[0]), [q[0], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[1], q[3]], []),
+            (CU1Gate(self.base_gate._params[0]), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[1], q[3]], []),
+            (CU1Gate(-self.base_gate._params[0]), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[2], q[3]], []),
+            (CU1Gate(self.base_gate._params[0]), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[2], q[3]], []),
+            (CU1Gate(-self.base_gate._params[0]), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[2], q[3]], []),
+            (CU1Gate(self.base_gate._params[0]), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[2], q[3]], []),
+            (CU1Gate(-self.base_gate._params[0]), [q[2], q[3]], []),
             (HGate(), [q[3]], [])
         ]
         self.definition = definition
