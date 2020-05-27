@@ -212,7 +212,7 @@ class BWStyle:
             'target': '#ffffff',
             'meas': '#ffffff',
             'swap': '#000000',
-            'multi': '#000000'
+            'multi': '#ffffff'
         }
         self.latexmode = False
         self.bundle = True
