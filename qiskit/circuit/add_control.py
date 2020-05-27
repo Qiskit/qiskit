@@ -142,7 +142,7 @@ def control(operation: Union[Gate, ControlledGate],
                 operation.params,
                 label=label,
                 num_ctrl_qubits=new_num_ctrl_qubits,
-                definition=[],  # empty list instead of None for Unroller.
+                definition=None,
                 ctrl_state=new_ctrl_state)
             cgate.base_gate = base_gate
             return cgate

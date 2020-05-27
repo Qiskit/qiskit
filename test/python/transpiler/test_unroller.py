@@ -103,7 +103,6 @@ class TestUnroller(QiskitTestCase):
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(basis=[])
-
         with self.assertRaises(QiskitError):
             pass_.run(dag)
 

@@ -219,7 +219,7 @@ class TestControlledGate(QiskitTestCase):
     def test_transpile_controlled_opaque(self):
         """Test transpiling controlled opaque gate"""
         from qiskit import transpile
-        basis_gates = ['u1', 'u3', 'cx']
+        basis_gates = ['u1', 'u3', 'cx', 'my_gate', 'cmy_gate']
         gate = Gate('my_gate', 1, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate.control(), [0, 1], [])
