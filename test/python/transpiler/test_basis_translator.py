@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,23 +12,230 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
 
-"""Test the Unroller pass"""
+"""Test the BasisTranslator pass"""
+
 
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.simulator import snapshot
-from qiskit.transpiler.passes import Unroller
-from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
+from qiskit.converters import circuit_to_dag, circuit_to_instruction
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Parameter
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
 
 
-class TestUnroller(QiskitTestCase):
-    """Tests the Unroller pass."""
+from qiskit.circuit.library.standard_gates.equivalence_library \
+    import StandardEquivalenceLibrary as std_eqlib
+
+
+class OneQubitZeroParamGate(Gate):
+    """Mock one qubit zero param gate."""
+    def __init__(self):
+        super().__init__('1q0p', 1, [])
+
+
+class OneQubitOneParamGate(Gate):
+    """Mock one qubit one param gate."""
+    def __init__(self, theta):
+        super().__init__('1q1p', 1, [theta])
+
+
+class OneQubitOneParamPrimeGate(Gate):
+    """Mock one qubit one param gate."""
+    def __init__(self, alpha):
+        super().__init__('1q1p_prime', 1, [alpha])
+
+
+class OneQubitTwoParamGate(Gate):
+    """Mock one qubit two param gate."""
+    def __init__(self, phi, lam):
+        super().__init__('1q2p', 1, [phi, lam])
+
+
+class TwoQubitZeroParamGate(Gate):
+    """Mock one qubit zero param gate."""
+    def __init__(self):
+        super().__init__('2q0p', 2, [])
+
+
+class VariadicZeroParamGate(Gate):
+    """Mock variadic zero param gate."""
+    def __init__(self, num_qubits):
+        super().__init__('vq0p', num_qubits, [])
+
+
+class TestBasisTranslator(QiskitTestCase):
+    """Test the BasisTranslator pass."""
+
+    def test_circ_in_basis_no_op(self):
+        """Verify we don't change a circuit already in the target basis."""
+        eq_lib = EquivalenceLibrary()
+        qc = QuantumCircuit(1)
+        qc.append(OneQubitZeroParamGate(), [0])
+        dag = circuit_to_dag(qc)
+
+        expected = circuit_to_dag(qc)
+
+        pass_ = BasisTranslator(eq_lib, ['1q0p'])
+        actual = pass_.run(dag)
+
+        self.assertEqual(actual, expected)
+
+    def test_raise_if_target_basis_unreachable(self):
+        """Verify we raise if the circuit cannot be transformed to the target."""
+        eq_lib = EquivalenceLibrary()
+
+        qc = QuantumCircuit(1)
+        qc.append(OneQubitZeroParamGate(), [0])
+        dag = circuit_to_dag(qc)
+
+        pass_ = BasisTranslator(eq_lib, ['1q1p'])
+
+        with self.assertRaises(TranspilerError):
+            pass_.run(dag)
+
+    def test_single_substitution(self):
+        """Verify we correctly unroll gates through a single equivalence."""
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitOneParamGate(pi), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        qc = QuantumCircuit(1)
+        qc.append(OneQubitZeroParamGate(), [0])
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(1)
+        expected.append(OneQubitOneParamGate(pi), [0])
+        expected_dag = circuit_to_dag(expected)
+
+        pass_ = BasisTranslator(eq_lib, ['1q1p'])
+        actual = pass_.run(dag)
+
+        self.assertEqual(actual, expected_dag)
+
+    def test_double_substitution(self):
+        """Verify we correctly unroll gates through multiple equivalences."""
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitOneParamGate(pi), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        theta = Parameter('theta')
+        gate = OneQubitOneParamGate(theta)
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitTwoParamGate(theta, pi/2), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        qc = QuantumCircuit(1)
+        qc.append(OneQubitZeroParamGate(), [0])
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(1)
+        expected.append(OneQubitTwoParamGate(pi, pi/2), [0])
+        expected_dag = circuit_to_dag(expected)
+
+        pass_ = BasisTranslator(eq_lib, ['1q2p'])
+        actual = pass_.run(dag)
+
+        self.assertEqual(actual, expected_dag)
+
+    def test_multiple_variadic(self):
+        """Verify circuit with multiple instances of variadic gate."""
+        eq_lib = EquivalenceLibrary()
+
+        # e.g. MSGate
+        oneq_gate = VariadicZeroParamGate(1)
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitZeroParamGate(), [0])
+        eq_lib.add_equivalence(oneq_gate, equiv)
+
+        twoq_gate = VariadicZeroParamGate(2)
+        equiv = QuantumCircuit(2)
+        equiv.append(TwoQubitZeroParamGate(), [0, 1])
+        eq_lib.add_equivalence(twoq_gate, equiv)
+
+        qc = QuantumCircuit(2)
+        qc.append(VariadicZeroParamGate(1), [0])
+        qc.append(VariadicZeroParamGate(2), [0, 1])
+
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(2)
+        expected.append(OneQubitZeroParamGate(), [0])
+        expected.append(TwoQubitZeroParamGate(), [0, 1])
+
+        expected_dag = circuit_to_dag(expected)
+
+        pass_ = BasisTranslator(eq_lib, ['1q0p', '2q0p'])
+        actual = pass_.run(dag)
+
+        self.assertEqual(actual, expected_dag)
+
+    def test_diamond_path(self):
+        """Verify we find a path when there are multiple paths to the target basis."""
+        eq_lib = EquivalenceLibrary()
+
+        # Path 1: 1q0p -> 1q1p(pi) -> 1q2p(pi, pi/2)
+
+        gate = OneQubitZeroParamGate()
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitOneParamGate(pi), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        theta = Parameter('theta')
+        gate = OneQubitOneParamGate(theta)
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitTwoParamGate(theta, pi/2), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        # Path 2: 1q0p -> 1q1p_prime(pi/2) -> 1q2p(2 * pi/2, pi/2)
+
+        gate = OneQubitZeroParamGate()
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitOneParamPrimeGate(pi/2), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        alpha = Parameter('alpha')
+        gate = OneQubitOneParamPrimeGate(alpha)
+        equiv = QuantumCircuit(1)
+        equiv.append(OneQubitTwoParamGate(2 * alpha, pi/2), [0])
+
+        eq_lib.add_equivalence(gate, equiv)
+
+        qc = QuantumCircuit(1)
+        qc.append(OneQubitZeroParamGate(), [0])
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(1)
+        expected.append(OneQubitTwoParamGate(pi, pi/2), [0])
+        expected_dag = circuit_to_dag(expected)
+
+        pass_ = BasisTranslator(eq_lib, ['1q2p'])
+        actual = pass_.run(dag)
+
+        self.assertEqual(actual, expected_dag)
+
+
+class TestUnrollerCompatability(QiskitTestCase):
+    """Tests backward compatability with the Unroller pass.
+
+    Duplicate of TestUnroller from test.python.transpiler.test_unroller with
+    Unroller replaced by UnrollCustomDefinitions -> BasisTranslator.
+    """
 
     def test_basic_unroll(self):
         """Test decompose a single H into u2.
@@ -37,7 +244,9 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(['u2'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u2'])
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ['u2'])
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
@@ -51,7 +260,9 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(['h', 't', 'tdg', 'cx'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['h', 't', 'tdg', 'cx'])
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ['h', 't', 'tdg', 'cx'])
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
@@ -76,7 +287,10 @@ class TestUnroller(QiskitTestCase):
         circuit.y(qr).c_if(cr, 1)
         circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(['u1', 'u2', 'u3'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'u2', 'u3'])
+        dag = pass_.run(dag)
+
+        pass_ = BasisTranslator(std_eqlib, ['u1', 'u2', 'u3'])
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
@@ -102,13 +316,18 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(basis=[])
+        pass_ = UnrollCustomDefinitions(std_eqlib, [])
+        dag = pass_.run(dag)
+
+        pass_ = BasisTranslator(std_eqlib, [])
+
         with self.assertRaises(QiskitError):
             pass_.run(dag)
 
     def test_unroll_all_instructions(self):
         """Test unrolling a circuit containing all standard instructions.
         """
+
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')
         circuit = QuantumCircuit(qr, cr)
@@ -143,7 +362,10 @@ class TestUnroller(QiskitTestCase):
         circuit.snapshot('0')
         circuit.measure(qr, cr)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(basis=['u3', 'cx', 'id'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u3', 'cx', 'id'])
+        dag = pass_.run(dag)
+
+        pass_ = BasisTranslator(std_eqlib, ['u3', 'cx', 'id'])
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
@@ -241,6 +463,7 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.snapshot('0')
         ref_circuit.measure(qr, cr)
         ref_dag = circuit_to_dag(ref_circuit)
+
         self.assertEqual(unrolled_dag, ref_dag)
 
     def test_simple_unroll_parameterized_without_expressions(self):
@@ -253,7 +476,10 @@ class TestUnroller(QiskitTestCase):
         qc.rz(theta, qr[0])
         dag = circuit_to_dag(qc)
 
-        unrolled_dag = Unroller(['u1', 'cx']).run(dag)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        dag = pass_.run(dag)
+
+        unrolled_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
         expected.u1(theta, qr[0])
@@ -271,8 +497,10 @@ class TestUnroller(QiskitTestCase):
 
         qc.rz(sum_, qr[0])
         dag = circuit_to_dag(qc)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        dag = pass_.run(dag)
 
-        unrolled_dag = Unroller(['u1', 'cx']).run(dag)
+        unrolled_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
         expected.u1(sum_, qr[0])
@@ -289,13 +517,17 @@ class TestUnroller(QiskitTestCase):
         qc.cu1(theta, qr[1], qr[0])
         qc.cu1(theta * theta, qr[0], qr[1])
         dag = circuit_to_dag(qc)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        dag = pass_.run(dag)
 
-        out_dag = Unroller(['u1', 'cx']).run(dag)
+        out_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
 
         self.assertEqual(out_dag.count_ops(), {'u1': 6, 'cx': 4})
 
     def test_unrolling_parameterized_composite_gates(self):
         """Verify unrolling circuits with parameterized composite gates."""
+        mock_sel = EquivalenceLibrary(base=std_eqlib)
+
         qr1 = QuantumRegister(2)
         subqc = QuantumCircuit(qr1)
 
@@ -309,11 +541,15 @@ class TestUnroller(QiskitTestCase):
         qr2 = QuantumRegister(4)
         qc = QuantumCircuit(qr2)
 
-        qc.append(subqc.to_instruction(), [qr2[0], qr2[1]])
-        qc.append(subqc.to_instruction(), [qr2[2], qr2[3]])
+        sub_instr = circuit_to_instruction(subqc, equivalence_library=mock_sel)
+        qc.append(sub_instr, [qr2[0], qr2[1]])
+        qc.append(sub_instr, [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(['u1', 'cx']).run(dag)
+        pass_ = UnrollCustomDefinitions(mock_sel, ['u1', 'cx'])
+        dag = pass_.run(dag)
+
+        out_dag = BasisTranslator(mock_sel, ['u1', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
         expected.u1(theta, qr2[0])
@@ -331,11 +567,16 @@ class TestUnroller(QiskitTestCase):
         phi = Parameter('phi')
         gamma = Parameter('gamma')
 
-        qc.append(subqc.to_instruction({theta: phi}), [qr2[0], qr2[1]])
-        qc.append(subqc.to_instruction({theta: gamma}), [qr2[2], qr2[3]])
+        sub_instr = circuit_to_instruction(subqc, {theta: phi}, mock_sel)
+        qc.append(sub_instr, [qr2[0], qr2[1]])
+        sub_instr = circuit_to_instruction(subqc, {theta: gamma}, mock_sel)
+        qc.append(sub_instr, [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(['u1', 'cx']).run(dag)
+        pass_ = UnrollCustomDefinitions(mock_sel, ['u1', 'cx'])
+        dag = pass_.run(dag)
+
+        out_dag = BasisTranslator(mock_sel, ['u1', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
         expected.u1(phi, qr2[0])
