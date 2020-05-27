@@ -155,7 +155,8 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         circuit.h(qr[0]).c_if(cr, 2)
 
         conditional_filename = self._get_resource_path('current_conditional_matplotlib_ref.png')
-        visualization.circuit_drawer(circuit, output='mpl', scale = .7, filename=conditional_filename)
+        visualization.circuit_drawer(circuit, output='mpl', scale = .7,
+                                     filename=conditional_filename)
         self.addCleanup(os.remove, conditional_filename)
 
         ref_filename = self._get_resource_path(
