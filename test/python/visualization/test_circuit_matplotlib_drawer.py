@@ -160,6 +160,6 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         self.addCleanup(os.remove, conditional_filename)
 
         ref_filename = self._get_resource_path(
-            'visualization/references/matplotlib_conditional_ref.png')
+            'visualization/references/matplotlib_conditional_ref2.png')
 
         self.assertImagesAreEqual(ref_filename, conditional_filename, diff_tolerance=0.002)
