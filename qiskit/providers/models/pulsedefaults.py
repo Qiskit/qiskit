@@ -16,7 +16,6 @@
 
 """Model and schema for pulse defaults."""
 import copy
-import warnings
 from types import SimpleNamespace
 from typing import Any, Dict, List
 
