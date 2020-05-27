@@ -162,7 +162,7 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
             i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
             x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
             expected[i_qiskit, i_qiskit] = 1j**(np.dot(x_vec.transpose(),
-                                                       np.dot(hidden_function, x_vec))[0][0])
+                                                       np.dot(hidden_function, x_vec)))
 
         expected = Operator(expected)
         self.assertTrue(expected.equiv(simulated))
