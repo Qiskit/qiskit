@@ -174,7 +174,7 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         expected = Operator(expected)
         self.assertTrue(expected.equiv(simulated))
 
-    def assertSymmetryCheckWorks(self):
+    def test_non_symmetric_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
         with self.assertRaises(CircuitError):
             HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
