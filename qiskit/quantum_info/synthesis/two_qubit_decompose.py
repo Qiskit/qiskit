@@ -59,7 +59,7 @@ def euler_angles_1q(unitary_matrix):
     Raises:
         QiskitError: if unitary_matrix not 2x2, or failure
     """
-    warnings.warn("euler_angles_q1` is deprecated. "
+    warnings.warn("euler_angles_1q` is deprecated. "
                   "Use `synthesis.OneQubitEulerDecomposer().angles instead.",
                   DeprecationWarning)
     if unitary_matrix.shape != (2, 2):
