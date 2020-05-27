@@ -25,20 +25,23 @@ class Counts(dict):
                  creg_sizes=None, memory_slots=None, **metadata):
         """Build a counts object
 
-        data (dict): The dictionary input for the counts. The key should be a
-            hexademical string of the form ``"0x4a"`` representing the measured
-            classical value from the experiment and the dictionary's value is
-            an integer representing the number of shots with that result.
-        name (str): A string name for the counts object
-        shots (int): The number of shots used in the experiment
-        time_take (float): The duration of the experiment that generated the
-            counts
-        creg_sizes (list): a nested list where the inner element is a list
-            of tuples containing both the classical register name and classical
-            register size. For example, ``[('c_reg', 2), ('my_creg', 4)]``.
-        memory_slots (int): The number of total ``memory_slots`` in the
-            experiment.
-        metadata: Any arbitrary key value metadata passed in as kwargs.
+        Args:
+            data (dict): The dictionary input for the counts. The key should
+                be a hexademical string of the form ``"0x4a"`` representing the
+                measured classical value from the experiment and the
+                dictionary's value is an integer representing the number of
+                shots with that result.
+            name (str): A string name for the counts object
+            shots (int): The number of shots used in the experiment
+            time_take (float): The duration of the experiment that generated
+                the counts
+            creg_sizes (list): a nested list where the inner element is a list
+                of tuples containing both the classical register name and
+                classical register size. For example,
+                ``[('c_reg', 2), ('my_creg', 4)]``.
+            memory_slots (int): The number of total ``memory_slots`` in the
+                experiment.
+            metadata: Any arbitrary key value metadata passed in as kwargs.
         """
         self.hex_raw = dict(data)
         header = {}
