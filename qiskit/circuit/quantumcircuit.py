@@ -738,7 +738,12 @@ class QuantumCircuit:
             ImportError: If pygments is not installed and ``formatted`` is
                 ``True``.
         """
-        composite_circuits = []
+        existing_gate_names = ['ch', 'cx', 'cy', 'cz', 'crx', 'cry', 'crz', 'ccx', 'cswap',
+                               'cu1', 'cu3', 'dcx', 'h', 'i', 'id', 'iden', 'iswap', 'ms',
+                               'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg',
+                               'swap', 'x', 'y', 'z', 't', 'tdg', 'u1', 'u2', 'u3']
+
+        existing_composite_circuits = []
 
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
@@ -757,16 +762,25 @@ class QuantumCircuit:
             # If instruction is a composite circuit
             elif not isinstance(instruction, Gate) and (instruction.name not in ['barrier',
                                                                                  'reset']):
-                qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+                if instruction not in existing_composite_circuits:
+                    if instruction.name in existing_gate_names:
+                        instruction.name += "_" + str(id(self))
 
-                # Insert composite circuit qasm definition right after header
-                # and extension lib if it does not already exist
-                if instruction.name not in composite_circuits:
+                        warnings.warn("A gate named {} already exists. "
+                                      "We have renamed "
+                                      "your gate to {}".format(instruction.name.split("_")[0],
+                                                               instruction.name))
+
+                    # Get qasm of composite circuit
+                    qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
+
+                    # Insert composite circuit qasm definition right after header and extension lib
                     string_temp = string_temp.replace(self.extension_lib,
                                                       "%s\n%s" % (self.extension_lib,
                                                                   qasm_string))
 
-                    composite_circuits.append(instruction.name)
+                    existing_composite_circuits.append(instruction)
+                    existing_gate_names.append(instruction.name)
 
                 # Insert qasm representation of the original instruction
                 string_temp += "%s %s;\n" % (instruction.qasm(),
