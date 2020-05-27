@@ -179,6 +179,17 @@ class TestParameters(QiskitTestCase):
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
 
+    def test_multiple_named_parameters(self):
+        """Test setting multiple named/keyword argument based parameters"""
+        theta = Parameter(name='θ')
+        x = Parameter(name='x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+        self.assertEqual(theta.name, 'θ')
+        self.assertEqual(qc.parameters, {theta, x})
+
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
         theta = Parameter('θ')
