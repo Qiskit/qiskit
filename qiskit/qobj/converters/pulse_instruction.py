@@ -130,13 +130,16 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
             'qubits': [instruction.acquire.index],
-            'memory_slot': [instruction.mem_slot.index]
+            'memory_slot': mem_slot
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -176,13 +179,16 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
             'qubits': [instruction.channel.index],
-            'memory_slot': [instruction.mem_slot.index]
+            'memory_slot': mem_slot
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
