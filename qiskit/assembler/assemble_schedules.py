@@ -239,7 +239,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, Acquire], List[AcquireIn
     for _, instructions in instruction_map.items():
         measured_qubits = set()
         for inst in instructions:
-            measured_qubits.update([acq.index for acq in inst.acquires])
+            measured_qubits.add(inst.channel.index)
 
         for meas_set in meas_map_sets:
             intersection = measured_qubits.intersection(meas_set)
@@ -264,9 +264,9 @@ def _bundle_channel_indices(
     mem_slots = []
     reg_slots = []
     for inst in instructions:
-        qubits.extend(aq.index for aq in inst.acquires)
-        mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
-        reg_slots.extend(reg.index for reg in inst.reg_slots)
+        qubits.append(inst.channel.index)
+        mem_slots.append(inst.mem_slot.index)
+        reg_slots.append(inst.reg_slot.index)
     return qubits, mem_slots, reg_slots
 
 
