@@ -164,7 +164,10 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
             expected[i_qiskit, i_qiskit] = 1j**(np.dot(x_vec.transpose(),
                                                        np.dot(hidden_function, x_vec)))
 
-        expected = Operator(expected)
+        qc = QuantumCircuit(num_qubits)
+        qc.h(range(num_qubits))
+        qc = Operator(qc)
+        expected = qc.compose(Operator(expected)).compose(qc)
         self.assertTrue(expected.equiv(simulated))
 
     @data(
