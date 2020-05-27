@@ -259,6 +259,7 @@ class MatplotlibDrawer:
                 _ec = self._style.dispcol['multi']
             else:
                 _fc = self._style.gc
+                _ec = fc
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -704,7 +705,7 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         _narrow_gate = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                        'rxx', 'ryy', 'rzx', 'u1', 'swap', 'initialize', 'reset']
+                        'rxx', 'ryy', 'rzx', 'u1', 'swap', 'reset']
         _array_gate = ['iswap', 'dcx', 'unitary', 'hamiltonian', 'isometry']
         _special_gate = ['barrier', 'snapshot', 'load', 'save', 'noise', 'measure']
         _barriers = {'coord': [], 'group': []}
@@ -854,6 +855,9 @@ class MatplotlibDrawer:
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv)
 
+                elif op.name == 'reset':
+                    self._gate(q_xy[0], text=op.name, fc=self._style.gt)
+
                 elif op.name in ['barrier', 'snapshot', 'load', 'save', 'noise']:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
@@ -891,7 +895,7 @@ class MatplotlibDrawer:
                 # draw controlled and special gates
                 #
 
-                # cx's
+                # cx gates
                 elif isinstance(op.op, ControlledGate) and base_name == 'x':
                     # set the ctrl qbits to open or closed
                     num_ctrl_qubits = op.op.num_ctrl_qubits
@@ -908,7 +912,7 @@ class MatplotlibDrawer:
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=color)
 
-                # cz for latexmode
+                # cz gate
                 elif op.name == 'cz':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     color = self._style.dispcol['cz']
