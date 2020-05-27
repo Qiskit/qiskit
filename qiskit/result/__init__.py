@@ -24,8 +24,12 @@ Experiment Results (:mod:`qiskit.result`)
 
    Result
    ResultError
+   Counts
+   NoMostFrequentCount
 """
 
 from .result import Result
 from .exceptions import ResultError
 from .utils import marginal_counts
+from .counts import Counts
+from .exceptions import NoMostFrequentCount

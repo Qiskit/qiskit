@@ -19,7 +19,7 @@ import copy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states import Statevector
+from qiskit.quantum_info.states import statevector
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.qobj.utils import MeasLevel
@@ -245,7 +245,7 @@ class Result:
                 dict_list.append(postprocess.format_counts(self.data(key)['counts'], header))
             elif 'statevector' in self.data(key).keys():
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
-                dict_list.append(Statevector(vec).probabilities_dict(decimals=15))
+                dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
                 raise QiskitError('No counts for experiment "{0}"'.format(key))
 
