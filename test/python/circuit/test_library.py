@@ -144,33 +144,40 @@ class TestPermutationLibrary(QiskitTestCase):
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
 
+@ddt
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
+    def __q(self, x, hidden_function):
+        return np.dot(x.transpose(), np.dot(hidden_function, x))[0][0]
 
-    def test_hidden_linear_function(self):
+    @data(
+        ([[1, 1, 0], [1, 0, 1], [0, 1, 1]],
+         HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [0, 1, 1]]))
+    )
+    @unpack
+    def assertHLFIsCorrect(self, hidden_function, hlf):
+        """Assert that the HLF circuit produces the correct matrix.
+
+        Number of qubits is equal to the number of rows (or number of columns)
+        of hidden_function.
         """
-        Test hidden linear function circuit.
-        The following circuit is being tested for
-                ┌───┐   ┌───┐┌───┐
-        q_0: |0>┤ H ├─■─┤ S ├┤ H ├─────
-                ├───┤ │ └───┘├───┤
-        q_1: |0>┤ H ├─■───■──┤ H ├─────
-                ├───┤     │  ├───┤┌───┐
-        q_2: |0>┤ H ├─────■──┤ S ├┤ H ├
-                └───┘        └───┘└───┘
-        """
-        hidden_function = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-        circuit = HiddenLinearFunction(hidden_function)
-        expected = QuantumCircuit(3)
-        expected.h([0, 1, 2])
-        expected.cz(0, 1)
-        expected.cz(1, 2)
-        expected.s(0)
-        expected.s(2)
-        expected.h([0, 1, 2])
+        num_qubits = len(hidden_function)
+        hidden_function = np.asarray(hidden_function)
+        simulated = Operator(hlf)
+
+        expected = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
+        for i in range(2**num_qubits):
+            i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
+            x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
+            expected[i_qiskit, i_qiskit] = 1j**(self.__q(x_vec, hidden_function))
+
         expected = Operator(expected)
-        simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
+
+    def assertSymmetryCheckWorks(self):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
 
 
 class TestIQPLibrary(QiskitTestCase):
