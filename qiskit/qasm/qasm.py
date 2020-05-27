@@ -15,8 +15,6 @@
 """
 OPENQASM circuit object.
 """
-import warnings
-
 from .exceptions import QasmError
 from .qasmparser import QasmParser
 
