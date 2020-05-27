@@ -33,7 +33,7 @@ class Counts(dict):
                 shots with that result.
             name (str): A string name for the counts object
             shots (int): The number of shots used in the experiment
-            time_take (float): The duration of the experiment that generated
+            time_taken (float): The duration of the experiment that generated
                 the counts
             creg_sizes (list): a nested list where the inner element is a list
                 of tuples containing both the classical register name and
