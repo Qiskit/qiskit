@@ -147,14 +147,6 @@ class TestPermutationLibrary(QiskitTestCase):
 @ddt
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
-    def __q(self, x, hidden_function):
-        return np.dot(x.transpose(), np.dot(hidden_function, x))[0][0]
-
-    @data(
-        ([[1, 1, 0], [1, 0, 1], [0, 1, 1]],
-         HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [0, 1, 1]]))
-    )
-    @unpack
     def assertHLFIsCorrect(self, hidden_function, hlf):
         """Assert that the HLF circuit produces the correct matrix.
 
@@ -169,10 +161,19 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         for i in range(2**num_qubits):
             i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
             x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
-            expected[i_qiskit, i_qiskit] = 1j**(self.__q(x_vec, hidden_function))
+            expected[i_qiskit, i_qiskit] = 1j**(np.dot(x_vec.transpose(),
+                                                       np.dot(hidden_function, x_vec))[0][0])
 
         expected = Operator(expected)
         self.assertTrue(expected.equiv(simulated))
+
+    @data(
+        [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+    )
+    def test_hlf(self, hidden_function):
+        """Test if the HLF matrix produces the right matrix."""
+        hlf = HiddenLinearFunction(hidden_function)
+        self.assertHLFIsCorrect(hidden_function, hlf)
 
     def test_non_symmetric_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
