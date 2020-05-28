@@ -51,17 +51,17 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         from PIL import Image, ImageChops
 
         if isinstance(current, str):
-            current = Image.open(current)
+            current=Image.open(current)
             print(f'current {current.size[0]} by {current.size[1]}')
             print(print(_get_black_pixels(current))
         if isinstance(expected, str):
-            expected = Image.open(expected)
+            expected=Image.open(expected)
             print(f'expected {expected.size[0]} by {expected.size[1]}')
             print(_get_black_pixels(expected))
-        diff = ImageChops.difference(expected, current)
-        black_pixels = _get_black_pixels(diff)
-        total_pixels = diff.size[0] * diff.size[1]
-        similarity_ratio = black_pixels / total_pixels
+        diff=ImageChops.difference(expected, current)
+        black_pixels=_get_black_pixels(diff)
+        total_pixels=diff.size[0] * diff.size[1]
+        similarity_ratio=black_pixels/total_pixels
         print('similarity ratio')
         if 1 - similarity_ratio > diff_tolerance:
             print(similarity_ratio)
