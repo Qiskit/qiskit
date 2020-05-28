@@ -815,6 +815,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(bound1.parameters, {subs1[ptest]})
         self.assertEqual(bound2.parameters, {subs2[ptest]})
 
+
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
