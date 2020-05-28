@@ -781,6 +781,14 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
+    def test_open_controlled_x_gate_eq(self):
+        """Test open control x gate equality."""
+        circuit1 = QuantumCircuit(2)
+        circuit1.append(XGate().control(1, ctrl_state='1'), [0, 1])
+        circuit2 = QuantumCircuit(2)
+        circuit2.append(XGate().control(1, ctrl_state='1'), [0, 1])
+        self.assertEqual(circuit1, circuit2)
+
 
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
