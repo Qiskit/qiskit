@@ -14,7 +14,6 @@
 
 """Controlled unitary gate."""
 
-import copy
 from typing import Tuple, List, Optional, Union
 from qiskit.circuit.exceptions import CircuitError
 
@@ -126,7 +125,7 @@ class ControlledGate(Gate):
             if val == '0':
                 open_rules.append([XGate(), [qreg[qind]], []])
         if open_rules:
-            return open_rules + copy.copy(definition) + open_rules
+            return open_rules + definition + open_rules
         else:
             return self._definition
 
