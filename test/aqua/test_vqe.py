@@ -20,11 +20,11 @@ from test.aqua import QiskitAquaTestCase
 import numpy as np
 from ddt import ddt, unpack, data
 from qiskit import BasicAer, QuantumCircuit
-from qiskit.circuit.library import TwoLocal
+from qiskit.circuit.library import TwoLocal, EfficientSU2
 
 from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
-from qiskit.aqua.operators import WeightedPauliOperator, PrimitiveOp
-from qiskit.aqua.components.variational_forms import RY, RYRZ
+from qiskit.aqua.operators import WeightedPauliOperator, PrimitiveOp, X, Z, I
+from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.aqua.algorithms import VQE
 
@@ -37,6 +37,67 @@ class TestVQE(QiskitAquaTestCase):
         super().setUp()
         self.seed = 50
         aqua_globals.random_seed = self.seed
+        self.h2_op = -1.052373245772859 * (I ^ I) \
+            + 0.39793742484318045 * (I ^ Z) \
+            - 0.39793742484318045 * (Z ^ I) \
+            - 0.01128010425623538 * (Z ^ Z) \
+            + 0.18093119978423156 * (X ^ X)
+        self.h2_energy = -1.85727503
+
+        self.ryrz_wavefunction = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
+        self.ry_wavefunction = TwoLocal(rotation_blocks='ry', entanglement_blocks='cz')
+
+        self.qasm_simulator = QuantumInstance(BasicAer.get_backend('qasm_simulator'),
+                                              shots=1024,
+                                              seed_simulator=self.seed,
+                                              seed_transpiler=self.seed)
+        self.statevector_simulator = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                                                     shots=1,
+                                                     seed_simulator=self.seed,
+                                                     seed_transpiler=self.seed)
+
+    def test_basic_aer_statevector(self):
+        """Test the VQE on BasicAer's statevector simulator."""
+        wavefunction = self.ryrz_wavefunction
+        vqe = VQE(self.h2_op, wavefunction, L_BFGS_B())
+
+        result = vqe.run(QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                                         basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                                         coupling_map=[[0, 1]],
+                                         seed_simulator=aqua_globals.random_seed,
+                                         seed_transpiler=aqua_globals.random_seed))
+
+        with self.subTest(msg='test eigenvalue'):
+            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
+
+        with self.subTest(msg='test dimension of optimal point'):
+            self.assertEqual(len(result.optimal_point), 16)
+
+        with self.subTest(msg='assert cost_function_evals is set'):
+            self.assertIsNotNone(result.cost_function_evals)
+
+        with self.subTest(msg='assert optimizer_time is set'):
+            self.assertIsNotNone(result.optimizer_time)
+
+    def test_deprecated_variational_forms(self):
+        """Test running the VQE on a deprecated VariationalForm object."""
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
+        wavefunction = RYRZ(2)
+        vqe = VQE(self.h2_op, wavefunction, L_BFGS_B())
+        warnings.filterwarnings('always', category=DeprecationWarning)
+        result = vqe.run(self.statevector_simulator)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
+
+    def test_circuit_input(self):
+        """Test running the VQE on a plain QuantumCircuit object."""
+        wavefunction = QuantumCircuit(2).compose(EfficientSU2(2))
+        optimizer = SLSQP(maxiter=50)
+        vqe = VQE(self.h2_op, wavefunction, optimizer=optimizer)
+        result = vqe.run(self.statevector_simulator)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
+
+    def test_legacy_operator(self):
+        """Test the VQE accepts and converts the legacy WeightedPauliOperator."""
         pauli_dict = {
             'paulis': [{"coeff": {"imag": 0.0, "real": -1.052373245772859}, "label": "II"},
                        {"coeff": {"imag": 0.0, "real": 0.39793742484318045}, "label": "IZ"},
@@ -45,100 +106,43 @@ class TestVQE(QiskitAquaTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        self.qubit_op = WeightedPauliOperator.from_dict(pauli_dict).to_opflow()
+        h2_op = WeightedPauliOperator.from_dict(pauli_dict)
+        vqe = VQE(h2_op)
+        self.assertEqual(vqe.operator, self.h2_op)
 
-        num_qubits = self.qubit_op.num_qubits
-        ansatz = TwoLocal(num_qubits, rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-        self.ryrz_wavefunction = {'wrapped': RYRZ(num_qubits),
-                                  'circuit': QuantumCircuit(num_qubits).compose(ansatz),
-                                  'library': ansatz}
-
-        ansatz = ansatz.copy()
-        ansatz.rotation_blocks = 'ry'
-        self.ry_wavefunction = {'wrapped': RY(num_qubits),
-                                'circuit': QuantumCircuit(num_qubits).compose(ansatz),
-                                'library': ansatz}
-        warnings.filterwarnings('always', category=DeprecationWarning)
-
-    @data('wrapped', 'circuit', 'library')
-    def test_vqe(self, mode):
-        """ VQE test """
-        wavefunction = self.ryrz_wavefunction[mode]
-        if mode == 'wrapped':
-            warnings.filterwarnings('ignore', category=DeprecationWarning)
-        vqe = VQE(self.qubit_op, wavefunction, L_BFGS_B())
-        if mode == 'wrapped':
-            warnings.filterwarnings('always', category=DeprecationWarning)
-
-        result = vqe.run(QuantumInstance(BasicAer.get_backend('statevector_simulator'),
-                                         basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                                         coupling_map=[[0, 1]],
-                                         seed_simulator=aqua_globals.random_seed,
-                                         seed_transpiler=aqua_globals.random_seed))
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503)
-        np.testing.assert_array_almost_equal(result.eigenvalue.real, -1.85727503, 5)
-        self.assertEqual(len(result.optimal_point), 16)
-        self.assertIsNotNone(result.cost_function_evals)
-        self.assertIsNotNone(result.optimizer_time)
-
-    def test_vqe_no_varform_params(self):
+    def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
-        circuit = QuantumCircuit(self.qubit_op.num_qubits)
-        for i in range(circuit.num_qubits):
-            circuit.h(i)
-            circuit.cx(i, (i + 1) % circuit.num_qubits)
-            circuit.rx(0.2, i)
-
-        vqe = VQE(self.qubit_op, circuit)
+        circuit = QuantumCircuit(self.h2_op.num_qubits)
+        vqe = VQE(self.h2_op, circuit)
         with self.assertRaises(RuntimeError):
             vqe.run(BasicAer.get_backend('statevector_simulator'))
 
     @data(
-        (SLSQP, 5, 4),
-        (SLSQP, 5, 1),
-        (SPSA, 3, 2),  # max_evals_grouped=n is considered as max_evals_grouped=2 if n>2
-        (SPSA, 3, 1)
+        (SLSQP(maxiter=50), 5, 4),
+        (SPSA(max_trials=150), 3, 2),  # max_evals_grouped=n or =2 if n>2
     )
     @unpack
-    def test_vqe_optimizers(self, optimizer_cls, places, max_evals_grouped):
+    def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
         """ VQE Optimizers test """
-        result = VQE(self.qubit_op,
-                     TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz'),
-                     optimizer_cls(),
-                     max_evals_grouped=max_evals_grouped).run(
-                         QuantumInstance(BasicAer.get_backend('statevector_simulator'), shots=1,
-                                         seed_simulator=aqua_globals.random_seed,
-                                         seed_transpiler=aqua_globals.random_seed))
+        vqe = VQE(self.h2_op, self.ryrz_wavefunction, optimizer,
+                  max_evals_grouped=max_evals_grouped,
+                  quantum_instance=self.statevector_simulator)
+        result = vqe.run()
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=places)
-
-    @data('wrapped', 'circuit', 'library')
-    def test_vqe_qasm(self, mode):
-        """ VQE QASM test """
-        backend = BasicAer.get_backend('qasm_simulator')
+    def test_basic_aer_qasm(self):
+        """Test the VQE on BasicAer's QASM simulator."""
         optimizer = SPSA(max_trials=300, last_avg=5)
-        wavefunction = self.ry_wavefunction[mode]
+        wavefunction = self.ry_wavefunction
 
-        if mode == 'wrapped':
-            warnings.filterwarnings('ignore', category=DeprecationWarning)
-            reference_energy = -1.86823
-        else:
-            reference_energy = -1.87019
-        vqe = VQE(self.qubit_op, wavefunction, optimizer, max_evals_grouped=1)
-        if mode == 'wrapped':
-            warnings.filterwarnings('always', category=DeprecationWarning)
+        vqe = VQE(self.h2_op, wavefunction, optimizer, max_evals_grouped=1)
 
         # TODO benchmark this later.
-        quantum_instance = QuantumInstance(backend, shots=1000,
-                                           seed_simulator=self.seed,
-                                           seed_transpiler=self.seed)
-        result = vqe.run(quantum_instance)
-        self.assertAlmostEqual(result.eigenvalue.real, reference_energy, places=2)
+        result = vqe.run(self.qasm_simulator)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
-    @data('wrapped', 'circuit', 'library')
-    def test_vqe_statevector_snapshot_mode(self, mode):
-        """ VQE Aer statevector_simulator snapshot mode test """
+    def test_statevector_snapshot_mode(self):
+        """Test the VQE using Aer's statevector_simulator snapshot mode."""
         try:
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
@@ -146,24 +150,19 @@ class TestVQE(QiskitAquaTestCase):
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
         backend = Aer.get_backend('statevector_simulator')
-        wavefunction = self.ry_wavefunction[mode]
+        wavefunction = self.ry_wavefunction
         optimizer = L_BFGS_B()
 
-        if mode == 'wrapped':
-            warnings.filterwarnings('ignore', category=DeprecationWarning)
-        vqe = VQE(self.qubit_op, wavefunction, optimizer, max_evals_grouped=1)
-        if mode == 'wrapped':
-            warnings.filterwarnings('always', category=DeprecationWarning)
+        vqe = VQE(self.h2_op, wavefunction, optimizer, max_evals_grouped=1)
 
         quantum_instance = QuantumInstance(backend,
                                            seed_simulator=aqua_globals.random_seed,
                                            seed_transpiler=aqua_globals.random_seed)
         result = vqe.run(quantum_instance)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=6)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
-    @data('wrapped', 'circuit', 'library')
-    def test_vqe_qasm_snapshot_mode(self, mode):
-        """ VQE Aer qasm_simulator snapshot mode test """
+    def test_qasm_snapshot_mode(self):
+        """Test the VQE using Aer's qasm_simulator snapshot mode."""
         try:
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
@@ -172,23 +171,18 @@ class TestVQE(QiskitAquaTestCase):
             return
         backend = Aer.get_backend('qasm_simulator')
         optimizer = L_BFGS_B()
-        wavefunction = self.ry_wavefunction[mode]
+        wavefunction = self.ry_wavefunction
 
-        if mode == 'wrapped':
-            warnings.filterwarnings('ignore', category=DeprecationWarning)
-        vqe = VQE(self.qubit_op, wavefunction, optimizer, max_evals_grouped=1)
-        if mode == 'wrapped':
-            warnings.filterwarnings('always', category=DeprecationWarning)
+        vqe = VQE(self.h2_op, wavefunction, optimizer, max_evals_grouped=1)
 
         quantum_instance = QuantumInstance(backend, shots=1,
                                            seed_simulator=aqua_globals.random_seed,
                                            seed_transpiler=aqua_globals.random_seed)
         result = vqe.run(quantum_instance)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=6)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
-    @data('wrapped', 'circuit', 'library')
-    def test_vqe_callback(self, mode):
-        """ VQE Callback test """
+    def test_callback(self):
+        """Test the callback on VQE."""
         history = {'eval_count': [], 'parameters': [], 'mean': [], 'std': []}
 
         def store_intermediate_result(eval_count, parameters, mean, std):
@@ -197,21 +191,11 @@ class TestVQE(QiskitAquaTestCase):
             history['mean'].append(mean)
             history['std'].append(std)
 
-        backend = BasicAer.get_backend('qasm_simulator')
         optimizer = COBYLA(maxiter=3)
-        wavefunction = self.ry_wavefunction[mode]
+        wavefunction = self.ry_wavefunction
 
-        if mode == 'wrapped':
-            warnings.filterwarnings('ignore', category=DeprecationWarning)
-        vqe = VQE(self.qubit_op, wavefunction, optimizer, callback=store_intermediate_result)
-        if mode == 'wrapped':
-            warnings.filterwarnings('always', category=DeprecationWarning)
-
-        quantum_instance = QuantumInstance(backend,
-                                           seed_transpiler=50,
-                                           shots=1024,
-                                           seed_simulator=50)
-        vqe.run(quantum_instance)
+        vqe = VQE(self.h2_op, wavefunction, optimizer, callback=store_intermediate_result)
+        vqe.run(self.qasm_simulator)
 
         self.assertTrue(all(isinstance(count, int) for count in history['eval_count']))
         self.assertTrue(all(isinstance(mean, float) for mean in history['mean']))
@@ -219,37 +203,41 @@ class TestVQE(QiskitAquaTestCase):
         for params in history['parameters']:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
-    def test_vqe_reuse(self):
-        """ Test vqe reuse """
+    def test_reuse(self):
+        """Test re-using a VQE algorithm instance."""
         vqe = VQE()
-        with self.assertRaises(AquaError):
-            _ = vqe.run()
+        with self.subTest(msg='assert running empty raises AquaError'):
+            with self.assertRaises(AquaError):
+                _ = vqe.run()
 
         var_form = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
         vqe.var_form = var_form
-        with self.assertRaises(AquaError):
-            _ = vqe.run()
+        with self.subTest(msg='assert missing operator raises AquaError'):
+            with self.assertRaises(AquaError):
+                _ = vqe.run()
 
-        vqe.operator = self.qubit_op
-        with self.assertRaises(AquaError):
-            _ = vqe.run()
+        vqe.operator = self.h2_op
+        with self.subTest(msg='assert missing backend raises AquaError'):
+            with self.assertRaises(AquaError):
+                _ = vqe.run()
 
-        qinst = QuantumInstance(BasicAer.get_backend('statevector_simulator'))
-        vqe.quantum_instance = qinst
-        result = vqe.run()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=5)
+        vqe.quantum_instance = self.statevector_simulator
+        with self.subTest(msg='assert VQE works once all info is available'):
+            result = vqe.run()
+            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
         operator = PrimitiveOp(np.array([[1, 0, 0, 0],
                                          [0, -1, 0, 0],
                                          [0, 0, 2, 0],
                                          [0, 0, 0, 3]]))
-        vqe.operator = operator
-        result = vqe.run()
-        self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
+
+        with self.subTest(msg='assert minimum eigensolver interface works'):
+            result = vqe.compute_minimum_eigenvalue(operator)
+            self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
     def test_vqe_optimizer(self):
         """ Test running same VQE twice to re-use optimizer, then switch optimizer """
-        vqe = VQE(self.qubit_op, optimizer=SLSQP(),
+        vqe = VQE(self.h2_op, optimizer=SLSQP(),
                   quantum_instance=QuantumInstance(BasicAer.get_backend('statevector_simulator')))
 
         def run_check():
@@ -265,16 +253,8 @@ class TestVQE(QiskitAquaTestCase):
             vqe.optimizer = L_BFGS_B()
             run_check()
 
-    def test_vqe_mes(self):
-        """ Test vqe minimum eigen solver interface """
-        ansatz = TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz')
-        vqe = VQE(var_form=ansatz, optimizer=COBYLA())
-        vqe.set_backend(BasicAer.get_backend('statevector_simulator'))
-        result = vqe.compute_minimum_eigenvalue(self.qubit_op)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=5)
-
     @unittest.skip(reason="IBMQ testing not available in general.")
-    def test_ibmq_vqe(self):
+    def test_ibmq(self):
         """ IBMQ VQE Test """
         from qiskit import IBMQ
         provider = IBMQ.load_account()
@@ -283,12 +263,12 @@ class TestVQE(QiskitAquaTestCase):
 
         opt = SLSQP(maxiter=1)
         opt.set_max_evals_grouped(100)
-        vqe = VQE(self.qubit_op, ansatz, SLSQP(maxiter=2))
+        vqe = VQE(self.h2_op, ansatz, SLSQP(maxiter=2))
 
         result = vqe.run(backend)
         print(result)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.85727503)
-        np.testing.assert_array_almost_equal(result.eigenvalue.real, -1.85727503, 5)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
+        np.testing.assert_array_almost_equal(result.eigenvalue.real, self.h2_energy, 5)
         self.assertEqual(len(result.optimal_point), 16)
         self.assertIsNotNone(result.cost_function_evals)
         self.assertIsNotNone(result.optimizer_time)
