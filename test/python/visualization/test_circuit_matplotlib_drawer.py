@@ -171,7 +171,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         """
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(1, 'c')
-        circuit = QuantumCircuit(qr,cr)
+        circuit = QuantumCircuit(qr, cr)
 
         # check gates are shifted over accordingly
         for _ in range(3):
@@ -197,6 +197,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
             'visualization/references/matplotlib_fold_ref2.png')
 
         self.assertImagesAreEqual(ref_filename, fold_filename, diff_tolerance=0.002)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
