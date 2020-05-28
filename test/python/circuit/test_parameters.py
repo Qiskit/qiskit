@@ -179,6 +179,17 @@ class TestParameters(QiskitTestCase):
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
 
+    def test_multiple_named_parameters(self):
+        """Test setting multiple named/keyword argument based parameters"""
+        theta = Parameter(name='θ')
+        x = Parameter(name='x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+        self.assertEqual(theta.name, 'θ')
+        self.assertEqual(qc.parameters, {theta, x})
+
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
         theta = Parameter('θ')
@@ -1112,6 +1123,62 @@ class TestParameterExpressions(QiskitTestCase):
             self.assertEqual(len(rz_gates), n)
             self.assertTrue(all(float(gate.params[0]) == theta_val
                                 for gate in rz_gates))
+
+    def test_substituting_parameter_with_simple_expression(self):
+        """Substitute a simple parameter expression for a parameter."""
+        x = Parameter('x')
+
+        y = Parameter('y')
+        sub_ = y / 2
+
+        updated_expr = x.subs({x: sub_})
+
+        expected = y / 2
+
+        self.assertEqual(updated_expr, expected)
+
+    def test_substituting_parameter_with_compound_expression(self):
+        """Substitute a simple parameter expression for a parameter."""
+        x = Parameter('x')
+
+        y = Parameter('y')
+        z = Parameter('z')
+        sub_ = y * z
+
+        updated_expr = x.subs({x: sub_})
+
+        expected = y * z
+
+        self.assertEqual(updated_expr, expected)
+
+    def test_substituting_simple_with_simple_expression(self):
+        """Substitute a simple parameter expression in a parameter expression."""
+        x = Parameter('x')
+        expr = x * x
+
+        y = Parameter('y')
+        sub_ = y / 2
+
+        updated_expr = expr.subs({x: sub_})
+
+        expected = y*y / 4
+
+        self.assertEqual(updated_expr, expected)
+
+    def test_substituting_compound_expression(self):
+        """Substitute a compound parameter expression in a parameter expression."""
+        x = Parameter('x')
+        expr = x*x
+
+        y = Parameter('y')
+        z = Parameter('z')
+        sub_ = y + z
+
+        updated_expr = expr.subs({x: sub_})
+
+        expected = (y + z) * (y + z)
+
+        self.assertEqual(updated_expr, expected)
 
 
 class TestParameterEquality(QiskitTestCase):

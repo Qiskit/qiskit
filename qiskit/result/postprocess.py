@@ -184,10 +184,15 @@ def format_statevector(vec, decimals=None):
     Returns:
         list[complex]: a list of python complex numbers.
     """
+    if isinstance(vec, np.ndarray):
+        return vec
     num_basis = len(vec)
-    vec_complex = np.zeros(num_basis, dtype=complex)
-    for i in range(num_basis):
-        vec_complex[i] = vec[i][0] + 1j * vec[i][1]
+    if vec and isinstance(vec[0], complex):
+        vec_complex = np.array(vec, dtype=complex)
+    else:
+        vec_complex = np.zeros(num_basis, dtype=complex)
+        for i in range(num_basis):
+            vec_complex[i] = vec[i][0] + 1j * vec[i][1]
     if decimals:
         vec_complex = np.around(vec_complex, decimals=decimals)
     return vec_complex
@@ -204,6 +209,8 @@ def format_unitary(mat, decimals=None):
     Returns:
         list[list[complex]]: a matrix of complex numbers
     """
+    if isinstance(mat, np.ndarray):
+        return mat
     num_basis = len(mat)
     mat_complex = np.zeros((num_basis, num_basis), dtype=complex)
     for i, vec in enumerate(mat):
