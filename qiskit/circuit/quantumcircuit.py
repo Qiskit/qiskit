@@ -1117,7 +1117,7 @@ class QuantumCircuit:
         """
         multi_qubit_gates = 0
         for instr, _, _ in self._data:
-            if instr.num_qubits > 1:
+            if instr.num_qubits > 1 and instr.name not in ['barrier', 'snapshot']:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
