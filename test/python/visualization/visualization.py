@@ -52,11 +52,11 @@ class QiskitVisualizationTestCase(QiskitTestCase):
 
         if isinstance(current, str):
             current = Image.open(current)
-            print(f'current {current.size[0]} by {current.size[1]} with 
+            print(f'current {current.size[0]} by {current.size[1]} with
                   {_get_black_pixels(current)}')
         if isinstance(expected, str):
             expected = Image.open(expected)
-            print(f'expected {expected.size[0]} by {expected.size[1]} with 
+            print(f'expected {expected.size[0]} by {expected.size[1]} with
                   {_get_black_pixels(expected)}')
         diff = ImageChops.difference(expected, current)
         black_pixels = _get_black_pixels(diff)
