@@ -18,6 +18,10 @@ from qiskit.result import postprocess
 from qiskit import exceptions
 
 
+# NOTE: A dict subclass should not override any dunder methods like __getitem__
+# this can cause unexpected behavior and issues as the cPython dict
+# implementation inlines many methods in C for performance and the dunder
+# methods are not always used as expected.
 class Counts(dict):
     """A class to store a counts result from a circuit execution."""
 
