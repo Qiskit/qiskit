@@ -37,7 +37,7 @@ class DefaultStyle:
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'
-        self.gc = '#ffffff'
+        self.gc = other_color
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
