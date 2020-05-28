@@ -15,7 +15,7 @@
 """A container class for counts from a circuit execution."""
 
 from qiskit.result import postprocess
-from qiskit.result import exceptions
+from qiskit import exceptions
 
 
 class Counts(dict):
@@ -64,12 +64,12 @@ class Counts(dict):
         Returns:
             str: The bit string for the most frequent result
         Raises:
-            NoMostFrequentCount: when there is >1 count with the same max counts
+            QiskitError: when there is >1 count with the same max counts
         """
         max_value = max(self.values())
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
-            raise exceptions.NoMostFrequentCount(
+            raise exceptions.QiskitError(
                 "Multiple values have the same maximum counts: %s" %
                 ','.join(max_values_counts))
         return max_values_counts[0]

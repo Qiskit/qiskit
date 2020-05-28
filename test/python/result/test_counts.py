@@ -19,7 +19,7 @@
 import unittest
 
 from qiskit.result import counts
-from qiskit.result import exceptions
+from qiskit import exceptions
 from qiskit.result import utils
 
 
@@ -65,5 +65,5 @@ class TestCounts(unittest.TestCase):
     def test_most_frequent_duplicate(self):
         raw_counts = {'0x0': 265, '0x2': 12, '0x3': 5, '0x2E': 265}
         counts_obj = counts.Counts(raw_counts)
-        self.assertRaises(exceptions.NoMostFrequentCount,
+        self.assertRaises(exceptions.QiskitError,
                           counts_obj.most_frequent)

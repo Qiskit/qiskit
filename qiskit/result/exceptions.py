@@ -39,8 +39,3 @@ class ResultError(QiskitError):
 
     def __str__(self):
         return '{}: {}'.format(self.code, self.message)
-
-
-class NoMostFrequentCount(QiskitError):
-    """Error raised by Counts.most_frequent if there is no most frequent result."""
-    pass
