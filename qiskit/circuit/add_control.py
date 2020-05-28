@@ -183,7 +183,7 @@ def control(operation: Union[Gate, ControlledGate],
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=instr.definition,
                                           ctrl_state=new_ctrl_state,
-                                          base_gate=base_gate.copy())
+                                          base_gate=base_gate)
     return cgate
 
 

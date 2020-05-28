@@ -14,13 +14,16 @@
 
 """Controlled unitary gate."""
 
+import copy
 from typing import Tuple, List, Optional, Union
+
 from qiskit.circuit.exceptions import CircuitError
 
 from .gate import Gate
 from .quantumregister import QuantumRegister
 from .quantumregister import Qubit
 from .classicalregister import Clbit
+from .parameter import Parameter
 
 # pylint: disable=missing-return-doc
 
@@ -86,8 +89,7 @@ class ControlledGate(Gate):
            qc2.append(custom, [0, 3, 1, 2])
            qc2.draw()
         """
-        import copy
-        self.base_gate = copy.deepcopy(base_gate)
+        self.base_gate = base_gate.copy()
         super().__init__(name, num_qubits, params, label=label)
         if num_ctrl_qubits < num_qubits:
             self.num_ctrl_qubits = num_ctrl_qubits
@@ -170,7 +172,7 @@ class ControlledGate(Gate):
         """Get parameters from base_gate.
 
         Returns:
-            List of gate parameters.
+            list: List of gate parameters.
 
         Raises:
             CircuitError: Controlled gate does not define a base gate
@@ -191,42 +193,28 @@ class ControlledGate(Gate):
         Raises:
             CircuitError: If controlled gate does not define a base gate.
         """
-        import copy
         if self.base_gate:
-            #self.base_gate.params = copy.deepcopy(parameters)
-            super(Gate, self.__class__).params.fset(self, copy.deepcopy(parameters))
+            super(Gate, self.__class__).params.fset(self.base_gate, parameters)
+            if parameters:
+                new_params = []
+                for param in parameters:
+                    if isinstance(param, Parameter):
+                        new_params.append(copy.copy(param))
+                    else:
+                        new_params.append(param)
+            else:
+                new_params = parameters
+            super(Gate, self.__class__).params.fset(self.base_gate, new_params)
         else:
-            raise CircuitError('Controlled gate does not define base gate for '
+            raise CircuitError('Controlled gate does not define base gate '
                                'for extracting params')
-        # from qiskit.circuit import ParameterExpression
-        # import numpy
-        # self._params = []
-        # # if self.name == 'cry':
-        # #     import ipdb;ipdb.set_trace()
-        # for single_param in parameters:
-        #     # example: u2(pi/2, sin(pi/4))
-        #     if isinstance(single_param, (ParameterExpression)):
-        #         self._params.append(single_param)
-        #     elif isinstance(single_param, numpy.number):
-        #         self._params.append(single_param.item())
-        #     # example: u3(0.1, 0.2, 0.3)
-        #     elif isinstance(single_param, (int, float)):
-        #         self._params.append(single_param)
-        #     # example: Initialize([complex(0,1), complex(0,0)])
-        #     elif isinstance(single_param, complex):
-        #         self._params.append(single_param)
-        #     # example: snapshot('label')
-        #     elif isinstance(single_param, str):
-        #         self._params.append(single_param)
-        #     # example: Aer expectation_value_snapshot [complex, 'X']
-        #     elif isinstance(single_param, list):
-        #         self._params.append(single_param)
-        #     # example: numpy.array([[1, 0], [0, 1]])
-        #     elif isinstance(single_param, numpy.ndarray):
-        #         self._params.append(single_param)
-        #     else:
-        #         raise CircuitError("invalid param type {0} in instruction "
-        #                            "{1}".format(type(single_param), self.name))
+
+    def __deepcopy__(self, _memo=None):
+        cpy = copy.copy(self)
+        cpy.base_gate = self.base_gate.copy()
+        if self._definition:
+            cpy._definition = copy.deepcopy(self._definition, _memo)
+        return cpy
 
     def __eq__(self, other) -> bool:
         return (isinstance(other, ControlledGate) and

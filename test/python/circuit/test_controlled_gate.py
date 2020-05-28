@@ -801,28 +801,19 @@ class TestControlledGate(QiskitTestCase):
                     self.assertIs(cgate.base_gate.params, cgate.params)
 
     def test_assign_parameters(self):
-        def pit(cirq):
-            print(f'qc: {cirq._parameter_table}, {hex(id(cirq.parameters))}, {hex(id(next(iter(cirq.parameters))))}')
-            print(f'qc.data: {cirq.data[0][0].params}, {hex(id(cirq.data[0][0].params))}, {hex(id(cirq.data[0][0].params[0]))}')
-        qc = QuantumCircuit(2)
-        p = Parameter('p')
+        """Test assigning parameters to quantum circuit with controlled gate."""
+        qc = QuantumCircuit(2, name='assign')
+        ptest = Parameter('p')
         gate = CRYGate(p)
         qc.append(gate, [0, 1])
-        # gate = RYGate(p)
-        # qc.append(gate, [0])
-        
-        subs1, subs2 = {p: Parameter('a')}, {p: Parameter('b')}
-        print('\n pre circuit')
-        pit(qc)
-        print('1st bind' + '-'*20)
+
+        subs1, subs2 = {ptest: Parameter('a')}, {ptest: Parameter('b')}
         bound1 = qc.assign_parameters(subs1, inplace=False)
-        pit(qc)
-        pit(bound1)
-        import ipdb;ipdb.set_trace()
-        print('2st bind' + '-'*20)        
-        bound2 = qc.assign_parameters(subs2)
-        
-        #self.assertEqual(qc.parameters, subs[p])
+        bound2 = qc.assign_parameters(subs2, inplace=False)
+
+        self.assertEqual(qc.parameters, {ptest})
+        self.assertEqual(bound1.parameters, {subs1[ptest]})
+        self.assertEqual(bound2.parameters, {subs2[ptest]})
 
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):

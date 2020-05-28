@@ -137,8 +137,6 @@ class Instruction:
     @params.setter
     def params(self, parameters):
         self._params = []
-        # if self.name == 'cry':
-        #     import ipdb;ipdb.set_trace()
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, (ParameterExpression)):
@@ -293,9 +291,7 @@ class Instruction:
 
     def __deepcopy__(self, _memo=None):
         cpy = copy.copy(self)
-        cpy._params = copy.deepcopy(self._params)
-        if self.name == 'cry':
-            import ipdb;ipdb.set_trace()
+        cpy._params = copy.copy(self._params)
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, _memo)
         return cpy

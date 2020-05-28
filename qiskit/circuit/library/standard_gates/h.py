@@ -158,7 +158,7 @@ class CHGate(ControlledGate):
         """Create new CH gate."""
         super().__init__('ch', 2, [], num_ctrl_qubits=1, label=label,
                          ctrl_state=ctrl_state, base_gate=HGate())
-        
+
     def _define(self):
         """
         gate ch a,b {

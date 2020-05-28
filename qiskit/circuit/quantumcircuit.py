@@ -1241,7 +1241,7 @@ class QuantumCircuit:
 
         cpy._parameter_table = ParameterTable({
             copy.copy(param): [(instr_copies[id(instr)], param_index)
-                    for instr, param_index in self._parameter_table[param]]
+                               for instr, param_index in self._parameter_table[param]]
             for param in self._parameter_table
         })
 
@@ -1938,7 +1938,3 @@ def _circuit_from_qasm(qasm):
     ast = qasm.parse()
     dag = ast_to_dag(ast)
     return dag_to_circuit(dag)
-
-def pit(cirq):
-    print(f'qc: {cirq.parameters}, {id(cirq.parameters)}, {id(next(iter(cirq.parameters)))}')
-    print(f'data: {cirq.data[0][0].params}, {id(cirq.data[0][0].params)}, {id(cirq.data[0][0].params[0])}')
