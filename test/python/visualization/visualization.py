@@ -56,6 +56,10 @@ class QiskitVisualizationTestCase(QiskitTestCase):
             expected = Image.open(expected)
 
         diff = ImageChops.difference(expected, current)
+        print('current')
+        print(f'{current.size[0]} times {current.size[1]}')
+        print('expected')
+        print(f'{expected.size[0]} times {expected.size[1]}')
         black_pixels = _get_black_pixels(diff)
         total_pixels = diff.size[0] * diff.size[1]
         similarity_ratio = black_pixels / total_pixels
