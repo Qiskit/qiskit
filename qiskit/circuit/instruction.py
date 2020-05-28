@@ -32,6 +32,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
+import warnings
 import copy
 from itertools import zip_longest
 
@@ -220,6 +221,17 @@ class Instruction:
             instruction._condition = self.condition
         return instruction
 
+    def mirror(self):
+        """DEPRECATED: use instruction.reverse.
+
+        Return:
+            qiskit.circuit.Instruction: a new instruction with sub-instructions
+                reversed.
+        """
+        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse()'
+                      'to reverse the order of gates.', DeprecationWarning)
+        return self.reverse()
+
     def reverse(self):
         """For a composite instruction, reverse the order of sub-gates.
 
@@ -238,30 +250,6 @@ class Instruction:
         for inst, qargs, cargs in reversed(self._definition):
             reverse_inst._definition.append((inst.reverse(), qargs, cargs))
         return reverse_inst
-
-    def reverse_bits(self):
-        """Return an instruction by permuting wires.
-
-        This "vertically" flips the instruction.
-
-        Returns:
-            qiskit.circuit.Instruction: vertically mirrored instruction.
-        """
-        if not self._definition:
-            new_inst = self.copy()
-            new_inst.condition = self.condition
-            return new_inst
-
-        inst_r = self.copy(name=self.name + '_r')
-        inst_r.definition = []
-
-        n = self.num_qubits
-
-        for inst, qargs, cargs in self._definition:
-            new_qargs = [q.register[n - q.index - 1] for q in qargs]
-            new_cargs = [c.register[n - c.index - 1] for c in cargs]
-            inst_r._definition.append((inst.reverse_bits(), new_qargs, new_cargs))
-        return inst_r
 
     def inverse(self):
         """Invert this instruction.

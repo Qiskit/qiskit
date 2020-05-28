@@ -245,10 +245,13 @@ class QuantumCircuit:
 
     def mirror(self):
         """DEPRECATED: use circuit.reverse.
+
+        Returns:
+            QuantumCircuit: the reversed circuit.
         """
-        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse() to
-                      reverse the order of gates.', DeprecationWarning)
-        return circuit.reverse()
+        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse() to '
+                      'reverse the order of gates.', DeprecationWarning)
+        return self.reverse()
 
     def reverse(self):
         """Reverse the circuit by reversing the order of instructions.
@@ -312,7 +315,7 @@ class QuantumCircuit:
                  └───┘
         """
         circ = QuantumCircuit(*reversed(self.qregs), *reversed(self.cregs),
-                              name=self.name + '_r')
+                              name=self.name)
         num_qubits = self.num_qubits
         num_clbits = self.num_clbits
         old_qubits = self.qubits
@@ -323,7 +326,7 @@ class QuantumCircuit:
         for inst, qargs, cargs in self.data:
             new_qargs = [new_qubits[num_qubits - old_qubits.index(q) - 1] for q in qargs]
             new_cargs = [new_clbits[num_clbits - old_clbits.index(c) - 1] for c in cargs]
-            circ._append(inst.reverse_bits(), new_qargs, new_cargs)
+            circ._append(inst, new_qargs, new_cargs)
         return circ
 
     def inverse(self):

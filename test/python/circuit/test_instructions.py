@@ -204,52 +204,6 @@ class TestInstructions(QiskitTestCase):
         hgate = HGate()
         self.assertEqual(hgate.reverse(), hgate)
 
-    def test_reverse_bits_gate(self):
-        """test reversing bits of a composite gate"""
-        q = QuantumRegister(4)
-        circ = QuantumCircuit(q, name='circ')
-        circ.h(q[0])
-        circ.crz(0.1, q[0], q[1])
-        circ.i(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
-        gate = circ.to_gate()
-
-        circ = QuantumCircuit(q, name='circ')
-        circ.h(q[3])
-        circ.crz(0.1, q[3], q[2])
-        circ.i(q[2])
-        circ.u3(0.1, 0.2, -0.2, q[3])
-        gate_r = circ.to_gate()
-        self.assertEqual(gate.reverse_bits().definition, gate_r.definition)
-
-    def test_reverse_bits_instruction(self):
-        """test reversing bits of an instruction with conditionals"""
-        q = QuantumRegister(4)
-        c = ClassicalRegister(4)
-        circ = QuantumCircuit(q, c, name='circ')
-        circ.t(q[1])
-        circ.u3(0.1, 0.2, -0.2, q[0])
-        circ.barrier([0, 1, 2, 3])
-        circ.measure(q[0], c[0])
-        circ.rz(0.8, q[0]).c_if(c, 4)
-        inst = circ.to_instruction()
-
-        circ = QuantumCircuit(q, c, name='circ')
-        circ.t(q[2])
-        circ.u3(0.1, 0.2, -0.2, q[3])
-        circ.barrier([3, 2, 1, 0])
-        circ.measure(q[3], c[3])
-        circ.rz(0.8, q[3]).c_if(c, 4)
-        inst_reverse_bits = circ.to_instruction()
-        self.assertEqual(inst.reverse_bits().definition, inst_reverse_bits.definition)
-
-    def test_reverse_bits_opaque(self):
-        """test opaque gates reverse bits to itself, in the absence of circuit context."""
-        opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
-        self.assertEqual(opaque_gate.reverse_bits(), opaque_gate)
-        hgate = HGate()
-        self.assertEqual(hgate.reverse_bits(), hgate)
-
     def test_inverse_and_append(self):
         """test appending inverted gates to circuits"""
         q = QuantumRegister(1)
