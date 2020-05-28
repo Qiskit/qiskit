@@ -1063,7 +1063,7 @@ class MatplotlibDrawer:
             self._cond['xmax'] = self.fold + 1 + self.x_offset
             self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
-            self._cond['xmax'] = max_anc + 1 + self.x_offset
+            self._cond['xmax'] = max_anc + 1 + self.x_offset + 1.0
             self._cond['ymax'] = self._cond['n_lines']
         # add horizontal lines
         for ii in range(n_fold + 1):
@@ -1072,8 +1072,10 @@ class MatplotlibDrawer:
             self._draw_regs_sub(ii, feedline_l, feedline_r)
         # draw anchor index number
         if self._style.index:
-            for ii in range(max_anc):
+            for ii in range(max_anc+1):
                 if self.fold > 0:
+                    if ii == max_anc:
+                        continue
                     x_coord = ii % self.fold + self._reg_long_text - 0.2
                     y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
