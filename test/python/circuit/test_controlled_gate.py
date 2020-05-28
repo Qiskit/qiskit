@@ -804,7 +804,7 @@ class TestControlledGate(QiskitTestCase):
         """Test assigning parameters to quantum circuit with controlled gate."""
         qc = QuantumCircuit(2, name='assign')
         ptest = Parameter('p')
-        gate = CRYGate(p)
+        gate = CRYGate(ptest)
         qc.append(gate, [0, 1])
 
         subs1, subs2 = {ptest: Parameter('a')}, {ptest: Parameter('b')}
