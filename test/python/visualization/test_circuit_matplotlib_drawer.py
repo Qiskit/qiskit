@@ -163,3 +163,40 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
             'visualization/references/matplotlib_conditional_ref.png')
 
         self.assertImagesAreEqual(ref_filename, conditional_filename, diff_tolerance=0.002)
+
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
+                     'matplotlib not available.')
+    def test_fold(self):
+        """Test that circuits fold correctly
+        """
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(1, 'c')
+        circuit = QuantumCircuit(qr,cr)
+
+        # check gates are shifted over accordingly
+        for _ in range(3):
+            circuit.h(0)
+            circuit.x(0)
+
+        fold_filename = self._get_resource_path('current_matplotlib_fold_ref1.png')
+        visualization.circuit_drawer(circuit, output='mpl', fold=-1,
+                                     filename=fold_filename)
+        self.addCleanup(os.remove, fold_filename)
+
+        ref_filename = self._get_resource_path(
+            'visualization/references/matplotlib_fold_ref1.png')
+
+        self.assertImagesAreEqual(ref_filename, fold_filename, diff_tolerance=0.002)
+
+        fold_filename = self._get_resource_path('current_matplotlib_fold_ref2.png')
+        visualization.circuit_drawer(circuit, output='mpl', fold=4,
+                                     filename=fold_filename)
+        self.addCleanup(os.remove, fold_filename)
+
+        ref_filename = self._get_resource_path(
+            'visualization/references/matplotlib_fold_ref2.png')
+
+        self.assertImagesAreEqual(ref_filename, fold_filename, diff_tolerance=0.002)
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
