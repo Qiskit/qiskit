@@ -19,7 +19,6 @@ from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 
 
 class YGate(Gate):
@@ -172,6 +171,15 @@ class CYGate(ControlledGate, metaclass=CYMeta):
                 \end{pmatrix}
 
     """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array([[1, 0, 0, 0],
+                            [0, 0, 0, -1j],
+                            [0, 0, 1, 0],
+                            [0, 1j, 0, 0]], dtype=complex)
+    _matrix0 = numpy.array([[0, 0, -1j, 0],
+                            [0, 1, 0, 0],
+                            [1j, 0, 0, 0],
+                            [0, 0, 0, 1]], dtype=complex)
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
@@ -202,9 +210,10 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        if self.ctrl_state:
+            return self._matrix1
+        else:
+            return self._matrix0
 
 
 class CyGate(CYGate, metaclass=CYMeta):
