@@ -62,7 +62,7 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         print('similarity ratio')
         if 1 - similarity_ratio > diff_tolerance:
             print(similarity_ratio)
-            diff.save(r'C:\Users\sarvesh\qiskit-terra\godsend.png')
+            diff.show()
         self.assertTrue(
             1 - similarity_ratio < diff_tolerance,
             'The images are different by more than a {}%'
