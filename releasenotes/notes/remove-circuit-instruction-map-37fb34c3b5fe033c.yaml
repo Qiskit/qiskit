@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Removed ``circuit_instruction_map`` attribute from ``PulseDefaults`` which
+    had been deprecated and replaced with ``instruction_schedule_map`` in
+    Terra release 0.12.0.
