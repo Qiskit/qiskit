@@ -66,3 +66,13 @@ class TestCircuitToGate(QiskitTestCase):
         gate = circ.to_gate()
         out_gate = gate.inverse()
         self.assertIsInstance(out_gate, Gate)
+
+    def test_wrapped_instruction_to_gate(self):
+        """Test a circuit can be converted to gate if the gate is wrapped in an instruction."""
+        circ = QuantumCircuit(1)
+        circ.x(0)
+        inst = circ.to_instruction()
+
+        circ.append(inst, [0])
+        gate = circ.to_gate()
+        self.assertIsInstance(gate, Gate)
