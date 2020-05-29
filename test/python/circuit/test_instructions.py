@@ -335,7 +335,8 @@ class TestInstructions(QiskitTestCase):
     def test_instance_of_instruction(self):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
-        self.assertRaises(CircuitError, qc.append(HGate, qr[:], []))
+        with self.assertRaises(CircuitError):
+            qc.append(HGate, qr[:], [])
 
 
 if __name__ == '__main__':
