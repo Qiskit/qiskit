@@ -56,6 +56,14 @@ style:
 test:
 	python3 -m unittest discover -s test/python -v
 
+# Use pytest to run tests
+pytest:
+	pytest test/python
+
+# Use pytest to run randomized tests
+pytest_randomized:
+	pytest test/randomized
+
 test_ci:
 	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
 	stestr run --concurrency $(CONCURRENCY)
