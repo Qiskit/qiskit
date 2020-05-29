@@ -59,11 +59,6 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         black_pixels = _get_black_pixels(diff)
         total_pixels = diff.size[0] * diff.size[1]
         similarity_ratio = black_pixels / total_pixels
-        if 1 - similarity_ratio > diff_tolerance:
-            print('black pixels')
-            print(black_pixels)
-            print('total_pixels')
-            print(total_pixels)
         self.assertTrue(
             1 - similarity_ratio < diff_tolerance,
             'The images are different by more than a {}%'
