@@ -543,7 +543,7 @@ class QuantumCircuit:
                                    'pass an instance of this object.')
 
             raise CircuitError('Object is neither subclass nor an instance of Instruction.')
-        elif not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
+        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
