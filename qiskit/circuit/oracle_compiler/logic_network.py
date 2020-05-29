@@ -36,6 +36,7 @@ class LogicNetwork(ast.NodeVisitor):
         self.source = source
         node = ast.parse(source)
         self.scopes = []
+        self.args = []
         self._network = None
         self.visit(node)
         super().__init__()
@@ -153,5 +154,6 @@ class LogicNetwork(ast.NodeVisitor):
         for arg in args_node.args:
             if arg.annotation is None:
                 raise ParseError("argument type is needed")
+            self.args.append(arg.arg)
             self.scopes[-1][arg.annotation.id] = ('type', None)
             self.scopes[-1][arg.arg] = (arg.annotation.id, self._network.create_pi())

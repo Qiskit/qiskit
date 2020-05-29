@@ -21,26 +21,32 @@ from . import examples, bad_examples
 class TestTypeCheck(unittest.TestCase):
     def test_id(self):
         network = compile_oracle(examples.id)
+        self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'return': 'Bit'}])
 
     def test_bool_not(self):
         network = compile_oracle(examples.bool_not)
+        self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'return': 'Bit'}])
 
     def test_id_assign(self):
         network = compile_oracle(examples.id_assing)
+        self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bit_and(self):
         network = compile_oracle(examples.bit_and)
+        self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bit_or(self):
         network = compile_oracle(examples.bit_or)
+        self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bool_or(self):
         network = compile_oracle(examples.bool_or)
+        self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
 
