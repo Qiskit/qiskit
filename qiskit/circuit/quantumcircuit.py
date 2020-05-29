@@ -1240,8 +1240,8 @@ class QuantumCircuit:
                         for id_, instr in instr_instances.items()}
 
         cpy._parameter_table = ParameterTable({
-            copy.copy(param): [(instr_copies[id(instr)], param_index)
-                               for instr, param_index in self._parameter_table[param]]
+            param: [(instr_copies[id(instr)], param_index)
+                    for instr, param_index in self._parameter_table[param]]
             for param in self._parameter_table
         })
 
