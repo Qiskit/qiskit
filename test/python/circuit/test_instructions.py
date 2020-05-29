@@ -333,6 +333,9 @@ class TestInstructions(QiskitTestCase):
         self.assertEqual(inst.params, [0, 1, 2])
 
     def test_instance_of_instruction(self):
+        """Test correct error message is raised when invalid instruction
+        is passed to append"""
+
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         with self.assertRaises(CircuitError):
