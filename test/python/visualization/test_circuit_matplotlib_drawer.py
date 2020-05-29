@@ -90,7 +90,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
         ref_filename = self._get_resource_path(
             'visualization/references/matplotlib_barriers_ref4.png')
-        self.assertImagesAreEqual(filename, ref_filename, diff_tolerance=0.07 )
+        self.assertImagesAreEqual(filename, ref_filename, diff_tolerance=0.07)
 
         # check that the barrier aren't plotted when plot_barriers = False
         filename = self._get_resource_path('current_matplotlib_ref.png')
