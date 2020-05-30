@@ -23,31 +23,37 @@ from . import examples, bad_examples
 class TestTypeCheck(unittest.TestCase):
     """Tests oracle compiler type checker (good examples)."""
     def test_id(self):
+        """Tests examples.identity type checking"""
         network = compile_oracle(examples.identity)
         self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'return': 'Bit'}])
 
     def test_bool_not(self):
+        """Tests examples.bool_not type checking"""
         network = compile_oracle(examples.bool_not)
         self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'return': 'Bit'}])
 
     def test_id_assign(self):
+        """Tests examples.id_assing type checking"""
         network = compile_oracle(examples.id_assing)
         self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bit_and(self):
+        """Tests examples.bit_and type checking"""
         network = compile_oracle(examples.bit_and)
         self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bit_or(self):
+        """Tests examples.bit_or type checking"""
         network = compile_oracle(examples.bit_or)
         self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bool_or(self):
+        """Tests examples.bool_or type checking"""
         network = compile_oracle(examples.bool_or)
         self.assertEqual(network.args, ['a', 'b'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
@@ -56,10 +62,11 @@ class TestTypeCheck(unittest.TestCase):
 class TestTypeCheckFail(unittest.TestCase):
     """Tests oracle compiler type checker (bad examples)."""
     def assertExceptionMessage(self, context, message):
+        """Asserts the message of an exception context"""
         self.assertTrue(message in context.exception.args[0])
 
     def test_bit_not(self):
-        """bitwise not does not work on bit (aka bool)
+        """Bitwise not does not work on bit (aka bool)
           ~True   # -2
           ~False  # -1
         """
