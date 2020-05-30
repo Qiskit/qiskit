@@ -31,7 +31,7 @@ class TestTypeCheck(unittest.TestCase):
 
     def test_id_assign(self):
         network = compile_oracle(examples.id_assing)
-        self.assertEqual(network.args, ['a', 'b'])
+        self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
     def test_bit_and(self):

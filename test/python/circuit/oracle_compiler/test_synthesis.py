@@ -25,6 +25,11 @@ class TestSynthesis(unittest.TestCase):
         quantum_circuit = network.synth()
         self.assertIsInstance(quantum_circuit, QuantumCircuit)
 
+    def test_grover_oracle_arg_regs(self):
+        network = compile_oracle(examples.grover_oracle)
+        quantum_circuit = network.synth(arg_regs=True)
+        self.assertIsInstance(quantum_circuit, QuantumCircuit)
+
 
 if __name__ == '__main__':
     unittest.main()

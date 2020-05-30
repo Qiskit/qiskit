@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 import ast
 import _ast
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
     XGate, HGate, U3Gate
 import tweedledum
@@ -42,13 +42,16 @@ class LogicNetwork(ast.NodeVisitor):
         super().__init__()
 
     @staticmethod
-    def tweedledum2qiskit(tweedledum_circuit):
+    def tweedledum2qiskit(tweedledum_circuit, qregs=None):
         """
         {'num_qubits': 2, 'gates': [{'gate': 'X',
         'qubits': [1], 'control_qubits': [0], 'control_state': '1'}]}"""
         gates = {'z': ZGate, 't': TGate, 's': SGate, 'tdg': TdgGate, 'sdg': SdgGate, 'u1': U1Gate,
                  'x': XGate, 'h': HGate, 'u3': U3Gate}
-        circuit = QuantumCircuit(tweedledum_circuit['num_qubits'])
+        if qregs:
+            circuit = QuantumCircuit(*qregs)
+        else:
+            circuit = QuantumCircuit(tweedledum_circuit['num_qubits'])
         for gate in tweedledum_circuit['gates']:
             basegate = gates.get(gate['gate'].lower())
             if basegate is None:
@@ -75,8 +78,15 @@ class LogicNetwork(ast.NodeVisitor):
     def simulate(self):
         return tweedledum.simulate(self._network)
 
-    def synth(self) -> QuantumCircuit:
-        return LogicNetwork.tweedledum2qiskit(tweedledum.synthesize_xag(self._network))
+    def synth(self, arg_regs=False) -> QuantumCircuit:
+        if arg_regs:
+            qregs = [QuantumRegister(1, name=arg) for arg in self.args
+                     if self.types[0][arg] == 'Bit']
+            if self.types[0]['return'] == 'Bit':
+                qregs.append(QuantumRegister(1, name='return'))
+        else:
+            qregs = None
+        return LogicNetwork.tweedledum2qiskit(tweedledum.synthesize_xag(self._network), qregs=qregs)
 
     def visit_Module(self, node):
         if len(node.body) != 1 and not isinstance(node.body[0], ast.FunctionDef):
