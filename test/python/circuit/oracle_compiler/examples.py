@@ -12,7 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, missing-function-docstring
+
+"""These examples should be handle by the oracle compiler"""
 
 from qiskit.circuit.oracle_compiler.types import Bit
 
