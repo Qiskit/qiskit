@@ -24,6 +24,7 @@ from qiskit.circuit.library.standard_gates import XGate
 class TestTweedledum2Qiskit(unittest.TestCase):
     """Tests LogicNetwork.tweedledum2qiskit static method."""
     def test_x(self):
+        """Single uncontrolled X"""
         tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}
         circuit = LogicNetwork.tweedledum2qiskit(tweedledum_circuit)
 
@@ -33,6 +34,7 @@ class TestTweedledum2Qiskit(unittest.TestCase):
         self.assertEqual(circuit, expected)
 
     def test_cx_0_1(self):
+        """CX(0, 1)"""
         tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
                                                           'qubits': [1],
                                                           'control_qubits': [0],
@@ -45,6 +47,7 @@ class TestTweedledum2Qiskit(unittest.TestCase):
         self.assertEqual(circuit, expected)
 
     def test_cx_1_0(self):
+        """CX(1, 0)"""
         tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
                                                           'qubits': [0],
                                                           'control_qubits': [1],
@@ -57,6 +60,7 @@ class TestTweedledum2Qiskit(unittest.TestCase):
         self.assertEqual(expected, circuit)
 
     def test_cx_qreg(self):
+        """CX(0, 1) with qregs parameter"""
         qr = QuantumRegister(2, 'qr')
         tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
                                                           'qubits': [0],
