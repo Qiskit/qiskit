@@ -20,7 +20,7 @@ from . import examples, bad_examples
 
 class TestTypeCheck(unittest.TestCase):
     def test_id(self):
-        network = compile_oracle(examples.id)
+        network = compile_oracle(examples.identity)
         self.assertEqual(network.args, ['a'])
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'return': 'Bit'}])
 

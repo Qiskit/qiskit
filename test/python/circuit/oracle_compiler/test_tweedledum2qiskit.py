@@ -18,6 +18,7 @@ from qiskit.circuit.oracle_compiler import LogicNetwork
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
+
 class TestTweedledum2Qiskit(unittest.TestCase):
     def test_x(self):
         tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}
@@ -53,7 +54,7 @@ class TestTweedledum2Qiskit(unittest.TestCase):
         self.assertEqual(expected, circuit)
 
     def test_cx_qreg(self):
-        qr=QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, 'qr')
         tweedledum_circuit = {'num_qubits': 2, 'gates': [{'gate': 'X',
                                                           'qubits': [0],
                                                           'control_qubits': [1],
@@ -64,6 +65,7 @@ class TestTweedledum2Qiskit(unittest.TestCase):
         expected.append(XGate().control(1, ctrl_state='1'), [qr[1], qr[0]])
 
         self.assertEqual(expected, circuit)
+
 
 if __name__ == '__main__':
     unittest.main()

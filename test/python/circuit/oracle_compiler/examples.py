@@ -12,10 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 from qiskit.circuit.oracle_compiler.types import Bit
 
 
-def id(a: Bit) -> Bit:
+def identity(a: Bit) -> Bit:
     return a
 
 
@@ -36,7 +38,7 @@ def bool_not(a: Bit) -> Bit:
 
 
 def and_and(a: Bit, b: Bit, c: Bit) -> Bit:
-    return (a and b and c)
+    return a and b and c
 
 
 def multiple_binop(a: Bit, b: Bit) -> Bit:
@@ -55,4 +57,4 @@ def example1(a: Bit, b: Bit) -> Bit:
 
 
 def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
-    return (not a and b and not c and d)
+    return not a and b and not c and d
