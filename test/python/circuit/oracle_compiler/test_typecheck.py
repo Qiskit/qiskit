@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.circuit.oracle_compiler import compile_oracle
+from qiskit.circuit.oracle_compiler import compile_oracle, OracleCompilerTypeError
 from . import examples, bad_examples
 
 
@@ -59,7 +59,7 @@ class TestTypeCheckFail(unittest.TestCase):
           ~True   # -2
           ~False  # -1
         """
-        with self.assertRaises(TypeError) as context:
+        with self.assertRaises(OracleCompilerTypeError) as context:
             compile_oracle(bad_examples.bit_not)
         self.assertExceptionMessage(context, 'does not operate with Bit type')
 

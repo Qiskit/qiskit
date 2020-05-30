@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.circuit.oracle_compiler import compile_oracle, ParseError
+from qiskit.circuit.oracle_compiler import compile_oracle, OracleParseError
 from . import bad_examples as examples
 
 
@@ -23,22 +23,22 @@ class TestParseFail(unittest.TestCase):
         self.assertTrue(message in context.exception.args[0])
 
     def test_id_bad_return(self):
-        with self.assertRaises(ParseError) as context:
+        with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.id_bad_return)
         self.assertExceptionMessage(context, 'return type error')
 
     def test_id_no_type_arg(self):
-        with self.assertRaises(ParseError) as context:
+        with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.id_no_type_arg)
         self.assertExceptionMessage(context, 'argument type is needed')
 
     def test_id_no_type_return(self):
-        with self.assertRaises(ParseError) as context:
+        with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.id_no_type_return)
         self.assertExceptionMessage(context, 'return type is needed')
 
     def test_out_of_scope(self):
-        with self.assertRaises(ParseError) as context:
+        with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.out_of_scope)
         self.assertExceptionMessage(context, 'out of scope: c')
 

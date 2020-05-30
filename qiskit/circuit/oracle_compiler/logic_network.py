@@ -19,7 +19,15 @@ from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, 
 import tweedledum
 
 
-class ParseError(Exception):
+class OracleParseError(Exception):
+    pass
+
+
+class OracleCompilerError(Exception):
+    pass
+
+
+class OracleCompilerTypeError(Exception):
     pass
 
 
@@ -55,7 +63,7 @@ class LogicNetwork(ast.NodeVisitor):
         for gate in tweedledum_circuit['gates']:
             basegate = gates.get(gate['gate'].lower())
             if basegate is None:
-                raise Exception('TODO')
+                raise OracleCompilerError('TODO')
 
             ctrl_qubits = gate.get('control_qubits', [])
             trgt_qubits = gate.get('qubits', [])
@@ -91,12 +99,12 @@ class LogicNetwork(ast.NodeVisitor):
 
     def visit_Module(self, node):
         if len(node.body) != 1 and not isinstance(node.body[0], ast.FunctionDef):
-            raise ParseError("just functions, sorry!")
+            raise OracleParseError("just functions, sorry!")
         self.visit(node.body[0])
 
     def visit_FunctionDef(self, node):
         if node.returns is None:
-            raise ParseError("return type is needed")
+            raise OracleParseError("return type is needed")
         self.scopes.append({'return': (node.returns.id, None),
                             node.returns.id: ('type', None)})
         self._network = tweedledum.xag_network()
@@ -106,7 +114,7 @@ class LogicNetwork(ast.NodeVisitor):
     def visit_Return(self, node):
         _type, signal = self.visit(node.value)
         if _type != self.scopes[-1]['return'][0]:
-            raise ParseError("return type error")
+            raise OracleParseError("return type error")
         self._network.create_po(signal)
         return
 
@@ -119,16 +127,16 @@ class LogicNetwork(ast.NodeVisitor):
     def bit_binop(self, op, values):
         bitop = LogicNetwork.bitops.get(type(op))
         if not bitop:
-            raise ParseError("Unknown binop.op %s" % op)
+            raise OracleParseError("Unknown binop.op %s" % op)
         binop = getattr(self._network, bitop)
 
         left_type, left_signal = values[0]
         if left_type != 'Bit':
-            raise ParseError("binop type error")
+            raise OracleParseError("binop type error")
 
         for right_type, right_signal in values[1:]:
             if right_type != 'Bit':
-                raise ParseError("binop type error")
+                raise OracleParseError("binop type error")
             left_signal = binop(left_signal, right_signal)
 
         return 'Bit', left_signal
@@ -148,23 +156,24 @@ class LogicNetwork(ast.NodeVisitor):
             if bitop:
                 return 'Bit', getattr(self._network, bitop)(operand_signal)
             else:
-                raise TypeError("UntaryOp.op %s does not operate with Bit type " % node.op)
+                raise OracleCompilerTypeError(
+                    "UntaryOp.op %s does not operate with Bit type " % node.op)
 
     def visit_Name(self, node):
         if node.id not in self.scopes[-1]:
-            raise ParseError('out of scope: %s' % node.id)
+            raise OracleParseError('out of scope: %s' % node.id)
         return self.scopes[-1][node.id]
 
     def generic_visit(self, node):
         if isinstance(node, (_ast.arguments, _ast.arg, _ast.Load, _ast.BitAnd,
                              _ast.BitOr, _ast.BitXor, _ast.BoolOp, _ast.Or)):
             return super().generic_visit(node)
-        raise ParseError("Unknown node: %s" % type(node))
+        raise OracleParseError("Unknown node: %s" % type(node))
 
     def extend_scope(self, args_node: _ast.arguments) -> None:
         for arg in args_node.args:
             if arg.annotation is None:
-                raise ParseError("argument type is needed")
+                raise OracleParseError("argument type is needed")
             self.args.append(arg.arg)
             self.scopes[-1][arg.annotation.id] = ('type', None)
             self.scopes[-1][arg.arg] = (arg.annotation.id, self._network.create_pi())
