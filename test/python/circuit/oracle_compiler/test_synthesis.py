@@ -14,7 +14,7 @@
 
 """Tests oracle compiler synthesis."""
 
-import unittest
+from qiskit.test import QiskitTestCase
 
 from qiskit.circuit.oracle_compiler import compile_oracle
 
@@ -24,7 +24,7 @@ from qiskit.circuit.library.standard_gates import XGate
 from . import examples
 
 
-class TestSynthesis(unittest.TestCase):
+class TestSynthesis(QiskitTestCase):
     """Tests LogicNetwork.synth method."""
 
     def test_grover_oracle(self):
@@ -52,7 +52,3 @@ class TestSynthesis(unittest.TestCase):
                         [qr_d[0], qr_c[0], qr_b[0], qr_a[0], qr_return[0]])
 
         self.assertEqual(quantum_circuit, expected)
-
-
-if __name__ == '__main__':
-    unittest.main()

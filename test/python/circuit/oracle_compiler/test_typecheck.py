@@ -14,13 +14,12 @@
 
 """Tests oracle compiler type checker."""
 
-import unittest
-
+from qiskit.test import QiskitTestCase
 from qiskit.circuit.oracle_compiler import compile_oracle, OracleCompilerTypeError
 from . import examples, bad_examples
 
 
-class TestTypeCheck(unittest.TestCase):
+class TestTypeCheck(QiskitTestCase):
     """Tests oracle compiler type checker (good examples)."""
     def test_id(self):
         """Tests examples.identity type checking"""
@@ -59,7 +58,7 @@ class TestTypeCheck(unittest.TestCase):
         self.assertEqual(network.types, [{'Bit': 'type', 'a': 'Bit', 'b': 'Bit', 'return': 'Bit'}])
 
 
-class TestTypeCheckFail(unittest.TestCase):
+class TestTypeCheckFail(QiskitTestCase):
     """Tests oracle compiler type checker (bad examples)."""
     def assertExceptionMessage(self, context, message):
         """Asserts the message of an exception context"""
@@ -73,7 +72,3 @@ class TestTypeCheckFail(unittest.TestCase):
         with self.assertRaises(OracleCompilerTypeError) as context:
             compile_oracle(bad_examples.bit_not)
         self.assertExceptionMessage(context, 'does not operate with Bit type')
-
-
-if __name__ == '__main__':
-    unittest.main()

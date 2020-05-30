@@ -13,13 +13,12 @@
 # that they have been altered from the originals.
 """Tests the oracle parser."""
 
-import unittest
-
 from qiskit.circuit.oracle_compiler import compile_oracle, OracleParseError
+from qiskit.test import QiskitTestCase
 from . import bad_examples as examples
 
 
-class TestParseFail(unittest.TestCase):
+class TestParseFail(QiskitTestCase):
     """Tests bad_examples with the oracle parser."""
 
     def assertExceptionMessage(self, context, message):
@@ -44,7 +43,3 @@ class TestParseFail(unittest.TestCase):
         with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.out_of_scope)
         self.assertExceptionMessage(context, 'out of scope: c')
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -14,14 +14,14 @@
 
 """Tests LogicNetwork.Tweedledum2Qiskit converter."""
 
-import unittest
+from qiskit.test import QiskitTestCase
 
 from qiskit.circuit.oracle_compiler import LogicNetwork
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
 
-class TestTweedledum2Qiskit(unittest.TestCase):
+class TestTweedledum2Qiskit(QiskitTestCase):
     """Tests LogicNetwork.tweedledum2qiskit static method."""
     def test_x(self):
         """Single uncontrolled X"""
@@ -72,7 +72,3 @@ class TestTweedledum2Qiskit(unittest.TestCase):
         expected.append(XGate().control(1, ctrl_state='1'), [qr[1], qr[0]])
 
         self.assertEqual(expected, circuit)
-
-
-if __name__ == '__main__':
-    unittest.main()
