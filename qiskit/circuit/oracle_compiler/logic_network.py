@@ -82,6 +82,7 @@ class LogicNetwork(ast.NodeVisitor):
         if arg_regs:
             qregs = [QuantumRegister(1, name=arg) for arg in self.args
                      if self.types[0][arg] == 'Bit']
+            qregs.reverse()
             if self.types[0]['return'] == 'Bit':
                 qregs.append(QuantumRegister(1, name='return'))
         else:
