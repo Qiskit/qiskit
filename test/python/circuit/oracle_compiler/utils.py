@@ -16,18 +16,17 @@ from inspect import getfullargspec, isfunction
 from . import examples
 
 
-def get_truthtable_from_function(callable):
-    amount_bit_input = len(getfullargspec(callable).args)
+def get_truthtable_from_function(function):
+    amount_bit_input = len(getfullargspec(function).args)
     result = ""
     for decimal in range(2 ** amount_bit_input):
         entry = bin(decimal)[2:].rjust(amount_bit_input, '0')
-        result += str(int(callable(*[i == '1' for i in entry[::-1]])))
+        result += str(int(function(*[i == '1' for i in entry[::-1]])))
     return result[::-1]
 
 
 def example_list():
-    callables = [a_callable for a_callable in [getattr(examples, example_name)
-                                               for example_name in dir(examples)
-                                               if example_name[0] != '_']]
+    callables = [getattr(examples, example_name) for example_name in dir(examples)
+                 if example_name[0] != '_']
     return [func for func in callables
             if isfunction(func) and 'tests/examples.py' in func.__code__.co_filename]

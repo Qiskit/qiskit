@@ -14,4 +14,4 @@
 from typing import NewType
 
 Bit = NewType('Bit', bool)
-int2 = NewType('int2', int)
+int2 = NewType('int2', int)  # pylint: disable=invalid-name
