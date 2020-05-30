@@ -19,6 +19,7 @@ from . import examples
 
 
 def get_truthtable_from_function(function):
+    """Runs an oracle function (on python) and generates a truthtable from it."""
     amount_bit_input = len(getfullargspec(function).args)
     result = ""
     for decimal in range(2 ** amount_bit_input):
@@ -28,7 +29,8 @@ def get_truthtable_from_function(function):
 
 
 def example_list():
+    """Creates a list with all the examples in examples.py"""
     callables = [getattr(examples, example_name) for example_name in dir(examples)
                  if example_name[0] != '_']
     return [func for func in callables
-            if isfunction(func) and 'tests/examples.py' in func.__code__.co_filename]
+            if isfunction(func) and 'examples.py' in func.__code__.co_filename]
