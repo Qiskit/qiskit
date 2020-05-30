@@ -28,6 +28,7 @@ class TestSynthesis(unittest.TestCase):
     """Tests LogicNetwork.synth method."""
 
     def test_grover_oracle(self):
+        """Synthesis of grover_oracle example"""
         network = compile_oracle(examples.grover_oracle)
         quantum_circuit = network.synth()
 
@@ -37,6 +38,7 @@ class TestSynthesis(unittest.TestCase):
         self.assertEqual(quantum_circuit, expected)
 
     def test_grover_oracle_arg_regs(self):
+        """Synthesis of grover_oracle example with arg_regs"""
         network = compile_oracle(examples.grover_oracle)
         quantum_circuit = network.synth(arg_regs=True)
 
