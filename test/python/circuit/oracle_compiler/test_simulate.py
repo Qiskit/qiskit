@@ -25,6 +25,7 @@ class TestSimulate(unittest.TestCase):
     """Tests LogicNetwork.simulate method"""
     @data(*example_list())
     def test_(self, a_callable):
+        """Tests LogicSimulate.simulate() on all the examples"""
         network = compile_oracle(a_callable)
         truth_table = network.simulate()
         self.assertEqual(truth_table, get_truthtable_from_function(a_callable))
