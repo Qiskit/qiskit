@@ -11,12 +11,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 import ast
+import tweedledum
 import _ast
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
     XGate, HGate, U3Gate
-import tweedledum
 
 
 class OracleParseError(Exception):
@@ -32,6 +33,7 @@ class OracleCompilerTypeError(Exception):
 
 
 class LogicNetwork(ast.NodeVisitor):
+    # pylint: disable=invalid-name
     bitops = {_ast.BitAnd: 'create_and',
               _ast.BitOr: 'create_or',
               _ast.BitXor: 'create_xor',
@@ -116,7 +118,6 @@ class LogicNetwork(ast.NodeVisitor):
         if _type != self.scopes[-1]['return'][0]:
             raise OracleParseError("return type error")
         self._network.create_po(signal)
-        return
 
     def visit_Assign(self, node):
         type_value, signal_value = self.visit(node.value)
@@ -151,13 +152,14 @@ class LogicNetwork(ast.NodeVisitor):
 
     def visit_UnaryOp(self, node):
         operand_type, operand_signal = self.visit(node.operand)
-        if operand_type == 'Bit':
-            bitop = LogicNetwork.bitops.get(type(node.op))
-            if bitop:
-                return 'Bit', getattr(self._network, bitop)(operand_signal)
-            else:
-                raise OracleCompilerTypeError(
-                    "UntaryOp.op %s does not operate with Bit type " % node.op)
+        if operand_type != 'Bit':
+            raise OracleCompilerTypeError(
+                "UntaryOp.op %s only support operation on Bits for now" % node.op)
+        bitop = LogicNetwork.bitops.get(type(node.op))
+        if not bitop:
+            raise OracleCompilerTypeError(
+                "UntaryOp.op %s does not operate with Bit type " % node.op)
+        return 'Bit', getattr(self._network, bitop)(operand_signal)
 
     def visit_Name(self, node):
         if node.id not in self.scopes[-1]:

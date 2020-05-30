@@ -15,8 +15,8 @@
 import unittest
 
 from qiskit.circuit.oracle_compiler import compile_oracle
-from . import examples
 from qiskit import QuantumCircuit
+from . import examples
 
 
 class TestSynthesis(unittest.TestCase):
