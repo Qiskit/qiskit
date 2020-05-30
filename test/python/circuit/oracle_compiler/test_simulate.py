@@ -20,6 +20,7 @@ from .utils import get_truthtable_from_function, example_list
 
 @ddt
 class TestSimulate(unittest.TestCase):
+    """Checks LogicNetwork.simulate method"""
     @data(*example_list())
     def test_(self, a_callable):
         network = compile_oracle(a_callable)

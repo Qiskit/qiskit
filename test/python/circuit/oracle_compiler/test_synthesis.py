@@ -20,6 +20,7 @@ from . import examples
 
 
 class TestSynthesis(unittest.TestCase):
+    """Tests LogicNetwork.synth method."""
     def test_grover_oracle(self):
         network = compile_oracle(examples.grover_oracle)
         quantum_circuit = network.synth()

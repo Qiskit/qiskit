@@ -19,6 +19,7 @@ from .examples import grover_oracle
 
 
 class TestGetTruthtableFromFunction(unittest.TestCase):
+    """Tests .utils.get_truthtable_from_function function"""
     def test_grover_oracle(self):
         truth_table = get_truthtable_from_function(grover_oracle)
         self.assertEqual(truth_table, '0000010000000000')

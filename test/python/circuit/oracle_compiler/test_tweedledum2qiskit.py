@@ -20,6 +20,7 @@ from qiskit.circuit.library.standard_gates import XGate
 
 
 class TestTweedledum2Qiskit(unittest.TestCase):
+    """Tests LogicNetwork.tweedledum2qiskit static method."""
     def test_x(self):
         tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}
         circuit = LogicNetwork.tweedledum2qiskit(tweedledum_circuit)

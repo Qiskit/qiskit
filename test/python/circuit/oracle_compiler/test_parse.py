@@ -19,6 +19,8 @@ from . import bad_examples as examples
 
 
 class TestParseFail(unittest.TestCase):
+    """Tests bad_examples with the oracle type checker."""
+
     def assertExceptionMessage(self, context, message):
         self.assertTrue(message in context.exception.args[0])
 

@@ -19,6 +19,7 @@ from . import examples, bad_examples
 
 
 class TestTypeCheck(unittest.TestCase):
+    """Tests oracle compiler type checker (good examples)."""
     def test_id(self):
         network = compile_oracle(examples.identity)
         self.assertEqual(network.args, ['a'])
@@ -51,6 +52,7 @@ class TestTypeCheck(unittest.TestCase):
 
 
 class TestTypeCheckFail(unittest.TestCase):
+    """Tests oracle compiler type checker (bad examples)."""
     def assertExceptionMessage(self, context, message):
         self.assertTrue(message in context.exception.args[0])
 

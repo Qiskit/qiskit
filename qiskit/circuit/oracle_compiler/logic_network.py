@@ -20,19 +20,23 @@ from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, 
     XGate, HGate, U3Gate
 
 
-class OracleParseError(Exception):
-    pass
-
-
 class OracleCompilerError(Exception):
+    """Oracle compiler generic error."""
     pass
 
 
-class OracleCompilerTypeError(Exception):
+class OracleParseError(OracleCompilerError):
+    """Oracle compiler parse error. The oracle function fails at parsing time."""
+    pass
+
+
+class OracleCompilerTypeError(OracleCompilerError):
+    """Oracle compiler type error. The oracle function fails at type checking time."""
     pass
 
 
 class LogicNetwork(ast.NodeVisitor):
+    """A logical network represents an oracle function."""
     # pylint: disable=invalid-name
     bitops = {_ast.BitAnd: 'create_and',
               _ast.BitOr: 'create_or',
