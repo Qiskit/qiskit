@@ -22,24 +22,29 @@ class TestParseFail(QiskitTestCase):
     """Tests bad_examples with the oracle parser."""
 
     def assertExceptionMessage(self, context, message):
+        """Asserts the message of an exception context"""
         self.assertTrue(message in context.exception.args[0])
 
     def test_id_bad_return(self):
+        """Trying to parse examples.id_bad_return raises OracleParseError"""
         with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.id_bad_return)
         self.assertExceptionMessage(context, 'return type error')
 
     def test_id_no_type_arg(self):
+        """Trying to parse examples.id_no_type_arg raises OracleParseError"""
         with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.id_no_type_arg)
         self.assertExceptionMessage(context, 'argument type is needed')
 
     def test_id_no_type_return(self):
+        """Trying to parse examples.id_no_type_return raises OracleParseError"""
         with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.id_no_type_return)
         self.assertExceptionMessage(context, 'return type is needed')
 
     def test_out_of_scope(self):
+        """Trying to parse examples.out_of_scope raises OracleParseError"""
         with self.assertRaises(OracleParseError) as context:
             compile_oracle(examples.out_of_scope)
         self.assertExceptionMessage(context, 'out of scope: c')
