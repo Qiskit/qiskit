@@ -12,6 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""=============================================
+Oracle compiler (:mod:`qiskit.circuit.oracle_compiler.compile_oracle`)
+=============================================
+
+.. currentmodule:: qiskit.circuit.oracle_compiler.compile_oracle
+
+.. autofunction:: execute
+"""
+
 import inspect
 from .logic_network import LogicNetwork
 

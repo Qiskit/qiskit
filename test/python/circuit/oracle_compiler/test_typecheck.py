@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Tests oracle compiler type checker."""
+
 import unittest
 
 from qiskit.circuit.oracle_compiler import compile_oracle, OracleCompilerTypeError

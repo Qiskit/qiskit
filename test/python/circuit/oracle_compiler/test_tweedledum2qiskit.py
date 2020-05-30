@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Tests LogicNetwork.Tweedledum2Qiskit converter."""
+
 import unittest
 
 from qiskit.circuit.oracle_compiler import LogicNetwork

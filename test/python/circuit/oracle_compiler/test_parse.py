@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Tests the oracle parser."""
 
 import unittest
 
@@ -19,7 +20,7 @@ from . import bad_examples as examples
 
 
 class TestParseFail(unittest.TestCase):
-    """Tests bad_examples with the oracle type checker."""
+    """Tests bad_examples with the oracle parser."""
 
     def assertExceptionMessage(self, context, message):
         self.assertTrue(message in context.exception.args[0])

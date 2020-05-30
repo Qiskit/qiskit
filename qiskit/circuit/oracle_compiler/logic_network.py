@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""LogicNetwork and the related exceptions"""
+
 import ast
 import tweedledum
 import _ast

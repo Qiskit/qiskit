@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Tests .utils.get_truthtable_from_function function"""
 
 import unittest
 
@@ -20,6 +21,7 @@ from .examples import grover_oracle
 
 class TestGetTruthtableFromFunction(unittest.TestCase):
     """Tests .utils.get_truthtable_from_function function"""
+
     def test_grover_oracle(self):
         truth_table = get_truthtable_from_function(grover_oracle)
         self.assertEqual(truth_table, '0000010000000000')

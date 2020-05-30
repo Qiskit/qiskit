@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Testing utilities for oracle compiler."""
+
 from inspect import getfullargspec, isfunction
 from . import examples
 

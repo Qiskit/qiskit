@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Tests LogicNetwork.simulate method."""
+
 import unittest
 from ddt import ddt, data
 from qiskit.circuit.oracle_compiler import compile_oracle
@@ -20,7 +22,7 @@ from .utils import get_truthtable_from_function, example_list
 
 @ddt
 class TestSimulate(unittest.TestCase):
-    """Checks LogicNetwork.simulate method"""
+    """Tests LogicNetwork.simulate method"""
     @data(*example_list())
     def test_(self, a_callable):
         network = compile_oracle(a_callable)
