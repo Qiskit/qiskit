@@ -416,6 +416,56 @@ class TestCircuitOperations(QiskitTestCase):
         else:
             self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
 
+    def test_reverse_bits(self):
+        """Test reversing order of bits."""
+        qc = QuantumCircuit(3, 2)
+        qc.h(0)
+        qc.s(1)
+        qc.cx(0, 1)
+        qc.measure(0, 1)
+        qc.x(0)
+        qc.y(1)
+
+        expected = QuantumCircuit(3, 2)
+        expected.h(2)
+        expected.s(1)
+        expected.cx(2, 1)
+        expected.measure(2, 0)
+        expected.x(2)
+        expected.y(1)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_boxed(self):
+        """Test reversing order of bits in a hierarchiecal circuit."""
+        wide_cx = QuantumCircuit(3)
+        wide_cx.cx(0, 1)
+        wide_cx.cx(1, 2)
+
+        wide_cxg = wide_cx.to_gate()
+        cx_box = QuantumCircuit(3)
+        cx_box.append(wide_cxg, [0, 1, 2])
+
+        expected = QuantumCircuit(3)
+        expected.cx(2, 1)
+        expected.cx(1, 0)
+
+        self.assertEqual(cx_box.reverse_bits().decompose(), expected)
+        self.assertEqual(cx_box.decompose().reverse_bits(), expected)
+
+        # box one more layer to be safe.
+        cx_box_g = cx_box.to_gate()
+        cx_box_box = QuantumCircuit(4)
+        cx_box_box.append(cx_box_g, [0, 1, 2])
+        cx_box_box.cx(0, 3)
+
+        expected2 = QuantumCircuit(4)
+        expected2.cx(3, 2)
+        expected2.cx(2, 1)
+        expected2.cx(3, 0)
+
+        self.assertEqual(cx_box_box.reverse_bits().decompose().decompose(), expected2)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
