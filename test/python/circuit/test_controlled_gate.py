@@ -40,7 +40,7 @@ from qiskit.circuit.library.standard_gates import (CXGate, XGate, YGate, ZGate, 
                                                    U3Gate, CHGate, CRZGate, CU3Gate,
                                                    MSGate, RCCXGate, RC3XGate,
                                                    MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                                   MCXVChain, C3XGate, C4XGate, C3RXGate)
+                                                   MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 
@@ -875,8 +875,6 @@ class TestControlledStandardGates(QiskitTestCase):
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
-        elif gate_class in [C3RXGate]:
-            args = [theta]
 
         gate = gate_class(*args)
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
@@ -1042,20 +1040,6 @@ class TestControlledGateLabel(QiskitTestCase):
         cgate = gate(*args, label='a gate').control(1, label='a controlled gate')
         self.assertEqual(cgate.label, 'a controlled gate')
         self.assertEqual(cgate.base_gate.label, 'a gate')
-
-
-class Test3ControlledRXGate(QiskitTestCase):
-    """Tests for 3-qubit controlled RX gate equivalences."""
-
-    def test_cccxgate(self):
-        """Test C3RXGate(np.pi/4)=C3XGate()"""
-        ccc_x_gate = C3RXGate(np.pi / 4)
-        self.assertIsInstance(ccc_x_gate, allGates.C3XGate)
-
-    def test_cccsqrtxgate(self):
-        """Test C3RXGate(np.pi/8)=C3SqrtXGate()"""
-        ccc_sqrt_x_gate = C3RXGate(np.pi / 8)
-        self.assertIsInstance(ccc_sqrt_x_gate, allGates.C3SqrtXGate)
 
 
 if __name__ == '__main__':

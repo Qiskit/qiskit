@@ -14,10 +14,12 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 
+from typing import Optional, Union
 from math import ceil
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.qasm import pi
@@ -25,7 +27,6 @@ from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
 from .u2 import U2Gate
-from .rx import RXGate
 
 
 class XGate(Gate):
@@ -455,35 +456,11 @@ class RCCXGate(Gate):
                             [0, 0, 0, 1j, 0, 0, 0, 0]], dtype=complex)
 
 
-class C3RXGate(ControlledGate):
-    """The 3-qubit controlled RX gate.
+class C3XGate(ControlledGate):
+    """The 3-qubit controlled X gate."""
 
-    This implementation is based on Page 17 of [1].
-
-    References:
-        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
-    """
-
-    def __new__(cls, angle=None, label=None, ctrl_state=None):
-        """Create a new C3RXGate instance.
-
-        Depending on the angle, this creates an explicit C3XGate or C3SqrtXGate
-        instance or a generic C3RXGate.
-        """
-        explicit = {
-            pi / 4: C3XGate,
-            pi / 8: C3SqrtXGate
-        }
-        if angle in explicit.keys():
-            gate_class = explicit[angle]
-            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
-            # if __new__ does not return the same type as cls, init is not called
-            gate.__init__(label=label, ctrl_state=ctrl_state)
-            return gate
-        return super().__new__(cls)
-
-    def __init__(self, angle, label=None, ctrl_state=None):
-        """Create a new 3-qubit controlled RX gate.
+    def __init__(self, angle=None, label=None, ctrl_state=None):
+        """Create a new 3-qubit controlled X gate.
 
         Args:
             angle (float): The angle used in the controlled-U1 gates. An angle of π/4 yields the
@@ -492,11 +469,24 @@ class C3RXGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
-        if angle:
-            self.base_gate = RXGate(angle)
+        import warnings
+        if angle == numpy.pi / 8:
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
+                          'When angle=pi/8, use C3SqrtXGate()',
+                          DeprecationWarning, stacklevel=2)
+        elif angle == numpy.pi / 4:
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
+                          'angle=pi/4, while be the default behavior C3XGate.',
+                          DeprecationWarning, stacklevel=2)
+        elif angle is not None:
+            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. ',
+                          DeprecationWarning, stacklevel=2)
         else:
-            self.base_gate = XGate()
+            angle = numpy.pi / 4
+
+        super().__init__('c3x', 4, [], label=label, num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        self.base_gate = XGate()
+        self._angle = angle
 
     def _define(self):
         """
@@ -518,37 +508,18 @@ class C3RXGate(ControlledGate):
         }
         """
         from .u1 import CU1Gate
-        q = QuantumRegister(4, name='q')
-        definition = [
-            (HGate(), [q[3]], []),
-            (CU1Gate(-self.base_gate._params[0]), [q[0], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(self.base_gate._params[0]), [q[1], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(-self.base_gate._params[0]), [q[1], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[1], q[2]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(self.base_gate._params[0]), [q[2], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[0], q[2]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(-self.base_gate._params[0]), [q[2], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[1], q[2]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(self.base_gate._params[0]), [q[2], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[0], q[2]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(-self.base_gate._params[0]), [q[2], q[3]], []),
-            (HGate(), [q[3]], [])
+
+        controlled_v = Instruction('cv', 2, 0, [])
+        q = QuantumRegister(2, 'q')
+        controlled_v.definition = [
+            (HGate(), [q[1]], []),
+            # see https://github.com/PyCQA/pylint/issues/1472
+            # pylint:disable=invalid-unary-operand-type
+            (CU1Gate(-self._angle), [q[0], q[1]], []),
+            (HGate(), [q[1]], [])
         ]
-        self.definition = definition
+
+        self.definition = c3_root_decomposition(controlled_v)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
@@ -562,46 +533,15 @@ class C3RXGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2 ** num_ctrl_qubits - 1
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
-        gate.base_gate.label = self.label
-        return gate
-
-    def inverse(self):
-        """Invert this gate. The C3X is its own inverse."""
-        return C3RXGate(angle=self._angle)
-
-
-class C3XGate(C3RXGate):
-    """The 3-qubit controlled X gate."""
-    def __init__(self, angle=None, label=None, ctrl_state=None):
-        """Create a new 3-qubit controlled X gate.
-
-        Args:
-            angle (float): The angle used in the controlled-U1 gates. An angle of π/4 yields the
-                3-qubit controlled X gate, an angle of π/8 the 3-qubit controlled sqrt(X) gate.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
-        """
-        import warnings
-        if angle == numpy.pi / 8:
-            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
-                          'When angle=pi/8, use C3SqrtXGate()',
-                          DeprecationWarning, stacklevel=2)
-        elif angle == numpy.pi / 4:
-            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
-                          'angle=pi/4, while be the default behavior C3XGate.',
-                          DeprecationWarning, stacklevel=2)
-        elif angle is not None:
-            warnings.warn('The parameter angle in C3XGate is going to be removed in the future. '
-                          'Use C3RXGate().',
-                          DeprecationWarning, stacklevel=2)
-        else:
-            angle = numpy.pi / 4
-        super().__init__(angle=angle, label=label, ctrl_state=ctrl_state)
+        if self._angle == -numpy.pi / 4:
+            if ctrl_state is None:
+                ctrl_state = 2 ** num_ctrl_qubits - 1
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label,
+                           ctrl_state=new_ctrl_state)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits, label, ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the C3X gate."""
@@ -623,17 +563,51 @@ class C3XGate(C3RXGate):
                             [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=complex)
 
 
-class C3SqrtXGate(C3RXGate):
+class C3SqrtXGate(ControlledGate):
     """The 3-qubit controlled √X gate."""
+
     def __init__(self, label=None, ctrl_state=None):
-        """The 3-qubit controlled √X gate. Equivalent to C3RXGate(angle=numpy.pi/8)
+        """The 3-qubit controlled √X gate.
 
         Args:
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        super().__init__(angle=numpy.pi / 8, label=label, ctrl_state=ctrl_state)
+        super().__init__('c3sqrtx', 4, [], label=label, num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        self.base_gate = Gate('sqrtx', 1, [])
+        self.base_gate.to_matrix = lambda: 0.5 * numpy.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]])
+
+    def _define(self):
+        """
+        gate c3sqrtx a,b,c,d
+        {
+            h d; cu1(-pi/8) a,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(-pi/8) b,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+        }
+        """
+        from .u1 import CU1Gate
+
+        controlled_v = Instruction('cv', 2, 0, [])
+        q = QuantumRegister(2, 'q')
+        controlled_v.definition = [
+            (HGate(), [q[1]], []),
+            (CU1Gate(-numpy.pi / 8), [q[0], q[1]], []),
+            (HGate(), [q[1]], [])
+        ]
+
+        self.definition = c3_root_decomposition(controlled_v)
 
 
 class RC3XGate(Gate):
@@ -1026,3 +1000,53 @@ class MCXVChain(MCXGate):
                     (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
 
         self.definition = definition
+
+
+def c3_root_decomposition(v_gate):
+    """Implements a 3-controlled operation :math:`U`, provided with :math:`V` with :math:`V^4 = U`.
+
+    This decomposition is described in [1], Section 7.
+
+    Args:
+        v_gate (Gate or Instruction): The operation :math:`V`. Can be a single qubit gate, or a
+            two qubit instruction implementing the controlled version :math:`CV`.
+
+    Returns:
+        The definition for the 3-controlled :math:`U` gate.
+
+    Raises:
+        ValueError: If ``v_base_gate`` is not a 1-qubit gate or 2-qubit instruction.
+
+    References:
+        [1]: Barenco et al., Elementary gates for quantum computation, 1995;
+             `quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
+    """
+    if not (v_gate.num_qubits == 1 and isinstance(v_gate, Gate) or
+            v_gate.num_qubits == 2 and isinstance(v_gate, Instruction)):
+        raise ValueError('v_base_gate must be a 1-qubit gate or 2-qubit instruction.')
+
+    if v_gate.num_qubits == 1:  # V acts on one qubit
+        controlled_v = v_gate.control()
+    else:  # V acts on two qubits
+        controlled_v = v_gate
+    controlled_v_dg = controlled_v.inverse()
+
+    q = QuantumRegister(4, name='q')
+
+    definition = [
+        (controlled_v, [q[0], q[3]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (controlled_v_dg, [q[1], q[3]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (controlled_v, [q[1], q[3]], []),
+        (CXGate(), [q[1], q[2]], []),
+        (controlled_v_dg, [q[2], q[3]], []),
+        (CXGate(), [q[0], q[2]], []),
+        (controlled_v, [q[2], q[3]], []),
+        (CXGate(), [q[1], q[2]], []),
+        (controlled_v_dg, [q[2], q[3]], []),
+        (CXGate(), [q[0], q[2]], []),
+        (controlled_v, [q[2], q[3]], []),
+    ]
+
+    return definition
