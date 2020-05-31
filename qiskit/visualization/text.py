@@ -954,10 +954,8 @@ class TextDrawing():
                 return layer, current_cons, connection_label
 
             for qubit in instruction.qargs:
-                try:
+                if qubit in self.qregs:
                     layer.set_qubit(qubit, Barrier())
-                except ValueError:
-                    dummy = 0
         elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
