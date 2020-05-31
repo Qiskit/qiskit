@@ -35,6 +35,7 @@ class TestSynthesis(QiskitTestCase):
         expected = QuantumCircuit(5)
         expected.append(XGate().control(4, ctrl_state='0101'), [0, 1, 2, 3, 4])
 
+        self.assertEqual(quantum_circuit.name, 'grover_oracle')
         self.assertEqual(quantum_circuit, expected)
 
     def test_grover_oracle_arg_regs(self):
@@ -51,4 +52,5 @@ class TestSynthesis(QiskitTestCase):
         expected.append(XGate().control(4, ctrl_state='0101'),
                         [qr_d[0], qr_c[0], qr_b[0], qr_a[0], qr_return[0]])
 
+        self.assertEqual(quantum_circuit.name, 'grover_oracle')
         self.assertEqual(quantum_circuit, expected)

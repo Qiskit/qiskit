@@ -60,11 +60,12 @@ class LogicNetwork(ast.NodeVisitor):
         self.scopes = []
         self.args = []
         self._network = None
+        self.name = None
         self.visit(node)
         super().__init__()
 
     @staticmethod
-    def tweedledum2qiskit(tweedledum_circuit, qregs=None):
+    def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         """ Converts a Tweedledum circuit into a Qiskit circuit. A Tweedledum circuit is a
         dictionary with the following shape:
             {
@@ -76,8 +77,9 @@ class LogicNetwork(ast.NodeVisitor):
                 "control_state": "1"
             }]
         Args:
-            tweedledum_circuit (dict): A Tweedledum circuit.
-            qregs (list(QuantumRegister)): Optional. A list of QuantumRegisters on which the
+            tweedledum_circuit (dict): Tweedledum circuit.
+            name (str): NName for the resulting Qiskit circuit.
+            qregs (list(QuantumRegister)): Optional. List of QuantumRegisters on which the
                circuit would operate. If not provided, it will create a flat register.
 
         Returns:
@@ -89,9 +91,9 @@ class LogicNetwork(ast.NodeVisitor):
         gates = {'z': ZGate, 't': TGate, 's': SGate, 'tdg': TdgGate, 'sdg': SdgGate, 'u1': U1Gate,
                  'x': XGate, 'h': HGate, 'u3': U3Gate}
         if qregs:
-            circuit = QuantumCircuit(*qregs)
+            circuit = QuantumCircuit(*qregs, name=name)
         else:
-            circuit = QuantumCircuit(tweedledum_circuit['num_qubits'])
+            circuit = QuantumCircuit(tweedledum_circuit['num_qubits'], name=name)
         for gate in tweedledum_circuit['gates']:
             basegate = gates.get(gate['gate'].lower())
             if basegate is None:
@@ -142,12 +144,15 @@ class LogicNetwork(ast.NodeVisitor):
                 qregs.append(QuantumRegister(1, name='return'))
         else:
             qregs = None
-        return LogicNetwork.tweedledum2qiskit(tweedledum.synthesize_xag(self._network), qregs=qregs)
+        return LogicNetwork.tweedledum2qiskit(tweedledum.synthesize_xag(self._network),
+                                              name=self.name,
+                                              qregs=qregs)
 
     def visit_Module(self, node):
         """The full snippet should contain a single function"""
         if len(node.body) != 1 and not isinstance(node.body[0], ast.FunctionDef):
             raise OracleParseError("just functions, sorry!")
+        self.name = node.body[0].name
         self.visit(node.body[0])
 
     def visit_FunctionDef(self, node):
