@@ -94,14 +94,13 @@ def measure(qubits: List[int],
 
         for time, inst in default_sched.instructions:
             if qubit_mem_slots and isinstance(inst, (Acquire, AcquireInstruction)):
-                for channel in inst.acquires:
-                    if channel.index in qubit_mem_slots:
-                        mem_slot = MemorySlot(qubit_mem_slots[channel.index])
-                    else:
-                        mem_slot = MemorySlot(unused_mem_slots.pop())
-                    schedule = schedule.insert(time, Acquire(inst.duration,
-                                                             channel,
-                                                             mem_slot=mem_slot))
+                if inst.channel.index in qubit_mem_slots:
+                    mem_slot = MemorySlot(qubit_mem_slots[inst.channel.index])
+                else:
+                    mem_slot = MemorySlot(unused_mem_slots.pop())
+                schedule = schedule.insert(time, Acquire(inst.duration,
+                                                         inst.channel,
+                                                         mem_slot=mem_slot))
             elif qubit_mem_slots is None and isinstance(inst, (Acquire, AcquireInstruction)):
                 schedule = schedule.insert(time, inst)
             # Measurement pulses should only be added if its qubit was measured by the user
