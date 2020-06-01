@@ -25,7 +25,7 @@ Generic isometries from m to n qubits.
 import itertools
 import numpy as np
 
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -36,7 +36,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Instruction):
+class Isometry(Gate):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -93,14 +93,14 @@ class Isometry(Instruction):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        super().__init__("isometry", num_qubits, 0, [isometry])
+        super().__init__("isometry", num_qubits, [isometry])
 
     def _define(self):
         # call to generate the circuit that takes the isometry to the first 2^m columns
         # of the 2^n identity matrix
         iso_circuit = self._gates_to_uncompute()
         # invert the circuit to create the circuit implementing the isometry
-        gate = iso_circuit.to_instruction().inverse()
+        gate = iso_circuit.to_gate().inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
