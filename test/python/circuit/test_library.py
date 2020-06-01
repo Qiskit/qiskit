@@ -31,7 +31,7 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction)
+                                    HiddenLinearFunction, GraphState)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -182,6 +182,47 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         """Test that adjacency matrix is required to be symmetric."""
         with self.assertRaises(CircuitError):
             HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
+
+
+@ddt
+class TestGraphStateLibrary(QiskitTestCase):
+    """Test the graph state circuit."""
+
+    def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
+        """Assert that the Graph State circuit produces the correct matrix."""
+
+        simulated = Operator(graph_state)
+        num_qubits = len(adjacency_matrix)
+
+        # create Hadamard matrix, re-use approach from TestMCMT
+        h_i = 1 / np.sqrt(2) * np.array([[1, 1], [1, -1]])
+        h_tot = np.array([1])
+        for _ in range(num_qubits):
+            h_tot = np.kron(h_tot, h_i)
+
+        # compute product of CZ gates
+        cz_tot = h_tot
+        for i in range(num_qubits):
+            for j in range(i + 1, num_qubits):
+                if adjacency_matrix[i][j] == 1:
+                    # compute one CZ gate for given connection from adjacency matrix
+                    cz_i = np.identity(2 ** num_qubits)
+                    for k in range(2 ** num_qubits):
+                        q_vec = np.asarray(list(map(int, bin(k)[2:].zfill(num_qubits)[::-1])))
+                        if (q_vec[i] == 1) and (q_vec[j] == 1):
+                            cz_i[k][k] = -1
+                    cz_tot = np.matmul(cz_i, cz_tot)
+
+        expected = Operator(cz_tot)
+        self.assertTrue(expected.equiv(simulated))
+
+    @data(
+        [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
+    )
+    def test_graph_state(self, adjacency_matrix):
+        """Test if Graph State circuit produces correct matrix."""
+        graph_state = GraphState(adjacency_matrix)
+        self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
 
 class TestIQPLibrary(QiskitTestCase):
