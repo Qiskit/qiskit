@@ -76,7 +76,6 @@ Exceptions
    OracleCompilerTypeError
 
 """
-import inspect
-from .logic_network import LogicNetwork, OracleParseError, OracleCompilerError,\
-    OracleCompilerTypeError
+from .logic_network import LogicNetwork
+from .exceptions import OracleParseError, OracleCompilerError, OracleCompilerTypeError
 from .compile_oracle import compile_oracle
