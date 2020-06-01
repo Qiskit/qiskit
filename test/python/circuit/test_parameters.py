@@ -742,6 +742,15 @@ class TestParameters(QiskitTestCase):
         inv_instr = qc.inverse().to_instruction()
         self.assertIsInstance(inv_instr, Instruction)
 
+    def test_repeated_circuit(self):
+        """Test repeating a circuit maintains the parameters."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+        rep = qc.repeat(3)
+
+        self.assertEqual(rep.parameters, {theta})
+
     def test_copy_after_inverse(self):
         """Verify circuit.inverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
