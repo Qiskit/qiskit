@@ -130,13 +130,16 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
+            'qubits': [instruction.acquire.index],
+            'memory_slot': mem_slot
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -149,9 +152,9 @@ class InstructionToQobjConverter:
                     ]
                 })
             # setup register_slots
-            if instruction.reg_slots:
+            if instruction.reg_slot:
                 command_dict.update({
-                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                    'register_slot': [instruction.reg_slot.index]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
@@ -176,13 +179,16 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
+            'qubits': [instruction.channel.index],
+            'memory_slot': mem_slot
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -195,9 +201,9 @@ class InstructionToQobjConverter:
                     ]
                 })
             # setup register_slots
-            if instruction.reg_slots:
+            if instruction.reg_slot:
                 command_dict.update({
-                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                    'register_slot': [instruction.reg_slot.index]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
