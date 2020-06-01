@@ -226,7 +226,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
     #                        [0, 0, 1, 0],
     #                        [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
     #                       dtype=complex)
-    
+
 
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):
     """The deprecated CU3Gate class."""

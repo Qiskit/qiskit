@@ -17,19 +17,12 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-import docutils
-from docutils.frontend import OptionParser
-import docutils.parsers.rst as rst
 import numpy as np
-from ddt import ddt, data
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit import Gate, ControlledGate, Barrier
 # pylint: disable=unused-import
 from qiskit.extensions.simulator import snapshot
-from .gate_utils import _get_free_params
-from qiskit.circuit.library.standard_gates import (MCU1Gate, MCXGate, MSGate)
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -611,98 +604,6 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
         self.assertEqual(circ.num_qubits, 18)
 
-
-@ddt
-class TestCircuitPhase(QiskitTestCase):
-    """QuantumCircuit phase tests."""
-
-    def setUp(self):
-        self.default_settings = OptionParser(
-            components=(rst.Parser,)).get_default_values()
-
-    # @data(*(Gate.__subclasses__() + ControlledGate.__subclasses__()))
-    # def test_check_gate_def(self, gate_class):
-    #     # instantiate gate
-    #     num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
-    #     free_params = [0.1 * i for i in range(num_free_params)]
-    #     if gate_class in [MCU1Gate]:
-    #         free_params[1] = 3
-    #     elif gate_class in [MCXGate]:
-    #         free_params[0] = 3
-    #     gate = gate_class(*free_params)
-    #     # parse rst doc string
-    #     rstdoc = docutils.utils.new_document(gate.name, self.default_settings)
-    #     parser = docutils.parsers.rst.Parser()
-    #     parser.parse(gate.__doc__, rstdoc)
-    #     import ipdb;ipdb.set_trace()
-        
-    # _STD_GATES = ControlledGate.__subclasses__() + Gate.__subclasses__()
-    # _STD_GATES = [gate_class for gate_class in _STD_GATES if isinstance(gate_class, type)]
-    from qiskit.circuit.library.standard_gates import _STD_GATES
-    @data(*_STD_GATES)
-    # from qiskit.circuit.library.standard_gates import CSwapGate
-    # @data(CSwapGate)
-    def test_check_gate_def(self, gate_class):
-        from qiskit.circuit.library.standard_gates import _STD_GATES
-        # instantiate gate
-        num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
-        free_params = [0.1 * i for i in range(num_free_params)]
-        if gate_class in [MSGate, Barrier]:
-            free_params[0] = 2
-        elif gate_class in [MCU1Gate]:
-            free_params[1] = 2
-        elif issubclass(gate_class, MCXGate):
-            free_params = [5]
-        
-        gate = gate_class(*free_params)
-        print(f'{gate.name:15s}', end='')
-        try:
-            if isinstance(gate.to_matrix(), np.ndarray):
-                print(f'{True!s:^5}', end='\n')
-            else:
-                print(f'to_matrix is not matrix: {gate.name}')
-        except CircuitError:
-            print(f'to_matrix raised: {gate.name}')
-        if gate.__class__ != _STD_GATES[_STD_GATES.index(gate_class)]:
-            # probably MCXGrayCode, MCXRecursive, or MCXVChain
-            return
-        import re
-        mre = re.compile(r'.*?/*/*Matrix representation.*?\.\. math::.*?\\begin{pmatrix}\n(.*?)\\end{pmatrix}', flags=re.DOTALL | re.I)
-        match = mre.search(gate.__doc__)
-        if match:
-            matstr = match.group(1).strip()
-            if free_params:
-                print(f'SKIP GATE: {gate}')
-                return
-                print(gate_class)
-                print('>'*10)            
-                for row in matstr.split('\\\\\n'):
-                    print(row.strip().replace('&', ''))
-                print('<'*10)
-                print(gate.to_matrix())
-            else:
-                docmatrix = self.latex_to_array(matstr, 2**gate.num_qubits)
-                #import ipdb;ipdb.set_trace()
-                good = np.array_equal(docmatrix, gate.to_matrix())
-                if good:
-                    print(f'GOOD GATE: {gate}')
-                else:
-                    print(f'BAD GATE: {gate}')
-                    import ipdb;ipdb.set_trace()
-                self.assertTrue(np.array_equal(docmatrix, gate.to_matrix()))
-
-    def latex_to_array(self, source, dimension):
-        """convert latex pmatrix string to numpy array"""
-        matrix = np.zeros((dimension, dimension), dtype=complex)
-        for irow, row in enumerate(source.split('\n')):
-            row = row.replace('\\', '').replace('i', 'j')
-            for icol, value in enumerate(row.strip().split('&')):
-                try:
-                    matrix[irow][icol] = complex(value.strip())
-                except Exception as err:
-                    import ipdb;ipdb.set_trace()
-                    print(err, value)
-        return matrix
 
 if __name__ == '__main__':
     unittest.main()

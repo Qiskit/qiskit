@@ -210,7 +210,7 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
     #                        [0,     0, 1,     0],
     #                        [0, -isin, 0,   cos]],
     #                       dtype=complex)
-    
+
 
 class CrxGate(CRXGate, metaclass=CRXMeta):
     """The deprecated CRXGate class."""

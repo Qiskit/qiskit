@@ -22,7 +22,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RGate(Gate):
-    """Rotation θ around the cos(φ)x + sin(φ)y axis.
+    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
 
     **Circuit symbol:**
 

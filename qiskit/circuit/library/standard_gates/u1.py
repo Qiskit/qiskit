@@ -229,7 +229,6 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
     #                        [0, 0, 1,    0],
     #                        [0, 0, 0, eith]],
     #                       dtype=complex)
-    
 
 
 class Cu1Gate(CU1Gate, metaclass=CU1Meta):
