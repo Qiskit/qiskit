@@ -206,6 +206,7 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
     #                        [0,   sin, 0,  cos]],
     #                       dtype=complex)
 
+
 class CryGate(CRYGate, metaclass=CRYMeta):
     """The deprecated CRYGate class."""
 

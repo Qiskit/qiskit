@@ -222,6 +222,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
     #                        [0,               0, 0, numpy.exp(arg)]],
     #                       dtype=complex)
 
+
 class CrzGate(CRZGate, metaclass=CRZMeta):
     """The deprecated CRZGate class."""
 
