@@ -15,11 +15,12 @@
 Clifford operator class.
 """
 # pylint: disable=invalid-name, abstract-method
-
+import re
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
@@ -388,6 +389,58 @@ class Clifford(BaseOperator):
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
         _append_circuit(clifford, circuit)
         return clifford
+
+    @staticmethod
+    def from_label(label):
+        """Return a tensor product of single-qubit Clifford gates.
+
+        Args:
+            label (string): single-qubit operator string.
+
+        Returns:
+            Clifford: The N-qubit Clifford operator.
+
+        Raises:
+            QiskitError: if the label contains invalid characters.
+
+        Additional Information:
+            The labels correspond to the single-qubit Cliffords are
+
+            * - Label
+              - Stabilizer
+              - Destabilizer
+            * - ``"I"``
+              - +Z
+              - +X
+            * - ``"X"``
+              - -Z
+              - +X
+            * - ``"Y"``
+              - -Z
+              - -X
+            * - ``"Z"``
+              - +Z
+              - -X
+            * - ``"H"``
+              - +X
+              - +Z
+            * - ``"S"``
+              - +Z
+              - +Y
+        """
+        # Check label is valid
+        label_gates = {
+            'I': IGate(), 'X': XGate(), 'Y': YGate(),
+            'Z': ZGate(), 'H': HGate(), 'S': SGate()
+        }
+        if re.match(r'^[IXYZHS\-+]+$', label) is None:
+            raise QiskitError('Label contains invalid characters.')
+        # Initialize an identity matrix and apply each gate
+        num_qubits = len(label)
+        op = Clifford(np.eye(2 * num_qubits, dtype=np.bool))
+        for qubit, char in enumerate(reversed(label)):
+            _append_circuit(op, label_gates[char], qargs=[qubit])
+        return op
 
     # ---------------------------------------------------------------------
     # Internal helper functions

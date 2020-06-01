@@ -15,4 +15,4 @@ pull_request_rules:
     actions:
       backport:
         branches:
-          - stable/0.13
+          - stable/0.14

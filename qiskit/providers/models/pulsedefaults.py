@@ -16,7 +16,6 @@
 
 """Model and schema for pulse defaults."""
 import copy
-import warnings
 from types import SimpleNamespace
 from typing import Any, Dict, List
 
@@ -236,7 +235,8 @@ class PulseDefaults(SimpleNamespace):
         for key, value in self.__dict__.items():
             if key not in ['qubit_freq_est', 'meas_freq_est', 'buffer',
                            'pulse_library', 'cmd_def', 'meas_kernel',
-                           'discriminator']:
+                           'discriminator', 'converter',
+                           'instruction_schedule_map']:
                 out_dict[key] = value
         return out_dict
 
@@ -275,13 +275,6 @@ class PulseDefaults(SimpleNamespace):
         return (self.__class__, (self.qubit_freq_est, self.meas_freq_est,
                                  self.buffer, self.pulse_library,
                                  self.cmd_def))
-
-    @property
-    def circuit_instruction_map(self):
-        """Deprecated property, use ``instruction_schedule_map`` instead."""
-        warnings.warn("The `circuit_instruction_map` attribute has been renamed to "
-                      "`instruction_schedule_map`.", DeprecationWarning)
-        return self.instruction_schedule_map
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]

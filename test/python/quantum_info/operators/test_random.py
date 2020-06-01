@@ -167,7 +167,8 @@ class TestRandomClifford(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 150, 211])
     def test_valid(self, num_qubits):
         """Test random_clifford {num_qubits}-qubits."""
-        value = random_clifford(num_qubits)
+        seed = 213
+        value = random_clifford(num_qubits, seed=seed)
         with self.subTest(msg='Test type'):
             self.assertIsInstance(value, Clifford)
         with self.subTest(msg='Test num_qubits'):

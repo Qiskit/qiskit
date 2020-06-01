@@ -34,7 +34,6 @@ from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
@@ -49,7 +48,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     Any unused physical qubit is allocated as ancilla space.
 
     The pass manager then unrolls the circuit to the desired basis, and transforms the
-    circuit to match the coupling map. Finally, extra resets are removed.
+    circuit to match the coupling map.
 
     Note:
         In simulators where ``coupling_map=None``, only the unrolling and
@@ -120,9 +119,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 7. Remove zero-state reset
-    _reset = RemoveResetInZeroState()
-
     # Build pass manager
     pm0 = PassManager()
     if coupling_map:
@@ -136,6 +132,5 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map and not coupling_map.is_symmetric:
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
-    pm0.append(_reset)
 
     return pm0

@@ -174,6 +174,20 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc, qc.copy())
 
+    def test_copy_copies_registers(self):
+        """Test copy copies the registers not via reference."""
+        qc = QuantumCircuit(1, 1)
+        copied = qc.copy()
+
+        copied.add_register(QuantumRegister(1, 'additional_q'))
+        copied.add_register(ClassicalRegister(1, 'additional_c'))
+
+        self.assertEqual(len(qc.qregs), 1)
+        self.assertEqual(len(copied.qregs), 2)
+
+        self.assertEqual(len(qc.cregs), 1)
+        self.assertEqual(len(copied.cregs), 2)
+
     def test_measure_active(self):
         """Test measure_active
         Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
@@ -355,6 +369,29 @@ class TestCircuitOperations(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(qc.mirror(), expected)
+
+    def test_repeat(self):
+        """Test repeating the circuit works."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.h(0).c_if(cr, 1)
+
+        with self.subTest('repeat 0 times'):
+            rep = qc.repeat(0)
+            self.assertEqual(rep, QuantumCircuit(qr, cr))
+
+        with self.subTest('repeat 3 times'):
+            inst = qc.to_instruction()
+            ref = QuantumCircuit(qr, cr)
+            for _ in range(3):
+                ref.append(inst, ref.qubits, ref.clbits)
+
+            rep = qc.repeat(3)
+            self.assertEqual(rep, ref)
 
 
 class TestCircuitBuilding(QiskitTestCase):
