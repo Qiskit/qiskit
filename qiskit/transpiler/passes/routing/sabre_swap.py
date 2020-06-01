@@ -64,11 +64,13 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic):
+    def __init__(self, coupling_map, heuristic='basic'):
         """SabreSwap initializer.
 
         Args:
             coupling_map (CouplingMap): CouplingMap of the target backend.
+            heuristic (str): The type of heuristic to use when deciding best
+                swap strategy ('basic' or 'advanced').
         """
 
         super().__init__()
