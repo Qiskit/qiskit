@@ -656,17 +656,13 @@ class TestCircuitPhase(QiskitTestCase):
         
         gate = gate_class(*free_params)
         print(f'{gate.name:15s}', end='')
-        if hasattr(gate, 'to_matrix'):
-            try:
-                if isinstance(gate.to_matrix(), np.ndarray):
-                    print(f'{True!s:^5}', end='\n')
-                else:
-                    print(f'to_matrix is not matrix: {gate.name}')
-            except CircuitError:
-                print(f'to_matrix raised: {gate.name}')
-        else:
-            print('\n')
-        return
+        try:
+            if isinstance(gate.to_matrix(), np.ndarray):
+                print(f'{True!s:^5}', end='\n')
+            else:
+                print(f'to_matrix is not matrix: {gate.name}')
+        except CircuitError:
+            print(f'to_matrix raised: {gate.name}')
         if gate.__class__ != _STD_GATES[_STD_GATES.index(gate_class)]:
             # probably MCXGrayCode, MCXRecursive, or MCXVChain
             return
@@ -693,7 +689,7 @@ class TestCircuitPhase(QiskitTestCase):
                 else:
                     print(f'BAD GATE: {gate}')
                     import ipdb;ipdb.set_trace()
-                #self.assertTrue(np.array_equal(docmatrix, gate.to_matrix()))
+                self.assertTrue(np.array_equal(docmatrix, gate.to_matrix()))
 
     def latex_to_array(self, source, dimension):
         """convert latex pmatrix string to numpy array"""

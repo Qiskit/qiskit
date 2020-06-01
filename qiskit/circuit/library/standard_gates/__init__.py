@@ -84,13 +84,13 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
+from .multi_control_rotation_gates import mcrx, mcry, mcrz
 _STD_GATES = [HGate, CHGate, IGate, MSGate, RGate, RXGate, CRXGate,
               RXXGate, RYGate, CRYGate, RYYGate, RZGate, CRZGate, RZZGate, RZXGate,
               SGate, SdgGate, SwapGate, CSwapGate, iSwapGate, DCXGate, TGate,
               TdgGate, U1Gate, CU1Gate, MCU1Gate, U2Gate, U3Gate, CU3Gate, XGate,
               CXGate, CCXGate, C3XGate, C4XGate, RCCXGate, RC3XGate, MCXGate,
               MCXGrayCode, MCXRecursive, MCXVChain, YGate, CYGate, ZGate, CZGate]
-from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 # deprecated gates
 from .boolean_logical_gates import logical_and, logical_or
@@ -104,6 +104,6 @@ from .ry import CryGate
 from .rz import CrzGate
 from .y import CyGate
 from .z import CzGate
-_DEPRECATED_GATES = {logical_and, logical_or, Cu1Gate, Cu3Gate, CnotGate,
+_DEPRECATED_GATES = [logical_and, logical_or, Cu1Gate, Cu3Gate, CnotGate,
                      ToffoliGate, FredkinGate, IdGate, CrxGate, CryGate,
-                     CrzGate, CyGate, CzGate}
+                     CrzGate, CyGate, CzGate]

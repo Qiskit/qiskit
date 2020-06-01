@@ -89,7 +89,7 @@ class TdgGate(Gate):
 
         Tdg = \begin{pmatrix}
                 1 & 0 \\
-                0 & 1-i
+                0 & e^{i\pi/4}
             \end{pmatrix}
 
     **Circuit symbol:**

@@ -149,7 +149,6 @@ class CHGate(ControlledGate):
                     0 & 0 & 1 & 1 \\
                     0 & 0 & 1 & -1
                 \end{pmatrix}
-
     """
     # Define class constants. This saves future allocation time.
     _sqrt2o2 = 1 / numpy.sqrt(2)
