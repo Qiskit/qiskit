@@ -977,9 +977,9 @@ def inline() -> ContextManager[None]:
                         # this pulse will also start at t=0
                         pulse.play(pulse.Constant(20, 1.0), d2)
 
-        assert (pulse_prog.ch_start_time(d1) ==
-                pulse_prog.ch_start_time(d2) ==
-                pulse_prog.ch_start_time(d1))
+        assert (pulse_prog.ch_start_time(d0) ==
+                pulse_prog.ch_start_time(d1) ==
+                pulse_prog.ch_start_time(d2))
 
     .. warning:: This will cause all scheduling directives within this context
         to be ignored.
