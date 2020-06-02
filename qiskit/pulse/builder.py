@@ -268,6 +268,7 @@ class _PulseBuilder():
     def __init__(self,
                  backend=None,
                  schedule: Optional[Schedule] = None,
+                 name: Optional[str] = None,
                  default_alignment: Union[str, Callable] = 'left',
                  default_transpiler_settings: Mapping = None,
                  default_circuit_scheduler_settings: Mapping = None):
@@ -285,6 +286,8 @@ class _PulseBuilder():
                 certain functionality will be unavailable.
             schedule: Initital schedule block to build off. If not supplied
                 a schedule will be created.
+            name: Name of pulse program to be built. Only used if `schedule`
+                is not ``None``.
             default_alignment: Default scheduling alignment policy for the
                 builder. One of 'left', 'right', 'sequential', or an alignment
                 contextmanager.
@@ -315,7 +318,7 @@ class _PulseBuilder():
             default_circuit_scheduler_settings or {}
 
         # pulse.Schedule: Root program block
-        self._schedule = schedule or Schedule()
+        self._schedule = schedule or Schedule(name=name)
 
         self.set_active_block(Schedule())
 
@@ -509,6 +512,7 @@ class _PulseBuilder():
 
 def build(backend=None,
           schedule: Optional[Schedule] = None,
+          name: Optional[str] = None,
           default_alignment: str = 'left',
           default_transpiler_settings: Optional[Dict[str, Any]] = None,
           default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
@@ -544,6 +548,8 @@ def build(backend=None,
             builder functionality will be unavailable.
         schedule: a *mutable* pulse Schedule in which your pulse program will
             be built.
+        name: Name of pulse program to be built. Only used if `schedule`
+            is not ``None``.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment
             contextmanager.
@@ -557,6 +563,7 @@ def build(backend=None,
     return _PulseBuilder(
         backend=backend,
         schedule=schedule,
+        name=name,
         default_alignment=default_alignment,
         default_transpiler_settings=default_transpiler_settings,
         default_circuit_scheduler_settings=default_circuit_scheduler_settings)

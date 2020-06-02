@@ -44,6 +44,71 @@ class TestBuilder(QiskitTestCase):
         self.inst_map = self.defaults.instruction_schedule_map
 
 
+class TestBuilderBase(TestBuilder):
+    """Test builder base."""
+    def test_schedule_supplied(self):
+        """Test that schedule is used if it is supplied to the builder."""
+        d0 = pulse.DriveChannel(0)
+        with pulse.build(name='reference') as reference:
+            with pulse.align_sequential():
+                pulse.delay(10, d0)
+
+        with pulse.build(schedule=reference) as schedule:
+            pass
+
+        self.assertEqual(schedule, reference)
+        self.assertEqual(schedule.name, 'reference')
+
+    def test_default_alignment_left(self):
+        """Test default left alignment setting."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
+
+        with pulse.build(default_alignment='left') as schedule:
+            pulse.delay(10, d0)
+            pulse.delay(20, d1)
+
+        with pulse.build(self.backend) as reference:
+            with pulse.align_left():
+                pulse.delay(10, d0)
+                pulse.delay(20, d1)
+
+        self.assertEqual(schedule, reference)
+
+    def test_default_alignment_right(self):
+        """Test default right alignment setting."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
+
+        with pulse.build(default_alignment='right') as schedule:
+            pulse.delay(10, d0)
+            pulse.delay(20, d1)
+
+        with pulse.build() as reference:
+            with pulse.align_right():
+                pulse.delay(10, d0)
+                pulse.delay(20, d1)
+
+        self.assertEqual(schedule, reference)
+
+    def test_default_alignment_sequential(self):
+        """Test default sequential alignment setting."""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
+
+        with pulse.build(default_alignment='sequential') as schedule:
+            pulse.delay(10, d0)
+            pulse.delay(20, d1)
+
+        reference = pulse.Schedule()
+        with pulse.build(reference) as reference:
+            with pulse.align_sequential():
+                pulse.delay(10, d0)
+                pulse.delay(20, d1)
+
+        self.assertEqual(schedule, reference)
+
+
 class TestContexts(TestBuilder):
     """Test builder contexts."""
     def test_align_sequential(self):
@@ -904,66 +969,4 @@ class TestBuilderComposition(TestBuilder):
                          align_left_reference,
                          inplace=True)
         reference += measure_reference
-        self.assertEqual(schedule, reference)
-
-    def test_default_alignment_left(self):
-        """Test default left alignment setting."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(0)
-
-        with pulse.build(default_alignment='left') as schedule:
-            pulse.delay(10, d0)
-            pulse.delay(20, d1)
-
-        with pulse.build(self.backend) as reference:
-            with pulse.align_left():
-                pulse.delay(10, d0)
-                pulse.delay(20, d1)
-
-        self.assertEqual(schedule, reference)
-
-    def test_default_alignment_right(self):
-        """Test default right alignment setting."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(0)
-
-        with pulse.build(default_alignment='right') as schedule:
-            pulse.delay(10, d0)
-            pulse.delay(20, d1)
-
-        with pulse.build() as reference:
-            with pulse.align_right():
-                pulse.delay(10, d0)
-                pulse.delay(20, d1)
-
-        self.assertEqual(schedule, reference)
-
-    def test_default_alignment_sequential(self):
-        """Test default sequential alignment setting."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(0)
-
-        with pulse.build(default_alignment='sequential') as schedule:
-            pulse.delay(10, d0)
-            pulse.delay(20, d1)
-
-        reference = pulse.Schedule()
-        with pulse.build(reference) as reference:
-            with pulse.align_sequential():
-                pulse.delay(10, d0)
-                pulse.delay(20, d1)
-
-        self.assertEqual(schedule, reference)
-
-    def test_schedule_supplied(self):
-        """Test that schedule is used if it is supplied to the builder."""
-        d0 = pulse.DriveChannel(0)
-        reference = pulse.Schedule()
-        with pulse.build(reference) as reference:
-            with pulse.align_sequential():
-                pulse.delay(10, d0)
-
-        with pulse.build(schedule=reference) as schedule:
-            pass
-
         self.assertEqual(schedule, reference)
