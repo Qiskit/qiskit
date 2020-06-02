@@ -14,6 +14,8 @@
 
 """A container class for counts from a circuit execution."""
 
+import re
+
 from qiskit.result import postprocess
 from qiskit import exceptions
 
@@ -33,7 +35,8 @@ class Counts(dict):
 
         Args:
             data (dict): The dictionary input for the counts. The key should
-                be a hexademical string of the form ``"0x4a"`` representing the
+                be a hexademical string of the form ``"0x4a"``, a bit string in
+                little endian format, or an integer representing the
                 measured classical value from the experiment and the
                 dictionary's value is an integer representing the number of
                 shots with that result.
@@ -49,7 +52,40 @@ class Counts(dict):
                 experiment.
             metadata: Any arbitrary key value metadata passed in as kwargs.
         """
-        self.hex_raw = dict(data)
+        bin_data = None
+        first_key = next(iter(data.keys()))
+        if isinstance(first_key, int):
+            self.int_raw = data
+            self.hex_raw = {
+                hex(key): value for key, value in self.int_raw.items()}
+        elif isinstance(first_key, str):
+            if first_key.startswith('0x'):
+                self.hex_raw = data
+                self.int_raw = {
+                    int(key, 0): value for key, value in self.hex_raw.items()}
+            else:
+                if not creg_sizes and not memory_slots:
+                    self.hex_raw = None
+                    self.int_raw = None
+                    bin_data = data
+                else:
+                    bitstring_regex = re.compile(r'^[01\s]+$')
+                    hex_dict = {}
+                    int_dict = {}
+                    for bitstring, value in data.items():
+                        if not bitstring_regex.search(bitstring):
+                            raise exceptions.QiskitError(
+                                'Counts objects with qudit bitstrings do not '
+                                'currently support bitstring formatting parameters '
+                                'creg_sizes or memory_slots')
+                        int_key = int(bitstring.replace(" ", ""), 2)
+                        int_dict[int_key] = value
+                        hex_dict[hex(int_key)] = value
+                    self.hex_raw = hex_dict
+                    self.int_raw = int_dict
+        else:
+            raise TypeError("Invalid input key type %s, must be either an int "
+                            "key or string key with hexademical value or bit string")
         header = {}
         self.creg_sizes = creg_sizes
         if self.creg_sizes:
@@ -57,7 +93,8 @@ class Counts(dict):
         self.memory_slots = memory_slots
         if self.memory_slots:
             header['memory_slots'] = self.memory_slots
-        bin_data = postprocess.format_counts(self.hex_raw, header=header)
+        if not bin_data:
+            bin_data = postprocess.format_counts(self.hex_raw, header=header)
         super().__init__(bin_data)
         self.name = name
         self.shots = shots
@@ -80,10 +117,44 @@ class Counts(dict):
                 ','.join(max_values_counts))
         return max_values_counts[0]
 
+    def hex_outcomes(self):
+        """Return a counts dictionary with hexademical string keys
+
+        Returns:
+            dict: A dictionary with the keys as hexadecimal strings instead of
+                bitstrings
+        """
+        if self.hex_raw:
+            return {key.lower(): value for key, value in self.hex_raw.items()}
+        else:
+            bitstring_regex = re.compile(r'^[01\s]+$')
+            out_dict = {}
+            for bitstring, value in self.items():
+                if not bitstring_regex.search(bitstring):
+                    raise exceptions.QiskitError(
+                        'Counts objects with qudit bitstrings do not '
+                        'currently support conversion to hexadecimal')
+                int_key = int(bitstring.replace(" ", ""), 2)
+                out_dict[hex(int_key)] = value
+            return out_dict
+
+
     def int_outcomes(self):
         """Build a counts dictionary with integer keys instead of count strings
 
         Returns:
-            dict: A dictionary with the keys as integers instead of
+            dict: A dictionary with the keys as integers instead of bitstrings
         """
-        return {int(key, 0): value for key, value in self.hex_raw.items()}
+        if self.int_raw:
+            return self.int_raw
+        else:
+            bitstring_regex = re.compile(r'^[01\s]+$')
+            out_dict = {}
+            for bitstring, value in self.items():
+                if not bitstring_regex.search(bitstring):
+                    raise exceptions.QiskitError(
+                        'Counts objects with qudit bitstrings do not '
+                        'currently support conversion to integer')
+                int_key = int(bitstring.replace(" ", ""), 2)
+                out_dict[int_key] = value
+            return out_dict
