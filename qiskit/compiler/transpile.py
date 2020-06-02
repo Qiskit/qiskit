@@ -354,9 +354,9 @@ def _parse_transpile_args(circuits, backend,
                                                                    layout_method=args[4],
                                                                    routing_method=args[5],
                                                                    seed_transpiler=args[6]),
-                          'optimization_level': args[8],
-                          'output_name': args[9],
-                          'callback': args[10]}
+                          'optimization_level': args[7],
+                          'output_name': args[8],
+                          'callback': args[9]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
