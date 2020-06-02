@@ -23,7 +23,6 @@ from .gate import Gate
 from .quantumregister import QuantumRegister
 from .quantumregister import Qubit
 from .classicalregister import Clbit
-from .parameter import Parameter
 
 # pylint: disable=missing-return-doc
 
