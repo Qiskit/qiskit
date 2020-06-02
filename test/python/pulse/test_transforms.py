@@ -427,7 +427,7 @@ class TestAlignSequential(QiskitTestCase):
         schedule.insert(4, instructions.Delay(5, d1), inplace=True)
         schedule.insert(12, instructions.Delay(7, d0), inplace=True)
 
-        schedule = transforms.remove_directives(transforms.align_sequential(schedule))
+        schedule = transforms.align_sequential(schedule)
 
         reference = pulse.Schedule()
         # d0
@@ -449,11 +449,11 @@ class TestAlignSequential(QiskitTestCase):
         schedule.insert(4, instructions.Delay(5, d1), inplace=True)
         schedule.insert(12, instructions.Delay(7, d0), inplace=True)
 
-        schedule = transforms.remove_directives(
-            transforms.align_sequential(schedule))
+        schedule = transforms.align_sequential(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, directives.RelativeBarrier(d0, d1), inplace=True)
         reference.insert(3, instructions.Delay(5, d1), inplace=True)
         reference.insert(8, instructions.Delay(7, d0), inplace=True)
 
