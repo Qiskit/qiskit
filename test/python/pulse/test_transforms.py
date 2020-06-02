@@ -453,11 +453,9 @@ class TestAlignSequential(QiskitTestCase):
             transforms.align_sequential(schedule))
 
         reference = pulse.Schedule()
-        # d0
         reference.insert(0, instructions.Delay(3, d0), inplace=True)
-        reference.insert(8, instructions.Delay(7, d0), inplace=True)
-        # d1
         reference.insert(3, instructions.Delay(5, d1), inplace=True)
+        reference.insert(8, instructions.Delay(7, d0), inplace=True)
 
         self.assertEqual(schedule, reference)
 
