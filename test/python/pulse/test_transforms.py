@@ -423,18 +423,18 @@ class TestAlignSequential(QiskitTestCase):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
-        schedule = schedule.insert(4, instructions.Delay(5, d1), mutate=True)
-        schedule = schedule.insert(12, instructions.Delay(7, d0), mutate=True)
+        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule = schedule.insert(4, instructions.Delay(5, d1), inplace=True)
+        schedule = schedule.insert(12, instructions.Delay(7, d0), inplace=True)
 
         schedule = transforms.remove_directives(transforms.align_sequential(schedule))
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), mutate=True)
-        reference.insert(8, instructions.Delay(7, d0), mutate=True)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(8, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference.insert(3, instructions.Delay(5, d1), mutate=True)
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
 
         self.assertEqual(schedule, reference)
 
@@ -444,20 +444,20 @@ class TestAlignSequential(QiskitTestCase):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
-        schedule.append(directives.RelativeBarrier(d0, d1), mutate=True)
-        schedule = schedule.insert(4, instructions.Delay(5, d1), mutate=True)
-        schedule = schedule.insert(12, instructions.Delay(7, d0), mutate=True)
+        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.append(directives.RelativeBarrier(d0, d1), inplace=True)
+        schedule = schedule.insert(4, instructions.Delay(5, d1), inplace=True)
+        schedule = schedule.insert(12, instructions.Delay(7, d0), inplace=True)
 
         schedule = transforms.remove_directives(
             transforms.align_sequential(schedule))
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), mutate=True)
-        reference.insert(8, instructions.Delay(7, d0), mutate=True)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(8, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference.insert(3, instructions.Delay(5, d1), mutate=True)
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
 
         self.assertEqual(schedule, reference)
 
@@ -472,13 +472,13 @@ class TestAlignLeft(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
         sched_grouped += instructions.Delay(5, d1)
         sched_grouped += instructions.Delay(7, d0)
-        schedule.append(sched_grouped, mutate=True)
+        schedule.append(sched_grouped, inplace=True)
 
         schedule = transforms.align_left(schedule)
         reference = pulse.Schedule()
@@ -499,14 +499,14 @@ class TestAlignLeft(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
-        schedule.append(directives.RelativeBarrier(d0, d1, d2), mutate=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.append(directives.RelativeBarrier(d0, d1, d2), inplace=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
         sched_grouped += instructions.Delay(5, d1)
         sched_grouped += instructions.Delay(7, d0)
-        schedule.append(sched_grouped, mutate=True)
+        schedule.append(sched_grouped, inplace=True)
         schedule = transforms.remove_directives(
             transforms.align_left(schedule))
 
@@ -532,14 +532,14 @@ class TestAlignRight(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
-        sched_grouped.insert(2, instructions.Delay(5, d1), mutate=True)
+        sched_grouped.insert(2, instructions.Delay(5, d1), inplace=True)
         sched_grouped += instructions.Delay(7, d0)
 
-        schedule.append(sched_grouped, mutate=True)
+        schedule.append(sched_grouped, inplace=True)
         schedule = transforms.align_right(schedule)
 
         reference = pulse.Schedule()
@@ -559,15 +559,15 @@ class TestAlignRight(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), mutate=True)
-        schedule.append(directives.RelativeBarrier(d0, d1, d2), mutate=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), mutate=True)
+        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.append(directives.RelativeBarrier(d0, d1, d2), inplace=True)
+        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
-        sched_grouped.insert(2, instructions.Delay(5, d1), mutate=True)
+        sched_grouped.insert(2, instructions.Delay(5, d1), inplace=True)
         sched_grouped += instructions.Delay(7, d0)
 
-        schedule.append(sched_grouped, mutate=True)
+        schedule.append(sched_grouped, inplace=True)
         schedule = transforms.remove_directives(transforms.align_right(schedule))
 
         reference = pulse.Schedule()

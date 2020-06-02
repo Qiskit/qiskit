@@ -385,7 +385,7 @@ class _PulseBuilder():
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
-        program = self._schedule.append(self.block, mutate=True)
+        program = self._schedule.append(self.block, inplace=True)
         self.set_active_block(Schedule())
         return program
 
@@ -401,7 +401,7 @@ class _PulseBuilder():
         Args:
             block: Schedule to append to the active schedule block.
         """
-        self.block.append(block, mutate=True)
+        self.block.append(block, inplace=True)
 
     @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
@@ -410,7 +410,7 @@ class _PulseBuilder():
         Args:
             instruction: Instruction to append.
         """
-        self.block.append(instruction, mutate=True)
+        self.block.append(instruction, inplace=True)
 
     def _compile_lazy_circuit(self):
         """Call a QuantumCircuit and append the output pulse schedule
@@ -990,7 +990,7 @@ def inline() -> ContextManager[None]:
             append_instruction(instruction)
 
 
-@_transform_context(transforms.pad, mutate=True)
+@_transform_context(transforms.pad, inplace=True)
 def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
     """Pad all availale timeslots with delays upon exiting context.
 

@@ -178,35 +178,35 @@ class Schedule(ScheduleComponent):
     def union(self,
               *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
               name: Optional[str] = None,
-              mutate: bool = False
+              inplace: bool = False
               ) -> 'Schedule':
         """Return a schedule which is the union of both ``self`` and ``schedules``.
 
         Args:
             schedules: Schedules to be take the union with this ``Schedule``.
             name: Name of the new schedule. Defaults to the name of self.
-            mutate: Perform operation by mutating this schedule. Otherwise return
+            inplace: Perform operation inplace on this schedule. Otherwise return
                 a new ``Schedule``.
         """
         warnings.warn("The union method is deprecated. Use insert with start_time=0.",
                       DeprecationWarning)
-        return self.insert(0, *schedules, name=name, mutate=mutate)
+        return self.insert(0, *schedules, name=name, inplace=inplace)
 
     # pylint: disable=arguments-differ
     def shift(self,
               time: int,
               name: Optional[str] = None,
-              mutate: bool = False
+              inplace: bool = False
               ) -> 'Schedule':
         """Return a schedule shifted forward by ``time``.
 
         Args:
             time: Time to shift by.
             name: Name of the new schedule. Defaults to the name of self.
-            mutate: Perform operation by mutating this schedule. Otherwise return
-                a new ``Schedule``.
+            inplace: Perform operation inplace on this schedule. Otherwise
+                return a new ``Schedule``.
         """
-        if mutate:
+        if inplace:
             return self._mutable_shift(time)
         else:
             return self._immutable_shift(time, name=name)
@@ -258,7 +258,7 @@ class Schedule(ScheduleComponent):
                start_time: int,
                schedule: ScheduleComponent,
                name: Optional[str] = None,
-               mutate: bool = False
+               inplace: bool = False
                ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
@@ -266,10 +266,10 @@ class Schedule(ScheduleComponent):
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
             name: Name of the new schedule. Defaults to the name of self.
-            mutate: Perform operation by mutating this schedule. Otherwise return
-                a new ``Schedule``.
+            inplace: Perform operation inplace on this schedule. Otherwise
+                return a new ``Schedule``.
         """
-        if mutate:
+        if inplace:
             return self._mutable_insert(start_time, schedule)
         return self._immutable_insert(start_time, schedule, name=name)
 
@@ -309,7 +309,7 @@ class Schedule(ScheduleComponent):
     # pylint: disable=arguments-differ
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None,
-               mutate: bool = False) -> 'Schedule':
+               inplace: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
 
@@ -321,12 +321,12 @@ class Schedule(ScheduleComponent):
         Args:
             schedule: Schedule to be appended.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
-            mutate: Perform operation by mutating this schedule. Otherwise return
-                a new ``Schedule``.
+            inplace: Perform operation inplace on this schedule. Otherwise
+                return a new ``Schedule``.
         """
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, name=name, mutate=mutate)
+        return self.insert(time, schedule, name=name, inplace=inplace)
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""

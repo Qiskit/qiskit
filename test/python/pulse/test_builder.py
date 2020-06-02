@@ -59,10 +59,10 @@ class TestContexts(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), mutate=True)
-        reference.insert(8, instructions.Delay(7, d0), mutate=True)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(8, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference.insert(3, instructions.Delay(5, d1), mutate=True)
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
 
         self.assertEqual(schedule, reference)
 
@@ -871,7 +871,7 @@ class TestBuilderComposition(TestBuilder):
         # outer sequential context
         outer_reference = pulse.Schedule()
         outer_reference += instructions.Delay(delay_dur, d0)
-        outer_reference.insert(delay_dur, single_u2_sched, mutate=True)
+        outer_reference.insert(delay_dur, single_u2_sched, inplace=True)
 
         # inner align right
         align_right_reference = pulse.Schedule()
@@ -879,11 +879,11 @@ class TestBuilderComposition(TestBuilder):
             pulse_lib.Constant(long_dur, 0.1), d2)
         align_right_reference.insert(long_dur-single_u2_sched.duration,
                                      single_u2_sched,
-                                     mutate=True)
+                                     inplace=True)
         align_right_reference.insert(
             long_dur-single_u2_sched.duration-short_dur,
             pulse.Play(pulse_lib.Constant(short_dur, 0.1), d1),
-            mutate=True)
+            inplace=True)
         # inner align left
         align_left_reference = triple_u2_sched
 
@@ -899,10 +899,10 @@ class TestBuilderComposition(TestBuilder):
                        align_right_reference.ch_start_time(d1))
         reference.insert(insert_time,
                          align_right_reference,
-                         mutate=True)
+                         inplace=True)
         reference.insert(reference.ch_stop_time(d0, d1),
                          align_left_reference,
-                         mutate=True)
+                         inplace=True)
         reference += measure_reference
         self.assertEqual(schedule, reference)
 

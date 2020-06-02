@@ -184,7 +184,7 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
 def pad(schedule: Schedule,
         channels: Optional[Iterable[chans.Channel]] = None,
         until: Optional[int] = None,
-        mutate: bool = False
+        inplace: bool = False
         ) -> Schedule:
     r"""Pad the input Schedule with ``Delay``\s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.
@@ -195,7 +195,7 @@ def pad(schedule: Schedule,
             ``schedule`` if not provided. If the supplied channel is not a member
             of ``schedule`` it will be added.
         until: Time to pad until. Defaults to ``schedule.duration`` if not provided.
-        mutate: Pad this schedule by mutating rather than returning a new schedule.
+        inplace: Pad this schedule by mutating rather than returning a new schedule.
 
     Returns:
         The padded schedule.
@@ -218,13 +218,13 @@ def pad(schedule: Schedule,
                 schedule = schedule.insert(
                     curr_time,
                     instructions.Delay(end_time - curr_time, channel),
-                    mutate=mutate)
+                    inplace=inplace)
             curr_time = interval[1]
         if curr_time < until:
             schedule = schedule.insert(
                 curr_time,
                 instructions.Delay(until - curr_time, channel),
-                mutate=mutate)
+                inplace=inplace)
 
     return schedule
 
@@ -292,7 +292,7 @@ def _push_append(this: List[interfaces.ScheduleComponent],
 
     other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
     insert_time = max(shared_insert_time, other_only_insert_time)
-    return this.insert(insert_time, other, mutate=True)
+    return this.insert(insert_time, other, inplace=True)
 
 
 def align_left(schedule: Schedule) -> Schedule:
@@ -336,7 +336,7 @@ def align_right(schedule: Schedule) -> Schedule:
             latest_available_duration = min(latest_available_times[channel] for
                                             channel in child_channels)
             insert_time = latest_available_duration - child.duration
-            right_aligned.insert(insert_time, child, mutate=True)
+            right_aligned.insert(insert_time, child, inplace=True)
             latest_available_times.update(
                 dict.fromkeys(child_channels, insert_time))
 
@@ -356,7 +356,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
     """
     aligned = Schedule()
     for _, child in schedule.children:
-        aligned.insert(aligned.duration, child, mutate=True)
+        aligned.insert(aligned.duration, child, inplace=True)
     return aligned
 
 
