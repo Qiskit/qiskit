@@ -785,7 +785,7 @@ class TestControlledGate(QiskitTestCase):
 @ddt
 class TestOpenControlledToMatrix(QiskitTestCase):
     """Test controlled_gates implementing to_matrix work with ctrl_state"""
-    
+
     @combine(gate_class=ControlledGate.__subclasses__(), ctrl_state=[0, None])
     def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
         """Test open controlled to_matrix."""
