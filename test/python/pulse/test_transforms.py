@@ -423,9 +423,9 @@ class TestAlignSequential(QiskitTestCase):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
-        schedule = schedule.insert(4, instructions.Delay(5, d1), inplace=True)
-        schedule = schedule.insert(12, instructions.Delay(7, d0), inplace=True)
+        schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.insert(4, instructions.Delay(5, d1), inplace=True)
+        schedule.insert(12, instructions.Delay(7, d0), inplace=True)
 
         schedule = transforms.remove_directives(transforms.align_sequential(schedule))
 
@@ -444,10 +444,10 @@ class TestAlignSequential(QiskitTestCase):
         d1 = pulse.DriveChannel(1)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.insert(1, instructions.Delay(3, d0), inplace=True)
         schedule.append(directives.RelativeBarrier(d0, d1), inplace=True)
-        schedule = schedule.insert(4, instructions.Delay(5, d1), inplace=True)
-        schedule = schedule.insert(12, instructions.Delay(7, d0), inplace=True)
+        schedule.insert(4, instructions.Delay(5, d1), inplace=True)
+        schedule.insert(12, instructions.Delay(7, d0), inplace=True)
 
         schedule = transforms.remove_directives(
             transforms.align_sequential(schedule))
@@ -472,8 +472,8 @@ class TestAlignLeft(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
+        schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
         sched_grouped += instructions.Delay(5, d1)
@@ -499,9 +499,9 @@ class TestAlignLeft(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.insert(1, instructions.Delay(3, d0), inplace=True)
         schedule.append(directives.RelativeBarrier(d0, d1, d2), inplace=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
+        schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
         sched_grouped += instructions.Delay(5, d1)
@@ -532,8 +532,8 @@ class TestAlignRight(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
+        schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
         sched_grouped.insert(2, instructions.Delay(5, d1), inplace=True)
@@ -559,9 +559,9 @@ class TestAlignRight(QiskitTestCase):
         d2 = pulse.DriveChannel(2)
 
         schedule = pulse.Schedule()
-        schedule = schedule.insert(1, instructions.Delay(3, d0), inplace=True)
+        schedule.insert(1, instructions.Delay(3, d0), inplace=True)
         schedule.append(directives.RelativeBarrier(d0, d1, d2), inplace=True)
-        schedule = schedule.insert(17, instructions.Delay(11, d2), inplace=True)
+        schedule.insert(17, instructions.Delay(11, d2), inplace=True)
 
         sched_grouped = pulse.Schedule()
         sched_grouped.insert(2, instructions.Delay(5, d1), inplace=True)

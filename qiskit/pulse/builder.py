@@ -651,7 +651,7 @@ def num_qubits() -> int:
     return active_backend().configuration().n_qubits
 
 
-def seconds_to_samples(seconds: float) -> int:
+def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarray]:
     """Obtain the number of samples that will elapse in ``time`` on the
     active backend.
 
@@ -666,7 +666,7 @@ def seconds_to_samples(seconds: float) -> int:
     return int(seconds / active_backend().configuration().dt)
 
 
-def samples_to_seconds(samples: Union[float, np.ndarray]) -> float:
+def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarray]:
     """Obtain the time in seconds that will elapse for the input number of
     samples on the active backend.
 
