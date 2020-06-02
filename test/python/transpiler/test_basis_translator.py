@@ -589,3 +589,59 @@ class TestUnrollerCompatability(QiskitTestCase):
         expected.u1(gamma, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
+
+
+class TestBasisExamples(QiskitTestCase):
+    """Test example circuits targeting example bases over the StandardEquivalenceLibrary."""
+
+    def test_cx_bell_to_cz(self):
+        """Verify we can translate a CX bell circuit to CZ,RX,RZ."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ['cz', 'rx', 'rz']).run(in_dag)
+
+        qr = QuantumRegister(2, 'q')
+        expected = QuantumCircuit(qr)
+        expected.rz(pi, qr)
+        expected.rx(pi / 2, qr)
+        expected.rz(3 * pi / 2, qr)
+        expected.rx(pi / 2, qr)
+        expected.rz(3 * pi, qr)
+        expected.cz(qr[0], qr[1])
+        expected.rz(pi, qr[1])
+        expected.rx(pi / 2, qr[1])
+        expected.rz(3 * pi / 2, qr[1])
+        expected.rx(pi / 2, qr[1])
+        expected.rz(3 * pi, qr[1])
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
+    def test_cx_bell_to_iswap(self):
+        """Verify we can translate a CX bell to iSwap,U3."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ['iswap', 'u3']).run(in_dag)
+
+        qr = QuantumRegister(2, 'q')
+        expected = QuantumCircuit(2)
+        expected.u3(pi / 2, 0, pi, qr[0])
+        expected.u3(pi, 0, pi, qr[1])
+        expected.u3(pi / 2, 0, pi, qr)
+        expected.iswap(qr[0], qr[1])
+        expected.u3(pi, 0, pi, qr)
+        expected.u3(pi / 2, 0, pi, qr[1])
+        expected.iswap(qr[0], qr[1])
+        expected.u3(pi / 2, 0, pi, qr[0])
+        expected.u3(0, 0, pi / 2, qr)
+        expected.u3(pi, 0, pi, qr[1])
+        expected.u3(pi / 2, 0, pi, qr[1])
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)

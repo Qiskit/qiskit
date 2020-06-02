@@ -416,6 +416,37 @@ for plus_ry in [False, True]:
         cx_to_rxx = cnot_rxx_decompose(plus_ry, plus_rxx)
         _sel.add_equivalence(CXGate(), cx_to_rxx)
 
+q = QuantumRegister(2, 'q')
+cx_to_cz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[1]], []),
+        (CZGate(), [q[0], q[1]], []),
+        (HGate(), [q[1]], [])
+]:
+    cx_to_cz.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_cz)
+
+q = QuantumRegister(2, 'q')
+cx_to_iswap = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[0]], []),
+        (XGate(), [q[1]], []),
+        (HGate(), [q[1]], []),
+        (iSwapGate(), [q[0], q[1]], []),
+        (XGate(), [q[0]], []),
+        (XGate(), [q[1]], []),
+        (HGate(), [q[1]], []),
+        (iSwapGate(), [q[0], q[1]], []),
+        (HGate(), [q[0]], []),
+        (SGate(), [q[0]], []),
+        (SGate(), [q[1]], []),
+        (XGate(), [q[1]], []),
+        (HGate(), [q[1]], []),
+]:
+    cx_to_iswap.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_iswap)
+
+
 # CCXGate
 
 q = QuantumRegister(3, 'q')
