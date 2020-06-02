@@ -287,22 +287,24 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
-    if isinstance(rep_time, list):
-        rep_time = rep_time[0]
     if rep_time:
         # deprecation warning for ``rep_time`` when dynamic rep rate is enabled
         if dynamic_reprate_enabled:
             warnings.warn("Use 'rep_delay' rather than 'rep_time' as dynamic rep rates are enabled "
                           "on this backend.", DeprecationWarning)
+        if isinstance(rep_time, list):
+            rep_time = rep_time[0]
         rep_time = rep_time * 1e6 # convert sec to μs
 
     rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
-    if isinstance(rep_delay, list):
-        rep_delay = rep_delay[0]
+    # if ``rep_delay`` is None, leave as None; otherwise update appropriately
     if rep_delay:
         if not dynamic_reprate_enabled:
             warnings.warn("Dynamic rep rates not supported on this backend. 'rep_time' will be used "
                           "instead.",  RuntimeWarning)
+
+        if isinstance(rep_delay, list):
+            rep_delay = rep_delay[0]
         rep_delay = rep_delay * 1e6 # convert sec to μs
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])

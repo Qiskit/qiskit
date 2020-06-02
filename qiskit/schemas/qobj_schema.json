@@ -1085,12 +1085,12 @@
                             "type": "array"
                         },
                         "rep_time": {
-                            "minimum": 1,
+                            "minimum": 0,
                             "description": "Execution time of program (microseconds).",
                             "type": "number"
                         },
                         "rep_delay": {
-                            "minimum": 1,
+                            "minimum": 0,
                             "description": "Delay between programs (microseconds).",
                             "type": "number"
                         }

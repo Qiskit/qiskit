@@ -716,19 +716,56 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble(self.schedule, self.backend, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
-    def test_assemble_rep_time_and_rep_delay(self):
-        """Check that rep_time and rep_delay are properly set in the qobj.config on assemble."""
-        # use first entry from allowed backend values (rep_time=100, rep_delay=1)
-        qobj = assemble(self.schedule, self.backend)
-        self.assertEqual(qobj.config.rep_time, 100)
-        self.assertEqual(qobj.config.rep_delay, 1)
+    def test_assemble_backend_rep_times_delays(self):
+        """Check that rep_time and rep_delay are properly set from backend values."""
+        # use first entry from allowed backend values
+        rep_times = [2.0, 3.0, 4.0] # sec
+        rep_delays = [2.5e-3, 3.5e-3, 4.5e-3]
+        self.backend_config.rep_times = rep_times
+        self.backend_config.rep_delays = rep_delays
+        # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
+        with self.assertWarns(RuntimeWarning):
+            qobj = assemble(self.schedule, self.backend)
+        self.assertEqual(round(qobj.config.rep_time, 3), rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_delay, rep_delays[0]*1e6)
 
-        # use custom values (sec, need to multiply by 1e6)
-        self.config['rep_time'] = 1.5e-3
-        self.config['rep_delay'] = 2.5e-6
+        # remove rep_delays from backend config and make sure things work
+        # now no warning
+        del self.backend_config.rep_delays
+        qobj = assemble(self.schedule, self.backend)
+        self.assertEqual(round(qobj.config.rep_time, 3), rep_times[0]*1e6)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+    def test_assemble_user_rep_time_delay(self):
+        """Check that user runtime config rep_time and rep_delay work."""
+        # set custom rep_time and rep_delay in runtime config
+        rep_time = 200.0e-6
+        rep_delay = 2.5e-6
+        self.config['rep_time'] = rep_time
+        self.config['rep_delay'] = rep_delay
+        # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
+        with self.assertWarns(RuntimeWarning):
+            qobj = assemble(self.schedule, self.backend, **self.config)
+        self.assertEqual(qobj.config.rep_time, rep_time*1e6)
+        self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
+
+        # now remove rep_delay and set enable dynamic rep rates (will give DeprecationWarning)
+        del self.config['rep_delay']
+        self.backend_config.dynamic_reprate_enabled = True
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend, **self.config)
+        self.assertEqual(qobj.config.rep_time, rep_time*1e6)
+        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
+
+        # finally, only use rep_delay and verify that everything runs w/ no warning
+        # rep_time comes from allowed backed rep_times
+        rep_times = [0.5, 1.0, 1.5] # sec
+        self.backend_config.rep_times = rep_times
+        del self.config['rep_time']
+        self.config['rep_delay'] = rep_delay
         qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, 1.5e3)
-        self.assertEqual(qobj.config.rep_delay, 2.5)
+        self.assertEqual(qobj.config.rep_time, rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
@@ -808,55 +845,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         memory_slots=None,
                         rep_time=self.rep_time,
                         rep_delay=self.rep_delay)
-        validate_qobj_against_schema(qobj)
-
-    def test_missing_rep_time(self):
-        """Test that assembly still works if rep_time is missing.
-
-        The case of no rep_time will exist for a simulator.
-        """
-        qobj = assemble(self.schedule,
-                        qubit_lo_freq=self.qubit_lo_freq,
-                        meas_lo_freq=self.meas_lo_freq,
-                        qubit_lo_range=self.qubit_lo_range,
-                        meas_lo_range=self.meas_lo_range,
-                        schedule_los=self.schedule_los,
-                        meas_map=self.meas_map,
-                        memory_slots=self.memory_slots,
-                        rep_time=None)
-        validate_qobj_against_schema(qobj)
-
-    def test_missing_rep_delay(self):
-        """Test that assembly still works if rep_delay is missing.
-
-        The case of no rep_delay will exist for a simulator.
-        """
-        qobj = assemble(self.schedule,
-                        qubit_lo_freq=self.qubit_lo_freq,
-                        meas_lo_freq=self.meas_lo_freq,
-                        qubit_lo_range=self.qubit_lo_range,
-                        meas_lo_range=self.meas_lo_range,
-                        schedule_los=self.schedule_los,
-                        meas_map=self.meas_map,
-                        memory_slots=self.memory_slots,
-                        rep_delay=None)
-        validate_qobj_against_schema(qobj)
-
-    def test_missing_rep_time_and_rep_delay(self):
-        """Test that assembly still works if rep_delay and rep_time are missing.
-
-        This case will exist for a simulator.
-        """
-        qobj = assemble(self.schedule,
-                        qubit_lo_freq=self.qubit_lo_freq,
-                        meas_lo_freq=self.meas_lo_freq,
-                        qubit_lo_range=self.qubit_lo_range,
-                        meas_lo_range=self.meas_lo_range,
-                        schedule_los=self.schedule_los,
-                        meas_map=self.meas_map,
-                        memory_slots=self.memory_slots,
-                        rep_time = None,
-                        rep_delay=None)
         validate_qobj_against_schema(qobj)
 
     def test_missing_meas_map(self):
