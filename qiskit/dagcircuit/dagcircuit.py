@@ -91,13 +91,21 @@ class DAGCircuit:
         # Edges carry wire labels (reg,idx) and each operation has
         # corresponding in- and out-edges with the same wire labels.
 
-        # Map of qreg/creg name to Register object
+        # Map of qreg/creg name to Register object.
         self.qregs = OrderedDict()
         self.cregs = OrderedDict()
 
-        # List of Qubit/Clbit wires that the DAG acts on
-        self.qubits = []
-        self.clbits = []
+        # List of Qubit/Clbit wires that the DAG acts on.
+        class DummyCallableList(list):
+            """Dummy class so we can deprecate dag.qubits() and do
+            dag.qubits as property.
+            """
+            def __call__(self):
+                warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
+                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning)
+                return self
+        self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
+        self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
         self._id_to_node = {}
 
@@ -179,13 +187,17 @@ class DAGCircuit:
                                          node.cargs, node.condition)
         return dag
 
+    @property
     def qubits(self):
         """Return a list of qubits (as a list of Qubit instances)."""
-        return self.qubit_list
+        # TODO: remove this property after DeprecationWarning period (~9/2020)
+        return self._qubits
 
+    @property
     def clbits(self):
         """Return a list of classical bits (as a list of Clbit instances)."""
-        return self.clbit_list
+        # TODO: remove this property after DeprecationWarning period (~9/2020)
+        return self._clbits
 
     @property
     def wires(self):
