@@ -195,16 +195,6 @@ class ControlledGate(Gate):
         """
         if self.base_gate:
             super(Gate, self.__class__).params.fset(self.base_gate, parameters)
-            if parameters:
-                new_params = []
-                for param in parameters:
-                    if isinstance(param, Parameter):
-                        new_params.append(copy.copy(param))
-                    else:
-                        new_params.append(param)
-            else:
-                new_params = parameters
-            super(Gate, self.__class__).params.fset(self.base_gate, new_params)
         else:
             raise CircuitError('Controlled gate does not define base gate '
                                'for extracting params')
