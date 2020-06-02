@@ -370,8 +370,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.config = {
             'meas_level': 1,
             'memory_slot_size': 100,
-            'meas_return': 'avg',
-            'rep_time': 0.0001,
+            'meas_return': 'avg'
         }
 
         self.header = {
@@ -717,6 +716,19 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble(self.schedule, self.backend, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
+    def test_assemble_rep_time_and_rep_delay(self):
+        """Check that rep_time and rep_delay are properly set in the qobj.config on assemble."""
+        # use first entry from allowed backend values (rep_time=100, rep_delay=1)
+        qobj = assemble(self.schedule, self.backend)
+        self.assertEqual(qobj.config.rep_time, 100)
+        self.assertEqual(qobj.config.rep_delay, 1)
+
+        # use custom values (sec, need to multiply by 1e6)
+        self.config['rep_time'] = 1.5e-3
+        self.config['rep_delay'] = 2.5e-6
+        qobj = assemble(self.schedule, self.backend, **self.config)
+        self.assertEqual(qobj.config.rep_time, 1.5e3)
+        self.assertEqual(qobj.config.rep_delay, 2.5)
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
@@ -740,6 +752,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.meas_map = self.config.meas_map
         self.memory_slots = self.config.n_qubits
         self.rep_time = self.config.rep_times[0]
+        self.rep_delay = self.config.rep_delays[0]
 
     def test_defaults(self):
         """Test defaults work."""
@@ -751,7 +764,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         schedule_los=self.schedule_los,
                         meas_map=self.meas_map,
                         memory_slots=self.memory_slots,
-                        rep_time=self.rep_time)
+                        rep_time=self.rep_time,
+                        rep_delay=self.rep_delay)
         validate_qobj_against_schema(qobj)
 
     def test_missing_qubit_lo_freq(self):
@@ -765,7 +779,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                      meas_lo_range=self.meas_lo_range,
                      meas_map=self.meas_map,
                      memory_slots=self.memory_slots,
-                     rep_time=self.rep_time)
+                     rep_time=self.rep_time,
+                     rep_delay=self.rep_delay)
 
     def test_missing_meas_lo_freq(self):
         """Test error raised if meas_lo_freq missing."""
@@ -778,7 +793,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                      meas_lo_range=self.meas_lo_range,
                      meas_map=self.meas_map,
                      memory_slots=self.memory_slots,
-                     rep_time=self.rep_time)
+                     rep_time=self.rep_time,
+                     rep_delay=self.rep_delay)
 
     def test_missing_memory_slots(self):
         """Test error is not raised if memory_slots are missing."""
@@ -790,7 +806,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         schedule_los=self.schedule_los,
                         meas_map=self.meas_map,
                         memory_slots=None,
-                        rep_time=self.rep_time)
+                        rep_time=self.rep_time,
+                        rep_delay=self.rep_delay)
         validate_qobj_against_schema(qobj)
 
     def test_missing_rep_time(self):
@@ -809,6 +826,39 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         rep_time=None)
         validate_qobj_against_schema(qobj)
 
+    def test_missing_rep_delay(self):
+        """Test that assembly still works if rep_delay is missing.
+
+        The case of no rep_delay will exist for a simulator.
+        """
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=self.memory_slots,
+                        rep_delay=None)
+        validate_qobj_against_schema(qobj)
+
+    def test_missing_rep_time_and_rep_delay(self):
+        """Test that assembly still works if rep_delay and rep_time are missing.
+
+        This case will exist for a simulator.
+        """
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=self.memory_slots,
+                        rep_time = None,
+                        rep_delay=None)
+        validate_qobj_against_schema(qobj)
+
     def test_missing_meas_map(self):
         """Test that assembly still works if meas_map is missing."""
         qobj = assemble(self.schedule,
@@ -819,7 +869,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         schedule_los=self.schedule_los,
                         meas_map=None,
                         memory_slots=self.memory_slots,
-                        rep_time=self.rep_time)
+                        rep_time=self.rep_time,
+                        rep_delay=self.rep_delay)
         validate_qobj_against_schema(qobj)
 
     def test_missing_lo_ranges(self):
@@ -832,7 +883,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         schedule_los=self.schedule_los,
                         meas_map=self.meas_map,
                         memory_slots=self.memory_slots,
-                        rep_time=self.rep_time)
+                        rep_time=self.rep_time,
+                        rep_delay=self.rep_delay)
         validate_qobj_against_schema(qobj)
 
     def test_unsupported_meas_level(self):
@@ -852,7 +904,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                             meas_map=self.meas_map,
                             memory_slots=self.memory_slots,
                             rep_time=self.rep_time,
-                            )
+                            rep_delay=self.rep_delay)
 
     def test_single_and_deprecated_acquire_styles(self):
         """Test that acquires are identically combined with Acquires that take a single channel."""

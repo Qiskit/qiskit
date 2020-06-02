@@ -53,6 +53,7 @@ class FakeOpenPulse2Q(FakeBackend):
             dt=1.3333,
             dtm=10.5,
             rep_times=[100, 250, 500, 1000],
+            rep_delays=[1, 2.5, 5, 10],
             meas_map=[[0, 1]],
             channel_bandwidth=[
                 [-0.2, 0.4], [-0.3, 0.3], [-0.3, 0.3],
