@@ -215,7 +215,7 @@ class CouplingMap:
             if (dest, src) not in edges:
                 self.add_edge(dest, src)
         self._dist_matrix = None  # invalidate
-        self._is_symmetric = None  # invalidate 
+        self._is_symmetric = None  # invalidate
 
     def _check_symmetry(self):
         """

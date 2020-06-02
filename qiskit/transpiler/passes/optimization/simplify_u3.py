@@ -32,7 +32,7 @@ DEFAULT_ATOL = 1e-12
 class SimplifyU3(TransformationPass):
     """A strength reduction pass to simplify single qubit U3 gates, if possible.
     The cost metric is the number of X90 pulses required to implement the gate.
-    Can convert U3 -> U2 OR U1 OR None. 
+    Can convert U3 -> U2 OR U1 OR None.
     Also makes all Euler angles modulo 2*pi.
 
     Additional Information
@@ -71,7 +71,6 @@ class SimplifyU3(TransformationPass):
 
                 new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
 
-
                 if np.isclose(_mod2pi(theta), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
                     if np.isclose(_mod2pi(phi+lam), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
                         new_op = None
@@ -88,7 +87,7 @@ class SimplifyU3(TransformationPass):
                     dag.remove_op_node(node)
                 else:
                     if num_ctrl_qubits is not None:
-                       new_op = add_control(new_op, num_ctrl_qubits)
+                        new_op = add_control(new_op, num_ctrl_qubits)
                     dag.substitute_node(node, new_op)
 
         return dag

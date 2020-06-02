@@ -1195,7 +1195,6 @@ class DAGCircuit:
 
         return op_nodes
 
-
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 

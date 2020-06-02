@@ -25,7 +25,7 @@ class Approx2qDecompose(TransformationPass):
 
     def __init__(self, fidelity=1):
         super().__init__()
-        self.fidelity=fidelity
+        self.fidelity = fidelity
 
     def run(self, dag):
         qr = QuantumRegister(2)
