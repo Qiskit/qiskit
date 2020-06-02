@@ -219,12 +219,12 @@
                             "rep_times": {
                                 "type": "array",
                                 "minItems": 1,
-                                "description": "Available circuit execution times (microseconds).",
+                                "description": "Program execution times (microseconds) supported by backend.",
                                 "items": {"type": "number", "minimum": 0}},
                             "rep_delays": {
                                     "type": "array",
                                     "minItems": 1,
-                                    "description": "Available delay times between circuits (microseconds).",
+                                    "description": "Delay times between programs (microseconds) supported by backend.",
                                     "items": {"type": "number", "minimum": 0}},
                             "meas_map": {
                                 "type": "array",

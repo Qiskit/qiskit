@@ -16,6 +16,7 @@
 import uuid
 import copy
 import logging
+import warnings
 from time import time
 
 from typing import Union, List, Dict, Optional
@@ -104,10 +105,12 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                 * ``avg`` returns average measurement output (averaged over number of shots).
         meas_map: List of lists, containing qubits that must be measured together.
         memory_slot_size: Size of each memory slot if the output is Level 0.
-        rep_time: Repetition time of the experiment in sec. Gives the time per
-            circuit execution. Must be from the list provided by the device.
-        rep_delay: Delay between circuits in sec. Defines dynamic rep rate and
-            overrides ``rep_time``. Must be from the list provided by the device.
+        rep_time: Time per program execution in sec. Must be from the list provided
+            by the backend.
+        rep_delay: Delay between programs in sec. Only supported on certain
+            backends (``backend.configuration()['dynamic_reprate_enabled']`` ).
+            If supported, it will override ``rep_time``. Must be from the list
+            provided by the backends.
         parameter_binds: List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -281,19 +284,26 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
+    dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
+
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
     if rep_time:
+        # deprecation warning for ``rep_time`` when dynamic rep rate is enabled
+        if dynamic_reprate_enabled:
+            warnings.warn("Use 'rep_delay' rather than 'rep_time' as dynamic rep rates are enabled "
+                          "on this backend.", DeprecationWarning)
         rep_time = rep_time * 1e6 # convert sec to μs
 
     rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
     if isinstance(rep_delay, list):
         rep_delay = rep_delay[0]
     if rep_delay:
+        if not dynamic_reprate_enabled:
+            warnings.warn("Dynamic rep rates not supported on this backend. 'rep_time' will be used "
+                          "instead.",  RuntimeWarning)
         rep_delay = rep_delay * 1e6 # convert sec to μs
-
-
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
@@ -307,7 +317,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_return=meas_return,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
-                           rep_time=rep_time, rep_delay=rep_delay,
+                           rep_time=rep_time,
+                           rep_delay=rep_delay,
                            parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})

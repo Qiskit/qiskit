@@ -1086,12 +1086,12 @@
                         },
                         "rep_time": {
                             "minimum": 1,
-                            "description": "Execution time of circuit (microseconds).",
+                            "description": "Execution time of program (microseconds).",
                             "type": "number"
                         },
                         "rep_delay": {
                             "minimum": 1,
-                            "description": "Delay between circuits (microseconds).",
+                            "description": "Delay between programs (microseconds).",
                             "type": "number"
                         }
                     },

@@ -249,10 +249,12 @@ class PulseQobjConfig(QobjDictField):
                 measurement driver LO's in GHz.
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
-            rep_time (float): Repetition time of the experiment in sec. Gives the time per
-                circuit execution. Must be from the list provided by the device.
-            rep_delay (float): Delay between circuits in sec. Defines dynamic rep rate and
-                overrides ``rep_time``. Must be from the list provided by the device.
+            rep_time: Time per program execution in sec. Must be from the list provided
+                by the backend.
+            rep_delay: Delay between programs in sec. Only supported on certain
+                backends (``backend.configuration()['dynamic_reprate_enabled']`` ).
+                If supported, it will override ``rep_time``. Must be from the list
+                provided by the backends.
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
@@ -268,9 +270,9 @@ class PulseQobjConfig(QobjDictField):
         if memory_slot_size is not None:
             self.memory_slot_size = memory_slot_size
         if rep_time is not None:
-            self.rep_time = rep_time or []
+            self.rep_time = rep_time
         if rep_delay is not None:
-            self.rep_delay = rep_delay or []
+            self.rep_delay = rep_delay
         if shots is not None:
             self.shots = int(shots)
 
