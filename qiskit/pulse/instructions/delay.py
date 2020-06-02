@@ -51,7 +51,7 @@ class Delay(Instruction):
             name: Name of the delay for display purposes.
         """
         self._channel = channel
-        if not isinstance(channel, Channel):
+        if channel is None:
             warnings.warn("Usage of Delay without specifying a channel is deprecated. For "
                           "example, Delay(5)(DriveChannel(0)) should be replaced by "
                           "Delay(5, DriveChannel(0)).", DeprecationWarning)
