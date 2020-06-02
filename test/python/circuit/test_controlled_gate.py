@@ -784,10 +784,13 @@ class TestControlledGate(QiskitTestCase):
 
 @ddt
 class TestOpenControlledToMatrix(QiskitTestCase):
+    """Test controlled_gates implementing to_matrix work with ctrl_state"""
+    
     @combine(gate_class=ControlledGate.__subclasses__(), ctrl_state=[0, None])
     def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
-        """Test controlled versions of all standard gates."""
-        num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
+        """Test open controlled to_matrix."""
+        num_free_params = len(_get_free_params(gate_class.__init__,
+                                               ignore=['self']))
         free_params = [0.1 * i for i in range(1, num_free_params + 1)]
         if gate_class in [MCU1Gate]:
             free_params[1] = 3
