@@ -57,8 +57,8 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc, qc)
 
-    def test_advanced_mode(self):
-        """Test advanced mode's lookahead finds single SWAP gate.
+    def test_lookahead_mode(self):
+        """Test lookahead mode's lookahead finds single SWAP gate.
                   ┌───┐
         q_0: ──■──┤ H ├───────────────
              ┌─┴─┐└───┘
@@ -83,7 +83,7 @@ class TestSabreSwap(QiskitTestCase):
         qc.cx(2, 3)  # E
         qc.cx(1, 3)  # E
 
-        pm = PassManager(SabreSwap(coupling, 'advanced'))
+        pm = PassManager(SabreSwap(coupling, 'lookahead'))
         new_qc = pm.run(qc)
 
         self.assertEqual(new_qc.num_nonlocal_gates(), 7)
