@@ -221,7 +221,7 @@ import numpy as np
 
 from qiskit import circuit
 from qiskit.circuit.library import standard_gates as gates
-from qiskit.pulse import channels
+from qiskit.pulse import channels as chans
 from qiskit.pulse import configuration
 from qiskit.pulse import exceptions
 from qiskit.pulse import instructions
@@ -679,7 +679,7 @@ def samples_to_seconds(samples: Union[float, np.ndarray]) -> float:
     return samples * active_backend().configuration().dt
 
 
-def qubit_channels(qubit: int) -> Set[channels.Channel]:
+def qubit_channels(qubit: int) -> Set[chans.Channel]:
     """Returns the set of channels associated with a qubit.
 
     Examples:
@@ -703,20 +703,20 @@ def qubit_channels(qubit: int) -> Set[channels.Channel]:
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
-def _qubits_to_channels(*channels_or_qubits: Union[int, channels.Channel]
-                        ) -> Set[channels.Channel]:
+def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]
+                        ) -> Set[chans.Channel]:
     """Returns the unique channels of the input qubits."""
-    chans = set()
+    channels = set()
     for channel_or_qubit in channels_or_qubits:
         if isinstance(channel_or_qubit, int):
-            chans |= qubit_channels(channel_or_qubit)
-        elif isinstance(channel_or_qubit, channels.Channel):
-            chans.add(channel_or_qubit)
+            channels |= qubit_channels(channel_or_qubit)
+        elif isinstance(channel_or_qubit, chans.Channel):
+            channels.add(channel_or_qubit)
         else:
             raise exceptions.PulseError(
                 '{} is not a "Channel" or '
                 'qubit (integer).'.format(channel_or_qubit))
-    return chans
+    return channels
 
 
 def active_transpiler_settings() -> Dict[str, Any]:
@@ -998,7 +998,7 @@ def inline() -> ContextManager[None]:
 
 
 @_transform_context(transforms.pad, inplace=True)
-def pad(*chs: channels.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
+def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
     """Pad all availale timeslots with delays upon exiting context.
 
     Args:
@@ -1085,9 +1085,9 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
 @contextmanager
 def phase_offset(phase: float,
-                 channel: channels.PulseChannel
+                 *channels: chans.PulseChannel
                  ) -> ContextManager[None]:
-    """Shift the phase of a channel on entry into context and undo on exit.
+    """Shift the phase of input channels on entry into context and undo on exit.
 
     Examples:
 
@@ -1107,24 +1107,26 @@ def phase_offset(phase: float,
 
     Args:
         phase: Amount of phase offset in radians.
-        channel: Channel to offset phase of.
+        channels: Channels to offset phase of.
 
     Yields:
         None
     """
-    shift_phase(phase, channel)
+    for channel in channels:
+        shift_phase(phase, channel)
     try:
         yield
     finally:
-        shift_phase(-phase, channel)
+        for channel in channels:
+            shift_phase(-phase, channel)
 
 
 @contextmanager
 def frequency_offset(frequency: float,
-                     channel: channels.PulseChannel,
+                     channels: chans.PulseChannel,
                      compensate_phase: bool = False
                      ) -> ContextManager[None]:
-    """Shift the frequency of a channel on entry into context and undo on exit.
+    """Shift the frequency of inputs channels on entry into context and undo on exit.
 
     Examples:
 
@@ -1153,7 +1155,7 @@ def frequency_offset(frequency: float,
 
     Args:
         frequency: Amount of frequency offset in Hz.
-        channel: Channel to offset phase of.
+        channels: Channels to offset phase of.
         compensate_phase: Compensate for accumulated phase in accumulated with
             respect to the channels frame at its initial frequency.
 
@@ -1162,7 +1164,9 @@ def frequency_offset(frequency: float,
     """
     builder = _active_builder()
     t0 = builder.block.duration
-    shift_frequency(frequency, channel)
+
+    for channel in channels:
+        shift_frequency(frequency, channel)
     try:
         yield
     finally:
@@ -1170,12 +1174,15 @@ def frequency_offset(frequency: float,
             duration = builder.block.duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = duration * dt * frequency % (2*np.pi)
-            shift_phase(channel, -accumulated_phase)
-        shift_frequency(channel, -frequency)
+            for channel in channels:
+                shift_phase(channel, -accumulated_phase)
+
+        for channel in channels:
+            shift_frequency(channel, -frequency)
 
 
 # Channels
-def drive_channel(qubit: int) -> channels.DriveChannel:
+def drive_channel(qubit: int) -> chans.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 
     Examples:
@@ -1195,7 +1202,7 @@ def drive_channel(qubit: int) -> channels.DriveChannel:
     return active_backend().configuration().drive(qubit)
 
 
-def measure_channel(qubit: int) -> channels.MeasureChannel:
+def measure_channel(qubit: int) -> chans.MeasureChannel:
     """Return ``MeasureChannel`` for ``qubit`` on the active builder backend.
 
     Examples:
@@ -1215,7 +1222,7 @@ def measure_channel(qubit: int) -> channels.MeasureChannel:
     return active_backend().configuration().measure(qubit)
 
 
-def acquire_channel(qubit: int) -> channels.AcquireChannel:
+def acquire_channel(qubit: int) -> chans.AcquireChannel:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
 
     Examples:
@@ -1235,7 +1242,7 @@ def acquire_channel(qubit: int) -> channels.AcquireChannel:
     return active_backend().configuration().acquire(qubit)
 
 
-def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
+def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
 
     Return the secondary drive channel for the given qubit -- typically
@@ -1267,7 +1274,7 @@ def control_channels(*qubits: Iterable[int]) -> List[channels.ControlChannel]:
 
 # Base Instructions
 def delay(duration: int,
-          channel: channels.Channel):
+          channel: chans.Channel):
     """Delay on a ``channel`` for a ``duration``.
 
     Examples:
@@ -1289,7 +1296,7 @@ def delay(duration: int,
 
 
 def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
-         channel: channels.PulseChannel):
+         channel: chans.PulseChannel):
     """Play a ``pulse`` on a ``channel``.
 
     Examples:
@@ -1315,8 +1322,8 @@ def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
 
 
 def acquire(duration: int,
-            qubit_or_channel: Union[int, channels.AcquireChannel],
-            register: Union[channels.RegisterSlot, channels.MemorySlot],
+            qubit_or_channel: Union[int, chans.AcquireChannel],
+            register: Union[chans.RegisterSlot, chans.MemorySlot],
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
@@ -1353,12 +1360,12 @@ def acquire(duration: int,
         exceptions.PulseError: If the register type is not supported.
     """
     if isinstance(qubit_or_channel, int):
-        qubit_or_channel = channels.AcquireChannel(qubit_or_channel)
+        qubit_or_channel = chans.AcquireChannel(qubit_or_channel)
 
-    if isinstance(register, channels.MemorySlot):
+    if isinstance(register, chans.MemorySlot):
         append_instruction(instructions.Acquire(
             duration, qubit_or_channel, mem_slot=register, **metadata))
-    elif isinstance(register, channels.RegisterSlot):
+    elif isinstance(register, chans.RegisterSlot):
         append_instruction(instructions.Acquire(
             duration, qubit_or_channel, reg_slot=register, **metadata))
     else:
@@ -1367,7 +1374,7 @@ def acquire(duration: int,
 
 
 def set_frequency(frequency: float,
-                  channel: channels.PulseChannel):
+                  channel: chans.PulseChannel):
     """Set the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1389,7 +1396,7 @@ def set_frequency(frequency: float,
 
 
 def shift_frequency(frequency: float,
-                    channel: channels.PulseChannel):
+                    channel: chans.PulseChannel):
     """Shift the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1412,7 +1419,7 @@ def shift_frequency(frequency: float,
 
 
 def set_phase(phase: float,
-              channel: channels.PulseChannel):
+              channel: chans.PulseChannel):
     """Set the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1437,7 +1444,7 @@ def set_phase(phase: float,
 
 
 def shift_phase(phase: float,
-                channel: channels.PulseChannel):
+                channel: chans.PulseChannel):
     """Shift the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1591,7 +1598,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 
 
 # Directives
-def barrier(*channels_or_qubits: Union[channels.Channel, int]):
+def barrier(*channels_or_qubits: Union[chans.Channel, int]):
     """Barrier directive for a set of channels and qubits.
 
     This directive prevents the compiler from moving instructions across
@@ -1658,15 +1665,15 @@ def barrier(*channels_or_qubits: Union[channels.Channel, int]):
     Args:
         channels_or_qubits: Channels or qubits to barrier.
     """
-    chans = _qubits_to_channels(*channels_or_qubits)
-    if len(chans) > 1:
-        append_instruction(directives.RelativeBarrier(*chans))
+    channels = _qubits_to_channels(*channels_or_qubits)
+    if len(channels) > 1:
+        append_instruction(directives.RelativeBarrier(*channels))
 
 
 # Macros
 def measure(qubit: int,
-            register: Union[channels.MemorySlot, channels.RegisterSlot] = None,
-            ) -> Union[channels.MemorySlot, channels.RegisterSlot]:
+            register: Union[chans.MemorySlot, chans.RegisterSlot] = None,
+            ) -> Union[chans.MemorySlot, chans.RegisterSlot]:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
@@ -1723,7 +1730,7 @@ def measure(qubit: int,
     """
     backend = active_backend()
     if not register:
-        register = channels.MemorySlot(qubit)
+        register = chans.MemorySlot(qubit)
 
     measure_sched = macros.measure(
         qubits=[qubit],
@@ -1735,7 +1742,7 @@ def measure(qubit: int,
     return register
 
 
-def measure_all() -> List[channels.MemorySlot]:
+def measure_all() -> List[chans.MemorySlot]:
     r"""Measure all qubits within the currently active builder context.
 
     A simple macro function to measure all of the qubits in the device at the
@@ -1763,7 +1770,7 @@ def measure_all() -> List[channels.MemorySlot]:
     """
     backend = active_backend()
     qubits = range(num_qubits())
-    registers = [channels.MemorySlot(qubit) for qubit in qubits]
+    registers = [chans.MemorySlot(qubit) for qubit in qubits]
     measure_sched = macros.measure(
         qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
@@ -1799,8 +1806,8 @@ def delay_qubits(duration: int,
         qubits: Physical qubits to delay on. Delays will be inserted based on
             the channels returned by :func:`pulse.qubit_channels`.
     """
-    qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for
-                                                    qubit in qubits))
+    qubit_chans = set(itertools.chain.from_iterable(
+        qubit_channels(qubit) for qubit in qubits))
     with align_left(), group():
         for chan in qubit_chans:
             delay(duration, chan)
