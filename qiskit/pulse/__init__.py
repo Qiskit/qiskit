@@ -225,6 +225,7 @@ from qiskit.pulse.instructions import (
     Instruction,
     Play,
     SetFrequency,
+    ShiftFrequency,
     ShiftPhase,
     Snapshot,
 )

@@ -105,6 +105,14 @@ class EventsOutputChannels:
         return self._trim(self._frequencychanges)
 
     @property
+    def frequencyshift(self) -> Dict[int, instructions.ShiftFrequency]:
+        """Set the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
+
+    @property
     def conditionals(self) -> Dict[int, str]:
         """Get conditionals."""
         if self._conditionals is None:
@@ -192,6 +200,8 @@ class EventsOutputChannels:
                     tmp_fc += instr.phase
                     pv[time:] = 0
                 elif isinstance(instr, instructions.SetFrequency):
+                    tmp_sf = instr.frequency
+                elif isinstance(instr, instructions.ShiftFrequency):
                     tmp_sf = instr.frequency
                 elif isinstance(instr, instructions.Snapshot):
                     self._snapshots[time] = instr.name

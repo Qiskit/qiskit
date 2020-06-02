@@ -203,8 +203,8 @@ def _assemble_instructions(
             user_pulselib[name] = instruction.pulse.samples
 
         if isinstance(instruction, (commands.AcquireInstruction, instructions.Acquire)):
-            max_memory_slot = max(max_memory_slot,
-                                  *[slot.index for slot in instruction.mem_slots])
+            if instruction.mem_slot:
+                max_memory_slot = max(max_memory_slot, instruction.mem_slot.index)
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
             # together into the Qobj as one instruction with many channels
             acquire_instruction_map[(time, instruction.command)].append(instruction)
@@ -250,7 +250,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
     for _, instrs in instruction_map.items():
         measured_qubits = set()
         for inst in instrs:
-            measured_qubits.update([acq.index for acq in inst.acquires])
+            measured_qubits.add(inst.channel.index)
 
         for meas_set in meas_map_sets:
             intersection = measured_qubits.intersection(meas_set)
@@ -275,9 +275,11 @@ def _bundle_channel_indices(
     mem_slots = []
     reg_slots = []
     for inst in instrs:
-        qubits.extend(aq.index for aq in inst.acquires)
-        mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
-        reg_slots.extend(reg.index for reg in inst.reg_slots)
+        qubits.append(inst.channel.index)
+        if inst.mem_slot:
+            mem_slots.append(inst.mem_slot.index)
+        if inst.reg_slot:
+            reg_slots.append(inst.reg_slot.index)
     return qubits, mem_slots, reg_slots
 
 
