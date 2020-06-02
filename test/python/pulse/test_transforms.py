@@ -629,7 +629,8 @@ class TestFlatten(QiskitTestCase):
         flattened = transforms.flatten(grouped)
 
         # align all the instructions to the left after flattening
-        schedule = transforms.align_left(flattened)
+        flattened = transforms.align_left(flattened)
+        grouped = transforms.align_left(grouped)
 
         reference = pulse.Schedule()
         # d0
@@ -637,7 +638,9 @@ class TestFlatten(QiskitTestCase):
         reference += instructions.Delay(7, d0)
         # d1
         reference += instructions.Delay(5, d1)
-        self.assertEqual(schedule, reference)
+
+        self.assertEqual(flattened, reference)
+        self.assertNotEqual(grouped, reference)
 
 
 class _TestDirective(directives.Directive):
