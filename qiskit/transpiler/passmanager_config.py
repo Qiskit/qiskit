@@ -26,7 +26,6 @@ class PassManagerConfig:
                  layout_method=None,
                  routing_method=None,
                  backend_properties=None,
-                 synthesis_fidelity=None,
                  seed_transpiler=None):
         """Initialize a PassManagerConfig object
 
@@ -43,7 +42,6 @@ class PassManagerConfig:
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
-            synthesis_fidelity (float): tolerable fidelity for approximate synthesis.
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
         """
@@ -53,5 +51,4 @@ class PassManagerConfig:
         self.layout_method = layout_method
         self.routing_method = routing_method
         self.backend_properties = backend_properties
-        self.synthesis_fidelity = synthesis_fidelity
         self.seed_transpiler = seed_transpiler
