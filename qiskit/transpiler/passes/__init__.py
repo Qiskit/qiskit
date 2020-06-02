@@ -74,7 +74,6 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
-   SimplifyU3
 
 Circuit Analysis
 ================
@@ -145,7 +144,6 @@ from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
-from .optimization import SimplifyU3
 
 # circuit analysis
 from .analysis import ResourceEstimation

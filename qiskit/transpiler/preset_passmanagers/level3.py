@@ -49,7 +49,6 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
-from qiskit.transpiler.passes import SimplifyU3
 from qiskit.transpiler.passes import Approx2qDecompose
 
 from qiskit.transpiler import TranspilerError
@@ -155,8 +154,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Collect2qBlocks(), ConsolidateBlocks(),
             Approx2qDecompose(fidelity=synthesis_fidelity),
-            Optimize1qGates(basis_gates), CommutativeCancellation(),
-            SimplifyU3()]
+            Optimize1qGates(basis_gates), CommutativeCancellation()]
 
     # 9. Remove useless gates before measure.
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
