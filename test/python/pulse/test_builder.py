@@ -181,26 +181,6 @@ class TestContexts(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    def test_group(self):
-        """Test the grouping context."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-
-        with pulse.build() as schedule:
-            pulse.delay(3, d0)
-            with pulse.group():
-                pulse.delay(5, d1)
-                pulse.delay(7, d0)
-
-        reference = pulse.Schedule()
-        # d0
-        reference.insert(0, instructions.Delay(3, d0), inplace=True)
-        reference.insert(3, instructions.Delay(7, d0), inplace=True)
-        # d1
-        reference.insert(3, instructions.Delay(5, d1), inplace=True)
-
-        self.assertEqual(schedule, reference)
-
     def test_inline(self):
         """Test the inlining context."""
         d0 = pulse.DriveChannel(0)

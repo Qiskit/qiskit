@@ -921,36 +921,6 @@ def _align(alignment: str = 'left') -> ContextManager[None]:
                                     'supported.'.format(alignment))
 
 
-@_transform_context(transforms.group)
-def group() -> ContextManager[None]:
-    """Group the instructions within this context as a :class:`pulse.Schedule`.
-    fixing their relative time in parent contexts.
-
-    Examples:
-
-    .. jupyter-execute::
-
-        from qiskit import pulse
-
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-        d2 = pulse.DriveChannel(2)
-
-        with pulse.build() as pulse_prog:
-            # will be ignored due to internal grouping
-            with pulse.align_sequential():
-                pulse.play(pulse.Constant(10, 1.0), d0)
-                with pulse.group():
-                    with pulse.align_left():
-                        # this pulse will start at t=10
-                        pulse.play(pulse.Constant(100, 1.0), d1)
-                        # this pulse will also start at t=10
-                        pulse.play(pulse.Constant(20, 1.0), d2)
-
-        assert pulse_prog.ch_start_time(d1) == pulse_prog.ch_start_time(d2)
-    """
-
-
 @contextmanager
 def inline() -> ContextManager[None]:
     """Inline all instructions within this context into the parent context,
@@ -1808,7 +1778,7 @@ def delay_qubits(duration: int,
     """
     qubit_chans = set(itertools.chain.from_iterable(
         qubit_channels(qubit) for qubit in qubits))
-    with align_left(), group():
+    with align_left():
         for chan in qubit_chans:
             delay(duration, chan)
 

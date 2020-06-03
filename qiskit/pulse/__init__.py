@@ -180,7 +180,6 @@ from qiskit.pulse.builder import (
     align_sequential,
     circuit_scheduler_settings,
     frequency_offset,
-    group,
     inline,
     pad,
     phase_offset,

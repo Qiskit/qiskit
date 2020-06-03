@@ -18,7 +18,6 @@ Basic rescheduling functions which take schedules or instructions
 """
 import warnings
 
-import collections
 from typing import List, Optional, Iterable
 
 import numpy as np
@@ -380,14 +379,6 @@ def align_sequential(schedule: Schedule) -> Schedule:
     for _, child in schedule.children:
         aligned.insert(aligned.duration, child, inplace=True)
     return aligned
-
-
-def group(schedule: Schedule) -> Schedule:
-    """Group all instructions in a node.
-
-    With the current schedule implementation this is trivial.
-    """
-    return schedule
 
 
 def flatten(schedule: Schedule) -> Schedule:
