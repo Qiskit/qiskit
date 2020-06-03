@@ -204,3 +204,53 @@ class TestCounts(unittest.TestCase):
                       '12': 114, '20': 117, '21': 104, '22': 102}
         counts_obj = counts.Counts(raw_counts)
         self.assertEqual('00', counts_obj.most_frequent())
+
+    def test_just_0b_bitstring_counts(self):
+        raw_counts = {'0b0': 21, '0b10': 12}
+        expected = {'0': 21, '10': 12}
+        result = counts.Counts(raw_counts)
+        self.assertEqual(expected, result)
+
+    def test_0b_bistring_counts_with_exta_formatting_data(self):
+        raw_counts = {'0b0': 4, '0b10': 10}
+        expected = {'0 0 00': 4, '0 0 10': 10}
+        result = counts.Counts(raw_counts, 'test_counts', shots=14,
+                               creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]],
+                               memory_slots=4)
+        self.assertEqual(result, expected)
+
+    def test_marginal_0b_string_counts(self):
+        raw_counts = {'0b0': 4, '0b1': 7, '0b10': 10, '0b110': 5, '0b1001': 11,
+                      '0b1101': 9, '0b1110': 8}
+        expected = {'00': 4, '01': 27, '10': 23}
+        counts_obj = counts.Counts(raw_counts, shots=54, creg_sizes=[['c0', 4]],
+                                   memory_slots=4)
+        result = utils.marginal_counts(counts_obj, [0, 1])
+        self.assertEqual(expected, result)
+
+    def test_int_outcomes_with_0b_bitstring_counts(self):
+        raw_counts = {'0b0': 21, '0b10': 12, '0b11': 5, '0b101110': 265}
+        expected = {0: 21, 2: 12, 3: 5, 46: 265}
+        counts_obj = counts.Counts(raw_counts)
+        result = counts_obj.int_outcomes()
+        self.assertEqual(expected, result)
+
+    def test_most_frequent_0b_bitstring_counts(self):
+        raw_counts = {'0b0': 21, '0b10': 12, '0b11': 5, '0b101110': 265}
+        expected = '101110'
+        counts_obj = counts.Counts(raw_counts)
+        result = counts_obj.most_frequent()
+        self.assertEqual(expected, result)
+
+    def test_most_frequent_duplicate_0b_bitstring_counts(self):
+        raw_counts = {'0b0': 265, '0b10': 12, '0b11': 5, '0b101110': 265}
+        counts_obj = counts.Counts(raw_counts)
+        self.assertRaises(exceptions.QiskitError,
+                          counts_obj.most_frequent)
+
+    def test_hex_outcomes_0b_bitstring_counts(self):
+        raw_counts = {'0b0': 265, '0b10': 12, '0b11': 5, '0b101110': 265}
+        expected = {'0x0': 265, '0x2': 12, '0x3': 5, '0x2e': 265}
+        counts_obj = counts.Counts(raw_counts)
+        result = counts_obj.hex_outcomes()
+        self.assertEqual(expected, result)
