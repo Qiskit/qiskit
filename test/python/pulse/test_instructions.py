@@ -60,7 +60,7 @@ class TestAcquire(QiskitTestCase):
                                         channels.AcquireChannel(0),
                                         channels.MemorySlot(0), None))
 
-    def test_isntructions_hash(self):
+    def test_instructions_hash(self):
         """Test hashing for acquire instruction."""
         kernel_opts = {
             'start_window': 0,
