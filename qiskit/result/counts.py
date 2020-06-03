@@ -34,12 +34,20 @@ class Counts(dict):
         """Build a counts object
 
         Args:
-            data (dict): The dictionary input for the counts. The key should
-                be a hexademical string of the form ``"0x4a"``, a bit string in
-                little endian format, or an integer representing the
-                measured classical value from the experiment and the
-                dictionary's value is an integer representing the number of
-                shots with that result.
+            data (dict): The dictionary input for the counts. Where the keys
+                represent a measured classical value and the value is an
+                integer the number of shots with that result.
+                The keys can be one of several formats:
+
+                     * A hexademical string of the form ``"0x4a"``
+                     * A bit string prefixed with ``0b`` for example ``'0b1011'``
+                     * A bit string formatted across register and memory slots.
+                       For example,
+                     * A dit string, for example ``'02'``. Note for objects created
+                       with dit strings the ``creg_sizes``and ``memory_slots``
+                       kwargs don't work and :meth:`hex_outcomes` and
+                       :meth:`int_outcomes` also do not work.
+
             name (str): A string name for the counts object
             shots (int): The number of shots used in the experiment
             time_taken (float): The duration of the experiment that generated
