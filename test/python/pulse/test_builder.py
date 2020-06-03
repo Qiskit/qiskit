@@ -189,8 +189,10 @@ class TestContexts(TestBuilder):
         with pulse.build() as schedule:
             pulse.delay(3, d0)
             with pulse.inline():
-                pulse.delay(5, d1)
-                pulse.delay(7, d0)
+                # this alignment will be ignored due to inlining.
+                with pulse.align_right():
+                    pulse.delay(5, d1)
+                    pulse.delay(7, d0)
 
         reference = pulse.Schedule()
         # d0
