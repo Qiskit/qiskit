@@ -892,26 +892,18 @@ class TestBuilderComposition(TestBuilder):
                 pulse.u2(0, pi/2, 0)
             pulse.measure(0)
 
+        # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
         single_u2_qc.u2(0, pi/2, 1)
         single_u2_qc = compiler.transpile(single_u2_qc, self.backend)
         single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
 
-        triple_u2_qc = circuit.QuantumCircuit(2)
-        triple_u2_qc.u2(0, pi/2, 0)
-        triple_u2_qc.u2(0, pi/2, 1)
-        triple_u2_qc.u2(0, pi/2, 0)
-        triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
-        triple_u2_sched = compiler.schedule(triple_u2_qc,
-                                            self.backend,
-                                            method='alap')
+        # sequential context
+        sequential_reference = pulse.Schedule()
+        sequential_reference += instructions.Delay(delay_dur, d0)
+        sequential_reference.insert(delay_dur, single_u2_sched, inplace=True)
 
-        # outer sequential context
-        outer_reference = pulse.Schedule()
-        outer_reference += instructions.Delay(delay_dur, d0)
-        outer_reference.insert(delay_dur, single_u2_sched, inplace=True)
-
-        # inner align right
+        # align right
         align_right_reference = pulse.Schedule()
         align_right_reference += pulse.Play(
             pulse_lib.Constant(long_dur, 0.1), d2)
@@ -922,15 +914,22 @@ class TestBuilderComposition(TestBuilder):
             long_dur-single_u2_sched.duration-short_dur,
             pulse.Play(pulse_lib.Constant(short_dur, 0.1), d1),
             inplace=True)
-        # inner align left
-        align_left_reference = triple_u2_sched
+
+        # align left
+        triple_u2_qc = circuit.QuantumCircuit(2)
+        triple_u2_qc.u2(0, pi/2, 0)
+        triple_u2_qc.u2(0, pi/2, 1)
+        triple_u2_qc.u2(0, pi/2, 0)
+        triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
+        align_left_reference = compiler.schedule(
+            triple_u2_qc, self.backend, method='alap')
 
         # measurement
         measure_reference = macros.measure(qubits=[0],
                                            inst_map=self.inst_map,
                                            meas_map=self.configuration.meas_map)
         reference = pulse.Schedule()
-        reference += outer_reference
+        reference += sequential_reference
         # Insert so that the long pulse on d2 occurs as early as possible
         # without an overval on d1.
         insert_time = (reference.ch_stop_time(d1) -
