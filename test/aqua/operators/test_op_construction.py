@@ -223,7 +223,7 @@ class TestOpConstruction(QiskitAquaTestCase):
 
     def test_summed_op(self):
         """Test SummedOp"""
-        sum_op: SummedOp = (X ^ X * 2) + (Y ^ Y)
+        sum_op = (X ^ X * 2) + (Y ^ Y)  # type: SummedOp
         with self.subTest('SummedOp test 1'):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])

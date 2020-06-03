@@ -43,7 +43,7 @@ class VariationalForm(ABC):
         super().__init__()
         self._num_parameters = 0
         self._num_qubits = 0
-        self._bounds = list()
+        self._bounds = list()  # type: List[object]
         self._support_parameterized_circuit = False
         pass
 
@@ -95,7 +95,7 @@ class VariationalForm(ABC):
         return self._num_qubits
 
     @property
-    def parameter_bounds(self):
+    def parameter_bounds(self) -> List[object]:
         """Parameter bounds.
 
         Returns:
