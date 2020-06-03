@@ -749,10 +749,11 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj.config.rep_time, rep_time*1e6)
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
-        # now remove rep_delay and set enable dynamic rep rates (will give DeprecationWarning)
+        # now remove rep_delay and set enable dynamic rep rates
+        # RuntimeWarning bc using ``rep_time`` when dynamic rep rates are enabled
         del self.config['rep_delay']
         self.backend_config.dynamic_reprate_enabled = True
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, rep_time*1e6)
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
@@ -788,8 +789,10 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                              pulse.MeasureChannel(1): self.meas_lo_freq[1]}
         self.meas_map = self.config.meas_map
         self.memory_slots = self.config.n_qubits
+
+        # default rep_time and rep_delay
         self.rep_time = self.config.rep_times[0]
-        self.rep_delay = self.config.rep_delays[0]
+        self.rep_delay = None
 
     def test_defaults(self):
         """Test defaults work."""
@@ -846,6 +849,22 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                         rep_time=self.rep_time,
                         rep_delay=self.rep_delay)
         validate_qobj_against_schema(qobj)
+
+    def test_missing_rep_time_and_delay(self):
+        """Test qobj is valid if rep_time and rep_delay are missing."""
+        qobj = assemble(self.schedule,
+                        qubit_lo_freq=self.qubit_lo_freq,
+                        meas_lo_freq=self.meas_lo_freq,
+                        qubit_lo_range=self.qubit_lo_range,
+                        meas_lo_range=self.meas_lo_range,
+                        schedule_los=self.schedule_los,
+                        meas_map=self.meas_map,
+                        memory_slots=None,
+                        rep_time=None,
+                        rep_delay=None)
+        validate_qobj_against_schema(qobj)
+        self.assertEqual(hasattr(qobj, 'rep_time'), False)
+        self.assertEqual(hasattr(qobj, 'rep_delay'), False)
 
     def test_missing_meas_map(self):
         """Test that assembly still works if meas_map is missing."""

@@ -106,11 +106,11 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         meas_map: List of lists, containing qubits that must be measured together.
         memory_slot_size: Size of each memory slot if the output is Level 0.
         rep_time: Time per program execution in sec. Must be from the list provided
-            by the backend.
+            by the backend (``backend.configuration().rep_times``).
         rep_delay: Delay between programs in sec. Only supported on certain
             backends (``backend.configuration()['dynamic_reprate_enabled']`` ).
-            If supported, it will override ``rep_time``. Must be from the list
-            provided by the backends.
+            If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
+            provided by the backend (``backend.configuration().rep_delays``).
         parameter_binds: List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -288,16 +288,14 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if rep_time:
-        # deprecation warning for ``rep_time`` when dynamic rep rate is enabled
         if dynamic_reprate_enabled:
-            warnings.warn("Use 'rep_delay' rather than 'rep_time' as dynamic rep rates are enabled "
-                          "on this backend.", DeprecationWarning)
+            warnings.warn("Dynamic rep rates are supported on this backend. 'rep_delay' will be used "
+                          "instead, if specified.", RuntimeWarning)
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = rep_time * 1e6 # convert sec to μs
 
     rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
-    # if ``rep_delay`` is None, leave as None; otherwise update appropriately
     if rep_delay:
         if not dynamic_reprate_enabled:
             warnings.warn("Dynamic rep rates not supported on this backend. 'rep_time' will be used "
