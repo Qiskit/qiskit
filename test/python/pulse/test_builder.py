@@ -163,20 +163,20 @@ class TestContexts(TestBuilder):
 
         with pulse.build() as schedule:
             with pulse.align_right():
-                pulse.delay(11, d2)
-                pulse.delay(3, d0)
                 with pulse.align_right():
-                    pulse.delay(5, d1)
-                    pulse.delay(7, d0)
+                    pulse.delay(11, d2)
+                    pulse.delay(3, d0)
+                pulse.delay(13, d0)
+                pulse.delay(5, d1)
 
         reference = pulse.Schedule()
         # d0
-        reference = reference.insert(1, instructions.Delay(3, d0))
-        reference = reference.insert(4, instructions.Delay(7, d0))
+        reference.insert(8, instructions.Delay(3, d0), inplace=True)
+        reference.insert(11, instructions.Delay(13, d0), inplace=True)
         # d1
-        reference = reference.insert(6, instructions.Delay(5, d1))
+        reference.insert(19, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference += instructions.Delay(11, d2)
+        reference.insert(0, instructions.Delay(11, d2), inplace=True)
 
         self.assertEqual(schedule, reference)
 

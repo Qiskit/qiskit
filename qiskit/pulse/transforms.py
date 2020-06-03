@@ -262,20 +262,18 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     return new_schedules
 
 
-def _push_append(this: List[interfaces.ScheduleComponent],
-                 other: List[interfaces.ScheduleComponent],
-                 ) -> Schedule:
-    r"""Return a ``this`` with ``other`` inserted at the maximum time over
+def _push_left_append(this: Schedule,
+                      other: interfaces.ScheduleComponent,
+                      ) -> Schedule:
+    r"""Return ``this`` with ``other`` inserted at the maximum time over
     all channels shared between ```this`` and ``other``.
-
-   $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
 
     Args:
         this: Input schedule to which ``other`` will be inserted.
         other: Other schedule to insert.
 
     Returns:
-        Joined schedule
+        Push left appended schedule.
     """
     this_channels = set(this.channels)
     other_channels = set(other.channels)
@@ -289,7 +287,10 @@ def _push_append(this: List[interfaces.ScheduleComponent],
     else:
         shared_insert_time = 0
 
+    # Handle case where channels not common to both might actually start
+    # after ``this`` has finished.
     other_only_insert_time = other.ch_start_time(*(other_channels - this_channels))
+    # Choose whichever is greatest.
     insert_time = max(shared_insert_time, other_only_insert_time)
     return this.insert(insert_time, other, inplace=True)
 
@@ -307,9 +308,44 @@ def align_left(schedule: Schedule) -> Schedule:
     """
     aligned = Schedule()
     for _, child in schedule.children:
-        _push_append(aligned, child)
-
+        _push_left_append(aligned, child)
     return aligned
+
+
+def _push_right_prepend(this: interfaces.ScheduleComponent,
+                        other: interfaces.ScheduleComponent,
+                        ) -> Schedule:
+    r"""Return ``this`` with ``other`` inserted at the latest possible time
+    such that ``other`` ends before it overlaps with any of ``this``.
+
+    If required ``this`` is shifted  to start late enough so that there is room
+    to insert ``other``.
+
+    Args:
+       this: Input schedule to which ``other`` will be inserted.
+       other: Other schedule to insert.
+
+    Returns:
+       Push right prepended schedule.
+    """
+    this_channels = set(this.channels)
+    other_channels = set(other.channels)
+    shared_channels = list(this_channels & other_channels)
+    ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
+                 for channel in shared_channels]
+
+    if ch_slacks:
+        insert_time = min(ch_slacks) + other.start_time
+    else:
+        insert_time = this.stop_time - other.stop_time + other.start_time
+
+    if insert_time < 0:
+        this.shift(-insert_time, inplace=True)
+        this.insert(0, other, inplace=True)
+    else:
+        this.insert(insert_time, other, inplace=True)
+
+    return this
 
 
 def align_right(schedule: Schedule) -> Schedule:
@@ -323,23 +359,10 @@ def align_right(schedule: Schedule) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         right aligned.
     """
-    left_aligned = align_left(schedule)
-    total_duration = left_aligned.duration
-
-    latest_available_times = collections.defaultdict(lambda: total_duration)
-    right_aligned = Schedule()
-    for _, child in reversed(left_aligned.children):
-        child_channels = child.channels
-        # drop node without channels as it is empty
-        if child_channels:
-            latest_available_duration = min(latest_available_times[channel] for
-                                            channel in child_channels)
-            insert_time = latest_available_duration - child.duration
-            right_aligned.insert(insert_time, child, inplace=True)
-            latest_available_times.update(
-                dict.fromkeys(child_channels, insert_time))
-
-    return right_aligned
+    aligned = Schedule()
+    for _, child in reversed(schedule.children):
+        aligned = _push_right_prepend(aligned, child)
+    return aligned
 
 
 def align_sequential(schedule: Schedule) -> Schedule:
