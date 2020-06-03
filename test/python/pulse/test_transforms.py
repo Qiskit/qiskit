@@ -481,12 +481,12 @@ class TestAlignLeft(QiskitTestCase):
         schedule = transforms.align_left(schedule)
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(3, instructions.Delay(5, d1))
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference += instructions.Delay(11, d2)
+        reference.insert(0, instructions.Delay(11, d2), inplace=True)
 
         self.assertEqual(schedule, reference)
 
@@ -510,8 +510,8 @@ class TestAlignLeft(QiskitTestCase):
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
         reference = reference.insert(3, instructions.Delay(5, d1))
         # d2
@@ -542,12 +542,12 @@ class TestAlignRight(QiskitTestCase):
 
         reference = pulse.Schedule()
         # d0
-        reference = reference.insert(1, instructions.Delay(3, d0))
-        reference = reference.insert(4, instructions.Delay(7, d0))
+        reference.insert(1, instructions.Delay(3, d0), inplace=True)
+        reference.insert(4, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(6, instructions.Delay(5, d1))
+        reference.insert(6, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference += instructions.Delay(11, d2)
+        reference.insert(0, instructions.Delay(11, d2), inplace=True)
         self.assertEqual(schedule, reference)
 
     def test_align_right_with_barrier(self):
@@ -570,12 +570,12 @@ class TestAlignRight(QiskitTestCase):
 
         reference = pulse.Schedule()
         # d0
-        reference = reference.insert(0, instructions.Delay(3, d0))
-        reference = reference.insert(7, instructions.Delay(7, d0))
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(7, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(9, instructions.Delay(5, d1))
+        reference.insert(9, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference = reference.insert(3, instructions.Delay(11, d2))
+        reference.insert(3, instructions.Delay(11, d2), inplace=True)
 
         self.assertEqual(schedule, reference)
 
@@ -600,10 +600,11 @@ class TestGroup(QiskitTestCase):
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(3, instructions.Delay(5, d1))
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
+
         self.assertEqual(schedule, reference)
 
 
@@ -634,10 +635,10 @@ class TestFlatten(QiskitTestCase):
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference += instructions.Delay(5, d1)
+        reference.insert(0, instructions.Delay(5, d1), inplace=True)
 
         self.assertEqual(flattened, reference)
         self.assertNotEqual(grouped, reference)

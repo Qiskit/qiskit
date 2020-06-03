@@ -147,12 +147,13 @@ class TestContexts(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(3, instructions.Delay(5, d1))
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference += instructions.Delay(11, d2)
+        reference.insert(0, instructions.Delay(11, d2), inplace=True)
+
         self.assertEqual(schedule, reference)
 
     def test_align_right(self):
@@ -193,10 +194,11 @@ class TestContexts(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(3, instructions.Delay(5, d1))
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
+
         self.assertEqual(schedule, reference)
 
     def test_inline(self):
@@ -564,12 +566,12 @@ class TestDirectives(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference = reference.insert(0, instructions.Delay(3, d0))
-        reference = reference.insert(7, instructions.Delay(7, d0))
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(7, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(9, instructions.Delay(5, d1))
+        reference.insert(9, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference = reference.insert(3, instructions.Delay(11, d2))
+        reference.insert(3, instructions.Delay(11, d2), inplace=True)
 
         self.assertEqual(schedule, reference)
 
@@ -592,12 +594,12 @@ class TestDirectives(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
+        reference.insert(0, instructions.Delay(3, d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, d0), inplace=True)
         # d1
-        reference = reference.insert(3, instructions.Delay(5, d1))
+        reference.insert(3, instructions.Delay(5, d1), inplace=True)
         # d2
-        reference = reference.insert(3, instructions.Delay(11, d2))
+        reference.insert(3, instructions.Delay(11, d2), inplace=True)
 
         self.assertEqual(schedule, reference)
 
