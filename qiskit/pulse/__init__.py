@@ -38,7 +38,7 @@ noise in a quantum system.
 .. _pulse-builder:
 
 
-Pulse Builder (:mod:`~qiskit.pulse.builder`)
+(BETA) Pulse Builder (:mod:`~qiskit.pulse.builder`)
 ============================================
 
 .. autosummary::
