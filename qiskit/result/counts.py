@@ -42,7 +42,7 @@ class Counts(dict):
                      * A hexademical string of the form ``"0x4a"``
                      * A bit string prefixed with ``0b`` for example ``'0b1011'``
                      * A bit string formatted across register and memory slots.
-                       For example,
+                       For example, ``'00 10'``.
                      * A dit string, for example ``'02'``. Note for objects created
                        with dit strings the ``creg_sizes``and ``memory_slots``
                        kwargs don't work and :meth:`hex_outcomes` and
