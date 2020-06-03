@@ -1,7 +1,9 @@
-name: Binder
+name: Binder MPL tests
 on: 
   pull_request:
     types: [opened, reopened]
+    paths:
+    - qiskit/visualization/matplotlib.py
 
 jobs:
   Create-Binder-Badge:
@@ -23,7 +25,7 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left: Launch a binder notebook on this branch`
+            body: `This PR affects matplotlib circuit drawer. Please, check the following Binder to run the tests (including your own).\n\n :point_down: Test MPL drawer with this branch\n[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}?filepath=test%2Fipynb%2Fmpl_tester.ipynb)`
           }) 
       env:
         BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
