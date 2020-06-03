@@ -151,7 +151,6 @@ from qiskit.pulse.builder import (
     active_backend,
     active_transpiler_settings,
     active_circuit_scheduler_settings,
-    append_instruction,
     build,
     num_qubits,
     qubit_channels,

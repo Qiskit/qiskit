@@ -624,7 +624,7 @@ def append_instruction(instruction: instructions.Instruction):
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as pulse_prog:
-            pulse.append_instruction(pulse.Delay(10, d0))
+            pulse.builder.append_instruction(pulse.Delay(10, d0))
 
         print(pulse_prog.instructions)
     """

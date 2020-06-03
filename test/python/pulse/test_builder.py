@@ -626,7 +626,7 @@ class TestUtilities(TestBuilder):
         instruction = instructions.Delay(10, d0)
 
         with pulse.build() as schedule:
-            pulse.append_instruction(instruction)
+            builder.append_instruction(instruction)
 
         self.assertEqual(schedule, instruction)
 
