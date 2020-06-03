@@ -114,7 +114,7 @@ class SetPhase(Instruction):
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
-        by ``phase`` [radians].
+        to ``phase`` [radians].
 
         Args:
             phase: The rotation angle in radians.
