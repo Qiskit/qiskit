@@ -68,6 +68,11 @@ class Counts(dict):
                 self.hex_raw = data
                 self.int_raw = {
                     int(key, 0): value for key, value in self.hex_raw.items()}
+            elif first_key.startswith('0b'):
+                self.int_raw = {
+                    int(key, 0): value for key, value in data.items()}
+                self.hex_raw = {
+                    hex(key): value for key, value in self.int_raw.items()}
             else:
                 if not creg_sizes and not memory_slots:
                     self.hex_raw = None
