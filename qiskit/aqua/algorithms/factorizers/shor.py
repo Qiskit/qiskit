@@ -14,7 +14,7 @@
 
 """Shor's factoring algorithm."""
 
-from typing import Optional, Union
+from typing import Optional, Union, Tuple, List
 import math
 import array
 import fractions
@@ -22,13 +22,13 @@ import logging
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Gate, Instruction, ParameterVector
 from qiskit.circuit.library import QFT
 from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance
+from qiskit.aqua.algorithms import AlgorithmResult, QuantumAlgorithm
+from qiskit.aqua.utils import get_subsystem_density_matrix, summarize_circuits
 from qiskit.aqua.utils.arithmetic import is_power
-from qiskit.aqua.utils import get_subsystem_density_matrix
-from qiskit.aqua.algorithms import QuantumAlgorithm
-from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.validation import validate_min
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class Shor(QuantumAlgorithm):
 
         self._a = a
 
-        self._ret = {'factors': []}
+        self._ret = AlgorithmResult({"factors": [], "total_counts": 0, "successful_counts": 0})
 
         # check if the input integer is a power
         tf, b, p = is_power(N, return_decomposition=True)
@@ -92,11 +92,14 @@ class Shor(QuantumAlgorithm):
             logger.info('The input integer is a power: %s=%s^%s.', N, b, p)
             self._ret['factors'].append(b)
 
-        self._qft = QFT(do_swaps=False)
+        self._qft = QFT(do_swaps=False).to_instruction()
         self._iqft = self._qft.inverse()
 
-    def _get_angles(self, a):
-        """Calculate the array of angles to be used in the addition in Fourier Space."""
+        self._phi_add_N = None
+        self._iphi_add_N = None
+
+    def _get_angles(self, a: int) -> np.ndarray:
+        """Calculates the array of angles to be used in the addition in Fourier Space."""
         s = bin(int(a))[2:].zfill(self._n + 1)
         angles = np.zeros([self._n + 1])
         for i in range(0, self._n + 1):
@@ -104,120 +107,95 @@ class Shor(QuantumAlgorithm):
                 if s[j] == '1':
                     angles[self._n - i] += math.pow(2, -(j - i))
             angles[self._n - i] *= np.pi
-        return angles
+        return angles[::-1]
 
-    def _phi_add(self, circuit, q, inverse=False):
-        """Creation of the circuit that performs addition by a in Fourier Space.
+    @staticmethod
+    def _phi_add_gate(size: int, angles: Union[np.ndarray, ParameterVector]) -> Gate:
+        """Gate that performs addition by a in Fourier Space."""
+        circuit = QuantumCircuit(size, name="phi_add")
+        for i, angle in enumerate(angles):
+            circuit.u1(angle, i)
+        return circuit.to_gate()
 
-        Can also be used for subtraction by setting the parameter ``inverse=True``.
-        """
-        angle = self._get_angles(self._N)
-        for i in range(0, self._n + 1):
-            circuit.u1(-angle[i] if inverse else angle[i], q[i])
+    def _double_controlled_phi_add_mod_N(self,
+                                         num_qubits: int,
+                                         angles: Union[np.ndarray, ParameterVector]
+                                         ) -> QuantumCircuit:
+        """Creates a circuit which implements double-controlled modular addition by a."""
+        circuit = QuantumCircuit(num_qubits, name="phi_add")
 
-    def _controlled_phi_add(self, circuit, q, ctl, inverse=False):
-        """Single controlled version of the _phi_add circuit."""
-        angles = self._get_angles(self._N)
-        for i in range(0, self._n + 1):
-            angle = (-angles[i] if inverse else angles[i]) / 2
+        ctl_up = 0
+        ctl_down = 1
+        ctl_aux = 2
 
-            circuit.u1(angle, ctl)
-            circuit.cx(ctl, q[i])
-            circuit.u1(-angle, q[i])
-            circuit.cx(ctl, q[i])
-            circuit.u1(angle, q[i])
+        # get qubits from aux register, omitting the control qubit
+        qubits = range(3, num_qubits)
 
-    def _controlled_controlled_phi_add(self, circuit, q, ctl1, ctl2, a, inverse=False):
-        """Doubly controlled version of the _phi_add circuit."""
-        angle = self._get_angles(a)
-        for i in range(self._n + 1):
-            # ccphase(circuit, -angle[i] if inverse else angle[i], ctl1, ctl2, q[i])
-            circuit.mcu1(-angle[i] if inverse else angle[i], [ctl1, ctl2], q[i])
+        # store the gates representing addition/subtraction by a in Fourier Space
+        phi_add_a = self._phi_add_gate(len(qubits), angles)
+        iphi_add_a = phi_add_a.inverse()
 
-    def _controlled_controlled_phi_add_mod_N(self, circuit, q, ctl1, ctl2, aux, a):
-        """Circuit that implements doubly controlled modular addition by a."""
-        qubits = [q[i] for i in reversed(range(self._n + 1))]
+        circuit.append(phi_add_a.control(2), [ctl_up, ctl_down, *qubits])
+        circuit.append(self._iphi_add_N, qubits)
+        circuit.append(self._iqft, qubits)
 
-        self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a)
-        self._phi_add(circuit, q, inverse=True)
+        circuit.cx(qubits[0], ctl_aux)
 
-        circuit.compose(self._iqft, qubits, inplace=True)
-        circuit.cx(q[self._n], aux)
-        circuit.compose(self._qft, qubits, inplace=True)
-        self._controlled_phi_add(circuit, q, aux)
+        circuit.append(self._qft, qubits)
+        circuit.append(self._phi_add_N, qubits)
+        circuit.append(iphi_add_a.control(2), [ctl_up, ctl_down, *qubits])
+        circuit.append(self._iqft, qubits)
 
-        self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a, inverse=True)
-        circuit.compose(self._iqft, qubits, inplace=True)
-        circuit.u3(np.pi, 0, np.pi, q[self._n])
-        circuit.cx(q[self._n], aux)
-        circuit.u3(np.pi, 0, np.pi, q[self._n])
-        circuit.compose(self._qft, qubits, inplace=True)
-        self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a)
+        circuit.x(qubits[0])
+        circuit.cx(qubits[0], ctl_aux)
+        circuit.x(qubits[0])
 
-    def _controlled_controlled_phi_add_mod_N_inv(self, circuit, q, ctl1, ctl2, aux, a):
-        """Circuit that implements the inverse of doubly controlled modular addition by a."""
-        qubits = [q[i] for i in reversed(range(self._n + 1))]
+        circuit.append(self._qft, qubits)
+        circuit.append(phi_add_a.control(2), [ctl_up, ctl_down, *qubits])
+        return circuit
 
-        self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a, inverse=True)
-        circuit.compose(self._iqft, qubits, inplace=True)
-        circuit.u3(np.pi, 0, np.pi, q[self._n])
-        circuit.cx(q[self._n], aux)
-        circuit.u3(np.pi, 0, np.pi, q[self._n])
-        circuit.compose(self._qft, qubits, inplace=True)
-        self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a)
-        self._controlled_phi_add(circuit, q, aux, inverse=True)
-        circuit.compose(self._iqft, qubits, inplace=True)
-        circuit.cx(q[self._n], aux)
-        circuit.compose(self._qft, qubits, inplace=True)
-        self._phi_add(circuit, q)
-        self._controlled_controlled_phi_add(circuit, q, ctl1, ctl2, a, inverse=True)
-
-    def _controlled_multiple_mod_N(self, circuit, ctl, q, aux, a):
-        """Circuit that implements single controlled modular multiplication by a."""
+    def _controlled_multiple_mod_N(self, num_qubits: int, a: int) -> Instruction:
+        """Implements modular multiplication by a as an instruction."""
+        circuit = QuantumCircuit(
+            num_qubits, name="multiply_by_{}_mod_{}".format(a % self._N, self._N)
+        )
+        down = circuit.qubits[1: self._n + 1]
+        aux = circuit.qubits[self._n + 1:]
         qubits = [aux[i] for i in reversed(range(self._n + 1))]
-        circuit.compose(self._qft, qubits, inplace=True)
+        ctl_up = 0
+        ctl_aux = aux[-1]
 
-        for i in range(0, self._n):
-            self._controlled_controlled_phi_add_mod_N(
-                circuit,
-                aux,
-                q[i],
-                ctl,
-                aux[self._n + 1],
-                (2 ** i) * a % self._N
-            )
-        circuit.compose(self._iqft, qubits, inplace=True)
+        angle_params = ParameterVector("angles", length=len(aux) - 1)
+        double_controlled_phi_add = self._double_controlled_phi_add_mod_N(
+            len(aux) + 2, angle_params
+        )
+        idouble_controlled_phi_add = double_controlled_phi_add.inverse()
 
-        for i in range(0, self._n):
-            circuit.cswap(ctl, q[i], aux[i])
+        circuit.append(self._qft, qubits)
 
-        def modinv(a, m):
-            def egcd(a, b):
-                if a == 0:
-                    return (b, 0, 1)
-                else:
-                    g, y, x = egcd(b % a, a)
-                    return (g, x - (b // a) * y, y)
+        # perform controlled addition by a on the aux register in Fourier space
+        for i, ctl_down in enumerate(down):
+            a_exp = (2 ** i) * a % self._N
+            angles = self._get_angles(a_exp)
+            bound = double_controlled_phi_add.assign_parameters({angle_params: angles})
+            circuit.append(bound, [ctl_up, ctl_down, ctl_aux, *qubits])
 
-            g, x, _ = egcd(a, m)
-            if g != 1:
-                raise Exception('modular inverse does not exist')
+        circuit.append(self._iqft, qubits)
 
-            return x % m
+        # perform controlled subtraction by a in Fourier space on both the aux and down register
+        for j in range(self._n):
+            circuit.cswap(ctl_up, down[j], aux[j])
+        circuit.append(self._qft, qubits)
 
-        a_inv = modinv(a, self._N)
-        circuit.compose(self._qft, qubits, inplace=True)
+        a_inv = self.modinv(a, self._N)
+        for i in reversed(range(len(down))):
+            a_exp = (2 ** i) * a_inv % self._N
+            angles = self._get_angles(a_exp)
+            bound = idouble_controlled_phi_add.assign_parameters({angle_params: angles})
+            circuit.append(bound, [ctl_up, down[i], ctl_aux, *qubits])
 
-        for i in reversed(range(self._n)):
-            self._controlled_controlled_phi_add_mod_N_inv(
-                circuit,
-                aux,
-                q[i],
-                ctl,
-                aux[self._n + 1],
-                math.pow(2, i) * a_inv % self._N
-            )
-        circuit.compose(self._iqft, qubits, inplace=True)
+        circuit.append(self._iqft, qubits)
+        return circuit.to_instruction()
 
     def construct_circuit(self, measurement: bool = False) -> QuantumCircuit:
         """Construct circuit.
@@ -242,26 +220,35 @@ class Shor(QuantumAlgorithm):
         self._aux_qreg = QuantumRegister(self._n + 2, name='aux')
 
         # Create Quantum Circuit
-        circuit = QuantumCircuit(self._up_qreg, self._down_qreg, self._aux_qreg)
+        circuit = QuantumCircuit(self._up_qreg,
+                                 self._down_qreg,
+                                 self._aux_qreg,
+                                 name="Shor(N={}, a={})".format(self._N, self._a))
 
-        # Initialize down register to 1 and create maximal superposition in top register
-        circuit.u2(0, np.pi, self._up_qreg)
-        circuit.u3(np.pi, 0, np.pi, self._down_qreg[0])
+        # Create gates to perform addition/subtraction by N in Fourier Space
+        self._phi_add_N = self._phi_add_gate(self._aux_qreg.size - 1, self._get_angles(self._N))
+        self._iphi_add_N = self._phi_add_N.inverse()
+
+        # Create maximal superposition in top register
+        circuit.h(self._up_qreg)
+
+        # Initialize down register to 1
+        circuit.x(self._down_qreg[0])
 
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation
-        for i in range(0, 2 * self._n):
-            self._controlled_multiple_mod_N(
-                circuit,
-                self._up_qreg[i],
-                self._down_qreg,
-                self._aux_qreg,
-                int(pow(self._a, pow(2, i)))
+        for i, ctl_up in enumerate(self._up_qreg):
+            a = int(pow(self._a, pow(2, i)))
+            controlled_multiple_mod_N = self._controlled_multiple_mod_N(
+                len(self._down_qreg) + len(self._aux_qreg) + 1, a,
+            )
+            circuit.append(
+                controlled_multiple_mod_N, [ctl_up, *self._down_qreg, *self._aux_qreg]
             )
 
         # Apply inverse QFT
-        iqft = QFT(len(self._up_qreg), inverse=True)
-        circuit.compose(iqft, qubits=self._up_qreg)
+        iqft = QFT(len(self._up_qreg)).inverse().to_instruction()
+        circuit.append(iqft, self._up_qreg)
 
         if measurement:
             up_cqreg = ClassicalRegister(2 * self._n, name='m')
@@ -272,21 +259,37 @@ class Shor(QuantumAlgorithm):
 
         return circuit
 
-    def _get_factors(self, output_desired, t_upper):
+    @staticmethod
+    def modinv(a: int, m: int) -> int:
+        """Returns the modular multiplicative inverse of a with respect to the modulus m."""
+        def egcd(a: int, b: int) -> Tuple[int, int, int]:
+            if a == 0:
+                return b, 0, 1
+            else:
+                g, y, x = egcd(b % a, a)
+                return g, x - (b // a) * y, y
+
+        g, x, _ = egcd(a, m)
+        if g != 1:
+            raise ValueError("The greatest common divisor of {} and {} is {}, so the "
+                             "modular inverse does not exist.".format(a, m, g))
+        return x % m
+
+    def _get_factors(self, measurement: str) -> Optional[List[int]]:
         """Apply the continued fractions to find r and the gcd to find the desired factors."""
-        x_value = int(output_desired, 2)
-        logger.info('In decimal, x_final value for this result is: %s.', x_value)
+        x_final = int(measurement, 2)
+        logger.info('In decimal, x_final value for this result is: %s.', x_final)
 
-        if x_value <= 0:
-            self._ret['results'][output_desired] = \
-                'x_value is <= 0, there are no continued fractions.'
-            return False
-
-        logger.debug('Running continued fractions for this case.')
+        if x_final <= 0:
+            fail_reason = 'x_final value is <= 0, there are no continued fractions.'
+        else:
+            fail_reason = None
+            logger.debug('Running continued fractions for this case.')
 
         # Calculate T and x/T
-        T = pow(2, t_upper)
-        x_over_T = x_value / T
+        T_upper = len(measurement)
+        T = pow(2, T_upper)
+        x_over_T = x_final / T
 
         # Cycle in which each iteration corresponds to putting one more term in the
         # calculation of the Continued Fraction (CF) of x/T
@@ -299,85 +302,77 @@ class Shor(QuantumAlgorithm):
         b.append(math.floor(x_over_T))
         t.append(x_over_T - b[i])
 
-        while i >= 0:
-
+        exponential = 0
+        while i < self._N and fail_reason is None:
             # From the 2nd iteration onwards, calculate the new terms of the CF based
             # on the previous terms as the rule suggests
             if i > 0:
                 b.append(math.floor(1 / t[i - 1]))
                 t.append((1 / t[i - 1]) - b[i])
 
-            # Calculate the CF using the known terms
-            aux = 0
-            j = i
-            while j > 0:
-                aux = 1 / (b[j] + aux)
-                j = j - 1
-
-            aux = aux + b[0]
-
-            # Get the denominator from the value obtained
-            frac = fractions.Fraction(aux).limit_denominator()
-            denominator = frac.denominator
-
-            logger.debug('Approximation number %s of continued fractions:', i + 1)
-            logger.debug("Numerator:%s \t\t Denominator: %s.", frac.numerator, frac.denominator)
+            # Calculate the denominator of the CF using the known terms
+            denominator = self._calculate_continued_fraction(b)
 
             # Increment i for next iteration
-            i = i + 1
+            i += 1
 
             if denominator % 2 == 1:
-                if i >= self._N:
-                    self._ret['results'][output_desired] = \
-                        'unable to find factors after too many attempts.'
-                    return False
                 logger.debug('Odd denominator, will try next iteration of continued fractions.')
                 continue
 
-            # If denominator even, try to get factors of N
+            # Denominator is even, try to get factors of N
             # Get the exponential a^(r/2)
-            exponential = 0
 
             if denominator < 1000:
                 exponential = pow(self._a, denominator / 2)
 
             # Check if the value is too big or not
-            if math.isinf(exponential) or exponential > 1000000000:
-                self._ret['results'][output_desired] = \
-                    'denominator of continued fraction is too big.'
-                return False
-
-            # If the value is not to big (infinity),
-            # then get the right values and do the proper gcd()
-            putting_plus = int(exponential + 1)
-            putting_minus = int(exponential - 1)
-            one_factor = math.gcd(putting_plus, self._N)
-            other_factor = math.gcd(putting_minus, self._N)
-
-            # Check if the factors found are trivial factors or are the desired factors
-            if one_factor == 1 or one_factor == self._N or \
-                    other_factor == 1 or other_factor == self._N:
-                logger.debug('Found just trivial factors, not good enough.')
-                # Check if the number has already been found,
-                # use i-1 because i was already incremented
-                if t[i - 1] == 0:
-                    self._ret['results'][output_desired] = \
-                        'the continued fractions found exactly x_final/(2^(2n)).'
-                    return False
-                if i >= self._N:
-                    self._ret['results'][output_desired] = \
-                        'unable to find factors after too many attempts.'
-                    return False
+            if exponential > 1000000000:
+                fail_reason = 'denominator of continued fraction is too big.'
             else:
-                logger.debug('The factors of %s are %s and %s.', self._N, one_factor, other_factor)
-                logger.debug('Found the desired factors.')
-                self._ret['results'][output_desired] = (one_factor, other_factor)
-                factors = sorted((one_factor, other_factor))
-                if factors not in self._ret['factors']:
-                    self._ret['factors'].append(factors)
-                return True
+                # The value is not too big,
+                # get the right values and do the proper gcd()
+                putting_plus = int(exponential + 1)
+                putting_minus = int(exponential - 1)
+                one_factor = math.gcd(putting_plus, self._N)
+                other_factor = math.gcd(putting_minus, self._N)
 
-    def _run(self):
+                # Check if the factors found are trivial factors or are the desired factors
+                if any([factor in {1, self._N} for factor in (one_factor, other_factor)]):
+                    logger.debug('Found just trivial factors, not good enough.')
+                    # Check if the number has already been found,
+                    # (use i - 1 because i was already incremented)
+                    if t[i - 1] == 0:
+                        fail_reason = 'the continued fractions found exactly x_final/(2^(2n)).'
+                else:
+                    # Successfully factorized N
+                    return sorted((one_factor, other_factor))
+
+        # Search for factors failed, write the reason for failure to the debug logs
+        logger.debug(
+            'Cannot find factors from measurement %s because %s',
+            measurement, fail_reason or 'it took too many attempts.'
+        )
+
+    @staticmethod
+    def _calculate_continued_fraction(b: array.array) -> int:
+        """Calculate the continued fraction of x/T from the current terms of expansion b."""
+
+        x_over_T = 0
+
+        for i in reversed(range(len(b) - 1)):
+            x_over_T = 1 / (b[i + 1] + x_over_T)
+
+        x_over_T += b[0]
+
+        # Get the denominator from the value obtained
+        frac = fractions.Fraction(x_over_T).limit_denominator()
+
+        logger.debug('Approximation number %s of continued fractions:', len(b))
+        logger.debug("Numerator:%s \t\t Denominator: %s.", frac.numerator, frac.denominator)
+        return frac.denominator
+
+    def _run(self) -> AlgorithmResult:
         if not self._ret['factors']:
             logger.debug('Running with N=%s and a=%s.', self._N, self._a)
 
@@ -402,20 +397,22 @@ class Shor(QuantumAlgorithm):
                 circuit = self.construct_circuit(measurement=True)
                 counts = self._quantum_instance.execute(circuit).get_counts(circuit)
 
-            self._ret['results'] = dict()
+            self._ret.data["total_counts"] = len(counts)
 
             # For each simulation result, print proper info to user
             # and try to calculate the factors of N
-            for output_desired in list(counts.keys()):
-                # Get the x_value from the final state qubits
-                logger.info("------> Analyzing result %s.", output_desired)
-                self._ret['results'][output_desired] = None
-                success = self._get_factors(output_desired, int(2 * self._n))
-                if success:
-                    logger.info('Found factors %s from measurement %s.',
-                                self._ret['results'][output_desired], output_desired)
-                else:
-                    logger.info('Cannot find factors from measurement %s because %s',
-                                output_desired, self._ret['results'][output_desired])
+            for measurement in list(counts.keys()):
+                # Get the x_final value from the final state qubits
+                logger.info("------> Analyzing result %s.", measurement)
+                factors = self._get_factors(measurement)
+
+                if factors:
+                    logger.info(
+                        'Found factors %s from measurement %s.',
+                        factors, measurement
+                    )
+                    self._ret.data["successful_counts"] += 1
+                    if factors not in self._ret['factors']:
+                        self._ret['factors'].append(factors)
 
         return self._ret
