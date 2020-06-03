@@ -53,6 +53,7 @@ class Counts(dict):
             metadata: Any arbitrary key value metadata passed in as kwargs.
         """
         bin_data = None
+        data = dict(data)
         first_key = next(iter(data.keys()))
         if isinstance(first_key, int):
             self.int_raw = data
@@ -137,7 +138,6 @@ class Counts(dict):
                 int_key = int(bitstring.replace(" ", ""), 2)
                 out_dict[hex(int_key)] = value
             return out_dict
-
 
     def int_outcomes(self):
         """Build a counts dictionary with integer keys instead of count strings
