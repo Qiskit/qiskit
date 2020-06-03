@@ -22,6 +22,7 @@ import unittest
 from qiskit.pulse import pulse_lib
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
+from qiskit.pulse.commands import FrameChange
 from qiskit.pulse.instructions import (SetFrequency, Play, Acquire, Delay, Snapshot, ShiftFrequency,
                                        SetPhase, ShiftPhase)
 from qiskit.pulse.schedule import Schedule

@@ -267,7 +267,7 @@ class TestPulseQobj(QiskitTestCase):
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
                     {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 0.1+0j},
                     {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
-                    {'name': 'setp', 't0': 10, 'ch': 'd0', 'phase':3.14},
+                    {'name': 'setp', 't0': 10, 'ch': 'd0', 'phase': 3.14},
                     {'name': 'setf', 't0': 10, 'ch': 'd0', 'frequency': 8.0},
                     {'name': 'shiftf', 't0': 10, 'ch': 'd0', 'frequency': 4.0},
                     {'name': 'acquire', 't0': 15, 'duration': 5,

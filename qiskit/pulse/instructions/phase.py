@@ -12,7 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The phase instructions updates or sets the modulation phase of pulses played on a channel."""
+"""The phase instructions update the modulation phase of pulses played on a channel.
+
+The phase instructions update the modulation phase of pulses played on a channel.
+This includes ``SetPhase`` instructions which lock the modulation to a particular phase
+at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
+relative amount.
+"""
 
 import warnings
 
@@ -92,12 +98,22 @@ class ShiftPhase(Instruction):
 
 
 class SetPhase(Instruction):
-    r"""The set phase instruction sets the phase to the ``phase`` radians."""
+    r"""The set phase instruction sets the phase to the ``phase`` radians.
+
+    In particular, a PulseChannel creates pulses of the form
+
+    .. math::
+
+        Re[\exp(i 2\pi f jdt + \phi) d_j]
+
+    The ``SetPhase`` instruction causes :math:`\phi` to be determined by the instruction's
+    ``phase`` operand.
+    """
 
     def __init__(self, phase: complex,
-                 channel: PulseChannel = None,
+                 channel: PulseChannel,
                  name: Optional[str] = None):
-        """Instantiate a set phase instruction, increasing the output signal phase on ``channel``
+        """Instantiate a set phase instruction, setting the output signal phase on ``channel``
         by ``phase`` [radians].
 
         Args:
@@ -120,19 +136,3 @@ class SetPhase(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __call__(self, channel: PulseChannel) -> 'SetPhase':
-        """Return a new SetPhase instruction.
-
-        Args:
-            channel: The channel this instruction operates on.
-
-        Raises:
-            PulseError: If channel was already added.
-
-        Returns:
-            New SetPhase.
-        """
-        if self._channel is not None:
-            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
-        return SetPhase(self.phase, channel)

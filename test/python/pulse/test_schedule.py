@@ -655,12 +655,17 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
         self.assertEqual(len(no_pulse_and_fc.instructions), 5)
 
-        # test on ShiftPhase and SetPhase
+        # test on ShiftPhase
         only_fc, no_fc = \
-            self._filter_and_test_consistency(sched, instruction_types=[ShiftPhase,
-                                                                        SetPhase])
-        self.assertEqual(len(only_fc.instructions), 2)
-        self.assertEqual(len(no_fc.instructions), 7)
+            self._filter_and_test_consistency(sched, instruction_types={ShiftPhase})
+        self.assertEqual(len(only_fc.instructions), 1)
+        self.assertEqual(len(no_fc.instructions), 8)
+
+        # test on SetPhase
+        only_fc, no_fc = \
+            self._filter_and_test_consistency(sched, instruction_types={SetPhase})
+        self.assertEqual(len(only_fc.instructions), 1)
+        self.assertEqual(len(no_fc.instructions), 8)
 
         # test on SetFrequency
         only_setf, no_setf = self._filter_and_test_consistency(
