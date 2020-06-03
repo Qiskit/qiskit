@@ -1093,7 +1093,7 @@ def phase_offset(phase: float,
 
 @contextmanager
 def frequency_offset(frequency: float,
-                     channels: chans.PulseChannel,
+                     *channels: chans.PulseChannel,
                      compensate_phase: bool = False
                      ) -> ContextManager[None]:
     """Shift the frequency of inputs channels on entry into context and undo on exit.
@@ -1145,10 +1145,10 @@ def frequency_offset(frequency: float,
             dt = active_backend().configuration().dt
             accumulated_phase = duration * dt * frequency % (2*np.pi)
             for channel in channels:
-                shift_phase(channel, -accumulated_phase)
+                shift_phase(-accumulated_phase, channel)
 
         for channel in channels:
-            shift_frequency(channel, -frequency)
+            shift_frequency(-frequency, channel)
 
 
 # Channels
@@ -1385,7 +1385,7 @@ def shift_frequency(frequency: float,
         frequency: Frequency in Hz to shift channel frequency by.
         channel: Channel to shift frequency of.
     """
-    raise NotImplementedError()
+    append_instruction(instructions.ShiftFrequency(frequency, channel))
 
 
 def set_phase(phase: float,

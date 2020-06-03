@@ -255,13 +255,8 @@ class TestContexts(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_frequency_offset(self):
-        """Test the frequency offset context.
-
-        .. note::
-            Expected to fail as ``ShiftFrequency`` is not yet implemented.
-        """
+        """Test the frequency offset context."""
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
@@ -275,14 +270,9 @@ class TestContexts(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_phase_compensated_frequency_offset(self):
         """Test that the phase offset context properly compensates for phase
-        accumulation.
-
-        .. note::
-            Expected to fail as ``ShiftFrequency`` is not yet implemented.
-        """
+        accumulation."""
         d0 = pulse.DriveChannel(0)
 
         with pulse.build(self.backend) as schedule:
@@ -292,9 +282,9 @@ class TestContexts(TestBuilder):
         reference = pulse.Schedule()
         reference += instructions.ShiftFrequency(1e9, d0)  # pylint: disable=no-member
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftPhase(-1e9*10/self.configuration.dt, d0)
+        reference += instructions.ShiftPhase(
+            -(1e9*10*self.configuration.dt % (2*np.pi)), d0)
         reference += instructions.ShiftFrequency(-1e9, d0)  # pylint: disable=no-member
-
         self.assertEqual(schedule, reference)
 
 
@@ -429,7 +419,6 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_shift_frequency(self):  # pylint: disable=no-member
         """Test shift frequency instruction.
 
