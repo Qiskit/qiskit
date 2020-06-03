@@ -20,7 +20,7 @@ from qiskit.dagcircuit import DAGDependency
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.h import HGate
+from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.converters import circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
