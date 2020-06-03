@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The shift phase instruction updates the modulation phase of pulses played on a channel."""
+"""The phase instructions updates or sets the modulation phase of pulses played on a channel."""
 
 import warnings
 
@@ -89,3 +89,50 @@ class ShiftPhase(Instruction):
                       "example, ShiftPhase(3.14)(DriveChannel(0)) should be replaced by "
                       "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
         return ShiftPhase(self.phase, channel)
+
+
+class SetPhase(Instruction):
+    r"""The set phase instruction sets the phase to the ``phase`` radians."""
+
+    def __init__(self, phase: complex,
+                 channel: PulseChannel = None,
+                 name: Optional[str] = None):
+        """Instantiate a set phase instruction, increasing the output signal phase on ``channel``
+        by ``phase`` [radians].
+
+        Args:
+            phase: The rotation angle in radians.
+            channel: The channel this instruction operates on.
+            name: Display name for this instruction.
+        """
+        self._phase = phase
+        self._channel = channel
+        super().__init__((phase, channel), 0, (channel,), name=name)
+
+    @property
+    def phase(self) -> float:
+        """Return the rotation angle enacted by this instruction in radians."""
+        return self._phase
+
+    @property
+    def channel(self) -> PulseChannel:
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        scheduled on.
+        """
+        return self._channel
+
+    def __call__(self, channel: PulseChannel) -> 'SetPhase':
+        """Return a new SetPhase instruction.
+
+        Args:
+            channel: The channel this instruction operates on.
+
+        Raises:
+            PulseError: If channel was already added.
+
+        Returns:
+            New SetPhase.
+        """
+        if self._channel is not None:
+            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
+        return SetPhase(self.phase, channel)

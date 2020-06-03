@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
                           pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
-                          functional_pulse, ShiftFrequency)
+                          functional_pulse, ShiftFrequency, SetPhase)
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
                                    SnapshotChannel, MeasureChannel)
 from qiskit.pulse.commands import PersistentValue, PulseInstruction
@@ -631,6 +631,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0)))
         sched = sched.insert(50, ShiftFrequency(4.0e6, self.config.drive(0)))
+        sched = sched.insert(55, SetPhase(3.14, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
@@ -652,12 +653,13 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in no_pulse_and_fc.instructions:
             self.assertFalse(isinstance(inst, (Play, ShiftPhase)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 4)
+        self.assertEqual(len(no_pulse_and_fc.instructions), 5)
 
-        # test on ShiftPhase
+        # test on ShiftPhase and SetPhase
         only_fc, no_fc = \
-            self._filter_and_test_consistency(sched, instruction_types={ShiftPhase})
-        self.assertEqual(len(only_fc.instructions), 1)
+            self._filter_and_test_consistency(sched, instruction_types=[ShiftPhase,
+                                                                        SetPhase])
+        self.assertEqual(len(only_fc.instructions), 2)
         self.assertEqual(len(no_fc.instructions), 7)
 
         # test on SetFrequency
@@ -666,7 +668,7 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in only_setf.instructions:
             self.assertTrue(isinstance(inst, SetFrequency))
         self.assertEqual(len(only_setf.instructions), 1)
-        self.assertEqual(len(no_setf.instructions), 7)
+        self.assertEqual(len(no_setf.instructions), 8)
 
         # test on ShiftFrequency
         only_shiftf, no_shiftf = \
@@ -675,7 +677,7 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in only_shiftf.instructions:
             self.assertTrue(isinstance(inst, ShiftFrequency))
         self.assertEqual(len(only_shiftf.instructions), 1)
-        self.assertEqual(len(no_shiftf.instructions), 7)
+        self.assertEqual(len(no_shiftf.instructions), 8)
 
     def test_filter_intervals(self):
         """Test filtering on intervals."""
