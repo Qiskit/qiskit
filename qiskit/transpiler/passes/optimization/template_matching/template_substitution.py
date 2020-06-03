@@ -31,7 +31,6 @@ class SubstitutionConfig:
 
     def __init__(self, circuit_config, template_config, pred_block,
                  qubit_config, clbit_config=None):
-
         self.circuit_config = circuit_config
         self.template_config = template_config
         self.qubit_config = qubit_config
@@ -63,7 +62,7 @@ class TemplateSubstitution:
         self.dag_dep_optimized = DAGDependency()
         self.dag_optimized = DAGCircuit()
 
-    def _pred_block(self, circuit_sublist):
+    def _pred_block(self, circuit_sublist, index):
         """
         It returns the predecessors of a given part of the circuit.
         Args:
@@ -76,8 +75,8 @@ class TemplateSubstitution:
             predecessors = predecessors | set(self.circuit_dag_dep.get_node(index).predecessors)
 
         exclude = set()
-        for elem in self.substitution_list:
-            exclude = exclude | elem.circuit_config | elem.pred_block
+        for elem in self.substitution_list[:index]:
+            exclude = exclude | set(elem.circuit_config) | set(elem.pred_block)
 
         pred = list(predecessors - set(circuit_sublist) - exclude)
         pred.sort()
@@ -145,11 +144,58 @@ class TemplateSubstitution:
         total = left + right
         return total
 
+    def _substitution_sort(self):
+        ordered = False
+        while not ordered:
+            ordered = self._permutation()
+
+    def _permutation(self):
+        for scenario in self.substitution_list:
+            predecessors = set()
+            for match in scenario.circuit_config:
+                predecessors = predecessors | set(self.circuit_dag_dep.get_node(match).predecessors)
+            predecessors = predecessors - set(scenario.circuit_config)
+            index = self.substitution_list.index(scenario)
+            for scenario_b in self.substitution_list[index::]:
+                if set(scenario_b.circuit_config) & predecessors:
+                    print('move')
+
+                    index1 = self.substitution_list.index(scenario)
+                    index2 = self.substitution_list.index(scenario_b)
+
+                    scenario_pop = self.substitution_list.pop(index2)
+                    self.substitution_list.insert(index1, scenario_pop)
+                    print('false')
+                    return False
+        return True
+
+    def _remove_impossible(self):
+        list_predecessors = []
+        for scenario in self.substitution_list:
+            predecessors = set()
+            for index in scenario.circuit_config:
+                predecessors = predecessors | set(self.circuit_dag_dep.get_node(index).predecessors)
+            list_predecessors.append(predecessors)
+        for scenario_a in self.substitution_list:
+            index_a = self.substitution_list.index(scenario_a)
+            circuit_a = scenario_a.circuit_config
+            for scenario_b in self.substitution_list[index_a+1::]:
+                index_b = self.substitution_list.index(scenario_b)
+                circuit_b = scenario_b.circuit_config
+                if (set(circuit_a) & list_predecessors[index_b])\
+                        and (set(circuit_b) & list_predecessors[index_a]):
+                    self.match_stack.remove(scenario_b)
+                    print(circuit_a, list_predecessors[index_b])
+                    print(circuit_b, list_predecessors[index_a])
+                    print('\n')
+                    break
+
     def _substitution(self):
         """
         From the list of maximal matches, it chooses which one will be used and gives the necessary
         details for each substitution(template inverse, predecessors of the match).
         """
+
         while self.match_stack:
 
             current = self.match_stack.pop(0)
@@ -166,23 +212,29 @@ class TemplateSubstitution:
             if self._rules(circuit_sublist):
                 template_sublist_inverse = self._template_inverse(template_sublist)
 
-                pred = self._pred_block(circuit_sublist)
-
                 config = SubstitutionConfig(circuit_sublist,
                                             template_sublist_inverse,
-                                            pred,
+                                            [],
                                             current_qubit,
                                             current_clbit)
                 self.substitution_list.append(config)
+
+        self._remove_impossible()
+
+        self.substitution_list.sort(key=lambda x: x.circuit_config[0])
+
+        self._substitution_sort()
+
+        for scenario in self.substitution_list:
+            index = self.substitution_list.index(scenario)
+            scenario.pred_block = self._pred_block(scenario.circuit_config, index)
 
         circuit_list = []
         for elem in self.substitution_list:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
-        self.unmatched_list = list(set(range(0, self.circuit_dag_dep.size()))
-                                   - set(circuit_list))
-
-        self.substitution_list.sort(key=lambda x: x.circuit_config[0])
+        self.unmatched_list = sorted(list(set(range(0, self.circuit_dag_dep.size()))
+                                          - set(circuit_list)))
 
     def run_dag_opt(self):
         """
@@ -197,23 +249,16 @@ class TemplateSubstitution:
         dag_dep_opt.qregs = self.circuit_dag_dep.qregs.copy()
 
         already_sub = []
+        print(self.unmatched_list)
+        for scenario in self.substitution_list:
+            print(scenario.circuit_config, scenario.template_config, scenario.pred_block)
 
-        for node in self.circuit_dag_dep.get_nodes():
-            if node.node_id in already_sub:
-                pass
-            elif node.node_id in self.unmatched_list:
-
-                inst = node.op.copy()
-                inst.condition = node.condition
-                dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
-
-                already_sub.append(node.node_id)
-
-            else:
-                bloc = self.substitution_list.pop(0)
+        if self.substitution_list:
+            for bloc in self.substitution_list:
 
                 circuit_sub = bloc.circuit_config
                 template_inverse = bloc.template_config
+
                 pred = bloc.pred_block
 
                 qubit = bloc.qubit_config[0]
@@ -246,11 +291,19 @@ class TemplateSubstitution:
                         cargs = [all_clbits[x] for x in carg_c]
                     else:
                         cargs = []
-
+                    node = self.template_dag_dep.get_node(index)
                     inst = node.op.copy()
                     inst.condition = node.condition
 
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
+
+            for node_id in self.unmatched_list:
+                node = self.circuit_dag_dep.get_node(node_id)
+                inst = node.op.copy()
+                inst.condition = node.condition
+                dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
+        else:
+            dag_dep_opt = self.circuit_dag_dep
 
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
