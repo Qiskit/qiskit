@@ -51,6 +51,10 @@ class Counts(dict):
             memory_slots (int): The number of total ``memory_slots`` in the
                 experiment.
             metadata: Any arbitrary key value metadata passed in as kwargs.
+        Raises:
+            TypeError: If the input key type is not an int or string
+            QiskitError: If a dit string key is input with creg_sizes and/or
+                memory_slots
         """
         bin_data = None
         data = dict(data)
@@ -76,8 +80,8 @@ class Counts(dict):
                     for bitstring, value in data.items():
                         if not bitstring_regex.search(bitstring):
                             raise exceptions.QiskitError(
-                                'Counts objects with qudit bitstrings do not '
-                                'currently support bitstring formatting parameters '
+                                'Counts objects with dit strings do not '
+                                'currently support dit string formatting parameters '
                                 'creg_sizes or memory_slots')
                         int_key = int(bitstring.replace(" ", ""), 2)
                         int_dict[int_key] = value
@@ -124,6 +128,8 @@ class Counts(dict):
         Returns:
             dict: A dictionary with the keys as hexadecimal strings instead of
                 bitstrings
+        Raises:
+            QiskitError: If the Counts object contains counts for dit strings
         """
         if self.hex_raw:
             return {key.lower(): value for key, value in self.hex_raw.items()}
@@ -133,7 +139,7 @@ class Counts(dict):
             for bitstring, value in self.items():
                 if not bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
-                        'Counts objects with qudit bitstrings do not '
+                        'Counts objects with dit strings do not '
                         'currently support conversion to hexadecimal')
                 int_key = int(bitstring.replace(" ", ""), 2)
                 out_dict[hex(int_key)] = value
@@ -144,6 +150,8 @@ class Counts(dict):
 
         Returns:
             dict: A dictionary with the keys as integers instead of bitstrings
+        Raises:
+            QiskitError: If the Counts object contains counts for dit strings
         """
         if self.int_raw:
             return self.int_raw
@@ -153,7 +161,7 @@ class Counts(dict):
             for bitstring, value in self.items():
                 if not bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
-                        'Counts objects with qudit bitstrings do not '
+                        'Counts objects with dit strings do not '
                         'currently support conversion to integer')
                 int_key = int(bitstring.replace(" ", ""), 2)
                 out_dict[int_key] = value
