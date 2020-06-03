@@ -38,17 +38,15 @@ class TemplateMatching:
     Class TemplatingMatching allows to apply the full template matching algorithm.
     """
 
-    def __init__(self, circuit, template):
+    def __init__(self, circuit_dag_dep, template_dag_dep):
         """
         Create a TemplateMatching object with necessary arguments.
         Args:
             circuit (QuantumCircuit): circuit.
             template (QuantumCircuit): template.
         """
-        self.circuit = circuit
-        self.template = template
-        self.circuit_dag = DAGDependency()
-        self.template_dag = DAGDependency()
+        self.circuit_dag_dep = circuit_dag_dep
+        self.template_dag_dep = template_dag_dep
         self.match_list = []
 
     def _list_first_match(self, qarg_c, qarg_t, carg_c, carg_t, n_qubits_t, n_clbits_t):
@@ -145,25 +143,22 @@ class TemplateMatching:
         be comparable the indices of the template qubits list.
         """
 
-        n_qubits_c = self.circuit.num_qubits
-        n_clbits_c = self.circuit.num_clbits
+        n_qubits_c = len(self.circuit_dag_dep.qubits())
+        n_clbits_c = len(self.circuit_dag_dep.clbits())
 
-        n_qubits_t = self.template.num_qubits
-        n_clbits_t = self.template.num_clbits
+        n_qubits_t = len(self.template_dag_dep.qubits())
+        n_clbits_t = len(self.template_dag_dep.clbits())
 
-        self.circuit_dag = circuit_to_dagdependency(self.circuit)
-        self.template_dag = circuit_to_dagdependency(self.template)
+        for template_index in range(0, self.template_dag_dep.size()):
+            for circuit_index in range(0, self.circuit_dag_dep.size()):
+                if self.circuit_dag_dep.get_node(circuit_index).op == \
+                        self.template_dag_dep.get_node(template_index).op:
 
-        for template_index in range(0, self.template_dag.size()):
-            for circuit_index in range(0, self.circuit_dag.size()):
-                if self.circuit_dag.get_node(circuit_index).op == \
-                        self.template_dag.get_node(template_index).op:
+                    qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
+                    carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
 
-                    qarg_c = self.circuit_dag.get_node(circuit_index).qindices
-                    carg_c = self.circuit_dag.get_node(circuit_index).cindices
-
-                    qarg_t = self.template_dag.get_node(template_index).qindices
-                    carg_t = self.template_dag.get_node(template_index).cindices
+                    qarg_t = self.template_dag_dep.get_node(template_index).qindices
+                    carg_t = self.template_dag_dep.get_node(template_index).cindices
 
                     node_id_c = circuit_index
                     node_id_t = template_index
@@ -193,14 +188,14 @@ class TemplateMatching:
                                             self._list_qubit_clbit_circuit(list_first_match_c,
                                                                            perm_c)
 
-                                        forward = ForwardMatch(self.circuit_dag, self.template_dag,
+                                        forward = ForwardMatch(self.circuit_dag_dep, self.template_dag_dep,
                                                                node_id_c, node_id_t,
                                                                list_qubit_circuit,
                                                                list_clbit_circuit)
                                         forward.run_forward_match()
 
-                                        backward = BackwardMatch(forward.circuit_dag,
-                                                                 forward.template_dag,
+                                        backward = BackwardMatch(forward.circuit_dag_dep,
+                                                                 forward.template_dag_dep,
                                                                  forward.match, node_id_c,
                                                                  node_id_t,
                                                                  list_qubit_circuit,
@@ -210,13 +205,13 @@ class TemplateMatching:
 
                                         self._add_match(backward.match_final)
                             else:
-                                forward = ForwardMatch(self.circuit_dag, self.template_dag,
+                                forward = ForwardMatch(self.circuit_dag_dep, self.template_dag_dep,
                                                        node_id_c, node_id_t,
                                                        list_qubit_circuit)
                                 forward.run_forward_match()
 
-                                backward = BackwardMatch(forward.circuit_dag,
-                                                         forward.template_dag,
+                                backward = BackwardMatch(forward.circuit_dag_dep,
+                                                         forward.template_dag_dep,
                                                          forward.match,
                                                          node_id_c,
                                                          node_id_t,

@@ -124,7 +124,7 @@ class BackwardMatch:
     matching algorithm.
     """
 
-    def __init__(self, circuit_dag, template_dag, forward_matches
+    def __init__(self, circuit_dag_dep, template_dag_dep, forward_matches
                  , node_id_c, node_id_t, qubits, clbits=None):
         """
         Create a ForwardMatch class with necessary arguments.
@@ -138,10 +138,10 @@ class BackwardMatch:
             clbits (list): list of considered clbits in the circuit.
         """
         # The dag depdendency representation of the circuit
-        self.circuit_dag = circuit_dag.copy()
+        self.circuit_dag_dep = circuit_dag_dep.copy()
 
         # The dag dependency representation of the template
-        self.template_dag = template_dag.copy()
+        self.template_dag_dep = template_dag_dep.copy()
 
         # List of qubit on which the node of the circuit is acting on
         self.qubits = qubits
@@ -168,7 +168,7 @@ class BackwardMatch:
         """
         gate_indices = []
 
-        current_dag = self.circuit_dag
+        current_dag = self.circuit_dag_dep
 
         for node in current_dag.get_nodes():
             if (not node.matchedwith) and (not node.isblocked):
@@ -187,15 +187,15 @@ class BackwardMatch:
         """
         template_block = []
 
-        for node_id in range(self.node_id_t, self.template_dag.size()):
+        for node_id in range(self.node_id_t, self.template_dag_dep.size()):
             if template_blocked[node_id]:
                 template_block.append(node_id)
 
         matches_template = sorted([match[0] for match in matches])
 
-        successors = self.template_dag.get_node(self.node_id_t).successors
+        successors = self.template_dag_dep.get_node(self.node_id_t).successors
         potential = []
-        for index in range(self.node_id_t + 1, self.template_dag.size()):
+        for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
             if (index not in successors) and (index not in template_block):
                 potential.append(index)
 
@@ -312,14 +312,14 @@ class BackwardMatch:
         circuit_matched = []
         circuit_blocked = []
 
-        for node in self.circuit_dag.get_nodes():
+        for node in self.circuit_dag_dep.get_nodes():
             circuit_matched.append(node.matchedwith)
             circuit_blocked.append(node.isblocked)
 
         template_matched = []
         template_blocked = []
 
-        for node in self.template_dag.get_nodes():
+        for node in self.template_dag_dep.get_nodes():
             template_matched.append(node.matchedwith)
             template_blocked.append(node.isblocked)
 
@@ -349,7 +349,7 @@ class BackwardMatch:
 
         gate_indices = self._gate_indices()
 
-        number_of_gate_to_match = self.template_dag.size() - \
+        number_of_gate_to_match = self.template_dag_dep.size() - \
                                   (self.node_id_t - 1) - len(self.forward_matches)
 
         tree = 0
@@ -378,7 +378,7 @@ class BackwardMatch:
                 continue
 
             circuit_id = gate_indices[counter_scenario - 1]
-            node_circuit = self.circuit_dag.get_node(circuit_id)
+            node_circuit = self.circuit_dag_dep.get_node(circuit_id)
 
             if circuit_blocked[circuit_id]:
                 matching_scenario = MatchingScenarios(circuit_matched,
@@ -402,10 +402,9 @@ class BackwardMatch:
             global_match = False
 
             for template_id in candidates_indices:
-                actual_match = False
 
-                node_template = self.template_dag.get_node(template_id)
-                qarg2 = self.template_dag.get_node(template_id).qindices
+                node_template = self.template_dag_dep.get_node(template_id)
+                qarg2 = self.template_dag_dep.get_node(template_id).qindices
 
                 if len(qarg1) != len(qarg2) \
                         or set(qarg1) != set(qarg2)\
@@ -429,13 +428,13 @@ class BackwardMatch:
                     block_list = []
                     broken_matches_match = []
 
-                    for potential_block in self.template_dag.successors(template_id):
+                    for potential_block in self.template_dag_dep.successors(template_id):
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
                             block_list.append(potential_block)
                             for block_id in block_list:
                                 for succ_id in \
-                                        self.template_dag.successors(block_id):
+                                        self.template_dag_dep.successors(block_id):
                                     template_blocked_match[succ_id] = True
                                     if template_matched_match[succ_id]:
                                         new_id = \
@@ -485,7 +484,7 @@ class BackwardMatch:
 
                 broken_matches = []
 
-                for succ in self.circuit_dag.get_node(circuit_id).successors:
+                for succ in self.circuit_dag_dep.get_node(circuit_id).successors:
                     circuit_blocked_block_s[succ] = True
                     if circuit_matched_block_s[succ]:
                         broken_matches.append(succ)
@@ -525,7 +524,7 @@ class BackwardMatch:
 
                     circuit_blocked_block_p[circuit_id] = True
 
-                    for pred in self.circuit_dag.get_node(circuit_id).predecessors:
+                    for pred in self.circuit_dag_dep.get_node(circuit_id).predecessors:
                         circuit_blocked_block_p[pred] = True
 
                     matching_scenario = MatchingScenarios(circuit_matched_block_p,
@@ -544,12 +543,12 @@ class BackwardMatch:
 
                 following_matches = []
 
-                successors = self.circuit_dag.get_node(circuit_id).successors
+                successors = self.circuit_dag_dep.get_node(circuit_id).successors
                 for succ in successors:
                     if circuit_matched[succ]:
                         following_matches.append(succ)
 
-                predecessors = self.circuit_dag.get_node(circuit_id).predecessors
+                predecessors = self.circuit_dag_dep.get_node(circuit_id).predecessors
 
                 if not predecessors or not following_matches:
 
@@ -585,7 +584,7 @@ class BackwardMatch:
 
                     broken_matches = []
 
-                    successors = self.circuit_dag.get_node(circuit_id).successors
+                    successors = self.circuit_dag_dep.get_node(circuit_id).successors
 
                     for succ in successors:
                         circuit_blocked_nomatch[succ] = True

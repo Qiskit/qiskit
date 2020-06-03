@@ -158,14 +158,12 @@ class TemplateSubstitution:
             index = self.substitution_list.index(scenario)
             for scenario_b in self.substitution_list[index::]:
                 if set(scenario_b.circuit_config) & predecessors:
-                    print('move')
 
                     index1 = self.substitution_list.index(scenario)
                     index2 = self.substitution_list.index(scenario_b)
 
                     scenario_pop = self.substitution_list.pop(index2)
                     self.substitution_list.insert(index1, scenario_pop)
-                    print('false')
                     return False
         return True
 
@@ -185,9 +183,6 @@ class TemplateSubstitution:
                 if (set(circuit_a) & list_predecessors[index_b])\
                         and (set(circuit_b) & list_predecessors[index_a]):
                     self.match_stack.remove(scenario_b)
-                    print(circuit_a, list_predecessors[index_b])
-                    print(circuit_b, list_predecessors[index_a])
-                    print('\n')
                     break
 
     def _substitution(self):
@@ -249,9 +244,6 @@ class TemplateSubstitution:
         dag_dep_opt.qregs = self.circuit_dag_dep.qregs.copy()
 
         already_sub = []
-        print(self.unmatched_list)
-        for scenario in self.substitution_list:
-            print(scenario.circuit_config, scenario.template_config, scenario.pred_block)
 
         if self.substitution_list:
             for bloc in self.substitution_list:
