@@ -49,7 +49,7 @@ def validate_header(file_path):
 # that they have been altered from the originals.
 """
     count = 0
-    with open(file_path, 'r') as fd:
+    with open(file_path, 'r', encoding='utf8') as fd:
         lines = fd.readlines()
     start = 0
     for index, line in enumerate(lines):
