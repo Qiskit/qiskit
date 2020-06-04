@@ -24,7 +24,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate
+from qiskit.circuit.library import HGate
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
@@ -139,6 +139,22 @@ class TestDensityMatrix(QiskitTestCase):
         circ.x(0)
         circuit.ch(0, 1)
         target = DensityMatrix.from_label('00').evolve(Operator(circuit))
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test initialize instruction
+        init = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
+        target = DensityMatrix(init)
+        circuit = QuantumCircuit(2)
+        circuit.initialize(init.data, [0, 1])
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test reset instruction
+        target = DensityMatrix([1, 0])
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.reset(0)
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
 

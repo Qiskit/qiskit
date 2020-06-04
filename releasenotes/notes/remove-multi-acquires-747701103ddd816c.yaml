@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The properties ``acquires``, ``mem_slots``, and ``reg_slots`` of the
+    :class:`qiskit.pulse.instructions.Acquire` pulse instruction have been
+    deprecated.
+other:
+  - |
+    The option to Acquire multiple qubits at once was deprecated in Terra
+    release 0.12.0 and is now removed. Specifically, the init args
+    ``mem_slots`` and ``reg_slots`` have been removed from 
+    :class:`qiskit.pulse.instructions.Acquire`, and ``channel``, ``mem_slot``
+    and ``reg_slot`` will raise an error if a list is provided as input.
