@@ -382,7 +382,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
 
 
 def flatten(schedule: Schedule) -> Schedule:
-    """Flatten any grouped nodes."""
+    """Flatten any called nodes into a Schedule tree with no nested children."""
     return schedule.flatten()
 
 
