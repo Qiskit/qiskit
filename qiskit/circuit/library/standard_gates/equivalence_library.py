@@ -294,6 +294,8 @@ q = QuantumRegister(1, 'q')
 theta = Parameter('theta')
 def_rz = QuantumCircuit(q)
 def_rz.append(U1Gate(theta), [q[0]], [])
+import ipdb;ipdb.set_trace()
+def_rz.phase = theta / 2
 _sel.add_equivalence(RZGate(theta), def_rz)
 
 # CRZGate
@@ -413,7 +415,7 @@ def_tdg = QuantumCircuit(q)
 def_tdg.append(U1Gate(-pi / 4), [q[0]], [])
 _sel.add_equivalence(TdgGate(), def_tdg)
 
-# U1Gate
+# U2Gate
 
 q = QuantumRegister(1, 'q')
 phi = Parameter('phi')

@@ -20,7 +20,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import ParameterVector, Gate, ControlledGate
 
 
 from qiskit.circuit.library import (
@@ -39,7 +39,8 @@ from .gate_utils import _get_free_params
 
 class TestGateDefinitions(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
-    yields the same matrix as the hardcoded matrix definition."""
+    yields the equivalent matrix as the hardcoded matrix definition
+    up to a global phase."""
 
     def test_ch_definition(self):  # TODO: expand this to all gates
         """Test ch gate matrix and definition.
@@ -113,17 +114,90 @@ class TestGateDefinitions(QiskitTestCase):
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
+class TestGateDefinitionEqual(QiskitTestCase):
+    """Test the decomposition of a gate in terms of other gates
+    yields the same matrix as the hardcoded matrix definition."""
+    @classmethod
+    def setUpClass(cls):
+        
+        class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
+                   'MCU1Gate', 'UnitaryGate', 'HamiltonianGate',
+                   'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate'}
+        cls._gate_classes = []
+        for aclass in class_list:
+            #if aclass.__name__ not in exclude:
+            if aclass.__name__ == 'RZGate':
+                cls._gate_classes.append(aclass)
+
+    def test_definition_equal(self):
+        def has_to_matrix(gate):
+            try:
+                gate.to_matrix()
+            except:
+                return False
+            else:
+                return True
+                
+        for gate_class in self._gate_classes:
+            print(gate_class)
+            n_params = len(_get_free_params(gate_class))
+            params = [0.1 * i for i in range(1, n_params+1)]
+            if gate_class.__name__ in ['MSGate']:
+                params[0] = 2
+            elif gate_class in ['MCU1Gate']:
+                params[1] = 2
+            # elif issubclass(gate_class, 'MCXGate'):
+            #     params = [5]
+            gate = gate_class(*params)
+            
+            if has_to_matrix(gate):
+                pass
+            else:
+                print(f'Skipping {gate_class}')
+                continue
+            equiv_lib_list = std_eqlib.get_entry(gate)
+            for ieq, equivalency in enumerate(equiv_lib_list):
+                with self.subTest(msg=gate.name + '_' + str(ieq)):
+                    print(gate_class)
+                    circ = QuantumCircuit(gate.num_qubits)
+                    circ.append(gate, circ.qregs[0])
+                    decomposed_circ = circ.decompose()
+                    print(circ)
+                    print(equivalency)
+                    #import trace
+                    #tracer1 = trace.Trace(countcallers=1)
+                    import numpy as np
+                    np.set_printoptions(linewidth=200, precision=2)
+                    op1 = Operator(gate) # Don't use circ since that won't call to_matrix of gate.
+                    #tracer1.runfunc(Operator, circ)
+                    #tracer2 = trace.Trace(countcallers=1)
+                    op2 = Operator(equivalency)
+                    #tracer2.runfunc(Operator, equivalency)
+                    import ipdb;ipdb.set_trace()
+                        
+                    self.assertEqual(op1, op2)
+
+    def get_unitary_multiplier(A, B):
+        """Get constant multiplier between two matrices. If not a multiple,
+        return None.
+
+        A (ndarray): First matrix (assumed unitary).
+        B (ndarray): Second matrix (assumed unitary).
+
 
 @ddt
 class TestStandardEquivalenceLibrary(QiskitTestCase):
     """Standard Extension Test."""
 
+    # @data(
+    #     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
+    #     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
+    #     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
+    #     ZGate, CZGate, RYYGate
+    # )
     @data(
-        HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
-        CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-        U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
-        ZGate, CZGate, RYYGate
-    )
+        HGate)
     def test_definition_parameters(self, gate_class):
         """Verify decompositions from standard equivalence library match definitions."""
         n_params = len(_get_free_params(gate_class))
@@ -156,5 +230,6 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_qc.append(param_gate, param_qc.qregs[0])
         float_qc.append(float_gate, float_qc.qregs[0])
 
+        import ipdb;ipdb.set_trace()
         self.assertEqual(param_entry[0], param_qc.decompose())
         self.assertEqual(float_entry[0], float_qc.decompose())

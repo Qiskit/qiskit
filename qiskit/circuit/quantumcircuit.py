@@ -167,6 +167,7 @@ class QuantumCircuit:
         self._parameter_table = ParameterTable()
 
         self._layout = None
+        self._phase = None
 
     @property
     def data(self):
@@ -1419,6 +1420,30 @@ class QuantumCircuit:
         """
         qasm = Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
+
+    @property
+    def phase(self):
+        """Return the phase of the gate."""
+        return self._phase
+
+    @phase.setter
+    def phase(self, angle):
+        """Set the phase of the gate.
+
+        Args:
+            angle (float, ParameterExpression)
+        """
+        if isinstance(angle, ParameterExpression):
+            self._phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._phase = 0
+            elif angle < 0:
+                self._phase = angle % (-2 * math.pi)
+            else:
+                self._phase = angle % (2 * math.pi)
 
     @property
     def parameters(self):
