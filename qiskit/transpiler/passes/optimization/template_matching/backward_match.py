@@ -26,6 +26,7 @@ Efficient template matching in quantum circuits.
 `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 
 """
+import heapq
 
 from qiskit.circuit.controlledgate import ControlledGate
 
@@ -66,22 +67,18 @@ class MatchingScenarios:
         """
         Create a MatchingScenarios class with necessary arguments.
         Args:
-            circuit_dag (DAGDependency): circuit in the dag dependency form.
-            template_dag (DAGDependency): template in the dag dependency form.
+            circuit_matched (list): list of matchedwith attributes in the circuit.
+            circuit_blocked (list): list of isblocked attributes in the circuit.
+            template_matched (list): list of matchedwith attributes in the template.
+            template_blocked (list): list of isblocked attributes in the template.
             matches (list): list of matches.
             counter (int): counter of the number of circuit gates already considered.
         """
-        # DAGDependency object: circuit
         self.circuit_matched = circuit_matched
-
         self.template_matched = template_matched
-
         self.circuit_blocked = circuit_blocked
-        # DAGDependency object: template
         self.template_blocked = template_blocked
-        # List of matches
         self.matches = matches
-        # Counter
         self.counter = counter
 
 
@@ -95,7 +92,6 @@ class MatchingScenariosList:
         """
         Create an empty MatchingScenariosList.
         """
-        # List
         self.matching_scenarios_list = []
 
     def append_scenario(self, matching):
@@ -125,39 +121,31 @@ class BackwardMatch:
     """
 
     def __init__(self, circuit_dag_dep, template_dag_dep, forward_matches
-                 , node_id_c, node_id_t, qubits, clbits=None):
+                 , node_id_c, node_id_t, qubits, clbits=None, heuristics_backward_param=None):
         """
         Create a ForwardMatch class with necessary arguments.
         Args:
-            circuit_dag (DAGDependency): circuit in the dag dependency form.
-            template_dag (DAGDependency): template in the dag dependency form.
+            circuit_dag_dep (DAGDependency): circuit in the dag dependency form.
+            template_dag_dep (DAGDependency): template in the dag dependency form.
             forward_matches (list): list of match obtained in the forward direction.
             node_id_c (int): index of the first gate matched in the circuit.
             node_id_t (int): index of the first gate matched in the template.
             qubits (list): list of considered qubits in the circuit.
             clbits (list): list of considered clbits in the circuit.
+            heuristics_backward_param (list): list that contains the two parameters for
+            applying the heuristics (length and survivor).
         """
-        # The dag depdendency representation of the circuit
         self.circuit_dag_dep = circuit_dag_dep.copy()
-
-        # The dag dependency representation of the template
         self.template_dag_dep = template_dag_dep.copy()
-
-        # List of qubit on which the node of the circuit is acting on
         self.qubits = qubits
-
-        # List of qubit on which the node of the circuit is acting on
         self.clbits = clbits if clbits is not None else []
-
-        # Id of the node in the circuit
         self.node_id_c = node_id_c
-
-        # Id of the node in the template
         self.node_id_t = node_id_t
-
         self.forward_matches = forward_matches
-
         self.match_final = []
+        self.heuristics_backward_param = heuristics_backward_param \
+            if heuristics_backward_param is not None else []
+        self.matching_list = MatchingScenariosList()
 
     def _gate_indices(self):
         """
@@ -180,7 +168,7 @@ class BackwardMatch:
         """
         Function which returns the list possible backward candidates in the template dag.
         Args:
-            template_dag (DAGDependency): dag representation of the template circuit.
+            template_blocked (list): list of attributes isblocked in the template circuit.
             matches (list): list of matches.
         Returns:
             list: list of backward candidates (id).
@@ -261,7 +249,7 @@ class BackwardMatch:
         Returns:
             bool: True if possible, False otherwise.
         """
-
+        # If the gate is controlled, then the control qubits have to be compared as sets.
         if isinstance(node_circuit.op, ControlledGate):
 
             c_template = node_template.op.num_ctrl_qubits
@@ -278,13 +266,15 @@ class BackwardMatch:
                     target_qubits_template = node_template.qindices[c_template::]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
-                    if node_template.op.base_gate.name\
+                    if node_template.op.base_gate.name \
                             in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
                         return set(target_qubits_template) == set(target_qubits_circuit)
                     else:
                         return target_qubits_template == target_qubits_circuit
                 else:
                     return False
+        # For non controlled gates, the qubits indices for symmetric gates can be compared as sets
+        # But for non-symmetric gates the qubits indices have to be compared as lists.
         else:
             if node_template.op.name in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
                 return set(qarg_circuit) == set(node_template.qindices)
@@ -309,6 +299,15 @@ class BackwardMatch:
         return True
 
     def _init_matched_blocked_list(self):
+        """
+        Initialize the list of blocked and matchedwith attributes.
+        Returns:
+            Tuple[list, list, list, list]:
+            First list contains the attributes matchedwith in the circuit,
+            second list contains the attributes isblocked in the circuit,
+            third list contains the attributes matchedwith in the template,
+            fourth list contains the attributes isblocked in the template.
+        """
         circuit_matched = []
         circuit_blocked = []
 
@@ -325,6 +324,44 @@ class BackwardMatch:
 
         return circuit_matched, circuit_blocked, template_matched, template_blocked
 
+    def _backward_heuristics(self, gate_indices, length, survivor):
+        """
+        Heuristics to cut the tree in the backward match algorithm
+        Args:
+            gate_indices (list): list of candidates in the circuit.
+            length (int): depth for cutting the tree, cutting operation is repeated every length.
+            survivor (int): number of survivor branches.
+        """
+        # Set the list of the counter for the different scenarios.
+        list_counter = []
+
+        for scenario in self.matching_list.matching_scenarios_list:
+            list_counter.append(scenario.counter)
+
+        metrics = []
+        # If all scenarios have the same counter and the counter is divisible by length.
+        if list_counter.count(list_counter[0]) == len(list_counter) \
+                and list_counter[0] <= len(gate_indices):
+            if (list_counter[0] - 1) % length == 0:
+                # The list metrics contains metric results for each scenarios.
+                for scenario in self.matching_list.matching_scenarios_list:
+                    metrics.append(self._backward_metrics(scenario))
+                # Select only the scenarios with higher metrics for the given number of survivors.
+                largest = heapq.nlargest(survivor, range(len(metrics)), key=lambda x: metrics[x])
+                self.matching_list.matching_scenarios_list \
+                    = [i for j, i in enumerate(self.matching_list.matching_scenarios_list)
+                       if j in largest]
+
+    def _backward_metrics(self, scenario):
+        """
+        Heuristics to cut the tree in the backward match algorithm.
+        Args:
+            scenario (MatchingScenarios): scenario for the given match.
+        Returns:
+            int: length of the match for the given scenario.
+        """
+        return len(scenario.matches)
+
     def run_backward_match(self):
         """
         Apply the forward match algorithm and returns the list of matches given an initial match
@@ -335,8 +372,11 @@ class BackwardMatch:
 
         counter = 1
 
-        circuit_matched, circuit_blocked, template_matched, template_blocked = self._init_matched_blocked_list()
+        # Initialize the list of attributes matchedwith and isblocked.
+        circuit_matched, circuit_blocked, template_matched, template_blocked \
+            = self._init_matched_blocked_list()
 
+        # First Scenario is stored in the MatchingScenariosList().
         first_match = MatchingScenarios(circuit_matched,
                                         circuit_blocked,
                                         template_matched,
@@ -344,42 +384,51 @@ class BackwardMatch:
                                         self.forward_matches,
                                         counter)
 
-        matching_list = MatchingScenariosList()
-        matching_list.append_scenario(first_match)
+        self.matching_list = MatchingScenariosList()
+        self.matching_list.append_scenario(first_match)
 
+        # Set the circuit indices that can be matched.
         gate_indices = self._gate_indices()
 
         number_of_gate_to_match = self.template_dag_dep.size() - \
                                   (self.node_id_t - 1) - len(self.forward_matches)
 
-        tree = 0
+        # While the scenario stack is not empty.
+        while self.matching_list.matching_scenarios_list:
 
-        while matching_list.matching_scenarios_list:
+            # If parameters are given, the heuristics is applied.
+            if self.heuristics_backward_param:
+                self._backward_heuristics(gate_indices,
+                                          self.heuristics_backward_param[0],
+                                          self.heuristics_backward_param[1])
 
-            scenario = matching_list.pop_scenario()
+            scenario = self.matching_list.pop_scenario()
 
             circuit_matched = scenario.circuit_matched
             circuit_blocked = scenario.circuit_blocked
-
             template_matched = scenario.template_matched
             template_blocked = scenario.template_blocked
-
             matches_scenario = scenario.matches
-
             counter_scenario = scenario.counter
 
+            # Part of the match list coming from the backward match.
             match_backward = [match for match in matches_scenario
                               if match not in self.forward_matches]
 
+            # Matches are stored if the counter is bigger than the length of the list of
+            # candidates in the circuit. Or if number of gate left to match is the same as
+            # the length of the backward part of the match.
             if counter_scenario > len(gate_indices) or \
                     len(match_backward) == number_of_gate_to_match:
                 matches_scenario.sort(key=lambda x: x[0])
                 match_store_list.append(Match(matches_scenario, self.qubits, self.clbits))
                 continue
 
+            # First circuit candidate.
             circuit_id = gate_indices[counter_scenario - 1]
             node_circuit = self.circuit_dag_dep.get_node(circuit_id)
 
+            # If the circuit candidate is blocked, only the counter is changed.
             if circuit_blocked[circuit_id]:
                 matching_scenario = MatchingScenarios(circuit_matched,
                                                       circuit_blocked,
@@ -387,12 +436,14 @@ class BackwardMatch:
                                                       template_blocked,
                                                       matches_scenario,
                                                       counter_scenario + 1)
-                matching_list.append_scenario(matching_scenario)
+                self.matching_list.append_scenario(matching_scenario)
                 continue
 
+            # The candidates in the template.
             candidates_indices = self._find_backward_candidates(template_blocked,
                                                                 matches_scenario)
-
+            # Update of the qubits/clbits indices in the circuit in order to be
+            # comparable with the one in the template.
             qarg1 = node_circuit.qindices
             carg1 = node_circuit.cindices
 
@@ -401,22 +452,25 @@ class BackwardMatch:
 
             global_match = False
 
+            # Loop over the template candidates.
             for template_id in candidates_indices:
 
                 node_template = self.template_dag_dep.get_node(template_id)
                 qarg2 = self.template_dag_dep.get_node(template_id).qindices
 
+                # Necessary but not sufficient conditions for a match to happen.
                 if len(qarg1) != len(qarg2) \
-                        or set(qarg1) != set(qarg2)\
+                        or set(qarg1) != set(qarg2) \
                         or node_circuit.name != node_template.name:
                     continue
 
-                if self._is_same_q_conf(node_circuit, node_template, qarg1)\
-                        and self._is_same_c_conf(node_circuit, node_template, carg1)\
+                # Check if the qubit, clbit configuration are compatible for a match,
+                # also check if the operation are the same.
+                if self._is_same_q_conf(node_circuit, node_template, qarg1) \
+                        and self._is_same_c_conf(node_circuit, node_template, carg1) \
                         and self._is_same_op(node_circuit, node_template):
 
-                    tree = tree + 1
-
+                    # If there is a match the attributes are copied.
                     circuit_matched_match = circuit_matched.copy()
                     circuit_blocked_match = circuit_blocked.copy()
 
@@ -428,6 +482,8 @@ class BackwardMatch:
                     block_list = []
                     broken_matches_match = []
 
+                    # Loop to check if the match is not connected, in this case
+                    # the successors matches are blocked and unmatched.
                     for potential_block in self.template_dag_dep.successors(template_id):
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
@@ -444,7 +500,7 @@ class BackwardMatch:
                                         broken_matches_match.append(succ_id)
 
                     new_matches_scenario_match = [elem for elem in matches_scenario_match
-                                              if elem[0] not in broken_matches_match]
+                                                  if elem[0] not in broken_matches_match]
 
                     condition = True
 
@@ -453,9 +509,9 @@ class BackwardMatch:
                             condition = False
                             break
 
+                    # First option greedy match.
                     if ([self.node_id_t, self.node_id_c] in new_matches_scenario_match) \
                             and (condition or not match_backward):
-
                         template_matched_match[template_id] = [circuit_id]
                         circuit_matched_match[circuit_id] = [template_id]
                         new_matches_scenario_match.append([template_id, circuit_id])
@@ -466,9 +522,8 @@ class BackwardMatch:
                                                                   template_blocked_match,
                                                                   new_matches_scenario_match,
                                                                   counter_scenario + 1)
-                        matching_list.append_scenario(new_matching_scenario)
+                        self.matching_list.append_scenario(new_matching_scenario)
 
-                        actual_match = True
                         global_match = True
 
             if global_match:
@@ -484,6 +539,8 @@ class BackwardMatch:
 
                 broken_matches = []
 
+                # Second option, not a greedy match, block all successors (push the gate
+                # to the right).
                 for succ in self.circuit_dag_dep.get_node(circuit_id).successors:
                     circuit_blocked_block_s[succ] = True
                     if circuit_matched_block_s[succ]:
@@ -510,8 +567,10 @@ class BackwardMatch:
                                                               template_blocked_block_s,
                                                               new_matches_scenario_block_s,
                                                               counter_scenario + 1)
-                    matching_list.append_scenario(new_matching_scenario)
+                    self.matching_list.append_scenario(new_matching_scenario)
 
+                # Third option: if blocking the succesors breaks a match, we consider
+                # also the possibility to block all predecessors (push the gate to the left).
                 if broken_matches:
 
                     circuit_matched_block_p = circuit_matched.copy()
@@ -533,11 +592,10 @@ class BackwardMatch:
                                                           template_blocked_block_p,
                                                           matches_scenario_block_p,
                                                           counter_scenario + 1)
-                    matching_list.append_scenario(matching_scenario)
+                    self.matching_list.append_scenario(matching_scenario)
 
+            # If there is no match then there are three options.
             if not global_match:
-
-                tree = tree + 1
 
                 circuit_blocked[circuit_id] = True
 
@@ -548,6 +606,8 @@ class BackwardMatch:
                     if circuit_matched[succ]:
                         following_matches.append(succ)
 
+                # First option, the circuit gate is not disturbing because there are no
+                # following match and no predecessors.
                 predecessors = self.circuit_dag_dep.get_node(circuit_id).predecessors
 
                 if not predecessors or not following_matches:
@@ -558,10 +618,11 @@ class BackwardMatch:
                                                           template_blocked,
                                                           matches_scenario,
                                                           counter_scenario + 1)
-                    matching_list.append_scenario(matching_scenario)
+                    self.matching_list.append_scenario(matching_scenario)
 
                 else:
-                    # Option 1
+                    # Second option, all predecessors are blocked (circuit gate is
+                    # moved to the left).
                     for pred in predecessors:
                         circuit_blocked[pred] = True
 
@@ -571,9 +632,10 @@ class BackwardMatch:
                                                           template_blocked,
                                                           matches_scenario,
                                                           counter_scenario + 1)
-                    matching_list.append_scenario(matching_scenario)
+                    self.matching_list.append_scenario(matching_scenario)
 
-                    # Option 2
+                    # Third option, all succesors are blocked (circuit gate is
+                    # moved to the rigth).
                     circuit_matched_nomatch = circuit_matched.copy()
                     circuit_blocked_nomatch = circuit_blocked.copy()
 
@@ -593,7 +655,7 @@ class BackwardMatch:
                             circuit_matched_nomatch[succ] = []
 
                     new_matches_scenario_nomatch = [elem for elem in matches_scenario_nomatch
-                                            if elem[1] not in broken_matches]
+                                                    if elem[1] not in broken_matches]
 
                     condition_block = True
 
@@ -610,10 +672,11 @@ class BackwardMatch:
                                                                   template_blocked_nomatch,
                                                                   new_matches_scenario_nomatch,
                                                                   counter_scenario + 1)
-                        matching_list.append_scenario(new_matching_scenario)
+                        self.matching_list.append_scenario(new_matching_scenario)
 
         length = max(len(m.match) for m in match_store_list)
 
+        # Store the matches with maximal length.
         for scenario in match_store_list:
             if (len(scenario.match) == length) and \
                     not any(scenario.match == x.match for x in self.match_final):
