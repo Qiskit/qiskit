@@ -595,7 +595,7 @@ class TestFlatten(QiskitTestCase):
         grouped += instructions.Delay(5, d1)
         grouped += instructions.Delay(7, d0)
         # include a grouped schedule
-        grouped = schedule+grouped
+        grouped = schedule + grouped
 
         # flatten the schedule inline internal groups
         flattened = transforms.flatten(grouped)
