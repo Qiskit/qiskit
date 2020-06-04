@@ -306,7 +306,7 @@ def align_left(schedule: Schedule) -> Schedule:
         left aligned.
     """
     aligned = Schedule()
-    for _, child in schedule.children:
+    for _, child in schedule._children:
         _push_left_append(aligned, child)
     return aligned
 
@@ -359,7 +359,7 @@ def align_right(schedule: Schedule) -> Schedule:
         right aligned.
     """
     aligned = Schedule()
-    for _, child in reversed(schedule.children):
+    for _, child in reversed(schedule._children):
         aligned = _push_right_prepend(aligned, child)
     return aligned
 
@@ -376,7 +376,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
         applied sequentially across channels
     """
     aligned = Schedule()
-    for _, child in schedule.children:
+    for _, child in schedule._children:
         aligned.insert(aligned.duration, child, inplace=True)
     return aligned
 

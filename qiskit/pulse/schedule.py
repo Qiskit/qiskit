@@ -64,7 +64,7 @@ class Schedule(ScheduleComponent):
         self._duration = 0
 
         self._timeslots = {}
-        self._children = []
+        self.__children = []
 
         for sched_pair in schedules:
             try:
@@ -101,7 +101,7 @@ class Schedule(ScheduleComponent):
         return tuple(self._timeslots.keys())
 
     @property
-    def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
         """Return the child``ScheduleComponent``s of this ``Schedule`` in the
         order they were added to the schedule.
 
@@ -110,7 +110,7 @@ class Schedule(ScheduleComponent):
             scheduled time of each ``ScheduleComponent`` and the component
             itself.
         """
-        return tuple(self._children)
+        return tuple(self.__children)
 
     @property
     def instructions(self):
@@ -172,7 +172,7 @@ class Schedule(ScheduleComponent):
                 :class:`~qiskit.pulse.Instruction`
                 starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
-        for insert_time, child_sched in self.children:
+        for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
     def union(self,
@@ -248,8 +248,8 @@ class Schedule(ScheduleComponent):
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self._children = [(orig_time + time, child) for
-                          orig_time, child in self.children]
+        self.__children = [(orig_time + time, child) for
+                          orig_time, child in self._children]
         return self
 
     # pylint: disable=arguments-differ
@@ -283,7 +283,7 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to mutably insert.
         """
         self._add_timeslots(start_time, schedule)
-        self._children.append((start_time, schedule))
+        self.__children.append((start_time, schedule))
         return self
 
     def _immutable_insert(self,
@@ -397,7 +397,7 @@ class Schedule(ScheduleComponent):
             filter_func: Function of the form (int, ScheduleComponent) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
         """
-        subschedules = self.flatten().children
+        subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
         return Schedule(*valid_subschedules, name=new_sched_name)
 

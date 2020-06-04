@@ -73,7 +73,7 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
+    def _children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
         """Child nodes of this schedule component. """
         pass
 

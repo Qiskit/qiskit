@@ -144,7 +144,7 @@ class Instruction(ScheduleComponent, ABC):
         return self._duration
 
     @property
-    def children(self) -> Tuple[ScheduleComponent]:
+    def _children(self) -> Tuple[ScheduleComponent]:
         """Instruction has no child nodes."""
         return ()
 
