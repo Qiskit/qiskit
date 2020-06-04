@@ -249,7 +249,7 @@ class Schedule(ScheduleComponent):
         self._duration = self._duration + time
         self._timeslots = timeslots
         self.__children = [(orig_time + time, child) for
-                          orig_time, child in self._children]
+                           orig_time, child in self._children]
         return self
 
     # pylint: disable=arguments-differ
