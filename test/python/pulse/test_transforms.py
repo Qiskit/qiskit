@@ -463,7 +463,7 @@ class TestAlignSequential(QiskitTestCase):
 class TestAlignLeft(QiskitTestCase):
     """Test left alignment transform."""
 
-    def test_align_right(self):
+    def test_align_left(self):
         """Test left alignment without a barrier."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
