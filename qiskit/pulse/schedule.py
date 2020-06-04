@@ -208,8 +208,7 @@ class Schedule(ScheduleComponent):
         """
         if inplace:
             return self._mutable_shift(time)
-        else:
-            return self._immutable_shift(time, name=name)
+        return self._immutable_shift(time, name=name)
 
     def _immutable_shift(self,
                          time: int,
