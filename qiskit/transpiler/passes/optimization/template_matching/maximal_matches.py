@@ -32,11 +32,9 @@ class Match:
             qubit (list): list of qubits configuration.
             clbit (list): list of clbits configuration.
         """
-        # List of matches
+
         self.match = match
-        # List of qubits
         self.qubit = qubit
-        # List of clbits
         self.clbit = clbit
 
 
