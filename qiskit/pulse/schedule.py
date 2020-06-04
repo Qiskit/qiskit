@@ -242,14 +242,14 @@ class Schedule(ScheduleComponent):
 
         timeslots = {}
         for chan, ch_timeslots in self._timeslots.items():
-            timeslots[chan] = [(ts[0]+time, ts[1]+time) for
+            timeslots[chan] = [(ts[0] + time, ts[1] + time) for
                                ts in ch_timeslots]
 
         _check_nonnegative_timeslot(timeslots)
 
-        self._duration = self._duration+time
+        self._duration = self._duration + time
         self._timeslots = timeslots
-        self._children = [(orig_time+time, child) for
+        self._children = [(orig_time + time, child) for
                           orig_time, child in self.children]
         return self
 
