@@ -786,7 +786,7 @@ class QuantumCircuit:
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
                         old_name = instruction.name
-                        instruction.name += "_" + str(id(self))
+                        instruction.name += "_" + str(id(instruction))
 
                         warnings.warn("A gate named {} already exists. "
                                       "We have renamed "
