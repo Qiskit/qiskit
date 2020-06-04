@@ -102,9 +102,9 @@ measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
-    def test_circuit_qasm_with_multiple_same_composite_circuit(self):
-        """Test circuit qasm() method when a composite circuit instruction
-        is included within circuit.
+    def test_circuit_qasm_with_multiple_same_composite_circuits(self):
+        """Test circuit qasm() method when a composite circuit is added
+        to the circuit multiple times
         """
 
         composite_circ_qreg = QuantumRegister(2)
@@ -137,6 +137,42 @@ composite_circ qr[0],qr[1];
 measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_multiple_composite_circuits_with_same_name(self):
+        """Test circuit qasm() method when multiple composite circuit instructions
+        with the same circuit name are added to the circuit
+        """
+
+        my_gate = QuantumCircuit(1, name='my_gate')
+        my_gate.h(0)
+        my_gate_inst1 = my_gate.to_instruction()
+
+        my_gate = QuantumCircuit(1, name='my_gate')
+        my_gate.x(0)
+        my_gate_inst2 = my_gate.to_instruction()
+
+        my_gate = QuantumCircuit(1, name='my_gate')
+        my_gate.x(0)
+        my_gate_inst3 = my_gate.to_instruction()
+
+        qr = QuantumRegister(1, name='qr')
+        circuit = QuantumCircuit(qr, name='circuit')
+        circuit.append(my_gate_inst1, [qr[0]])
+        circuit.append(my_gate_inst2, [qr[0]])
+        my_gate_inst2_id = id(circuit.data[-1][0])
+        circuit.append(my_gate_inst3, [qr[0]])
+        my_gate_inst3_id = id(circuit.data[-1][0])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate my_gate_{0} q0 {{x q0; }}
+gate my_gate_{1} q0 {{x q0; }}
+gate my_gate q0 {{h q0; }}
+qreg qr[1];
+my_gate qr[0];
+my_gate_{1} qr[0];
+my_gate_{0} qr[0];\n""".format(my_gate_inst3_id, my_gate_inst2_id)
+        self.assertEqual(circuit.qasm(), expected_qasm)
 
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params.
