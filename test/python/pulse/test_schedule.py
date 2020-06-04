@@ -662,7 +662,7 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(no_fc.instructions), 8)
 
         # test on SetPhase
-        only_fc, no_fc = \
+        only_setp, no_setp = \
             self._filter_and_test_consistency(sched, instruction_types={SetPhase})
         self.assertEqual(len(only_fc.instructions), 1)
         self.assertEqual(len(no_fc.instructions), 8)

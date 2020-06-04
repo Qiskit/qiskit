@@ -13,8 +13,6 @@
 # that they have been altered from the originals.
 
 """The phase instructions update the modulation phase of pulses played on a channel.
-
-The phase instructions update the modulation phase of pulses played on a channel.
 This includes ``SetPhase`` instructions which lock the modulation to a particular phase
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
@@ -98,7 +96,8 @@ class ShiftPhase(Instruction):
 
 
 class SetPhase(Instruction):
-    r"""The set phase instruction sets the phase to the ``phase`` radians.
+    r"""The set phase instruction sets the phase of the proceeding pulses on that channel
+    to ``phase`` radians.
 
     In particular, a PulseChannel creates pulses of the form
 
