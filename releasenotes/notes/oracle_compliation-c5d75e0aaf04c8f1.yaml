@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    This first version of an oracle compiler allows to "compile" typed python functions (operating only on "Bit"s) into quantum circuits.
+
+    .. jupyter-execute:
+
+      from qiskit.circuit.oracle_compiler import compile_oracle
+      from qiskit.circuit.oracle_compiler.types import Bit
+
+      def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
+          return (not a and b and not c and d)
+
+      network = compile_oracle(grover_oracle)
+      quantum_circuit = network.synth()
+      quantum_circuit.draw()) 
+
+    The parameter ``arg_regs`` in :meth:`qiskit.circuit.oracle_compiler.LogicNetwork.synth` creates a circuit with registers refering to the parameter names:
+
+    .. jupyter-execute:
+
+      quantum_circuit = network.synth(arg_regs=True)
+      quantum_circuit.draw()) 
+
