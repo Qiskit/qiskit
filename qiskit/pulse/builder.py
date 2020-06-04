@@ -652,7 +652,7 @@ def num_qubits() -> int:
 
 
 def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarray]:
-    """Obtain the number of samples that will elapse in ``time`` on the
+    """Obtain the number of samples that will elapse in ``seconds`` on the
     active backend.
 
     Rounds down.
