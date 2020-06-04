@@ -17,9 +17,7 @@
 import unittest
 from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler import CouplingMap, PassManager
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
 
@@ -52,8 +50,8 @@ class TestSabreSwap(QiskitTestCase):
         qc.cx(4, 3)  # F
         qc.cx(0, 4)
 
-        pm = PassManager(SabreSwap(coupling, 'basic'))
-        new_qc = pm.run(qc)
+        passmanager = PassManager(SabreSwap(coupling, 'basic'))
+        new_qc = passmanager.run(qc)
 
         self.assertEqual(new_qc, qc)
 
