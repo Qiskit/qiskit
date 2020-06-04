@@ -165,7 +165,7 @@ class EventsOutputChannels:
         frequencychanges = self.frequencychanges
 
         for key, val in framechanges.items():
-            data_str = 'framechange: %.2f' % val
+            data_str = 'phase: %.2f' % val
             time_event.append((key, name, data_str))
         for key, val in conditionals.items():
             data_str = 'conditional, %s' % val
