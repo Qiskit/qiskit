@@ -15,7 +15,7 @@
 """LogicNetwork and the related exceptions"""
 
 import ast
-import tweedledum
+from tweedledum import synthesize_xag, simulate  # pylint: disable=no-name-in-module
 from qiskit import QuantumCircuit, QuantumRegister
 from .oracle_visitor import OracleVisitor
 from .utils import tweedledum2qiskit
@@ -53,7 +53,7 @@ class LogicNetwork:
 
     def simulate(self):
         """Runs ``tweedledum.simulate`` on the logic network."""
-        return tweedledum.simulate(self._network)
+        return simulate(self._network)
 
     def synth(self, arg_regs=False) -> QuantumCircuit:
         """Synthesis the logic network into a ``QuantumCircuit``.
@@ -73,5 +73,4 @@ class LogicNetwork:
                 qregs.append(QuantumRegister(1, name='return'))
         else:
             qregs = None
-        return tweedledum2qiskit(tweedledum.synthesize_xag(self._network),
-                                 name=self.name, qregs=qregs)
+        return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)

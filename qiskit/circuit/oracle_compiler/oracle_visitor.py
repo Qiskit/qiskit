@@ -16,7 +16,7 @@
 This module is used internally by ``qiskit.circuit.oracle_compiler.LogicNetwork"""
 
 import ast
-import tweedledum
+from tweedledum import xag_network  # pylint: disable=no-name-in-module
 import _ast
 from .exceptions import OracleParseError, OracleCompilerTypeError
 
@@ -52,7 +52,7 @@ class OracleVisitor(ast.NodeVisitor):
             raise OracleParseError("return type is needed")
         self.scopes.append({'return': (node.returns.id, None),
                             node.returns.id: ('type', None)})
-        self._network = tweedledum.xag_network()
+        self._network = xag_network()
         self.extend_scope(node.args)
         return super().generic_visit(node)
 
