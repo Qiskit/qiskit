@@ -785,12 +785,12 @@ class QuantumCircuit:
                                                                                  'reset']):
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
+                        old_name = instruction.name
                         instruction.name += "_" + str(id(self))
 
                         warnings.warn("A gate named {} already exists. "
                                       "We have renamed "
-                                      "your gate to {}".format(instruction.name.split("_")[0],
-                                                               instruction.name))
+                                      "your gate to {}".format(old_name, instruction.name))
 
                     # Get qasm of composite circuit
                     qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
