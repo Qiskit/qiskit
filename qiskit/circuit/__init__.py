@@ -52,7 +52,7 @@ defined as:
    # CX (CNOT) gate on control qubit 0 and target qubit 2 resulting in a GHZ state.
    circ.cx(0, 2)
    # Draw the circuit
-   circ.draw()
+   circ.draw(output='mpl')
 
 
 Supplementary Information
@@ -90,7 +90,7 @@ Supplementary Information
       qc.swap(6, 9)
       qc.swap(6, 10)
       qc.x(6)
-      qc.draw()
+      qc.draw(output='mpl')
 
    From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
    Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
