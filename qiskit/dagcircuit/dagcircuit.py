@@ -617,7 +617,7 @@ class DAGCircuit:
         """
         for wire in self._wires:
             nodes = list(self.nodes_on_wire(wire, only_ops=False))
-            if barrier_is_idle:
+            if barrier_is_idle == True:
                 nodes = [node for node in nodes if node.name is not 'barrier']
             if len(nodes) == 2:
                 yield wire
