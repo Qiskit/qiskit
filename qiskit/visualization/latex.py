@@ -14,7 +14,7 @@
 
 # pylint: disable=invalid-name,consider-using-enumerate
 
-"""latex circuit visualization backends."""
+"""latex visualization backends."""
 
 import collections
 import io
@@ -22,6 +22,7 @@ import json
 import math
 import re
 
+from fractions import Fraction
 import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -1012,3 +1013,177 @@ def _truncate_float(matchobj, ndigits=3):
     if matchobj.group(0):
         return '%.{}g'.format(ndigits) % float(matchobj.group(0))
     return ''
+
+
+def _num_to_latex(num, precision=5):
+    """Takes a complex number as input and returns a latex representation
+
+        Args:
+            num (numerical): The number to be converted to latex.
+            precision (int): If the real or imaginary parts of num are not close
+                             to an integer, the number of decimal places to round to
+
+        Returns:
+            str: Latex representation of num
+    """
+    r = np.real(num)
+    i = np.imag(num)
+    common_factor = None
+
+    # try to factor out common terms in imaginary numbers
+    if np.isclose(abs(r), abs(i)) and not np.isclose(r, 0):
+        common_factor = abs(r)
+        r = r/common_factor
+        i = i/common_factor
+
+    common_terms = {
+        1/math.sqrt(2): '\\tfrac{1}{\\sqrt{2}}',
+        1/math.sqrt(3): '\\tfrac{1}{\\sqrt{3}}',
+        math.sqrt(2/3): '\\sqrt{\\tfrac{2}{3}}',
+        math.sqrt(3/4): '\\sqrt{\\tfrac{3}{4}}',
+        1/math.sqrt(8): '\\tfrac{1}{\\sqrt{8}}'
+    }
+
+    def _proc_value(val):
+        # See if val is close to an integer
+        val_mod = np.mod(val, 1)
+        if (np.isclose(val_mod, 0) or np.isclose(val_mod, 1)):
+            # If so, return that integer
+            return str(int(np.round(val)))
+        # Otherwise, see if it matches one of the common terms
+        for term, latex_str in common_terms.items():
+            if np.isclose(abs(val), term):
+                if val > 0:
+                    return latex_str
+                else:
+                    return "-" + latex_str
+        # try to factorise val nicely
+        frac = Fraction(val).limit_denominator()
+        num, denom = frac.numerator, frac.denominator
+        if num + denom < 20:
+            if val > 0:
+                return "\\tfrac{%i}{%i}" % (abs(num), abs(denom))
+            else:
+                return "-\\tfrac{%i}{%i}" % (abs(num), abs(denom))
+        else:
+            # Failing everything else, return val as a decimal
+            return "{:.{}f}".format(val, precision).rstrip("0")
+
+    if common_factor is not None:
+        common_facstring = _proc_value(common_factor)
+    else:
+        common_facstring = None
+    realstring = _proc_value(r)
+    if i > 0:
+        operation = "+"
+        imagstring = _proc_value(i)
+    else:
+        operation = "-"
+        imagstring = _proc_value(-i)
+    if imagstring == "1":
+        imagstring = ""
+    if imagstring == "0":
+        return realstring
+    if realstring == "0":
+        if operation == "-":
+            return "-{}i".format(imagstring)
+        else:
+            return "{}i".format(imagstring)
+    if common_facstring is not None:
+        return "{}({} {} {}i)".format(common_facstring, realstring, operation, imagstring)
+    else:
+        return "{} {} {}i".format(realstring, operation, imagstring)
+
+
+def _vector_to_latex(vector, precision=5, pretext=""):
+    """Latex representation of a complex numpy array (with dimension 1)
+
+        Args:
+            vector (ndarray): The vector to be converted to latex, must have dimension 1.
+            precision (int): For numbers not close to integers, the number of decimal places
+            to round to.
+            pretext (str): Latex string to be prepended to the latex, intended for labels.
+
+        Returns:
+            str: Latex representation of the vector, wrapped in $$
+    """
+    out_string = "\n$$\n{}\n".format(pretext)
+    out_string += "\\begin{bmatrix}\n"
+    for amplitude in vector:
+        num_string = _num_to_latex(amplitude, precision=precision)
+        out_string += num_string + " \\\\\n"
+    if len(vector) != 0:
+        out_string = out_string[:-4] + "\n"  # remove trailing characters
+    out_string += "\\end{bmatrix}\n$$"
+    return out_string
+
+
+def _matrix_to_latex(matrix, precision=5, pretext=""):
+    """Latex representation of a complex numpy array (with dimension 2)
+
+        Args:
+            matrix (ndarray): The matrix to be converted to latex, must have dimension 2.
+            precision (int): For numbers not close to integers, the number of decimal places
+                             to round to.
+            pretext (str): Latex string to be prepended to the latex, intended for labels.
+
+        Returns:
+            str: Latex representation of the matrix, wrapped in $$
+    """
+    out_string = "\n$$\n{}\n".format(pretext)
+    out_string += "\\begin{bmatrix}\n"
+    for row in matrix:
+        for amplitude in row:
+            num_string = _num_to_latex(amplitude, precision=precision)
+            out_string += num_string + " & "
+        out_string = out_string[:-2]  # remove trailing ampersands
+        out_string += " \\\\\n"
+    out_string += "\\end{bmatrix}\n$$"
+    return out_string
+
+
+def array_to_latex(array, precision=5, pretext="", display=True):
+    """Latex representation of a complex numpy array (with dimension 1 or 2)
+
+        Args:
+            array (ndarray): The array to be converted to latex, must have dimension 1 or 2.
+            precision (int): For numbers not close to integers or common terms, the number of
+                             decimal places to round to.
+            pretext (str): Latex string to be prepended to the latex, intended for labels.
+            display (bool): If True, will attempt to use IPython.display to display the LaTeX.
+                            If display is False, or IPython.display is not available, will instead
+                            return the LaTeX string.
+
+        Returns:
+            if display is True:
+                str: Latex representation of the array, wrapped in $$
+            else:
+                None
+
+        Raises:
+            ValueError: If array can not be interpreted as a numerical numpy array
+            ValueError: If the dimension of array is not 1 or 2
+    """
+    try:
+        array = np.asarray(array)
+        _ = array+1  # Test array contains numerical data
+    except Exception:
+        raise ValueError("""array_to_latex can only convert numpy arrays containing numerical data,
+        or types that can be converted to such arrays""")
+
+    if array.ndim == 1:
+        outstr = _vector_to_latex(array, precision=precision, pretext=pretext)
+    elif array.ndim == 2:
+        outstr = _matrix_to_latex(array, precision=precision, pretext=pretext)
+    else:
+        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+
+    if display is True:
+        try:
+            from IPython.display import Latex, display
+            display(Latex(outstr))
+            return None
+        except ImportError:
+            return outstr
+    else:
+        return outstr

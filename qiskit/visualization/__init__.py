@@ -119,6 +119,7 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_state_paulivec,
                                                       plot_state_qsphere)
 from qiskit.visualization.transition_visualization import visualize_transition
+from qiskit.visualization.latex import array_to_latex
 
 from .circuit_visualization import circuit_drawer, qx_color_scheme
 from .dag_visualization import dag_drawer
