@@ -609,7 +609,7 @@ class DAGCircuit:
         else:
             return None
 
-    def idle_wires(self, barriers_is_idle=False):
+    def idle_wires(self, barrier_is_idle):
         """Return idle wires (wires which only contain barriers are idle).
 
         Yields:
