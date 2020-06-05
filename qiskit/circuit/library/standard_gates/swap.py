@@ -18,7 +18,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 
 
 class SwapGate(Gate):
@@ -187,6 +186,23 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+    _matrix0 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""
@@ -220,9 +236,10 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        if self.ctrl_state:
+            return self._matrix1
+        else:
+            return self._matrix0
 
 
 class FredkinGate(CSwapGate, metaclass=CSwapMeta):
