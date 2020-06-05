@@ -26,7 +26,11 @@ from .state_fns.state_fn import StateFn
 
 # Digits of precision when returning values from eval functions. Without rounding, 1e-17 or 1e-32
 # values often show up in place of 0, etc.
-EVAL_SIG_DIGITS = 14
+# Note: care needs to be taken in rounding otherwise some behavior may not be as expected. E.g
+# evolution is used in QAOA variational form and difference when optimizing may be small - round
+# the outcome too much and a small difference may become none and the optimizer gets stuck where
+# otherwise it would not.
+EVAL_SIG_DIGITS = 18
 
 # Immutable convenience objects
 
