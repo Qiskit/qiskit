@@ -172,7 +172,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_expected.h(qr[3])
         circuit_expected.cx(qr[2], qr[3])
         circuit_expected.ccx(qr[2], qr[3], qr[0])
-        print(circuit_expected)
+
         dag_expected = circuit_to_dag(circuit_expected)
 
         self.assertEqual(dag_opt, dag_expected)
