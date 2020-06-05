@@ -13,35 +13,67 @@
 # that they have been altered from the originals.
 
 """
-It extracts all maximal matches from the matches of the template matching algorithm.
+Given a template and a circuit: it applies template matching and substitutes
+all compatible maximal matches that reduces the size of the circuit.
 
+**Reference:**
 
-The reference paper is https://arxiv.org/abs/1909.05270
-
+[1] Iten, R., Sutter, D. and Woerner, S., 2019.
+Efficient template matching in quantum circuits.
+`arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 """
 import numpy as np
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.library.template_circuits.toffoli import *
+from qiskit.circuit.library.template_circuits.toffoli import template_2a_1, template_2a_2,\
+    template_2a_3
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.transpiler.exceptions import TranspilerError
-
-from qiskit.transpiler.passes.optimization.template_matching import *
+from qiskit.transpiler.passes.optimization.template_matching import TemplateMatching,\
+    TemplateSubstitution, MaximalMatches
 
 
 class TemplateOptimization(TransformationPass):
+    """
+    Class for the template optimization pass.
+    """
 
-    def __init__(self, template_list=None):
+    def __init__(self, template_list=None,
+                 heuristics_qubits_param=None,
+                 heuristics_backward_param=None):
+        """
+        Args:
+            template_list (list[QuantumCircuit()]): list of the different template circuit to apply.
+            heuristics_backward_param (list[int]): [length, survivor] length is the interval for
+             cutting the tree and surviror is the number of scenario that are kept.
+            heuristics_qubits_param (list[int]): [length] number of successors that will be explored
+             for giving a qubit configuratiom.
+        """
         super().__init__()
-
+        # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
         if template_list is None:
             template_list = [template_2a_1(), template_2a_2(), template_2a_3()]
         self.template_list = template_list
+        self.heuristics_qubits_param = heuristics_qubits_param\
+            if heuristics_qubits_param is not None else []
+        self.heuristics_backward_param = heuristics_backward_param\
+            if heuristics_backward_param is not None else []
 
-    def run(self, circuit_dag):
+    def run(self, dag):
+        """
+        Args:
+            dag(DAGCircuit()): DAG circuit.
+        Returns:
+            DAGCircuit: optimized DAG circuit.
+        Raises:
+            TranspilerError: If the template has not the right form or
+             if the output circuit acts differently as the input circuit.
+        """
+        circuit_dag = dag
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
         circuit = dag_to_circuit(circuit_dag)
 
@@ -58,21 +90,24 @@ class TemplateOptimization(TransformationPass):
 
             if template.num_qubits > len(circuit_dag_dep.qubits()):
                 continue
-            else:
-                template_dag_dep = circuit_to_dagdependency(template)
 
-                template_matching = TemplateMatching(circuit_dag_dep,template_dag_dep)
-                template_matching.run_template_matching()
+            template_dag_dep = circuit_to_dagdependency(template)
 
-                matches = template_matching.match_list
+            template_m = TemplateMatching(circuit_dag_dep,
+                                          template_dag_dep,
+                                          self.heuristics_qubits_param,
+                                          self.heuristics_backward_param)
+            template_m.run_template_matching()
+
+            matches = template_m.match_list
 
             if matches:
-                maximal_matches = MaximalMatches(matches)
-                maximal_matches.run_maximal_matches()
-                maximal_matches = maximal_matches.max_match_list
+                maximal = MaximalMatches(matches)
+                maximal.run_maximal_matches()
+                max_matches = maximal.max_match_list
 
-                substitution = TemplateSubstitution(maximal_matches, template_matching.circuit_dag_dep,
-                                                    template_matching.template_dag_dep)
+                substitution = TemplateSubstitution(max_matches, template_m.circuit_dag_dep,
+                                                    template_m.template_dag_dep)
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized
@@ -81,6 +116,6 @@ class TemplateOptimization(TransformationPass):
                 continue
 
         if Operator(circuit) != Operator(dag_to_circuit(circuit_dag)):
-            raise TranspilerError('A failure happened during the substitution')
-        else:
-            return circuit_dag
+            raise TranspilerError('A failure happened during the substitution.')
+
+        return circuit_dag
