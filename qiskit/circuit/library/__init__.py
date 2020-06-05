@@ -165,7 +165,7 @@ Data encoding circuits
    ZZFeatureMap
 
 Toffoli template circuits
-======================
+=========================
 
 .. autosummary::
    :toctree: ../stubs/
