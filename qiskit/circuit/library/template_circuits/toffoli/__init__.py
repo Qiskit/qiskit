@@ -14,6 +14,11 @@
 
 """
 Template circuits for X, CX and Toffoli gates.
+
+**Reference:**
+Maslov, D. and Dueck, G. W. and Miller, D. M.,
+Techniques for the synthesis of reversible Toffoli networks, 2007
+http://dx.doi.org/10.1145/1278349.1278355
 """
 from .template_2a_1 import template_2a_1
 from .template_2a_2 import template_2a_2

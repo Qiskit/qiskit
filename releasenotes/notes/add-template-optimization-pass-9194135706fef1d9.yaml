@@ -8,7 +8,7 @@ features:
   - |
     In ``qiskit.transpiler.passes.optimization.template_matching`` they are all
     necessary classes to apply the template optimization. Those classes are
-    ``ForwardMatch``, ``BackwardMatch``, ``TemplateMatching``, ``MaximalMarches``
+    ``ForwardMatch``, ``BackwardMatch``, ``TemplateMatching``, ``MaximalMatches``
     and ``TemplateSubstitution``.
 
     The pass ``qiskit.transpiler.passes.optimization.template_opt`` makes use of all
