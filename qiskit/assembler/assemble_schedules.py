@@ -20,7 +20,6 @@ import hashlib
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Delay, Play, reschedule
 from qiskit.pulse.pulse_lib import ParametricPulse, Waveform
-
 from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
                                    DelayInstruction, ParametricInstruction)
 from qiskit.qobj import (PulseQobj, QobjHeader, QobjExperimentHeader,
