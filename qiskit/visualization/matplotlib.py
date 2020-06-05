@@ -528,7 +528,7 @@ class MatplotlibDrawer:
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
                      color=color, linewidth=2, zorder=PORDER_LINE + 1)
 
-    def _barrier(self, config, anc):
+    def _barrier(self, config):
         xys = config['coord']
         group = config['group']
         y_reg = []
@@ -545,12 +545,27 @@ class MatplotlibDrawer:
                                 fc=self._style.bc, ec=None, alpha=0.6,
                                 linewidth=1.5, zorder=PORDER_GRAY)
         self.ax.add_patch(box)
+        x0 = xys[0][0]
+
+        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
+        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
+        box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
+                                width=0.6 * WID, height=box_y1 - box_y0,
+                                fc=self._style.bc, ec=None, alpha=0.6,
+                                linewidth=1.5, zorder=PORDER_GRAY)
+        self.ax.add_patch(box)
+
         for xy in xys:
             xpos, ypos = xy
             self.ax.plot([xpos, xpos], [ypos + 0.5, ypos - 0.5],
                          linewidth=1, linestyle="dashed",
                          color=self._style.lc,
                          zorder=PORDER_TEXT)
+            box = patches.Rectangle(xy=(xpos - (0.3 * WID), ypos - 0.5),
+                                    width=0.6 * WID, height=1,
+                                    fc=self._style.bc, ec=None, alpha=0.6,
+                                    linewidth=1.5, zorder=PORDER_GRAY)
+            self.ax.add_patch(box)
 
     def _linefeed_mark(self, xy):
         xpos, ypos = xy
@@ -591,6 +606,14 @@ class MatplotlibDrawer:
     def _draw_regs(self):
         longest_label_width = 0
 
+        def _fix_double_script(label):
+            words = label.split(' ')
+            words = [word.replace('_', r'\_') if word.count('_') > 1 else word
+                     for word in words]
+            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word
+                     for word in words]
+            return ' '.join(words)
+
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
@@ -608,6 +631,7 @@ class MatplotlibDrawer:
                 label = '${name}$'.format(name=reg.register.name)
                 text_width = self._get_text_width(label, self._style.fs)
 
+            label = _fix_double_script(label)
             if text_width > longest_label_width:
                 longest_label_width = text_width
 
@@ -634,6 +658,7 @@ class MatplotlibDrawer:
                     text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -644,9 +669,10 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
-                    text_width = self._get_text_width(reg.register.name, self._style.fs)
+                   text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -881,7 +907,7 @@ class MatplotlibDrawer:
                             _barriers['group'].append(q_group)
                         _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
-                        self._barrier(_barriers, this_anc)
+                        self._barrier(_barriers)
 
                 elif op.name == 'initialize':
                     vec = '[%s]' % param

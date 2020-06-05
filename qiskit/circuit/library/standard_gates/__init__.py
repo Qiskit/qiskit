@@ -23,6 +23,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    C3XGate
    C4XGate
    CCXGate
+   DCXGate
    CHGate
    CRXGate
    CRYGate
@@ -49,7 +50,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    SdgGate
    SwapGate
    iSwapGate
-   DCXGate
+   TGate
    TdgGate
    U1Gate
    U2Gate
@@ -84,5 +85,17 @@ from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
 
-from .boolean_logical_gates import logical_and, logical_or
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
+
+# deprecated gates
+from .boolean_logical_gates import logical_and, logical_or
+from .u1 import Cu1Gate
+from .u3 import Cu3Gate
+from .x import CnotGate, ToffoliGate
+from .swap import FredkinGate
+from .i import IdGate
+from .rx import CrxGate
+from .ry import CryGate
+from .rz import CrzGate
+from .y import CyGate
+from .z import CzGate

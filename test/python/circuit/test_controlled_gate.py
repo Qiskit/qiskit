@@ -33,14 +33,14 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                        CYGate, CZGate, CU1Gate, SwapGate,
-                                        CCXGate, HGate, RZGate, RXGate,
-                                        RYGate, CRYGate, CRXGate, CSwapGate,
-                                        U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate, Barrier, RCCXGate, RC3XGate,
-                                        MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain, C3XGate, C4XGate)
+from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
+                                    CYGate, CZGate, CU1Gate, SwapGate,
+                                    CCXGate, HGate, RZGate, RXGate,
+                                    RYGate, CRYGate, CRXGate, CSwapGate,
+                                    U3Gate, CHGate, CRZGate, CU3Gate,
+                                    MSGate, Barrier, RCCXGate, RC3XGate,
+                                    MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
+                                    MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
@@ -904,6 +904,8 @@ class TestControlledStandardGates(QiskitTestCase):
 class TestDeprecatedGates(QiskitTestCase):
     """Test controlled of deprecated gates."""
 
+    import qiskit.extensions as ext
+
     import qiskit.extensions.standard.i as i
     import qiskit.extensions.standard.rx as rx
     import qiskit.extensions.standard.ry as ry
@@ -938,7 +940,18 @@ class TestDeprecatedGates(QiskitTestCase):
           (x.CXGate, x.CnotGate, []),
           (x.CCXGate, x.ToffoliGate, []),
           (y.CYGate, y.CyGate, []),
-          (z.CZGate, z.CzGate, []))
+          (z.CZGate, z.CzGate, []),
+          (i.IGate, ext.IdGate, []),
+          (rx.CRXGate, ext.CrxGate, [0.1]),
+          (ry.CRYGate, ext.CryGate, [0.1]),
+          (rz.CRZGate, ext.CrzGate, [0.1]),
+          (swap.CSwapGate, ext.FredkinGate, []),
+          (u1.CU1Gate, ext.Cu1Gate, [0.1]),
+          (u3.CU3Gate, ext.Cu3Gate, [0.1, 0.2, 0.3]),
+          (x.CXGate, ext.CnotGate, []),
+          (x.CCXGate, ext.ToffoliGate, []),
+          (y.CYGate, ext.CyGate, []),
+          (z.CZGate, ext.CzGate, []))
     @unpack
     def test_deprecated_gates(self, new, old, params):
         """Test types of the deprecated gate classes."""

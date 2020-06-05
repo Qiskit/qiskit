@@ -28,14 +28,15 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     InnerProduct, OR, AND, QFT, IQP,
                                     LinearPauliRotations, PolynomialPauliRotations,
                                     IntegerComparator, PiecewiseLinearPauliRotations,
-                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RY, RYRZ,
-                                    SwapRZ, PauliExpansion, FirstOrderExpansion,
-                                    SecondOrderExpansion, MCMT, MCMTVChain)
+                                    WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
+                                    EfficientSU2, ExcitationPreserving, PauliFeatureMap,
+                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
+                                    HiddenLinearFunction)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
-                                        RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
+from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
+                                    RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
@@ -143,6 +144,47 @@ class TestPermutationLibrary(QiskitTestCase):
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
 
 
+@ddt
+class TestHiddenLinearFunctionLibrary(QiskitTestCase):
+    """Test library of Hidden Linear Function circuits."""
+
+    def assertHLFIsCorrect(self, hidden_function, hlf):
+        """Assert that the HLF circuit produces the correct matrix.
+
+        Number of qubits is equal to the number of rows (or number of columns)
+        of hidden_function.
+        """
+        num_qubits = len(hidden_function)
+        hidden_function = np.asarray(hidden_function)
+        simulated = Operator(hlf)
+
+        expected = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
+        for i in range(2**num_qubits):
+            i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
+            x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
+            expected[i_qiskit, i_qiskit] = 1j**(np.dot(x_vec.transpose(),
+                                                       np.dot(hidden_function, x_vec)))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(range(num_qubits))
+        qc = Operator(qc)
+        expected = qc.compose(Operator(expected)).compose(qc)
+        self.assertTrue(expected.equiv(simulated))
+
+    @data(
+        [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+    )
+    def test_hlf(self, hidden_function):
+        """Test if the HLF matrix produces the right matrix."""
+        hlf = HiddenLinearFunction(hidden_function)
+        self.assertHLFIsCorrect(hidden_function, hlf)
+
+    def test_non_symmetric_raises(self):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
+
+
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
 
@@ -165,6 +207,19 @@ class TestIQPLibrary(QiskitTestCase):
     def test_iqp_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, IQP, [[6, 5], [2, 4]])
+
+
+@ddt
+class TestGMSLibrary(QiskitTestCase):
+    """Test library of Global Mølmer–Sørensen gate."""
+
+    def test_twoq_equivalence(self):
+        """Test GMS on 2 qubits is same as RXX."""
+        circuit = GMS(num_qubits=2, theta=[[0, np.pi/3], [0, 0]])
+        expected = RXXGate(np.pi/3)
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
 
 
 @ddt
@@ -994,8 +1049,8 @@ class TestNLocal(QiskitTestCase):
         """An equality test specialized to circuits."""
         if transpiled:
             basis_gates = ['id', 'u1', 'u3', 'cx']
-            qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
-            qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
+            qc1_transpiled = transpile(qc1, basis_gates=basis_gates, optimization_level=0)
+            qc2_transpiled = transpile(qc2, basis_gates=basis_gates, optimization_level=0)
             qc1, qc2 = qc1_transpiled, qc2_transpiled
 
         if visual:
@@ -1301,8 +1356,8 @@ class TestTwoLocal(QiskitTestCase):
         """An equality test specialized to circuits."""
         if transpiled:
             basis_gates = ['id', 'u1', 'u3', 'cx']
-            qc1_transpiled = transpile(qc1, basis_gates=basis_gates)
-            qc2_transpiled = transpile(qc2, basis_gates=basis_gates)
+            qc1_transpiled = transpile(qc1, basis_gates=basis_gates, optimization_level=0)
+            qc2_transpiled = transpile(qc2, basis_gates=basis_gates, optimization_level=0)
             qc1, qc2 = qc1_transpiled, qc2_transpiled
 
         if visual:
@@ -1438,8 +1493,8 @@ class TestTwoLocal(QiskitTestCase):
         self.assertCircuitEqual(reference, circuit)
 
     def test_ry_blocks(self):
-        """Test that the RY circuit is instantiated correctly."""
-        two = RY(4)
+        """Test that the RealAmplitudes circuit is instantiated correctly."""
+        two = RealAmplitudes(4)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1449,11 +1504,10 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_ry_circuit(self):
-        """Test an RY circuit."""
+        """Test an RealAmplitudes circuit."""
         num_qubits = 3
         reps = 2
         entanglement = 'full'
-        entanglement_gate = 'cx'
         parameters = ParameterVector('theta', num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
@@ -1467,14 +1521,14 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
 
-        library = RY(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                     entanglement=entanglement).assign_parameters(parameters)
+        library = RealAmplitudes(num_qubits, reps=reps,
+                                 entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
     def test_ryrz_blocks(self):
-        """Test that the RYRZ circuit is instantiated correctly."""
-        two = RYRZ(3)
+        """Test that the EfficientSU2 circuit is instantiated correctly."""
+        two = EfficientSU2(3)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 2)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
@@ -1485,11 +1539,10 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_ryrz_circuit(self):
-        """Test an RYRZ circuit."""
+        """Test an EfficientSU2 circuit."""
         num_qubits = 3
         reps = 2
         entanglement = 'circular'
-        entanglement_gate = 'cz'
         parameters = ParameterVector('theta', 2 * num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
@@ -1499,22 +1552,23 @@ class TestTwoLocal(QiskitTestCase):
                 expected.ry(next(param_iter), i)
             for i in range(num_qubits):
                 expected.rz(next(param_iter), i)
-            expected.cz(2, 0)
-            expected.cz(0, 1)
-            expected.cz(1, 2)
+            expected.cx(2, 0)
+            expected.cx(0, 1)
+            expected.cx(1, 2)
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
-        library = RYRZ(num_qubits, reps=reps, entanglement_blocks=entanglement_gate,
-                       entanglement=entanglement).assign_parameters(parameters)
+        library = EfficientSU2(num_qubits, reps=reps, entanglement=entanglement).assign_parameters(
+            parameters
+        )
 
         self.assertCircuitEqual(library, expected)
 
     def test_swaprz_blocks(self):
-        """Test that the SwapRZ circuit is instantiated correctly."""
-        two = SwapRZ(5)
+        """Test that the ExcitationPreserving circuit is instantiated correctly."""
+        two = ExcitationPreserving(5)
         with self.subTest(msg='test rotation gate'):
             self.assertEqual(len(two.rotation_blocks), 1)
             self.assertIsInstance(two.rotation_blocks[0].data[0][0], RZGate)
@@ -1531,7 +1585,7 @@ class TestTwoLocal(QiskitTestCase):
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
     def test_swaprz_circuit(self):
-        """Test a SwapRZ circuit."""
+        """Test a ExcitationPreserving circuit in iswap mode."""
         num_qubits = 3
         reps = 2
         entanglement = 'linear'
@@ -1551,8 +1605,38 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
-        library = SwapRZ(num_qubits, reps=reps,
-                         entanglement=entanglement).assign_parameters(parameters)
+        library = ExcitationPreserving(num_qubits, reps=reps,
+                                       entanglement=entanglement).assign_parameters(parameters)
+
+        self.assertCircuitEqual(library, expected)
+
+    def test_fsim_circuit(self):
+        """Test a ExcitationPreserving circuit in fsim mode."""
+        num_qubits = 3
+        reps = 2
+        entanglement = 'linear'
+        # need the parameters in the entanglement blocks to be the same because the order
+        # can get mixed up in ExcitationPreserving (since parameters are not ordered in circuits)
+        parameters = [1] * (num_qubits * (reps + 1) + reps * (1 + num_qubits))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.rz(next(param_iter), i)
+            shared_param = next(param_iter)
+            expected.rxx(shared_param, 0, 1)
+            expected.ryy(shared_param, 0, 1)
+            expected.cu1(next(param_iter), 0, 1)
+            shared_param = next(param_iter)
+            expected.rxx(shared_param, 1, 2)
+            expected.ryy(shared_param, 1, 2)
+            expected.cu1(next(param_iter), 1, 2)
+        for i in range(num_qubits):
+            expected.rz(next(param_iter), i)
+
+        library = ExcitationPreserving(num_qubits, reps=reps, mode='fsim',
+                                       entanglement=entanglement).assign_parameters(parameters)
 
         self.assertCircuitEqual(library, expected)
 
@@ -1563,7 +1647,7 @@ class TestDataEncoding(QiskitTestCase):
 
     def test_pauli_empty(self):
         """Test instantiating an empty Pauli expansion."""
-        encoding = PauliExpansion()
+        encoding = PauliFeatureMap()
 
         with self.subTest(msg='equal to empty circuit'):
             self.assertTrue(Operator(encoding).equiv(QuantumCircuit()))
@@ -1576,13 +1660,13 @@ class TestDataEncoding(QiskitTestCase):
     @unpack
     def test_num_parameters(self, num_qubits, reps, pauli_strings):
         """Test the number of parameters equals the number of qubits, independent of reps."""
-        encoding = PauliExpansion(num_qubits, paulis=pauli_strings, reps=reps)
+        encoding = PauliFeatureMap(num_qubits, paulis=pauli_strings, reps=reps)
         self.assertEqual(encoding.num_parameters, num_qubits)
         self.assertEqual(encoding.num_parameters_settable, num_qubits)
 
     def test_pauli_evolution(self):
         """Test the generation of Pauli blocks."""
-        encoding = PauliExpansion()
+        encoding = PauliFeatureMap()
         time = 1.4
         with self.subTest(pauli_string='ZZ'):
             evo = QuantumCircuit(2)
@@ -1617,7 +1701,7 @@ class TestDataEncoding(QiskitTestCase):
     def test_first_order_circuit(self):
         """Test a first order expansion circuit."""
         times = [0.2, 1, np.pi, -1.2]
-        encoding = FirstOrderExpansion(4, reps=3).assign_parameters(times)
+        encoding = ZFeatureMap(4, reps=3).assign_parameters(times)
 
         ref = QuantumCircuit(4)
         for _ in range(3):
@@ -1630,7 +1714,7 @@ class TestDataEncoding(QiskitTestCase):
     def test_second_order_circuit(self):
         """Test a second order expansion circuit."""
         times = [0.2, 1, np.pi]
-        encoding = SecondOrderExpansion(3, reps=2).assign_parameters(times)
+        encoding = ZZFeatureMap(3, reps=2).assign_parameters(times)
 
         def zz_evolution(circuit, qubit1, qubit2):
             time = (np.pi - times[qubit1]) * (np.pi - times[qubit2])

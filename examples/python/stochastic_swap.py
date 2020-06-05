@@ -15,8 +15,8 @@
 """Example of using the StochasticSwap pass."""
 
 from qiskit.transpiler.passes import StochasticSwap
-from qiskit.transpiler import CouplingMap, Layout
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.transpiler import CouplingMap
+from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
@@ -93,7 +93,7 @@ expected.measure(qr[0], cr[1])
 expected_dag = circuit_to_dag(expected)
 
 # Run the pass on the dag from the input circuit
-pass_ = StochasticSwap(coupling, 20, 13)
+pass_ = StochasticSwap(coupling, 20, 999)
 after = pass_.run(dag)
 # Verify the output of the pass matches our expectation
 assert expected_dag == after
