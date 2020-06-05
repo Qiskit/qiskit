@@ -16,7 +16,7 @@
 
 import itertools
 from collections import defaultdict
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, cast
 
 import networkx as nx
 import numpy as np
@@ -78,7 +78,7 @@ class AbelianGrouper(ConverterBase):
                                    is_measurement=operator.is_measurement,
                                    coeff=operator.coeff)
         elif isinstance(operator, EvolvedOp) and self._traverse:
-            return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)
+            return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)  # type: ignore
         else:
             return operator
 
@@ -113,15 +113,15 @@ class AbelianGrouper(ConverterBase):
         else:
             coloring_dict = cls._largest_degree_first_coloring(nodes, edges)
 
-        groups = {}
+        groups = {}  # type: Dict
         # sort items so that the output is consistent with all options (fast and use_nx)
         for idx, color in sorted(coloring_dict.items()):
             groups.setdefault(color, []).append(list_op[idx])
 
         group_ops = [list_op.__class__(group, abelian=True) for group in groups.values()]
         if len(group_ops) == 1:
-            return group_ops[0] * list_op.coeff
-        return list_op.__class__(group_ops, coeff=list_op.coeff)
+            return group_ops[0] * list_op.coeff  # type: ignore
+        return list_op.__class__(group_ops, coeff=list_op.coeff)  # type: ignore
 
     @staticmethod
     def _commutation_graph(list_op: ListOp) -> List[Tuple[int, int]]:
@@ -135,7 +135,7 @@ class AbelianGrouper(ConverterBase):
         """
         indices = range(len(list_op))
         return [(i, j) for i, j in itertools.combinations(indices, 2)
-                if not list_op[i].commutes(list_op[j])]
+                if not list_op[i].commutes(list_op[j])]  # type: ignore
 
     @staticmethod
     def _commutation_graph_fast(list_op: ListOp) -> List[Tuple[int, int]]:
@@ -156,7 +156,7 @@ class AbelianGrouper(ConverterBase):
         # mat3[i, j] is True if i and j are commutable with TPB
         mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)
         # return [(i, j) if mat3[i, j] is False and i < j]
-        return zip(*np.where(np.triu(np.logical_not(mat3), k=1)))
+        return cast(List[Tuple[int, int]], zip(*np.where(np.triu(np.logical_not(mat3), k=1))))
 
     @staticmethod
     def _networkx_coloring(nodes: range, edges: List[Tuple[int, int]], strategy='largest_first') \

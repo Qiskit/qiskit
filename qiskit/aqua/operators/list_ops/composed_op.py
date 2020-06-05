@@ -14,7 +14,7 @@
 
 """ ComposedOp Class """
 
-from typing import List, Union
+from typing import List, Union, cast
 from functools import reduce, partial
 import numpy as np
 
@@ -95,11 +95,11 @@ class ComposedOp(ListOp):
 
         eval_list = self.oplist
         # Only one op needs to be multiplied, so just multiply the first.
-        eval_list[0] = eval_list[0] * self.coeff
+        eval_list[0] = eval_list[0] * self.coeff  # type: ignore
         if front and isinstance(front, OperatorBase):
             eval_list = eval_list + [front]
         elif front:
-            eval_list = [StateFn(front, is_measurement=True)] + eval_list
+            eval_list = [StateFn(front, is_measurement=True)] + eval_list  # type: ignore
 
         return reduce(tree_recursive_eval, reversed(eval_list))
 
@@ -133,4 +133,4 @@ class ComposedOp(ListOp):
         if isinstance(reduced_ops, ListOp) and len(reduced_ops.oplist) == 1:
             return reduced_ops.oplist[0]
         else:
-            return reduced_ops
+            return cast(OperatorBase, reduced_ops)

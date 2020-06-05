@@ -112,7 +112,7 @@ class VectorStateFn(StateFn):
     def to_circuit_op(self) -> OperatorBase:
         """ Return ``StateFnCircuit`` corresponding to this StateFn."""
         from .circuit_state_fn import CircuitStateFn
-        csfn = CircuitStateFn.from_vector(self.to_matrix(massive=True)) * self.coeff
+        csfn = CircuitStateFn.from_vector(self.to_matrix(massive=True)) * self.coeff  # type: ignore
         return csfn.adjoint() if self.is_measurement else csfn
 
     def __str__(self) -> str:
@@ -136,7 +136,7 @@ class VectorStateFn(StateFn):
                 'sf.adjoint() first to convert to measurement.')
 
         if isinstance(front, ListOp) and front.distributive:
-            return front.combo_fn([self.eval(front.coeff * front_elem)
+            return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
                                    for front_elem in front.oplist])
 
         if not isinstance(front, OperatorBase):
@@ -148,7 +148,7 @@ class VectorStateFn(StateFn):
         from .operator_state_fn import OperatorStateFn
         from .circuit_state_fn import CircuitStateFn
         if isinstance(front, DictStateFn):
-            return round(sum([v * self.primitive.data[int(b, 2)] * front.coeff
+            return round(sum([v * self.primitive.data[int(b, 2)] * front.coeff  # type: ignore
                               for (b, v) in front.primitive.items()]) * self.coeff,
                          ndigits=EVAL_SIG_DIGITS)
 
@@ -159,12 +159,13 @@ class VectorStateFn(StateFn):
 
         if isinstance(front, CircuitStateFn):
             # Don't reimplement logic from CircuitStateFn
-            return np.conj(front.adjoint().eval(self.adjoint().primitive)) * self.coeff
+            return np.conj(
+                front.adjoint().eval(self.adjoint().primitive)) * self.coeff  # type: ignore
 
         if isinstance(front, OperatorStateFn):
-            return front.adjoint().eval(self.primitive) * self.coeff
+            return front.adjoint().eval(self.primitive) * self.coeff  # type: ignore
 
-        return front.adjoint().eval(self.adjoint().primitive).adjoint() * self.coeff
+        return front.adjoint().eval(self.adjoint().primitive).adjoint() * self.coeff  # type: ignore
 
     def sample(self,
                shots: int = 1024,

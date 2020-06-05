@@ -14,7 +14,7 @@
 
 """ CircuitSampler Class """
 
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List, Union, cast, Any
 import logging
 from functools import partial
 
@@ -79,8 +79,8 @@ class CircuitSampler(ConverterBase):
         # Object state variables
         self._last_op = None
         self._reduced_op_cache = None
-        self._circuit_ops_cache = {}
-        self._transpiled_circ_cache = None
+        self._circuit_ops_cache = {}  # type: Dict[int, CircuitStateFn]
+        self._transpiled_circ_cache = None  # type: Optional[List[Any]]
         self._transpile_before_bind = True
         self._binding_mappings = None
 
@@ -181,8 +181,10 @@ class CircuitSampler(ConverterBase):
             self._extract_circuitstatefns(self._reduced_op_cache)
 
         if params:
-            num_parameterizations = len(list(params.values())[0])
-            param_bindings = [{param: value_list[i] for (param, value_list) in params.items()}
+            p_0 = list(params.values())[0]  # type: ignore
+            num_parameterizations = len(cast(List, p_0))
+            param_bindings = [{param: value_list[i]  # type: ignore
+                               for (param, value_list) in params.items()}
                               for i in range(num_parameterizations)]
         else:
             param_bindings = None
@@ -190,8 +192,9 @@ class CircuitSampler(ConverterBase):
 
         # Don't pass circuits if we have in the cache, the sampling function knows to use the cache
         circs = list(self._circuit_ops_cache.values()) if not self._transpiled_circ_cache else None
+        p_b = cast(List[Dict[ParameterExpression, List[float]]], param_bindings)
         sampled_statefn_dicts = self.sample_circuits(circuit_sfns=circs,
-                                                     param_bindings=param_bindings)
+                                                     param_bindings=p_b)
 
         def replace_circuits_with_dicts(operator, param_index=0):
             if isinstance(operator, CircuitStateFn):
@@ -308,7 +311,8 @@ class CircuitSampler(ConverterBase):
         return sampled_statefn_dicts
 
     # TODO build Aer re-parameterized Qobj.
-    def _prepare_parameterized_run_config(self, param_bindings: dict) -> None:
+    def _prepare_parameterized_run_config(self,
+                                          param_bindings: List[Dict[Any, List[float]]]) -> None:
         raise NotImplementedError
         # Wipe parameterizations, if any
         # self.quantum_instance._run_config.parameterizations = None

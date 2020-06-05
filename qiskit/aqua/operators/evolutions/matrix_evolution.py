@@ -52,11 +52,11 @@ class MatrixEvolution(EvolutionBase):
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly
-                matrix_ham = operator.primitive.to_matrix_op(massive=False)
+                matrix_ham = operator.primitive.to_matrix_op(massive=False)  # type: ignore
                 operator = EvolvedOp(matrix_ham, coeff=operator.coeff)
 
             if isinstance(operator.primitive, ListOp):
-                return operator.primitive.exp_i() * operator.coeff
+                return operator.primitive.exp_i() * operator.coeff  # type: ignore
             elif isinstance(operator.primitive, (MatrixOp, PauliOp)):
                 return operator.primitive.exp_i()
         elif isinstance(operator, ListOp):

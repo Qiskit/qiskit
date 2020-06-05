@@ -72,7 +72,7 @@ class MatrixOp(PrimitiveOp):
 
     @property
     def num_qubits(self) -> int:
-        return len(self.primitive.input_dims())
+        return len(self.primitive.input_dims())  # type: ignore
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
@@ -84,13 +84,15 @@ class MatrixOp(PrimitiveOp):
         if isinstance(other, MatrixOp) and \
                 not isinstance(self.coeff, ParameterExpression) and \
                 not isinstance(other.coeff, ParameterExpression):
-            return MatrixOp((self.coeff * self.primitive) + (other.coeff * other.primitive))
+            return MatrixOp(
+                (self.coeff * self.primitive) + (other.coeff * other.primitive))  # type: ignore
 
         # Covers Paulis, Circuits, and all else.
         return SummedOp([self, other])
 
     def adjoint(self) -> OperatorBase:
-        return MatrixOp(self.primitive.conjugate().transpose(), coeff=np.conj(self.coeff))
+        return MatrixOp(self.primitive.conjugate().transpose(),  # type: ignore
+                        coeff=np.conj(self.coeff))
 
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, MatrixOp) or not self.coeff == other.coeff:
@@ -99,8 +101,9 @@ class MatrixOp(PrimitiveOp):
         return self.primitive == other.primitive
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
-        if isinstance(other.primitive, Operator):
-            return MatrixOp(self.primitive.tensor(other.primitive), coeff=self.coeff * other.coeff)
+        if isinstance(other.primitive, Operator):  # type: ignore
+            return MatrixOp(self.primitive.tensor(other.primitive),  # type: ignore
+                            coeff=self.coeff * other.coeff)  # type: ignore
 
         return TensoredOp([self, other])
 
@@ -108,13 +111,13 @@ class MatrixOp(PrimitiveOp):
         other = self._check_zero_for_composition_and_expand(other)
 
         if isinstance(other, MatrixOp):
-            return MatrixOp(self.primitive.compose(other.primitive, front=True),
+            return MatrixOp(self.primitive.compose(other.primitive, front=True),  # type: ignore
                             coeff=self.coeff * other.coeff)
 
         return ComposedOp([self, other])
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        return self.primitive.data * self.coeff
+        return self.primitive.data * self.coeff  # type: ignore
 
     def __str__(self) -> str:
         prim_str = str(self.primitive)
@@ -141,7 +144,7 @@ class MatrixOp(PrimitiveOp):
             front = StateFn(front, is_measurement=False)
 
         if isinstance(front, ListOp) and front.distributive:
-            new_front = front.combo_fn([self.eval(front.coeff * front_elem)
+            new_front = front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
                                         for front_elem in front.oplist])
 
         elif isinstance(front, OperatorStateFn):
@@ -162,7 +165,7 @@ class MatrixOp(PrimitiveOp):
         return self
 
     def to_instruction(self) -> Instruction:
-        return PrimitiveOp(self.primitive.to_instruction(), coeff=self.coeff)
+        return PrimitiveOp(self.primitive.to_instruction(), coeff=self.coeff)  # type: ignore
 
     def to_legacy_op(self, massive: bool = False) -> MatrixOperator:
         return MatrixOperator(self.to_matrix(massive=massive))

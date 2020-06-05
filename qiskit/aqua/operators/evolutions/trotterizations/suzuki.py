@@ -14,7 +14,7 @@
 
 """ Suzuki Class """
 
-from typing import List, Union
+from typing import List, Union, cast
 from qiskit.quantum_info import Pauli
 
 from .trotterization_base import TrotterizationBase
@@ -59,9 +59,11 @@ class Suzuki(TrotterizationBase):
             raise TypeError('Trotterization converters can only convert SummedOps.')
 
         composition_list = Suzuki._suzuki_recursive_expansion(
-            operator.oplist, operator.coeff, self.order, self.reps)
+            cast(List[List[Union[complex, Pauli]]], operator.oplist),
+            cast(float, operator.coeff),
+            self.order, self.reps)
 
-        single_rep = ComposedOp(composition_list)
+        single_rep = ComposedOp(cast(List[OperatorBase], composition_list))
         full_evo = single_rep.power(self.reps)
         return full_evo.reduce()
 
@@ -86,7 +88,7 @@ class Suzuki(TrotterizationBase):
         """
         if expansion_order == 1:
             # Base first-order Trotter case
-            return [(op * (evo_time / reps)).exp_i() for op in op_list]
+            return [(op * (evo_time / reps)).exp_i() for op in op_list]  # type: ignore
         if expansion_order == 2:
             half = Suzuki._suzuki_recursive_expansion(op_list, evo_time / 2,
                                                       expansion_order - 1, reps)

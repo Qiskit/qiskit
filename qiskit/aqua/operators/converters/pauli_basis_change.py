@@ -14,7 +14,7 @@
 
 """ PauliBasisChange Class """
 
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, Tuple, cast
 import logging
 from functools import partial, reduce
 import numpy as np
@@ -87,7 +87,7 @@ class PauliBasisChange(ConverterBase):
         if destination_basis is not None:
             self.destination = destination_basis
         else:
-            self._destination = None
+            self._destination = None  # type: Optional[PauliOp]
         self._traverse = traverse
         self._replacement_fn = replacement_fn or PauliBasisChange.operator_replacement_fn
 
@@ -135,12 +135,12 @@ class PauliBasisChange(ConverterBase):
 
         if isinstance(operator, (Pauli, PrimitiveOp)):
             cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator)
-            return self._replacement_fn(cob_instr_op, dest_pauli_op)
+            return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
         if isinstance(operator, StateFn) and 'Pauli' in operator.primitive_strings():
             # If the StateFn/Meas only contains a Pauli, use it directly.
             if isinstance(operator.primitive, PrimitiveOp):
                 cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator.primitive)
-                return self._replacement_fn(cob_instr_op, dest_pauli_op)
+                return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
             # TODO make a canonical "distribute" or graph swap as method in ListOp?
             elif operator.primitive.distributive:
                 if operator.primitive.abelian:
@@ -149,7 +149,7 @@ class PauliBasisChange(ConverterBase):
                     diag_ops = [self.get_diagonal_pauli_op(op) for op in operator.primitive.oplist]
                     dest_pauli_op = operator.primitive.__class__(diag_ops,
                                                                  coeff=operator.coeff, abelian=True)
-                    return self._replacement_fn(cob_instr_op, dest_pauli_op)
+                    return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
                 else:
                     sf_list = [StateFn(op, is_measurement=operator.is_measurement)
                                for op in operator.primitive.oplist]
@@ -166,9 +166,11 @@ class PauliBasisChange(ConverterBase):
             if operator.abelian:
                 origin_pauli = self.get_tpb_pauli(operator)
                 cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
-                diag_ops = [self.get_diagonal_pauli_op(op) for op in operator.oplist]
-                dest_pauli_op = operator.__class__(diag_ops, coeff=operator.coeff, abelian=True)
-                return self._replacement_fn(cob_instr_op, dest_pauli_op)
+                diag_ops = \
+                    [self.get_diagonal_pauli_op(op) for op in operator.oplist]  # type: ignore
+                dest_pauli_op = \
+                    operator.__class__(diag_ops, coeff=operator.coeff, abelian=True)  # type: ignore
+                return self._replacement_fn(cob_instr_op, dest_pauli_op)  # type: ignore
             else:
                 return operator.traverse(self.convert)
 
@@ -238,8 +240,10 @@ class PauliBasisChange(ConverterBase):
              The TBP Pauli.
 
         """
-        origin_z = reduce(np.logical_or, [p_op.primitive.z for p_op in list_op.oplist])
-        origin_x = reduce(np.logical_or, [p_op.primitive.x for p_op in list_op.oplist])
+        origin_z = \
+            reduce(np.logical_or, [p_op.primitive.z for p_op in list_op.oplist])  # type: ignore
+        origin_x = \
+            reduce(np.logical_or, [p_op.primitive.x for p_op in list_op.oplist])  # type: ignore
         return Pauli(x=origin_x, z=origin_z)
 
     def get_diagonal_pauli_op(self, pauli_op: PauliOp) -> PauliOp:
@@ -252,9 +256,9 @@ class PauliBasisChange(ConverterBase):
         Returns:
             The diagonal ``PauliOp``.
         """
-        return PauliOp(Pauli(z=np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x),
-                             x=[False] * pauli_op.num_qubits),
-                       coeff=pauli_op.coeff)
+        return PauliOp(
+            Pauli(z=np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x),  # type: ignore
+                  x=[False] * pauli_op.num_qubits), coeff=pauli_op.coeff)
 
     def get_diagonalizing_clifford(self, pauli: Union[Pauli, PauliOp]) -> OperatorBase:
         r"""
@@ -279,15 +283,16 @@ class PauliBasisChange(ConverterBase):
         tensorall = partial(reduce, lambda x, y: x.tensor(y))
 
         # pylint: disable=bad-reversed-sequence
-        y_to_x_origin = tensorall([S if has_y else I for has_y in
-                                   reversed(np.logical_and(pauli.x, pauli.z))]).adjoint()
+        y_to_x_origin = \
+            tensorall([S if has_y else I for has_y in  # type: ignore
+                       reversed(np.logical_and(pauli.x, pauli.z))]).adjoint()  # type: ignore
         x_to_z_origin = tensorall([H if has_x else I for has_x in
-                                   reversed(pauli.x)])
-        return x_to_z_origin.compose(y_to_x_origin)
+                                   reversed(pauli.x)])  # type: ignore
+        return x_to_z_origin.compose(y_to_x_origin)  # type: ignore
 
     def pad_paulis_to_equal_length(self,
                                    pauli_op1: PauliOp,
-                                   pauli_op2: PauliOp) -> (PauliOp, PauliOp):
+                                   pauli_op2: PauliOp) -> Tuple[PauliOp, PauliOp]:
         r"""
         If ``pauli_op1`` and ``pauli_op2`` do not act over the same number of qubits, pad
         identities to the end of the shorter of the two so they are of equal length. Padding is
@@ -306,14 +311,14 @@ class PauliBasisChange(ConverterBase):
         pauli_1, pauli_2 = pauli_op1.primitive, pauli_op2.primitive
 
         # Padding to the end of the Pauli, but remember that Paulis are in reverse endianness.
-        if not len(pauli_1.z) == num_qubits:
-            missing_qubits = num_qubits - len(pauli_1.z)
-            pauli_1 = Pauli(z=([False] * missing_qubits) + pauli_1.z.tolist(),
-                            x=([False] * missing_qubits) + pauli_1.x.tolist())
-        if not len(pauli_2.z) == num_qubits:
-            missing_qubits = num_qubits - len(pauli_2.z)
-            pauli_2 = Pauli(z=([False] * missing_qubits) + pauli_2.z.tolist(),
-                            x=([False] * missing_qubits) + pauli_2.x.tolist())
+        if not len(pauli_1.z) == num_qubits:  # type: ignore
+            missing_qubits = num_qubits - len(pauli_1.z)  # type: ignore
+            pauli_1 = Pauli(z=([False] * missing_qubits) + pauli_1.z.tolist(),  # type: ignore
+                            x=([False] * missing_qubits) + pauli_1.x.tolist())  # type: ignore
+        if not len(pauli_2.z) == num_qubits:  # type: ignore
+            missing_qubits = num_qubits - len(pauli_2.z)  # type: ignore
+            pauli_2 = Pauli(z=([False] * missing_qubits) + pauli_2.z.tolist(),  # type: ignore
+                            x=([False] * missing_qubits) + pauli_2.x.tolist())  # type: ignore
 
         return PauliOp(pauli_1, coeff=pauli_op1.coeff), PauliOp(pauli_2, coeff=pauli_op2.coeff)
 
@@ -344,9 +349,9 @@ class PauliBasisChange(ConverterBase):
             else diag_pauli_op1
         pauli_2 = diag_pauli_op2.primitive if isinstance(diag_pauli_op2, PauliOp) \
             else diag_pauli_op2
-        origin_sig_bits = np.logical_or(pauli_1.z, pauli_1.x)
-        destination_sig_bits = np.logical_or(pauli_2.z, pauli_2.x)
-        num_qubits = max(len(pauli_1.z), len(pauli_2.z))
+        origin_sig_bits = np.logical_or(pauli_1.z, pauli_1.x)  # type: ignore
+        destination_sig_bits = np.logical_or(pauli_2.z, pauli_2.x)  # type: ignore
+        num_qubits = max(len(pauli_1.z), len(pauli_2.z))  # type: ignore
 
         sig_equal_sig_bits = np.logical_and(origin_sig_bits, destination_sig_bits)
         non_equal_sig_bits = np.logical_not(origin_sig_bits == destination_sig_bits)
@@ -392,7 +397,7 @@ class PauliBasisChange(ConverterBase):
 
         return PrimitiveOp(cnots)
 
-    def get_cob_circuit(self, origin: Union[Pauli, PauliOp]) -> (PrimitiveOp, PauliOp):
+    def get_cob_circuit(self, origin: Union[Pauli, PauliOp]) -> Tuple[PrimitiveOp, PauliOp]:
         r"""
         Construct an Operator which maps the +1 and -1 eigenvectors
         of the origin Pauli to the +1 and -1 eigenvectors of the destination Pauli. It does so by
@@ -451,8 +456,9 @@ class PauliBasisChange(ConverterBase):
         # Pad origin or destination if either are not as long as the other
         origin, destination = self.pad_paulis_to_equal_length(origin, destination)
 
-        origin_sig_bits = np.logical_or(origin.primitive.x, origin.primitive.z)
-        destination_sig_bits = np.logical_or(destination.primitive.x, destination.primitive.z)
+        origin_sig_bits = np.logical_or(origin.primitive.x, origin.primitive.z)  # type: ignore
+        destination_sig_bits = \
+            np.logical_or(destination.primitive.x, destination.primitive.z)  # type: ignore
         if not any(origin_sig_bits) or not any(destination_sig_bits):
             if not (any(origin_sig_bits) or any(destination_sig_bits)):
                 # Both all Identity, just return Identities
@@ -471,4 +477,4 @@ class PauliBasisChange(ConverterBase):
         dest_diagonlizing_clifford = self.get_diagonalizing_clifford(destination).adjoint()
         cob_instruction = dest_diagonlizing_clifford.compose(cob_instruction)
 
-        return cob_instruction, destination
+        return cast(PrimitiveOp, cob_instruction), destination

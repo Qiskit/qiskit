@@ -15,7 +15,7 @@
 """ SummedOp Class """
 
 from functools import reduce
-from typing import List, Union
+from typing import List, Union, cast
 
 import numpy as np
 
@@ -92,8 +92,8 @@ class SummedOp(ListOp):
         Returns:
             A simplified ``SummedOp`` equivalent to self.
         """
-        oplist = []
-        coeffs = []
+        oplist = []  # type: List[OperatorBase]
+        coeffs = []  # type: List[Union[int, float, complex, ParameterExpression]]
         for op in self.oplist:
             if isinstance(op, PrimitiveOp):
                 new_op = PrimitiveOp(op.primitive)
@@ -111,7 +111,7 @@ class SummedOp(ListOp):
                 else:
                     oplist.append(op)
                     coeffs.append(self.coeff)
-        return SummedOp([op * coeff for op, coeff in zip(oplist, coeffs)])
+        return SummedOp([op * coeff for op, coeff in zip(oplist, coeffs)])  # type: ignore
 
     # Try collapsing list or trees of Sums.
     # TODO be smarter about the fact that any two ops in oplist could be evaluated for sum.
@@ -121,7 +121,7 @@ class SummedOp(ListOp):
         if isinstance(reduced_ops, SummedOp) and len(reduced_ops.oplist) == 1:
             return reduced_ops.oplist[0]
         else:
-            return reduced_ops
+            return cast(OperatorBase, reduced_ops)
 
     def to_legacy_op(self, massive: bool = False) -> LegacyBaseOperator:
         # We do this recursively in case there are SummedOps of PauliOps in oplist.
@@ -139,6 +139,6 @@ class SummedOp(ListOp):
                 raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
                                 'Operator'.format(self.coeff))
         else:
-            coeff = self.coeff
+            coeff = cast(float, self.coeff)
 
         return self.combo_fn(legacy_ops) * coeff

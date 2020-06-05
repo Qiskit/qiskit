@@ -14,7 +14,7 @@
 
 """ TensoredOp Class """
 
-from typing import List, Union
+from typing import List, Union, cast
 from functools import reduce, partial
 import numpy as np
 
@@ -63,7 +63,7 @@ class TensoredOp(ListOp):
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
-        return self.to_matrix_op().eval(front=front)
+        return cast(Union[OperatorBase, float, complex], self.to_matrix_op().eval(front=front))
 
     # Try collapsing list or trees of tensor products.
     # TODO do this smarter
@@ -73,4 +73,4 @@ class TensoredOp(ListOp):
         if isinstance(reduced_ops, ListOp) and len(reduced_ops.oplist) == 1:
             return reduced_ops.oplist[0]
         else:
-            return reduced_ops
+            return cast(OperatorBase, reduced_ops)

@@ -14,7 +14,7 @@
 
 """ EvolutionOp Class """
 
-from typing import Optional, Union, Set, List
+from typing import Optional, Union, Set, List, cast
 import logging
 import numpy as np
 import scipy
@@ -52,11 +52,11 @@ class EvolvedOp(PrimitiveOp):
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
-        return self.primitive.primitive_strings()
+        return self.primitive.primitive_strings()  # type: ignore
 
     @property
     def num_qubits(self) -> int:
-        return self.primitive.num_qubits
+        return self.primitive.num_qubits  # type: ignore
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
@@ -65,15 +65,16 @@ class EvolvedOp(PrimitiveOp):
                 'defined'.format(self.num_qubits, other.num_qubits))
 
         if isinstance(other, EvolvedOp) and self.primitive == other.primitive:
-            return EvolvedOp(self.primitive, coeff=self.coeff + other.coeff)
+            return EvolvedOp(self.primitive, coeff=self.coeff + other.coeff)  # type: ignore
 
         if isinstance(other, SummedOp):
-            return SummedOp([self] + other.oplist)
+            op_list = [self] + cast(SummedOp, other).oplist  # type: ignore
+            return SummedOp(op_list)  # type: ignore
 
         return SummedOp([self, other])
 
     def adjoint(self) -> OperatorBase:
-        return EvolvedOp(self.primitive.adjoint() * -1, coeff=np.conj(self.coeff))
+        return EvolvedOp(self.primitive.adjoint() * -1, coeff=np.conj(self.coeff))  # type: ignore
 
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, EvolvedOp) or not self.coeff == other.coeff:
@@ -83,7 +84,7 @@ class EvolvedOp(PrimitiveOp):
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         if isinstance(other, TensoredOp):
-            return TensoredOp([self] + other.oplist)
+            return TensoredOp([self] + other.oplist)  # type: ignore
 
         return TensoredOp([self, other])
 
@@ -91,7 +92,7 @@ class EvolvedOp(PrimitiveOp):
         other = self._check_zero_for_composition_and_expand(other)
 
         if isinstance(other, ComposedOp):
-            return ComposedOp([self] + other.oplist)
+            return ComposedOp([self] + other.oplist)  # type: ignore
 
         return ComposedOp([self, other])
 
@@ -106,7 +107,7 @@ class EvolvedOp(PrimitiveOp):
         return "EvolvedOp({}, coeff={})".format(repr(self.primitive), self.coeff)
 
     def reduce(self) -> OperatorBase:
-        return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)
+        return EvolvedOp(self.primitive.reduce(), coeff=self.coeff)  # type: ignore
 
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
@@ -117,34 +118,36 @@ class EvolvedOp(PrimitiveOp):
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
                 param_value = float(self.coeff.bind(binds))
-        return EvolvedOp(self.primitive.bind_parameters(param_dict), coeff=param_value)
+        return EvolvedOp(
+            self.primitive.bind_parameters(param_dict), coeff=param_value)  # type: ignore
 
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
-        return self.to_matrix_op().eval(front=front)
+        return cast(Union[OperatorBase, float, complex], self.to_matrix_op().eval(front=front))
 
     def to_matrix(self, massive: bool = False) -> Union[np.ndarray, List[np.ndarray]]:
         if self.primitive.__class__.__name__ == ListOp.__name__:
-            return [op.exp_i().to_matrix() * self.primitive.coeff * self.coeff
-                    for op in self.primitive.oplist]
+            return [op.exp_i().to_matrix() * self.primitive.coeff * self.coeff  # type: ignore
+                    for op in self.primitive.oplist]  # type: ignore
 
-        prim_mat = -1.j * self.primitive.to_matrix()
+        prim_mat = -1.j * self.primitive.to_matrix()  # type: ignore
         # pylint: disable=no-member
         return scipy.linalg.expm(prim_mat) * self.coeff
 
     def to_matrix_op(self, massive: bool = False) -> OperatorBase:
         """ Returns a ``MatrixOp`` equivalent to this Operator. """
         if self.primitive.__class__.__name__ == ListOp.__name__:
-            return ListOp([op.exp_i().to_matrix_op() for op in self.primitive.oplist],
-                          coeff=self.primitive.coeff * self.coeff)
+            return ListOp(
+                [op.exp_i().to_matrix_op() for op in self.primitive.oplist],  # type: ignore
+                coeff=self.primitive.coeff * self.coeff)  # type: ignore
 
-        prim_mat = EvolvedOp(self.primitive).to_matrix(massive=massive)
+        prim_mat = EvolvedOp(self.primitive).to_matrix(massive=massive)  # type: ignore
         return MatrixOp(prim_mat, coeff=self.coeff)
 
     def log_i(self, massive: bool = False) -> OperatorBase:
-        return self.primitive * self.coeff
+        return self.primitive * self.coeff  # type: ignore
 
     # pylint: disable=arguments-differ
     def to_instruction(self, massive: bool = False) -> Instruction:
-        return self.primitive.to_matrix_op(massive=massive).exp_i()
+        return self.primitive.to_matrix_op(massive=massive).exp_i()  # type: ignore

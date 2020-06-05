@@ -14,7 +14,7 @@
 
 """ OperatorBase Class """
 
-from typing import Set, Union, Dict, Optional, List
+from typing import Set, Union, Dict, Optional, List, cast
 from numbers import Number
 from abc import ABC, abstractmethod
 import numpy as np
@@ -254,7 +254,7 @@ class OperatorBase(ABC):
 
     # Equality
 
-    def __eq__(self, other: 'OperatorBase') -> bool:
+    def __eq__(self, other: object) -> bool:
         r""" Overload ``==`` operation to evaluate equality between Operators.
 
         Args:
@@ -263,7 +263,9 @@ class OperatorBase(ABC):
         Returns:
             A bool equal to the equality of self and other.
         """
-        return self.equals(other)
+        if not isinstance(other, OperatorBase):
+            return NotImplemented
+        return self.equals(cast(OperatorBase, other))
 
     @abstractmethod
     def equals(self, other: 'OperatorBase') -> bool:
@@ -325,7 +327,7 @@ class OperatorBase(ABC):
         """
         return self.mul(other)
 
-    def __truediv__(self, other: Number) -> 'OperatorBase':
+    def __truediv__(self, other: Union[int, float, complex]) -> 'OperatorBase':
         r""" Overload ``/`` for scalar Operator division.
 
         Args:
@@ -349,7 +351,7 @@ class OperatorBase(ABC):
                 or the tensorpower of self by other.
         """
         if isinstance(other, int):
-            return self.tensorpower(other)
+            return cast(OperatorBase, self.tensorpower(other))
         else:
             return self.tensor(other)
 
@@ -366,7 +368,7 @@ class OperatorBase(ABC):
         if other == 1:
             return self
         else:
-            return other.tensor(self)
+            return cast(OperatorBase, other).tensor(self)
 
     @abstractmethod
     def tensor(self, other: 'OperatorBase') -> 'OperatorBase':
@@ -390,7 +392,7 @@ class OperatorBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def tensorpower(self, other: int) -> 'OperatorBase':
+    def tensorpower(self, other: int) -> Union['OperatorBase', int]:
         r""" Return tensor product with self multiple times, overloaded by ``^``.
 
         Args:
@@ -454,22 +456,23 @@ class OperatorBase(ABC):
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
-                if not len(param) == len(value):
+                if not len(param) == len(value):  # type: ignore
                     raise ValueError(
                         'ParameterVector {} has length {}, which differs from value list {} of '
-                        'len {}'.format(param, len(param), value, len(value)))
-                unrolled_value_dict.update(zip(param, value))
+                        'len {}'.format(param, len(param), value, len(value)))  # type: ignore
+                unrolled_value_dict.update(zip(param, value))  # type: ignore
         if isinstance(list(unrolled_value_dict.values())[0], list):
             # check that all are same length
             unrolled_value_dict_list = []
             try:
-                for i in range(len(list(unrolled_value_dict.values())[0])):
+                for i in range(len(list(unrolled_value_dict.values())[0])):  # type: ignore
                     unrolled_value_dict_list.append(
-                        OperatorBase._get_param_dict_for_index(unrolled_value_dict, i))
+                        OperatorBase._get_param_dict_for_index(unrolled_value_dict,  # type: ignore
+                                                               i))
                 return unrolled_value_dict_list
             except IndexError:
                 raise AquaError('Parameter binding lists must all be the same length.')
-        return unrolled_value_dict
+        return unrolled_value_dict  # type: ignore
 
     @staticmethod
     def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[Number]],

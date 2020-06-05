@@ -14,6 +14,7 @@
 
 """ Weighted Pauli Operator """
 
+from typing import List, Optional, Tuple, Union
 from copy import deepcopy
 import itertools
 import logging
@@ -41,23 +42,24 @@ logger = logging.getLogger(__name__)
 class WeightedPauliOperator(LegacyBaseOperator):
     """ Weighted Pauli Operator """
 
-    def __init__(self, paulis, basis=None, z2_symmetries=None, atol=1e-12, name=None):
+    def __init__(self,
+                 paulis: List[List[Union[complex, Pauli]]],
+                 basis: Optional[List[Tuple[object, List[int]]]] = None,
+                 z2_symmetries: 'Z2Symmetries' = None,
+                 atol: float = 1e-12,
+                 name: Optional[str] = None) -> None:
         """
         Args:
-            paulis (list[[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is
-                                             composed of a length-2 list and the first item is the
-                                             weight and the second item is the Pauli object.
-            basis (list[tuple(object, [int])], optional): the grouping basis, each element is a
-                                                          tuple composed of the basis
-                                                          and the indices to paulis which are
-                                                          belonged to that group.
-                                                          e.g., if tpb basis is used, the object
-                                                          will be a pauli.
-                                                          By default, the group is equal to
-                                                          non-grouping, each pauli is its own basis.
-            z2_symmetries (Z2Symmetries): recording the z2 symmetries info
-            atol (float, optional): the threshold used in truncating paulis
-            name (str, optional): the name of operator.
+            paulis: the list of weighted Paulis, where a weighted pauli is
+                    composed of a length-2 list and the first item is the
+                    weight and the second item is the Pauli object.
+            basis: the grouping basis, each element is a tuple composed of the basis
+                    and the indices to paulis which belong to that group.
+                    e.g., if tpb basis is used, the object will be a pauli.
+                    By default, the group is equal to non-grouping, each pauli is its own basis.
+            z2_symmetries: recording the z2 symmetries info
+            atol: the threshold used in truncating paulis
+            name: the name of operator.
         """
         super().__init__(basis, z2_symmetries, name)
         # plain store the paulis, the group information is store in the basis
@@ -819,12 +821,12 @@ class WeightedPauliOperator(LegacyBaseOperator):
 
         return avg, variance
 
-    def reorder_paulis(self):
+    def reorder_paulis(self) -> List[List[Union[complex, Pauli]]]:
         """
         Reorder the paulis based on the basis and return the reordered paulis.
 
         Returns:
-            list[list[complex, paulis]]: the ordered paulis based on the basis.
+            the ordered paulis based on the basis.
         """
 
         # if each pauli belongs to its group, no reordering it needed.
@@ -1041,12 +1043,12 @@ class Z2Symmetries:
         ret = "\n".join(ret)
         return ret
 
-    def copy(self):
+    def copy(self) -> 'Z2Symmetries':
         """
         Get a copy of self.
 
         Returns:
-            Z2Symmetries: copy
+            copy
         """
         return deepcopy(self)
 
@@ -1063,13 +1065,13 @@ class Z2Symmetries:
             return True
 
     @classmethod
-    def find_Z2_symmetries(cls, operator):  # pylint: disable=invalid-name
+    def find_Z2_symmetries(cls, operator) -> 'Z2Symmetries':  # pylint: disable=invalid-name
         """
         Finds Z2 Pauli-type symmetries of an Operator.
 
         Returns:
-            Z2Symmetries: a z2_symmetries object contains symmetries,
-                          single-qubit X, single-qubit list.
+            a z2_symmetries object contains symmetries,
+            single-qubit X, single-qubit list.
         """
         # pylint: disable=invalid-name
         pauli_symmetries = []

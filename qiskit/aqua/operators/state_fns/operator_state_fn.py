@@ -199,10 +199,10 @@ class OperatorStateFn(StateFn):
         # Can't use isinstance because this would include subclasses.
         # pylint: disable=unidiomatic-typecheck
         if type(front) == ListOp:
-            return front.combo_fn([self.eval(front.coeff * front_elem)
-                                   for front_elem in front.oplist])
+            return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
+                                   for front_elem in front.oplist])  # type: ignore
 
-        return front.adjoint().eval(self.primitive.eval(front)) * self.coeff
+        return front.adjoint().eval(self.primitive.eval(front)) * self.coeff  # type: ignore
 
     def sample(self,
                shots: int = 1024,

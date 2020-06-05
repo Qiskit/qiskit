@@ -14,7 +14,7 @@
 
 """ PauliTrotterEvolution Class """
 
-from typing import Optional, Union
+from typing import Optional, Union, cast
 import logging
 import numpy as np
 
@@ -109,7 +109,7 @@ class PauliTrotterEvolution(EvolutionBase):
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly
-                pauli_ham = operator.primitive.to_pauli_op(massive=False)
+                pauli_ham = operator.primitive.to_pauli_op(massive=False)  # type: ignore
                 operator = EvolvedOp(pauli_ham, coeff=operator.coeff)
 
             if isinstance(operator.primitive, SummedOp):
@@ -149,11 +149,11 @@ class PauliTrotterEvolution(EvolutionBase):
 
         # Note: PauliBasisChange will pad destination with identities
         # to produce correct CoB circuit
-        sig_bits = np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x)
+        sig_bits = np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x)  # type: ignore
         a_sig_bit = int(max(np.extract(sig_bits, np.arange(pauli_op.num_qubits)[::-1])))
         destination = (I.tensorpower(a_sig_bit)) ^ (Z * pauli_op.coeff)
         cob = PauliBasisChange(destination_basis=destination, replacement_fn=replacement_fn)
-        return cob.convert(pauli_op)
+        return cast(PrimitiveOp, cob.convert(pauli_op))
 
     # TODO implement Abelian grouped evolution.
     def evolution_for_abelian_paulisum(self, op_sum: SummedOp) -> PrimitiveOp:

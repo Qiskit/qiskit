@@ -14,7 +14,7 @@
 
 """ StateFn Class """
 
-from typing import Union, Optional, Callable, Set, Dict
+from typing import Union, Optional, Callable, Set, Dict, Tuple
 import numpy as np
 
 from qiskit.quantum_info import Statevector
@@ -55,7 +55,7 @@ class StateFn(OperatorBase):
                                  QuantumCircuit, Instruction,
                                  OperatorBase] = None,
                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                is_measurement: bool = False) -> OperatorBase:
+                is_measurement: bool = False) -> 'StateFn':
         """ A factory method to produce the correct type of StateFn subclass
         based on the primitive passed in. Primitive, coeff, and is_measurement arguments
         are passed into subclass's init() as-is automatically by new().
@@ -185,13 +185,13 @@ class StateFn(OperatorBase):
             raise TypeError('Tensorpower can only take positive int arguments')
         temp = StateFn(self.primitive,
                        coeff=self.coeff,
-                       is_measurement=self.is_measurement)
+                       is_measurement=self.is_measurement)  # type: OperatorBase
         for _ in range(other - 1):
             temp = temp.tensor(self)
         return temp
 
     def _check_zero_for_composition_and_expand(self, other: OperatorBase) \
-            -> (OperatorBase, OperatorBase):
+            -> Tuple[OperatorBase, OperatorBase]:
         new_self = self
         # pylint: disable=import-outside-toplevel
         if not self.num_qubits == other.num_qubits:

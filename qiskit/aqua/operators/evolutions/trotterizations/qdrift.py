@@ -17,6 +17,7 @@ QDrift Class
 
 """
 
+from typing import cast
 import numpy as np
 
 from qiskit.aqua import aqua_globals
@@ -45,16 +46,19 @@ class QDrift(TrotterizationBase):
         if not isinstance(operator, SummedOp):
             raise TypeError('Trotterization converters can only convert SummedOps.')
 
+        summed_op = cast(SummedOp, operator)
         # We artificially make the weights positive, TODO check approximation performance
-        weights = np.abs([op.coeff for op in operator.oplist])
+        weights = np.abs([op.coeff for op in summed_op.oplist])  # type: ignore
         lambd = sum(weights)
-        N = 2 * (lambd ** 2) * (operator.coeff ** 2)
+        N = 2 * (lambd ** 2) * (summed_op.coeff ** 2)
 
-        factor = lambd * operator.coeff / (N * self.reps)
+        factor = lambd * summed_op.coeff / (N * self.reps)
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
-        scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator.oplist]
+        scaled_ops = \
+            [(op * (factor / op.coeff)).exp_i() for op in summed_op.oplist]  # type: ignore
         sampled_ops = aqua_globals.random.choice(scaled_ops,
-                                                 size=(int(N * self.reps),), p=weights / lambd)
+                                                 size=(int(N * self.reps),),  # type: ignore
+                                                 p=weights / lambd)
 
         return ComposedOp(sampled_ops).reduce()
