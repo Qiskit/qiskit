@@ -42,7 +42,8 @@ from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
                                     MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
                                     MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
-import qiskit.extensions.standard as allGates
+import qiskit.circuit.library.standard_gates as allGates
+from qiskit.extensions import UnitaryGate
 
 from .gate_utils import _get_free_params
 
@@ -174,7 +175,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
-        import qiskit.extensions.standard.u3 as u3
+        import qiskit.circuit.library.standard_gates.u3 as u3
 
         num_ctrl = 3
         # U3 gate params
@@ -235,7 +236,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
-        import qiskit.extensions.standard.u1 as u1
+        import qiskit.circuit.library.standard_gates.u1 as u1
 
         num_ctrl = 3
         # U1 gate params
@@ -629,6 +630,20 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
     @data(1, 2, 3)
+    def test_controlled_unitary_gate(self, num_ctrl_qubits):
+        """Test that UnitaryGate with control returns params."""
+        circ = QuantumCircuit(num_ctrl_qubits+1)
+        umat = np.array([[1,0],[0,-1]])
+        u = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=num_ctrl_qubits)
+        circ.append(u, range(num_ctrl_qubits+1))
+        self.assertEqual(circ[0][0].num_qubits, num_ctrl_qubits+1)
+        self.assertEqual(circ[0][0].num_ctrl_qubits, num_ctrl_qubits)
+        self.assertEqual(circ[0][0].ctrl_state, num_ctrl_qubits)
+        for instr in circ:
+            gate = instr[0]
+            self.assertTrue(isinstance(gate, ControlledGate))
+
+    @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
         """test open controlled unitary matrix"""
         # verify truth table
@@ -785,10 +800,10 @@ class TestControlledGate(QiskitTestCase):
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
-    import qiskit.extensions.standard.u1 as u1
-    import qiskit.extensions.standard.rx as rx
-    import qiskit.extensions.standard.ry as ry
-    import qiskit.extensions.standard.rz as rz
+    import qiskit.circuit.library.standard_gates.u1 as u1
+    import qiskit.circuit.library.standard_gates.rx as rx
+    import qiskit.circuit.library.standard_gates.ry as ry
+    import qiskit.circuit.library.standard_gates.rz as rz
 
     num_ctrl = 2
     num_target = 1
@@ -858,8 +873,8 @@ class TestSingleControlledRotationGates(QiskitTestCase):
 class TestControlledStandardGates(QiskitTestCase):
     """Tests for control standard gates."""
 
-    @combine(num_ctrl_qubits=[1, 2, 3],
-             gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
+    combine(num_ctrl_qubits=[1, 2, 3],
+            gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
     def test_controlled_standard_gates(self, num_ctrl_qubits, gate_class):
         """Test controlled versions of all standard gates."""
         theta = pi / 2
@@ -906,16 +921,16 @@ class TestDeprecatedGates(QiskitTestCase):
 
     import qiskit.extensions as ext
 
-    import qiskit.extensions.standard.i as i
-    import qiskit.extensions.standard.rx as rx
-    import qiskit.extensions.standard.ry as ry
-    import qiskit.extensions.standard.rz as rz
-    import qiskit.extensions.standard.swap as swap
-    import qiskit.extensions.standard.u1 as u1
-    import qiskit.extensions.standard.u3 as u3
-    import qiskit.extensions.standard.x as x
-    import qiskit.extensions.standard.y as y
-    import qiskit.extensions.standard.z as z
+    import qiskit.circuit.library.standard_gates.i as i
+    import qiskit.circuit.library.standard_gates.rx as rx
+    import qiskit.circuit.library.standard_gates.ry as ry
+    import qiskit.circuit.library.standard_gates.rz as rz
+    import qiskit.circuit.library.standard_gates.swap as swap
+    import qiskit.circuit.library.standard_gates.u1 as u1
+    import qiskit.circuit.library.standard_gates.u3 as u3
+    import qiskit.circuit.library.standard_gates.x as x
+    import qiskit.circuit.library.standard_gates.y as y
+    import qiskit.circuit.library.standard_gates.z as z
 
     import qiskit.extensions.quantum_initializer.diagonal as diagonal
     import qiskit.extensions.quantum_initializer.uc as uc
