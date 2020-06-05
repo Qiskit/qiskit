@@ -18,7 +18,6 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit import visualization
 
 
-
 class TestMatplotlibDrawer(unittest.TestCase):
     """Circuit MPL visualization"""
     def test_long_name(self):
