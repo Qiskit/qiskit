@@ -19,7 +19,7 @@ from unittest.mock import patch
 import numpy as np
 
 from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
-                          library, Snapshot, Delay, Gaussian, Drag, GaussianSquare, ConstantPulse,
+                          library, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
                           functional_pulse, ShiftFrequency)
 
 from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
