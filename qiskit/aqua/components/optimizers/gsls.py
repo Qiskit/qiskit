@@ -14,7 +14,7 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List, Callable
 import logging
 import numpy as np
 
@@ -86,8 +86,8 @@ class GSLS(Optimizer):
         }
 
     def optimize(self, num_vars: int,
-                 objective_function: callable,
-                 gradient_function: Optional[callable] = None,
+                 objective_function: Callable,
+                 gradient_function: Optional[Callable] = None,
                  variable_bounds: Optional[List[Tuple[float, float]]] = None,
                  initial_point: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float, int]:
         super().optimize(num_vars, objective_function, gradient_function,
@@ -111,7 +111,7 @@ class GSLS(Optimizer):
 
         return x, x_value, n_evals
 
-    def ls_optimize(self, n: int, obj_fun: callable, initial_point: np.ndarray, var_lb: np.ndarray,
+    def ls_optimize(self, n: int, obj_fun: Callable, initial_point: np.ndarray, var_lb: np.ndarray,
                     var_ub: np.ndarray) -> Tuple[np.ndarray, float, int, float]:
         """Run the line search optimization.
 

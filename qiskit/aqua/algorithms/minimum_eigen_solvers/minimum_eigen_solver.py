@@ -52,10 +52,10 @@ class MinimumEigensolver(ABC):
             MinimumEigensolverResult
         """
         if operator is not None:
-            self.operator = operator
+            self.operator = operator  # type: ignore
         if aux_operators is not None:
-            self.aux_operators = aux_operators if aux_operators else None
-        pass
+            self.aux_operators = aux_operators if aux_operators else None  # type: ignore
+        return MinimumEigensolverResult()
 
     def supports_aux_operators(self) -> bool:
         """Whether computing the expectation value of auxiliary operators is supported.
@@ -69,25 +69,25 @@ class MinimumEigensolver(ABC):
         """
         return False
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def operator(self) -> Optional[Union[OperatorBase, LegacyBaseOperator]]:
         """Return the operator."""
         raise NotImplementedError
 
-    @operator.setter
+    @operator.setter  # type: ignore
     @abstractmethod
     def operator(self, operator: Union[OperatorBase, LegacyBaseOperator]) -> None:
         """Set the operator."""
         raise NotImplementedError
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
         """Returns the auxiliary operators."""
         raise NotImplementedError
 
-    @aux_operators.setter
+    @aux_operators.setter  # type: ignore
     @abstractmethod
     def aux_operators(self,
                       aux_operators: Optional[List[Optional[Union[OperatorBase,
@@ -100,12 +100,12 @@ class MinimumEigensolverResult(AlgorithmResult):
     """ Minimum Eigensolver Result."""
 
     @property
-    def eigenvalue(self) -> Union[None, float]:
+    def eigenvalue(self) -> Union[None, complex]:
         """ returns eigen value """
         return self.get('eigenvalue')
 
     @eigenvalue.setter
-    def eigenvalue(self, value: float) -> None:
+    def eigenvalue(self, value: complex) -> None:
         """ set eigen value """
         self.data['eigenvalue'] = value
 

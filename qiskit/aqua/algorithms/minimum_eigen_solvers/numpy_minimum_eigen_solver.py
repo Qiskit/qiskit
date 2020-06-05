@@ -14,7 +14,7 @@
 
 """The Numpy Minimum Eigensolver algorithm."""
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 import logging
 import pprint
 
@@ -43,7 +43,8 @@ class NumPyMinimumEigensolver(ClassicalAlgorithm, MinimumEigensolver):
             aux_operators: Auxiliary operators to be evaluated at minimum eigenvalue
         """
         self._ces = NumPyEigensolver(operator, 1, aux_operators)
-        self._ret = {}  # TODO remove
+        # TODO remove
+        self._ret = {}  # type: Dict[str, Any]
 
     @property
     def operator(self) -> Optional[OperatorBase]:

@@ -68,10 +68,10 @@ class Shor(QuantumAlgorithm):
         validate_min('N', N, 3)
         validate_min('a', a, 2)
         super().__init__(quantum_instance)
-        self._n = None
+        self._n = None  # type: Optional[int]
         self._up_qreg = None
-        self._down_qreg = None
-        self._aux_qreg = None
+        self._down_qreg = None  # type: Optional[QuantumRegister]
+        self._aux_qreg = None  # type: Optional[QuantumRegister]
 
         # check the input integer
         if N < 1 or N % 2 == 0:
@@ -95,7 +95,7 @@ class Shor(QuantumAlgorithm):
         self._qft = QFT(do_swaps=False).to_instruction()
         self._iqft = self._qft.inverse()
 
-        self._phi_add_N = None
+        self._phi_add_N = None  # type: Optional[Gate]
         self._iphi_add_N = None
 
     def _get_angles(self, a: int) -> np.ndarray:
@@ -237,7 +237,7 @@ class Shor(QuantumAlgorithm):
 
         # Apply the multiplication gates as showed in
         # the report in order to create the exponentiation
-        for i, ctl_up in enumerate(self._up_qreg):
+        for i, ctl_up in enumerate(self._up_qreg):  # type: ignore
             a = int(pow(self._a, pow(2, i)))
             controlled_multiple_mod_N = self._controlled_multiple_mod_N(
                 len(self._down_qreg) + len(self._aux_qreg) + 1, a,
@@ -302,13 +302,13 @@ class Shor(QuantumAlgorithm):
         b.append(math.floor(x_over_T))
         t.append(x_over_T - b[i])
 
-        exponential = 0
+        exponential = 0.0
         while i < self._N and fail_reason is None:
             # From the 2nd iteration onwards, calculate the new terms of the CF based
             # on the previous terms as the rule suggests
             if i > 0:
                 b.append(math.floor(1 / t[i - 1]))
-                t.append((1 / t[i - 1]) - b[i])
+                t.append((1 / t[i - 1]) - b[i])  # type: ignore
 
             # Calculate the denominator of the CF using the known terms
             denominator = self._calculate_continued_fraction(b)
@@ -353,6 +353,7 @@ class Shor(QuantumAlgorithm):
             'Cannot find factors from measurement %s because %s',
             measurement, fail_reason or 'it took too many attempts.'
         )
+        return None
 
     @staticmethod
     def _calculate_continued_fraction(b: array.array) -> int:

@@ -299,7 +299,7 @@ class VQResult(AlgorithmResult):
         return self.get('optimal_value')
 
     @optimal_value.setter
-    def optimal_value(self, value: int) -> float:
+    def optimal_value(self, value: int) -> None:
         """ Sets optimal value """
         self.data['optimal_value'] = value
 

@@ -15,7 +15,7 @@
 The Grover's Search algorithm.
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 import logging
 import operator
 import numpy as np
@@ -153,7 +153,7 @@ class Grover(QuantumAlgorithm):
             if num_iterations > self._max_num_iterations:
                 logger.warning('The specified value %s for "num_iterations" '
                                'might be too high.', num_iterations)
-        self._ret = {}
+        self._ret = {}  # type: Dict[str, Any]
         self._qc_aa_iteration = None
         self._qc_amplitude_amplification = None
         self._qc_measurement = None
