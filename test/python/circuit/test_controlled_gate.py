@@ -674,12 +674,12 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
-        self.assertEqual(len(uqc.data), 3)
-        self.assertIsInstance(uqc.data[0][0], U3Gate)
-        self.assertEqual(uqc.data[0][0].params, [np.pi, 0, np.pi])
-        self.assertEqual(uqc.data[2][0].params, [np.pi, 0, np.pi])
-        self.assertEqual(uqc.data[0][1][0].index, 0)
-        self.assertEqual(uqc.data[2][1][0].index, 0)
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cx(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
 
     def test_open_control_cy_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
@@ -688,12 +688,12 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cy'])
         uqc = dag_to_circuit(unroller.run(dag))
-        self.assertEqual(len(uqc.data), 3)
-        self.assertIsInstance(uqc.data[0][0], U3Gate)
-        self.assertEqual(uqc.data[0][0].params, [np.pi, 0, np.pi])
-        self.assertEqual(uqc.data[2][0].params, [np.pi, 0, np.pi])
-        self.assertEqual(uqc.data[0][1][0].index, 0)
-        self.assertEqual(uqc.data[2][1][0].index, 0)
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cy(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
 
     def test_open_control_cxx_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""

@@ -60,6 +60,11 @@ class UnrollCustomDefinitions(TransformationPass):
 
             if node.name in device_insts or self._equiv_lib.has_entry(node.op):
                 continue
+            if node.name in self.basis:  # If already a base, ignore.
+                if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
+                    pass
+                else:
+                    continue
 
             try:
                 rule = node.op.definition
