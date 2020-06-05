@@ -164,9 +164,68 @@ Data encoding circuits
    ZFeatureMap
    ZZFeatureMap
 
+Toffoli template circuits
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   template_circuits.toffoli.template_2a_1
+   template_circuits.toffoli.template_2a_2
+   template_circuits.toffoli.template_2a_3
+   template_circuits.toffoli.template_4a_1
+   template_circuits.toffoli.template_4a_2
+   template_circuits.toffoli.template_4a_3
+   template_circuits.toffoli.template_4a_4
+   template_circuits.toffoli.template_4a_5
+   template_circuits.toffoli.template_4b_1
+   template_circuits.toffoli.template_4b_2
+   template_circuits.toffoli.template_2a_2
+   template_circuits.toffoli.template_5a_1
+   template_circuits.toffoli.template_5a_2
+   template_circuits.toffoli.template_5a_3
+   template_circuits.toffoli.template_5a_4
+   template_circuits.toffoli.template_6a_1
+   template_circuits.toffoli.template_6a_2
+   template_circuits.toffoli.template_6a_3
+   template_circuits.toffoli.template_6a_4
+   template_circuits.toffoli.template_6b_1
+   template_circuits.toffoli.template_6b_2
+   template_circuits.toffoli.template_6c_1
+   template_circuits.toffoli.template_7a_1
+   template_circuits.toffoli.template_7b_1
+   template_circuits.toffoli.template_7c_1
+   template_circuits.toffoli.template_7d_1
+   template_circuits.toffoli.template_7e_1
+   template_circuits.toffoli.template_2a_1
+   template_circuits.toffoli.template_9a_1
+   template_circuits.toffoli.template_9c_1
+   template_circuits.toffoli.template_9c_2
+   template_circuits.toffoli.template_9c_3
+   template_circuits.toffoli.template_9c_4
+   template_circuits.toffoli.template_9c_5
+   template_circuits.toffoli.template_9c_6
+   template_circuits.toffoli.template_9c_7
+   template_circuits.toffoli.template_9c_8
+   template_circuits.toffoli.template_9c_9
+   template_circuits.toffoli.template_9c_10
+   template_circuits.toffoli.template_9c_11
+   template_circuits.toffoli.template_9c_12
+   template_circuits.toffoli.template_9d_1
+   template_circuits.toffoli.template_9d_2
+   template_circuits.toffoli.template_9d_3
+   template_circuits.toffoli.template_9d_4
+   template_circuits.toffoli.template_9d_5
+   template_circuits.toffoli.template_9d_6
+   template_circuits.toffoli.template_9d_7
+   template_circuits.toffoli.template_9d_8
+   template_circuits.toffoli.template_9d_9
+   template_circuits.toffoli.template_9d_10
+
 """
 
 from .standard_gates import *
+from .template_circuits import *
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset

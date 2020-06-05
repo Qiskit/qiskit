@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-
+Template circuits for X, CX and Toffoli gates.
 """
 from .template_2a_1 import template_2a_1
 from .template_2a_2 import template_2a_2

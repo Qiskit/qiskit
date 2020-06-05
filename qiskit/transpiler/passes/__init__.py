@@ -72,6 +72,7 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   TemplateOptimization
 
 Circuit Analysis
 ================
