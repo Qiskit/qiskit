@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Can now use ``array_to_latex()`` to represent vectors and matrices as 
+    human-friendly LaTeX.
