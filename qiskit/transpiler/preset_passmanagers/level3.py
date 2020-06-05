@@ -131,7 +131,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
-    _unroll = Unroller(basis_gates)
+    _unroll = [Unroller(basis_gates)]
 
     # 6. Fix any CX direction mismatch
     _direction_check = [CheckCXDirection(coupling_map)]
@@ -141,20 +141,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 7. Remove zero-state reset
-    _reset = RemoveResetInZeroState()
-
-    # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # 8. Optimize iteratively until no more change in depth. Removes useless gates
+    # after reset and before measure, commutes gates and optimizes continguous blocks.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
+    _reset = [RemoveResetInZeroState()]
+
+    _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+
     _opt = [Collect2qBlocks(), ConsolidateBlocks(),
             Optimize1qGates(basis_gates), CommutativeCancellation()]
-
-    # 9. Remove useless gates before measure.
-    _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
     # Build pass manager
     pm3 = PassManager()
@@ -164,15 +163,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
         pm3.append(_embed)
+        pm3.append(_reset + _meas)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
-    pm3.append(_depth_check + _opt, do_while=_opt_control)
-    pm3.append(_unroll)
-    pm3.append(_depth_check + _opt, do_while=_opt_control)
+    pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if coupling_map and not coupling_map.is_symmetric:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
-    pm3.append(_meas)
 
     return pm3
