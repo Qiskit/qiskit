@@ -618,6 +618,8 @@ class DAGCircuit:
         Yields:
             Bit: Bit in idle wire.
         """
+        if ignore is None:
+            ignore = []
         for wire in self._wires:
             nodes = [node for node in self.nodes_on_wire(wire, only_ops=False)
                      if node.name not in ignore]
