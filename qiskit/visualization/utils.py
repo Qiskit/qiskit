@@ -140,7 +140,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         cregs.reverse()
 
     if not idle_wires:
-        for wire in dag.idle_wires(barrier_idleness=True):
+        for wire in dag.idle_wires(barrier_is_idle=True):
             if wire in qregs:
                 qregs.remove(wire)
             if wire in cregs:
