@@ -329,6 +329,8 @@ class TemplateSubstitution:
                 inst = node.op.copy()
                 inst.condition = node.condition
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
+
+            dag_dep_opt._add_successors()
         # If there is no valid match, it returns the original dag.
         else:
             dag_dep_opt = self.circuit_dag_dep

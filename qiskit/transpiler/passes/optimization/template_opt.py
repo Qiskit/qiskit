@@ -27,7 +27,6 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
-from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library.template_circuits.toffoli import template_2a_1, template_2a_2,\
     template_2a_3
@@ -36,6 +35,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.optimization.template_matching import TemplateMatching,\
     TemplateSubstitution, MaximalMatches
 
+from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 
 class TemplateOptimization(TransformationPass):
     """
@@ -75,14 +75,14 @@ class TemplateOptimization(TransformationPass):
         """
         circuit_dag = dag
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
-        circuit = dag_to_circuit(circuit_dag)
+        circuit = dagdependency_to_circuit(circuit_dag_dep)
+        operator_ini = Operator(circuit)
 
         for template in self.template_list:
             if not isinstance(template, QuantumCircuit):
                 raise TranspilerError('A template is a Quantumciruit().')
 
             identity = np.identity(2**template.num_qubits, dtype=complex)
-
             comparison = np.allclose(Operator(template).data, identity)
 
             if not comparison:
@@ -97,6 +97,7 @@ class TemplateOptimization(TransformationPass):
                                           template_dag_dep,
                                           self.heuristics_qubits_param,
                                           self.heuristics_backward_param)
+
             template_m.run_template_matching()
 
             matches = template_m.match_list
@@ -106,16 +107,19 @@ class TemplateOptimization(TransformationPass):
                 maximal.run_maximal_matches()
                 max_matches = maximal.max_match_list
 
-                substitution = TemplateSubstitution(max_matches, template_m.circuit_dag_dep,
+                substitution = TemplateSubstitution(max_matches,
+                                                    template_m.circuit_dag_dep,
                                                     template_m.template_dag_dep)
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized
-                circuit_dag = substitution.dag_optimized
+
+                circuit_b = dagdependency_to_circuit(circuit_dag_dep)
+                opertator_intermediate = Operator(circuit_b)
+
+                if operator_ini != opertator_intermediate:
+                    raise TranspilerError('A failure happened during the substitution.')
             else:
                 continue
-
-        if Operator(circuit) != Operator(dag_to_circuit(circuit_dag)):
-            raise TranspilerError('A failure happened during the substitution.')
 
         return circuit_dag
