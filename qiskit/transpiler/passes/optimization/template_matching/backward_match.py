@@ -120,8 +120,8 @@ class BackwardMatch:
     matching algorithm.
     """
 
-    def __init__(self, circuit_dag_dep, template_dag_dep, forward_matches
-                 , node_id_c, node_id_t, qubits, clbits=None, heuristics_backward_param=None):
+    def __init__(self, circuit_dag_dep, template_dag_dep, forward_matches,
+                 node_id_c, node_id_t, qubits, clbits=None, heuristics_backward_param=None):
         """
         Create a ForwardMatch class with necessary arguments.
         Args:
@@ -390,8 +390,9 @@ class BackwardMatch:
         # Set the circuit indices that can be matched.
         gate_indices = self._gate_indices()
 
-        number_of_gate_to_match = self.template_dag_dep.size() - \
-                                  (self.node_id_t - 1) - len(self.forward_matches)
+        number_of_gate_to_match =\
+            self.template_dag_dep.size() - \
+            (self.node_id_t - 1) - len(self.forward_matches)
 
         # While the scenario stack is not empty.
         while self.matching_list.matching_scenarios_list:
