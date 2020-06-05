@@ -1701,6 +1701,18 @@ class TestTextIdleWires(QiskitTestCase):
         circuit = QuantumCircuit()
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_text_barrier(self):
+        """idle_wires should ignore barrier
+        See https://github.com/Qiskit/qiskit-terra/issues/4391"""
+        expected = '\n'.join(["         ┌───┐ ░ ",
+                              "qr_1: |0>┤ H ├─░─",
+                              "         └───┘ ░ "])
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[1])
+        circuit.barrier(qr[1], qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
 
 class TestTextNonRational(QiskitTestCase):
     """ non-rational numbers are correctly represented """
