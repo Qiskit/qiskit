@@ -267,17 +267,12 @@ class MatplotlibDrawer:
                 _fc = fc
             elif self._style.gc != DefaultStyle().gc:
                 _fc = self._style.gc
-<<<<<<< HEAD
             else:
                 _fc = self._style.dispcol['multi']
             _ec = _fc
         else:
             _fc = self._style.gc
             _ec = self._style.edge_color
-||||||| merged common ancestors
-=======
-                _ec = fc
->>>>>>> fix4052_4148textchange
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
