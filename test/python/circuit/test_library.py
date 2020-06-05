@@ -35,8 +35,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
-                                        RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
+from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
+                                    RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
@@ -147,6 +147,7 @@ class TestPermutationLibrary(QiskitTestCase):
 @ddt
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
+
     def assertHLFIsCorrect(self, hidden_function, hlf):
         """Assert that the HLF circuit produces the correct matrix.
 

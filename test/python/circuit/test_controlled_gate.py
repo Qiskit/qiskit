@@ -33,14 +33,14 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                        CYGate, CZGate, CU1Gate, SwapGate,
-                                        CCXGate, HGate, RZGate, RXGate,
-                                        RYGate, CRYGate, CRXGate, CSwapGate,
-                                        U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate, Barrier, RCCXGate, RC3XGate,
-                                        MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain, C3XGate, C4XGate)
+from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
+                                    CYGate, CZGate, CU1Gate, SwapGate,
+                                    CCXGate, HGate, RZGate, RXGate,
+                                    RYGate, CRYGate, CRXGate, CSwapGate,
+                                    U3Gate, CHGate, CRZGate, CU3Gate,
+                                    MSGate, Barrier, RCCXGate, RC3XGate,
+                                    MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
+                                    MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
