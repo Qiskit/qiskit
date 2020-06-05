@@ -485,11 +485,9 @@ class MatplotlibDrawer:
                              linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color, reverse=False):
+    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color):
         # convert op.ctrl_state to bit string and reverse
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
-        if reverse:
-            cstate = cstate[::-1]
         for i in range(num_ctrl_qubits):
             # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
             fc_open_close = color if cstate[i] == '1' else self._style.bg
@@ -780,6 +778,7 @@ class MatplotlibDrawer:
 
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+                dtext = getattr(op.op, 'label', None) or op.name
                 print("op, base", op.name, base_name, type(op.op))
 
                 # get qreg index
@@ -871,7 +870,7 @@ class MatplotlibDrawer:
                     self._measure(q_xy[0], c_xy[0], vv)
 
                 elif op.name == 'reset':
-                    self._gate(q_xy[0], text=op.name, fc=self._style.gt)
+                    self._gate(q_xy[0], text=dtext, fc=self._style.gt)
 
                 elif op.name in _barrier_gates:
                     _barriers = {'coord': [], 'group': []}
@@ -886,25 +885,26 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
-                    label = None if not hasattr(op.op, 'label') else op.op.label
+                    label = getattr(op.op, 'label', None)
                     self._custom_multiqubit_gate(q_xy, text=label or "|psi>", subtext=vec)
 
                 # For gates with ndarray params, don't display the params as subtext
                 elif (op.type == 'op' and hasattr(op.op, 'params')
                         and any([isinstance(param, np.ndarray) for param in op.op.params])
                         and not isinstance(op.op, ControlledGate)):
+                    print("params", op.name)
                     label = None if not hasattr(op.op, 'label') else op.op.label
                     if op.name in self._style.dispcol:
                         fc = self._style.dispcol[op.name]
                     else:
                         fc = self._style.dispcol['multi']
-                    self._custom_multiqubit_gate(q_xy, text=label or op.name, fc=fc)
+                    self._custom_multiqubit_gate(q_xy, text=dtext, fc=fc)
 
                 #
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
-                    self._gate(q_xy[0], text=op.name, subtext=str(param))
+                    self._gate(q_xy[0], text=dtext, subtext=str(param))
 
                 #
                 # draw controlled and special gates
@@ -1000,21 +1000,18 @@ class MatplotlibDrawer:
                 # rxx, ryy, rzx, dcx, iswap
                 elif op.name in ['rxx', 'ryy', 'rzx', 'dcx', 'iswap']:
                     self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name],
-                                                 text=op.name)
+                                                 text=dtext)
 
                 # All other controlled gates
                 elif isinstance(op.op, ControlledGate):
-                    print("Ctrl", op.name, op.op.num_ctrl_qubits, len(q_xy))
-                    disp = op.op.base_gate.name
+                    print("ctrl gate", getattr(op.op.base_gate, 'label', None), op.name, base_name)
+                    disp = getattr(op.op.base_gate, 'label', None) or op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
                     # set the ctrl qbits to open or closed
                     opname = 'cy' if op.name == 'cy' else 'multi'
                     color = self._style.dispcol[opname]
-                    rev = False
-                    if num_qargs != 1:
-                        rev = True
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color, rev)
+                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
 
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=color)
@@ -1027,7 +1024,7 @@ class MatplotlibDrawer:
                 # draw custom multi-qubit gate as final default
                 else:
                     self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol['multi'],
-                                                 text=op.name, subtext='{}'.format(param))
+                                                 text=dtext, subtext='{}'.format(param))
 
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0
