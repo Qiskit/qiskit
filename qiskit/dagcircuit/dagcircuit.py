@@ -609,21 +609,17 @@ class DAGCircuit:
         else:
             return None
 
-    def idle_wires(self):
+    def idle_wires(self, barrier_is_idle=False):
         """Return idle wires (wires which only contain barriers are idle).
 
         Yields:
             Bit: Bit in idle wire.
         """
         for wire in self._wires:
-            barrier_counter = 0
-            nodes = self.nodes_on_wire(wire, only_ops=False)
-            length = 0
-            for x in list(nodes):
-                length += 1
-                if x.name == 'barrier':
-                    barrier_counter += 1
-            if length - barrier_counter == 2:
+            nodes = list(self.nodes_on_wire(wire, only_ops=False))
+            if barrier_is_idle:
+                nodes = [node for node in nodes if node.name is not 'barrier']
+            if len(nodes) == 2:
                 yield wire
 
     def size(self):
