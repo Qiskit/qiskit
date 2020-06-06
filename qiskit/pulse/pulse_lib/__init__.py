@@ -36,10 +36,8 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 
 """
 import warnings
-from .discrete import *
-from .parametric_pulses import (ParametricPulse, Gaussian, GaussianSquare,
-                                Drag, Constant, ConstantPulse)
-from .pulse import Pulse
-from .sample_pulse import SamplePulse
+#from ..library import *
+from ..library import *
+
 warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
               DeprecationWarning, stacklevel=2)
