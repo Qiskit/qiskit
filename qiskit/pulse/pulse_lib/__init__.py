@@ -36,7 +36,6 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 
 """
 import warnings
-#from ..library import *
 from ..library import *
 
 warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
