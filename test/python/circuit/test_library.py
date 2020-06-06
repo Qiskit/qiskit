@@ -37,7 +37,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
                                         RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
-from qiskit.quantum_info import Statevector, Operator
+from qiskit.quantum_info import Statevector, Operator, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
@@ -191,30 +191,24 @@ class TestGraphStateLibrary(QiskitTestCase):
     def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
         """Assert that the Graph State circuit produces the correct matrix."""
 
-        simulated = Operator(graph_state)
-        num_qubits = len(adjacency_matrix)
+        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
 
-        # create Hadamard matrix, re-use approach from TestMCMT
-        h_i = 1 / np.sqrt(2) * np.array([[1, 1], [1, -1]])
-        h_tot = np.array([1])
-        for _ in range(num_qubits):
-            h_tot = np.kron(h_tot, h_i)
+        expected_stabilizers = []  # keep track of all expected stabilizers
+        num_vertices = len(adjacency_matrix)
+        for vertex_a in range(num_vertices):
+            stabilizer = [None] * num_vertices  # Paulis must be put into right place
+            for vertex_b in range(num_vertices):
+                if vertex_a == vertex_b:  # self-connection --> 'X'
+                    stabilizer[vertex_a] = 'X'
+                elif adjacency_matrix[vertex_a][vertex_b] != 0:  # vertices connected --> 'Z'
+                    stabilizer[vertex_b] = 'Z'
+                else:  # else --> 'I'
+                    stabilizer[vertex_b] = 'I'
 
-        # compute product of CZ gates
-        cz_tot = h_tot
-        for i in range(num_qubits):
-            for j in range(i + 1, num_qubits):
-                if adjacency_matrix[i][j] == 1:
-                    # compute one CZ gate for given connection from adjacency matrix
-                    cz_i = np.identity(2 ** num_qubits)
-                    for k in range(2 ** num_qubits):
-                        q_vec = np.asarray(list(map(int, bin(k)[2:].zfill(num_qubits)[::-1])))
-                        if (q_vec[i] == 1) and (q_vec[j] == 1):
-                            cz_i[k][k] = -1
-                    cz_tot = np.matmul(cz_i, cz_tot)
+            # need to reverse for Qiskit's tensoring order
+            expected_stabilizers.append(''.join(stabilizer)[::-1])
 
-        expected = Operator(cz_tot)
-        self.assertTrue(expected.equiv(simulated))
+        self.assertListEqual(expected_stabilizers, stabilizers)
 
     @data(
         [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
