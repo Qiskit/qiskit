@@ -121,7 +121,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = sched.insert(90, Acquire(10,
                                          self.config.acquire(0),
                                          MemorySlot(0),
-                                         RegisterSlot(0)))  # TODO: this shouldn't raise a warning
+                                         RegisterSlot(0)))
         self.assertEqual(0, sched.start_time)
         self.assertEqual(100, sched.stop_time)
         self.assertEqual(100, sched.duration)
@@ -372,38 +372,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(len(sched_single.instructions), 2)
         self.assertEqual(len(sched_single.channels), 6)
 
-    def test_schedule_with_acquire_on_multiple_qubits(self):
-        """Test schedule with acquire on multiple qubits."""
-        sched_multiple = Schedule()
-        qubits = [self.config.acquire(i) for i in range(self.config.n_qubits)]
-        mem_slots = [MemorySlot(i) for i in range(self.config.n_qubits)]
-        reg_slots = [RegisterSlot(i) for i in range(self.config.n_qubits)]
-        with self.assertWarns(DeprecationWarning):
-            sched_multiple = sched_multiple.insert(10, Acquire(10, qubits, mem_slots, reg_slots))
-
-        self.assertEqual(len(sched_multiple.instructions), 1)
-        self.assertEqual(len(sched_multiple.channels), 6)
-
-    def test_schedule_with_acquire_for_back_and_forward_compatibility(self):
-        """Test schedule with acquire for back and forward compatibility."""
-        dur = 10
-        with self.assertWarns(DeprecationWarning):
-            # mem_slots and reg_slots are deprecated kwargs
-            cmds = [
-                Acquire(dur, AcquireChannel(0), MemorySlot(0)),
-                Acquire(dur, [AcquireChannel(0)], MemorySlot(0)),
-                Acquire(dur, AcquireChannel(0), [MemorySlot(0)]),
-                Acquire(dur, [AcquireChannel(0)], mem_slots=[MemorySlot(0)]),
-                Acquire(dur, AcquireChannel(0), MemorySlot(0), [RegisterSlot(0)]),
-                Acquire(dur, AcquireChannel(0), MemorySlot(0), reg_slot=RegisterSlot(0))
-            ]
-        for cmd in cmds:
-            mixed_schedule = Schedule()
-            mixed_schedule = mixed_schedule.insert(dur, cmd)
-
-            self.assertEqual(len(mixed_schedule.instructions), 1)
-            self.assertTrue(MemorySlot(0) in mixed_schedule.channels)
-
     def test_parametric_commands_in_sched(self):
         """Test that schedules can be built with parametric commands."""
         sched = Schedule(name='test_parametric')
@@ -414,9 +382,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched += Play(GaussianSquare(duration=1500, amp=0.2,
                                      sigma=8, width=140),
                       MeasureChannel(0)) << sched_duration
-        with self.assertWarns(DeprecationWarning):
-            # MemorySlots as list is deprecated
-            sched += Acquire(1500, AcquireChannel(0), [MemorySlot(0)]) << sched_duration
         self.assertEqual(sched.duration, 1525)
         self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
 

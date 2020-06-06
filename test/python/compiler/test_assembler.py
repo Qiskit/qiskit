@@ -866,8 +866,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
         deprecated_style_schedule = Schedule()
         with self.assertWarns(DeprecationWarning):
-            deprecated_style_schedule += Acquire(1200)([AcquireChannel(i) for i in range(5)],
-                                                       [MemorySlot(i) for i in range(5)])
+            for i in range(5):
+                deprecated_style_schedule += Acquire(1200)(AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
         n_qobj = assemble(new_style_schedule, backend)
