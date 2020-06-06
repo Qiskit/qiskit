@@ -633,9 +633,9 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_unitary_gate(self, num_ctrl_qubits):
         """Test that UnitaryGate with control returns params."""
         circ = QuantumCircuit(num_ctrl_qubits+1)
-        umat = np.array([[1,0],[0,-1]])
-        u = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=num_ctrl_qubits)
-        circ.append(u, range(num_ctrl_qubits+1))
+        umat = np.array([[1, 0], [0, -1]])
+        ugate = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=num_ctrl_qubits)
+        circ.append(ugate, range(num_ctrl_qubits+1))
         self.assertEqual(circ[0][0].num_qubits, num_ctrl_qubits+1)
         self.assertEqual(circ[0][0].num_ctrl_qubits, num_ctrl_qubits)
         self.assertEqual(circ[0][0].ctrl_state, num_ctrl_qubits)
@@ -873,8 +873,8 @@ class TestSingleControlledRotationGates(QiskitTestCase):
 class TestControlledStandardGates(QiskitTestCase):
     """Tests for control standard gates."""
 
-    combine(num_ctrl_qubits=[1, 2, 3],
-            gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
+    @combine(num_ctrl_qubits=[1, 2, 3],
+             gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
     def test_controlled_standard_gates(self, num_ctrl_qubits, gate_class):
         """Test controlled versions of all standard gates."""
         theta = pi / 2
