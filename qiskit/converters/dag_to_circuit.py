@@ -56,4 +56,5 @@ def dag_to_circuit(dag):
         inst.condition = node.condition
         circuit._append(inst, node.qargs, node.cargs)
 
+    circuit.duration = dag.duration
     return circuit

@@ -25,6 +25,7 @@ class PassManagerConfig:
                  coupling_map=None,
                  layout_method=None,
                  routing_method=None,
+                 scheduling_method=None,
                  backend_properties=None,
                  seed_transpiler=None):
         """Initialize a PassManagerConfig object
@@ -39,6 +40,7 @@ class PassManagerConfig:
                 placement.
             routing_method (str): the pass to use for routing qubits on the
                 architecture.
+            scheduling_method (str): the pass to use for scheduling instructions.
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
@@ -50,5 +52,6 @@ class PassManagerConfig:
         self.coupling_map = coupling_map
         self.layout_method = layout_method
         self.routing_method = routing_method
+        self.scheduling_method = scheduling_method
         self.backend_properties = backend_properties
         self.seed_transpiler = seed_transpiler
