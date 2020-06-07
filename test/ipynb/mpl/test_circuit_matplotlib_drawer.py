@@ -18,27 +18,36 @@ from unittest.mock import patch
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit import visualization
+from qiskit.visualization import circuit_drawer
 import json
 import os
+
+def save_data(image_filename, testname):
+    datafilename = 'result_test.json'
+    if os.path.exists(datafilename):
+        with open(datafilename, 'r') as datafile:
+            data = json.load(datafile)
+    else:
+        data = {}
+    data[image_filename] = testname
+    with open(datafilename, 'w') as datafile:
+        json.dump(data, datafile)
+
+
+def save_data_wrap(func, testname):
+    def wrapper(*args, **kwargs):
+        image_filename = kwargs['filename']
+        results = func(*args, **kwargs)
+        save_data(image_filename, testname)
+        return results
+    return wrapper
 
 
 class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
-    def save_data(self, testname, filename):
-        datafilename = 'result_test.json'
-
-        if os.path.exists(datafilename):
-            with open(datafilename, 'r') as datafile:
-                data = json.load(datafile)
-        else:
-            data = {}
-
-        data[filename] = testname
-
-        with open(datafilename, 'w') as datafile:
-            json.dump(data, datafile)
+    def setUp(self):
+        self.circuit_drawer = save_data_wrap(circuit_drawer, str(self))
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -56,9 +65,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        with patch('qiskit.visualization.circuit_drawer') as ctx:
-            visualization.circuit_drawer(circuit, output='mpl', filename='long_name.png')
-        self.save_data(str(self), ctx.call_args[1]['filename'])
+        self.circuit_drawer(circuit, output='mpl', filename='long_name.png')
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)

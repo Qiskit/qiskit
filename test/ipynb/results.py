@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 import os
+import json
 
 CWD = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,12 +22,17 @@ class Results:
     def __init__(self, names, directory):
         self.names = names
         self.directory = directory
+        self.data = {}
+        datafilename = 'result_test.json'
+        if os.path.exists(datafilename):
+            with open(datafilename, 'r') as datafile:
+                self.data = json.load(datafile)
 
     def _repr_html_(self):
         ret = "<div>"
         for name in self.names:
             ret += '<table><tr>'
-            ret += '<td colspan=2><tt> %s </tt></td></tr>' % name
+            ret += '<td colspan=2><tt> %s <b>%s</b> </tt></td></tr>' % (self.data[name], name)
             ret += '<tr><td><img src="%s"</td>' % name
             reference = os.path.join(self.directory, 'references', name)
             if os.path.exists(os.path.join(CWD, reference)):
