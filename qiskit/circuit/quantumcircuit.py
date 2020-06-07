@@ -167,6 +167,8 @@ class QuantumCircuit:
 
         self._layout = None
 
+        self.duration = None
+
     @property
     def data(self):
         """Return the circuit data (instructions and context).
@@ -595,6 +597,9 @@ class QuantumCircuit:
         self._data.append(instruction_context)
 
         self._update_parameter_table(instruction)
+
+        # mark as normal circuit if a new instruction is added
+        self.duration = None
 
         return instruction
 
@@ -1599,6 +1604,88 @@ class QuantumCircuit:
                 qubits.append(qarg)
 
         return self.append(Barrier(len(qubits)), qubits, [])
+
+    def delay(self, duration, *qargs, unit='dt'):
+        """Apply :class:`~qiskit.circuit.Delay`. If qargs is None, applies to all.
+
+        Args:
+            duration (int or float): duration. Integer type indicates duration is unitless, i.e.
+                use dt of backend. In the case of float, its `unit` must be specified.
+            qargs (QuantumRegister or list or range or slice): quantum register
+            unit (str): unit of the duration. Default unit is ``dt``, which depends on backend.
+
+        Returns:
+            qiskit.Instruction: the attached delay instruction.
+
+        Raises:
+            CircuitError: if arguments have bad format.
+        """
+        from .delay import Delay
+        qubits = []
+
+        if not qargs:  # None
+            for qreg in self.qregs:
+                for j in range(qreg.size):
+                    qubits.append(qreg[j])
+
+        for qarg in qargs:
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([qarg[j] for j in range(qarg.size)])
+            elif isinstance(qarg, list):
+                qubits.extend(qarg)
+            elif isinstance(qarg, range):
+                qubits.extend(list(qarg))
+            elif isinstance(qarg, slice):
+                qubits.extend(self.qubits[qarg])
+            else:
+                qubits.append(qarg)
+
+        if isinstance(duration, float):
+            if unit == 'dt':
+                raise CircuitError('duration in dt must be integer.')
+        else:
+            if not isinstance(duration, int):
+                raise CircuitError('Invalid duration type.')
+
+        if unit not in {'dt', 's', 'us', 'ns', 'ps'}:
+            raise CircuitError('Unknown unit is specified.')
+
+        return self.append(Delay(len(qubits), duration, unit), qubits)
+
+    def timestep(self, length, *qargs):
+        """Apply timestep to circuit.
+
+        Args:
+            length (int): length of the timestep
+            qargs (QuantumRegister or list or range or slice): quantum register
+
+        Returns:
+            qiskit.Instruction: the attached timestep instruction.
+
+        Raises:
+            CircuitError: if arguments have bad format.
+        """
+        from .timestep import Timestep
+        qubits = []
+
+        if not qargs:  # None
+            for qreg in self.qregs:
+                for j in range(qreg.size):
+                    qubits.append(qreg[j])
+
+        for qarg in qargs:
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([qarg[j] for j in range(qarg.size)])
+            elif isinstance(qarg, list):
+                qubits.extend(qarg)
+            elif isinstance(qarg, range):
+                qubits.extend(list(qarg))
+            elif isinstance(qarg, slice):
+                qubits.extend(self.qubits[qarg])
+            else:
+                qubits.append(qarg)
+
+        return self.append(Timestep(len(qubits), length), qubits)
 
     @deprecate_arguments({'q': 'qubit'})
     def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
