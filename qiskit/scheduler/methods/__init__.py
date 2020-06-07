@@ -24,3 +24,4 @@ Pulse scheduling methods.
 """
 
 from .basic import *
+from .sequence import sequence

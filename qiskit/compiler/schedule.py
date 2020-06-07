@@ -39,6 +39,7 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
              backend: Optional[BaseBackend] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
              meas_map: Optional[List[List[int]]] = None,
+             dt: Optional[float] = None,
              method: Optional[Union[str, List[str]]] = None) -> Union[Schedule, List[Schedule]]:
     """
     Schedule a circuit to a pulse ``Schedule``, using the backend, according to any specified
@@ -51,6 +52,8 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                   ``backend``\'s ``instruction_schedule_map``
         meas_map: List of sets of qubits that must be measured together. If ``None``, defaults to
                   the ``backend``\'s ``meas_map``
+        dt: For scheduled circuits which contain time information, dt is required. If not provided,
+            it will be obtained from the backend configuration
         method: Optionally specify a particular scheduling method
 
     Returns:
@@ -69,8 +72,11 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         if backend is None:
             raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
         meas_map = backend.configuration().meas_map
+    if dt is None:
+        if backend is not None:
+            dt = backend.configuration().dt
 
-    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map)
+    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = [schedule_circuit(circuit, schedule_config, method) for circuit in circuits]
     end_time = time()
