@@ -13,13 +13,33 @@
 # that they have been altered from the originals.
 
 import unittest
+from unittest.mock import patch
 
+
+from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit import visualization
+import json
+import os
 
 
-class TestMatplotlibDrawer(unittest.TestCase):
+class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
+
+    def save_data(self, testname, filename):
+        datafilename = 'result_test.json'
+
+        if os.path.exists(datafilename):
+            with open(datafilename, 'r') as datafile:
+                data = json.load(datafile)
+        else:
+            data = {}
+
+        data[filename] = testname
+
+        with open(datafilename, 'w') as datafile:
+            json.dump(data, datafile)
+
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
@@ -36,8 +56,9 @@ class TestMatplotlibDrawer(unittest.TestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        visualization.circuit_drawer(circuit, output='mpl', filename='long_name.png')
-
+        with patch('qiskit.visualization.circuit_drawer') as ctx:
+            visualization.circuit_drawer(circuit, output='mpl', filename='long_name.png')
+        self.save_data(str(self), ctx.call_args[1]['filename'])
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
