@@ -18,7 +18,7 @@
 Style sheets for pulse visualization.
 """
 from collections import namedtuple
-from typing import Tuple, Union, Optional
+from typing import Optional, Tuple
 
 import logging
 
@@ -37,7 +37,7 @@ class SchedStyle:
                  axis_font_size: int = 18,
                  label_font_size: int = 10,
                  icon_font_size: int = 18,
-                 title_font_size: Optional[Union[int, str]] = 25,
+                 title_font_size: Optional[int] = 25,
                  label_ch_linestyle: str = '--',
                  label_ch_color: str = '#222222',
                  label_ch_alpha: float = 0.3,
@@ -46,7 +46,7 @@ class SchedStyle:
                  m_ch_color: ComplexColors = ('#dc267f', '#760019'),
                  s_ch_color: str = '#7da781',
                  s_ch_linestyle: str = '-',
-                 table_color: Tuple[str, str, str] = ('#e0e0e0', '#f6f6f6', '#f6f6f6'),
+                 table_color: SchedTableColors = ('#e0e0e0', '#f6f6f6', '#f6f6f6'),
                  bg_color: str = '#f2f3f4',
                  num_points: int = 1000,
                  dpi: Optional[int] = 150,
@@ -61,7 +61,7 @@ class SchedStyle:
         is optonal also describes it's mapped rcParam key below.
 
         Args:
-            figsize: Size of the figure in inches.
+            figsize: Size of the figure.
                 If None, will default to rcParams['figure.figsize'].
             fig_unit_h_table: Height of row of event table. See Example.
             use_table: When set `True` use event table.
@@ -149,7 +149,7 @@ class SchedStyle:
 class PulseStyle:
     """Style sheet for Qiskit-Pulse sample pulse drawer."""
     def __init__(self, figsize: Optional[Tuple[float, float]] = (7.0, 5.0),
-                 title_font_size: Optional[Union[int, str]] = 18,
+                 title_font_size: Optional[int] = 18,
                  wave_color: ComplexColors = ('#ff0000', '#0000ff'),
                  bg_color: str = '#f2f3f4',
                  num_points: int = 1000,
@@ -161,7 +161,7 @@ class PulseStyle:
         is optonal also describes it's mapped rcParam key below.
 
         Args:
-            figsize: Size of the figure in inches.
+            figsize: Size of the figure.
                 If None, will default to rcParams['figure.figsize'].
             title_font_size: Font size of schedule name in title.
                 If None, will default to rcParams['axes.titlesize']

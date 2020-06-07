@@ -319,15 +319,13 @@ class SamplePulseDrawer:
         bbox = ax.get_position()
 
         # This check is here for backwards compatibility. Before, the check was around
-        # the suptitle line, however since the font style can take on a type of string
+        # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
-        if isinstance(self.style.title_font_size, int) and self.style.title_font_size < 0:
-            return figure
-
-        figure.suptitle(str(pulse.name),
-                        fontsize=self.style.title_font_size,
-                        y=bbox.y1 + 0.02,
-                        va='bottom')
+        if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
+            figure.suptitle(str(pulse.name),
+                            fontsize=self.style.title_font_size,
+                            y=bbox.y1 + 0.02,
+                            va='bottom')
 
         return figure
 
@@ -875,14 +873,12 @@ class ScheduleDrawer:
             bbox = ax.get_position()
 
         # This check is here for backwards compatibility. Before, the check was around
-        # the suptitle line, however since the font style can take on a type of string
+        # the suptitle line, however since the font style can take on a type of None
         # we need to unfortunately check both the type and the value of the object.
-        if isinstance(self.style.title_font_size, int) and self.style.title_font_size < 0:
-            return figure
-
-        figure.suptitle(str(schedule.name),
-                        fontsize=self.style.title_font_size,
-                        y=bbox.y1 + 0.02,
-                        va='bottom')
+        if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
+            figure.suptitle(str(schedule.name),
+                            fontsize=self.style.title_font_size,
+                            y=bbox.y1 + 0.02,
+                            va='bottom')
 
         return figure
