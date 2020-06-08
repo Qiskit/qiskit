@@ -32,8 +32,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
-
 
 class DiagonalMeta(type):
     """A metaclass to ensure that DiagonalGate and DiagGate are of the same type.
