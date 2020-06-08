@@ -22,6 +22,7 @@ import os
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def save_data(image_filename, testname):
     datafilename = 'result_test.json'
     if os.path.exists(datafilename):
@@ -33,16 +34,19 @@ def save_data(image_filename, testname):
     with open(datafilename, 'w') as datafile:
         json.dump(data, datafile)
 
+
 from contextlib import contextmanager
+
 
 @contextmanager
 def cwd(path):
-    oldpwd=os.getcwd()
+    oldpwd = os.getcwd()
     os.chdir(path)
     try:
         yield
     finally:
         os.chdir(oldpwd)
+
 
 def save_data_wrap(func, testname):
     def wrapper(*args, **kwargs):
@@ -51,6 +55,7 @@ def save_data_wrap(func, testname):
             results = func(*args, **kwargs)
             save_data(image_filename, testname)
         return results
+
     return wrapper
 
 
