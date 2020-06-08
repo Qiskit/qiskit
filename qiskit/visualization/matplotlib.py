@@ -535,25 +535,6 @@ class MatplotlibDrawer:
         for qreg in self._qreg_dict.values():
             if qreg['group'] in group:
                 y_reg.append(qreg['y'])
-        x0 = xys[0][0]
-
-        fold = self.fold if self.fold > 0 else 20
-        box_y0 = min(y_reg) - int(anc / fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / fold) * (self._cond['n_lines'] + 1) + 0.5
-        box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
-                                width=0.6 * WID, height=box_y1 - box_y0,
-                                fc=self._style.bc, ec=None, alpha=0.6,
-                                linewidth=1.5, zorder=PORDER_GRAY)
-        self.ax.add_patch(box)
-        x0 = xys[0][0]
-
-        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
-        box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
-                                width=0.6 * WID, height=box_y1 - box_y0,
-                                fc=self._style.bc, ec=None, alpha=0.6,
-                                linewidth=1.5, zorder=PORDER_GRAY)
-        self.ax.add_patch(box)
 
         for xy in xys:
             xpos, ypos = xy
@@ -669,7 +650,7 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
-                   text_width = self._get_text_width(reg.register.name, self._style.fs)
+                    text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
                     label = _fix_double_script(label)
@@ -805,7 +786,7 @@ class MatplotlibDrawer:
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 dtext = getattr(op.op, 'label', None) or op.name
-                print("op, base", op.name, base_name, type(op.op))
+                #print("op, base", op.name, base_name, type(op.op))
 
                 # get qreg index
                 q_idxs = []
@@ -918,7 +899,7 @@ class MatplotlibDrawer:
                 elif (op.type == 'op' and hasattr(op.op, 'params')
                         and any([isinstance(param, np.ndarray) for param in op.op.params])
                         and not isinstance(op.op, ControlledGate)):
-                    print("params", op.name)
+                    #print("params", op.name)
                     label = None if not hasattr(op.op, 'label') else op.op.label
                     if op.name in self._style.dispcol:
                         fc = self._style.dispcol[op.name]
@@ -1030,7 +1011,7 @@ class MatplotlibDrawer:
 
                 # All other controlled gates
                 elif isinstance(op.op, ControlledGate):
-                    print("ctrl gate", getattr(op.op.base_gate, 'label', None), op.name, base_name)
+                    #print("ctrl gate", getattr(op.op.base_gate, 'label', None), op.name, base_name)
                     disp = getattr(op.op.base_gate, 'label', None) or op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
