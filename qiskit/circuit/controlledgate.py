@@ -193,7 +193,7 @@ class ControlledGate(Gate):
             CircuitError: If controlled gate does not define a base gate.
         """
         if self.base_gate:
-            super(Gate, self.__class__).params.fset(self.base_gate, parameters)
+            self.base_gate.params = parameters
         else:
             raise CircuitError('Controlled gate does not define base gate '
                                'for extracting params')
