@@ -26,6 +26,7 @@ Unitary Extensions
    :toctree: ../stubs/
 
    UnitaryGate
+   HamiltonianGate
 
 Simulator Extensions
 ====================

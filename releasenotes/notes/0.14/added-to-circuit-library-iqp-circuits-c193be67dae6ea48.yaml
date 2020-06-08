@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new class :class:`~qiskit.circuit.library.IQP`, to construct an
+    instantaneous quantum polynomial circuit, has been added to the circuit
+    library module :mod:`qiskit.circuit.library`.

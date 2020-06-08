@@ -139,15 +139,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -200,15 +201,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -236,15 +238,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
@@ -281,15 +284,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -351,15 +355,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -416,15 +421,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -482,15 +488,16 @@ stages:
           displayName: 'Use Python $(python.version)'
         - task: Cache@2
           inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
             restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
               pip | "$(Agent.OS)"
               pip
             path: $(PIP_CACHE_DIR)
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip
+            python -m pip install --upgrade pip setuptools wheel
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
