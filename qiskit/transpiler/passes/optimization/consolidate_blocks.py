@@ -20,7 +20,8 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
-from qiskit.extensions import UnitaryGate, CXGate
+from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -37,6 +38,7 @@ class ConsolidateBlocks(TransformationPass):
         given such that blocks are in topological order. The blocks are
         collected by a previous pass, such as `Collect2qBlocks`.
     """
+
     def __init__(self, kak_basis_gate=CXGate(), force_consolidate=False):
         """ConsolidateBlocks initializer.
 

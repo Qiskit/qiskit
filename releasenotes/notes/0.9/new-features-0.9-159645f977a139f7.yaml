@@ -64,7 +64,7 @@ features:
     passed a set of kwargs on each call with the state of the pass maanger after
     each pass execution. Currently these kwargs are:
 
-     * pass_ (Pass): the pass being run
+     * pass\_ (Pass): the pass being run
      * dag (DAGCircuit): the dag output of the pass
      * time (float): the time to execute the pass
      * property_set (PropertySet): the property set
@@ -126,7 +126,7 @@ features:
     +--------------------------------+---------------------------------------+
     | ``QuantumCircuit.squ()``       | Decompose an arbitrary 2x2 unitary    |
     |                                | into three rotation gates and add to  |
-    |                                |  a circuit                            |
+    |                                | a circuit                             |
     +--------------------------------+---------------------------------------+
     | ``QuantumCircuit.ucg()``       | Attach an uniformly controlled gate   |
     |                                | (also called a multiplexed gate) to a |
