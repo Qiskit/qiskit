@@ -35,6 +35,7 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 from qiskit.circuit import ControlledGate
+from qiskit.circuit import Delay
 from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
@@ -902,6 +903,8 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
+                        if isinstance(op.op, Delay):
+                            param = "%s[%s]" % (param, op.op.unit)
                         self._gate(q_xy[0], wide=_iswide, text=disp,
                                    subtext=str(param))
                     else:

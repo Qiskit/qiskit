@@ -24,6 +24,7 @@ from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.circuit import Barrier as BarrierInstruction
+from qiskit.circuit import Delay as DelayInstruction
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
@@ -774,7 +775,10 @@ class TextDrawing():
         params = TextDrawing.params_for_label(instruction)
 
         if params:
-            label += "(%s)" % ','.join(params)
+            if isinstance(instruction.op, DelayInstruction):
+                label += "(%s[%s])" % (params[0], instruction.op.unit)
+            else:
+                label += "(%s)" % ','.join(params)
         return label
 
     @staticmethod
