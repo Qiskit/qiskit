@@ -235,7 +235,8 @@ class TemplateMatching:
                                             # Apply the forward match part of the algorithm.
                                             forward = ForwardMatch(self.circuit_dag_dep,
                                                                    self.template_dag_dep,
-                                                                   node_id_c, node_id_t,
+                                                                   node_id_c,
+                                                                   node_id_t,
                                                                    list_qubit_circuit,
                                                                    list_clbit_circuit)
                                             forward.run_forward_match()
@@ -244,6 +245,7 @@ class TemplateMatching:
                                             backward = BackwardMatch(forward.circuit_dag_dep,
                                                                      forward.template_dag_dep,
                                                                      forward.match, node_id_c,
+                                                                     node_id_c,
                                                                      node_id_t,
                                                                      list_qubit_circuit,
                                                                      list_clbit_circuit,
@@ -267,6 +269,7 @@ class TemplateMatching:
                                                              node_id_c,
                                                              node_id_t,
                                                              list_qubit_circuit,
+                                                             [],
                                                              self.heuristics_backward_param)
                                     backward.run_backward_match()
 
