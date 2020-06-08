@@ -144,4 +144,5 @@ qiskit/transpiler/passes/**/cython/**/*.cpp
 docs/stubs/*
 
 # Notebook testing images
-test/ipynb/*.png
+test/ipynb/mpl/*.png
+test/ipynb/mpl/result_test.json

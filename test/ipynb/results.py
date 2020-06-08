@@ -15,7 +15,7 @@
 import os
 import json
 
-CWD = os.path.dirname(os.path.abspath(__file__))
+SWD = os.path.dirname(os.path.abspath(__file__))
 
 
 class Results:
@@ -23,7 +23,7 @@ class Results:
         self.names = names
         self.directory = directory
         self.data = {}
-        datafilename = 'result_test.json'
+        datafilename = os.path.join(SWD, directory, 'result_test.json')
         if os.path.exists(datafilename):
             with open(datafilename, 'r') as datafile:
                 self.data = json.load(datafile)
@@ -33,9 +33,9 @@ class Results:
         for name in self.names:
             ret += '<table><tr>'
             ret += '<td colspan=2><tt> %s <b>%s</b> </tt></td></tr>' % (self.data[name], name)
-            ret += '<tr><td><img src="%s"</td>' % name
+            ret += '<tr><td><img src="%s"</td>' % os.path.join(self.directory, name)
             reference = os.path.join(self.directory, 'references', name)
-            if os.path.exists(os.path.join(CWD, reference)):
+            if os.path.exists(os.path.join(SWD, reference)):
                 ret += '<td><img src="%s"</td>' % reference
             else:
                 ret += '<td style="text-align:center">' \
@@ -48,7 +48,7 @@ class Results:
 
 if __name__ == '__main__':
     names = []
-    for file in os.listdir(CWD):
+    for file in os.listdir(os.path.join(SWD, 'mpl')):
         if file.endswith(".png"):
             names.append(file)
     results = Results(names, 'mpl')

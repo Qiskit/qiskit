@@ -13,14 +13,14 @@
 # that they have been altered from the originals.
 
 import unittest
-from unittest.mock import patch
-
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.visualization import circuit_drawer
 import json
 import os
+
+RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
 def save_data(image_filename, testname):
     datafilename = 'result_test.json'
@@ -33,12 +33,23 @@ def save_data(image_filename, testname):
     with open(datafilename, 'w') as datafile:
         json.dump(data, datafile)
 
+from contextlib import contextmanager
+
+@contextmanager
+def cwd(path):
+    oldpwd=os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(oldpwd)
 
 def save_data_wrap(func, testname):
     def wrapper(*args, **kwargs):
         image_filename = kwargs['filename']
-        results = func(*args, **kwargs)
-        save_data(image_filename, testname)
+        with cwd(RESULTDIR):
+            results = func(*args, **kwargs)
+            save_data(image_filename, testname)
         return results
     return wrapper
 
@@ -66,6 +77,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
 
         self.circuit_drawer(circuit, output='mpl', filename='long_name.png')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
