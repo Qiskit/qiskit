@@ -158,6 +158,7 @@ class MatplotlibDrawer:
             self.ax = ax
             self.figure = ax.get_figure()
 
+        self.x_offset = 0
         self._reg_long_text = 0
 
         f = plt.figure()
@@ -175,7 +176,6 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
 
-        self.x_offset = 0
         self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right', '\\dagger', '\\rangle')
         self._latex_chars1 = ('\\mapsto', '\\pi')
         self._char_list = {' ': (0.0841, 0.0512), '!': (0.106, 0.064), '"': (0.1224, 0.0768),
@@ -247,12 +247,12 @@ class MatplotlibDrawer:
         ypos_max = max([y[1] for y in xy])
 
         if text is None:
-            disp_text = ''
+            gate_text = ''
         elif text in self._style.disptex:
-            disp_text = "${}$".format(self._style.disptex[text])
+            gate_text = "${}$".format(self._style.disptex[text])
         else:
-            disp_text = "${}$".format(text[0].upper()+text[1:])
-        text_width = self._get_text_width(disp_text, self._style.fs) + .2
+            gate_text = "${}$".format(text[0].upper()+text[1:])
+        text_width = self._get_text_width(gate_text, self._style.fs) + .2
         subtext_width = self._get_text_width(subtext, self._style.sfs) + .2
 
         if subtext_width > text_width and subtext_width > WID:
@@ -288,7 +288,7 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
         if text:
             if subtext:
-                self.ax.text(xpos+.1, ypos + 0.4 * height, disp_text, ha='center',
+                self.ax.text(xpos+.1, ypos + 0.4 * height, gate_text, ha='center',
                              va='center', fontsize=self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT)
@@ -297,26 +297,22 @@ class MatplotlibDrawer:
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos+.1, ypos + .5 * (qubit_span - 1), disp_text,
-                             ha='center',
-                             va='center',
-                             fontsize=self._style.fs,
-                             color=self._style.gt,
-                             clip_on=True,
-                             zorder=PORDER_TEXT,
-                             wrap=True)
+                self.ax.text(xpos+.1, ypos + .5 * (qubit_span - 1), gate_text,
+                             ha='center', va='center', fontsize=self._style.fs,
+                             color=self._style.gt, clip_on=True,
+                             zorder=PORDER_TEXT, wrap=True)
 
     def _gate(self, xy, fc=None, text=None, subtext=None):
         xpos, ypos = xy
 
         if text is None:
-            disp_text = ''
+            gate_text = ''
         elif text in self._style.disptex:
-            disp_text = "${}$".format(self._style.disptex[text])
+            gate_text = "${}$".format(self._style.disptex[text])
         else:
-            disp_text = "${}$".format(text[0].upper()+text[1:])
+            gate_text = "${}$".format(text[0].upper()+text[1:])
 
-        text_width = self._get_text_width(disp_text, self._style.fs)
+        text_width = self._get_text_width(gate_text, self._style.fs)
         subtext_width = self._get_text_width(subtext, self._style.sfs)
 
         if subtext_width > text_width and subtext_width > WID:
@@ -340,9 +336,9 @@ class MatplotlibDrawer:
             _fc = self._style.gc
             _ec = self._style.edge_color
 
-        box = patches.Rectangle(
-            xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG), width=wid, height=HIG,
-            fc=_fc, ec=_ec, linewidth=1.5, zorder=PORDER_GATE)
+        box = patches.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
+                                width=wid, height=HIG, fc=_fc, ec=_ec,
+                                linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
         if text:
@@ -358,20 +354,16 @@ class MatplotlibDrawer:
                 sub_color = self._style.sc
 
             if subtext:
-                self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
-                             va='center', fontsize=font_size,
-                             color=disp_color, clip_on=True,
-                             zorder=PORDER_TEXT)
+                self.ax.text(xpos, ypos + 0.15 * HIG, gate_text, ha='center',
+                             va='center', fontsize=font_size, color=disp_color,
+                             clip_on=True, zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center',
-                             va='center', fontsize=sub_font_size,
-                             color=sub_color, clip_on=True,
-                             zorder=PORDER_TEXT)
+                             va='center', fontsize=sub_font_size, color=sub_color,
+                             clip_on=True, zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos, ypos, disp_text, ha='center', va='center',
-                             fontsize=font_size,
-                             color=disp_color,
-                             clip_on=True,
-                             zorder=PORDER_TEXT)
+                self.ax.text(xpos, ypos, gate_text, ha='center', va='center',
+                             fontsize=font_size, color=disp_color,
+                             clip_on=True, zorder=PORDER_TEXT)
 
     def _subtext(self, xy, text):
         xpos, ypos = xy
@@ -384,8 +376,8 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         # 0.15 = the initial gap, add 1/2 text width to place on the right
-        twidth = self._get_text_width(text, self._style.sfs)
-        xp = xpos + 0.15 + twidth / 2
+        text_width = self._get_text_width(text, self._style.sfs)
+        xp = xpos + 0.15 + text_width / 2
         self.ax.text(xp, ypos + HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs, color=self._style.tc,
                      clip_on=True, zorder=PORDER_TEXT)
@@ -393,14 +385,8 @@ class MatplotlibDrawer:
     def _line(self, xy0, xy1, lc=None, ls=None, zorder=PORDER_LINE):
         x0, y0 = xy0
         x1, y1 = xy1
-        if lc is None:
-            linecolor = self._style.lc
-        else:
-            linecolor = lc
-        if ls is None:
-            linestyle = 'solid'
-        else:
-            linestyle = ls
+        linecolor = self._style.lc if lc is None else lc
+        linestyle = 'solid' if ls is None else ls
 
         if linestyle == 'doublet':
             theta = np.arctan2(np.abs(x1 - x0), np.abs(y1 - y0))
@@ -421,20 +407,18 @@ class MatplotlibDrawer:
         qx, qy = qxy
         cx, cy = cxy
 
+        # draw gate box
         self._gate(qxy, fc=self._style.dispcol['meas'])
 
         # add measure symbol
         arc = patches.Arc(xy=(qx, qy - 0.15 * HIG), width=WID * 0.7,
                           height=HIG * 0.7, theta1=0, theta2=180, fill=False,
-                          ec=self._style.not_gate_lc, linewidth=2,
-                          zorder=PORDER_GATE)
+                          ec=self._style.not_gate_lc, linewidth=2, zorder=PORDER_GATE)
         self.ax.add_patch(arc)
-        self.ax.plot([qx, qx + 0.35 * WID],
-                     [qy - 0.15 * HIG, qy + 0.20 * HIG],
+        self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.not_gate_lc, linewidth=2, zorder=PORDER_GATE)
         # arrow
-        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc,
-                   ls=self._style.cline)
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc, ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
                                      (cx + 0.20 * WID, cy + 0.35 * WID),
                                      (cx, cy)), fc=self._style.cc, ec=None)
@@ -449,9 +433,8 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         fc = self._style.lc if istrue else self._style.gc
-        box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
-                             fc=_fc, ec=self._style.lc,
-                             linewidth=1.5, zorder=PORDER_GATE)
+        box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15, fc=fc,
+                             ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None):
@@ -465,7 +448,6 @@ class MatplotlibDrawer:
         self.ax.add_patch(box)
 
     def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color):
-        # convert op.ctrl_state to bit string and reverse
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
@@ -549,6 +531,7 @@ class MatplotlibDrawer:
         _yt = self._style.margin[3] + 0.5
         self.ax.set_xlim(_xl, _xr)
         self.ax.set_ylim(_yb, _yt)
+
         # update figure size
         fig_w = _xr - _xl
         fig_h = _yt - _yb
@@ -583,28 +566,25 @@ class MatplotlibDrawer:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
                                                               index=reg.index)
+                    label = _fix_double_script(label)
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index,
-                        physical=reg.index)
+                        index=self.layout[reg.index].index, physical=reg.index)
+                    label = _fix_double_script(label)
                     text_width = self._get_text_width(label, self._style.fs)
             else:
                 label = '${name}$'.format(name=reg.register.name)
+                label = _fix_double_script(label)
                 text_width = self._get_text_width(label, self._style.fs)
 
-            label = _fix_double_script(label)
             if text_width > longest_label_width:
                 longest_label_width = text_width
 
             pos = -ii
             self._qreg_dict[ii] = {
-                'y': pos,
-                'label': label,
-                'index': reg.index,
-                'group': reg.register
-            }
+                'y': pos, 'label': label, 'index': reg.index, 'group': reg.register}
             self._cond['n_lines'] += 1
 
         # classical register
@@ -613,36 +593,26 @@ class MatplotlibDrawer:
             n_creg.pop(0)
             idx = 0
             y_off = -len(self._qreg)
-            for ii, (reg, nreg) in enumerate(itertools.zip_longest(
-                    self._creg, n_creg)):
+            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
+                    label = _fix_double_script(label)
                     text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
-                    label = _fix_double_script(label)
-                    self._creg_dict[ii] = {
-                        'y': pos,
-                        'label': label,
-                        'index': reg.index,
-                        'group': reg.register
-                    }
+                    self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index,
+                                           'group': reg.register}
                     if not (not nreg or reg.register != nreg.register):
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = _fix_double_script(label)
                     text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
                         longest_label_width = text_width
-                    label = _fix_double_script(label)
-                    self._creg_dict[ii] = {
-                        'y': pos,
-                        'label': label,
-                        'index': reg.index,
-                        'group': reg.register
-                    }
-
+                    self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index,
+                                           'group': reg.register}
                 self._cond['n_lines'] += 1
                 idx += 1
 
@@ -652,16 +622,14 @@ class MatplotlibDrawer:
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
         for qreg in self._qreg_dict.values():
-            if n_fold == 0:
-                label = qreg['label']
-            else:
-                label = qreg['label']
+            label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
             self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
+
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
@@ -675,8 +643,7 @@ class MatplotlibDrawer:
             # bundle
             if this_creg['val'] > 1:
                 self.ax.plot([self.x_offset + 0.64, self.x_offset + 0.74], [y - .1, y + .1],
-                             color=self._style.cc,
-                             zorder=PORDER_LINE)
+                             color=self._style.cc, zorder=PORDER_LINE)
                 self.ax.text(self.x_offset+0.54, y + .1, str(this_creg['val']), ha='left',
                              va='bottom', fontsize=0.8 * self._style.fs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
@@ -696,7 +663,7 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         _narrow_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                        'rxx', 'ryy', 'rzx', 'u1', 'swap', 'reset']
+                         'rxx', 'ryy', 'rzx', 'u1', 'swap', 'reset']
         _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
@@ -712,11 +679,14 @@ class MatplotlibDrawer:
             c_anchors[key] = Anchor(reg_num=self._cond['n_lines'],
                                     yind=creg['y'], fold=self.fold)
         #
-        # draw gates
+        # Draw the ops
         #
         prev_anc = -1
         for layer in self._ops:
             widest_box = 0.0
+            #
+            # Compute the layer_width for this layer
+            #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
 
@@ -736,7 +706,7 @@ class MatplotlibDrawer:
                         tname = 'cu1' if op.name == 'cu1' else 'zz'
                         side_width = self._get_text_width(tname + ' ',
                                                           fontsize=self._style.sfs) + param_width
-                        box_width = WID + 0.15 + side_width 
+                        box_width = WID + 0.15 + side_width
                     else:
                         if param_width > text_width and param_width > WID:
                             box_width = param_width
@@ -752,11 +722,12 @@ class MatplotlibDrawer:
 
             layer_width = int(widest_box) + 1
             this_anc = prev_anc + 1
-
+            #
+            # Draw the gates in this layer
+            #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 gate_text = getattr(op.op, 'label', None) or op.name
-                #print("op, base", op.name, base_name, type(op.op))
 
                 # get qreg index
                 q_idxs = []
@@ -779,10 +750,7 @@ class MatplotlibDrawer:
                 # Only add the gate to the anchors if it is going to be plotted.
                 # This prevents additional blank wires at the end of the line if
                 # the last instruction is a barrier type
-                if self.plot_barriers or \
-                        op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                        'noise']:
-
+                if self.plot_barriers or op.name not in _barrier_gates:
                     for ii in q_idxs:
                         q_anchors[ii].set_index(this_anc, layer_width)
 
@@ -841,7 +809,6 @@ class MatplotlibDrawer:
                 #
                 # draw special gates
                 #
-
                 if op.name == 'measure':
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv)
@@ -853,7 +820,6 @@ class MatplotlibDrawer:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
                         q_group = self._qreg_dict[qbit]['group']
-
                         if q_group not in _barriers['group']:
                             _barriers['group'].append(q_group)
                         _barriers['coord'].append(q_xy[index])
@@ -867,14 +833,10 @@ class MatplotlibDrawer:
 
                 # For gates with ndarray params, don't display the params as subtext
                 elif (op.type == 'op' and hasattr(op.op, 'params')
-                        and any([isinstance(param, np.ndarray) for param in op.op.params])
-                        and not isinstance(op.op, ControlledGate)):
-                    #print("params", op.name)
-                    label = None if not hasattr(op.op, 'label') else op.op.label
-                    if op.name in self._style.dispcol:
-                        fc = self._style.dispcol[op.name]
-                    else:
-                        fc = self._style.dispcol['multi']
+                      and any([isinstance(param, np.ndarray) for param in op.op.params])
+                      and not isinstance(op.op, ControlledGate)):
+                    color_name = op.name if op.name in self._style.dispcol else 'multi'
+                    fc = self._style.dispcol[color_name]
                     self._custom_multiqubit_gate(q_xy, text=gate_text, fc=fc)
 
                 #
@@ -970,11 +932,11 @@ class MatplotlibDrawer:
 
                 # All other controlled gates
                 elif isinstance(op.op, ControlledGate):
-                    #print("ctrl gate", getattr(op.op.base_gate, 'label', None), op.name, base_name)
                     ctrl_text = getattr(op.op.base_gate, 'label', None) or op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
                     opname = 'cy' if op.name == 'cy' else 'multi'
+
                     color = self._style.dispcol[opname]
                     ec = color if self._style.name != 'bw' else self._style.lc
                     lc = ec
@@ -984,8 +946,8 @@ class MatplotlibDrawer:
                         self._gate(q_xy[num_ctrl_qubits], text=ctrl_text, fc=color,
                                    subtext='{}'.format(param))
                     else:
-                        self._custom_multiqubit_gate(q_xy[num_ctrl_qubits:],
-                                                     fc=color, text=ctrl_text)
+                        self._custom_multiqubit_gate(q_xy[num_ctrl_qubits:], fc=color,
+                                                     text=ctrl_text, subtext='{}'.format(param))
 
                 # draw custom multi-qubit gate as final default
                 else:
