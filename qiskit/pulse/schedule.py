@@ -523,7 +523,7 @@ class Schedule(ScheduleComponent):
             new: ScheduleComponent,
             inplace: bool = False,
             enforce_identical_timing: bool = True,
-            ) -> 'Schedule':
+    ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
         instruction.
 
@@ -596,6 +596,11 @@ class Schedule(ScheduleComponent):
 
         Returns:
           The modified schedule with ``old`` replaced by ``new``.
+
+        Raises:
+            PulseError: If the ``old`` and ``new`` pulse do not have identical
+                timeslots if ``enforce_identical_timing=True`` or if the
+                ``Schedule`` after replacement will have a timing overlap.
         """
         identical_timing = old.timeslots == new.timeslots
         if enforce_identical_timing and not identical_timing:
