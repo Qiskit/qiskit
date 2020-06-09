@@ -230,7 +230,7 @@ class EventsOutputChannels:
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
-            if tmp_set_phase !=0:
+            if tmp_set_phase != 0:
                 self._setphase[time] = tmp_set_phase
                 fc = tmp_set_phase
             if tmp_sf is not None:
