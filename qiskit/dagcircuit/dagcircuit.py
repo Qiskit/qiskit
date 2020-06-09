@@ -609,15 +609,21 @@ class DAGCircuit:
         else:
             return None
 
-    def idle_wires(self):
+    def idle_wires(self, ignore=None):
         """Return idle wires.
+
+        Args:
+            ignore (list(str)): List of node names to ignore. Default: []
 
         Yields:
             Bit: Bit in idle wire.
         """
+        if ignore is None:
+            ignore = []
         for wire in self._wires:
-            nodes = self.nodes_on_wire(wire, only_ops=False)
-            if len(list(nodes)) == 2:
+            nodes = [node for node in self.nodes_on_wire(wire, only_ops=False)
+                     if node.name not in ignore]
+            if len(nodes) == 2:
                 yield wire
 
     def size(self):
