@@ -17,6 +17,7 @@ This module contains utility functions for circuits.
 
 import numpy
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
