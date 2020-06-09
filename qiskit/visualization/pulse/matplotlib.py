@@ -152,10 +152,8 @@ class EventsOutputChannels:
         Returns:
             bool: if the channel has nothing to plot
         """
-        if (
-            any(self.waveform) or self.framechanges
-            or self.setphase or self.conditionals or self.snapshots
-        ):
+        if (any(self.waveform) or self.framechanges or self.setphase or
+                self.conditionals or self.snapshots):
             return False
 
         return True
