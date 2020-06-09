@@ -105,11 +105,11 @@ class SetPhase(Instruction):
 
         Re[\exp(i 2\pi f jdt + \phi) d_j]
 
-    The ``SetPhase`` instruction causes :math:`\phi` to be determined by the instruction's
-    ``phase`` operand.
+    The ``SetPhase`` instruction sets :math:`\phi` to the instruction's ``phase`` operand.
     """
 
-    def __init__(self, phase: float,
+    def __init__(self,
+                 phase: float,
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
