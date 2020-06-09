@@ -108,7 +108,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         rep_time: Time per program execution in sec. Must be from the list provided
             by the backend (``backend.configuration().rep_times``).
         rep_delay: Delay between programs in sec. Only supported on certain
-            backends (``backend.configuration()['dynamic_reprate_enabled']`` ).
+            backends (``backend.configuration().dynamic_reprate_enabled`` ).
             If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
             provided by the backend (``backend.configuration().rep_delays``).
         parameter_binds: List of Parameter bindings over which the set of experiments will be

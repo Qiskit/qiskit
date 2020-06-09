@@ -176,7 +176,7 @@ def execute(experiments, backend,
             by the backend (``backend.configuration().rep_times``).
 
         rep_delay (list[float]): Delay between programs in sec. Only supported on certain
-            backends (``backend.configuration()['dynamic_reprate_enabled']`` ).
+            backends (``backend.configuration().dynamic_reprate_enabled`` ).
             If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
             provided by the backend (``backend.configuration().rep_delays``).
 
