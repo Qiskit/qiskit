@@ -41,15 +41,15 @@ def similarity_ratio(current, expected):
 
 def new_gray(size, color):
     img = Image.new('L', size)
-    dr = ImageDraw.Draw(img)
-    dr.rectangle((0, 0) + size, color)
+    drawing = ImageDraw.Draw(img)
+    drawing.rectangle((0, 0) + size, color)
     return img
 
 
 def black_or_b(diff_image, image, reference, opacity=0.85):
     """Copied from https://stackoverflow.com/a/30307875 """
     thresholded_diff = diff_image
-    for repeat in range(3):
+    for _ in range(3):
         thresholded_diff = ImageChops.add(thresholded_diff, thresholded_diff)
     size = diff_image.size
     mask = new_gray(size, int(255 * (opacity)))
@@ -93,8 +93,8 @@ class Results:
 
 
 if __name__ == '__main__':
-    names = []
+    result_files = []
     for file in os.listdir(os.path.join(SWD, 'mpl')):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            names.append(file)
-    results = Results(names, 'mpl')
+            result_files.append(file)
+    results = Results(result_files, 'mpl')

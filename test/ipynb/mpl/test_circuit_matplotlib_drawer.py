@@ -14,11 +14,14 @@
 
 import unittest
 
+import json
+import os
+from contextlib import contextmanager
+
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.visualization import circuit_drawer
-import json
-import os
+
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -33,9 +36,6 @@ def save_data(image_filename, testname):
     data[image_filename] = testname
     with open(datafilename, 'w') as datafile:
         json.dump(data, datafile)
-
-
-from contextlib import contextmanager
 
 
 @contextmanager
