@@ -517,6 +517,115 @@ class Schedule(ScheduleComponent):
 
         _check_nonnegative_timeslot(self._timeslots)
 
+    def replace(
+            self,
+            old: ScheduleComponent,
+            new: ScheduleComponent,
+            inplace: bool = False,
+            enforce_identical_timing: bool = True,
+            ) -> 'Schedule':
+        """Return a schedule with the ``old`` instruction replaced with a ``new``
+        instruction.
+
+        The replacment matching is based on an instruction equality check.
+
+        .. jupyter-kernel:: python3
+          :id: replace
+
+        .. jupyter-execute::
+
+          from qiskit import pulse
+
+          d0 = pulse.DriveChannel(0)
+
+          sched = pulse.Schedule()
+
+          old = pulse.Play(pulse.Constant(100, 1.0), d0)
+          new = pulse.Play(pulse.Constant(100, 0.1), d0)
+
+          sched += old
+
+          sched = sched.replace(old, new)
+
+          assert sched == pulse.Schedule(new)
+
+        Only matches at the top-level of the schedule tree. If you wish to
+        perform this replacement over all instructions in the schedule tree.
+        Flatten the schedule prior to running::
+
+        .. jupyter-execute::
+
+          sched = pulse.Schedule()
+
+          sched += pulse.Schedule(old)
+
+          sched = sched.flatten()
+
+          sched = sched.replace(old, new)
+
+          assert sched == pulse.Schedule(new)
+
+        By default the replacement will fail if ``new`` and ``old`` occupy
+        different timeslots. This behavior can be disable by setting
+        ``enforce_identical_timing=False``.
+
+        .. jupyter-execute::
+
+          sched = pulse.Schedule()
+
+          old = pulse.Play(pulse.Constant(100, 1.0), d0)
+          new = pulse.Play(pulse.Constant(20, 0.1), d0)
+
+          sched += old
+
+          # Fails as new has different timing than old.
+          # sched = sched.replace(old, new)
+
+          # Turns timing check off.
+          sched.replace(old, new, inplace=True, enforce_identical_timing=False)
+
+          assert sched == pulse.Schedule(new)
+
+
+        Args:
+          old: Instruction to replace.
+          new: Instruction to replace with.
+          inplace: Replace instruction by mutably modifying this ``Schedule``.
+          enforce_identical_timing: Enforce that ``old`` and ``new``
+              occupy the same ``timeslots``.
+
+        Returns:
+          The modified schedule with ``old`` replaced by ``new``.
+        """
+        identical_timing = old.timeslots == new.timeslots
+        if enforce_identical_timing and not identical_timing:
+            raise PulseError(
+                "{old} and {new} do not have identical "
+                "timeslots.".format(old=old, new=new))
+
+        new_children = []
+        for time, child in self._children:
+            if child == old:
+                new_children.append((time, new))
+            else:
+                new_children.append((time, child))
+
+        try:
+            new_sched = Schedule(*new_children)
+        except PulseError as err:
+            raise PulseError(
+                'Replacement of {old} with {new} results in '
+                'overlapping timeslots.'.format(
+                    old=old, new=new)) from err
+
+        if inplace:
+            self._duration = 0
+            self._timeslots = new_sched.timeslots
+            self.__children = new_sched.__children
+            return self
+
+        return new_sched
+
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,

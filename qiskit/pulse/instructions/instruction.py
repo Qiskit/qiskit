@@ -116,7 +116,6 @@ class Instruction(ScheduleComponent, ABC):
     @property
     def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
         """Occupied time slots by this instruction."""
-        warnings.warn("Access to Instruction timeslots is deprecated.")
         return self._timeslots
 
     @property

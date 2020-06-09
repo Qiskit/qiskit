@@ -508,6 +508,83 @@ class TestScheduleBuilding(BaseTestSchedule):
             self.assertEqual(len(sched), j)
 
 
+class TestReplace(BaseTestSchedule):
+    """Test schedule replacement."""
+
+    def test_replace_instruction(self):
+        """Test replacement of simple instruction"""
+        old = Play(Constant(100, 1.0), DriveChannel(0))
+        new = Play(Constant(100, 0.1), DriveChannel(0))
+
+        sched = Schedule(old)
+        new_sched = sched.replace(old, new)
+
+        self.assertEqual(new_sched, Schedule(new))
+
+        # test replace inplace
+        sched.replace(old, new, inplace=True)
+        self.assertEqual(sched, Schedule(new))
+
+    def test_replace_schedule(self):
+        """Test replacement of schedule."""
+
+        old = Schedule(
+            Delay(10, DriveChannel(0)),
+            Delay(100, DriveChannel(1)),
+        )
+        new = Schedule(
+            Play(Constant(10, 1.0), DriveChannel(0)),
+            Play(Constant(100, 0.1), DriveChannel(1)),
+        )
+        const = Play(Constant(100, 1.0), DriveChannel(0))
+
+        sched = Schedule()
+        sched += const
+        sched += old
+
+        new_sched = sched.replace(old, new)
+
+        ref_sched = Schedule()
+        ref_sched += const
+        ref_sched += new
+        self.assertEqual(new_sched, ref_sched)
+
+        # test replace inplace
+        sched.replace(old, new, inplace=True)
+        self.assertEqual(sched, ref_sched)
+
+    def test_replace_fails_on_overlap(self):
+        """Test that replacement fails on overlap."""
+        old = Play(Constant(20, 1.0), DriveChannel(0))
+        new = Play(Constant(100, 0.1), DriveChannel(0))
+
+        sched = Schedule()
+        sched += old
+        sched += Delay(100, DriveChannel(0))
+
+        with self.assertRaises(PulseError):
+            sched.replace(old, new, enforce_identical_timing=False)
+
+    def test_enforce_identical_timing(self):
+        """Test that replacement fails on overlap."""
+        old = Play(Constant(20, 1.0), DriveChannel(0))
+        new = Play(Constant(100, 0.1), DriveChannel(0))
+
+        sched = Schedule()
+        sched += old
+
+        with self.assertRaises(PulseError):
+            sched.replace(old, new, enforce_identical_timing=True)
+
+        # now try with enforce identical timing
+        sched.replace(old,
+                      new,
+                      inplace=True,
+                      enforce_identical_timing=False)
+
+        self.assertEqual(sched, Schedule(new))
+
+
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""
 
