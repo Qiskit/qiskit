@@ -19,7 +19,7 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.qasm import pi
 from .h import HGate
 from .t import TGate, TdgGate
@@ -202,8 +202,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -362,8 +361,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -538,8 +536,7 @@ class C3XGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -720,8 +717,7 @@ class C4XGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)    
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label

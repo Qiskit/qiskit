@@ -23,6 +23,7 @@ from .gate import Gate
 from .quantumregister import QuantumRegister
 from .quantumregister import Qubit
 from .classicalregister import Clbit
+from ._utils import _ctrl_state_to_int
 
 # pylint: disable=missing-return-doc
 
@@ -146,25 +147,7 @@ class ControlledGate(Gate):
         Raises:
             CircuitError: ctrl_state is invalid.
         """
-        if isinstance(ctrl_state, str):
-            try:
-                assert len(ctrl_state) == self.num_ctrl_qubits
-                ctrl_state = int(ctrl_state, 2)
-            except ValueError:
-                raise CircuitError('invalid control bit string: ' + ctrl_state)
-            except AssertionError:
-                raise CircuitError('invalid control bit string: length != '
-                                   'num_ctrl_qubits')
-        if isinstance(ctrl_state, int):
-            if 0 <= ctrl_state < 2**self.num_ctrl_qubits:
-                self._ctrl_state = ctrl_state
-            else:
-                raise CircuitError('invalid control state specification')
-        elif ctrl_state is None:
-            self._ctrl_state = 2**self.num_ctrl_qubits - 1
-        else:
-            raise CircuitError('invalid control state specification: {}'.format(
-                repr(ctrl_state)))
+        self._ctrl_state = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
 
     @property
     def params(self):

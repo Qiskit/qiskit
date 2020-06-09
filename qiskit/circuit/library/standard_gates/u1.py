@@ -18,6 +18,7 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import _ctrl_state_to_int
 
 
 class U1Gate(Gate):
@@ -289,8 +290,7 @@ class MCU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
                         label=label, ctrl_state=new_ctrl_state)
