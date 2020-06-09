@@ -59,8 +59,6 @@ class UnrollCustomDefinitions(TransformationPass):
         for node in dag.op_nodes():
 
             if node.name in device_insts or self._equiv_lib.has_entry(node.op):
-                continue
-            if node.name in self.basis:  # If already a base, ignore.
                 if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
                     pass
                 else:
