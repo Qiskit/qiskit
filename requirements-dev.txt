@@ -3,6 +3,7 @@ hypothesis>=4.24.3
 ipywidgets>=7.3.0
 jupyter
 matplotlib>=2.1
+pillow>=4.2.1
 pycodestyle
 pydot
 astroid==2.3.3
