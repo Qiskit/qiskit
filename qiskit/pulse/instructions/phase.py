@@ -109,7 +109,7 @@ class SetPhase(Instruction):
     ``phase`` operand.
     """
 
-    def __init__(self, phase: complex,
+    def __init__(self, phase: float,
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
