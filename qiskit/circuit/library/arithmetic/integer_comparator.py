@@ -21,6 +21,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
+from ..boolean_logic import OR
 from ..blueprintcircuit import BlueprintCircuit
 
 
@@ -29,7 +30,7 @@ class IntegerComparator(BlueprintCircuit):
 
     Operator compares basis states :math:`|i\rangle_n` against a classically given integer
     :math:`L` of fixed value and flips a target qubit if :math:`i \geq L`
-    (or :math:`<` depending on parameters):
+    (or :math:`<` depending on the parameter ``geq``):
 
     .. math::
 
@@ -197,14 +198,16 @@ class IntegerComparator(BlueprintCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     elif i < self.num_state_qubits - 1:
                         if twos[i] == 1:
-                            self.OR([qr_state[i], qr_ancilla[i - 1]], qr_ancilla[i], None)
+                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
+                                         inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
                             # OR needs the result argument as qubit not register, thus
                             # access the index [0]
-                            self.OR([qr_state[i], qr_ancilla[i - 1]], q_compare, None)
+                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare],
+                                         inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
 
@@ -219,7 +222,8 @@ class IntegerComparator(BlueprintCircuit):
                             self.cx(qr_state[i], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
-                            self.OR([qr_state[i], qr_ancilla[i - 1]], qr_ancilla[i], None)
+                            self.compose(OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]],
+                                         inplace=True)
                         else:
                             self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
             else:

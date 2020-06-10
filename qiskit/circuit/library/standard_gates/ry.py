@@ -112,6 +112,8 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
 
     **Circuit symbol:**
 
+    .. parsed-literal::
+
         q_0: ────■────
              ┌───┴───┐
         q_1: ┤ Ry(ϴ) ├
