@@ -28,7 +28,7 @@ from qiskit.circuit import Gate, ControlledGate, ParameterVector
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
-from qiskit.extensions.standard import (
+from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
@@ -1352,7 +1352,7 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
-        from qiskit.extensions.standard.ms import MSGate
+        from qiskit.circuit.library.standard_gates.ms import MSGate
 
         params = [0.1 * i for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
