@@ -70,24 +70,51 @@ class Results:
             with open(datafilename, 'r') as datafile:
                 self.data = json.load(datafile)
 
+    @staticmethod
+    def passed_result_html(result, reference, diff, title):
+        ret = '<details><summary style="background-color:lightgreen;"> %s </summary>' % title
+        ret += '<table>'
+        ret += '<tr><td><img src="%s"</td>' % result
+        ret += '<td><img src="%s"</td>' % reference
+        ret += '<td><img src="%s"</td>' % diff
+        ret += '</tr></table></details>'
+        return ret
+
+    @staticmethod
+    def failed_result_html(result, reference, diff, title):
+        ret = '<details open><summary style="background-color:lightcoral;"> %s </summary>' % title
+        ret += '<table>'
+        ret += '<tr><td><img src="%s"</td>' % result
+        ret += '<td><img src="%s"</td>' % reference
+        ret += '<td><img src="%s"</td>' % diff
+        ret += '</tr></table></details>'
+        return ret
+
+    @staticmethod
+    def no_reference_html(result, title):
+        ret = '<details><summary style="background-color:lightgrey;"> %s </summary>' % title
+        ret += '<table><tr><td><img src="%s"</td>' % result
+        ret += '</tr></table></details>'
+        return ret
+
     def _repr_html_(self):
         ret = "<div>"
         for name in self.names:
             fullpath_name = os.path.join(self.directory, name)
             fullpath_reference = os.path.join(self.directory, 'references', name)
-            ret += '<table><tr>'
-            ratio, diff_name = similarity_ratio(fullpath_name, fullpath_reference)
-            ret += '<td colspan=2><tt> %s <b>%s</b> </tt> </td>' % (self.data[name], name)
-            ret += '<td> ratio: %s </td></tr>' % ratio
-            ret += '<tr><td><img src="%s"</td>' % fullpath_name
             if os.path.exists(os.path.join(SWD, fullpath_reference)):
-                ret += '<td><img src="%s"</td>' % fullpath_reference
-                ret += '<td><img src="%s"</td>' % diff_name
+                ratio, diff_name = similarity_ratio(fullpath_name, fullpath_reference)
+                title = '<tt><b>%s</b> | %s </tt> | ratio: %s' % (name, self.data[name], ratio)
+                if ratio == 1:
+                    ret += Results.passed_result_html(fullpath_name, fullpath_reference,
+                                                      diff_name, title)
+                else:
+                    ret += Results.failed_result_html(fullpath_name, fullpath_reference,
+                                                      diff_name, title)
             else:
-                ret += '<td style="text-align:center">' \
-                       'Add <a download="%s" href="%s">this image</a> ' \
-                       'to %s and push</td>' % (name, fullpath_reference, fullpath_reference)
-            ret += '</tr></table>'
+                title = 'Download <a download="%s" href="%s">this image</a> to <tt>%s</tt>' \
+                        ' and add/push to the repo</td>' % (name, fullpath_name, fullpath_reference)
+                ret += Results.no_reference_html(fullpath_name, title)
         ret += "</div>"
         return ret
 
