@@ -1,1 +1,2 @@
 pip install matplotlib pillow
+pip install appmode
