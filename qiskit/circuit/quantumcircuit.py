@@ -276,6 +276,27 @@ class QuantumCircuit:
             inverse_circ._append(inst.inverse(), qargs, cargs)
         return inverse_circ
 
+    def repeat(self, reps):
+        """Repeat this circuit ``reps`` times.
+
+        Args:
+            reps (int): How often this circuit should be repeated.
+
+        Returns:
+            QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
+        """
+        repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                       name=self.name + '**{}'.format(reps))
+
+        # benefit of appending instructions: decomposing shows the subparts, i.e. the power
+        # is actually `reps` times this circuit, and it is currently much faster than `compose`.
+        if reps > 0:
+            inst = self.to_instruction()
+            for _ in range(reps):
+                repeated_circ.append(inst, self.qubits, self.clbits)
+
+        return repeated_circ
+
     def combine(self, rhs):
         """Append rhs to self if self contains compatible registers.
 

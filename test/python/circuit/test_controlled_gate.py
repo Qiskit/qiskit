@@ -33,14 +33,14 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.extensions.standard import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                        CYGate, CZGate, CU1Gate, SwapGate,
-                                        CCXGate, HGate, RZGate, RXGate,
-                                        RYGate, CRYGate, CRXGate, CSwapGate,
-                                        U3Gate, CHGate, CRZGate, CU3Gate,
-                                        MSGate, Barrier, RCCXGate, RC3XGate,
-                                        MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                        MCXVChain, C3XGate, C4XGate)
+from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
+                                    CYGate, CZGate, CU1Gate, SwapGate,
+                                    CCXGate, HGate, RZGate, RXGate,
+                                    RYGate, CRYGate, CRXGate, CSwapGate,
+                                    U3Gate, CHGate, CRZGate, CU3Gate,
+                                    MSGate, Barrier, RCCXGate, RC3XGate,
+                                    MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
+                                    MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.extensions.standard as allGates
 
@@ -666,6 +666,76 @@ class TestControlledGate(QiskitTestCase):
                         ((output_ctrl == input_ctrl) and
                          (output_target != cond_output)) or
                         output_ctrl != input_ctrl)
+
+    def test_open_control_cx_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1, ctrl_state=0)
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cx'])
+        uqc = dag_to_circuit(unroller.run(dag))
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cx(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
+
+    def test_open_control_cy_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qc = QuantumCircuit(2)
+        qc.cy(0, 1, ctrl_state=0)
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cy'])
+        uqc = dag_to_circuit(unroller.run(dag))
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cy(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
+
+    def test_open_control_cxx_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qreg = QuantumRegister(3)
+        qc = QuantumCircuit(qreg)
+        ccx = CCXGate(ctrl_state=0)
+        qc.append(ccx, [0, 1, 2])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['x', 'ccx'])
+        unrolled_dag = unroller.run(dag)
+
+        ref_circuit = QuantumCircuit(qreg)
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_circuit.ccx(qreg[0], qreg[1], qreg[2])
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_open_control_composite_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        # create composite gate
+        qreg = QuantumRegister(2)
+        qcomp = QuantumCircuit(qreg, name='bell')
+        qcomp.h(qreg[0])
+        qcomp.cx(qreg[0], qreg[1])
+        bell = qcomp.to_gate()
+        # create controlled composite gate
+        cqreg = QuantumRegister(3)
+        qc = QuantumCircuit(cqreg)
+        qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['x', 'u1', 'cbell'])
+        unrolled_dag = unroller.run(dag)
+        # create reference circuit
+        ref_circuit = QuantumCircuit(cqreg)
+        ref_circuit.x(cqreg[0])
+        ref_circuit.append(bell.control(), [cqreg[0], cqreg[1], cqreg[2]])
+        ref_circuit.x(cqreg[0])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
 
     @data(*ControlledGate.__subclasses__())
     def test_base_gate_setting(self, gate_class):

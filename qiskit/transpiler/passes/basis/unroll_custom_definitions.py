@@ -17,6 +17,7 @@
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit import ControlledGate
 
 
 class UnrollCustomDefinitions(TransformationPass):
@@ -59,7 +60,10 @@ class UnrollCustomDefinitions(TransformationPass):
         for node in dag.op_nodes():
 
             if node.name in device_insts or self._equiv_lib.has_entry(node.op):
-                continue
+                if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
+                    pass
+                else:
+                    continue
 
             try:
                 rule = node.op.definition
