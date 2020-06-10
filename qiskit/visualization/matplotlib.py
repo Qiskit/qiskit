@@ -888,40 +888,20 @@ class MatplotlibDrawer:
                     self._ctrl_qubit(q_xy[1], fc=color, ec=ec)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
-                # cu1 gate
-                elif op.name == 'cu1':
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                # cu1, rzz, and controlled rzz gates (sidetext gates)
+                elif (op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz'):
+                    num_ctrl_qubits = 0 if op.name == 'rzz' else op.op.num_ctrl_qubits
                     color_name = 'multi' if self._style.name != 'bw' else 'cz'
                     color = self._style.dispcol[color_name]
                     ec = color if self._style.name != 'bw' else self._style.lc
                     lc = ec
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
+                    if op.name != 'rzz':
+                        self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=color, ec=ec)
-                    self._sidetext(qreg_b, text='U1 ({})'.format(param))
-                    self._line(qreg_b, qreg_t, lc=lc)
-
-                # rzz gate
-                elif op.name == 'rzz':
-                    color_name = 'multi' if self._style.name != 'bw' else 'cz'
-                    color = self._style.dispcol[color_name]
-                    ec = color if self._style.name != 'bw' else self._style.lc
-                    lc = ec
-                    self._ctrl_qubit(q_xy[0], fc=color, ec=ec)
-                    self._ctrl_qubit(q_xy[1], fc=color, ec=ec)
-                    self._sidetext(qreg_b, text='zz ({})'.format(param))
-                    self._line(qreg_b, qreg_t, lc=lc)
-
-                # controlled rzz gate
-                elif op.name != 'rzz' and base_name == 'rzz':
-                    num_ctrl_qubits = op.op.num_ctrl_qubits
-                    color_name = 'multi' if self._style.name != 'bw' else 'cz'
-                    color = self._style.dispcol[color_name]
-                    ec = color if self._style.name != 'bw' else self._style.lc
-                    lc = ec
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
-                    self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=color, ec=ec)
-                    self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=color, ec=ec)
-                    self._sidetext(qreg_b, text='zz ({})'.format(param))
+                    if op.name != 'cu1':
+                        self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=color, ec=ec)
+                    stext = self._style.disptex['u1'] if op.name == 'cu1' else 'zz'
+                    self._sidetext(qreg_b, text='${}$'.format(stext)+' '+'({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # swap gate
@@ -941,11 +921,6 @@ class MatplotlibDrawer:
                     self._swap(q_xy[num_ctrl_qubits], color)
                     self._swap(q_xy[num_ctrl_qubits+1], color)
                     self._line(qreg_b, qreg_t, lc=lc)
-
-                # rxx, ryy, rzx, dcx, iswap
-                elif op.name in ['rxx', 'ryy', 'rzx', 'dcx', 'iswap']:
-                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name],
-                                                 text=gate_text, subtext='{}'.format(param))
 
                 # All other controlled gates
                 elif isinstance(op.op, ControlledGate):
@@ -968,7 +943,8 @@ class MatplotlibDrawer:
 
                 # draw custom multi-qubit gate as final default
                 else:
-                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol['multi'],
+                    color_name = op.name if op.name in self._style.dispcol else 'multi'
+                    self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[color_name],
                                                  text=gate_text, subtext='{}'.format(param))
 
             # adjust the column if there have been barriers encountered, but not plotted
