@@ -65,6 +65,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
                 + numpy.kron(base_mat, ctrl_proj))
     return full_mat
 
+
 def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
     """Convert ctrl_state to int.
 

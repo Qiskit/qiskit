@@ -717,7 +717,7 @@ class C4XGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)    
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
