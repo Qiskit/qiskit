@@ -22,6 +22,7 @@ import itertools
 import json
 import logging
 import math
+from warnings import warn
 
 import numpy as np
 
@@ -106,7 +107,8 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False, layout=None, fold=25, ax=None):
+                 reverse_bits=False, layout=None, fold=25, ax=None,
+                 initial_state=False, cregbundle=True):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -141,6 +143,15 @@ class MatplotlibDrawer:
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         self.layout = layout
+        self.initial_state = initial_state
+        if style and 'cregbundle' in style.keys():
+            self.cregbundle = style['cregbundle']
+            del style['cregbundle']
+            warn("The style dictionary key 'cregbundle' has been deprecated and will be removed"
+                 " in a future release. cregbundle is now a parameter to draw()."
+                 " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
+        else:
+            self.cregbundle = cregbundle
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -424,7 +435,7 @@ class MatplotlibDrawer:
                                      (cx, cy)), fc=self._style.cc, ec=None)
         self.ax.add_artist(arrowhead)
         # target
-        if self._style.bundle:
+        if self.cregbundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
                          fontsize=0.8 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
@@ -551,6 +562,12 @@ class MatplotlibDrawer:
 
     def _draw_regs(self):
         longest_label_width = 0
+        if self.initial_state:
+            initial_qbit = ' |0>'
+            initial_cbit = ' 0'
+        else:
+            initial_qbit = ''
+            initial_cbit = ''
 
         def _fix_double_script(label):
             words = label.split(' ')
@@ -565,17 +582,17 @@ class MatplotlibDrawer:
             if len(self._qreg) > 1:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
-                                                              index=reg.index)
+                                                              index=reg.index) + initial_qbit
                     label = _fix_double_script(label)
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index, physical=reg.index)
+                        index=self.layout[reg.index].index, physical=reg.index) + initial_qbit
                     label = _fix_double_script(label)
                     text_width = self._get_text_width(label, self._style.fs)
             else:
-                label = '${name}$'.format(name=reg.register.name)
+                label = '${name}$'.format(name=reg.register.name) + initial_qbit
                 label = _fix_double_script(label)
                 text_width = self._get_text_width(label, self._style.fs)
 
@@ -595,8 +612,8 @@ class MatplotlibDrawer:
             y_off = -len(self._qreg)
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
-                if self._style.bundle:
-                    label = '${}$'.format(reg.register.name)
+                if self.cregbundle:
+                    label = '${}$'.format(reg.register.name) + initial_cbit
                     label = _fix_double_script(label)
                     text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
@@ -606,7 +623,7 @@ class MatplotlibDrawer:
                     if not (not nreg or reg.register != nreg.register):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index) + initial_cbit
                     label = _fix_double_script(label)
                     text_width = self._get_text_width(reg.register.name, self._style.fs)
                     if text_width > longest_label_width:
@@ -796,7 +813,7 @@ class MatplotlibDrawer:
                     for xy, m in zip(c_xy, cmask):
                         if m == '1':
                             if xy not in xy_plot:
-                                if vlist[v_ind] == '1' or self._style.bundle:
+                                if vlist[v_ind] == '1' or self.cregbundle:
                                     self._conds(xy, istrue=True)
                                 else:
                                     self._conds(xy, istrue=False)
