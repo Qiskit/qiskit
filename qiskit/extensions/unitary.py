@@ -135,6 +135,7 @@ class UnitaryGate(Gate):
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', self.num_qubits + num_ctrl_qubits, cmat,
                                   definition=iso.definition, label=label)
+        cunitary.base_gate = self.copy()
         cunitary.base_gate.label = self.label
         return cunitary
 

@@ -370,6 +370,29 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.mirror(), expected)
 
+    def test_repeat(self):
+        """Test repeating the circuit works."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.h(0).c_if(cr, 1)
+
+        with self.subTest('repeat 0 times'):
+            rep = qc.repeat(0)
+            self.assertEqual(rep, QuantumCircuit(qr, cr))
+
+        with self.subTest('repeat 3 times'):
+            inst = qc.to_instruction()
+            ref = QuantumCircuit(qr, cr)
+            for _ in range(3):
+                ref.append(inst, ref.qubits, ref.clbits)
+
+            rep = qc.repeat(3)
+            self.assertEqual(rep, ref)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
