@@ -945,7 +945,7 @@ class MatplotlibDrawer:
                 # rxx, ryy, rzx, dcx, iswap
                 elif op.name in ['rxx', 'ryy', 'rzx', 'dcx', 'iswap']:
                     self._custom_multiqubit_gate(q_xy, fc=self._style.dispcol[op.name],
-                                                 text=gate_text)
+                                                 text=gate_text, subtext='{}'.format(param))
 
                 # All other controlled gates
                 elif isinstance(op.op, ControlledGate):
