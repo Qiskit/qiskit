@@ -629,19 +629,13 @@ class TestControlledGate(QiskitTestCase):
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    @data(1, 2, 3)
-    def test_controlled_unitary_gate(self, num_ctrl_qubits):
+    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[None, 0])
+    def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
         """Test that UnitaryGate with control returns params."""
-        circ = QuantumCircuit(num_ctrl_qubits+1)
         umat = np.array([[1, 0], [0, -1]])
-        ugate = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=num_ctrl_qubits)
-        circ.append(ugate, range(num_ctrl_qubits+1))
-        self.assertEqual(circ[0][0].num_qubits, num_ctrl_qubits+1)
-        self.assertEqual(circ[0][0].num_ctrl_qubits, num_ctrl_qubits)
-        self.assertEqual(circ[0][0].ctrl_state, num_ctrl_qubits)
-        for instr in circ:
-            gate = instr[0]
-            self.assertTrue(isinstance(gate, ControlledGate))
+        ugate = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(ugate).data, ref_mat))
 
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
