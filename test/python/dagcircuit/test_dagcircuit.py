@@ -1044,6 +1044,13 @@ class TestDagProperties(QiskitTestCase):
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 0)
 
+    def test_dag_idle_wires(self):
+        """Test dag idle_wires."""
+        wires = list(self.dag.idle_wires())
+        self.assertEqual(len(wires), 0)
+        wires = list(self.dag.idle_wires(['u2', 'cx']))
+        self.assertEqual(len(wires), 1)
+
     def test_dag_depth1(self):
         """Test DAG depth #1
         """
