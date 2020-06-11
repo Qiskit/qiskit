@@ -1093,7 +1093,7 @@ class MatplotlibDrawer:
                     x_coord = ii + 1
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
-                             va='center', fontsize=.35 * self._scale * self._style.sfs,
+                             va='center', fontsize=.37 * self._scale * self._style.sfs,
                              color=self._style.tc, clip_on=True,
                              zorder=PORDER_TEXT)
 
