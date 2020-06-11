@@ -901,18 +901,18 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         backend = FakeOpenPulse2Q()
         backend.configuration().meas_levels = [1, 2]
         with self.assertRaises(SchemaValidationError):
-            qobj = assemble(self.schedule,
-                            backend,
-                            qubit_lo_freq=self.qubit_lo_freq,
-                            meas_lo_freq=self.meas_lo_freq,
-                            qubit_lo_range=self.qubit_lo_range,
-                            meas_lo_range=self.meas_lo_range,
-                            schedule_los=self.schedule_los,
-                            meas_level=0,
-                            meas_map=self.meas_map,
-                            memory_slots=self.memory_slots,
-                            rep_time=self.rep_time,
-                            rep_delay=self.rep_delay)
+            assemble(self.schedule,
+                     backend,
+                     qubit_lo_freq=self.qubit_lo_freq,
+                     meas_lo_freq=self.meas_lo_freq,
+                     qubit_lo_range=self.qubit_lo_range,
+                     meas_lo_range=self.meas_lo_range,
+                     schedule_los=self.schedule_los,
+                     meas_level=0,
+                     meas_map=self.meas_map,
+                     memory_slots=self.memory_slots,
+                     rep_time=self.rep_time,
+                     rep_delay=self.rep_delay)
 
     def test_single_and_deprecated_acquire_styles(self):
         """Test that acquires are identically combined with Acquires that take a single channel."""
