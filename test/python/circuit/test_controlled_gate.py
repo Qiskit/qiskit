@@ -943,7 +943,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         import qiskit.extensions.standard.rz as rz
 
         num_ctrl = cls.num_ctrl = 2
-        num_target = cls.num_target = 1
+        cls.num_target = 1
 
         theta = cls.theta = pi / 2
         gu1 = cls.gu1 = u1.U1Gate(theta)
