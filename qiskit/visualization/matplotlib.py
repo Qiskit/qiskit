@@ -912,7 +912,6 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
-                        print('1')
                         if self._style.dispcol['cx'] != '#ffffff':
                             add_width = self._style.colored_add_width
                         else:
@@ -935,7 +934,6 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['cx'])
                     # cz for latexmode
                     elif op.name == 'cz':
-                        print('2')
                         disp = op.name.replace('c', '')
                         if self._style.name != 'bw':
                             color = self._style.dispcol['cz']
@@ -956,7 +954,6 @@ class MatplotlibDrawer:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
                     elif op.name in ['cy', 'ch', 'cu3', 'crz']:
-                        print('3')
                         disp = op.name.replace('c', '')
 
                         color = None
@@ -980,7 +977,6 @@ class MatplotlibDrawer:
 
                     # rzz gate
                     elif op.name == 'rzz':
-                        print('4')
                         color = self._style.dispcol['multi']
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         self._ctrl_qubit(q_xy[1], fc=color, ec=color)
@@ -991,7 +987,6 @@ class MatplotlibDrawer:
 
                     # cu1 gate
                     elif op.name == 'cu1':
-                        print('5')
                         color = self._style.dispcol['multi']
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         self._ctrl_qubit(q_xy[1], fc=color, ec=color)
@@ -1003,7 +998,6 @@ class MatplotlibDrawer:
 
                     # swap gate
                     elif op.name == 'swap':
-                        print('6')
                         self._swap(q_xy[0], self._style.dispcol['swap'])
                         self._swap(q_xy[1], self._style.dispcol['swap'])
                         # add qubit-qubit wiring
@@ -1011,14 +1005,12 @@ class MatplotlibDrawer:
 
                     # dcx and iswap gate
                     elif op.name in ['dcx', 'iswap']:
-                        print('7')
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                      fc=self._style.dispcol[op.name],
                                                      text=op.op.label or op.name)
 
                     # Custom gate
                     else:
-                        print('8')
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                      text=op.op.label or op.name, subtext=param)
                 #
