@@ -108,26 +108,24 @@ class ControlledGate(Gate):
         definition is conjugated with X without changing the internal
         `_definition`.
         """
-        if not self._definition:
-            self._define()
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.standard_gates import XGate, CXGate
-        bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
-        # hacky way to get register assuming single register
-        if self._definition:
-            qreg = self._definition[0][1][0].register
-            definition = self._definition
-        elif isinstance(self, CXGate):
-            qreg = QuantumRegister(self.num_qubits, 'q')
-            definition = [(self, [qreg[0], qreg[1]], [])]
-        open_rules = []
-        for qind, val in enumerate(bit_ctrl_state[::-1]):
-            if val == '0':
-                open_rules.append([XGate(), [qreg[qind]], []])
-        if open_rules:
-            return open_rules + definition + open_rules
+        if self._open_ctrl:
+            closed_gate = self.copy()
+            closed_gate.ctrl_state = None
+            # pylint: disable=cyclic-import
+            from qiskit.circuit.library.standard_gates import XGate
+            bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
+            qreg = QuantumRegister(self.num_qubits)
+            definition = [(closed_gate, qreg, [])]
+            open_rules = []
+            for qind, val in enumerate(bit_ctrl_state[::-1]):
+                if val == '0':
+                    open_rules.append([XGate(), [qreg[qind]], []])
+            if open_rules:
+                return open_rules + definition + open_rules
+            else:
+                return self._definition
         else:
-            return self._definition
+            return super().definition
 
     @definition.setter
     def definition(self, excited_def: List):
@@ -168,6 +166,11 @@ class ControlledGate(Gate):
         else:
             raise CircuitError('invalid control state specification: {}'.format(
                 repr(ctrl_state)))
+
+    @property
+    def _open_ctrl(self) -> bool:
+        """Return whether gate has any open controls"""
+        return self.ctrl_state < 2**self.num_ctrl_qubits - 1
 
     def __eq__(self, other) -> bool:
         return (isinstance(other, ControlledGate) and
