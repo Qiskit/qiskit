@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Implementations of the multi-controlled X Gate (``MCXGrayCode``,
+    ``MCXRecursive`` and ``MCXVChain``) have had their ``name``
+    properties changed to more accurately describe their
+    implementation (``mcx_gray``, ``mcx_recursive``, and
+    ``mcx_vchain`` respectively.) Previously, these gates shared the
+    name ``mcx` with ``MCXGate``, which caused these gates to be
+    incorrectly transpiled and simulated.
