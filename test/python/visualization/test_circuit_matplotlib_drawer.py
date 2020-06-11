@@ -89,7 +89,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         self.addCleanup(os.remove, filename)
 
         ref_filename = self._get_resource_path(
-            'visualization/references/matplotlib_barriers_ref4.png')
+            'visualization/references/matplotlib_barriers_updated.png')
         self.assertImagesAreEqual(filename, ref_filename)
 
         # check that the barrier aren't plotted when plot_barriers = False
@@ -159,6 +159,6 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         self.addCleanup(os.remove, conditional_filename)
 
         ref_filename = self._get_resource_path(
-            'visualization/references/matplotlib_conditional_ref4.png')
+            'visualization/references/matplotlib_conditional_updated.png')
 
         self.assertImagesAreEqual(ref_filename, conditional_filename, diff_tolerance=0.002)
