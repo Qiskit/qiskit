@@ -15,6 +15,7 @@
 """
 Delay instruction.
 """
+import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 
@@ -46,7 +47,7 @@ class Delay(Instruction):
         self.params = [duration]
         self._duration = duration
 
-    def __repr__(self):
-        # TODO: improve
-        return '%s(num_qubits=%s, duration=%a, unit=%s)' % \
-               (self.__class__.__name__, self.num_qubits, self.duration, self.unit)
+    def to_matrix(self) -> np.ndarray:
+        """Return the identity matrix."""
+        return np.array([[1, 0],
+                         [0, 1]], dtype=complex)
