@@ -20,7 +20,7 @@ from qiskit.dagcircuit import DAGDependency
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
-from qiskit.extensions.standard.h import HGate
+from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.converters import circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
@@ -71,12 +71,12 @@ class TestDagRegisters(QiskitTestCase):
         dag.add_qreg(QuantumRegister(1, 'qr3'))
         dag.add_qreg(QuantumRegister(1, 'qr4'))
         dag.add_qreg(QuantumRegister(1, 'qr6'))
-        self.assertListEqual(dag.qubits(), [QuantumRegister(1, 'qr1')[0],
-                                            QuantumRegister(1, 'qr10')[0],
-                                            QuantumRegister(1, 'qr0')[0],
-                                            QuantumRegister(1, 'qr3')[0],
-                                            QuantumRegister(1, 'qr4')[0],
-                                            QuantumRegister(1, 'qr6')[0]])
+        self.assertListEqual(dag.qubits, [QuantumRegister(1, 'qr1')[0],
+                                          QuantumRegister(1, 'qr10')[0],
+                                          QuantumRegister(1, 'qr0')[0],
+                                          QuantumRegister(1, 'qr3')[0],
+                                          QuantumRegister(1, 'qr4')[0],
+                                          QuantumRegister(1, 'qr6')[0]])
 
     def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
