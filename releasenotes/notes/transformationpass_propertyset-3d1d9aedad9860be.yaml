@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    The pass manager design did not allow transformation passes to modify the property set. However,
+    this design decision has some inefficiencies. We relaxed that restriction to allow transformation
+    passes to modify the property set.
