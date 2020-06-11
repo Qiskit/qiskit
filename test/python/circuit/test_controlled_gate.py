@@ -182,7 +182,11 @@ class TestControlledGate(QiskitTestCase):
         copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
-        self.assertFalse(copaque.definition)
+        if copaque._open_ctrl:
+            self.assertTrue(copaque.definition)
+            self.assertFalse(copaque._definition)
+        else:
+            self.assertFalse(copaque.definition)
         self.assertEqual(copaque.ctrl_state, ctrl_state)
 
     @data(1, 2, 3)
@@ -196,7 +200,11 @@ class TestControlledGate(QiskitTestCase):
         copaque = opaque.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
-        self.assertFalse(copaque.definition)
+        if copaque._open_ctrl:
+            self.assertTrue(copaque.definition)
+            self.assertFalse(copaque._definition)
+        else:
+            self.assertFalse(copaque.definition)
         self.assertEqual(copaque.ctrl_state, ctrl_state)
 
     @data(1, 2)
@@ -213,7 +221,11 @@ class TestControlledGate(QiskitTestCase):
         new_ctrl_state = ctrl_state << num_ctrl_qubits | ctrl_state
         self.assertNotEqual(copaque.name, opaque.name)
         self.assertEqual(copaque.num_qubits, num_ctrl_qubits + num_qubits)
-        self.assertFalse(copaque.definition)
+        if copaque._open_ctrl:
+            self.assertTrue(copaque.definition)
+            self.assertFalse(copaque._definition)
+        else:
+            self.assertFalse(copaque.definition)
         self.assertEqual(copaque.ctrl_state, new_ctrl_state)
 
     def test_transpile_controlled_opaque(self):
@@ -734,6 +746,76 @@ class TestControlledGate(QiskitTestCase):
                          (output_target != cond_output)) or
                         output_ctrl != input_ctrl)
 
+    def test_open_control_cx_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1, ctrl_state=0)
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cx'])
+        uqc = dag_to_circuit(unroller.run(dag))
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cx(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
+
+    def test_open_control_cy_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qc = QuantumCircuit(2)
+        qc.cy(0, 1, ctrl_state=0)
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cy'])
+        uqc = dag_to_circuit(unroller.run(dag))
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cy(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
+
+    def test_open_control_cxx_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qreg = QuantumRegister(3)
+        qc = QuantumCircuit(qreg)
+        ccx = CCXGate(ctrl_state=0)
+        qc.append(ccx, [0, 1, 2])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['x', 'ccx'])
+        unrolled_dag = unroller.run(dag)
+
+        ref_circuit = QuantumCircuit(qreg)
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_circuit.ccx(qreg[0], qreg[1], qreg[2])
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_open_control_composite_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        # create composite gate
+        qreg = QuantumRegister(2)
+        qcomp = QuantumCircuit(qreg, name='bell')
+        qcomp.h(qreg[0])
+        qcomp.cx(qreg[0], qreg[1])
+        bell = qcomp.to_gate()
+        # create controlled composite gate
+        cqreg = QuantumRegister(3)
+        qc = QuantumCircuit(cqreg)
+        qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['x', 'u1', 'cbell'])
+        unrolled_dag = unroller.run(dag)
+        # create reference circuit
+        ref_circuit = QuantumCircuit(cqreg)
+        ref_circuit.x(cqreg[0])
+        ref_circuit.append(bell.control(), [cqreg[0], cqreg[1], cqreg[2]])
+        ref_circuit.x(cqreg[0])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
+
     @data(*ControlledGate.__subclasses__())
     def test_base_gate_setting(self, gate_class):
         """Test all gates in standard extensions which are of type ControlledGate
@@ -852,58 +934,64 @@ class TestControlledGate(QiskitTestCase):
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
-    import qiskit.extensions.standard.u1 as u1
-    import qiskit.extensions.standard.rx as rx
-    import qiskit.extensions.standard.ry as ry
-    import qiskit.extensions.standard.rz as rz
 
-    num_ctrl = 2
-    num_target = 1
+    @classmethod
+    def setUpClass(cls):
+        import qiskit.extensions.standard.u1 as u1
+        import qiskit.extensions.standard.rx as rx
+        import qiskit.extensions.standard.ry as ry
+        import qiskit.extensions.standard.rz as rz
 
-    theta = pi / 2
-    gu1 = u1.U1Gate(theta)
-    grx = rx.RXGate(theta)
-    gry = ry.RYGate(theta)
-    grz = rz.RZGate(theta)
+        num_ctrl = cls.num_ctrl = 2
+        num_target = cls.num_target = 1
 
-    ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
-    ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
-    ugry = ac._unroll_gate(gry, ['u1', 'u3', 'cx'])
-    ugrz = ac._unroll_gate(grz, ['u1', 'u3', 'cx'])
-    ugrz.params = grz.params
+        theta = cls.theta = pi / 2
+        gu1 = cls.gu1 = u1.U1Gate(theta)
+        grx = cls.grx = rx.RXGate(theta)
+        gry = cls.gry = ry.RYGate(theta)
+        grz = cls.grz = rz.RZGate(theta)
 
-    cgu1 = ugu1.control(num_ctrl)
-    cgrx = ugrx.control(num_ctrl)
-    cgry = ugry.control(num_ctrl)
-    cgrz = ugrz.control(num_ctrl)
+        ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
+        ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
+        ugry = ac._unroll_gate(gry, ['u1', 'u3', 'cx'])
+        ugrz = ac._unroll_gate(grz, ['u1', 'u3', 'cx'])
+        ugrz.params = grz.params
 
-    @data((gu1, cgu1), (grx, cgrx), (gry, cgry), (grz, cgrz))
-    @unpack
-    def test_single_controlled_rotation_gates(self, gate, cgate):
+        cgu1 = ugu1.control(num_ctrl)
+        cgrx = ugrx.control(num_ctrl)
+        cgry = ugry.control(num_ctrl)
+        cgrz = ugrz.control(num_ctrl)
+        cls.gate_cgate_pairs = [(gu1, cgu1), (grx, cgrx), (gry, cgry),
+                                (grz, cgrz)]
+
+    def test_single_controlled_rotation_gates(self):
         """Test the controlled rotation gates controlled on one qubit."""
-        if gate.name == 'rz':
-            iden = Operator.from_label('I')
-            zgen = Operator.from_label('Z')
-            op_mat = (np.cos(0.5 * self.theta) * iden - 1j * np.sin(0.5 * self.theta) * zgen).data
-        else:
-            op_mat = Operator(gate).data
-        ref_mat = Operator(cgate).data
-        cop_mat = _compute_control_matrix(op_mat, self.num_ctrl)
-        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
-        cqc = QuantumCircuit(self.num_ctrl + self.num_target)
-        cqc.append(cgate, cqc.qregs[0])
-        dag = circuit_to_dag(cqc)
-        unroller = Unroller(['u3', 'cx'])
-        uqc = dag_to_circuit(unroller.run(dag))
-        self.log.info('%s gate count: %d', cgate.name, uqc.size())
-        self.log.info('\n%s', str(uqc))
-        # these limits could be changed
-        if gate.name == 'ry':
-            self.assertTrue(uqc.size() <= 32)
-        elif gate.name == 'rz':
-            self.assertTrue(uqc.size() <= 40)
-        else:
-            self.assertTrue(uqc.size() <= 20)
+        for gate, cgate in self.gate_cgate_pairs:
+            with self.subTest(i=str(gate) + str(cgate)):
+                if gate.name == 'rz':
+                    iden = Operator.from_label('I')
+                    zgen = Operator.from_label('Z')
+                    op_mat = (np.cos(0.5 * self.theta) * iden
+                              - 1j * np.sin(0.5 * self.theta) * zgen).data
+                else:
+                    op_mat = Operator(gate).data
+                ref_mat = Operator(cgate).data
+                cop_mat = _compute_control_matrix(op_mat, self.num_ctrl)
+                self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
+                cqc = QuantumCircuit(self.num_ctrl + self.num_target)
+                cqc.append(cgate, cqc.qregs[0])
+                dag = circuit_to_dag(cqc)
+                unroller = Unroller(['u3', 'cx'])
+                uqc = dag_to_circuit(unroller.run(dag))
+                # self.log.info('%s gate count: %d', cgate.name, uqc.size())
+                # self.log.info('\n%s', str(uqc))
+                # these limits could be changed
+                if gate.name == 'ry':
+                    self.assertTrue(uqc.size() <= 32)
+                elif gate.name == 'rz':
+                    self.assertTrue(uqc.size() <= 40)
+                else:
+                    self.assertTrue(uqc.size() <= 20)
 
     def test_composite(self):
         """Test composite gate count."""
@@ -917,7 +1005,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
-        self.log.info('%s gate count: %d', uqc.name, uqc.size())
+        # self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
 

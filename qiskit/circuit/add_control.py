@@ -133,7 +133,7 @@ def control(operation: Union[Gate, ControlledGate],
     new_name = '{0}{1}'.format(ctrl_substr, base_name)
 
     # detect opaque gate
-    if not operation.definition:
+    if not operation.definition or not operation._definition:
         # since u3, cx, and i are opaque-like we want to distinguish them here;
         if operation.__class__ in [Gate, ControlledGate]:
             cgate = controlledgate.ControlledGate(

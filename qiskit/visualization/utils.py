@@ -125,8 +125,8 @@ def _get_layered_instructions(circuit, reverse_bits=False,
 
     dag = circuit_to_dag(circuit)
     ops = []
-    qregs = dag.qubits()
-    cregs = dag.clbits()
+    qregs = dag.qubits
+    cregs = dag.clbits
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
@@ -198,7 +198,7 @@ class _LayerSpooler(list):
         """Create spool"""
         super(_LayerSpooler, self).__init__()
         self.dag = dag
-        self.qregs = dag.qubits()
+        self.qregs = dag.qubits
         self.justification = justification
 
         if self.justification == 'left':
