@@ -377,11 +377,11 @@ class MatplotlibDrawer:
                           ec=self._style.not_gate_lc, linewidth=2,
                           zorder=PORDER_GATE)
         self.ax.add_patch(arc)
-        self.ax.plot([qx, qx + 0.37 * WID],
+        self.ax.plot([qx, qx + 0.35 * WID],
                      [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.not_gate_lc, linewidth=2, zorder=PORDER_GATE)
         # arrow
-        self._line(qxy, [cx, cy + 0.37 * WID], lc=self._style.cc,
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc,
                    ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
                                      (cx + 0.20 * WID, cy + 0.35 * WID),
