@@ -485,11 +485,15 @@ class Operator(BaseOperator):
     @classmethod
     def _init_instruction(cls, instruction):
         """Convert a QuantumCircuit or Instruction to an Operator."""
-        # Convert circuit to an instruction
-        if isinstance(instruction, QuantumCircuit):
-            instruction = instruction.to_instruction()
+        # pylint: disable=import-outside-toplevel, cyclic-import
+        from qiskit.quantum_info.operators.scalar_op import ScalarOp
         # Initialize an identity operator of the correct size of the circuit
         op = Operator(np.eye(2 ** instruction.num_qubits))
+        # Convert circuit to an instruction
+        if isinstance(instruction, QuantumCircuit):
+            if instruction.phase:
+                op *= ScalarOp(op.dim[0], np.exp(1j * float(instruction.phase)))
+            instruction = instruction.to_instruction()
         op._append_instruction(instruction)
         return op
 

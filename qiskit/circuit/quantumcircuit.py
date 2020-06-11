@@ -167,7 +167,7 @@ class QuantumCircuit:
         self._parameter_table = ParameterTable()
 
         self._layout = None
-        self._phase = None
+        self._phase = 0
 
     @property
     def data(self):
@@ -546,7 +546,7 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, phase=0):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
@@ -554,6 +554,7 @@ class QuantumCircuit:
             instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
+            phase (float): The global phase in radians of instruction.
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
@@ -579,6 +580,7 @@ class QuantumCircuit:
         instructions = InstructionSet()
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+        self.phase += phase 
         return instructions
 
     def _append(self, instruction, qargs, cargs):
@@ -1584,6 +1586,9 @@ class QuantumCircuit:
             # instructions), search the definition for instances of the
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
+        # bind circuit's phase
+        if isinstance(self.phase, ParameterExpression):
+            self.phase = self.phase.bind({parameter: value})
 
     def _substitute_parameter(self, old_parameter, new_parameter_expr):
         """Substitute an existing parameter in all circuit instructions and the parameter table."""
@@ -1595,6 +1600,8 @@ class QuantumCircuit:
         entry = self._parameter_table.pop(old_parameter)
         for new_parameter in new_parameter_expr.parameters:
             self._parameter_table[new_parameter] = entry
+        if isinstance(self.phase, ParameterExpression):
+            self.phase = self.phase.subs({old_parameter: new_parameter_expr})
 
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
