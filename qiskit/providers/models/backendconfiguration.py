@@ -486,11 +486,11 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         self.dynamic_reprate_enabled = dynamic_reprate_enabled
 
-        self.rep_times = [_rt * 1e-6 for _rt in rep_times] # convert to sec
+        self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
         # if ``rep_delays`` not specified, leave as None
         self.rep_delays = None
         if rep_delays:
-            self.rep_delays = [_rd * 1e-6 for _rd in rep_delays] # convert to sec
+            self.rep_delays = [_rd * 1e-6 for _rd in rep_delays]  # convert to sec
         self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
 

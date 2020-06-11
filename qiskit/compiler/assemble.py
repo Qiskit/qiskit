@@ -293,7 +293,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                           "used instead, if specified.", RuntimeWarning)
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
-        rep_time = rep_time * 1e6 # convert sec to μs
+        rep_time = rep_time * 1e6  # convert sec to μs
 
     rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
     if rep_delay:
@@ -303,7 +303,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
         if isinstance(rep_delay, list):
             rep_delay = rep_delay[0]
-        rep_delay = rep_delay * 1e6 # convert sec to μs
+        rep_delay = rep_delay * 1e6  # convert sec to μs
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 

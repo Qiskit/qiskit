@@ -719,7 +719,7 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_backend_rep_times_delays(self):
         """Check that rep_time and rep_delay are properly set from backend values."""
         # use first entry from allowed backend values
-        rep_times = [2.0, 3.0, 4.0] # sec
+        rep_times = [2.0, 3.0, 4.0]  # sec
         rep_delays = [2.5e-3, 3.5e-3, 4.5e-3]
         self.backend_config.rep_times = rep_times
         self.backend_config.rep_delays = rep_delays
@@ -760,13 +760,14 @@ class TestPulseAssembler(QiskitTestCase):
 
         # finally, only use rep_delay and verify that everything runs w/ no warning
         # rep_time comes from allowed backed rep_times
-        rep_times = [0.5, 1.0, 1.5] # sec
+        rep_times = [0.5, 1.0, 1.5]  # sec
         self.backend_config.rep_times = rep_times
         del self.config['rep_time']
         self.config['rep_delay'] = rep_delay
         qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, rep_times[0]*1e6)
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
+
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
