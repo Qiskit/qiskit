@@ -1085,8 +1085,14 @@
                             "type": "array"
                         },
                         "rep_time": {
-                            "minimum": 1,
-                            "type": "integer"
+                            "minimum": 0,
+                            "description": "Execution time of program (microseconds).",
+                            "type": "number"
+                        },
+                        "rep_delay": {
+                            "minimum": 0,
+                            "description": "Delay between programs (microseconds).",
+                            "type": "number"
                         }
                     },
                     "required": [
