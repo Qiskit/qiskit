@@ -41,7 +41,8 @@ class QCircuitImage:
     """
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False):
+                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
+                 cregbundle=False):
         """QCircuitImage initializer.
 
         Args:
@@ -57,6 +58,7 @@ class QCircuitImage:
             layout (Layout or None): If present, the layout information will be
                included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
+            cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -125,10 +127,14 @@ class QCircuitImage:
         self.clbit_list = clbits
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
-        self.img_width = len(self.img_regs)
+        if cregbundle:
+            self.img_width = len(qubits) + len(self.cregs)
+        else:
+            self.img_width = len(self.img_regs)
         self.wire_type = {}
         for bit in self.ordered_regs:
             self.wire_type[bit] = bit.register in self.cregs.keys()
+        self.cregbundle = cregbundle
 
     def latex(self, aliases=None):
         """Return LaTeX string representation of circuit.
@@ -208,10 +214,19 @@ class QCircuitImage:
              else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
+        if self.cregbundle:
+            offset = 0
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
-                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
-                                    "_{" + str(self.ordered_regs[i].index) + "}" + ": "
+                if self.cregbundle:
+                    self._latex[i][0] = \
+                        "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
+                    clbitsize = self.cregs[self.ordered_regs[i + offset].register]
+                    self._latex[i][1] = "{/_{_{" + str(clbitsize) + "}}} \\cw"
+                    offset += clbitsize - 1
+                else:
+                    self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
+                                            "_{" + str(self.ordered_regs[i].index) + "}:"
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
@@ -276,6 +291,10 @@ class QCircuitImage:
 
         # wires in the beginning and end
         columns = 2
+
+        # add extra column if needed
+        if self.cregbundle and self.ops[0][0].name == "measure":
+            columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
         # which take 2 columns
@@ -368,6 +387,9 @@ class QCircuitImage:
             qregdata = self.qregs
 
         column = 1
+        # Leave a column to display number of classical registers if needed
+        if self.cregbundle and self.ops[0][0].name == "measure":
+            column += 1
         for layer in self.ops:
             num_cols_used = 1
 
@@ -917,12 +939,27 @@ class QCircuitImage:
                         qindex = newq[1]
 
                     pos_1 = self.img_regs[op.qargs[0]]
-                    pos_2 = self.img_regs[op.cargs[0]]
+                    if self.cregbundle:
+                        pos_2 = self.img_regs[self.clbit_list[0]]
+                        cregindex = self.img_regs[op.cargs[0]] - pos_2
+                        for creg_size in self.cregs.values():
+                            if cregindex >= creg_size:
+                                cregindex -= creg_size
+                                pos_2 += 1
+                            else:
+                                break
+                    else:
+                        pos_2 = self.img_regs[op.cargs[0]]
 
                     try:
                         self._latex[pos_1][column] = "\\meter"
-                        self._latex[pos_2][column] = \
-                            "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                        if self.cregbundle:
+                            self._latex[pos_2][column] = \
+                                "\\dstick{" + str(cregindex) + "} " + \
+                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                        else:
+                            self._latex[pos_2][column] = \
+                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                     except Exception as e:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
