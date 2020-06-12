@@ -38,7 +38,7 @@ from qiskit.circuit import ControlledGate
 from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
-from .tools.pi_check import pi_check
+from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
 
@@ -156,8 +156,7 @@ class MatplotlibDrawer:
             self.ax = ax
             self.figure = ax.get_figure()
 
-        # TODO: self._style.fold should be removed after deprecation
-        self.fold = self._style.fold or fold
+        self.fold = fold
         if self.fold < 2:
             self.fold = -1
 
@@ -296,7 +295,6 @@ class MatplotlibDrawer:
                 disp_text = "${}$".format(self._style.disptex[text])
             else:
                 disp_text = text
-
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
                              va='center', fontsize=font_size,
@@ -426,6 +424,15 @@ class MatplotlibDrawer:
                              linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
+    def set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color_str):
+        # convert op.ctrl_state to bit string and reverse
+        cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        for i in range(num_ctrl_qubits):
+            # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
+            fc_open_close = (self._style.dispcol[color_str] if cstate[i] == '1'
+                             else self._style.bg)
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=self._style.dispcol[color_str])
+
     def _tgt_qubit(self, xy, fc=None, ec=None, ac=None,
                    add_width=None):
         if self._style.gc != DefaultStyle().gc:
@@ -460,9 +467,9 @@ class MatplotlibDrawer:
                      [ypos, ypos], color=ac, linewidth=linewidth,
                      zorder=PORDER_GATE + 1)
 
-    def _swap(self, xy):
+    def _swap(self, xy, color):
         xpos, ypos = xy
-        color = self._style.dispcol['swap']
+
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos - 0.20 * WID, ypos + 0.20 * WID],
                      color=color, linewidth=2, zorder=PORDER_LINE + 1)
@@ -470,28 +477,25 @@ class MatplotlibDrawer:
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
                      color=color, linewidth=2, zorder=PORDER_LINE + 1)
 
-    def _barrier(self, config, anc):
+    def _barrier(self, config):
         xys = config['coord']
         group = config['group']
         y_reg = []
         for qreg in self._qreg_dict.values():
             if qreg['group'] in group:
                 y_reg.append(qreg['y'])
-        x0 = xys[0][0]
 
-        box_y0 = min(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) - 0.5
-        box_y1 = max(y_reg) - int(anc / self.fold) * (self._cond['n_lines'] + 1) + 0.5
-        box = patches.Rectangle(xy=(x0 - 0.3 * WID, box_y0),
-                                width=0.6 * WID, height=box_y1 - box_y0,
-                                fc=self._style.bc, ec=None, alpha=0.6,
-                                linewidth=1.5, zorder=PORDER_GRAY)
-        self.ax.add_patch(box)
         for xy in xys:
             xpos, ypos = xy
             self.ax.plot([xpos, xpos], [ypos + 0.5, ypos - 0.5],
                          linewidth=1, linestyle="dashed",
                          color=self._style.lc,
                          zorder=PORDER_TEXT)
+            box = patches.Rectangle(xy=(xpos - (0.3 * WID), ypos - 0.5),
+                                    width=0.6 * WID, height=1,
+                                    fc=self._style.bc, ec=None, alpha=0.6,
+                                    linewidth=1.5, zorder=PORDER_GRAY)
+            self.ax.add_patch(box)
 
     def _linefeed_mark(self, xy):
         xpos, ypos = xy
@@ -529,6 +533,14 @@ class MatplotlibDrawer:
 
     def _draw_regs(self):
 
+        def _fix_double_script(label):
+            words = label.split(' ')
+            words = [word.replace('_', r'\_') if word.count('_') > 1 else word
+                     for word in words]
+            words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word
+                     for word in words]
+            return ' '.join(words)
+
         len_longest_label = 0
         # quantum register
         for ii, reg in enumerate(self._qreg):
@@ -544,6 +556,7 @@ class MatplotlibDrawer:
             else:
                 label = '${name}$'.format(name=reg.register.name)
 
+            label = _fix_double_script(label)
             if len(label) > len_longest_label:
                 len_longest_label = len(label)
 
@@ -566,6 +579,7 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 if self._style.bundle:
                     label = '${}$'.format(reg.register.name)
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -576,6 +590,7 @@ class MatplotlibDrawer:
                         continue
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = _fix_double_script(label)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
@@ -647,7 +662,7 @@ class MatplotlibDrawer:
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _wide_gate = ['u2', 'u3', 'cu2', 'cu3', 'unitary', 'r']
+        _wide_gate = ['u2', 'u3', 'cu3', 'unitary', 'r', 'cu1', 'rzz']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -671,7 +686,7 @@ class MatplotlibDrawer:
             layer_width = 1
 
             for op in layer:
-
+                # If one of the standard wide gates
                 if op.name in _wide_gate:
                     if layer_width < 2:
                         layer_width = 2
@@ -694,6 +709,22 @@ class MatplotlibDrawer:
                                     layer_width = box_width
                                 else:
                                     layer_width = 2
+                            continue
+
+                # If custom ControlledGate
+                elif isinstance(op.op, ControlledGate) and op.name not in [
+                        'ccx', 'cx', 'c3x', 'c4x', 'cy', 'cz', 'ch', 'cu1',
+                        'cu3', 'crz', 'cswap']:
+                    if op.type == 'op' and hasattr(op.op, 'params'):
+                        param = self.param_parse(op.op.params)
+                        if '$\\pi$' in param:
+                            pi_count = param.count('pi')
+                            len_param = len(param) - (4 * pi_count)
+                        else:
+                            len_param = len(param)
+                        if len_param > len(op.name):
+                            box_width = math.floor(len_param / 5.5)
+                            layer_width = box_width
                             continue
 
                 # if custom gate with a longer than standard name determine
@@ -727,7 +758,6 @@ class MatplotlibDrawer:
             this_anc = prev_anc + 1
 
             for op in layer:
-
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
                                    'noise', 'cswap', 'swap', 'measure',
@@ -829,35 +859,38 @@ class MatplotlibDrawer:
                             _barriers['group'].append(q_group)
                         _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
-                        self._barrier(_barriers, this_anc)
+                        self._barrier(_barriers)
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
-                                                 text="|psi>",
+                                                 text=op.op.label or "|psi>",
                                                  subtext=vec)
                 elif op.name == 'unitary':
                     # TODO(mtreinish): Look into adding the unitary to the
                     # subtext
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
-                                                 text="Unitary")
+                                                 text=op.op.label or "Unitary")
                 elif isinstance(op.op, ControlledGate) and op.name not in [
-                        'ccx', 'cx', 'cy', 'cz', 'ch', 'cu1', 'cu3', 'crz',
+                        'ccx', 'cx', 'c3x', 'c4x', 'cy', 'cz', 'ch', 'cu1', 'cu3', 'crz',
                         'cswap']:
                     disp = op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
+                    # set the ctrl qbits to open or closed
+                    self.set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, 'multi')
 
-                    for i in range(num_ctrl_qubits):
-                        self._ctrl_qubit(q_xy[i], fc=self._style.dispcol['multi'],
-                                         ec=self._style.dispcol['multi'])
                     # add qubit-qubit wiring
                     self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
-                    if disp == 'z':
-                        self._ctrl_qubit(q_xy[i+1], fc=self._style.dispcol['multi'],
-                                         ec=self._style.dispcol['multi'])
-                    elif num_qargs == 1:
-                        self._gate(q_xy[-1], wide=_iswide, fc=self._style.dispcol['multi'],
-                                   text=disp)
+                    if num_qargs == 1:
+                        if param:
+                            self._gate(q_xy[num_ctrl_qubits], wide=_iswide,
+                                       text=disp,
+                                       fc=self._style.dispcol['multi'],
+                                       subtext='{}'.format(param))
+                        else:
+                            fcx = op.name if op.name in self._style.dispcol else 'multi'
+                            self._gate(q_xy[num_ctrl_qubits], wide=_iswide, text=disp,
+                                       fc=self._style.dispcol[fcx])
                     else:
                         self._custom_multiqubit_gate(
                             q_xy[num_ctrl_qubits:], wide=_iswide, fc=self._style.dispcol['multi'],
@@ -883,8 +916,10 @@ class MatplotlibDrawer:
                             add_width = self._style.colored_add_width
                         else:
                             add_width = None
-                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['cx'],
-                                         ec=self._style.dispcol['cx'])
+                        num_ctrl_qubits = op.op.num_ctrl_qubits
+                        # set the ctrl qbits to open or closed
+                        self.set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, 'cx')
+
                         if self._style.name != 'bw':
                             self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
                                             ec=self._style.dispcol['cx'],
@@ -942,63 +977,66 @@ class MatplotlibDrawer:
 
                     # rzz gate
                     elif op.name == 'rzz':
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
+                        color = self._style.dispcol['multi']
+                        self._ctrl_qubit(q_xy[0], fc=color, ec=color)
+                        self._ctrl_qubit(q_xy[1], fc=color, ec=color)
                         self._sidetext(qreg_b, text='zz({})'.format(param))
 
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=color)
 
                     # cu1 gate
                     elif op.name == 'cu1':
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
+                        color = self._style.dispcol['multi']
+                        self._ctrl_qubit(q_xy[0], fc=color, ec=color)
+                        self._ctrl_qubit(q_xy[1], fc=color, ec=color)
                         self._sidetext(qreg_b, text='U1 ({})'.format(param))
 
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        fc = self._style
+                        self._line(qreg_b, qreg_t, lc=color)
 
                     # swap gate
                     elif op.name == 'swap':
-                        self._swap(q_xy[0])
-                        self._swap(q_xy[1])
+                        self._swap(q_xy[0], self._style.dispcol['swap'])
+                        self._swap(q_xy[1], self._style.dispcol['swap'])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
 
                     # dcx and iswap gate
                     elif op.name in ['dcx', 'iswap']:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     fc=self._style.dispcol[op.name], text=op.name)
+                                                     fc=self._style.dispcol[op.name],
+                                                     text=op.op.label or op.name)
 
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     text=op.name)
+                                                     text=op.op.label or op.name)
                 #
                 # draw multi-qubit gates (n=3)
                 #
-                elif len(q_xy) == 3:
+                elif len(q_xy) in range(3, 6):
                     # cswap gate
                     if op.name == 'cswap':
                         self._ctrl_qubit(q_xy[0],
                                          fc=self._style.dispcol['multi'],
                                          ec=self._style.dispcol['multi'])
-                        self._swap(q_xy[1])
-                        self._swap(q_xy[2])
+                        self._swap(q_xy[1], self._style.dispcol['multi'])
+                        self._swap(q_xy[2], self._style.dispcol['multi'])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # ccx gate
-                    elif op.name == 'ccx':
-                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'],
-                                         ec=self._style.dispcol['multi'])
-                        self._ctrl_qubit(q_xy[1], fc=self._style.dispcol['multi'],
-                                         ec=self._style.dispcol['multi'])
+                    elif op.name == 'ccx' or op.name == 'c3x' or op.name == 'c4x':
+                        num_ctrl_qubits = op.op.num_ctrl_qubits
+                        # set the ctrl qbits to open or closed
+                        self.set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, 'multi')
                         if self._style.name != 'bw':
-                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
+                            self._tgt_qubit(q_xy[num_ctrl_qubits], fc=self._style.dispcol['multi'],
                                             ec=self._style.dispcol['multi'],
                                             ac=self._style.dispcol['target'])
                         else:
-                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['target'],
+                            self._tgt_qubit(q_xy[num_ctrl_qubits], fc=self._style.dispcol['target'],
                                             ec=self._style.dispcol['multi'],
                                             ac=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
@@ -1006,12 +1044,12 @@ class MatplotlibDrawer:
                     # custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     text=op.name)
+                                                     text=getattr(op.op, 'label', None) or op.name)
 
                 # draw custom multi-qubit gate
-                elif len(q_xy) > 3:
+                elif len(q_xy) > 5:
                     self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                 text=op.name)
+                                                 text=op.op.label or op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))

@@ -24,7 +24,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate
+from qiskit.circuit.library import HGate
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
@@ -40,9 +40,9 @@ class TestDensityMatrix(QiskitTestCase):
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-        logger.debug("rand_vec RandomState seeded with seed=%s", seed)
-        rng = np.random.RandomState(seed)
-        vec = rng.rand(n) + 1j * rng.rand(n)
+        logger.debug("rand_vec default_rng seeded with seed=%s", seed)
+        rng = np.random.default_rng(seed)
+        vec = rng.random(n) + 1j * rng.random(n)
         if normalize:
             vec /= np.sqrt(np.dot(vec, np.conj(vec)))
         return vec
@@ -142,6 +142,22 @@ class TestDensityMatrix(QiskitTestCase):
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
 
+        # Test initialize instruction
+        init = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
+        target = DensityMatrix(init)
+        circuit = QuantumCircuit(2)
+        circuit.initialize(init.data, [0, 1])
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test reset instruction
+        target = DensityMatrix([1, 0])
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.reset(0)
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
     def test_from_instruction(self):
         """Test initialization from an instruction."""
         target_vec = Statevector(np.dot(HGate().to_matrix(), [1, 0]))
@@ -172,11 +188,6 @@ class TestDensityMatrix(QiskitTestCase):
             rho = self.rand_rho(4)
             self.assertEqual(DensityMatrix(rho),
                              DensityMatrix(rho.tolist()))
-
-    def test_rep(self):
-        """Test Operator representation string property."""
-        state = DensityMatrix(self.rand_rho(2))
-        self.assertEqual(state.rep, 'DensityMatrix')
 
     def test_copy(self):
         """Test DensityMatrix copy method"""
@@ -301,14 +312,13 @@ class TestDensityMatrix(QiskitTestCase):
             rho1 = self.rand_rho(4)
             state0 = DensityMatrix(rho0)
             state1 = DensityMatrix(rho1)
-            self.assertEqual(state0.add(state1), DensityMatrix(rho0 + rho1))
             self.assertEqual(state0 + state1, DensityMatrix(rho0 + rho1))
 
     def test_add_except(self):
         """Test add method raises exceptions."""
         state1 = DensityMatrix(self.rand_rho(2))
         state2 = DensityMatrix(self.rand_rho(3))
-        self.assertRaises(QiskitError, state1.add, state2)
+        self.assertRaises(QiskitError, state1.__add__, state2)
 
     def test_subtract(self):
         """Test subtract method."""
@@ -325,7 +335,6 @@ class TestDensityMatrix(QiskitTestCase):
             rho = self.rand_rho(4)
             state = DensityMatrix(rho)
             val = np.random.rand() + 1j * np.random.rand()
-            self.assertEqual(state.multiply(val), DensityMatrix(val * rho))
             self.assertEqual(val * state, DensityMatrix(val * state))
 
     def test_negate(self):
@@ -365,6 +374,22 @@ class TestDensityMatrix(QiskitTestCase):
                     key = '{1},{0}|{1},{0}'.format(i, j)
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
+
+    def test_densitymatrix_to_statevector_pure(self):
+        """Test converting a pure density matrix to statevector."""
+        state = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        psi = Statevector(state)
+        rho = DensityMatrix(psi)
+        phi = rho.to_statevector()
+        self.assertTrue(psi.equiv(phi))
+
+    def test_densitymatrix_to_statevector_mixed(self):
+        """Test converting a pure density matrix to statevector."""
+        state_1 = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        state_2 = 1/np.sqrt(2) * (np.array([0, 0, 0, 0, 0, 0, 1, 1]))
+        psi = 0.5 * (Statevector(state_1) + Statevector(state_2))
+        rho = DensityMatrix(psi)
+        self.assertRaises(QiskitError, rho.to_statevector)
 
     def test_probabilities_product(self):
         """Test probabilities method for product state"""
@@ -616,7 +641,7 @@ class TestDensityMatrix(QiskitTestCase):
         """Test sample_counts method for qutrit state"""
         p = 0.3
         shots = 1000
-        threshold = 0.02 * shots
+        threshold = 0.03 * shots
         state = DensityMatrix(np.diag([p, 0, 1 - p]))
         state.seed(100)
 
@@ -830,6 +855,24 @@ class TestDensityMatrix(QiskitTestCase):
             else:
                 target = DensityMatrix(np.diag([0, 0, 1]))
                 self.assertEqual(value, target)
+
+    def test_from_int(self):
+        """Test from_int method"""
+
+        with self.subTest(msg='from_int(0, 4)'):
+            target = DensityMatrix([1, 0, 0, 0])
+            value = DensityMatrix.from_int(0, 4)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='from_int(3, 4)'):
+            target = DensityMatrix([0, 0, 0, 1])
+            value = DensityMatrix.from_int(3, 4)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='from_int(8, (3, 3))'):
+            target = DensityMatrix([0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(3, 3))
+            value = DensityMatrix.from_int(8, (3, 3))
+            self.assertEqual(target, value)
 
 
 if __name__ == '__main__':

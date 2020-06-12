@@ -15,11 +15,12 @@
 Clifford operator class.
 """
 # pylint: disable=invalid-name, abstract-method
-
+import re
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
@@ -72,12 +73,12 @@ class Clifford(BaseOperator):
     **Circuit Conversion**
 
     Clifford operators can be initialized from circuits containing *only* the
-    following Clifford gates: :class:`~qiskit.extensions.IGate`,
-    :class:`~qiskit.extensions.XGate`, :class:`~qiskit.extensions.YGate`,
-    :class:`~qiskit.extensions.ZGate`, :class:`~qiskit.extensions.HGate`,
-    :class:`~qiskit.extensions.SGate`, :class:`~qiskit.extensions.SdgGate`,
-    :class:`~qiskit.extensions.CXGate`, :class:`~qiskit.extensions.CZGate`,
-    :class:`~qiskit.extensions.SwapGate`.
+    following Clifford gates: :class:`~qiskit.circuit.library.IGate`,
+    :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
+    :class:`~qiskit.circuit.library.ZGate`, :class:`~qiskit.circuit.library.HGate`,
+    :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
+    :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
+    :class:`~qiskit.circuit.library.SwapGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -86,10 +87,10 @@ class Clifford(BaseOperator):
     .. note::
 
         A minimally generating set of gates for Clifford circuits is
-        the :class:`~qiskit.extensions.HGate` and
-        :class:`~qiskit.extensions.SGate` gate and *either* the
-        :class:`~qiskit.extensions.CXGate` or
-        :class:`~qiskit.extensions.CZGate` two-qubit gate.
+        the :class:`~qiskit.circuit.library.HGate` and
+        :class:`~qiskit.circuit.library.SGate` gate and *either* the
+        :class:`~qiskit.circuit.library.CXGate` or
+        :class:`~qiskit.circuit.library.CZGate` two-qubit gate.
 
     Clifford operators can also be converted to
     :class:`~qiskit.quantum_info.Operator` objects using the
@@ -338,7 +339,24 @@ class Clifford(BaseOperator):
         return Operator(self.to_instruction())
 
     def to_circuit(self):
-        """Return a QuantumCircuit implementing the Clifford."""
+        """Return a QuantumCircuit implementing the Clifford.
+
+        For N <= 3 qubits this is based on optimal CX cost decomposition
+        from reference [1]. For N > 3 qubits this is done using the general
+        non-optimal compilation routine from reference [2].
+
+        Return:
+            QuantumCircuit: a circuit implementation of the Clifford.
+
+        References:
+            1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+               structure of the Clifford group*,
+               `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+
+            2. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
+               Phys. Rev. A 70, 052328 (2004).
+               `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+        """
         return decompose_clifford(self)
 
     def to_instruction(self):
@@ -371,6 +389,58 @@ class Clifford(BaseOperator):
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
         _append_circuit(clifford, circuit)
         return clifford
+
+    @staticmethod
+    def from_label(label):
+        """Return a tensor product of single-qubit Clifford gates.
+
+        Args:
+            label (string): single-qubit operator string.
+
+        Returns:
+            Clifford: The N-qubit Clifford operator.
+
+        Raises:
+            QiskitError: if the label contains invalid characters.
+
+        Additional Information:
+            The labels correspond to the single-qubit Cliffords are
+
+            * - Label
+              - Stabilizer
+              - Destabilizer
+            * - ``"I"``
+              - +Z
+              - +X
+            * - ``"X"``
+              - -Z
+              - +X
+            * - ``"Y"``
+              - -Z
+              - -X
+            * - ``"Z"``
+              - +Z
+              - -X
+            * - ``"H"``
+              - +X
+              - +Z
+            * - ``"S"``
+              - +Z
+              - +Y
+        """
+        # Check label is valid
+        label_gates = {
+            'I': IGate(), 'X': XGate(), 'Y': YGate(),
+            'Z': ZGate(), 'H': HGate(), 'S': SGate()
+        }
+        if re.match(r'^[IXYZHS\-+]+$', label) is None:
+            raise QiskitError('Label contains invalid characters.')
+        # Initialize an identity matrix and apply each gate
+        num_qubits = len(label)
+        op = Clifford(np.eye(2 * num_qubits, dtype=np.bool))
+        for qubit, char in enumerate(reversed(label)):
+            _append_circuit(op, label_gates[char], qargs=[qubit])
+        return op
 
     # ---------------------------------------------------------------------
     # Internal helper functions

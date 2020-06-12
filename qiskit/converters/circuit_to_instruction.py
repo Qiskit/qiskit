@@ -20,7 +20,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 
 
-def circuit_to_instruction(circuit, parameter_map=None):
+def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None):
     """Build an ``Instruction`` object from a ``QuantumCircuit``.
 
     The instruction is anonymous (not tied to a named quantum register),
@@ -33,6 +33,8 @@ def circuit_to_instruction(circuit, parameter_map=None):
            parameters in the circuit to parameters to be used in the instruction.
            If None, existing circuit parameters will also parameterize the
            instruction.
+        equivalence_library (EquivalenceLibrary): Optional equivalence library
+           where the converted instruction will be registered.
 
     Raises:
         QiskitError: if parameter_map is not compatible with circuit
@@ -86,13 +88,10 @@ def circuit_to_instruction(circuit, parameter_map=None):
         reg_index = ordered_regs.index(bit.register)
         return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
-    target = circuit.copy()
-    target._substitute_parameters(parameter_dict)
+    target = circuit.assign_parameters(parameter_dict, inplace=False)
 
-    # pylint: disable=cyclic-import
-    from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-    # pylint: enable=cyclic-import
-    sel.add_equivalence(instruction, target)
+    if equivalence_library is not None:
+        equivalence_library.add_equivalence(instruction, target)
 
     definition = target.data
 

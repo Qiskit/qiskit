@@ -36,7 +36,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
 from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent)
+                          Instruction, ScheduleComponent, ShiftFrequency)
 
 
 class EventsOutputChannels:
@@ -100,6 +100,14 @@ class EventsOutputChannels:
     @property
     def frequencychanges(self) -> Dict[int, SetFrequency]:
         """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
+
+    @property
+    def frequencyshift(self) -> Dict[int, ShiftFrequency]:
+        """Set the frequency changes."""
         if self._frequencychanges is None:
             self._build_waveform()
 
@@ -193,6 +201,8 @@ class EventsOutputChannels:
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
+                elif isinstance(command, ShiftFrequency):
                     tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
@@ -304,6 +314,14 @@ class SamplePulseDrawer:
         else:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
+
+        bbox = ax.get_position()
+
+        if self.style.title_font_size > 0:
+            figure.suptitle(str(pulse.name),
+                            fontsize=self.style.title_font_size,
+                            y=bbox.y1 + 0.02,
+                            va='bottom')
 
         return figure
 
@@ -461,7 +479,7 @@ class ScheduleDrawer:
             dt: Time interval
 
         Returns:
-            matplotlib.axes.Axes: Axis object for drawing pulses.
+            Tuple[matplotlib.axes.Axes]: Axis objects for table and canvas of pulses.
         """
         # create table
         table_data = []
@@ -513,11 +531,12 @@ class ScheduleDrawer:
             table.auto_set_font_size(False)
             table.set_fontsize = self.style.table_font_size
         else:
+            tb = None
             ax = figure.add_subplot(111)
 
         figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
-        return ax
+        return tb, ax
 
     @staticmethod
     def _draw_snapshots(ax,
@@ -804,7 +823,7 @@ class ScheduleDrawer:
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
             if channels:
-                tf = schedule.timeslots.ch_duration(*channels)
+                tf = schedule.ch_duration(*channels)
             else:
                 tf = schedule.stop_time
             tf = tf or 1
@@ -823,9 +842,9 @@ class ScheduleDrawer:
                                           plot_all=plot_all)
 
         if table:
-            ax = self._draw_table(figure, schedule_channels, dt)
-
+            tb, ax = self._draw_table(figure, schedule_channels, dt)
         else:
+            tb = None
             ax = figure.add_subplot(111)
             figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
@@ -847,5 +866,16 @@ class ScheduleDrawer:
                            fontsize=self.style.axis_font_size)
         ax.set_ylim(y_lb, y_ub)
         ax.set_yticklabels([])
+
+        if tb is not None:
+            bbox = tb.get_position()
+        else:
+            bbox = ax.get_position()
+
+        if self.style.title_font_size > 0:
+            figure.suptitle(str(schedule.name),
+                            fontsize=self.style.title_font_size,
+                            y=bbox.y1 + 0.02,
+                            va='bottom')
 
         return figure

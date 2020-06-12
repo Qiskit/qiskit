@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
+import logging
+from time import time
 import warnings
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -33,6 +35,8 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
                                                    level_3_pass_manager)
+
+LOG = logging.getLogger(__name__)
 
 
 def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -165,10 +169,15 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     circuits = circuits if isinstance(circuits, list) else [circuits]
 
     # transpiling schedules is not supported yet.
+    start_time = time()
     if all(isinstance(c, Schedule) for c in circuits):
         warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
         if len(circuits) == 1:
+            end_time = time()
+            _log_transpile_time(start_time, end_time)
             return circuits[0]
+        end_time = time()
+        _log_transpile_time(start_time, end_time)
         return circuits
 
     if pass_manager is not None:
@@ -201,7 +210,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
 
     if len(circuits) == 1:
+        end_time = time()
+        _log_transpile_time(start_time, end_time)
         return circuits[0]
+    end_time = time()
+    _log_transpile_time(start_time, end_time)
     return circuits
 
 
@@ -234,6 +247,11 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
                                   'in the coupling_map')
 
 
+def _log_transpile_time(start_time, end_time):
+    log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    LOG.info(log_msg)
+
+
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
@@ -255,17 +273,18 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 
     pass_manager_config = transpile_config['pass_manager_config']
 
-    # Workaround for ion trap support: If basis gates includes
-    # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
-    # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
-    basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
-    device_insts = set(pass_manager_config.basis_gates).union(basic_insts)
     ms_basis_swap = None
-    if 'rxx' in pass_manager_config.basis_gates and \
-            not device_insts >= circuit.count_ops().keys():
-        ms_basis_swap = pass_manager_config.basis_gates
-        pass_manager_config.basis_gates = list(
-            set(['u3', 'cx']).union(pass_manager_config.basis_gates))
+    if pass_manager_config.basis_gates is not None:
+        # Workaround for ion trap support: If basis gates includes
+        # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
+        # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
+        basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+        device_insts = set(pass_manager_config.basis_gates).union(basic_insts)
+        if 'rxx' in pass_manager_config.basis_gates and \
+                not device_insts >= circuit.count_ops().keys():
+            ms_basis_swap = pass_manager_config.basis_gates
+            pass_manager_config.basis_gates = list(
+                set(['u3', 'cx']).union(pass_manager_config.basis_gates))
 
     # we choose an appropriate one based on desired optimization level
     level = transpile_config['optimization_level']
@@ -352,13 +371,6 @@ def _parse_basis_gates(basis_gates, backend, circuits):
                                all(isinstance(i, str) for i in basis_gates)):
         basis_gates = [basis_gates] * len(circuits)
 
-    # no basis means don't unroll (all circuit gates are valid basis)
-    for index, circuit in enumerate(circuits):
-        basis = basis_gates[index]
-        if basis is None:
-            gates_in_circuit = {inst.name for inst, _, _ in circuit.data}
-            # Other passes might add new gates that need to be supported
-            basis_gates[index] = list(gates_in_circuit.union(['u3', 'cx']))
     return basis_gates
 
 

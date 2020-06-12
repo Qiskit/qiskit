@@ -20,7 +20,7 @@ try:
                                 Name, Number, Text)
     from pygments.style import Style
 except ImportError:
-    raise ImportError("To use 'qiskit.qasm.pygments' pygments must be "
+    raise ImportError("To use 'qiskit.qasm.pygments' pygments>2.4 must be "
                       'installed. To install run "pip install pygments".')
 
 
@@ -55,10 +55,10 @@ class OpenQASMLexer(RegexLexer):
     filenames = ['*.qasm']
 
     gates = ['id', 'cx', 'x', 'y', 'z', 's', 'sdg', 'h',
-             't', 'tdg', 'ccx', 'rx', 'ry', 'rz',
-             'cz', 'cy', 'ch', 'swap', 'cswap', 'crx',
-             'cry', 'crz', 'cu1', 'cu3', 'rxx', 'rzz',
-             'rccx', 'rcccx', 'u1', 'u2', 'u3']
+             't', 'tdg', 'ccx', 'c3x', 'c4x', 'c3sqrtx',
+             'rx', 'ry', 'rz', 'cz', 'cy', 'ch', 'swap',
+             'cswap', 'crx', 'cry', 'crz', 'cu1', 'cu3',
+             'rxx', 'rzz', 'rccx', 'rc3x', 'u1', 'u2', 'u3']
 
     tokens = {
         'root': [
@@ -108,4 +108,4 @@ class OpenQASMLexer(RegexLexer):
                  (r'p\d+', Text, '#push')],
 
         'index': [(r"\d+", Number, '#pop')]
-        }
+    }

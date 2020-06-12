@@ -100,7 +100,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     def test_text_drawer(self):
         filename = self._get_resource_path('current_textplot.txt')
         qc = self.sample_circuit()
-        output = circuit_drawer(qc, filename=filename, output="text", fold=-1)
+        output = circuit_drawer(qc, filename=filename, output="text", fold=-1, initial_state=True,
+                                cregbundle=False)
         self.assertFilesAreEqual(filename, self.text_reference)
         os.remove(filename)
         try:
