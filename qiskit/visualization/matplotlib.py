@@ -30,6 +30,7 @@ try:
     from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
+    # import matplotlib
 
     HAS_MATPLOTLIB = True
 except ImportError:
@@ -41,6 +42,7 @@ from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
+# matplotlib.use('ps')
 
 WID = 0.65
 HIG = 0.65
@@ -187,7 +189,8 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
 
-        self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right', '\\dagger', '\\rangle')
+        self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
+                             '\\dagger', '\\rangle', '\\enspace')
         self._latex_chars1 = ('\\mapsto', '\\pi')
         self._char_list = {' ': (0.0841, 0.0512), '!': (0.106, 0.064), '"': (0.1224, 0.0768),
                            '#': (0.2211, 0.1371), '$': (0.1681, 0.1023), '%': (0.2504, 0.1553),
@@ -448,7 +451,7 @@ class MatplotlibDrawer:
                              ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _ctrl_qubit(self, xy, fc=None, ec=None):
+    def _ctrl_qubit(self, xy, fc=None, ec=None, text=None):
         if fc is None:
             fc = self._style.gc
         if ec is None:
@@ -457,8 +460,11 @@ class MatplotlibDrawer:
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
+        self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
+                     fontsize=self._style.sfs, color=self._style.tc,
+                     clip_on=True, zorder=PORDER_TEXT)
 
-    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color):
+    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color, text=None):
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
@@ -467,7 +473,8 @@ class MatplotlibDrawer:
             else:
                 fc_open_close = self._style.tc if cstate[i] == '1' else self._style.bg
             ec = color if self._style.name != 'bw' else self._style.lc
-            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec)
+            text = text if i == 0 else ''
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, text=text)
 
     def _x_tgt_qubit(self, xy, fc=None, ec=None, ac=None):
         if self._style.gc != DefaultStyle().gc:
@@ -681,7 +688,7 @@ class MatplotlibDrawer:
     def _draw_ops(self, verbose=False):
         _narrow_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
                          'rxx', 'ryy', 'rzx', 'u1', 'swap', 'reset']
-        _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
+        _barrier_gates = ['barrier', 'snapshot', 'sn', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -705,34 +712,42 @@ class MatplotlibDrawer:
             # Compute the layer_width for this layer
             #
             for op in layer:
-                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-
-                # Narrow gates are all layer_width 1
-                if (op.name in _narrow_gates or (base_name != 'u1' and base_name in _narrow_gates)
-                        or op.name in _barrier_gates or op.name == 'measure'):
+                if op.name in _barrier_gates or op.name == 'measure':
                     box_width = WID
                     continue
 
-                text_width = self._get_text_width(op.name, fontsize=self._style.fs)
-                if (op.type == 'op' and hasattr(op.op, 'params')
+                base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+                gate_text, ctrl_text = self.get_gate_ctrl_text(op)
+
+                if (not hasattr(op.op, 'params') and
+                        ((op.name in _narrow_gates or base_name in _narrow_gates)
+                         and gate_text in (op.name, base_name) and ctrl_text is None)):
+                    box_width = WID
+                    continue
+
+                gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.2
+                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs)
+                if (hasattr(op.op, 'params')
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])):
                     param = self.param_parse(op.op.params)
                     param_width = self._get_text_width(param, fontsize=self._style.sfs)
-
-                    if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
-                        tname = 'cu1' if op.name == 'cu1' else 'zz'
-                        side_width = self._get_text_width(tname + ' ',
-                                                          fontsize=self._style.sfs) + param_width
-                        box_width = WID + 0.15 + side_width
-                    else:
-                        if param_width > text_width and param_width > WID:
-                            box_width = param_width
-                        elif text_width > WID:
-                            box_width = text_width
-                        else:
-                            box_width = WID
                 else:
-                    box_width = WID if text_width + 0.2 < WID else text_width + 0.2
+                    param_width = 0.0
+
+                if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
+                    tname = 'cu1' if op.name == 'cu1' else 'zz'
+                    side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
+                                  + param_width)
+                    box_width = WID + 0.15 + side_width
+                elif (param_width > gate_width and param_width > ctrl_width
+                      and param_width > WID):
+                    box_width = param_width
+                elif gate_width > ctrl_width and gate_width > WID:
+                    box_width = gate_width
+                elif ctrl_width > WID:
+                    box_width = ctrl_width
+                else:
+                    box_width = WID
 
                 if box_width > widest_box:
                     widest_box = box_width
@@ -744,7 +759,10 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text = getattr(op.op, 'label', None) or op.name
+                gate_text, ctrl_text = self.get_gate_ctrl_text(op)
+
+                # mathtext .format removes spaces so add them back
+                gate_text = gate_text.replace(' ', '\\enspace ')
 
                 # get qreg index
                 q_idxs = []
@@ -873,7 +891,8 @@ class MatplotlibDrawer:
                     color = self._style.dispcol[opname]
                     ec = color if self._style.name != 'bw' else self._style.lc
                     lc = ec
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
+                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                              q_xy, color, text=ctrl_text)
                     self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=color,
                                       ec=ec, ac=self._style.dispcol['target'])
                     self._line(qreg_b, qreg_t, lc=lc)
@@ -884,7 +903,8 @@ class MatplotlibDrawer:
                     color = self._style.dispcol['cz']
                     ec = color if self._style.name != 'bw' else self._style.lc
                     lc = ec
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
+                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                              q_xy, color, text=ctrl_text)
                     self._ctrl_qubit(q_xy[1], fc=color, ec=ec)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
@@ -896,7 +916,8 @@ class MatplotlibDrawer:
                     ec = color if self._style.name != 'bw' else self._style.lc
                     lc = ec
                     if op.name != 'rzz':
-                        self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
+                        self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                                  q_xy, color, text=ctrl_text)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=color, ec=ec)
                     if op.name != 'cu1':
                         self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=color, ec=ec)
@@ -917,14 +938,14 @@ class MatplotlibDrawer:
                     color_name = 'multi' if self._style.name != 'bw' else 'cz'
                     color = self._style.dispcol[color_name]
                     lc = color if self._style.name != 'bw' else self._style.lc
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
+                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                              q_xy, color, text=ctrl_text)
                     self._swap(q_xy[num_ctrl_qubits], color)
                     self._swap(q_xy[num_ctrl_qubits+1], color)
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # All other controlled gates
                 elif isinstance(op.op, ControlledGate):
-                    ctrl_text = getattr(op.op.base_gate, 'label', None) or op.op.base_gate.name
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
                     opname = 'cy' if op.name == 'cy' else 'multi'
@@ -932,14 +953,15 @@ class MatplotlibDrawer:
                     color = self._style.dispcol[opname]
                     ec = color if self._style.name != 'bw' else self._style.lc
                     lc = ec
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits, q_xy, color)
+                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                              q_xy, color, text=ctrl_text)
                     self._line(qreg_b, qreg_t, lc=lc)
                     if num_qargs == 1:
-                        self._gate(q_xy[num_ctrl_qubits], text=ctrl_text, fc=color,
+                        self._gate(q_xy[num_ctrl_qubits], text=gate_text, fc=color,
                                    subtext='{}'.format(param))
                     else:
                         self._custom_multiqubit_gate(q_xy[num_ctrl_qubits:], fc=color,
-                                                     text=ctrl_text, subtext='{}'.format(param))
+                                                     text=gate_text, subtext='{}'.format(param))
 
                 # draw custom multi-qubit gate as final default
                 else:
@@ -987,6 +1009,26 @@ class MatplotlibDrawer:
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
+
+    @staticmethod
+    def get_gate_ctrl_text(op):
+        op_label = getattr(op.op, 'label', None)
+        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
+        ctrl_text = None
+        if base_label is not None:
+            gate_text = base_label
+            ctrl_text = op_label
+        elif op_label is not None and isinstance(op.op, ControlledGate):
+            gate_text = base_name
+            ctrl_text = op_label
+        elif op_label is not None:
+            gate_text = op_label
+        elif base_name is not None:
+            gate_text = base_name
+        else:
+            gate_text = op.name
+        return gate_text, ctrl_text
 
     @staticmethod
     def param_parse(v):

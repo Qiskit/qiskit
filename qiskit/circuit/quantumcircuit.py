@@ -859,7 +859,7 @@ class QuantumCircuit:
                 backend. It will be silently ignored with all other outputs.
             initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default: ``False``.
-            cregbundle (bool): Optional. If set True bundle classical registers. 
+            cregbundle (bool): Optional. If set True bundle classical registers.
                 Default: ``True``.
 
         Returns:
