@@ -192,7 +192,7 @@ class MatplotlibDrawer:
                             labelleft=False, labelright=False)
 
         self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
-                             '\\dagger', '\\rangle', '\\enspace')
+                             '\\dagger', '\\rangle', '\\; ')
         self._latex_chars1 = ('\\mapsto', '\\pi')
         self._char_list = {' ': (0.0841, 0.0512), '!': (0.106, 0.064), '"': (0.1224, 0.0768),
                            '#': (0.2211, 0.1371), '$': (0.1681, 0.1023), '%': (0.2504, 0.1553),
@@ -269,19 +269,11 @@ class MatplotlibDrawer:
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        if text is None or text == '':
-            gate_text = ''
-        elif text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[text])
-        else:
-            gate_text = "${}$".format(text[0].upper()+text[1:])
-        if subtext != '' and subtext is not None:
-            subtext = "${}$".format(subtext)
-        text_width = self._get_text_width(gate_text, self._style.fs) + .2
-        subtext_width = self._get_text_width(subtext, self._style.sfs) + .2
+        text_width = self._get_text_width(text, self._style.fs) + .2
+        sub_width = 0.0 if subtext else self._get_text_width(subtext, self._style.sfs) + .2
 
-        if subtext_width > text_width and subtext_width > WID:
-            wid = subtext_width
+        if sub_width > text_width and sub_width > WID:
+            wid = sub_width
         elif text_width > WID:
             wid = text_width
         else:
@@ -313,7 +305,7 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
         if text:
             if subtext:
-                self.ax.text(xpos+.1, ypos + 0.4 * height, gate_text, ha='center',
+                self.ax.text(xpos+.1, ypos + 0.4 * height, text, ha='center',
                              va='center', fontsize=self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT)
@@ -322,27 +314,19 @@ class MatplotlibDrawer:
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos+.1, ypos + .5 * (qubit_span - 1), gate_text,
+                self.ax.text(xpos+.1, ypos + .5 * (qubit_span - 1), text,
                              ha='center', va='center', fontsize=self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT, wrap=True)
 
-    def _gate(self, xy, fc=None, text=None, subtext=None):
+    def _gate(self, xy, fc=None, text=None, subtext=''):
         xpos, ypos = xy
 
-        if text is None or text == '':
-            gate_text = ''
-        elif text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[text])
-        else:
-            gate_text = "${}$".format(text[0].upper()+text[1:])
-        if subtext != '' and subtext is not None:
-            subtext = "${}$".format(subtext)
-        text_width = self._get_text_width(gate_text, self._style.fs)
-        subtext_width = self._get_text_width(subtext, self._style.sfs)
+        text_width = self._get_text_width(text, self._style.fs)
+        sub_width = 0.0 if not subtext else self._get_text_width(subtext, self._style.sfs)
 
-        if subtext_width > text_width and subtext_width > WID:
-            wid = subtext_width
+        if sub_width > text_width and sub_width > WID:
+            wid = sub_width
         elif text_width > WID:
             wid = text_width
         else:
@@ -379,15 +363,15 @@ class MatplotlibDrawer:
                 disp_color = self._style.gt
                 sub_color = self._style.sc
 
-            if subtext:
-                self.ax.text(xpos, ypos + 0.15 * HIG, gate_text, ha='center',
+            if subtext or text in ['reset']:
+                self.ax.text(xpos, ypos + 0.15 * HIG, text, ha='center',
                              va='center', fontsize=font_size, color=disp_color,
                              clip_on=True, zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center',
                              va='center', fontsize=sub_font_size, color=sub_color,
                              clip_on=True, zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos, ypos, gate_text, ha='center', va='center',
+                self.ax.text(xpos, ypos, text, ha='center', va='center',
                              fontsize=font_size, color=disp_color,
                              clip_on=True, zorder=PORDER_TEXT)
 
@@ -472,8 +456,6 @@ class MatplotlibDrawer:
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
-        if text != '' and text is not None:
-            text = "${}$".format(text)
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs, color=self._style.tc,
                      clip_on=True, zorder=PORDER_TEXT)
@@ -731,7 +713,7 @@ class MatplotlibDrawer:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = self.get_gate_ctrl_text(op)
+                gate_text, gate_color, ctrl_text = self.get_gate_ctrl_text(op)
 
                 if (not hasattr(op.op, 'params') and
                         ((op.name in _narrow_gates or base_name in _narrow_gates)
@@ -739,12 +721,12 @@ class MatplotlibDrawer:
                     box_width = WID
                     continue
 
-                gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.2
-                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs)
+                gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.1
+                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs) - 0.5
                 if (hasattr(op.op, 'params')
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])):
                     param = self.param_parse(op.op.params)
-                    param_width = self._get_text_width(param, fontsize=self._style.sfs)
+                    param_width = self._get_text_width(param, fontsize=self._style.sfs) - 0.1
                 else:
                     param_width = 0.0
 
@@ -773,12 +755,7 @@ class MatplotlibDrawer:
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-                gate_text, ctrl_text = self.get_gate_ctrl_text(op)
-
-                # mathtext .format removes spaces so add them back
-                gate_text = gate_text.replace(' ', '\; ')
-                if ctrl_text is not None:
-                    ctrl_text = ctrl_text.replace(' ', '\; ')
+                gate_text, gate_color, ctrl_text = self.get_gate_ctrl_text(op)
 
                 # get qreg index
                 q_idxs = []
@@ -821,10 +798,10 @@ class MatplotlibDrawer:
                 if verbose:
                     print(op)
 
-                if op.type == 'op' and hasattr(op.op, 'params'):
-                    param = self.param_parse(op.op.params)
+                if op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0:
+                    param = "${}$".format(self.param_parse(op.op.params))
                 else:
-                    param = None
+                    param = ''
 
                 # conditional gate
                 if op.condition:
@@ -865,7 +842,8 @@ class MatplotlibDrawer:
                     self._measure(q_xy[0], c_xy[0], vv)
 
                 elif op.name == 'reset':
-                    self._gate(q_xy[0], text=gate_text, fc=self._style.gt)
+                    text = self._style.disptex['reset']
+                    self._gate(q_xy[0], text=text, fc=self._style.gt)
 
                 elif op.name in _barrier_gates:
                     _barriers = {'coord': [], 'group': []}
@@ -894,7 +872,7 @@ class MatplotlibDrawer:
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
-                    self._gate(q_xy[0], text=gate_text, subtext=str(param))
+                    self._gate(q_xy[0], fc=gate_color, text=gate_text, subtext=str(param))
 
                 #
                 # draw controlled and special gates
@@ -1026,25 +1004,42 @@ class MatplotlibDrawer:
                              va='center', fontsize=self._style.sfs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
 
-    @staticmethod
-    def get_gate_ctrl_text(op):
+    def get_gate_ctrl_text(self, op):
         op_label = getattr(op.op, 'label', None)
         base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
         base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
         ctrl_text = None
-        if base_label is not None:
+        if base_label:
             gate_text = base_label
             ctrl_text = op_label
-        elif op_label is not None and isinstance(op.op, ControlledGate):
+        elif op_label and isinstance(op.op, ControlledGate):
             gate_text = base_name
             ctrl_text = op_label
-        elif op_label is not None:
+        elif op_label:
             gate_text = op_label
-        elif base_name is not None:
+        elif base_name:
             gate_text = base_name
         else:
             gate_text = op.name
-        return gate_text, ctrl_text
+
+        print("gate, ctrl", gate_text, ctrl_text)
+        if gate_text in self._style.disptex:
+            gate_text = "${}$".format(self._style.disptex[gate_text])
+        else:
+            gate_text = "${}$".format(gate_text)
+
+        if op.name in self._style.dispcol:
+            gate_color = self._style.dispcol[op.name]
+        else:
+            gate_color = self._style.gc
+                
+        print("color", gate_color)
+        # mathtext .format removes spaces so add them back
+        gate_text = gate_text.replace(' ', '\\; ')
+        if ctrl_text:
+            ctrl_text = "${}$".format(ctrl_text)
+            ctrl_text = ctrl_text.replace(' ', '\\; ')
+        return gate_text, gate_color, ctrl_text
 
     @staticmethod
     def param_parse(v):
@@ -1060,6 +1055,7 @@ class MatplotlibDrawer:
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
+        # Remove $'s since "${}$".format will add them back on the outside
         param_parts = param_parts.replace('$', '')
         return param_parts
 
