@@ -154,6 +154,7 @@ class MatplotlibDrawer:
                  " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
         else:
             self.cregbundle = cregbundle
+
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -161,6 +162,7 @@ class MatplotlibDrawer:
                 with open(style, 'r') as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
+
         if ax is None:
             self.return_fig = True
             self.figure = plt.figure()
@@ -174,9 +176,9 @@ class MatplotlibDrawer:
         self.x_offset = 0
         self._reg_long_text = 0
 
-        f = plt.figure()
-        if hasattr(f.canvas, 'get_renderer'):
-            self.renderer = f.canvas.get_renderer()
+        fig = plt.figure()
+        if hasattr(fig.canvas, 'get_renderer'):
+            self.renderer = fig.canvas.get_renderer()
         else:
             self.renderer = None
 
@@ -253,19 +255,28 @@ class MatplotlibDrawer:
                 text = text.replace(t, '')
 
             f = 0 if fontsize == self._style.fs else 1
-            return sum([self._char_list[c][f] for c in text])
+            sum_text = 0.0
+            for c in text:
+                try:
+                    sum_text += self._char_list[c][f]
+                except KeyError:
+                    # If non-ASCII char, use width of 'g', an average size
+                    sum_text += self._char_list['g'][f]
+            return sum_text
 
     def _custom_multiqubit_gate(self, xy, fc=None, text=None, subtext=None):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        if text is None:
+        if text is None or text == '':
             gate_text = ''
         elif text in self._style.disptex:
             gate_text = "${}$".format(self._style.disptex[text])
         else:
             gate_text = "${}$".format(text[0].upper()+text[1:])
+        if subtext != '' and subtext is not None:
+            subtext = "${}$".format(subtext)
         text_width = self._get_text_width(gate_text, self._style.fs) + .2
         subtext_width = self._get_text_width(subtext, self._style.sfs) + .2
 
@@ -319,13 +330,14 @@ class MatplotlibDrawer:
     def _gate(self, xy, fc=None, text=None, subtext=None):
         xpos, ypos = xy
 
-        if text is None:
+        if text is None or text == '':
             gate_text = ''
         elif text in self._style.disptex:
             gate_text = "${}$".format(self._style.disptex[text])
         else:
             gate_text = "${}$".format(text[0].upper()+text[1:])
-
+        if subtext != '' and subtext is not None:
+            subtext = "${}$".format(subtext)
         text_width = self._get_text_width(gate_text, self._style.fs)
         subtext_width = self._get_text_width(subtext, self._style.sfs)
 
@@ -460,6 +472,8 @@ class MatplotlibDrawer:
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
+        if text != '' and text is not None:
+            text = "${}$".format(text)
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs, color=self._style.tc,
                      clip_on=True, zorder=PORDER_TEXT)
@@ -712,7 +726,7 @@ class MatplotlibDrawer:
             # Compute the layer_width for this layer
             #
             for op in layer:
-                if op.name in _barrier_gates or op.name == 'measure':
+                if op.name in (_barrier_gates, 'measure'):
                     box_width = WID
                     continue
 
@@ -762,7 +776,9 @@ class MatplotlibDrawer:
                 gate_text, ctrl_text = self.get_gate_ctrl_text(op)
 
                 # mathtext .format removes spaces so add them back
-                gate_text = gate_text.replace(' ', '\\enspace ')
+                gate_text = gate_text.replace(' ', '\; ')
+                if ctrl_text is not None:
+                    ctrl_text = ctrl_text.replace(' ', '\; ')
 
                 # get qreg index
                 q_idxs = []
@@ -1044,6 +1060,7 @@ class MatplotlibDrawer:
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
+        param_parts = param_parts.replace('$', '')
         return param_parts
 
     @staticmethod
