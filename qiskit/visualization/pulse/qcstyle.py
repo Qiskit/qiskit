@@ -62,7 +62,9 @@ class SchedStyle:
 
         Args:
             figsize: Size of the figure.
-                If None, will default to rcParams['figure.figsize'].
+                If ``None``, will default to the figure size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.figsize']``.
             fig_unit_h_table: Height of row of event table. See Example.
             use_table: When set `True` use event table.
             table_columns: Number of event table columns.
@@ -72,7 +74,9 @@ class SchedStyle:
             label_font_size: Font size of labels in canvas.
             icon_font_size: Size of symbols.
             title_font_size: Font size of schedule name in title.
-                If None, will revert to rcParams['figure.titlesize'].
+                If ``None``, will default to the title font size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.titlesize']``.
             label_ch_linestyle: Line style for channel pulse label line.
             label_ch_color: Color code or name of color for channel pulse label line.
             label_ch_alpha: Transparency for channel pulse label line from 0 to 1.
@@ -89,7 +93,9 @@ class SchedStyle:
             bg_color: Color code or name of color for canvas background.
             num_points: Number of points for interpolation of each channel.
             dpi: Resolution in the unit of dot per inch to save image.
-                If None, will default to rcParams['figure.dpi']
+                If ``None``, will revert to the DPI setting of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.dpi']``.
             remove_spacing: Remove redundant spacing
                 when the waveform has no negative values.
             max_table_ratio: Maximum portion of the plot the table can take up.
@@ -162,15 +168,21 @@ class PulseStyle:
 
         Args:
             figsize: Size of the figure.
-                If None, will default to rcParams['figure.figsize'].
+                If ``None``, will default to the figure size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.figsize']``.
             title_font_size: Font size of schedule name in title.
-                If None, will default to rcParams['axes.titlesize']
+                If ``None``, will default to the title font size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.titlesize']``.
             wave_color: Color code or name of colors for
                 the real and imaginary parts of SamplePulse waveform.
             bg_color: Color code or name of color for pulse canvas background.
             num_points: Number of points for interpolation.
             dpi: Resolution in the unit of dot per inch to save image.
-                If None, will default to rcParams['figure.dpi']
+                If ``None``, will revert to the DPI setting of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.dpi']``.
         """
         self.figsize = figsize
         self.title_font_size = title_font_size
