@@ -23,13 +23,13 @@ Overview
 
 Oracles play an essential role in different quantum algorithms, e.g., Grover's
 algorithm.  An oracle is a "black box" with a reliable behavior.  Theoretically,
-its implementation does not need to be specified.  However, to execute an 
+its implementation does not need to be specified.  However, to execute an
 algorithm that relies on an oracle in the real world, we need a concrete
 implementation.
 
-The oracle compiler provides the necessary tools to map a classical 
-irreversible functions into quantum circuits.  Below is a simple example of a 
-how to synthesize a simple boolean function defined using a python into a 
+The oracle compiler provides the necessary tools to map a classical
+irreversible functions into quantum circuits.  Below is a simple example of a
+how to synthesize a simple boolean function defined using a python into a
 QuantumCircuit:
 
    .. jupyter-execute::
@@ -53,7 +53,7 @@ Supplementary Information
 
       **Tweedledum**
 
-   Tweedledum is a C++-17 header-only library that implements a large set of 
+   Tweedledum is a C++-17 header-only library that implements a large set of
    reversible (and quantum) synthesis, optimization, and mapping algorithms.
    The oracle compiler relies on it and its dependencies to both represent logic
    networks and synthesize them into quantum circuits.
