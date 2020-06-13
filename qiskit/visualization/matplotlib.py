@@ -219,7 +219,7 @@ class MatplotlibDrawer:
         # Annotate inputs
         for bit, y in enumerate([x[1] for x in xy]):
             self.ax.text(xpos - 0.45 * wid, y, str(bit), ha='left', va='center',
-                         fontsize= self._scale * self._style.fs, color=self._style.gt,
+                         fontsize=self._scale * self._style.fs, color=self._style.gt,
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
@@ -227,18 +227,18 @@ class MatplotlibDrawer:
             disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.5 * height, disp_text, ha='center',
-                             va='center', fontsize= self._scale * self._style.fs,
+                             va='center', fontsize=self._scale * self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos + 0.3 * height, subtext, ha='center',
-                             va='center', fontsize= self._scale * self._style.sfs,
+                             va='center', fontsize=self._scale * self._style.sfs,
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos + .5 * (qubit_span - 1), disp_text,
                              ha='center',
                              va='center',
-                             fontsize= self._scale * self._style.fs,
+                             fontsize=self._scale * self._style.fs,
                              color=self._style.gt,
                              clip_on=True,
                              zorder=PORDER_TEXT,
@@ -296,16 +296,16 @@ class MatplotlibDrawer:
                 disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
-                             va='center', fontsize= self._scale * font_size,
+                             va='center', fontsize=self._scale * font_size,
                              color=disp_color, clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center',
-                             va='center', fontsize= self._scale * sub_font_size,
+                             va='center', fontsize=self._scale * sub_font_size,
                              color=sub_color, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos, disp_text, ha='center', va='center',
-                             fontsize= self._scale * font_size,
+                             fontsize=self._scale * font_size,
                              color=disp_color,
                              clip_on=True,
                              zorder=PORDER_TEXT)
@@ -314,7 +314,7 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
-                     fontsize= self._scale * self._style.sfs,
+                     fontsize=self._scale * self._style.sfs,
                      color=self._style.tc,
                      clip_on=True,
                      zorder=PORDER_TEXT)
@@ -326,7 +326,7 @@ class MatplotlibDrawer:
         # another 0.0375 over
         xp = xpos + 0.15 + (0.0375 * len(text))
         self.ax.text(xp, ypos + HIG, text, ha='center', va='top',
-                     fontsize= self._scale * self._style.sfs,
+                     fontsize=self._scale * self._style.sfs,
                      color=self._style.tc,
                      clip_on=True,
                      zorder=PORDER_TEXT)
@@ -391,7 +391,7 @@ class MatplotlibDrawer:
         # target
         if self._style.bundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
-                         fontsize= self._scale * 0.8 * self._style.fs,
+                         fontsize=self._scale * 0.8 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -519,7 +519,7 @@ class MatplotlibDrawer:
         fig_w = _xr - _xl
         fig_h = _yt - _yb
         if self._style.figwidth < 0.0:
-            self._style.figwidth = 4.3 * fig_w * self._scale * self._style.fs / 72 / WID
+            self._style.figwidth =fig_w * 4.3 * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
@@ -614,7 +614,7 @@ class MatplotlibDrawer:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
-                         fontsize= self._scale * 1.25 * self._style.fs,
+                         fontsize=self._scale * 1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -640,12 +640,12 @@ class MatplotlibDrawer:
                              zorder=PORDER_LINE)
                 self.ax.text(self.x_offset + 1.0, y + .1, str(this_creg['val']), ha='left',
                              va='bottom',
-                             fontsize= self._scale * 0.8 * self._style.fs,
+                             fontsize=self._scale * 0.8 * self._style.fs,
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
-                         fontsize= self._scale * 1.5 * self._style.fs,
+                         fontsize=self._scale * 1.5 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -1092,7 +1092,7 @@ class MatplotlibDrawer:
                     x_coord = ii + 1
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
-                             va='center', fontsize= self._scale * self._style.sfs,
+                             va='center', fontsize=self._scale * self._style.sfs,
                              color=self._style.tc, clip_on=True,
                              zorder=PORDER_TEXT)
 
