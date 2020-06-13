@@ -519,7 +519,7 @@ class MatplotlibDrawer:
         fig_w = _xr - _xl
         fig_h = _yt - _yb
         if self._style.figwidth < 0.0:
-            self._style.figwidth =fig_w * 4.3 * self._scale * self._style.fs / 72 / WID
+            self._style.figwidth = fig_w * 4.3 * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
