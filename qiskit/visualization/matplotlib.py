@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 WID = 0.65
 HIG = 0.65
-DEFAULT_SCALE = 6
+DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 3
 PORDER_REGLINE = 2
