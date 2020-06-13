@@ -42,9 +42,8 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
 
-WID = .65
-HIG = .65
-DEFAULT_SCALE = 6
+WID = 0.65
+HIG = 0.65
 PORDER_GATE = 5
 PORDER_LINE = 3
 PORDER_REGLINE = 2
@@ -103,7 +102,7 @@ class Anchor:
 
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
-                 scale=1.0, style=None, plot_barriers=True,
+                 scale=.7, style=None, plot_barriers=True,
                  reverse_bits=False, layout=None, fold=25, ax=None):
 
         if not HAS_MATPLOTLIB:
@@ -111,7 +110,7 @@ class MatplotlibDrawer:
                               'To install, run "pip install matplotlib".')
 
         self._ast = None
-        self._scale = DEFAULT_SCALE * scale
+        self._scale = scale
         self._creg = []
         self._qreg = []
         self._registers(cregs, qregs)
@@ -220,26 +219,26 @@ class MatplotlibDrawer:
         # Annotate inputs
         for bit, y in enumerate([x[1] for x in xy]):
             self.ax.text(xpos - 0.45 * wid, y, str(bit), ha='left', va='center',
-                         fontsize=.37 * self._scale * self._style.fs, color=self._style.gt,
+                         fontsize= self._scale * self._style.fs, color=self._style.gt,
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
 
             disp_text = text
             if subtext:
-                self.ax.text(xpos, ypos + 0.4 * height, disp_text, ha='center',
-                             va='center', fontsize=.37 * self._scale * self._style.fs,
+                self.ax.text(xpos, ypos + 0.5 * height, disp_text, ha='center',
+                             va='center', fontsize= self._scale * self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT)
-                self.ax.text(xpos, ypos + 0.2 * height, subtext, ha='center',
-                             va='center', fontsize=.37 * self._scale * self._style.sfs,
+                self.ax.text(xpos, ypos + 0.3 * height, subtext, ha='center',
+                             va='center', fontsize= self._scale * self._style.sfs,
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos + .5 * (qubit_span - 1), disp_text,
                              ha='center',
                              va='center',
-                             fontsize=.37 * self._scale * self._style.fs,
+                             fontsize= self._scale * self._style.fs,
                              color=self._style.gt,
                              clip_on=True,
                              zorder=PORDER_TEXT,
@@ -297,16 +296,16 @@ class MatplotlibDrawer:
                 disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
-                             va='center', fontsize=.37 * self._scale * font_size,
+                             va='center', fontsize= self._scale * font_size,
                              color=disp_color, clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center',
-                             va='center', fontsize=.37 * self._scale * sub_font_size,
+                             va='center', fontsize= self._scale * sub_font_size,
                              color=sub_color, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos, disp_text, ha='center', va='center',
-                             fontsize=.37 * self._scale * font_size,
+                             fontsize= self._scale * font_size,
                              color=disp_color,
                              clip_on=True,
                              zorder=PORDER_TEXT)
@@ -315,7 +314,7 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
-                     fontsize=.37 * self._scale * self._style.sfs,
+                     fontsize= self._scale * self._style.sfs,
                      color=self._style.tc,
                      clip_on=True,
                      zorder=PORDER_TEXT)
@@ -327,7 +326,7 @@ class MatplotlibDrawer:
         # another 0.0375 over
         xp = xpos + 0.15 + (0.0375 * len(text))
         self.ax.text(xp, ypos + HIG, text, ha='center', va='top',
-                     fontsize=.37 * self._scale * self._style.sfs,
+                     fontsize= self._scale * self._style.sfs,
                      color=self._style.tc,
                      clip_on=True,
                      zorder=PORDER_TEXT)
@@ -377,11 +376,11 @@ class MatplotlibDrawer:
                           ec=self._style.not_gate_lc, linewidth=2,
                           zorder=PORDER_GATE)
         self.ax.add_patch(arc)
-        self.ax.plot([qx, qx + 0.37 * WID],
+        self.ax.plot([qx, qx + 0.35 * WID],
                      [qy - 0.15 * HIG, qy + 0.20 * HIG],
                      color=self._style.not_gate_lc, linewidth=2, zorder=PORDER_GATE)
         # arrow
-        self._line(qxy, [cx, cy + 0.37 * WID], lc=self._style.cc,
+        self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc,
                    ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
                                      (cx + 0.20 * WID, cy + 0.35 * WID),
@@ -392,7 +391,7 @@ class MatplotlibDrawer:
         # target
         if self._style.bundle:
             self.ax.text(cx + .25, cy + .1, str(cid), ha='left', va='bottom',
-                         fontsize=.37 * self._scale * 0.8 * self._style.fs,
+                         fontsize= self._scale * 0.8 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -520,7 +519,7 @@ class MatplotlibDrawer:
         fig_w = _xr - _xl
         fig_h = _yt - _yb
         if self._style.figwidth < 0.0:
-            self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
+            self._style.figwidth = 4.3 * fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
@@ -615,7 +614,7 @@ class MatplotlibDrawer:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
-                         fontsize=.37 * self._scale * 1.25 * self._style.fs,
+                         fontsize= self._scale * 1.25 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -641,12 +640,12 @@ class MatplotlibDrawer:
                              zorder=PORDER_LINE)
                 self.ax.text(self.x_offset + 1.0, y + .1, str(this_creg['val']), ha='left',
                              va='bottom',
-                             fontsize=.37 * self._scale * 0.8 * self._style.fs,
+                             fontsize= self._scale * 0.8 * self._style.fs,
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
-                         fontsize=.37 * self._scale * 1.5 * self._style.fs,
+                         fontsize= self._scale * 1.5 * self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -912,7 +911,6 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
-                        print('1')
                         if self._style.dispcol['cx'] != '#ffffff':
                             add_width = self._style.colored_add_width
                         else:
@@ -935,7 +933,6 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['cx'])
                     # cz for latexmode
                     elif op.name == 'cz':
-                        print('2')
                         disp = op.name.replace('c', '')
                         if self._style.name != 'bw':
                             color = self._style.dispcol['cz']
@@ -956,7 +953,6 @@ class MatplotlibDrawer:
                             self._line(qreg_b, qreg_t, zorder=PORDER_LINE + 1)
                     # control gate
                     elif op.name in ['cy', 'ch', 'cu3', 'crz']:
-                        print('3')
                         disp = op.name.replace('c', '')
 
                         color = None
@@ -980,7 +976,6 @@ class MatplotlibDrawer:
 
                     # rzz gate
                     elif op.name == 'rzz':
-                        print('4')
                         color = self._style.dispcol['multi']
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         self._ctrl_qubit(q_xy[1], fc=color, ec=color)
@@ -991,7 +986,6 @@ class MatplotlibDrawer:
 
                     # cu1 gate
                     elif op.name == 'cu1':
-                        print('5')
                         color = self._style.dispcol['multi']
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         self._ctrl_qubit(q_xy[1], fc=color, ec=color)
@@ -1003,7 +997,6 @@ class MatplotlibDrawer:
 
                     # swap gate
                     elif op.name == 'swap':
-                        print('6')
                         self._swap(q_xy[0], self._style.dispcol['swap'])
                         self._swap(q_xy[1], self._style.dispcol['swap'])
                         # add qubit-qubit wiring
@@ -1011,16 +1004,14 @@ class MatplotlibDrawer:
 
                     # dcx and iswap gate
                     elif op.name in ['dcx', 'iswap']:
-                        print('7')
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                      fc=self._style.dispcol[op.name],
                                                      text=op.op.label or op.name)
 
                     # Custom gate
                     else:
-                        print('8')
                         self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
-                                                     text=op.op.label or op.name, subtext=param)
+                                                     text=op.op.label or op.name)
                 #
                 # draw multi-qubit gates (n=3)
                 #
@@ -1101,7 +1092,7 @@ class MatplotlibDrawer:
                     x_coord = ii + 1
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
-                             va='center', fontsize=.37 * self._scale * self._style.sfs,
+                             va='center', fontsize= self._scale * self._style.sfs,
                              color=self._style.tc, clip_on=True,
                              zorder=PORDER_TEXT)
 
