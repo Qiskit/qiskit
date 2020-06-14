@@ -17,6 +17,7 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import ControlledGate
 
 
 class Unroller(TransformationPass):
@@ -61,7 +62,10 @@ class Unroller(TransformationPass):
                 #  backend reports "measure", for example.
                 continue
             if node.name in self.basis:  # If already a base, ignore.
-                continue
+                if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
+                    pass
+                else:
+                    continue
 
             # TODO: allow choosing other possible decompositions
             try:
