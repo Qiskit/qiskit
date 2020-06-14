@@ -71,7 +71,8 @@ class DefaultStyle:
             'rxx': 'R_{xx}',
             'ryy': 'R_{yy}',
             'rzx': 'R_{zx}',
-            'reset': '\\left|0\\right\\rangle'
+            'reset': '\\left|0\\right\\rangle',
+            'initialize': '|psi>'
         }
         self.dispcol = {
             'u0': basis_color,

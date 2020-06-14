@@ -264,13 +264,13 @@ class MatplotlibDrawer:
                     sum_text += self._char_list['g'][f]
             return sum_text
 
-    def _custom_multiqubit_gate(self, xy, fc=None, text=None, subtext=None):
+    def _custom_multiqubit_gate(self, xy, fc=None, text='', subtext=''):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
         text_width = self._get_text_width(text, self._style.fs) + .2
-        sub_width = 0.0 if subtext else self._get_text_width(subtext, self._style.sfs) + .2
+        sub_width = self._get_text_width(subtext, self._style.sfs) + .2
 
         if sub_width > text_width and sub_width > WID:
             wid = sub_width
@@ -319,11 +319,11 @@ class MatplotlibDrawer:
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT, wrap=True)
 
-    def _gate(self, xy, fc=None, text=None, subtext=''):
+    def _gate(self, xy, fc=None, text='', subtext=''):
         xpos, ypos = xy
 
         text_width = self._get_text_width(text, self._style.fs)
-        sub_width = 0.0 if not subtext else self._get_text_width(subtext, self._style.sfs)
+        sub_width = self._get_text_width(subtext, self._style.sfs)
 
         if sub_width > text_width and sub_width > WID:
             wid = sub_width
@@ -356,14 +356,14 @@ class MatplotlibDrawer:
             sub_font_size = self._style.sfs
 
             # check if gate is not unitary
-            if text in ['reset']:
+            if text in ['$'+self._style.disptex['reset']+'$']:
                 disp_color = self._style.not_gate_lc
                 sub_color = self._style.not_gate_lc
             else:
                 disp_color = self._style.gt
                 sub_color = self._style.sc
 
-            if subtext or text in ['reset']:
+            if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, text, ha='center',
                              va='center', fontsize=font_size, color=disp_color,
                              clip_on=True, zorder=PORDER_TEXT)
@@ -382,7 +382,7 @@ class MatplotlibDrawer:
                      fontsize=self._style.sfs, color=self._style.tc,
                      clip_on=True, zorder=PORDER_TEXT)
 
-    def _sidetext(self, xy, text):
+    def _sidetext(self, xy, text=''):
         xpos, ypos = xy
 
         # 0.15 = the initial gap, add 1/2 text width to place on the right
@@ -447,7 +447,7 @@ class MatplotlibDrawer:
                              ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _ctrl_qubit(self, xy, fc=None, ec=None, text=None):
+    def _ctrl_qubit(self, xy, fc=None, ec=None, text=''):
         if fc is None:
             fc = self._style.gc
         if ec is None:
@@ -456,11 +456,18 @@ class MatplotlibDrawer:
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
+        """if text and (' 3' in text or ' 4' in text):
+            print('text1', text)"""
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs, color=self._style.tc,
                      clip_on=True, zorder=PORDER_TEXT)
+        """else:
+            print('text2', text)
+            self.ax.text(xpos, ypos + 0.5 * HIG, text, ha='center', va='top',
+                     fontsize=self._style.sfs, color=self._style.tc,
+                     clip_on=True, zorder=PORDER_TEXT)"""
 
-    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color, text=None):
+    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, color, text=''):
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             # Make facecolor of ctrl bit the box color if closed and bkgrnd if open
@@ -681,6 +688,41 @@ class MatplotlibDrawer:
             self._linefeed_mark((self.x_offset + 0.3,
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
+    def get_gate_ctrl_text(self, op):
+        op_label = getattr(op.op, 'label', None)
+        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
+        ctrl_text = None
+        if base_label:
+            gate_text = base_label
+            ctrl_text = op_label
+        elif op_label and isinstance(op.op, ControlledGate):
+            gate_text = base_name
+            ctrl_text = op_label
+        elif op_label:
+            gate_text = op_label
+        elif base_name:
+            gate_text = base_name
+        else:
+            gate_text = op.name
+
+        if gate_text in self._style.disptex:
+            gate_text = "${}$".format(self._style.disptex[gate_text])
+        else:
+            gate_text = "${}$".format(gate_text)
+
+        if op.name in self._style.dispcol:
+            gate_color = self._style.dispcol[op.name]
+        else:
+            gate_color = self._style.gc
+
+        # mathtext .format removes spaces so add them back
+        gate_text = gate_text.replace(' ', '\\; ')
+        if ctrl_text:
+            ctrl_text = "${}$".format(ctrl_text)
+            ctrl_text = ctrl_text.replace(' ', '\\; ')
+        return gate_text, gate_color, ctrl_text
+
     def _draw_ops(self, verbose=False):
         _narrow_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
                          'rxx', 'ryy', 'rzx', 'u1', 'swap', 'reset']
@@ -724,8 +766,12 @@ class MatplotlibDrawer:
                 gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.1
                 ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs) - 0.5
                 if (hasattr(op.op, 'params')
-                        and not any([isinstance(param, np.ndarray) for param in op.op.params])):
+                        and not any([isinstance(param, np.ndarray) for param in op.op.params])
+                        and len(op.op.params) > 0):
                     param = self.param_parse(op.op.params)
+                    if op.name == 'initialize':
+                        param = '[%s]' % param
+                    param = "${}$".format(param)
                     param_width = self._get_text_width(param, fontsize=self._style.sfs) - 0.1
                 else:
                     param_width = 0.0
@@ -842,8 +888,7 @@ class MatplotlibDrawer:
                     self._measure(q_xy[0], c_xy[0], vv)
 
                 elif op.name == 'reset':
-                    text = self._style.disptex['reset']
-                    self._gate(q_xy[0], text=text, fc=self._style.gt)
+                    self._gate(q_xy[0], text=gate_text, fc=self._style.gt)
 
                 elif op.name in _barrier_gates:
                     _barriers = {'coord': [], 'group': []}
@@ -856,9 +901,8 @@ class MatplotlibDrawer:
                         self._barrier(_barriers)
 
                 elif op.name == 'initialize':
-                    vec = '[%s]' % param
-                    label = getattr(op.op, 'label', None)
-                    self._custom_multiqubit_gate(q_xy, text=label or "|psi>", subtext=vec)
+                    vec = "$[{}]$".format(param.replace('$', ''))
+                    self._custom_multiqubit_gate(q_xy, text=gate_text, subtext=vec)
 
                 # For gates with ndarray params, don't display the params as subtext
                 elif (op.type == 'op' and hasattr(op.op, 'params')
@@ -1003,43 +1047,6 @@ class MatplotlibDrawer:
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
-
-    def get_gate_ctrl_text(self, op):
-        op_label = getattr(op.op, 'label', None)
-        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
-        ctrl_text = None
-        if base_label:
-            gate_text = base_label
-            ctrl_text = op_label
-        elif op_label and isinstance(op.op, ControlledGate):
-            gate_text = base_name
-            ctrl_text = op_label
-        elif op_label:
-            gate_text = op_label
-        elif base_name:
-            gate_text = base_name
-        else:
-            gate_text = op.name
-
-        print("gate, ctrl", gate_text, ctrl_text)
-        if gate_text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[gate_text])
-        else:
-            gate_text = "${}$".format(gate_text)
-
-        if op.name in self._style.dispcol:
-            gate_color = self._style.dispcol[op.name]
-        else:
-            gate_color = self._style.gc
-                
-        print("color", gate_color)
-        # mathtext .format removes spaces so add them back
-        gate_text = gate_text.replace(' ', '\\; ')
-        if ctrl_text:
-            ctrl_text = "${}$".format(ctrl_text)
-            ctrl_text = ctrl_text.replace(' ', '\\; ')
-        return gate_text, gate_color, ctrl_text
 
     @staticmethod
     def param_parse(v):
