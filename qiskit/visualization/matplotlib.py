@@ -44,8 +44,10 @@ from qiskit.circuit.tools.pi_check import pi_check
 logger = logging.getLogger(__name__)
 # matplotlib.use('ps')
 
+# Default gate width and height
 WID = 0.65
 HIG = 0.65
+
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 3
@@ -241,7 +243,7 @@ class MatplotlibDrawer:
 
     # This computes the width of a string in the default font
     def _get_text_width(self, text, fontsize):
-        if text is None:
+        if not text:
             return 0.0
 
         if self.renderer:
@@ -264,6 +266,16 @@ class MatplotlibDrawer:
                     sum_text += self._char_list['g'][f]
             return sum_text
 
+    def _get_max_width(self, text_width, sub_width, param_width=None):
+        if param_width and (param_width > text_width and param_width > sub_width
+              and param_width > WID):
+            return param_width
+        elif text_width > sub_width and text_width > WID:
+            return text_width
+        elif sub_width > WID:
+            return sub_width
+        return WID
+
     def _custom_multiqubit_gate(self, xy, fc=None, text='', subtext=''):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
@@ -271,13 +283,7 @@ class MatplotlibDrawer:
 
         text_width = self._get_text_width(text, self._style.fs) + .2
         sub_width = self._get_text_width(subtext, self._style.sfs) + .2
-
-        if sub_width > text_width and sub_width > WID:
-            wid = sub_width
-        elif text_width > WID:
-            wid = text_width
-        else:
-            wid = WID
+        wid = self._get_max_width(text_width, sub_width)
 
         if self._style.name != 'bw':
             if fc:
@@ -324,13 +330,7 @@ class MatplotlibDrawer:
 
         text_width = self._get_text_width(text, self._style.fs)
         sub_width = self._get_text_width(subtext, self._style.sfs)
-
-        if sub_width > text_width and sub_width > WID:
-            wid = sub_width
-        elif text_width > WID:
-            wid = text_width
-        else:
-            wid = WID
+        wid = self._get_max_width(text_width, sub_width)
 
         if self._style.name != 'bw':
             if fc:
@@ -374,13 +374,6 @@ class MatplotlibDrawer:
                 self.ax.text(xpos, ypos, text, ha='center', va='center',
                              fontsize=font_size, color=disp_color,
                              clip_on=True, zorder=PORDER_TEXT)
-
-    def _subtext(self, xy, text):
-        xpos, ypos = xy
-
-        self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
-                     fontsize=self._style.sfs, color=self._style.tc,
-                     clip_on=True, zorder=PORDER_TEXT)
 
     def _sidetext(self, xy, text=''):
         xpos, ypos = xy
@@ -781,15 +774,8 @@ class MatplotlibDrawer:
                     side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
                                   + param_width)
                     box_width = WID + 0.15 + side_width
-                elif (param_width > gate_width and param_width > ctrl_width
-                      and param_width > WID):
-                    box_width = param_width
-                elif gate_width > ctrl_width and gate_width > WID:
-                    box_width = gate_width
-                elif ctrl_width > WID:
-                    box_width = ctrl_width
                 else:
-                    box_width = WID
+                    box_width = self._get_max_width(gate_width, ctrl_width, param_width)
 
                 if box_width > widest_box:
                     widest_box = box_width
@@ -877,7 +863,11 @@ class MatplotlibDrawer:
                                 xy_plot.append(xy)
                             v_ind += 1
                     creg_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
-                    self._subtext(creg_b, hex(val))
+                    #self._subtext(creg_b, hex(val))
+                    xpos, ypos = creg_b
+                    self.ax.text(xpos, ypos - 0.3 * HIG, hex(val), ha='center', va='top',
+                                 fontsize=self._style.sfs, color=self._style.tc,
+                                 clip_on=True, zorder=PORDER_TEXT)
                     self._line(qreg_t, creg_b, lc=self._style.cc,
                                ls=self._style.cline)
                 #
