@@ -767,7 +767,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter('theta')
         qc.rz(theta, 0)
 
-        reverse = qc.reverse()
+        reverse = qc.reverse_ops()
         self.assertIn(theta, reverse.parameters)
         raise_if_parameter_table_invalid(reverse)
 

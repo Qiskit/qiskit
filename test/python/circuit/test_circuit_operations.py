@@ -371,7 +371,7 @@ class TestCircuitOperations(QiskitTestCase):
         expected.s(1)
         expected.h(0)
 
-        self.assertEqual(qc.reverse(), expected)
+        self.assertEqual(qc.reverse_ops(), expected)
 
     def test_repeat(self):
         """Test repeating the circuit works."""

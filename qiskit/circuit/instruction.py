@@ -222,18 +222,18 @@ class Instruction:
         return instruction
 
     def mirror(self):
-        """DEPRECATED: use instruction.reverse.
+        """DEPRECATED: use instruction.reverse_ops().
 
         Return:
             qiskit.circuit.Instruction: a new instruction with sub-instructions
                 reversed.
         """
-        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse()'
+        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse_ops()'
                       'to reverse the order of gates.', DeprecationWarning)
-        return self.reverse()
+        return self.reverse_ops()
 
-    def reverse(self):
-        """For a composite instruction, reverse the order of sub-gates.
+    def reverse_ops(self):
+        """For a composite instruction, reverse the order of sub-instructions.
 
         This is done by recursively reversing all sub-instructions.
         It does not invert any gate.
@@ -248,7 +248,7 @@ class Instruction:
         reverse_inst = self.copy(name=self.name + '_reverse')
         reverse_inst.definition = []
         for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.reverse(), qargs, cargs))
+            reverse_inst._definition.append((inst.reverse_ops(), qargs, cargs))
         return reverse_inst
 
     def inverse(self):

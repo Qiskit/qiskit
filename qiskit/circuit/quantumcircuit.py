@@ -244,16 +244,16 @@ class QuantumCircuit:
         return has_reg
 
     def mirror(self):
-        """DEPRECATED: use circuit.reverse.
+        """DEPRECATED: use circuit.reverse_ops().
 
         Returns:
             QuantumCircuit: the reversed circuit.
         """
-        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse() to '
+        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse_ops() to '
                       'reverse the order of gates.', DeprecationWarning)
         return self.reverse()
 
-    def reverse(self):
+    def reverse_ops(self):
         """Reverse the circuit by reversing the order of instructions.
 
         This is done by recursively reversing all instructions.
@@ -282,7 +282,7 @@ class QuantumCircuit:
                                       name=self.name + '_reverse')
 
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ._append(inst.reverse(), qargs, cargs)
+            reverse_circ._append(inst.reverse_ops(), qargs, cargs)
         return reverse_circ
 
     def reverse_bits(self):

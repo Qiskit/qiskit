@@ -174,7 +174,7 @@ class TestInstructions(QiskitTestCase):
         circ.crz(0.1, q[0], q[1])
         circ.h(q[0])
         gate_reverse = circ.to_gate()
-        self.assertEqual(gate.reverse().definition, gate_reverse.definition)
+        self.assertEqual(gate.reverse_ops().definition, gate_reverse.definition)
 
     def test_reverse_instruction(self):
         """test reverseing an instruction with conditionals"""
@@ -195,14 +195,14 @@ class TestInstructions(QiskitTestCase):
         circ.u3(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
         inst_reverse = circ.to_instruction()
-        self.assertEqual(inst.reverse().definition, inst_reverse.definition)
+        self.assertEqual(inst.reverse_ops().definition, inst_reverse.definition)
 
     def test_reverse_opaque(self):
         """test opaque gates reverse to themselves"""
         opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
-        self.assertEqual(opaque_gate.reverse(), opaque_gate)
+        self.assertEqual(opaque_gate.reverse_ops(), opaque_gate)
         hgate = HGate()
-        self.assertEqual(hgate.reverse(), hgate)
+        self.assertEqual(hgate.reverse_ops(), hgate)
 
     def test_inverse_and_append(self):
         """test appending inverted gates to circuits"""

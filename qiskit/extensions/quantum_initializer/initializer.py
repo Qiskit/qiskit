@@ -238,7 +238,7 @@ class Initialize(Instruction):
         # second lower-level multiplex)
         multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):], False)
         if list_len > 1:
-            circuit.append(multiplex_2.to_instruction().reverse(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
