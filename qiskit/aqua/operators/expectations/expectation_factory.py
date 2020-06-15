@@ -40,7 +40,8 @@ class ExpectationFactory:
 
     @staticmethod
     def build(operator: OperatorBase,
-              backend: Optional[Union[BaseBackend, QuantumInstance]] = None) -> ExpectationBase:
+              backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+              include_custom: bool = True) -> ExpectationBase:
         """
         A factory method for convenient automatic selection of an Expectation based on the
         Operator to be converted and backend used to sample the expectation value.
@@ -48,6 +49,12 @@ class ExpectationFactory:
         Args:
             operator: The Operator whose expectation value will be taken.
             backend: The backend which will be used to sample the expectation value.
+            include_custom: Whether the factory will include the (Aer) specific custom
+                expectations if their behavior against the backend might not be as expected.
+                For instance when using Aer qasm_simulator with paulis the Aer snapshot can
+                be used but the outcome lacks shot noise and hence does not intuitively behave
+                overall as people might expect when choosing a qasm_simulator. It is however
+                fast as long as the more state vector like behavior is acceptable.
 
         Returns:
             The expectation algorithm which best fits the Operator and backend.
@@ -85,8 +92,9 @@ class ExpectationFactory:
                         backend_to_check = BasicAer.get_backend('qasm_simulator')
 
             # If the user specified Aer qasm backend and is using a
-            # Pauli operator, use the Aer fast expectation
-            if is_aer_qasm(backend_to_check):
+            # Pauli operator, use the Aer fast expectation if we are including such
+            # custom behaviors.
+            if is_aer_qasm(backend_to_check) and include_custom:
                 return AerPauliExpectation()
 
             # If the user specified a statevector backend (either Aer or BasicAer),
