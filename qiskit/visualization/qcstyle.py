@@ -24,22 +24,22 @@ class DefaultStyle:
 
     def __init__(self):
         # Set colors
-        basis_color = '#FA74A6'
-        clifford_color = '#6FA4FF'
-        non_gate_color = '#000000'
-        other_color = '#BB8BFF'
-        pauli_color = '#05BAB6'
-        iden_color = '#05BAB6'
+        basis_color = '#FA74A6'     # Red
+        clifford_color = '#6FA4FF'  # Blue
+        non_gate_color = '#000000'  # Black
+        other_color = '#BB8BFF'     # Purple
+        pauli_color = '#05BAB6'     # Green
+        iden_color = '#05BAB6'      # Green
 
         self.name = 'iqx'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
-        self.cc = '#778899'
+        self.cc = '#778899'         # Medium Gray
         self.gc = other_color
         self.gt = '#000000'
-        self.bc = '#bdbdbd'
+        self.bc = '#bdbdbd'         # Dark Gray
         self.bg = '#ffffff'
         self.edge_color = None
         self.math_fs = 15
@@ -104,7 +104,8 @@ class DefaultStyle:
             'reset': non_gate_color,
             'target': '#ffffff',
             'multi': other_color,
-            'meas': non_gate_color
+            'meas': non_gate_color,
+            'measure': non_gate_color
         }
         self.latexmode = False
         self.index = False
@@ -181,7 +182,8 @@ class BWStyle:
             'rxx': 'R_{xx}',
             'ryy': 'R_{yy}',
             'rzx': 'R_{zx}',
-            'reset': '\\left|0\\right\\rangle'
+            'reset': '\\left|0\\right\\rangle',
+            'initialize': '|psi>'
         }
         self.dispcol = {
             'u0': '#ffffff',
@@ -213,13 +215,14 @@ class BWStyle:
             'reset': '#ffffff',
             'target': '#ffffff',
             'multi': '#ffffff',
-            'meas': '#ffffff'
+            'meas': '#ffffff',
+            'measure': '#ffffff'
         }
         self.latexmode = False
         self.index = False
         self.figwidth = -1
         self.dpi = 150
-        self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.margin = [2.0, 0.1, 0.1, 0.3]
         self.cline = 'doublet'
 
     def set_style(self, style_dic):
