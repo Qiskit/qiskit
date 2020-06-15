@@ -423,28 +423,17 @@ class MatplotlibDrawer:
             text = text if i == 0 else ''
             self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text)
 
-    def _x_tgt_qubit(self, xy, fc=None, ec=None, ac=None):
-        if self._style.gc != DefaultStyle().gc:
-            fc = self._style.gt
-            ec = self._style.gt
-        if fc is None:
-            fc = self._style.dispcol['target']
-        if ec is None:
-            ec = self._style.lc
-        if ac is None:
-            ac = self._style.lc
-
+    def _x_tgt_qubit(self, xy, ec=None, ac=None):
         linewidth = 2
         xpos, ypos = xy
         box = patches.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
-                             fc=fc, ec=ec, linewidth=linewidth,
+                             fc=ec, ec=ec, linewidth=linewidth,
                              zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
         # add '+' symbol
         self.ax.plot([xpos, xpos], [ypos - 0.2 * HIG, ypos + 0.2 * HIG],
                      color=ac, linewidth=linewidth, zorder=PORDER_GATE + 1)
-
         self.ax.plot([xpos - 0.2 * HIG, xpos + 0.2 * HIG], [ypos, ypos],
                      color=ac, linewidth=linewidth, zorder=PORDER_GATE + 1)
 
@@ -658,7 +647,7 @@ class MatplotlibDrawer:
         # mathtext .format removes spaces so add them back
         gate_text = gate_text.replace(' ', '\\; ')
         if ctrl_text:
-            ctrl_text = "${}$".format(ctrl_text)
+            ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
             ctrl_text = ctrl_text.replace(' ', '\\; ')
         return gate_text, ctrl_text
 
@@ -733,7 +722,7 @@ class MatplotlibDrawer:
                     param_width = 0.0
 
                 if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
-                    tname = 'cu1' if op.name == 'cu1' else 'zz'
+                    tname = 'U1' if op.name == 'cu1' else 'zz'
                     side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
                                   + param_width)
                     box_width = WID + 0.15 + side_width
@@ -794,7 +783,8 @@ class MatplotlibDrawer:
                 if verbose:
                     print(op)
 
-                if op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0:
+                if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
+                        and not any([isinstance(param, np.ndarray) for param in op.op.params])):
                     param = "${}$".format(self.param_parse(op.op.params))
                 else:
                     param = ''
@@ -840,9 +830,6 @@ class MatplotlibDrawer:
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv, fc=fc, ec=ec, gt=gt, sc=sc)
 
-                elif op.name == 'reset':
-                    self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text)
-
                 elif op.name in _barrier_gates:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
@@ -857,12 +844,6 @@ class MatplotlibDrawer:
                     vec = "$[{}]$".format(param.replace('$', ''))
                     self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
                                           text=gate_text, subtext=vec)
-
-                # For gates with ndarray params, don't display the params as subtext
-                elif (op.type == 'op' and hasattr(op.op, 'params')
-                      and any([isinstance(param, np.ndarray) for param in op.op.params])
-                      and not isinstance(op.op, ControlledGate)):
-                    self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc, text=gate_text)
                 #
                 # draw single qubit gates
                 #
@@ -877,8 +858,8 @@ class MatplotlibDrawer:
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                               q_xy, ec=ec, tc=tc, text=ctrl_text)
-                    self._x_tgt_qubit(q_xy[num_ctrl_qubits], fc=fc,
-                                      ec=ec, ac=self._style.dispcol['target'])
+                    self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec,
+                                      ac=self._style.dispcol['target'])
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # cz gate
@@ -932,7 +913,7 @@ class MatplotlibDrawer:
                         self._multiqubit_gate(q_xy[num_ctrl_qubits:], fc=fc, ec=ec, gt=gt,
                                               sc=sc, text=gate_text, subtext='{}'.format(param))
 
-                # draw custom multi-qubit gate as final default
+                # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
                                           text=gate_text, subtext='{}'.format(param))
