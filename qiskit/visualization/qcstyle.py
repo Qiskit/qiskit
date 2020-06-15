@@ -62,8 +62,11 @@ class DefaultStyle:
             'tdg': 'T^\\dagger',
             'r': 'R',
             'rx': 'R_x',
+            'rxx': 'R_{xx}',
             'ry': 'R_y',
+            'ryy': 'R_{yy}',
             'rz': 'R_z',
+            'rzx': 'R_{zx}',
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
@@ -88,8 +91,11 @@ class DefaultStyle:
             'tdg': other_color,
             'r': other_color,
             'rx': other_color,
+            'rxx': other_color,
             'ry': other_color,
+            'ryy': other_color,
             'rz': other_color,
+            'rzx': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
             'multi': other_color,
@@ -163,8 +169,11 @@ class BWStyle:
             'tdg': 'T^\\dagger',
             'r': 'R',
             'rx': 'R_x',
+            'rxx': 'R_{xx}',
             'ry': 'R_y',
+            'ryy': 'R_{yy}',
             'rz': 'R_z',
+            'rzx': 'R_{zx}',
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
@@ -184,8 +193,11 @@ class BWStyle:
             'tdg': '#ffffff',
             'r': '#ffffff',
             'rx': '#ffffff',
+            'rxx': '#ffffff',
             'ry': '#ffffff',
+            'ryy': '#ffffff',
             'rz': '#ffffff',
+            'rzx': '#ffffff',
             'reset': '#ffffff',
             'target': '#ffffff',
             'meas': '#ffffff',
