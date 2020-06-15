@@ -224,8 +224,11 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
 
         if text:
+            if text in self._style.dispcol:
+                disp_text = "${}$".format(self._style.disptex[text])
 
-            disp_text = text
+            else:
+                disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.4 * height, disp_text, ha='center',
                              va='center', fontsize=self._style.fs,
@@ -293,6 +296,7 @@ class MatplotlibDrawer:
 
             if text in self._style.dispcol:
                 disp_text = "${}$".format(self._style.disptex[text])
+
             else:
                 disp_text = text
             if subtext:
