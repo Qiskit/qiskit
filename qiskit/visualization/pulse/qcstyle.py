@@ -70,7 +70,8 @@ class SchedStyle:
             table_columns: Number of event table columns.
             table_font_size: Font size of event table.
             axis_font_size: Font size of channel aliases.
-                If None, will revert to rcParams['axes.titlesize']
+                If ``None``, will revert to the axis label size of the drawing backend.
+                If the output is ``matplotlib``, the default parameter is ``rcParams['axes.titlesize']``.
             label_font_size: Font size of labels in canvas.
             icon_font_size: Size of symbols.
             title_font_size: Font size of schedule name in title.
