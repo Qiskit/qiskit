@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance
-from qiskit.aqua.operators import OperatorBase, LegacyBaseOperator
+from qiskit.aqua.operators import OperatorBase, ExpectationBase, LegacyBaseOperator
 from qiskit.aqua.components.initial_states import InitialState
 from qiskit.aqua.components.optimizers import Optimizer
 from qiskit.aqua.utils.validation import validate_min
@@ -70,6 +70,8 @@ class QAOA(VQE):
                  initial_state: Optional[InitialState] = None,
                  mixer: Union[OperatorBase, LegacyBaseOperator] = None,
                  initial_point: Optional[np.ndarray] = None,
+                 expectation: Optional[ExpectationBase] = None,
+                 include_custom: bool = False,
                  max_evals_grouped: int = 1,
                  aux_operators: Optional[List[Optional[Union[OperatorBase, LegacyBaseOperator]]]] =
                  None,
@@ -86,6 +88,18 @@ class QAOA(VQE):
                 constrained subspaces as per https://arxiv.org/abs/1709.03489
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then it will simply compute a random one.
+            expectation: The Expectation converter for taking the average value of the
+                Observable over the var_form state function. When None (the default) an
+                :class:`~qiskit.aqua.operators.expectations.ExpectationFactory` is used to select
+                an appropriate expectation based on the operator and backend. When using Aer
+                qasm_simulator backend, with paulis, it is however much faster to leverage custom
+                Aer function for the computation but, although VQE performs much faster
+                with it, the outcome is ideal, with no shot noise, like using a state vector
+                simulator. If you are just looking for the quickest performance when choosing Aer
+                qasm_simulator and the lack of shot noise is not an issue then set `include_custom`
+                parameter here to True (defaults to False).
+            include_custom: When `expectation` parameter here is None setting this to True will
+                allow the factory to include the custom Aer pauli expectation.
             max_evals_grouped: Max number of evaluations performed simultaneously. Signals the
                 given optimizer that more than one set of parameters can be supplied so that
                 potentially the expectation values can be computed in parallel. Typically this is
@@ -115,6 +129,8 @@ class QAOA(VQE):
                          None,
                          optimizer,
                          initial_point=initial_point,
+                         expectation=expectation,
+                         include_custom=include_custom,
                          max_evals_grouped=max_evals_grouped,
                          callback=callback,
                          quantum_instance=quantum_instance,

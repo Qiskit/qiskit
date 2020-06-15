@@ -23,7 +23,8 @@ from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 
 from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
-from qiskit.aqua.operators import WeightedPauliOperator, PrimitiveOp, X, Z, I
+from qiskit.aqua.operators import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
+                                   AerPauliExpectation, PauliExpectation)
 from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.aqua.algorithms import VQE
@@ -173,7 +174,8 @@ class TestVQE(QiskitAquaTestCase):
         optimizer = L_BFGS_B()
         wavefunction = self.ry_wavefunction
 
-        vqe = VQE(self.h2_op, wavefunction, optimizer, max_evals_grouped=1)
+        vqe = VQE(self.h2_op, wavefunction, optimizer,
+                  expectation=AerPauliExpectation(), max_evals_grouped=1)
 
         quantum_instance = QuantumInstance(backend, shots=1,
                                            seed_simulator=aqua_globals.random_seed,
@@ -252,6 +254,28 @@ class TestVQE(QiskitAquaTestCase):
         with self.subTest('Optimizer replace'):
             vqe.optimizer = L_BFGS_B()
             run_check()
+
+    def test_vqe_expectation_select(self):
+        """Test expectation selection with Aer's qasm_simulator."""
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+        backend = Aer.get_backend('qasm_simulator')
+
+        with self.subTest('Defaults'):
+            vqe = VQE(self.h2_op, quantum_instance=backend)
+            self.assertIsInstance(vqe.expectation, PauliExpectation)
+
+        with self.subTest('Include custom'):
+            vqe = VQE(self.h2_op, include_custom=True, quantum_instance=backend)
+            self.assertIsInstance(vqe.expectation, AerPauliExpectation)
+
+        with self.subTest('Set explicitly'):
+            vqe = VQE(self.h2_op, expectation=AerPauliExpectation(), quantum_instance=backend)
+            self.assertIsInstance(vqe.expectation, AerPauliExpectation)
 
     @unittest.skip(reason="IBMQ testing not available in general.")
     def test_ibmq(self):
