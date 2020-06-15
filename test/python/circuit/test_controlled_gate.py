@@ -860,6 +860,16 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
+    @data(-1, 0, 1.4, '1', 4, 10)
+    def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
+        """
+        Test improperly specified num_ctrl_qubits.
+        """
+        num_qubits = 4
+        with self.assertRaises(CircuitError):
+            ControlledGate(name='cgate', num_qubits=num_qubits,
+                           params=[], num_ctrl_qubits=num_ctrl_qubits)
+
 
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
