@@ -125,7 +125,7 @@ class CircuitOp(PrimitiveOp):
             other = other.to_circuit_op()
 
         if isinstance(other, (CircuitOp, CircuitStateFn)):
-            new_qc = other.primitive.combine(self.primitive)  # type: ignore
+            new_qc = other.primitive.compose(self.primitive)  # type: ignore
             if isinstance(other, CircuitStateFn):
                 return CircuitStateFn(new_qc,
                                       is_measurement=other.is_measurement,
