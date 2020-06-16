@@ -28,8 +28,11 @@ def iplot_bloch_multivector(rho, figsize=None):
         Args:
             rho (array): State vector or density matrix
             figsize (tuple): Figure size in pixels.
+        Returns:
+            Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
+
                 from qiskit import QuantumCircuit, BasicAer, execute
                 from qiskit.visualization import iplot_bloch_multivector
                 %matplotlib inline
@@ -40,6 +43,7 @@ def iplot_bloch_multivector(rho, figsize=None):
                 backend = BasicAer.get_backend('statevector_simulator')
                 job = execute(qc, backend).result()
                 iplot_bloch_multivector(job.get_statevector(qc))
+
     """
     warnings.warn(
         "The iplot_bloch_multivector function is deprecated and will be "

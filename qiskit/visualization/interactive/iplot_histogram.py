@@ -38,8 +38,11 @@ def iplot_histogram(data, figsize=None, number_to_keep=None,
         Raises:
             VisualizationError: When legend is provided and the length doesn't
                 match the input data.
+        Returns:
+            Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
+
                 from qiskit import QuantumCircuit, BasicAer, execute
                 from qiskit.visualization import iplot_histogram
                 %matplotlib inline

@@ -31,8 +31,11 @@ def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
             figsize (tuple): Figure size in pixels.
             slider (bool): activate slider
             show_legend (bool): show legend of graph content
+        Returns:
+            Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
+
                 from qiskit import QuantumCircuit, BasicAer, execute
                 from qiskit.visualization import iplot_state_paulivec
                 %matplotlib inline

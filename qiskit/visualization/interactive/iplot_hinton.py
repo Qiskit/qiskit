@@ -28,8 +28,11 @@ def iplot_state_hinton(rho, figsize=None):
         Args:
             rho (array): Density matrix
             figsize (tuple): Figure size in pixels.
+        Returns:
+            Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
+
                 from qiskit import QuantumCircuit, BasicAer, execute
                 from qiskit.visualization import iplot_state_hinton
                 %matplotlib inline

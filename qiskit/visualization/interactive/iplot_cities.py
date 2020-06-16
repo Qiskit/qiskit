@@ -27,8 +27,11 @@ def iplot_state_city(rho, figsize=None):
         Args:
             rho (array): State vector or density matrix.
             figsize (tuple): The figure size in pixels.
+        Returns:
+            Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
+
                 from qiskit import QuantumCircuit, BasicAer, execute
                 from qiskit.visualization import iplot_state_city
                 %matplotlib inline
