@@ -567,7 +567,8 @@ class QuantumCircuit:
                 raise CircuitError('Object is a subclass of Instruction, please add () to '
                                    'pass an instance of this object.')
 
-            raise CircuitError('Object is neither subclass nor an instance of Instruction.')
+            raise CircuitError('Object to append must be an Instruction or '
+                               'have a to_instruction() method.')
         if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
