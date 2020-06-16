@@ -115,7 +115,7 @@ class TestGateDefinitions(QiskitTestCase):
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
 
-class TestGateDefinitionEqual(QiskitTestCase):
+class TestGateEquivalenceEqual(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
     yields the same matrix as the hardcoded matrix definition."""
 

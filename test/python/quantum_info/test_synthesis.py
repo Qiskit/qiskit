@@ -114,7 +114,7 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
 
     def check_one_qubit_euler_angles(self, operator, basis='U3',
                                      tolerance=1e-12,
-                                     phase_equal=False):
+                                     phase_equal=True):
         """Check euler_angles_1q works for the given unitary"""
         decomposer = OneQubitEulerDecomposer(basis)
         with self.subTest(operator=operator):

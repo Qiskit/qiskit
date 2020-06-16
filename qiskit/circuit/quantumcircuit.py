@@ -134,7 +134,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None):
+    def __init__(self, *regs, name=None, phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             try:
                 regs = tuple(int(reg) for reg in regs)
@@ -168,6 +168,7 @@ class QuantumCircuit:
 
         self._layout = None
         self._phase = 0
+        self.phase = phase
 
     @property
     def data(self):
@@ -272,7 +273,7 @@ class QuantumCircuit:
             CircuitError: if the circuit cannot be inverted.
         """
         inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                      name=self.name + '_dg')
+                                      name=self.name + '_dg', phase=-self.phase)
 
         for inst, qargs, cargs in reversed(self._data):
             inverse_circ._append(inst.inverse(), qargs, cargs)
@@ -288,7 +289,8 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                       name=self.name + '**{}'.format(reps))
+                                       name=self.name + '**{}'.format(reps),
+                                       phase=reps * self.phase)
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
@@ -1425,12 +1427,12 @@ class QuantumCircuit:
 
     @property
     def phase(self):
-        """Return the phase of the gate."""
+        """Return the phase of the circuit."""
         return self._phase
 
     @phase.setter
     def phase(self, angle):
-        """Set the phase of the gate.
+        """Set the phase of the circuit.
 
         Args:
             angle (float, ParameterExpression)
@@ -1443,9 +1445,9 @@ class QuantumCircuit:
             if not angle:
                 self._phase = 0
             elif angle < 0:
-                self._phase = angle % (-2 * math.pi)
+                self._phase = angle % (-2 * np.pi)
             else:
-                self._phase = angle % (2 * math.pi)
+                self._phase = angle % (2 * np.pi)
 
     @property
     def parameters(self):
