@@ -30,7 +30,6 @@ try:
     from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
-    # import matplotlib
 
     HAS_MATPLOTLIB = True
 except ImportError:
@@ -42,7 +41,8 @@ from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
-# matplotlib.use('ps')
+# import matplotlib
+# matplotlib.use('ps') # For testing text_width without renderer
 
 # Default gate width and height
 WID = 0.65
@@ -194,40 +194,40 @@ class MatplotlibDrawer:
                             labelleft=False, labelright=False)
 
         self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
-                             '\\dagger', '\\rangle', '\\; ')
+                             '\\dagger', '\\rangle', '\\;')
         self._latex_chars1 = ('\\mapsto', '\\pi')
-        self._char_list = {' ': (0.0841, 0.0512), '!': (0.106, 0.064), '"': (0.1224, 0.0768),
-                           '#': (0.2211, 0.1371), '$': (0.1681, 0.1023), '%': (0.2504, 0.1553),
-                           '&': (0.2047, 0.1279), "'": (0.0731, 0.0457), '(': (0.1023, 0.064),
-                           ')': (0.1023, 0.064), '*': (0.1316, 0.0822), '+': (0.2193, 0.1371),
-                           ',': (0.0841, 0.0512), '-': (0.095, 0.0585), '.': (0.0841, 0.053),
-                           '/': (0.0895, 0.0548), '0': (0.1645, 0.1023), '1': (0.1663, 0.1023),
-                           '2': (0.1681, 0.1042), '3': (0.1681, 0.1023), '4': (0.1681, 0.1042),
-                           '5': (0.1681, 0.1023), '6': (0.1663, 0.1023), '7': (0.1681, 0.1042),
-                           '8': (0.1663, 0.1042), '9': (0.1681, 0.1042), ':': (0.0895, 0.053),
-                           ';': (0.0895, 0.053), '<': (0.2193, 0.1352), '=': (0.2193, 0.1371),
-                           '>': (0.2193, 0.1352), '?': (0.1389, 0.0859), '@': (0.2613, 0.1626),
-                           'A': (0.1809, 0.1115), 'B': (0.1791, 0.1115), 'C': (0.1827, 0.1133),
-                           'D': (0.2029, 0.1243), 'E': (0.1645, 0.1023), 'F': (0.1499, 0.0932),
-                           'G': (0.2029, 0.1261), 'H': (0.1974, 0.1224), 'I': (0.0768, 0.0475),
-                           'J': (0.0768, 0.0475), 'K': (0.1718, 0.106), 'L': (0.1462, 0.0914),
-                           'M': (0.2266, 0.1407), 'N': (0.1974, 0.1224), 'O': (0.2065, 0.1279),
-                           'P': (0.159, 0.0987), 'Q': (0.2065, 0.1279), 'R': (0.1827, 0.1133),
-                           'S': (0.1663, 0.1042), 'T': (0.1626, 0.0987), 'U': (0.1937, 0.1188),
-                           'V': (0.1809, 0.1115), 'W': (0.2595, 0.1608), 'X': (0.1809, 0.1115),
-                           'Y': (0.1608, 0.0987), 'Z': (0.1791, 0.1115), '[': (0.1023, 0.0658),
-                           '\\': (0.0895, 0.0548), ']': (0.1023, 0.064), '^': (0.2211, 0.1371),
-                           '_': (0.1334, 0.0822), '`': (0.1316, 0.0822), 'a': (0.1626, 0.1005),
-                           'b': (0.1681, 0.1023), 'c': (0.1444, 0.0895), 'd': (0.1663, 0.1042),
-                           'e': (0.1626, 0.1005), 'f': (0.0914, 0.0585), 'g': (0.1663, 0.1042),
-                           'h': (0.1663, 0.1042), 'i': (0.0749, 0.0457), 'j': (0.0749, 0.0457),
-                           'k': (0.1517, 0.095), 'l': (0.0749, 0.0457), 'm': (0.2558, 0.159),
-                           'n': (0.1663, 0.1042), 'o': (0.1608, 0.0987), 'p': (0.1681, 0.1023),
-                           'q': (0.1663, 0.1042), 'r': (0.1096, 0.0676), 's': (0.1371, 0.0841),
-                           't': (0.1023, 0.064), 'u': (0.1663, 0.1042), 'v': (0.1553, 0.0969),
-                           'w': (0.2156, 0.1334), 'x': (0.1553, 0.0969), 'y': (0.1553, 0.0969),
-                           'z': (0.1371, 0.0859), '{': (0.1681, 0.1042), '|': (0.0877, 0.053),
-                           '}': (0.1663, 0.1042)}
+        self._char_list = {' ': (0.0777, 0.0473), '!': (0.098, 0.0591), '"': (0.1132, 0.0709),
+                           '#': (0.2044, 0.1267), '$': (0.1554, 0.0946), '%': (0.2314, 0.1436),
+                           '&': (0.1892, 0.1182), "'": (0.0676, 0.0422), '(': (0.0946, 0.0591),
+                           ')': (0.0946, 0.0591), '*': (0.1216, 0.076), '+': (0.2027, 0.1267),
+                           ',': (0.0777, 0.0473), '-': (0.0878, 0.0541), '.': (0.0777, 0.049),
+                           '/': (0.0828, 0.0507), '0': (0.152, 0.0946), '1': (0.1537, 0.0946),
+                           '2': (0.1554, 0.0963), '3': (0.1554, 0.0946), '4': (0.1554, 0.0963),
+                           '5': (0.1554, 0.0946), '6': (0.1537, 0.0946), '7': (0.1554, 0.0963),
+                           '8': (0.1537, 0.0963), '9': (0.1554, 0.0963), ':': (0.0828, 0.049),
+                           ';': (0.0828, 0.049), '<': (0.2027, 0.125), '=': (0.2027, 0.1267),
+                           '>': (0.2027, 0.125), '?': (0.1284, 0.0794), '@': (0.2416, 0.1503),
+                           'A': (0.1672, 0.103), 'B': (0.1655, 0.103), 'C': (0.1689, 0.1047),
+                           'D': (0.1875, 0.1149), 'E': (0.152, 0.0946), 'F': (0.1385, 0.0861),
+                           'G': (0.1875, 0.1166), 'H': (0.1824, 0.1132), 'I': (0.0709, 0.0439),
+                           'J': (0.0709, 0.0439), 'K': (0.1588, 0.098), 'L': (0.1351, 0.0845),
+                           'M': (0.2095, 0.1301), 'N': (0.1824, 0.1132), 'O': (0.1909, 0.1182),
+                           'P': (0.147, 0.0912), 'Q': (0.1909, 0.1182), 'R': (0.1689, 0.1047),
+                           'S': (0.1537, 0.0963), 'T': (0.1503, 0.0912), 'U': (0.1791, 0.1098),
+                           'V': (0.1672, 0.103), 'W': (0.2399, 0.1486), 'X': (0.1672, 0.103),
+                           'Y': (0.1486, 0.0912), 'Z': (0.1655, 0.103), '[': (0.0946, 0.0608),
+                           '\\': (0.0828, 0.0507), ']': (0.0946, 0.0591), '^': (0.2044, 0.1267),
+                           '_': (0.1233, 0.076), '`': (0.1216, 0.076), 'a': (0.1503, 0.0929),
+                           'b': (0.1554, 0.0946), 'c': (0.1334, 0.0828), 'd': (0.1537, 0.0963),
+                           'e': (0.1503, 0.0929), 'f': (0.0845, 0.0541), 'g': (0.1537, 0.0963),
+                           'h': (0.1537, 0.0963), 'i': (0.0693, 0.0422), 'j': (0.0693, 0.0422),
+                           'k': (0.1402, 0.0878), 'l': (0.0693, 0.0422), 'm': (0.2365, 0.147),
+                           'n': (0.1537, 0.0963), 'o': (0.1486, 0.0912), 'p': (0.1554, 0.0946),
+                           'q': (0.1537, 0.0963), 'r': (0.1014, 0.0625), 's': (0.1267, 0.0777),
+                           't': (0.0946, 0.0591), 'u': (0.1537, 0.0963), 'v': (0.1436, 0.0895),
+                           'w': (0.1993, 0.1233), 'x': (0.1436, 0.0895), 'y': (0.1436, 0.0895),
+                           'z': (0.1267, 0.0794), '{': (0.1554, 0.0963), '|': (0.0811, 0.049),
+                           '}': (0.1537, 0.0963)}
 
     def _registers(self, creg, qreg):
         self._creg = []
@@ -248,8 +248,10 @@ class MatplotlibDrawer:
 
         if self.renderer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
-            return t.get_window_extent(renderer=self.renderer).width / 68.4
+            return t.get_window_extent(renderer=self.renderer).width / 74.0
         else:
+            # If backend does not have a get_renderer method.
+
             # Remove any latex chars before getting width
             for t in self._latex_chars1:
                 text = text.replace(t, 'x')
@@ -264,6 +266,7 @@ class MatplotlibDrawer:
                 except KeyError:
                     # If non-ASCII char, use width of 'g', an average size
                     sum_text += self._char_list['g'][f]
+            sum_text += 0.08    # Adjust for different tight_layout
             return sum_text
 
     def _get_max_width(self, text_width, sub_width, param_width=None):
@@ -518,7 +521,8 @@ class MatplotlibDrawer:
                      for word in words]
             words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word
                      for word in words]
-            return ' '.join(words)
+            label = ' '.join(words).replace(' ', '\\; ')
+            return label
 
         # quantum register
         for ii, reg in enumerate(self._qreg):
@@ -539,6 +543,7 @@ class MatplotlibDrawer:
                 label = _fix_double_script(label)
                 text_width = self._get_text_width(label, self._style.fs)
 
+            text_width = text_width * 1.15
             if text_width > longest_label_width:
                 longest_label_width = text_width
 
@@ -558,7 +563,7 @@ class MatplotlibDrawer:
                 if self.cregbundle:
                     label = '${}$'.format(reg.register.name) + initial_cbit
                     label = _fix_double_script(label)
-                    text_width = self._get_text_width(reg.register.name, self._style.fs)
+                    text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
                         longest_label_width = text_width
                     self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index,
@@ -568,7 +573,7 @@ class MatplotlibDrawer:
                 else:
                     label = '${}_{{{}}}$'.format(reg.register.name, reg.index) + initial_cbit
                     label = _fix_double_script(label)
-                    text_width = self._get_text_width(reg.register.name, self._style.fs)
+                    text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
                         longest_label_width = text_width
                     self._creg_dict[ii] = {'y': pos, 'label': label, 'index': reg.index,
@@ -708,8 +713,8 @@ class MatplotlibDrawer:
                     box_width = WID
                     continue
 
-                gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.1
-                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs) - 0.5
+                gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.05
+                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs)
                 if (hasattr(op.op, 'params')
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])
                         and len(op.op.params) > 0):
@@ -717,7 +722,7 @@ class MatplotlibDrawer:
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
-                    param_width = self._get_text_width(param, fontsize=self._style.sfs) - 0.1
+                    param_width = self._get_text_width(param, fontsize=self._style.sfs) + 0.1
                 else:
                     param_width = 0.0
 
