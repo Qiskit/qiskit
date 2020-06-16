@@ -544,7 +544,7 @@ Qiskit localization requests are handled in `Qiskit Translations <https://github
 repository. To contribute to Qiskit localization, please follow these steps:
 
 #. Add your name (or ID) to the `LOCALIZATION_CONTRIBUTORS
-   <https://github.com/Qiskit/qiskit-translations/blob/master/LOCALIZATION_CONTRIBUTORS>`__
+   <https://github.com/qiskit-community/qiskit-translations/blob/master/LOCALIZATION_CONTRIBUTORS>`__
    file.
 #. Create a pull request (PR) to merge your change. Make sure to follow the template
    to open a Pull Request.
@@ -558,6 +558,12 @@ repository. To contribute to Qiskit localization, please follow these steps:
         to the PR**.
 #. You will be asked to sign the Qiskit Contributors License Agreement (CLA);
    please do so.
+#. A minimum of **three contributors** per language are necessary for any new
+   languages to be added, to receive official support from the administrators of
+   the localization project.
+#. Among the group of contributors, a translation lead must be identified to serve
+   as a liaison with the administrators of the localization project.
+   The lead must contact: Yuri Kobayashi (yurik@jp.ibm.com) by email.
 #. In the `Qiskit-Docs <https://crowdin.com/project/qiskit-docs>`__
    Crowdin project, choose the language that you want to contribute to.
 
@@ -567,7 +573,7 @@ repository. To contribute to Qiskit localization, please follow these steps:
       we want to make sure that translated languages have enough community support
       to build a translation team with translators, proofreaders, and translation leads.
       If you want to be a translation lead or would be willing to join a new
-      translation project team, you can open a `GitHub issue <https://github.com/Qiskit/qiskit-translations/issues/new/choose>`__
+      translation project team, you can open a `GitHub issue <https://github.com/qiskit-community/qiskit-translations/issues/new/choose>`__
       to start a discussion with the Qiskit team and recruit translation project members.
 #. Click the **Join** button and **paste the URL of your PR** in the dialog box where you
    are asked why you want to join the Crowdin project.
