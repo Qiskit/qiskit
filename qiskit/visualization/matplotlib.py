@@ -251,8 +251,7 @@ class MatplotlibDrawer:
             return t.get_window_extent(renderer=self.renderer).width / 74.0
         else:
             # If backend does not have a get_renderer method.
-
-            # Remove any latex chars before getting width
+            # First remove any latex chars before getting width
             for t in self._latex_chars1:
                 text = text.replace(t, 'x')
             for t in self._latex_chars:
@@ -266,13 +265,18 @@ class MatplotlibDrawer:
                 except KeyError:
                     # If non-ASCII char, use width of 'g', an average size
                     sum_text += self._char_list['g'][f]
-            sum_text += 0.08    # Adjust for different tight_layout
+            sum_text += 0.08    # Adjust for different backend tight_layout
             return sum_text
 
     def _get_max_width(self, text_width, sub_width, param_width=None):
-        if param_width and (param_width > text_width and param_width > sub_width
-                            and param_width > WID):
-            return param_width
+        if param_width:
+            if (text_width > sub_width and text_width > param_width and
+                    text_width > WID):
+                return text_width
+            elif sub_width > param_width and sub_width > WID:
+                return sub_width
+            elif param_width > WID:
+                return param_width
         elif text_width > sub_width and text_width > WID:
             return text_width
         elif sub_width > WID:
@@ -346,7 +350,7 @@ class MatplotlibDrawer:
 
         # 0.15 = the initial gap, add 1/2 text width to place on the right
         text_width = self._get_text_width(text, self._style.sfs)
-        xp = xpos + 0.15 + text_width / 2
+        xp = xpos + 0.08 + text_width / 2
         self.ax.text(xp, ypos + HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs, color=tc,
                      clip_on=True, zorder=PORDER_TEXT)
@@ -730,7 +734,7 @@ class MatplotlibDrawer:
                     tname = 'U1' if op.name == 'cu1' else 'zz'
                     side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
                                   + param_width)
-                    box_width = WID + 0.15 + side_width
+                    box_width = 1.5 * (side_width)
                 else:
                     box_width = self._get_max_width(gate_width, ctrl_width, param_width)
 
