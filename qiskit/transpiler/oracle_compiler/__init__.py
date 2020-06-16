@@ -13,10 +13,10 @@
 # that they have been altered from the originals.
 """
 =====================================
-Oracle compiler (:mod:`qiskit.circuit.oracle_compiler`)
+Oracle compiler (:mod:`qiskit.transpiler.oracle_compiler`)
 =====================================
 
-.. currentmodule:: qiskit.circuit.oracle_compiler
+.. currentmodule:: qiskit.transpiler.oracle_compiler
 
 Overview
 ========
@@ -34,8 +34,8 @@ QuantumCircuit:
 
    .. jupyter-execute::
 
-      from qiskit.circuit.oracle_compiler import compile_oracle
-      from qiskit.circuit.oracle_compiler.types import Bit
+      from qiskit.transpiler.oracle_compiler import compile_oracle
+      from qiskit.transpiler.oracle_compiler.types import Bit
 
       def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
           return (not a and b and not c and d)
@@ -64,7 +64,7 @@ Supplementary Information
 
       **Oracle data types**
 
-   TODO, introduce to Bit type ``qiskit.circuit.oracle_compiler.types``
+   TODO, introduce to Bit type ``qiskit.transpiler.oracle_compiler.types``
 
 
 Oracle compiler API

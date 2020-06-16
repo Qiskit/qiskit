@@ -15,7 +15,7 @@
 """Tests LogicNetwork.simulate method."""
 
 from ddt import ddt, data
-from qiskit.circuit.oracle_compiler import compile_oracle
+from qiskit.transpiler.oracle_compiler import compile_oracle
 from qiskit.test import QiskitTestCase
 from .utils import get_truthtable_from_function, example_list
 

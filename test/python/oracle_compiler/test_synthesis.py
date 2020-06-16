@@ -16,7 +16,7 @@
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.circuit.oracle_compiler import compile_oracle
+from qiskit.transpiler.oracle_compiler import compile_oracle
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate

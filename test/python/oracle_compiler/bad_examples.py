@@ -16,7 +16,7 @@
 
 """These are bad examples and raise errors in in the oracle compiler"""
 
-from qiskit.circuit.oracle_compiler.types import Bit, int2
+from qiskit.transpiler.oracle_compiler.types import Bit, int2
 
 
 def id_no_type_arg(a) -> Bit:

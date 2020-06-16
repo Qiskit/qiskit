@@ -16,7 +16,7 @@
 
 """These examples should be handle by the oracle compiler"""
 
-from qiskit.circuit.oracle_compiler.types import Bit
+from qiskit.transpiler.oracle_compiler.types import Bit
 
 
 def identity(a: Bit) -> Bit:
