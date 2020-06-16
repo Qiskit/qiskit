@@ -30,7 +30,7 @@ class Counts(dict):
     """A class to store a counts result from a circuit execution."""
 
     def __init__(self, data, name=None, shots=None, time_taken=None,
-                 creg_sizes=None, memory_slots=None, **metadata):
+                 creg_sizes=None, memory_slots=None):
         """Build a counts object
 
         Args:
@@ -117,7 +117,6 @@ class Counts(dict):
         self.name = name
         self.shots = shots
         self.time_taken = time_taken
-        self.metadata = metadata
 
     def most_frequent(self):
         """Return the most frequent count
