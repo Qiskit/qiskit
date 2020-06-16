@@ -47,4 +47,5 @@ def iplot_bloch_multivector(rho, figsize=None):
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_bloch_multivector should be "
         "used directly moving forward.", DeprecationWarning, stacklevel=2)
-    plot_bloch_multivector(rho, figsize=figsize)
+    fig = plot_bloch_multivector(rho, figsize=figsize)
+    return fig

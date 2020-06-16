@@ -57,5 +57,6 @@ def iplot_histogram(data, figsize=None, number_to_keep=None,
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_histogram should be "
         "used directly moving forward.", DeprecationWarning, stacklevel=2)
-    plot_histogram(data, figsize=figsize, number_to_keep=number_to_keep,
-                   sort=sort, legend=legend)
+    fig = plot_histogram(data, figsize=figsize, number_to_keep=number_to_keep,
+                         sort=sort, legend=legend)
+    return fig

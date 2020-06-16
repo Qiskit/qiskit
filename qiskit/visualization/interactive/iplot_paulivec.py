@@ -50,4 +50,5 @@ def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_state_paulivec should be "
         "used directly moving forward.", DeprecationWarning, stacklevel=2)
-    plot_state_paulivec(rho, figsize=figsize)
+    fig = plot_state_paulivec(rho, figsize=figsize)
+    return fig

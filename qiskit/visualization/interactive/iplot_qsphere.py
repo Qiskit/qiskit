@@ -47,4 +47,5 @@ def iplot_state_qsphere(rho, figsize=None):
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_state_qsphere should be "
         "used directly moving forward.", DeprecationWarning, stacklevel=2)
-    plot_state_qsphere(rho, figsize=figsize)
+    fig = plot_state_qsphere(rho, figsize=figsize)
+    return fig

@@ -47,4 +47,5 @@ def iplot_state_hinton(rho, figsize=None):
         "longer exists so this is falling back to use the matplotlib "
         "visualizations. qiskit.visualization.plot_state_hinton should be "
         "used directly moving forward.", DeprecationWarning, stacklevel=2)
-    plot_state_hinton(rho, figsize=figsize)
+    fig = plot_state_hinton(rho, figsize=figsize)
+    return fig
