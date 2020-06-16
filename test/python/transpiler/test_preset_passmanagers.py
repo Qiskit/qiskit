@@ -19,7 +19,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap
-from qiskit.extensions.standard import U2Gate, U3Gate
+from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
@@ -59,6 +59,15 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
         result = transpile(circuit, basis_gates=None, optimization_level=level)
+        self.assertEqual(result, circuit)
+
+    def test_level0_keeps_reset(self):
+        """Test level 0 should keep the reset instructions"""
+        q = QuantumRegister(2, name='q')
+        circuit = QuantumCircuit(q)
+        circuit.reset(q[0])
+        circuit.reset(q[0])
+        result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
 
@@ -325,13 +334,6 @@ class TestFinalLayouts(QiskitTestCase):
                         11: ancilla[6], 12: ancilla[7], 13: ancilla[8], 14: ancilla[9],
                         15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
                         19: ancilla[14]}
-
-        # noise_adaptive_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4],
-        #                          0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3],
-        #                          4: ancilla[4], 7: ancilla[5], 8: ancilla[6], 9: ancilla[7],
-        #                          12: ancilla[8], 13: ancilla[9], 14: ancilla[10],
-        #                          16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
-        #                          19: ancilla[14]}
 
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = dense_layout

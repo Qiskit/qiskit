@@ -24,9 +24,9 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate, HGate,
-                                        SGate, SdgGate, CXGate, CZGate,
-                                        SwapGate)
+from qiskit.circuit.library import (IGate, XGate, YGate, ZGate, HGate,
+                                    SGate, SdgGate, CXGate, CZGate,
+                                    SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
