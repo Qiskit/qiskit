@@ -22,9 +22,6 @@ persistent=yes
 # usually to register additional checkers.
 load-plugins=pylint.extensions.docparams, # enable checking of docstring args
     pylint.extensions.docstyle,  # basic docstring style checks
-    pylintfileheader  # Check license comments
-
-file-header=(?:(?:#[^\n]*)?\n)*# This code is part of Qiskit.\n#\n# \(C\) Copyright IBM [0-9, -]*.\n#\n# This code is licensed under the Apache License, Version 2.0. You may\n# obtain a copy of this license in the LICENSE.txt file in the root directory\n# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.\n#\n# Any modifications or derivative works of this code must retain this\n# copyright notice, and modified files need to carry a notice indicating\n# that they have been altered from the originals.\n
 
 # Use multiple processes to speed up Pylint.
 jobs=1
