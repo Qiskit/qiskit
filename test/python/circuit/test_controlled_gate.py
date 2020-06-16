@@ -541,14 +541,14 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
                 self.assertTrue(matrix_equal(simulated, expected))
 
-    @data(0, 1, 2)
+    @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test the creating a MCX gate yields the explicit definition if we know it."""
         cls = MCXGate(num_ctrl_qubits).__class__
-        explicit = {0: XGate, 1: CXGate, 2: CCXGate}
+        explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @data(0, 3, 4, 5, 8)
+    @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):
         """Test the mcx gates."""
         backend = BasicAer.get_backend('statevector_simulator')
