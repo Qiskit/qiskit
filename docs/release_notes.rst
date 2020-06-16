@@ -22,6 +22,115 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.19.4
+*************
+
+Terra 0.14.2
+============
+
+.. _Release Notes_0.14.2_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- The ``circuit_to_gate`` and ``circuit_to_instruction`` converters had
+  previously automatically included the generated gate or instruction in the
+  active ``SessionEquivalenceLibrary``. These converters now accept an
+  optional ``equivalence_library`` keyword argument to specify if and where
+  the converted instances should be registered. The default behavior is not
+  to register the converted instance.
+
+
+.. _Release Notes_0.14.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Implementations of the multi-controlled X Gate (``MCXGrayCode``,
+  ``MCXRecursive`` and ``MCXVChain``) have had their ``name``
+  properties changed to more accurately describe their
+  implementation (``mcx_gray``, ``mcx_recursive``, and
+  ``mcx_vchain`` respectively.) Previously, these gates shared the
+  name ``mcx` with ``MCXGate``, which caused these gates to be
+  incorrectly transpiled and simulated.
+
+- ``ControlledGate`` instances with a set ``ctrl_state`` were in some cases
+  not being evaluated as equal, even if the compared gates were equivalent.
+  This has been resolved.
+
+- Fixed the SI unit conversion for :py:class:`qiskit.pulse.SetFrequency`. The
+  ``SetFrequency`` instruction should be in Hz on the frontend and has to be
+  converted to GHz when ``SetFrequency`` is converted to ``PulseQobjInstruction``.
+
+- Open controls were implemented by modifying a gate\'s
+  definition. However, when the gate already exists in the basis,
+  this definition is not used, which yields incorrect circuits sent
+  to a backend. This modifies the unroller to output the definition
+  if it encounters a controlled gate with open controls.
+
+Aer 0.5.2
+=========
+
+No Change
+
+Ignis 0.3.0
+===========
+
+No Change
+
+Aqua 0.7.2
+==========
+
+Prelude
+-------
+VQE expectation computation with Aer qasm_simulator now defaults to a
+computation that has the expected shot noise behavior.
+
+Upgrade Notes
+-------------
+- `cvxpy <https://github.com/cvxgrp/cvxpy/>`_ is now in the requirements list
+  as a dependency for qiskit-aqua. It is used for the quadratic program solver
+  which is used as part of the :class:`qiskit.aqua.algorithms.QSVM`. Previously
+  ``cvxopt`` was an optional dependency that needed to be installed to use
+  this functionality. This is no longer required as cvxpy will be installed
+  with qiskit-aqua.
+- For state tomography run as part of :class:`qiskit.aqua.algorithms.HHL` with
+  a QASM backend the tomography fitter function
+  :meth:`qiskit.ignis.verification.StateTomographyFitter.fit` now gets called
+  explicitly with the method set to ``lstsq`` to always use the least-squares
+  fitting. Previously it would opportunistically try to use the ``cvx`` fitter
+  if ``cvxpy`` were installed. But, the ``cvx`` fitter depends on a
+  specifically configured ``cvxpy`` installation with an SDP solver installed
+  as part of ``cvxpy`` which is not always present in an environment with
+  ``cvxpy`` installed.
+- The VQE expectation computation using qiskit-aer's
+  :class:`qiskit.providers.aer.extensions.SnapshotExpectationValue` instruction
+  is not enabled by default anymore. This was changed to be the default in
+  0.7.0 because it is significantly faster, but it led to unexpected ideal
+  results without shot noise (see
+  `#1013 <https://github.com/Qiskit/qiskit-aqua/issues/1013>`_ for more
+  details). The default has now changed back to match user expectations. Using
+  the faster expectation computation is now opt-in by setting the new
+  ``include_custom`` kwarg to ``True`` on the
+  :class:`qiskit.aqua.algorithms.VQE` constructor.
+
+New Features
+------------
+- A new kwarg ``include_custom`` has been added to the constructor for
+  :class:`qiskit.aqua.algorithms.VQE` and it's subclasses (mainly
+  :class:`qiskit.aqua.algorithms.QAOA`). When set to true and the
+  ``expectation`` kwarg is set to ``None`` (the default) this will enable
+  the use of VQE expectation computation with Aer's ``qasm_simulator``
+  :class:`qiskit.providers.aer.extensions.SnapshotExpectationValue` instruction.
+  The special Aer snapshot based computation is much faster but with the ideal
+  output similar to state vector simulator.
+
+IBM Q Provider 0.7.2
+====================
+
+No Change
+
+*************
 Qiskit 0.19.3
 *************
 
