@@ -15,7 +15,11 @@
 """LogicNetwork and the related exceptions"""
 
 import ast
-from tweedledum import synthesize_xag, simulate  # pylint: disable=no-name-in-module
+try:
+    from tweedledum import synthesize_xag, simulate  # pylint: disable=no-name-in-module
+    HAS_TWEEDLEDUM = True
+except Exception:  # pylint: disable=broad-except
+    HAS_TWEEDLEDUM = False
 from qiskit import QuantumCircuit, QuantumRegister
 from .oracle_visitor import OracleVisitor
 from .utils import tweedledum2qiskit
@@ -31,6 +35,10 @@ class LogicNetwork:
         Args:
             source (str): Python code with type hints.
         """
+        if not HAS_TWEEDLEDUM:
+            raise ImportError("To use the oracle compiler, tweedledum "
+                              "must be installed. To install tweedledum run "
+                              '"pip install tweedledum".')
         _oracle_visitor = OracleVisitor()
         _oracle_visitor.visit(ast.parse(source))
         self._network = _oracle_visitor._network

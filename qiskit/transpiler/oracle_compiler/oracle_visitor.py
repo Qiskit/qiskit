@@ -16,7 +16,11 @@
 This module is used internally by ``qiskit.transpiler.oracle_compiler.LogicNetwork"""
 
 import ast
-from tweedledum import xag_network  # pylint: disable=no-name-in-module
+try:
+    from tweedledum import xag_network  # pylint: disable=no-name-in-module
+    HAS_TWEEDLEDUM = True
+except Exception:  # pylint: disable=broad-except
+    HAS_TWEEDLEDUM = False
 import _ast
 from .exceptions import OracleParseError, OracleCompilerTypeError
 
@@ -33,6 +37,10 @@ class OracleVisitor(ast.NodeVisitor):
               }
 
     def __init__(self):
+        if not HAS_TWEEDLEDUM:
+            raise ImportError("To use the oracle compiler, tweedledum "
+                              "must be installed. To install tweedledum run "
+                              '"pip install tweedledum".')
         self.scopes = []
         self.args = []
         self._network = None
