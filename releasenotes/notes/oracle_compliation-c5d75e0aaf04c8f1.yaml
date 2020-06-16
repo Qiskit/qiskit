@@ -5,8 +5,8 @@ features:
 
     .. jupyter-execute:
 
-      from qiskit.circuit.oracle_compiler import compile_oracle
-      from qiskit.circuit.oracle_compiler.types import Bit
+      from qiskit.transpiler.oracle_compiler import compile_oracle
+      from qiskit.transpiler.oracle_compiler.types import Bit
 
       def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
           return (not a and b and not c and d)
@@ -15,7 +15,7 @@ features:
       quantum_circuit = network.synth()
       quantum_circuit.draw()) 
 
-    The parameter ``arg_regs`` in :meth:`qiskit.circuit.oracle_compiler.LogicNetwork.synth` creates a circuit with registers refering to the parameter names:
+    The parameter ``arg_regs`` in :meth:`qiskit.transpiler.oracle_compiler.LogicNetwork.synth` creates a circuit with registers refering to the parameter names:
 
     .. jupyter-execute:
 

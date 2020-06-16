@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-This module is used internally by ``qiskit.circuit.oracle_compiler.LogicNetwork"""
+This module is used internally by ``qiskit.transpiler.oracle_compiler.LogicNetwork"""
 
 import ast
 from tweedledum import xag_network  # pylint: disable=no-name-in-module

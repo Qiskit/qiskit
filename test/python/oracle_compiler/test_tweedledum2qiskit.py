@@ -22,7 +22,7 @@ from qiskit.circuit.library.standard_gates import XGate
 
 
 class TestTweedledum2Qiskit(QiskitTestCase):
-    """Tests qiskit.circuit.oracle_compiler.utils.tweedledum2qiskit static method."""
+    """Tests qiskit.transpiler.oracle_compiler.utils.tweedledum2qiskit static method."""
     def test_x(self):
         """Single uncontrolled X"""
         tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}
