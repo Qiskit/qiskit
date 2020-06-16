@@ -34,6 +34,9 @@ class LogicNetwork:
 
         Args:
             source (str): Python code with type hints.
+
+        Raises:
+            ImportError: If tweedledum is not installed.
         """
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the oracle compiler, tweedledum "
