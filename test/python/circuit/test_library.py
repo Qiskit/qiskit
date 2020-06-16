@@ -219,6 +219,14 @@ class TestGraphStateLibrary(QiskitTestCase):
         graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
+    @data(
+        [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
+    )
+    def test_non_symmetric_raises(self, adjacency_matrix):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            GraphState(adjacency_matrix)
+
 
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
