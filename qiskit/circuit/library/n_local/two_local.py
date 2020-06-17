@@ -66,67 +66,6 @@ class TwoLocal(NLocal):
     For each parameterized gate a new parameter is generated using a
     :class:`~qiskit.circuit.library.ParameterVector`. The name of these parameters can be chosen
     using the ``parameter_prefix``.
-
-    Examples:
-
-        >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        >>> print(two)  # decompose the layers into standard gates
-             ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
-        q_0: ┤ Ry(θ[0]) ├─░───■────────░─┤ Ry(θ[3]) ├─░───■────────░─┤ Ry(θ[6]) ├
-             ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
-        q_1: ┤ Ry(θ[1]) ├─░─┤ X ├──■───░─┤ Ry(θ[4]) ├─░─┤ X ├──■───░─┤ Ry(θ[7]) ├
-             ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
-        q_2: ┤ Ry(θ[2]) ├─░──────┤ X ├─░─┤ Ry(θ[5]) ├─░──────┤ X ├─░─┤ Ry(θ[8]) ├
-             └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
-
-        >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
-        >>> qc = QuantumCircuit(3)
-        >>> qc += two
-        >>> print(qc.decompose().draw())
-             ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
-        q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
-             ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
-        q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─░──■──┼──■──░─┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
-             ├──────────┤├──────────┤ ░     │  │  ░ ├──────────┤├───────────┤
-        q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├─░─────■──■──░─┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
-             └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
-
-        >>> entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
-        >>> two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
-        >>> print(two)  # note: no barriers inserted this time!
-                ┌───┐                             ┌──────────┐┌───┐
-        q_0: |0>┤ X ├─────■───────────────────────┤ Rx(θ[2]) ├┤ X ├
-                ├───┤┌────┴─────┐            ┌───┐└─────┬────┘└───┘
-        q_1: |0>┤ X ├┤ Rx(θ[0]) ├─────■──────┤ X ├──────┼──────────
-                ├───┤└──────────┘┌────┴─────┐└───┘      │     ┌───┐
-        q_2: |0>┤ X ├────────────┤ Rx(θ[1]) ├───────────■─────┤ X ├
-                └───┘            └──────────┘                 └───┘
-
-        >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
-        >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        >>> circuit = two + two
-        >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
-        q_0: ─────■───────────■───────────■───────────■──────
-                  │           │           │           │
-        q_1: ─────┼───────────┼───────────┼───────────┼──────
-                  │      ┌────┴─────┐     │      ┌────┴─────┐
-        q_2: ─────┼──────┤ Ry(θ[1]) ├─────┼──────┤ Ry(θ[1]) ├
-             ┌────┴─────┐└──────────┘┌────┴─────┐└──────────┘
-        q_3: ┤ Ry(θ[0]) ├────────────┤ Ry(θ[0]) ├────────────
-             └──────────┘            └─────────
-
-        >>> layer_1 = [(0, 1), (0, 2)]
-        >>> layer_2 = [(1, 2)]
-        >>> two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True)
-        >>> print(two)
-             ┌───┐ ░            ░ ┌───┐ ░       ░ ┌───┐
-        q_0: ┤ X ├─░───■────■───░─┤ X ├─░───────░─┤ X ├
-             ├───┤ ░ ┌─┴─┐  │   ░ ├───┤ ░       ░ ├───┤
-        q_1: ┤ X ├─░─┤ X ├──┼───░─┤ X ├─░───■───░─┤ X ├
-             ├───┤ ░ └───┘┌─┴─┐ ░ ├───┤ ░ ┌─┴─┐ ░ ├───┤
-        q_2: ┤ X ├─░──────┤ X ├─░─┤ X ├─░─┤ X ├─░─┤ X ├
-             └───┘ ░      └───┘ ░ └───┘ ░ └───┘ ░ └───┘
-
     """
 
     def __init__(self,
@@ -205,6 +144,41 @@ class TwoLocal(NLocal):
         Note:
             Outlook: If layers knew their number of parameters as static property, we could also
             allow custom layer types.
+
+    Examples:
+
+     .. jupyter-execute::
+
+         two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
+         two.draw('mpl')  # decompose the layers into standard gates
+
+     .. jupyter-execute::
+
+         two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
+         qc = QuantumCircuit(3)
+         qc += two
+         qc.decompose().draw('mpl')
+
+     .. jupyter-execute::
+
+         entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
+         two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
+         two.draw('mpl')  # note: no barriers inserted this time!
+
+     .. jupyter-execute::
+
+         entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
+         two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
+         circuit = two + two
+         circuit.decompose().draw('mpl')  # note, that the parameters are the same!
+
+     .. jupyter-execute::
+
+         layer_1 = [(0, 1), (0, 2)]
+         layer_2 = [(1, 2)]
+         two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True)
+         two.draw('mpl')
+
         """
         if isinstance(layer, QuantumCircuit):
             return layer

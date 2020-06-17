@@ -92,7 +92,7 @@ class QuantumCircuit:
             qc.h(0)
             qc.cx(0, 1)
             qc.measure([0, 1], [0, 1])
-            qc.draw()
+            qc.draw(output='mpl')
 
         Construct a 5-qubit GHZ circuit.
 
@@ -124,7 +124,7 @@ class QuantumCircuit:
             qc.barrier(qr)
             qc.measure(qr, cr)
 
-            qc.draw()
+            qc.draw(output='mpl')
     """
     instances = 0
     prefix = 'circuit'

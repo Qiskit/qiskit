@@ -168,23 +168,11 @@ class MCMTVChain(MCMT):
 
     **Examples:**
 
-        >>> from qiskit.circuit.library import HGate
-        >>> MCMTVChain(HGate(), 3, 2).draw()
+    .. jupyter-execute::
 
-        q_0: ──■────────────────────────■──
-               │                        │
-        q_1: ──■────────────────────────■──
-               │                        │
-        q_2: ──┼────■──────────────■────┼──
-               │    │  ┌───┐       │    │
-        q_3: ──┼────┼──┤ H ├───────┼────┼──
-               │    │  └─┬─┘┌───┐  │    │
-        q_4: ──┼────┼────┼──┤ H ├──┼────┼──
-             ┌─┴─┐  │    │  └─┬─┘  │  ┌─┴─┐
-        q_5: ┤ X ├──■────┼────┼────■──┤ X ├
-             └───┘┌─┴─┐  │    │  ┌─┴─┐└───┘
-        q_6: ─────┤ X ├──■────■──┤ X ├─────
-                  └───┘          └───┘
+        from qiskit.circuit.library import HGate
+        MCMTVChain(HGate(), 3, 2).draw('mpl')
+
     """
 
     def _build(self):

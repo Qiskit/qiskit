@@ -62,7 +62,6 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     Example:
         .. code-block::
 
-             %matplotlib inline
             from qiskit import QuantumCircuit
             from qiskit.compiler import transpile
             from qiskit.transpiler import PassManager
@@ -71,12 +70,12 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
             circ = QuantumCircuit(3)
             circ.ccx(0, 1, 2)
-            circ.draw()
+            circ.draw('mpl')
 
             pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
             pm = PassManager(pass_)
             new_circ = pm.run(circ)
-            new_circ.draw(output='mpl')
+            new_circ.draw('mpl')
 
             pass_manager_drawer(pm, "passmanager.jpg")
     """

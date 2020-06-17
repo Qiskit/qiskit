@@ -89,7 +89,7 @@ Supplementary Information
       qc.cu1(np.pi/4, 0, 1)
       qc.h(0)
       qc.measure([0], [0])
-      qc.draw(output='mpl')
+      qc.draw('mpl')
 
    We have :math:`H`, :math:`X`, and controlled-:math:`U_{1}` gates, all of which are
    not in our devices basis gate set, and must be expanded.  This expansion is taken
@@ -100,7 +100,7 @@ Supplementary Information
    .. jupyter-execute::
 
       qc_basis = qc.decompose()
-      qc_basis.draw(output='mpl')
+      qc_basis.draw('mpl')
 
 
    A few things to highlight.  First, the circuit has gotten longer with respect to the
@@ -124,7 +124,7 @@ Supplementary Information
 
          swap_circ = QuantumCircuit(2)
          swap_circ.swap(0, 1)
-         swap_circ.decompose().draw(output='mpl')
+         swap_circ.decompose().draw('mpl')
 
       As a product of three CNOT gates, SWAP gates are expensive operations to perform on a
       noisy quantum devices.  However, such operations are usually necessary for embedding a
@@ -141,7 +141,7 @@ Supplementary Information
 
          ccx_circ = QuantumCircuit(3)
          ccx_circ.ccx(0, 1, 2)
-         ccx_circ.decompose().draw(output='mpl')
+         ccx_circ.decompose().draw('mpl')
 
       For every Toffoli gate in a quantum circuit, the IBM Quantum hardware may execute up to
       six CNOT gates, and a handful of single-qubit gates.  From this example, it should be
@@ -210,7 +210,7 @@ Supplementary Information
       ghz.cx(0,range(1,3))
       ghz.barrier()
       ghz.measure(range(3), range(3))
-      ghz.draw(output='mpl')
+      ghz.draw('mpl')
 
 
    - **Layout Using Optimization Level 0**
@@ -287,7 +287,7 @@ Supplementary Information
       ghz = QuantumCircuit(5)
       ghz.h(0)
       ghz.cx(0,range(1,5))
-      ghz.draw(output='mpl')
+      ghz.draw('mpl')
 
 
    .. jupyter-execute::
@@ -351,7 +351,7 @@ Supplementary Information
       ghz = QuantumCircuit(5)
       ghz.h(0)
       ghz.cx(0,range(1,5))
-      ghz.draw(output='mpl')
+      ghz.draw('mpl')
 
 
    .. jupyter-execute::
