@@ -557,9 +557,19 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
+        Raises:
+            CircuitError: if object passed is a subclass of Instruction
+            CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
-        # Convert input to Instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
+            if issubclass(instruction, Instruction):
+                raise CircuitError('Object is a subclass of Instruction, please add () to '
+                                   'pass an instance of this object.')
+
+            raise CircuitError('Object to append must be an Instruction or '
+                               'have a to_instruction() method.')
+        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
