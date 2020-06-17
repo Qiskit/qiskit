@@ -19,7 +19,8 @@ from test.aqua import QiskitAquaTestCase
 import itertools
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.circuit.library import CZGate
 
@@ -183,6 +184,17 @@ class TestOpConstruction(QiskitAquaTestCase):
         op6 = op5 + PrimitiveOp(Operator.from_label('+r').data)
         np.testing.assert_array_almost_equal(
             op6.to_matrix(), op5.to_matrix() + Operator.from_label('+r').data)
+
+    def test_matrix_to_instruction(self):
+        """Test MatrixOp.to_instruction yields an Instruction object."""
+        matop = (H ^ 3).to_matrix_op()
+        with self.subTest('assert to_instruction returns Instruction'):
+            self.assertIsInstance(matop.to_instruction(), Instruction)
+
+        matop = ((H ^ 3) + (Z ^ 3)).to_matrix_op()
+        with self.subTest('matrix operator is not unitary'):
+            with self.assertRaises(ExtensionError):
+                matop.to_instruction()
 
     def test_adjoint(self):
         """ adjoint test """
