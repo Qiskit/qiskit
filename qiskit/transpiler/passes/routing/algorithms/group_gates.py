@@ -14,7 +14,6 @@
 import networkx as nx
 
 
-
 def group_gates(compiled_dag):
     """Group consecutive runs of gates on a qubit pair."""
 

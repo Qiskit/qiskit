@@ -5,11 +5,25 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+import copy
+from timeit import default_timer as timer
+
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.routing.algorithms.group_gates import group_gates
+from qiskit.transpiler.passes.routing.cython.a_star_mapper import a_star_mapper
+from qiskit.transpiler.passes.routing.algorithms import post_mapping_optimization
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import ClassicalRegister
+from qiskit import QuantumCircuit
+from qiskit.transpiler.coupling import CouplingMap
+
+
 """Pass for minimizing the number of CX gates.
 """
 
 # Competition winning entry
-from qiskit.transpiler._basepasses import TransformationPass
+
 
 def JAGcoupling_list2dict(couplinglist):
     """Convert coupling map list into dictionary.
@@ -30,6 +44,7 @@ def JAGcoupling_list2dict(couplinglist):
         else:
             couplingdict[pair[0]] = [pair[1]]
     return couplingdict
+
 
 class AStarCX(TransformationPass):
     """Find cheapest cost (local optimization with lookahead) for CX gates.
@@ -68,24 +83,6 @@ class AStarCX(TransformationPass):
             that satisfies an input coupling_map and has as low a gate_cost
             as possible.
         """
-        from timeit import default_timer as timer
-        from qiskit.transpiler.passes.group_gates import group_gates
-        from qiskit.transpiler.passes.a_star_mapper import a_star_mapper
-        from qiskit.transpiler.passes.post_mapping_optimization import optimize_gate_groups
-        from qiskit.dagcircuit import DAGCircuit
-        from qiskit.circuit import QuantumRegister
-        from qiskit.circuit import ClassicalRegister
-        from qiskit import QuantumCircuit
-        from qiskit.transpiler.passes.mapping.unroller import Unroller
-        from qiskit.converters import circuit_to_dag
-        from qiskit.mapper import CouplingMap, Layout
-
-        # import time
-
-        import copy
-        #JAG from qiskit.mapper import Coupling, coupling_list2dict
-        from qiskit import qasm, unroll
-        # import networkx as nx
 
         if self.gate_costs is None:
             self.gate_costs = {
@@ -104,33 +101,16 @@ class AStarCX(TransformationPass):
         compiled_dag = copy.deepcopy(dag)
 
         # temporary circuit to add all used gates to the available gate set
-        tmp_qasm = (
-            "OPENQASM 2.0;\n"
-            + "gate cx c,t { CX c,t; }\n"
-            + "gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }\n"
-            + "gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }\n"
-            + "gate u1(lambda) q { U(0,0,lambda) q; }\n"
-            + "qreg q[2];\n"
-            + "cx q[0], q[1];\n"
-            + "u3(0.1,0.4,0.7) q[0];\n"
-            + "u2(0.1,0.4) q[0]\n;"
-            + "u1(0.1) q[0];\n"
-        )
-        qc1 = QuantumCircuit.from_qasm_str(tmp_qasm)
-        dag1 = circuit_to_dag(qc1)
-        tmp_circuit = Unroller(['cx','u3','u2','u1']).run(dag1)
-#        unrolled = unroll.Unroller(
-#            qasm.Qasm(data=tmp_qasm).parse(),
-#            unroll.DAGBackend(["cx", "u3", "u2", "u1"]),
-#        )
-#        tmp_circuit = unrolled.execute()
+        tmp_circuit = QuantumCircuit(2)
+        tmp_circuit.cx(0, 1)
+        tmp_circuit.u3(0.1, 0.4, 0.7, 0)
+        tmp_circuit.u2(0.1, 0.4, 0)
+        tmp_circuit.u1(0.1, 0)
 
         # prepare empty circuit for the result
         empty_dag = DAGCircuit()
-        print(self.coupling_map)
-#        coupling = Coupling(coupling_list2dict(self.coupling_map))
         coupling = CouplingMap(self.coupling_map)
-        print(coupling)
+
         # Note: Works with a single register named 'q' (not with 'q0' for example)
         empty_dag.add_qreg(QuantumRegister(coupling.size(), "q"))
         for k, v in sorted(compiled_dag.cregs.items()):
@@ -141,7 +121,6 @@ class AStarCX(TransformationPass):
         grouped_gates = group_gates(compiled_dag)
         # call mapper (based on an A* search) to satisfy the constraints for CNOTs
         # given by the coupling_map
-        print(JAGcoupling_list2dict(self.coupling_map))
         compiled_dag = a_star_mapper.a_star_mapper(
             copy.deepcopy(grouped_gates),
             JAGcoupling_list2dict(self.coupling_map),
@@ -156,6 +135,7 @@ class AStarCX(TransformationPass):
         min_cost = 0
         for operator, count in compiled_dag.count_ops().items():
             min_cost += count * self.gate_costs[operator]
+
         # Allow 30 seconds for this optimization or 1000 iterations (max)/9 more min.
         # The optimization is probabilistic, so a little more time can yield a better
         # solution, a shorter run-time, and a higher-fidelity result on real HW.
@@ -166,6 +146,7 @@ class AStarCX(TransformationPass):
             reps = 9
         if reps > 1000:
             reps = 1000
+
         # Repeat the mapping procedure reps (>= 9) times, take the result with minimum cost.
         # Each call may yield a different result, since the mapper is implemented with a certain
         # non-determinism. In fact, in the priority queue used for implementing the A* algorithm,
@@ -186,6 +167,7 @@ class AStarCX(TransformationPass):
             cost = 0
             for operator, count in result.count_ops().items():
                 cost += count * self.gate_costs[operator]
+
             # take the solution with fewer groups (fewer cost if the number of groups is equal)
             if groups < min_groups or (groups == min_groups and cost < min_cost):
                 min_groups = groups
@@ -195,7 +177,7 @@ class AStarCX(TransformationPass):
 
         # post-mapping optimization: build 4x4 matrix for gate groups and decompose them
         # using KAK decomposition.  Moreover, subsequent single qubit gates are optimized.
-        compiled_dag = optimize_gate_groups(
+        compiled_dag = post_mapping_optimization.optimize_gate_groups(
             grouped_gates_compiled,
             coupling.get_edges(),
             copy.deepcopy(empty_dag),
@@ -203,6 +185,3 @@ class AStarCX(TransformationPass):
         )
 
         return compiled_dag
-
-
-# -*- coding: utf-8 -*-

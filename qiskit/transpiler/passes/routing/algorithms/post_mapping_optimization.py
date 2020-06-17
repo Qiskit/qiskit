@@ -14,6 +14,7 @@
 import numpy as np
 
 from qiskit.providers.builtinsimulators._simulatortools import single_gate_matrix
+from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.mapper._compiling import euler_angles_1q, simplify_U, two_qubit_kak
 from qiskit.mapper._mapping import MapperError
 
@@ -44,8 +45,11 @@ def apply_gates(compiled_dag, gates, qubit0, qubit1, coupling_map):
     gates_fixed = []
     for gate in gates:
         if len(gate["qargs"]) == 2:
-            if (gate["qargs"][0][1], gate["qargs"][1][1]) == (qubit1, qubit0) and \
-                (("q", qubit1), ("q", qubit0)) not in coupling_map:
+            if (gate["qargs"][0][1],
+                gate["qargs"][1][1]) == (
+                        qubit1, qubit0) and (("q", qubit1),
+                                             ("q", qubit0)) not in coupling_map:
+
                 # swap the direction of the CNOT gate to satisfy constraints
                 # given by the coupling map
                 gates_fixed += [
@@ -105,7 +109,7 @@ def apply_gates(compiled_dag, gates, qubit0, qubit1, coupling_map):
             # add single qubit gates to the compiled circuit
             if not np.array_equal(u0_mat, np.identity(2)):
                 try:
-                    theta, phi, lamb, _ = euler_angles_1q(u0_mat)
+                    theta, phi, lamb = OneQubitEulerDecomposer(u0_mat).angles()
                     name, params, _ = simplify_U(theta, phi, lamb)
                     if name == "u3":
                         compiled_dag.apply_operation_back(
