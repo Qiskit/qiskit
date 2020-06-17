@@ -165,7 +165,7 @@ class MatrixOp(PrimitiveOp):
         return self
 
     def to_instruction(self) -> Instruction:
-        return PrimitiveOp(self.primitive.to_instruction(), coeff=self.coeff)  # type: ignore
+        return (self.coeff * self.primitive).to_instruction()  # type: ignore
 
     def to_legacy_op(self, massive: bool = False) -> MatrixOperator:
         return MatrixOperator(self.to_matrix(massive=massive))
