@@ -191,7 +191,6 @@ class TestGraphStateLibrary(QiskitTestCase):
 
     def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
         """Check the stabilizers of the graph state against the expected stabilizers.
-        
         Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
         """
 
