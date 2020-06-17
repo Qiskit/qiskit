@@ -344,6 +344,14 @@ class TestOpConstruction(QiskitAquaTestCase):
 
         self.assertEqual(composed.num_qubits, 2)
 
+    def test_pauli_op_hashing(self):
+        """Regression test against faulty set comparison.
+
+        Set comparisons rely on a hash table which requires identical objects to have identical
+        hashes. Thus, the PauliOp.__hash__ should support this requirement.
+        """
+        self.assertEqual(set([2*Z]), set([2*Z]))
+
 
 if __name__ == '__main__':
     unittest.main()
