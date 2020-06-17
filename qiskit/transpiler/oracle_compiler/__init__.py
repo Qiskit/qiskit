@@ -64,7 +64,11 @@ Supplementary Information
 
       **Oracle data types**
 
-   TODO, introduce to Bit type ``qiskit.transpiler.oracle_compiler.types``
+   At the moment, the only type supported by the oracle compilers is
+   ``qiskit.transpiler.oracle_compiler.types.Bit``. The oracle function
+   to parse *must* include type hints (just ``Bit`` for now).
+
+   The type ``Bit`` means the oracle will only operate at bit level.
 
 
 Oracle compiler API
