@@ -14,6 +14,10 @@
 
 """Tests for all BasicAer  simulators."""
 
+import io
+from logging import StreamHandler, getLogger
+import sys
+
 from qiskit import BasicAer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
@@ -22,11 +26,22 @@ from qiskit.qobj import QobjHeader
 from qiskit.test import QiskitTestCase
 
 
+class StreamHandlerRaiseException(StreamHandler):
+    """Handler class that will raise an exception on formatting errors."""
+
+    def handleError(self, record):
+        raise sys.exc_info()
+
+
 class TestBasicAerQobj(QiskitTestCase):
     """Tests for all the Terra simulators."""
 
     def setUp(self):
         super().setUp()
+        logger = getLogger()
+        logger.setLevel('DEBUG')
+        self.output = io.StringIO()
+        logger.addHandler(StreamHandlerRaiseException(self.output))
 
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
