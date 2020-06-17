@@ -190,7 +190,10 @@ class TestGraphStateLibrary(QiskitTestCase):
     """Test the graph state circuit."""
 
     def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
-        """Assert that the Graph State circuit produces the correct matrix."""
+        """Check the stabilizers of the graph state against the expected stabilizers.
+        
+        Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
+        """
 
         stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
 
@@ -215,7 +218,7 @@ class TestGraphStateLibrary(QiskitTestCase):
         [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
     )
     def test_graph_state(self, adjacency_matrix):
-        """Test if Graph State circuit produces correct matrix."""
+        """Verify the GraphState by checking if the circuit has the expected stabilizers."""
         graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
