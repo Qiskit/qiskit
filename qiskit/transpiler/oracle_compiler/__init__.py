@@ -29,7 +29,7 @@ implementation.
 
 The oracle compiler provides the necessary tools to map a classical
 irreversible functions into quantum circuits.  Below is a simple example of a
-how to synthesize a simple boolean function defined using a python into a
+how to synthesize a simple boolean function defined using Python into a
 QuantumCircuit:
 
    .. jupyter-execute::

@@ -38,7 +38,7 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
            circuit would operate. If not provided, it will create a flat register.
 
     Returns:
-        QuantumCircuit: A Qiskit quantum circuit.
+        QuantumCircuit: The Tweedledum circuit converted to a Qiskit circuit.
 
     Raises:
         OracleCompilerError: If there a gate in the Tweedledum circuit has no Qiskit equivalent.
