@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name,ungrouped-imports,import-error
-# pylint: disable=inconsistent-return-statements
+# pylint: disable=inconsistent-return-statements,unsubscriptable-object
 
 """
 Visualization functions for quantum states.
@@ -24,6 +24,7 @@ import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
+from qiskit.circuit.tools.pi_check import pi_check
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
@@ -103,7 +104,8 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
             plot_state_hinton(job.get_statevector(qc), title="New Hinton Plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (8, 5)
@@ -203,7 +205,8 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
     if figsize is None:
         figsize = (5, 5)
     B = Bloch(axes=ax)
@@ -253,7 +256,8 @@ def plot_bloch_multivector(rho, title='', figsize=None):
             plot_bloch_multivector(job.get_statevector(qc), title="New Bloch Multivector")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
+                          'matplotlib".')
     rho = _validate_input_state(rho)
     num = int(np.log2(len(rho)))
     width, height = plt.figaspect(1/num)
@@ -331,7 +335,8 @@ def plot_state_city(rho, title="", figsize=None, color=None,
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
+                          'matplotlib".')
     rho = _validate_input_state(rho)
 
     num = int(np.log2(len(rho)))
@@ -525,7 +530,8 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None, ax=None):
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
+                          'matplotlib".')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 5)
@@ -625,7 +631,8 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-def plot_state_qsphere(rho, figsize=None, ax=None):
+def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
+                       show_state_phases=False, use_degrees=False):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
@@ -639,6 +646,12 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        show_state_labels (bool): An optional boolean indicating whether to
+            show labels for each basis state.
+        show_state_phases (bool): An optional boolean indicating whether to
+            show the phase for each basis state.
+        use_degrees (bool): An optional boolean indicating whether to use
+            radians or degrees for the phase values in the plot.
 
     Returns:
         Figure: A matplotlib figure instance if the ``ax`` kwag is not set
@@ -663,12 +676,13 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
            plot_state_qsphere(job.get_statevector(qc))
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
+        raise ImportError('Must have Matplotlib installed. To install, run "pip install '
+                          'matplotlib".')
     try:
         import seaborn as sns
     except ImportError:
         raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere')
+                          'plot_state_qsphere. To install, run "pip install seaborn".')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 7)
@@ -768,6 +782,23 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
                 if yvalue >= 0.1:
                     alfa = 1.0 - yvalue
 
+                if prob > 0 and show_state_labels:
+                    rprime = 1.3
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
+                    yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
+                    zvalue_text = rprime * np.cos(angle_theta)
+                    element_text = '$\\vert' + element + '\\rangle$'
+                    if show_state_phases:
+                        element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
+                        if use_degrees:
+                            element_text += '\n$%.1f^\\circ$' % (element_angle * 180/np.pi)
+                        else:
+                            element_angle = pi_check(element_angle, ndigits=3).replace('pi', '\\pi')
+                            element_text += '\n$%s$' % (element_angle)
+                    ax.text(xvalue_text, yvalue_text, zvalue_text, element_text,
+                            ha='center', va='center', size=12)
+
                 ax.plot([xvalue], [yvalue], [zvalue],
                         markerfacecolor=colorstate,
                         markeredgecolor=colorstate,
@@ -801,20 +832,22 @@ def plot_state_qsphere(rho, figsize=None, ax=None):
     ax2 = fig.add_subplot(gs[2:, 2:])
     ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
     ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
-    ax2.text(0, 0, 'Phase', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-
     offset = 0.95  # since radius of sphere is one.
 
-    ax2.text(offset, 0, r'$0$', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(0, offset, r'$\pi/2$', horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
+    if use_degrees:
+        labels = ['Phase\n(Deg)', '0', '90', '180   ', '270']
+    else:
+        labels = ['Phase', '$0$', '$\\pi/2$', '$\\pi$', '$3\\pi/2$']
 
-    ax2.text(-offset, 0, r'$\pi$', horizontalalignment='center',
+    ax2.text(0, 0, labels[0], horizontalalignment='center',
              verticalalignment='center', fontsize=14)
-
-    ax2.text(0, -offset, r'$3\pi/2$', horizontalalignment='center',
+    ax2.text(offset, 0, labels[1], horizontalalignment='center',
+             verticalalignment='center', fontsize=14)
+    ax2.text(0, offset, labels[2], horizontalalignment='center',
+             verticalalignment='center', fontsize=14)
+    ax2.text(-offset, 0, labels[3], horizontalalignment='center',
+             verticalalignment='center', fontsize=14)
+    ax2.text(0, -offset, labels[4], horizontalalignment='center',
              verticalalignment='center', fontsize=14)
 
     if return_fig:

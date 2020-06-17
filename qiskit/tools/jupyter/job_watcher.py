@@ -18,6 +18,11 @@
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
 from qiskit.tools.events.pubsub import Subscriber
+try:
+    from qiskit.providers.ibmq.job.exceptions import IBMQJobApiError
+    HAS_IBMQ = True
+except ImportError:
+    HAS_IBMQ = False
 from .job_widgets import (build_job_viewer, make_clear_button,
                           make_labels, create_job_widget)
 from .watcher_monitor import _job_monitor
@@ -28,6 +33,10 @@ class JobWatcher(Subscriber):
     """
     def __init__(self):
         super().__init__()
+        if not HAS_IBMQ:
+            raise ImportError("qiskit-ibmq-provider is required to use the "
+                              "job watcher. To install it run 'pip install "
+                              "qiskit-ibmq-provider'")
         self.jobs = []
         self._init_subscriber()
         self.job_viewer = None
@@ -90,8 +99,8 @@ class JobWatcher(Subscriber):
             # update msg
             job_wid.children[5].value = update_info[3]
 
-    def remove_job(self, job_id):
-        """Removes a job from the watcher
+    def cancel_job(self, job_id):
+        """Cancels a job in the watcher
 
         Args:
             job_id (str): Job id to remove.
@@ -108,8 +117,16 @@ class JobWatcher(Subscriber):
                 break
         if not do_pop:
             raise Exception('job_id not found')
-        self.jobs.pop(ind)
-        self.refresh_viewer()
+        if 'CANCELLED' not in self.jobs[ind].children[3].value:
+            try:
+                self.jobs[ind].job.cancel()
+                status = self.jobs[ind].job.status()
+            except IBMQJobApiError:
+                pass
+            else:
+                self.update_single_job((self.jobs[ind].job_id,
+                                        status.name, 0,
+                                        status.value))
 
     def clear_done(self):
         """Clears the done jobs from the list.
@@ -121,6 +138,7 @@ class JobWatcher(Subscriber):
             if not (('DONE' in job_str) or ('CANCELLED' in job_str) or ('ERROR' in job_str)):
                 _temp_jobs.append(job)
             else:
+                job.close()
                 do_refresh = True
         if do_refresh:
             self.jobs = _temp_jobs
@@ -130,7 +148,7 @@ class JobWatcher(Subscriber):
 
         def _add_job(job):
             status = job.status()
-            job_widget = create_job_widget(self, job.job_id(),
+            job_widget = create_job_widget(self, job,
                                            job.backend(),
                                            status.name,
                                            job.queue_position(),

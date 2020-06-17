@@ -17,6 +17,8 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
+import warnings
+from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
@@ -27,23 +29,27 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
-from qiskit.visualization.pulse import interpolation
+from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
-                                   SnapshotChannel)
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError)
+                                   SnapshotChannel, Channel)
+from qiskit.pulse.commands import FrameChangeInstruction
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
+                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
 
 class EventsOutputChannels:
     """Pulse dataset for channel."""
 
-    def __init__(self, t0, tf):
+    def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
 
+        TODO: remove PV
+
         Args:
-            t0 (int): starting time of plot
-            tf (int): ending time of plot
+            t0: starting time of plot
+            tf: ending time of plot
         """
         self.pulses = {}
         self.t0 = t0
@@ -51,26 +57,33 @@ class EventsOutputChannels:
 
         self._waveform = None
         self._framechanges = None
+        self._setphase = None
+        self._frequencychanges = None
         self._conditionals = None
         self._snapshots = None
         self._labels = None
         self.enable = False
 
-    def add_instruction(self, start_time, pulse):
+    def add_instruction(self, start_time: int, instruction: Instruction):
         """Add new pulse instruction to channel.
 
         Args:
-            start_time (int): Starting time of instruction
-            pulse (Instruction): Instruction object to be added
+            start_time: Starting time of instruction
+            instruction: Instruction object to be added
         """
-
-        if start_time in self.pulses.keys():
-            self.pulses[start_time].append(pulse.command)
+        if instruction.command is not None:
+            pulse = instruction.command
+        elif isinstance(instruction, Play):
+            pulse = instruction.pulse
         else:
-            self.pulses[start_time] = [pulse.command]
+            pulse = instruction
+        if start_time in self.pulses.keys():
+            self.pulses[start_time].append(pulse)
+        else:
+            self.pulses[start_time] = [pulse]
 
     @property
-    def waveform(self):
+    def waveform(self) -> np.ndarray:
         """Get waveform."""
         if self._waveform is None:
             self._build_waveform()
@@ -78,7 +91,7 @@ class EventsOutputChannels:
         return self._waveform[self.t0:self.tf]
 
     @property
-    def framechanges(self):
+    def framechanges(self) -> Dict[int, FrameChangeInstruction]:
         """Get frame changes."""
         if self._framechanges is None:
             self._build_waveform()
@@ -86,7 +99,31 @@ class EventsOutputChannels:
         return self._trim(self._framechanges)
 
     @property
-    def conditionals(self):
+    def setphase(self) -> Dict[int, SetPhase]:
+        """Get the SetPhase phase values."""
+        if self._setphase is None:
+            self._build_waveform()
+
+        return self._trim(self._setphase)
+
+    @property
+    def frequencychanges(self) -> Dict[int, SetFrequency]:
+        """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
+
+    @property
+    def frequencyshift(self) -> Dict[int, ShiftFrequency]:
+        """Set the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
+
+    @property
+    def conditionals(self) -> Dict[int, str]:
         """Get conditionals."""
         if self._conditionals is None:
             self._build_waveform()
@@ -94,7 +131,7 @@ class EventsOutputChannels:
         return self._trim(self._conditionals)
 
     @property
-    def snapshots(self):
+    def snapshots(self) -> Dict[int, Snapshot]:
         """Get snapshots."""
         if self._snapshots is None:
             self._build_waveform()
@@ -102,47 +139,56 @@ class EventsOutputChannels:
         return self._trim(self._snapshots)
 
     @property
-    def labels(self):
+    def labels(self) -> Dict[int, Union[SamplePulse, Acquire]]:
         """Get labels."""
         if self._labels is None:
             self._build_waveform()
 
         return self._trim(self._labels)
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """Return if pulse is empty.
 
         Returns:
             bool: if the channel has nothing to plot
         """
-        if any(self.waveform) or self.framechanges or self.conditionals or self.snapshots:
+        if (any(self.waveform) or self.framechanges or self.setphase or
+                self.conditionals or self.snapshots):
             return False
 
         return True
 
-    def to_table(self, name):
+    def to_table(self, name: str) -> List[Tuple[int, str, str]]:
         """Get table contains.
 
         Args:
             name (str): name of channel
 
         Returns:
-            dict: dictionary of events in the channel
+            A list of events in the channel
         """
         time_event = []
 
         framechanges = self.framechanges
+        setphase = self.setphase
         conditionals = self.conditionals
         snapshots = self.snapshots
+        frequencychanges = self.frequencychanges
 
         for key, val in framechanges.items():
-            data_str = 'framechange: %.2f' % val
+            data_str = 'shift phase: %.2f' % val
+            time_event.append((key, name, data_str))
+        for key, val in setphase.items():
+            data_str = 'set phase: %.2f' % val
             time_event.append((key, name, data_str))
         for key, val in conditionals.items():
             data_str = 'conditional, %s' % val
             time_event.append((key, name, data_str))
         for key, val in snapshots.items():
             data_str = 'snapshot: %s' % val
+            time_event.append((key, name, data_str))
+        for key, val in frequencychanges.items():
+            data_str = 'frequency: %.4e' % val
             time_event.append((key, name, data_str))
 
         return time_event
@@ -151,6 +197,8 @@ class EventsOutputChannels:
         """Create waveform from stored pulses.
         """
         self._framechanges = {}
+        self._setphase = {}
+        self._frequencychanges = {}
         self._conditionals = {}
         self._snapshots = {}
         self._labels = {}
@@ -162,15 +210,29 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
+            tmp_set_phase = 0
+            tmp_sf = None
             for command in commands:
-                if isinstance(command, FrameChange):
+                if isinstance(command, (FrameChange, ShiftPhase)):
                     tmp_fc += command.phase
                     pv[time:] = 0
+                elif isinstance(command, SetPhase):
+                    tmp_set_phase = command.phase
+                    pv[time:] = 0
+                elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
+                elif isinstance(command, ShiftFrequency):
+                    tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
+            if tmp_set_phase != 0:
+                self._setphase[time] = tmp_set_phase
+                fc = tmp_set_phase
+            if tmp_sf is not None:
+                self._frequencychanges[time] = tmp_sf
             for command in commands:
                 if isinstance(command, PersistentValue):
                     pv[time:] = np.exp(1j*fc) * command.value
@@ -180,6 +242,8 @@ class EventsOutputChannels:
             for command in commands:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
+                if isinstance(command, ParametricPulse):
+                    command = command.get_sample_pulse()
                 if isinstance(command, SamplePulse):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
@@ -194,14 +258,14 @@ class EventsOutputChannels:
                     self._labels[time] = (tf, command)
         self._waveform = wf + pv
 
-    def _trim(self, events):
+    def _trim(self, events: Dict[int, Any]) -> Dict[int, Any]:
         """Return events during given `time_range`.
 
         Args:
-            events (dict): time and operation of events
+            events: time and operation of events.
 
         Returns:
-            dict: dictionary of events within the time
+            Events within the specified time range.
         """
         events_in_time_range = {}
 
@@ -215,30 +279,37 @@ class EventsOutputChannels:
 class SamplePulseDrawer:
     """A class to create figure for sample pulse."""
 
-    def __init__(self, style):
+    def __init__(self, style: PulseStyle):
         """Create new figure.
 
         Args:
-            style (PulseStyle): style sheet
+            style: Style sheet for pulse visualization.
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse, dt, interp_method, scaling=1):
+    def draw(self, pulse: SamplePulse,
+             dt: float = 1.0,
+             interp_method: Callable = None,
+             scale: float = 1, scaling: float = None):
         """Draw figure.
 
         Args:
-            pulse (SamplePulse): SamplePulse to draw
-            dt (float): time interval
-            interp_method (Callable): interpolation function
-                See `qiskit.visualization.interpolation` for more information
-            scaling (float): Relative visual scaling of waveform amplitudes
+            pulse: SamplePulse to draw.
+            dt: time interval.
+            interp_method: interpolation function.
+            scale: Relative visual scaling of waveform amplitudes.
+            scaling: Deprecated, see `scale`.
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
+            matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
         """
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
         figure = plt.figure()
 
-        interp_method = interp_method or interpolation.step_wise
+        interp_method = interp_method or step_wise
 
         figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
         ax = figure.add_subplot(111)
@@ -260,11 +331,19 @@ class SamplePulseDrawer:
                         label='imaginary part')
 
         ax.set_xlim(0, pulse.duration * dt)
-        if scaling:
-            ax.set_ylim(-scaling, scaling)
+        if scale:
+            ax.set_ylim(-1/scale, 1/scale)
         else:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
+
+        bbox = ax.get_position()
+
+        if self.style.title_font_size > 0:
+            figure.suptitle(str(pulse.name),
+                            fontsize=self.style.title_font_size,
+                            y=bbox.y1 + 0.02,
+                            va='bottom')
 
         return figure
 
@@ -272,25 +351,51 @@ class SamplePulseDrawer:
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
-    def __init__(self, style):
+    def __init__(self, style: SchedStyle):
         """Create new figure.
 
         Args:
-            style (SchedStyle): style sheet
+            style: Style sheet for pulse schedule visualization.
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule, channels_to_plot, t0, tf):
+    def _build_channels(self, schedule: ScheduleComponent,
+                        channels: List[Channel],
+                        t0: int, tf: int,
+                        show_framechange_channels: bool = True
+                        ) -> Tuple[Dict[Channel, EventsOutputChannels],
+                                   Dict[Channel, EventsOutputChannels],
+                                   Dict[Channel, EventsOutputChannels]]:
+        """Create event table of each pulse channels in the given schedule.
+
+        Args:
+            schedule: Schedule object to plot.
+            channels: Channels to plot.
+            t0: Start time of plot.
+            tf: End time of plot.
+            show_framechange_channels: Plot channels only with FrameChanges.
+
+        Returns:
+            channels: All channels.
+            output_channels: All (D, M, U, A) channels.
+            snapshot_channels: Snapshots.
+        """
         # prepare waveform channels
         drive_channels = collections.OrderedDict()
         measure_channels = collections.OrderedDict()
         control_channels = collections.OrderedDict()
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
+        _channels = set()
+        if show_framechange_channels:
+            _channels.update(schedule.channels)
+        # take channels that do not only contain framechanges
+        else:
+            for start_time, instruction in schedule.instructions:
+                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase, SetPhase)):
+                    _channels.update(instruction.channels)
 
-        _channels = list(schedule.channels) + channels_to_plot
-        _channels = list(set(_channels))
-
+        _channels.update(channels)
         for chan in _channels:
             if isinstance(chan, DriveChannel):
                 try:
@@ -320,7 +425,7 @@ class ScheduleDrawer:
 
         output_channels = {**drive_channels, **measure_channels,
                            **control_channels, **acquire_channels}
-        channels = {**output_channels, **acquire_channels, **snapshot_channels}
+        channels = {**output_channels, **snapshot_channels}
         # sort by index then name to group qubits together.
         output_channels = collections.OrderedDict(sorted(output_channels.items(),
                                                          key=lambda x: (x[0].index, x[0].name)))
@@ -335,19 +440,35 @@ class ScheduleDrawer:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
         return channels, output_channels, snapshot_channels
 
-    def _count_valid_waveforms(self, channels, scaling=1, channels_to_plot=None,
-                               plot_all=False):
+    @staticmethod
+    def _scale_channels(output_channels: Dict[Channel, EventsOutputChannels],
+                        scale: float,
+                        channel_scales: Dict[Channel, float] = None,
+                        channels: List[Channel] = None,
+                        plot_all: bool = False) -> Dict[Channel, float]:
+        """Count number of channels that contains any instruction to show
+        and find scale factor of that channel.
+
+        Args:
+            output_channels: Event table of channels to show.
+            scale: Global scale factor.
+            channel_scales: Channel specific scale factors.
+            channels: Specified channels to plot.
+            plot_all: Plot empty channel.
+
+        Returns:
+            scale_dict: Scale factor of each channel.
+        """
         # count numbers of valid waveform
-        n_valid_waveform = 0
-        v_max = 0
-        for channel, events in channels.items():
-            if channels_to_plot:
-                if channel in channels_to_plot:
+        scale_dict = {chan: 0 for chan in output_channels.keys()}
+        for channel, events in output_channels.items():
+            v_max = 0
+            if channels:
+                if channel in channels:
                     waveform = events.waveform
                     v_max = max(v_max,
                                 max(np.abs(np.real(waveform))),
                                 max(np.abs(np.imag(waveform))))
-                    n_valid_waveform += 1
                     events.enable = True
             else:
                 if not events.is_empty() or plot_all:
@@ -355,23 +476,33 @@ class ScheduleDrawer:
                     v_max = max(v_max,
                                 max(np.abs(np.real(waveform))),
                                 max(np.abs(np.imag(waveform))))
-                    n_valid_waveform += 1
                     events.enable = True
 
-        # when input schedule is empty or comprises only frame changes,
-        # we need to overwrite maximum amplitude by a value greater than zero,
-        # otherwise auto axis scaling will fail with zero division.
-        v_max = v_max or 1
+            scale_val = channel_scales.get(channel, scale)
+            if not scale_val:
+                # when input schedule is empty or comprises only frame changes,
+                # we need to overwrite maximum amplitude by a value greater than zero,
+                # otherwise auto axis scaling will fail with zero division.
+                v_max = v_max or 1
+                scale_dict[channel] = 1 / v_max
+            else:
+                scale_dict[channel] = scale_val
 
-        if scaling:
-            v_max = 0.5 * scaling
-        else:
-            v_max = 0.5 / (v_max)
+        return scale_dict
 
-        return n_valid_waveform, v_max
+    def _draw_table(self, figure,
+                    channels: Dict[Channel, EventsOutputChannels],
+                    dt: float):
+        """Draw event table if events exist.
 
-    # pylint: disable=unused-argument
-    def _draw_table(self, figure, channels, dt, n_valid_waveform):
+        Args:
+            figure (matpotlib.figure.Figure): Figure object
+            channels: Dictionary of channel and event table
+            dt: Time interval
+
+        Returns:
+            Tuple[matplotlib.axes.Axes]: Axis objects for table and canvas of pulses.
+        """
         # create table
         table_data = []
         if self.style.use_table:
@@ -385,7 +516,11 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-
+            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
+            nrows = int(min(nrows, max_rows))
+            # don't overflow plot with table data
+            table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
             h_waves = (self.style.figsize[1] - h_table)
@@ -418,29 +553,70 @@ class ScheduleDrawer:
             table.auto_set_font_size(False)
             table.set_fontsize = self.style.table_font_size
         else:
+            tb = None
             ax = figure.add_subplot(111)
 
         figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
-        return ax
+        return tb, ax
 
-    def _draw_snapshots(self, ax, snapshot_channels, dt, y0):
+    @staticmethod
+    def _draw_snapshots(ax,
+                        snapshot_channels: Dict[Channel, EventsOutputChannels],
+                        y0: float) -> None:
+        """Draw snapshots to given mpl axis.
+
+        Args:
+            ax (matplotlib.axes.Axes): axis object to draw snapshots.
+            snapshot_channels: Event table of snapshots.
+            y0: vertical position to draw the snapshots.
+        """
         for events in snapshot_channels.values():
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
+                    ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
-    def _draw_framechanges(self, ax, fcs, dt, y0):
-        framechanges_present = True
+    def _draw_framechanges(self, ax,
+                           fcs: Dict[int, FrameChangeInstruction],
+                           y0: float) -> bool:
+        """Draw frame change of given channel to given mpl axis.
+
+        Args:
+            ax (matplotlib.axes.Axes): axis object to draw frame changes.
+            fcs: Event table of frame changes.
+            y0: vertical position to draw the frame changes.
+        """
         for time in fcs.keys():
-            ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
+            ax.text(x=time, y=y0, s=r'$\circlearrowleft$',
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center')
-        return framechanges_present
 
-    def _get_channel_color(self, channel):
+    def _draw_frequency_changes(self, ax,
+                                sf: Dict[int, SetFrequency],
+                                y0: float) -> bool:
+        """Draw set frequency of given channel to given mpl axis.
+
+        Args:
+            ax (matplotlib.axes.Axes): axis object to draw frame changes.
+            sf: Event table of set frequency.
+            y0: vertical position to draw the frame changes.
+        """
+        for time in sf.keys():
+            ax.text(x=time, y=y0, s=r'$\leftrightsquigarrow$',
+                    fontsize=self.style.icon_font_size,
+                    ha='center', va='center', rotation=90)
+
+    def _get_channel_color(self, channel: Channel) -> str:
+        """Lookup table for waveform color.
+
+        Args:
+            channel: Type of channel.
+
+        Return:
+            Color code or name of color.
+        """
         # choose color
         if isinstance(channel, DriveChannel):
             color = self.style.d_ch_color
@@ -454,14 +630,36 @@ class ScheduleDrawer:
             color = 'black'
         return color
 
-    def _prev_label_at_time(self, prev_labels, time):
-        for _, labels in enumerate(prev_labels):
+    @staticmethod
+    def _prev_label_at_time(prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
+                            time: int) -> bool:
+        """Check overlap of pulses with pervious channels.
+
+        Args:
+            prev_labels: List of labels in previous channels.
+            time: Start time of current pulse instruction.
+
+        Returns:
+            `True` if current instruction overlaps with others.
+        """
+        for labels in prev_labels:
             for t0, (tf, _) in labels.items():
                 if time in (t0, tf):
                     return True
         return False
 
-    def _draw_labels(self, ax, labels, prev_labels, dt, y0):
+    def _draw_labels(self, ax,
+                     labels: Dict[int, Union[SamplePulse, Acquire]],
+                     prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
+                     y0: float) -> None:
+        """Draw label of pulse instructions on given mpl axis.
+
+        Args:
+            ax (matplotlib.axes.Axes): axis object to draw labels.
+            labels: Pulse labels of channel.
+            prev_labels: Pulse labels of previous channels.
+            y0: vertical position to draw the labels.
+        """
         for t0, (tf, cmd) in labels.items():
             if isinstance(cmd, PersistentValue):
                 name = cmd.name if cmd.name else 'pv'
@@ -471,8 +669,8 @@ class ScheduleDrawer:
                 name = cmd.name
 
             ax.annotate(r'%s' % name,
-                        xy=((t0+tf)//2*dt, y0),
-                        xytext=((t0+tf)//2*dt, y0-0.07),
+                        xy=((t0+tf)//2, y0),
+                        xytext=((t0+tf)//2, y0-0.07),
                         fontsize=self.style.label_font_size,
                         ha='center', va='center')
 
@@ -481,21 +679,45 @@ class ScheduleDrawer:
             color = self.style.label_ch_color
 
             if not self._prev_label_at_time(prev_labels, t0):
-                ax.axvline(t0*dt, -1, 1, color=color,
+                ax.axvline(t0, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
             if not (self._prev_label_at_time(prev_labels, tf) or tf in labels):
-                ax.axvline(tf*dt, -1, 1, color=color,
+                ax.axvline(tf, -1, 1, color=color,
                            linestyle=linestyle, alpha=alpha)
 
-    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
-                       label=False, framechange=True):
+    def _draw_channels(self, ax,
+                       output_channels: Dict[Channel, EventsOutputChannels],
+                       interp_method: Callable,
+                       t0: int, tf: int,
+                       scale_dict: Dict[Channel, float],
+                       label: bool = False,
+                       framechange: bool = True,
+                       frequencychange: bool = True) -> float:
+        """Draw pulse instructions on given mpl axis.
+
+        Args:
+            ax (matplotlib.axes.Axes): axis object to draw pulses.
+            output_channels: Event table of channels.
+            interp_method: Callback function for waveform interpolation.
+            t0: Start time of schedule.
+            tf: End time of schedule.
+            scale_dict: Scale factor for each channel.
+            label: When set `True` draw labels.
+            framechange: When set `True` draw frame change symbols.
+            frequencychange: When set `True` draw frequency change symbols.
+
+        Return:
+            Value of final vertical axis of canvas.
+        """
         y0 = 0
         prev_labels = []
         for channel, events in output_channels.items():
             if events.enable:
+                # scaling value of this channel
+                scale = 0.5 * scale_dict.get(channel, 0.5)
                 # plot waveform
                 waveform = events.waveform
-                time = np.arange(t0, tf + 1, dtype=float) * dt
+                time = np.arange(t0, tf + 1, dtype=float)
                 if waveform.any():
                     time, re, im = interp_method(time, waveform, self.style.num_points)
                 else:
@@ -505,10 +727,10 @@ class ScheduleDrawer:
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
                 # Minimum amplitude scaled
-                amp_min = v_max * abs(min(0, np.nanmin(re), np.nanmin(im)))
+                amp_min = scale * abs(min(0, np.nanmin(re), np.nanmin(im)))
                 # scaling and offset
-                re = v_max * re + y0
-                im = v_max * im + y0
+                re = scale * re + y0
+                im = scale * im + y0
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
@@ -524,20 +746,28 @@ class ScheduleDrawer:
                 # plot frame changes
                 fcs = events.framechanges
                 if fcs and framechange:
-                    self._draw_framechanges(ax, fcs, dt, y0)
+                    self._draw_framechanges(ax, fcs, y0)
+                # plot frequency changes
+                sf = events.frequencychanges
+                if sf and frequencychange:
+                    self._draw_frequency_changes(ax, sf, y0 + scale)
                 # plot labels
                 labels = events.labels
                 if labels and label:
-                    self._draw_labels(ax, labels, prev_labels, dt, y0)
+                    self._draw_labels(ax, labels, prev_labels, y0)
                 prev_labels.append(labels)
 
             else:
                 continue
 
             # plot label
-            ax.text(x=0, y=y0, s=channel.name,
+            ax.text(x=t0, y=y0, s=channel.name,
                     fontsize=self.style.axis_font_size,
                     ha='right', va='center')
+            # show scaling factor
+            ax.text(x=t0, y=y0 - 0.1, s='x%.1f' % (2 * scale),
+                    fontsize=0.7*self.style.axis_font_size,
+                    ha='right', va='top')
 
             # change the y0 offset for removing spacing when a channel has negative values
             if self.style.remove_spacing:
@@ -546,71 +776,128 @@ class ScheduleDrawer:
                 y0 -= 1
         return y0
 
-    def draw(self, schedule, dt, interp_method, plot_range,
-             scaling=None, channels_to_plot=None, plot_all=True,
-             table=True, label=False, framechange=True):
+    def draw(self, schedule: ScheduleComponent,
+             dt: float, interp_method: Callable,
+             plot_range: Tuple[Union[int, float], Union[int, float]],
+             scale: float = None,
+             channel_scales: Dict[Channel, float] = None,
+             channels_to_plot: List[Channel] = None,
+             plot_all: bool = True, table: bool = True,
+             label: bool = False, framechange: bool = True,
+             scaling: float = None, channels: List[Channel] = None,
+             show_framechange_channels: bool = True):
         """Draw figure.
 
         Args:
-            schedule (ScheduleComponent): Schedule to draw
-            dt (float): time interval
-            interp_method (Callable): interpolation function
-                See `qiskit.visualization.interpolation` for more information
-            plot_range (tuple[float]): plot range
-            scaling (float): Relative visual scaling of waveform amplitudes
-            channels_to_plot (list[OutputChannel]): channels to draw
-            plot_all (bool): if plot all channels even it is empty
-            table (bool): Draw event table
-            label (bool): Label individual instructions
-            framechange (bool): Add framechange indicators
+            schedule: schedule object to plot.
+            dt: Time interval of samples. Pulses are visualized in the unit of
+                cycle time if not provided.
+            interp_method: Interpolation function. See example.
+                Interpolation is disabled in default.
+                See `qiskit.visualization.pulse.interpolation` for more information.
+            plot_range: A tuple of time range to plot.
+            scale: Scaling of waveform amplitude. Pulses are automatically
+                scaled channel by channel if not provided.
+            channel_scales: Dictionary of scale factor for specific channels.
+                Scale of channels not specified here is overwritten by `scale`.
+            channels_to_plot: Deprecated, see `channels`.
+            plot_all: When set `True` plot empty channels.
+            table: When set `True` draw event table for supported commands.
+            label: When set `True` draw label for individual instructions.
+            framechange: When set `True` draw framechange indicators.
+            scaling: Deprecated, see `scale`.
+            channels: A list of channel names to plot.
+                All non-empty channels are shown if not provided.
+            show_framechange_channels: When set `True` plot channels
+                with only framechange instructions.
 
         Returns:
-            matplotlib.figure: A matplotlib figure object for the pulse schedule
+            matplotlib.figure.Figure: A matplotlib figure object for the pulse envelope.
+
         Raises:
-            VisualizationError: when schedule cannot be drawn
+            VisualizationError: When schedule cannot be drawn
         """
+        if scaling is not None:
+            warnings.warn('The parameter "scaling" is being replaced by "scale"',
+                          DeprecationWarning, 3)
+            scale = scaling
         figure = plt.figure()
 
-        if not channels_to_plot:
-            channels_to_plot = []
-        interp_method = interp_method or interpolation.step_wise
+        if channels_to_plot is not None:
+            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
+                          DeprecationWarning, 3)
+            channels = channels_to_plot
+
+        if channels is None:
+            channels = []
+        interp_method = interp_method or step_wise
+
+        if channel_scales is None:
+            channel_scales = {}
 
         # setup plot range
         if plot_range:
-            t0 = int(np.floor(plot_range[0]/dt))
-            tf = int(np.floor(plot_range[1]/dt))
+            t0 = int(np.floor(plot_range[0]))
+            tf = int(np.floor(plot_range[1]))
         else:
             t0 = 0
             # when input schedule is empty or comprises only frame changes,
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
-            tf = schedule.stop_time or 1
+            if channels:
+                tf = schedule.ch_duration(*channels)
+            else:
+                tf = schedule.stop_time
+            tf = tf or 1
+
         # prepare waveform channels
-        (channels, output_channels,
-         snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
+        (schedule_channels, output_channels,
+         snapshot_channels) = self._build_channels(schedule, channels, t0, tf,
+                                                   show_framechange_channels)
 
         # count numbers of valid waveform
-        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
-                                                              channels_to_plot=channels_to_plot,
-                                                              plot_all=plot_all)
+
+        scale_dict = self._scale_channels(output_channels,
+                                          scale=scale,
+                                          channel_scales=channel_scales,
+                                          channels=channels,
+                                          plot_all=plot_all)
 
         if table:
-            ax = self._draw_table(figure, channels, dt, n_valid_waveform)
-
+            tb, ax = self._draw_table(figure, schedule_channels, dt)
         else:
+            tb = None
             ax = figure.add_subplot(111)
             figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         ax.set_facecolor(self.style.bg_color)
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
-                                 t0, tf, dt, v_max, label=label,
+                                 t0, tf, scale_dict, label=label,
                                  framechange=framechange)
 
-        self._draw_snapshots(ax, snapshot_channels, dt, y0)
+        y_ub = 0.5 + self.style.vertical_span
+        y_lb = y0 + 0.5 - self.style.vertical_span
 
-        ax.set_xlim(t0 * dt, tf * dt)
-        ax.set_ylim(y0, 1)
+        self._draw_snapshots(ax, snapshot_channels, y_lb)
+
+        ax.set_xlim(t0, tf)
+        tick_labels = np.linspace(t0, tf, 5)
+        ax.set_xticks(tick_labels)
+        ax.set_xticklabels([self.style.axis_formatter % label for label in tick_labels * dt],
+                           fontsize=self.style.axis_font_size)
+        ax.set_ylim(y_lb, y_ub)
         ax.set_yticklabels([])
+
+        if tb is not None:
+            bbox = tb.get_position()
+        else:
+            bbox = ax.get_position()
+
+        if self.style.title_font_size > 0:
+            figure.suptitle(str(schedule.name),
+                            fontsize=self.style.title_font_size,
+                            y=bbox.y1 + 0.02,
+                            va='bottom')
 
         return figure

@@ -12,8 +12,44 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Extensions to quantum circuits."""
+"""
+=====================================================
+Quantum Circuit Extensions (:mod:`qiskit.extensions`)
+=====================================================
 
-from qiskit.extensions.quantum_initializer.initializer import Initialize
-from .standard import *
+.. currentmodule:: qiskit.extensions
+
+Unitary Extensions
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitaryGate
+   HamiltonianGate
+
+Simulator Extensions
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Snapshot
+
+Initialization
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Initialize
+"""
+
+# import all standard gates
+from qiskit.circuit.library.standard_gates import *
+from qiskit.circuit.barrier import Barrier
+
+from .quantum_initializer.initializer import Initialize
 from .unitary import UnitaryGate
+from .hamiltonian_gate import HamiltonianGate
+from .simulator import Snapshot

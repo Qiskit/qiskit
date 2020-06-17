@@ -46,6 +46,8 @@ env:
 # Ignoring generated ones with .py extension.
 lint:
 	pylint -rn qiskit test
+	tools/verify_headers.py qiskit test
+	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
 
 style:
 	pycodestyle --max-line-length=100 qiskit test
@@ -54,6 +56,14 @@ style:
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
 	python3 -m unittest discover -s test/python -v
+
+# Use pytest to run tests
+pytest:
+	pytest test/python
+
+# Use pytest to run randomized tests
+pytest_randomized:
+	pytest test/randomized
 
 test_ci:
 	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"

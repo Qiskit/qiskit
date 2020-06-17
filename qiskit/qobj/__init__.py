@@ -12,19 +12,87 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for the Qobj structure."""
+"""
+=========================
+Qobj (:mod:`qiskit.qobj`)
+=========================
 
-from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
-                          QobjExperiment, QobjConfig, QobjHeader)
+.. currentmodule:: qiskit.qobj
 
-from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
-                           PulseQobjExperiment, PulseQobjConfig,
-                           QobjMeasurementOption, PulseLibraryItem,
-                           PulseLibraryItemSchema, PulseQobjInstructionSchema)
+Base
+====
 
-from .models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
-                          QasmQobjExperiment, QasmQobjConfig)
+.. autosummary::
+   :toctree: ../stubs/
 
-from .qobj import Qobj, QasmQobj, PulseQobj
+   Qobj
+   QobjExperimentHeader
+   QobjHeader
+
+Qasm
+====
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QasmQobj
+   QasmQobjInstruction
+   QasmQobjExperimentConfig
+   QasmQobjExperiment
+   QasmQobjConfig
+
+Pulse
+=====
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PulseQobj
+   PulseQobjInstruction
+   PulseQobjExperimentConfig
+   PulseQobjExperiment
+   PulseQobjConfig
+   QobjMeasurementOption
+   PulseLibraryItem
+
+Validation
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   validate_qobj_against_schema
+"""
+
+import warnings
+
+from qiskit.qobj.pulse_qobj import PulseQobj
+from qiskit.qobj.pulse_qobj import PulseQobjInstruction
+from qiskit.qobj.pulse_qobj import PulseQobjExperimentConfig
+from qiskit.qobj.pulse_qobj import PulseQobjExperiment
+from qiskit.qobj.pulse_qobj import PulseQobjConfig
+from qiskit.qobj.pulse_qobj import QobjMeasurementOption
+from qiskit.qobj.pulse_qobj import PulseLibraryItem
+
+from qiskit.qobj.qasm_qobj import QasmQobj
+from qiskit.qobj.qasm_qobj import QasmQobjInstruction
+from qiskit.qobj.qasm_qobj import QasmQobjExperiment
+from qiskit.qobj.qasm_qobj import QasmQobjConfig
+from qiskit.qobj.qasm_qobj import QobjExperimentHeader
+from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
+from qiskit.qobj.qasm_qobj import QobjHeader
 
 from .utils import validate_qobj_against_schema
+
+
+class Qobj(QasmQobj):
+    """A backwards compat alias for QasmQobj."""
+
+    def __init__(self, qobj_id=None, config=None, experiments=None,
+                 header=None):
+        """Initialize a Qobj object."""
+        warnings.warn('qiskit.qobj.Qobj is deprecated use either QasmQobj or '
+                      'PulseQobj depending on your application instead.',
+                      DeprecationWarning, stacklevel=2)
+        super(Qobj, self).__init__(qobj_id=qobj_id, config=config,
+                                   experiments=experiments, header=header)

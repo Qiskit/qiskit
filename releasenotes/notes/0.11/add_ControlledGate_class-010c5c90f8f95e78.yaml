@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    Add ``ControlledGate`` class for representing controlled
+    gates. Controlled gate instances are created with the
+    ``control(n)`` method of ``Gate`` objects where ``n`` represents
+    the number of controls. The control qubits come before the
+    controlled qubits in the new gate. For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.extensions import HGate
+      hgate = HGate()
+      circ = QuantumCircuit(4)
+      circ.append(hgate.control(3), [0, 1, 2, 3])
+      print(circ)
+
+    generates::
+
+      q_0: |0>──■──
+                │  
+      q_1: |0>──■──
+                │  
+      q_2: |0>──■──
+              ┌─┴─┐
+      q_3: |0>┤ H ├
+              └───┘
+
+
+    

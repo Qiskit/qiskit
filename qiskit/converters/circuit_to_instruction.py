@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Helper function for converting a circuit to an instruction"""
+"""Helper function for converting a circuit to an instruction."""
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
@@ -20,7 +20,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 
 
-def circuit_to_instruction(circuit, parameter_map=None):
+def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None):
     """Build an ``Instruction`` object from a ``QuantumCircuit``.
 
     The instruction is anonymous (not tied to a named quantum register),
@@ -33,14 +33,32 @@ def circuit_to_instruction(circuit, parameter_map=None):
            parameters in the circuit to parameters to be used in the instruction.
            If None, existing circuit parameters will also parameterize the
            instruction.
+        equivalence_library (EquivalenceLibrary): Optional equivalence library
+           where the converted instruction will be registered.
 
     Raises:
         QiskitError: if parameter_map is not compatible with circuit
 
     Return:
-        Instruction: an instruction equivalent to the action of the
-            input circuit. Upon decomposition, this instruction will
-            yield the components comprising the original circuit.
+        qiskit.circuit.Instruction: an instruction equivalent to the action of the
+        input circuit. Upon decomposition, this instruction will
+        yield the components comprising the original circuit.
+
+    Example:
+        .. jupyter-execute::
+
+            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.converters import circuit_to_instruction
+            %matplotlib inline
+
+            q = QuantumRegister(3, 'q')
+            c = ClassicalRegister(3, 'c')
+            circ = QuantumCircuit(q, c)
+            circ.h(q[0])
+            circ.cx(q[0], q[1])
+            circ.measure(q[0], c[0])
+            circ.rz(0.5, q[1]).c_if(c, 2)
+            circuit_to_instruction(circ)
     """
 
     if parameter_map is None:
@@ -70,8 +88,10 @@ def circuit_to_instruction(circuit, parameter_map=None):
         reg_index = ordered_regs.index(bit.register)
         return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
-    target = circuit.copy()
-    target._substitute_parameters(parameter_dict)
+    target = circuit.assign_parameters(parameter_dict, inplace=False)
+
+    if equivalence_library is not None:
+        equivalence_library.add_equivalence(instruction, target)
 
     definition = target.data
 

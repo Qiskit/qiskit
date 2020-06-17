@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The Collect2qBlocks and CommutationAnalysis passes in the transpiler had
+    been unable to process circuits containing Parameterized gates, preventing
+    Parameterized circuits from being transpiled at optimization_level 2 or
+    above. These passes have been corrected to treat Parameterized gates as
+    opaque.
+    

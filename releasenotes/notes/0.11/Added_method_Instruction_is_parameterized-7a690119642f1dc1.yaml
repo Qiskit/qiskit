@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added method ``Instruction.is_parameterized()`` to check if an instruction
+    object is parameterized. This method returns ``True`` if and only if
+    instruction has a ``ParameterExpression`` or ``Parameter`` object for one
+    of its params.

@@ -60,7 +60,7 @@ class ParameterExpression():
                 - If binding the provided values requires division by zero.
 
         Returns:
-            ParameterExpression: a new expession parameterized by any parameters
+            ParameterExpression: a new expression parameterized by any parameters
                 which were not bound by parameter_values.
         """
 
@@ -93,8 +93,8 @@ class ParameterExpression():
 
         Args:
             parameter_map (dict): Mapping from Parameters in self to the
-                                  Parameter instances with which they should be
-                                  replaced.
+                                  ParameterExpression instances with which they
+                                  should be replaced.
 
         Raises:
             CircuitError:
@@ -103,24 +103,31 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expession with the specified parameters
+            ParameterExpression: a new expression with the specified parameters
                                  replaced.
         """
 
+        inbound_parameters = {p
+                              for replacement_expr in parameter_map.values()
+                              for p in replacement_expr.parameters}
+
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
-        self._raise_if_parameter_names_conflict(parameter_map.keys())
+        self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
 
         from sympy import Symbol
         new_parameter_symbols = {p: Symbol(p.name)
-                                 for p in parameter_map.values()}
+                                 for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
         new_parameter_symbols.update({p: s
                                       for p, s in self._parameter_symbols.items()
                                       if p not in parameter_map})
 
+        # If new_param is an expr, we'll need to construct a matching sympy expr
+        # but with our sympy symbols instead of theirs.
+
         symbol_map = {
-            self._parameter_symbols[old_param]: new_parameter_symbols[new_param]
+            self._parameter_symbols[old_param]: new_param._symbol_expr
             for old_param, new_param in parameter_map.items()
         }
 
@@ -141,13 +148,17 @@ class ParameterExpression():
             raise CircuitError('Expression cannot bind non-real or non-numeric '
                                'values ({}).'.format(nonreal_parameter_values))
 
-    def _raise_if_parameter_names_conflict(self, other_parameters):
-        self_names = {p.name: p for p in self.parameters}
-        other_names = {p.name: p for p in other_parameters}
+    def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
+        if outbound_parameters is None:
+            outbound_parameters = set()
 
-        shared_names = self_names.keys() & other_names.keys()
+        self_names = {p.name: p for p in self.parameters}
+        inbound_names = {p.name: p for p in inbound_parameters}
+        outbound_names = {p.name: p for p in outbound_parameters}
+
+        shared_names = (self_names.keys() - outbound_names.keys()) & inbound_names.keys()
         conflicting_names = {name for name in shared_names
-                             if self_names[name] != other_names[name]}
+                             if self_names[name] != inbound_names[name]}
         if conflicting_names:
             raise CircuitError('Name conflict applying operation for parameters: '
                                '{}'.format(conflicting_names))
@@ -241,3 +252,9 @@ class ParameterExpression():
 
     def __deepcopy__(self, memo=None):
         return self
+
+    def __eq__(self, other):
+        from sympy import srepr
+        return (isinstance(other, ParameterExpression)
+                and self.parameters == other.parameters
+                and srepr(self._symbol_expr) == srepr(other._symbol_expr))

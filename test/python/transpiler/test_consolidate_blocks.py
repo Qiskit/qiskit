@@ -19,7 +19,6 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
-from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
@@ -190,10 +189,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         c_0:  0 ══╩══════════════
         """
         qc = QuantumCircuit(2, 1)
-        qc.iden(0)
+        qc.i(0)
         qc.measure(1, 0)
         qc.cx(1, 0)
-        qc.iden(1)
+        qc.i(1)
 
         # can't just add all the nodes to one block as in other tests
         # as we are trying to test the block gets added in the correct place
@@ -201,16 +200,39 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
+
+    def test_consolidate_blocks_big(self):
+        """Test ConsolidateBlocks with U2(<big numbers>)
+        https://github.com/Qiskit/qiskit-terra/issues/3637#issuecomment-612954865
+
+             ┌────────────────┐     ┌───┐
+        q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
+             ├────────────────┤┌─┴─┐└─┬─┘
+        q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
+             └────────────────┘└───┘
+        """
+        circuit = QuantumCircuit(2)
+        circuit.u2(-804.15, np.pi, 0)
+        circuit.u2(-6433.2, np.pi, 1)
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        result = pass_manager.run(circuit)
+
+        self.assertEqual(circuit, result)
 
     def test_node_added_after_block(self):
         """Test that a node after the block remains after the block
 
         This example was raised in #2764, and checks that the final CX
         stays after the main block, even though one of the nodes in the
-        block was declared after it. This occured when the block was
+        block was declared after it. This occurred when the block was
         added when the last node in the block was seen.
 
         blocks = [['cx', 'id', 'id']]
@@ -224,14 +246,14 @@ class TestConsolidateBlocks(QiskitTestCase):
         """
         qc = QuantumCircuit(3)
         qc.cx(1, 2)
-        qc.iden(1)
+        qc.i(1)
         qc.cx(0, 1)
-        qc.iden(2)
+        qc.i(2)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 
@@ -255,20 +277,20 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc = QuantumCircuit(4)
         qc.cx(0, 1)
         qc.cx(3, 2)
-        qc.iden(1)
-        qc.iden(2)
+        qc.i(1)
+        qc.i(2)
 
         qc.swap(1, 2)
 
-        qc.iden(1)
-        qc.iden(2)
+        qc.i(1)
+        qc.i(2)
         qc.cx(0, 1)
         qc.cx(3, 2)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 
@@ -283,7 +305,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks())
-        qc1 = transpile(qc, pass_manager=pass_manager)
+        qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
 

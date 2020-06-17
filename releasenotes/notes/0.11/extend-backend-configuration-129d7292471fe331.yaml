@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    PulseBackendConfiguration (accessed normally as backend.configuration())
+    has been extended with useful methods to explore its data and the
+    functionality that exists in PulseChannelSpec. PulseChannelSpec will be 
+    deprecated in the future. For Example::
+
+        backend = provider.get_backend(backend_name)
+        config = backend.configuration()
+        q0_drive = config.drive(0)  # or, DriveChannel(0)
+        q0_meas = config.measure(0)  # MeasureChannel(0)
+        q0_acquire = config.acquire(0)  # AcquireChannel(0)
+        config.hamiltonian  # Returns a dictionary with hamiltonian info
+        config.sample_rate()  # New method which returns 1 / dt

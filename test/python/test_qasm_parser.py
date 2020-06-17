@@ -34,6 +34,7 @@ def parse(file_path, prec=15):
 
 class TestParser(QiskitTestCase):
     """QasmParser"""
+
     def setUp(self):
         self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
         self.qasm_file_path_fail = self._get_resource_path(
@@ -47,10 +48,20 @@ class TestParser(QiskitTestCase):
         res = parse(self.qasm_file_path)
         self.log.info(res)
         # TODO: For now only some basic checks.
-        self.assertEqual(len(res), 1563)
-        self.assertEqual(res[:12], "OPENQASM 2.0")
-        self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
-        self.assertEqual(res[1547:1562], "measure r -> d;")
+        starts_expected = "OPENQASM 2.0;\ngate "
+        ends_expected = '\n'.join(['}',
+                                   'qreg q[3];',
+                                   'qreg r[3];',
+                                   'h q;',
+                                   'cx q,r;',
+                                   'creg c[3];',
+                                   'creg d[3];',
+                                   'barrier q;',
+                                   'measure q -> c;',
+                                   'measure r -> d;', ''])
+
+        self.assertEqual(res[:len(starts_expected)], starts_expected)
+        self.assertEqual(res[-len(ends_expected):], ends_expected)
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
@@ -60,6 +71,7 @@ class TestParser(QiskitTestCase):
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
+
         def inspect(node):
             """Inspect node children."""
             for child in node.children:

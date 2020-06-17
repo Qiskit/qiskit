@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    :func:`qiskit.compiler.assemble` will now respect the configured
+    ``max_shots`` value for a backend. If a value for the ``shots`` kwarg is
+    specified that exceed the max shots set in the backend configuration the
+    function will now raise a ``QiskitError`` exception. Additionally, if no
+    shots argument is provided the default value is either 1024 (the previous
+    behavior) or ``max_shots`` from the backend, whichever is lower.

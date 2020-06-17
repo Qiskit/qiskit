@@ -20,7 +20,7 @@ import datetime
 from qiskit.providers.models import (GateConfig, PulseBackendConfiguration,
                                      PulseDefaults, Command, UchannelLO)
 from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
-from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
+from qiskit.qobj import PulseQobjInstruction
 from .fake_backend import FakeBackend
 
 
@@ -48,7 +48,6 @@ class FakeOpenPulse2Q(FakeBackend):
                 [UchannelLO(q=0, scale=1. + 0.j)],
                 [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
             ],
-            meas_level=[1, 2],
             qubit_lo_range=[[4.5, 5.5], [4.5, 5.5]],
             meas_lo_range=[[6.0, 7.0], [6.0, 7.0]],
             dt=1.3333,
@@ -65,61 +64,182 @@ class FakeOpenPulse2Q(FakeBackend):
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],
                 [1000, 100], [100, 1000], [1000, 100]
-            ]
+            ],
+            hamiltonian={
+                'h_str': ["np.pi*(2*v0-alpha0)*O0", "np.pi*alpha0*O0*O0", "2*np.pi*r*X0||D0",
+                          "2*np.pi*r*X0||U1", "2*np.pi*r*X1||U0", "np.pi*(2*v1-alpha1)*O1",
+                          "np.pi*alpha1*O1*O1", "2*np.pi*r*X1||D1", "2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)"],
+                'description': "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.",
+                'qub': {'0': 3, '1': 3},
+                'vars':  {'v0': 5.00,
+                          'v1': 5.1,
+                          'j': 0.01,
+                          'r': 0.02,
+                          'alpha0': -0.33,
+                          'alpha1': -0.33}
+            },
+            channels={
+                'acquire0': {
+                    'operates': {'qubits': [0]},
+                    'purpose': 'acquire',
+                    'type': 'acquire'
+                },
+                'acquire1': {
+                    'operates': {'qubits': [1]},
+                    'purpose': 'acquire',
+                    'type': 'acquire'
+                },
+                'd0': {
+                    'operates': {'qubits': [0]},
+                    'purpose': 'drive',
+                    'type': 'drive'
+                },
+                'd1': {
+                    'operates': {'qubits': [1]},
+                    'purpose': 'drive',
+                    'type': 'drive'
+                },
+                'm0': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [0]}
+                },
+                'm1': {
+                    'type': 'measure',
+                    'purpose': 'measure',
+                    'operates': {'qubits': [1]}
+                },
+                'u0': {
+                    'operates': {'qubits': [0, 1]},
+                    'purpose': 'cross-resonance',
+                    'type': 'control'
+                },
+                'u1': {
+                    'operates': {'qubits': [1, 0]},
+                    'purpose': 'cross-resonance',
+                    'type': 'control'
+                }
+            }
         )
 
-        self._defaults = PulseDefaults(
-            qubit_freq_est=[4.9, 5.0],
-            meas_freq_est=[6.5, 6.6],
-            buffer=10,
-            pulse_library=[PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
-                           PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j]),
-                           PulseLibraryItem(name='test_pulse_3',
-                                            samples=[0.j, 0.1j, 1j, 0.5 + 0j]),
-                           PulseLibraryItem(name='test_pulse_4',
-                                            samples=7*[0.j, 0.1j, 1j, 0.5 + 0j])],
-            cmd_def=[Command(name='u1', qubits=[0],
-                             sequence=[PulseQobjInstruction(name='fc', ch='d0',
-                                                            t0=0, phase='-P1*np.pi')]),
-                     Command(name='u1', qubits=[1],
-                             sequence=[PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=0, phase='-P1*np.pi')]),
-                     Command(name='u2', qubits=[0],
-                             sequence=[PulseQobjInstruction(name='fc', ch='d0',
-                                                            t0=0, phase='-P0*np.pi'),
-                                       PulseQobjInstruction(name='test_pulse_4', ch='d0', t0=0),
-                                       PulseQobjInstruction(name='fc', ch='d0',
-                                                            t0=0, phase='-P1*np.pi')]),
-                     Command(name='u2', qubits=[1],
-                             sequence=[PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=0, phase='-P0*np.pi'),
-                                       PulseQobjInstruction(name='test_pulse_4', ch='d1', t0=0),
-                                       PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=0, phase='-P0*np.pi')]),
-                     Command(name='u3', qubits=[0],
-                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0)]),
-                     Command(name='u3', qubits=[1],
-                             sequence=[PulseQobjInstruction(name='test_pulse_3', ch='d1', t0=0)]),
-                     Command(name='cx', qubits=[0, 1],
-                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
-                                       PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
-                                       PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
-                                       PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=20, phase=2.1)]),
-                     Command(name='ParametrizedGate', qubits=[0, 1],
-                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
-                                       PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
-                                       PulseQobjInstruction(name='pv', ch='d1',
-                                                            t0=2, val='cos(P2)'),
-                                       PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
-                                       PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=20, phase=2.1)]),
-                     Command(name='measure', qubits=[0, 1],
-                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
-                                       PulseQobjInstruction(name='test_pulse_1', ch='m1', t0=0),
-                                       PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                                            qubits=[0, 1], memory_slot=[0, 1])])]
-        )
+        self._defaults = PulseDefaults.from_dict({
+            'qubit_freq_est': [4.9, 5.0],
+            'meas_freq_est': [6.5, 6.6],
+            'buffer': 10,
+            'pulse_library': [
+                {
+                    'name': 'test_pulse_1',
+                    'samples': [[0.0, 0.0], [0.0, 0.1]]
+                },
+                {
+                    'name': 'test_pulse_2',
+                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]
+                },
+                {
+                    'name': 'test_pulse_3',
+                    'samples': [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
+                },
+                {
+                    'name': 'test_pulse_4',
+                    'samples': 7 * [
+                        [0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]
+                    ]
+                }
+            ],
+            'cmd_def': [
+                Command.from_dict({
+                    'name': 'u1',
+                    'qubits': [0],
+                    'sequence': [
+                        PulseQobjInstruction(name='fc', ch='d0',
+                                             t0=0, phase='-P0').to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'u1',
+                    'qubits': [1],
+                    'sequence': [
+                        PulseQobjInstruction(name='fc', ch='d1',
+                                             t0=0, phase='-P0').to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'u2',
+                    'qubits': [0],
+                    'sequence': [
+                        PulseQobjInstruction(name='fc', ch='d0',
+                                             t0=0,
+                                             phase='-P1').to_dict(),
+                        PulseQobjInstruction(name='test_pulse_4', ch='d0',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='fc', ch='d0', t0=0,
+                                             phase='-P0').to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'u2',
+                    'qubits': [1],
+                    'sequence': [
+                        PulseQobjInstruction(name='fc', ch='d1', t0=0,
+                                             phase='-P1').to_dict(),
+                        PulseQobjInstruction(name='test_pulse_4',
+                                             ch='d1', t0=0).to_dict(),
+                        PulseQobjInstruction(name='fc', ch='d1',
+                                             t0=0, phase='-P0').to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'u3',
+                    'qubits': [0],
+                    'sequence': [
+                        PulseQobjInstruction(name='test_pulse_1', ch='d0',
+                                             t0=0).to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'u3',
+                    'qubits': [1],
+                    'sequence': [
+                        PulseQobjInstruction(name='test_pulse_3', ch='d1',
+                                             t0=0).to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'cx',
+                    'qubits': [0, 1],
+                    'sequence': [
+                        PulseQobjInstruction(name='test_pulse_1', ch='d0',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='test_pulse_2', ch='u0',
+                                             t0=10).to_dict(),
+                        PulseQobjInstruction(name='test_pulse_1', ch='d1',
+                                             t0=20).to_dict(),
+                        PulseQobjInstruction(name='fc', ch='d1',
+                                             t0=20, phase=2.1).to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'ParametrizedGate',
+                    'qubits': [0, 1],
+                    'sequence': [
+                        PulseQobjInstruction(name='test_pulse_1', ch='d0',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='test_pulse_2', ch='u0',
+                                             t0=10).to_dict(),
+                        PulseQobjInstruction(name='pv', ch='d1',
+                                             t0=2, val='cos(P2)').to_dict(),
+                        PulseQobjInstruction(name='test_pulse_1', ch='d1',
+                                             t0=20).to_dict(),
+                        PulseQobjInstruction(name='fc', ch='d1',
+                                             t0=20, phase=2.1).to_dict()
+                    ]}).to_dict(),
+                Command.from_dict({
+                    'name': 'measure',
+                    'qubits': [0, 1],
+                    'sequence': [
+                        PulseQobjInstruction(name='test_pulse_1', ch='m0',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='test_pulse_1', ch='m1',
+                                             t0=0).to_dict(),
+                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
+                                             qubits=[0, 1],
+                                             memory_slot=[0, 1]).to_dict()
+                    ]}).to_dict()
+            ]
+        })
 
         mock_time = datetime.datetime.now()
         dt = 1.3333  # pylint: disable=invalid-name
@@ -134,19 +254,19 @@ class FakeOpenPulse2Q(FakeBackend):
                  Nduv(date=mock_time, name='frequency', unit='GHz', value=5.01996800692)]
             ],
             gates=[
-                Gate(gate='u1', name='u1_0', qubits=[0],
+                Gate(gate='u1', qubits=[0],
                      parameters=[
-                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_error', unit='', value=0.06),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=0.)]),
-                Gate(gate='u3', name='u3_0', qubits=[0],
+                Gate(gate='u3', qubits=[0],
                      parameters=[
-                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_error', unit='', value=0.06),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=2 * dt)]),
-                Gate(gate='u3', name='u3_1', qubits=[1],
+                Gate(gate='u3', qubits=[1],
                      parameters=[
-                         Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
+                         Nduv(date=mock_time, name='gate_error', unit='', value=0.06),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=4 * dt)]),
-                Gate(gate='cx', name='cx0_1', qubits=[0, 1],
+                Gate(gate='cx', qubits=[0, 1],
                      parameters=[
                          Nduv(date=mock_time, name='gate_error', unit='', value=1.0),
                          Nduv(date=mock_time, name='gate_length', unit='ns', value=22 * dt)]),

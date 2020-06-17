@@ -14,21 +14,20 @@
 
 """Model for schema-conformant Results."""
 
+import copy
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
-
-from qiskit.validation.base import BaseModel, bind_schema
+from qiskit.quantum_info.states import Statevector
+from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
-from .models import ResultSchema
+from qiskit.qobj.utils import MeasLevel
+from qiskit.qobj import QobjHeader
 
 
-@bind_schema(ResultSchema)
-class Result(BaseModel):
+class Result:
     """Model for Results.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``ResultSchema``.
 
     Attributes:
         backend_name (str): backend name.
@@ -37,20 +36,77 @@ class Result(BaseModel):
         job_id (str): unique execution id from the backend.
         success (bool): True if complete input qobj executed correctly. (Implies
             each experiment success)
-        results (ExperimentResult): corresponding results for array of
+        results (list[ExperimentResult]): corresponding results for array of
             experiments of the input qobj
     """
 
+    _metadata = {}
+
     def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
-                 results, **kwargs):
+                 results, date=None, status=None, header=None, **kwargs):
+        self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.qobj_id = qobj_id
         self.job_id = job_id
         self.success = success
         self.results = results
+        if date is not None:
+            self.date = date
+        if status is not None:
+            self.status = status
+        if header is not None:
+            self.header = header
+        self._metadata.update(kwargs)
 
-        super().__init__(**kwargs)
+    def to_dict(self):
+        """Return a dictionary format representation of the Result
+
+        Returns:
+            dict: The dictionary form of the Result
+        """
+        out_dict = {
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'qobj_id': self.qobj_id,
+            'job_id': self.job_id,
+            'success': self.success,
+            'results': [x.to_dict() for x in self.results]
+        }
+        if hasattr(self, 'date'):
+            out_dict['date'] = self.date
+        if hasattr(self, 'status'):
+            out_dict['status'] = self.status
+        if hasattr(self, 'header'):
+            out_dict['header'] = self.header.to_dict()
+        out_dict.update(self._metadata)
+        return out_dict
+
+    def __getattr__(self, name):
+        try:
+            return self._metadata[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new ExperimentResultData object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the Result to create. It
+                         will be in the same format as output by
+                         :meth:`to_dict`.
+        Returns:
+            Result: The ``Result`` object from the input dictionary.
+
+        """
+
+        in_data = copy.copy(data)
+        in_data['results'] = [
+            ExperimentResult.from_dict(x) for x in in_data.pop('results')]
+        if 'header' in in_data:
+            in_data['header'] = QobjHeader.from_dict(in_data.pop('header'))
+        return cls(**in_data)
 
     def data(self, experiment=None):
         """Get the raw data for an experiment.
@@ -79,14 +135,14 @@ class Result(BaseModel):
             the number of times this outcome was measured.
 
             Statevector backends return a dictionary with key 'statevector' and
-            values being a list[list[complex components]] list of 2^n_qubits
+            values being a list[list[complex components]] list of 2^num_qubits
             complex amplitudes. Where each complex number is represented as a 2
             entry list for each component. For example, a list of
             [0.5+1j, 0-1j] would be represented as [[0.5, 1], [0, -1]].
 
             Unitary backends return a dictionary with key 'unitary' and values
             being a list[list[list[complex components]]] list of
-            2^n_qubits x 2^n_qubits complex amplitudes in a two entry list for
+            2^num_qubits x 2^num_qubits complex amplitudes in a two entry list for
             each component. For example if the amplitude is
             [[0.5+0j, 0-1j], ...] the value returned will be
             [[[0.5, 0], [0, -1]], ...].
@@ -143,11 +199,11 @@ class Result(BaseModel):
 
             memory = self.data(experiment)['memory']
 
-            if meas_level == 2:
+            if meas_level == MeasLevel.CLASSIFIED:
                 return postprocess.format_level_2_memory(memory, header)
-            elif meas_level == 1:
+            elif meas_level == MeasLevel.KERNELED:
                 return postprocess.format_level_1_memory(memory)
-            elif meas_level == 0:
+            elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
                 raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
@@ -163,7 +219,8 @@ class Result(BaseModel):
                 experiment, as specified by ``get_data()``.
 
         Returns:
-            dict[str:int]: a dictionary with the counts for each qubit, with
+            dict[str:int] or list[dict[str:int]]: a dictionary or a list of
+                dictionaries. A dictionary has the counts for each qubit with
                 the keys containing a string in binary format and separated
                 according to the registers in circuit (e.g. ``0100 1110``).
                 The string is little-endian (cr[0] on the right hand side).
@@ -171,17 +228,32 @@ class Result(BaseModel):
         Raises:
             QiskitError: if there are no counts for the experiment.
         """
-        try:
-            exp = self._get_experiment(experiment)
+        if experiment is None:
+            exp_keys = range(len(self.results))
+        else:
+            exp_keys = [experiment]
+
+        dict_list = []
+        for key in exp_keys:
+            exp = self._get_experiment(key)
             try:
                 header = exp.header.to_dict()
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
-            return postprocess.format_counts(self.data(experiment)['counts'],
-                                             header)
-        except KeyError:
-            raise QiskitError('No counts for experiment "{0}"'.format(experiment))
+            if 'counts' in self.data(key).keys():
+                dict_list.append(postprocess.format_counts(self.data(key)['counts'], header))
+            elif 'statevector' in self.data(key).keys():
+                vec = postprocess.format_statevector(self.data(key)['statevector'])
+                dict_list.append(Statevector(vec).probabilities_dict(decimals=15))
+            else:
+                raise QiskitError('No counts for experiment "{0}"'.format(key))
+
+        # Return first item of dict_list if size is 1
+        if len(dict_list) == 1:
+            return dict_list[0]
+        else:
+            return dict_list
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
@@ -193,7 +265,7 @@ class Result(BaseModel):
                 If None, does not round.
 
         Returns:
-            list[complex]: list of 2^n_qubits complex amplitudes.
+            list[complex]: list of 2^num_qubits complex amplitudes.
 
         Raises:
             QiskitError: if there is no statevector for the experiment.
@@ -214,7 +286,7 @@ class Result(BaseModel):
                 If None, does not round.
 
         Returns:
-            list[list[complex]]: list of 2^n_qubits x 2^n_qubits complex
+            list[list[complex]]: list of 2^num_qubits x 2^num_qubits complex
                 amplitudes.
 
         Raises:
