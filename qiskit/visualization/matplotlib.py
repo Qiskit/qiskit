@@ -410,25 +410,40 @@ class MatplotlibDrawer:
                              ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text=''):
+    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text='', text_loc=None):
         xpos, ypos = xy
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
-        self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
-                     fontsize=self._style.sfs, color=tc,
+        if text_loc== True:
+            self.ax.text(xpos, ypos + 0.5 * HIG, text, ha='center', va='top',
+                     fontsize=self._style.sfs, color=self._style.tc,
                      clip_on=True, zorder=PORDER_TEXT)
-        # self.ax.text(xpos, ypos + 0.5 * HIG, text, ha='center', va='top',
-        #             fontsize=self._style.sfs, color=self._style.tc,
-        #             clip_on=True, zorder=PORDER_TEXT)
+        elif text_loc == False:
+            self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
+                         fontsize=self._style.sfs, color=tc,
+                         clip_on=True, zorder=PORDER_TEXT)
 
     def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit,
-                             ec=None, tc=None, text=''):
+                             ec=None, tc=None, text='', qargs=None):
+        qlist = [qubit.index for qubit in qargs]
+        cbits = qlist[:num_ctrl_qubits]
+        qbits = qlist[num_ctrl_qubits:]
+        max_cbit = max(cbits)
+        min_cbit = min(cbits)
+        top = False if min(qbits) < min_cbit else True
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == '1' else self._style.bg
-            text = text if i == 0 else ''
-            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text)
+            if top and qlist[i] == min_cbit:
+                text_loc = True
+            elif not top and qlist[i] == max_cbit:
+                text_loc = False
+            else:
+                text_loc = None
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, 
+                             text=text, text_loc=text_loc)
 
     def _x_tgt_qubit(self, xy, ec=None, ac=None):
         linewidth = 2
@@ -525,7 +540,7 @@ class MatplotlibDrawer:
                      for word in words]
             words = [word.replace('^', r'\^{\ }') if word.count('^') > 1 else word
                      for word in words]
-            label = ' '.join(words).replace(' ', '\\; ')
+            label = ' '.join(words).replace(' ', '\\;')
             return label
 
         # quantum register
@@ -654,10 +669,10 @@ class MatplotlibDrawer:
             gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
 
         # mathtext .format removes spaces so add them back
-        gate_text = gate_text.replace(' ', '\\; ')
+        gate_text = gate_text.replace(' ', '\\;')
         if ctrl_text:
             ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
-            ctrl_text = ctrl_text.replace(' ', '\\; ')
+            ctrl_text = ctrl_text.replace(' ', '\\;')
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
@@ -717,7 +732,13 @@ class MatplotlibDrawer:
                     box_width = WID
                     continue
 
-                gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.05
+                if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
+                    tname = 'U1' if op.name == 'cu1' else 'zz'
+                    side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
+                                  + param_width)
+                    gate_width = 1.5 * (side_width)
+                else:
+                    gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.05
                 ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs)
                 if (hasattr(op.op, 'params')
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])
@@ -730,14 +751,7 @@ class MatplotlibDrawer:
                 else:
                     param_width = 0.0
 
-                if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
-                    tname = 'U1' if op.name == 'cu1' else 'zz'
-                    side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
-                                  + param_width)
-                    box_width = 1.5 * (side_width)
-                else:
-                    box_width = self._get_max_width(gate_width, ctrl_width, param_width)
-
+                box_width = self._get_max_width(gate_width, ctrl_width, param_width)
                 if box_width > widest_box:
                     widest_box = box_width
 
@@ -866,7 +880,7 @@ class MatplotlibDrawer:
                 elif isinstance(op.op, ControlledGate) and base_name == 'x':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text)
+                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec,
                                       ac=self._style.dispcol['target'])
                     self._line(qreg_b, qreg_t, lc=lc)
@@ -875,7 +889,7 @@ class MatplotlibDrawer:
                 elif op.name == 'cz':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text)
+                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
@@ -884,7 +898,7 @@ class MatplotlibDrawer:
                     num_ctrl_qubits = 0 if op.name == 'rzz' else op.op.num_ctrl_qubits
                     if op.name != 'rzz':
                         self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                                  q_xy, ec=ec, tc=tc, text=ctrl_text)
+                                                  q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
                     if op.name != 'cu1':
                         self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=ec, ec=ec, tc=tc)
@@ -903,7 +917,7 @@ class MatplotlibDrawer:
                 elif op.name != 'swap' and base_name == 'swap':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text)
+                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._swap(q_xy[num_ctrl_qubits], color=lc)
                     self._swap(q_xy[num_ctrl_qubits+1], color=lc)
                     self._line(qreg_b, qreg_t, lc=lc)
@@ -913,7 +927,7 @@ class MatplotlibDrawer:
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
                     self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text)
+                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._line(qreg_b, qreg_t, lc=lc)
                     if num_qargs == 1:
                         self._gate(q_xy[num_ctrl_qubits], fc=fc, ec=ec, gt=gt, sc=sc,
