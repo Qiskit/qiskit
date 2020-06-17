@@ -33,7 +33,7 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         }]
     Args:
         tweedledum_circuit (dict): Tweedledum circuit.
-        name (str): NName for the resulting Qiskit circuit.
+        name (str): Name for the resulting Qiskit circuit.
         qregs (list(QuantumRegister)): Optional. List of QuantumRegisters on which the
            circuit would operate. If not provided, it will create a flat register.
 
