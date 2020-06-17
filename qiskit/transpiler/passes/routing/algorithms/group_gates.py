@@ -8,15 +8,17 @@
 """Pass for grouping runs of two qubit gates and returning another graph with larger nodes.
 """
 
-# This will be turned into an analysis pass.  At present this class is only used by a_star_cx.py
+# This will be turned into an analysis pass.
+# At present this class is only used by a_star_cx.py
+
+import networkx as nx
+
 
 
 def group_gates(compiled_dag):
     """Group consecutive runs of gates on a qubit pair."""
 
-    import networkx as nx
-
-    gates = nx.topological_sort(compiled_dag.multi_graph)
+    gates = compiled_dag.topological_nodes()
     nqubits = compiled_dag.width()
 
     single_qubit_gates = [[] for i in range(nqubits)]
@@ -129,6 +131,3 @@ def group_gates(compiled_dag):
             nnodes += 1
 
     return graph
-
-
-# -*- coding: utf-8 -*-
