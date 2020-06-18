@@ -21,9 +21,6 @@ from .armonk import FakeArmonk
 from .yorktown import FakeYorktown
 from .tenerife import FakeTenerife
 from .ourense import FakeOurense
-from .ourense import FakeOurenseFaultyQ1
-from .ourense import FakeOurenseFaultyCX13
-from .ourense import FakeOurenseFaultyCX01
 from .vigo import FakeVigo
 from .valencia import FakeValencia
 from .london import FakeLondon

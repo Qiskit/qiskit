@@ -14,8 +14,8 @@
 
 """Testing a Faulty Ourense Backend."""
 
-from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX13, FakeOurenseFaultyCX01
 from qiskit.test import QiskitTestCase
+from .faulty_backends import FakeOurenseFaultyCX01, FakeOurenseFaultyQ1, FakeOurenseFaultyCX13
 
 
 class FaultyQubitBackendTestCase(QiskitTestCase):
@@ -50,7 +50,6 @@ class FaultyGate13BackendTestCase(QiskitTestCase):
         self.assertEqual(len(gates), 2)
         self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
         self.assertEqual([gate.qubits for gate in gates], [[1, 3], [3, 1]])
-        self.assertEqual([gate.name for gate in gates], ['cx1_3', 'cx3_1'])
 
 
 class FaultyGate01BackendTestCase(QiskitTestCase):
@@ -69,4 +68,3 @@ class FaultyGate01BackendTestCase(QiskitTestCase):
         self.assertEqual(len(gates), 2)
         self.assertEqual([gate.gate for gate in gates], ['cx', 'cx'])
         self.assertEqual([gate.qubits for gate in gates], [[0, 1], [1, 0]])
-        self.assertEqual([gate.name for gate in gates], ['cx0_1', 'cx1_0'])
