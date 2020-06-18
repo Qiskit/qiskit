@@ -16,7 +16,6 @@
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
-from qiskit.compiler import transpile
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.test import QiskitTestCase
 
@@ -42,7 +41,7 @@ class TestCXCancellation(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(CXCancellation())
-        out_circuit = transpile(circuit, pass_manager=pass_manager)
+        out_circuit = pass_manager.run(circuit)
         resources_after = out_circuit.count_ops()
 
         self.assertNotIn('cx', resources_after)

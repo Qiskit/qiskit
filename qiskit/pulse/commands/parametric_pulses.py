@@ -17,7 +17,8 @@ import warnings
 
 # pylint: disable=unused-import
 
-from qiskit.pulse.pulse_lib import ParametricPulse, Gaussian, GaussianSquare, Drag, ConstantPulse
+from qiskit.pulse.pulse_lib import (ParametricPulse, Gaussian, GaussianSquare,
+                                    Drag, Constant, ConstantPulse)
 from qiskit.pulse.channels import Channel
 
 
@@ -30,4 +31,4 @@ class ParametricInstruction:
                       "duration=duration), DriveChannel(0)) -> Play(Gaussian(amp=amp, sigma=sigma,"
                       " duration=duration), DriveChannel(0)).",
                       DeprecationWarning)
-        super().__init__(command, channel, name=name)
+        super().__init__((), command, (channel,), name=name)

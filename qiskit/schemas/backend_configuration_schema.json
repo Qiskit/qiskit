@@ -145,8 +145,8 @@
             },
             "openpulse_config":{
                 "required": ["open_pulse","n_uchannels","hamiltonian","u_channel_lo",
-                            "meas_levels","qubit_lo_range","meas_lo_range","dt","dtm","rep_times",
-                            "meas_kernels","discriminators"],
+                            "meas_levels","qubit_lo_range","meas_lo_range","dt","dtm",
+                            "rep_times", "meas_kernels","discriminators"],
                 "properties": {
                             "open_pulse": {
                                 "enum": [ true ],
@@ -219,8 +219,17 @@
                             "rep_times": {
                                 "type": "array",
                                 "minItems": 1,
-                                "description": "Available experiment repetition rates",
+                                "description": "Program execution times (microseconds) supported by backend.",
                                 "items": {"type": "number", "minimum": 0}},
+                            "rep_delays": {
+                                "type": "array",
+                                "minItems": 0,
+                                "description": "Delay times between programs (microseconds) supported by backend.",
+                                "items": {"type": "number", "minimum": 0}},
+                            "dynamic_reprate_enabled": {
+                                "type": "boolean",
+                                "description": "Whether delay between programs can be set dynamically using 'rep_delay').",
+                                "default": false},
                             "meas_map": {
                                 "type": "array",
                                 "minItems": 1,
@@ -255,7 +264,25 @@
                                 "type": "array",
                                 "minItems": 0,
                                 "description": "A list of available parametric pulse shapes",
-                                "items": {"type": "string"}}
+                                "items": {"type": "string"}},
+                            "channels": {
+                                "type": "object",
+                                "patternProperties": {
+                                    "^[a-z0-9]+$": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {"type": "string"},
+                                            "purpose": {"type": "string"},
+                                            "operates": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "qubits": {"type": "array", "items": {"type": "integer", "minimum": 0}}
+                                                }
+                                            }
+                                        }}
+                                    },
+                                "description": "A dictionary where each entry represents a channel configuration and contains configuration values such as the channel's mapping to qubits."
+                                }
                             }},
         "gateconfig": {
             "type": "object",

@@ -33,7 +33,7 @@ class LayoutTransformation(TransformationPass):
     def __init__(self, coupling_map: CouplingMap,
                  from_layout: Union[Layout, str],
                  to_layout: Union[Layout, str],
-                 seed: Union[int, np.random.RandomState] = None,
+                 seed: Union[int, np.random.default_rng] = None,
                  trials=4):
         """LayoutTransformation initializer.
 
@@ -49,7 +49,7 @@ class LayoutTransformation(TransformationPass):
                 The final layout of qubits on phyiscal qubits.
                 If the type is str, look up `property_set` when this pass runs.
 
-            seed (Union[int, np.random.RandomState]):
+            seed (Union[int, np.random.default_rng]):
                 Seed to use for random trials.
 
             trials (int):
@@ -79,7 +79,7 @@ class LayoutTransformation(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('LayoutTransform runs on physical circuits only')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
+        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         from_layout = self.from_layout
@@ -102,7 +102,7 @@ class LayoutTransformation(TransformationPass):
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
-        edge_map = {vqubit: dag.qubits()[pqubit]
+        edge_map = {vqubit: dag.qubits[pqubit]
                     for (pqubit, vqubit) in perm_circ.inputmap.items()}
-        dag.compose_back(perm_circ.circuit, edge_map=edge_map)
+        dag.compose(perm_circ.circuit, edge_map=edge_map)
         return dag

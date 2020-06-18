@@ -16,7 +16,7 @@
 """Remove the swaps followed by measurement (and adapt the measurement)."""
 
 from qiskit.circuit import Measure
-from qiskit.extensions.standard import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 
@@ -60,6 +60,6 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                         new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
                         measure_layer.apply_operation_back(Measure(), [new_measure_qarg],
                                                            [successor.cargs[0]])
-                dag.extend_back(measure_layer)
+                dag.compose(measure_layer)
                 dag.remove_op_node(swap)
         return dag

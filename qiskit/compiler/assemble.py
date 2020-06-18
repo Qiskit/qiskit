@@ -15,6 +15,9 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
 import copy
+import logging
+import warnings
+from time import time
 
 from typing import Union, List, Dict, Optional
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
@@ -28,6 +31,13 @@ from qiskit.validation.jsonschema import SchemaValidationError
 from qiskit.providers import BaseBackend
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse import Schedule
+
+LOG = logging.getLogger(__name__)
+
+
+def _log_assembly_time(start_time, end_time):
+    log_msg = "Total Assembly Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    LOG.info(log_msg)
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
@@ -49,8 +59,10 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
              meas_map: Optional[List[List[Qubit]]] = None,
              memory_slot_size: int = 100,
              rep_time: Optional[float] = None,
+             rep_delay: Optional[float] = None,
              parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
              parametric_pulses: Optional[List[str]] = None,
+             init_qubits: bool = True,
              **run_config: Dict) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
@@ -93,9 +105,12 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                 * ``avg`` returns average measurement output (averaged over number of shots).
         meas_map: List of lists, containing qubits that must be measured together.
         memory_slot_size: Size of each memory slot if the output is Level 0.
-        rep_time: Repetition time of the experiment in s.
-            The delay between experiments will be ``rep_time``.
-            Must be from the list provided by the device.
+        rep_time: Time per program execution in sec. Must be from the list provided
+            by the backend (``backend.configuration().rep_times``).
+        rep_delay: Delay between programs in sec. Only supported on certain
+            backends (``backend.configuration().dynamic_reprate_enabled`` ).
+            If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
+            provided by the backend (``backend.configuration().rep_delays``).
         parameter_binds: List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -106,6 +121,8 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
             Example::
 
             ['gaussian', 'constant']
+        init_qubits: Whether to reset the qubits to the ground state for each shot.
+                     Default: ``True``.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -117,10 +134,12 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
+    start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
                                                                       shots, memory, max_credits,
-                                                                      seed_simulator, **run_config)
+                                                                      seed_simulator, init_qubits,
+                                                                      **run_config)
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -129,6 +148,8 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         # If circuits are parameterized, bind parameters and remove from run_config
         bound_experiments, run_config = _expand_parameters(circuits=experiments,
                                                            run_config=run_config)
+        end_time = time()
+        _log_assembly_time(start_time, end_time)
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
@@ -136,10 +157,13 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
-                                       meas_map, memory_slot_size, rep_time,
+                                       meas_map, memory_slot_size,
+                                       rep_time, rep_delay,
                                        parametric_pulses,
                                        **run_config_common_dict)
 
+        end_time = time()
+        _log_assembly_time(start_time, end_time)
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
 
@@ -150,7 +174,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
 def _parse_common_args(backend, qobj_id, qobj_header, shots,
-                       memory, max_credits, seed_simulator,
+                       memory, max_credits, seed_simulator, init_qubits,
                        **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
@@ -207,6 +231,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
                            memory=memory,
                            max_credits=max_credits,
                            seed_simulator=seed_simulator,
+                           init_qubits=init_qubits,
                            **run_config)
 
     return qobj_id, qobj_header, run_config_dict
@@ -215,7 +240,8 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
                       meas_return, meas_map,
-                      memory_slot_size, rep_time,
+                      memory_slot_size,
+                      rep_time, rep_delay,
                       parametric_pulses,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
@@ -257,13 +283,27 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
+
+    dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
+
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
-
-    if isinstance(rep_time, list):
-        rep_time = rep_time[0]
-
     if rep_time:
-        rep_time = int(rep_time * 1e6)
+        if dynamic_reprate_enabled:
+            warnings.warn("Dynamic rep rates are supported on this backend. 'rep_delay' will be "
+                          "used instead, if specified.", RuntimeWarning)
+        if isinstance(rep_time, list):
+            rep_time = rep_time[0]
+        rep_time = rep_time * 1e6  # convert sec to μs
+
+    rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
+    if rep_delay:
+        if not dynamic_reprate_enabled:
+            warnings.warn("Dynamic rep rates not supported on this backend. 'rep_time' will be "
+                          "used instead.", RuntimeWarning)
+
+        if isinstance(rep_delay, list):
+            rep_delay = rep_delay[0]
+        rep_delay = rep_delay * 1e6  # convert sec to μs
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
@@ -278,6 +318,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
+                           rep_delay=rep_delay,
                            parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})

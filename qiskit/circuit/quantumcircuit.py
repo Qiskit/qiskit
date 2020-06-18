@@ -21,7 +21,9 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
+from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
+from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
@@ -34,6 +36,15 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
+
+try:
+    import pygments
+    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
+    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
+    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
+    HAS_PYGMENTS = True
+except Exception:  # pylint: disable=broad-except
+    HAS_PYGMENTS = False
 
 
 class QuantumCircuit:
@@ -185,6 +196,7 @@ class QuantumCircuit:
         # below will also empty data_input, so make a shallow copy first.
         data_input = data_input.copy()
         self._data = []
+        self._parameter_table = ParameterTable()
 
         for inst, qargs, cargs in data_input:
             self.append(inst, qargs, cargs)
@@ -240,10 +252,11 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: the mirrored circuit
         """
-        reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ._data = []
+        reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_mirror')
+
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.append(inst.mirror(), qargs, cargs)
+            reverse_circ._append(inst.mirror(), qargs, cargs)
         return reverse_circ
 
     def inverse(self):
@@ -257,11 +270,36 @@ class QuantumCircuit:
         Raises:
             CircuitError: if the circuit cannot be inverted.
         """
-        inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ._data = []
+        inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                      name=self.name + '_dg')
+
         for inst, qargs, cargs in reversed(self._data):
-            inverse_circ._data.append((inst.inverse(), qargs, cargs))
+            inverse_circ._append(inst.inverse(), qargs, cargs)
         return inverse_circ
+
+    def repeat(self, reps):
+        """Repeat this circuit ``reps`` times.
+
+        Args:
+            reps (int): How often this circuit should be repeated.
+
+        Returns:
+            QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
+        """
+        repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
+                                       name=self.name + '**{}'.format(reps))
+
+        # benefit of appending instructions: decomposing shows the subparts, i.e. the power
+        # is actually `reps` times this circuit, and it is currently much faster than `compose`.
+        if reps > 0:
+            try:  # try to append as gate if possible to not disallow to_gate
+                inst = self.to_gate()
+            except QiskitError:
+                inst = self.to_instruction()
+            for _ in range(reps):
+                repeated_circ.append(inst, self.qubits, self.clbits)
+
+        return repeated_circ
 
     def combine(self, rhs):
         """Append rhs to self if self contains compatible registers.
@@ -338,6 +376,74 @@ class QuantumCircuit:
         for instruction_context in data:
             self._append(*instruction_context)
         return self
+
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+        """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
+
+        ``other`` can be narrower or of equal width to ``self``.
+
+        Args:
+            other (qiskit.circuit.Instruction or QuantumCircuit or BaseOperator):
+                (sub)circuit to compose onto self.
+            qubits (list[Qubit|int]): qubits of self to compose onto.
+            clbits (list[Clbit|int]): clbits of self to compose onto.
+            front (bool): If True, front composition will be performed (not implemented yet).
+            inplace (bool): If True, modify the object. Otherwise return composed circuit.
+
+        Returns:
+            QuantumCircuit: the composed circuit (returns None if inplace==True).
+
+        Raises:
+            CircuitError: if composing on the front.
+            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+
+        Examples:
+
+            >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
+
+            .. parsed-literal::
+
+                            ┌───┐                   ┌─────┐                ┌───┐
+                lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
+                            ├───┤              ┌─┴─┐└─────┘                ├───┤
+                lqr_1_1: ───┤ X ├───    rqr_1: ┤ X ├───────    lqr_1_1: ───┤ X ├───────────────
+                         ┌──┴───┴──┐           └───┘                    ┌──┴───┴──┐┌───┐
+                lqr_1_2: ┤ U1(0.1) ├  +                     =  lqr_1_2: ┤ U1(0.1) ├┤ X ├───────
+                         └─────────┘                                    └─────────┘└─┬─┘┌─────┐
+                lqr_2_0: ─────■─────                           lqr_2_0: ─────■───────■──┤ Tdg ├
+                            ┌─┴─┐                                          ┌─┴─┐        └─────┘
+                lqr_2_1: ───┤ X ├───                           lqr_2_1: ───┤ X ├───────────────
+                            └───┘                                          └───┘
+                lcr_0: 0 ═══════════                           lcr_0: 0 ═══════════════════════
+
+                lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
+
+        """
+        if front:
+            raise CircuitError("Front composition of QuantumCircuit not supported yet.")
+
+        if isinstance(other, QuantumCircuit):
+            from qiskit.converters.circuit_to_dag import circuit_to_dag
+            from qiskit.converters.dag_to_circuit import dag_to_circuit
+
+            dag_self = circuit_to_dag(self)
+            dag_other = circuit_to_dag(other)
+            dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
+            composed_circuit = dag_to_circuit(dag_self)
+            if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
+                self.__dict__.update(composed_circuit.__dict__)
+                return None
+            else:
+                return composed_circuit
+
+        else:  # fall back to append which accepts Instruction and BaseOperator
+            if inplace:
+                self.append(other, qargs=qubits, cargs=clbits)
+                return None
+            else:
+                new_circuit = self.copy()
+                new_circuit.append(other, qargs=qubits, cargs=clbits)
+                return new_circuit
 
     @property
     def qubits(self):
@@ -450,9 +556,20 @@ class QuantumCircuit:
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
+
+        Raises:
+            CircuitError: if object passed is a subclass of Instruction
+            CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # Convert input to instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+        if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
+            if issubclass(instruction, Instruction):
+                raise CircuitError('Object is a subclass of Instruction, please add () to '
+                                   'pass an instance of this object.')
+
+            raise CircuitError('Object to append must be an Instruction or '
+                               'have a to_instruction() method.')
+        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
@@ -498,7 +615,7 @@ class QuantumCircuit:
     def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
-                current_parameters = self.parameters
+                current_parameters = self._parameter_table
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
@@ -506,7 +623,7 @@ class QuantumCircuit:
                                                           instruction, param_index):
                             self._parameter_table[parameter].append((instruction, param_index))
                     else:
-                        if parameter.name in {p.name for p in current_parameters}:
+                        if parameter.name in self._parameter_table.get_names():
                             raise CircuitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
@@ -624,8 +741,20 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise CircuitError("circuits are not compatible")
 
-    def qasm(self):
-        """Return OpenQASM string."""
+    def qasm(self, formatted=False, filename=None):
+        """Return OpenQASM string.
+
+        Parameters:
+            formatted (bool): Return formatted Qasm string.
+            filename (str): Save Qasm to file with name 'filename'.
+
+        Returns:
+            str: If formatted=False.
+
+        Raises:
+            ImportError: If pygments is not installed and ``formatted`` is
+                ``True``.
+        """
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
@@ -650,12 +779,29 @@ class QuantumCircuit:
         # this resets them, so if another call to qasm() is made the gate def is added again
         for gate in unitary_gates:
             gate._qasm_def_written = False
-        return string_temp
+
+        if filename:
+            with open(filename, 'w+') as file:
+                file.write(string_temp)
+            file.close()
+
+        if formatted:
+            if not HAS_PYGMENTS:
+                raise ImportError("To use the formatted output pygments>2.4 "
+                                  "must be installed. To install pygments run "
+                                  '"pip install pygments".')
+            code = pygments.highlight(string_temp,
+                                      OpenQASMLexer(),
+                                      Terminal256Formatter(style=QasmTerminalStyle))
+            print(code)
+            return None
+        else:
+            return string_temp
 
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -725,6 +871,11 @@ class QuantumCircuit:
                 there will be no returned Figure since it is redundant. This is
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
+                Default: ``False``.
+            cregbundle (bool): Optional. If set True bundle classical registers. Not used by
+                the ``matplotlib`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -866,7 +1017,9 @@ class QuantumCircuit:
                               idle_wires=idle_wires,
                               with_layout=with_layout,
                               fold=fold,
-                              ax=ax)
+                              ax=ax,
+                              initial_state=initial_state,
+                              cregbundle=cregbundle)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -960,20 +1113,25 @@ class QuantumCircuit:
         return sum(reg.size for reg in self.qregs + self.cregs)
 
     @property
-    def n_qubits(self):
-        """
-        Return number of qubits.
-        """
+    def num_qubits(self):
+        """Return number of qubits."""
         qubits = 0
         for reg in self.qregs:
             qubits += reg.size
         return qubits
 
     @property
-    def n_clbits(self):
-        """
-        Return number of classical bits.
-        """
+    def n_qubits(self):
+        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
+        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.num_qubits method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return number of classical bits."""
         return sum(len(reg) for reg in self.cregs)
 
     def count_ops(self):
@@ -986,6 +1144,17 @@ class QuantumCircuit:
         for instr, _, _ in self._data:
             count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
+
+    def num_nonlocal_gates(self):
+        """Return number of non-local gates (i.e. involving 2+ qubits).
+
+        Conditional nonlocal gates are also included.
+        """
+        multi_qubit_gates = 0
+        for instr, _, _ in self._data:
+            if instr.num_qubits > 1:
+                multi_qubit_gates += 1
+        return multi_qubit_gates
 
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -1095,6 +1264,9 @@ class QuantumCircuit:
         """
 
         cpy = copy.copy(self)
+        # copy registers correctly, in copy.copy they are only copied via reference
+        cpy.qregs = self.qregs.copy()
+        cpy.cregs = self.cregs.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self._data}
@@ -1102,12 +1274,11 @@ class QuantumCircuit:
         instr_copies = {id_: instr.copy()
                         for id_, instr in instr_instances.items()}
 
-        cpy._parameter_table = ParameterTable()
-        cpy._parameter_table._table = {
+        cpy._parameter_table = ParameterTable({
             param: [(instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]]
             for param in self._parameter_table
-        }
+        })
 
         cpy._data = [(instr_copies[id(inst)], qargs.copy(), cargs.copy())
                      for inst, qargs, cargs in self._data]
@@ -1174,7 +1345,7 @@ class QuantumCircuit:
         else:
             circ = self.copy()
 
-        new_creg = circ._create_creg(len(circ.qubits), 'measure')
+        new_creg = circ._create_creg(len(circ.qubits), 'meas')
         circ.add_register(new_creg)
         circ.barrier()
         circ.measure(circ.qubits, new_creg)
@@ -1260,33 +1431,119 @@ class QuantumCircuit:
     @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
-        return set(self._parameter_table.keys())
+        return self._parameter_table.get_keys()
+
+    @property
+    def num_parameters(self):
+        """Convenience function to get the number of parameter objects in the circuit."""
+        return len(self.parameters)
+
+    def assign_parameters(self, param_dict, inplace=False):
+        """Assign parameters to new parameters or values.
+
+        The keys of the parameter dictionary must be Parameter instances in the current circuit. The
+        values of the dictionary can either be numeric values or new parameter objects.
+        The values can be assigned to the current circuit object or to a copy of it.
+
+        Args:
+            param_dict (dict): A dictionary specifying the mapping from ``current_parameter``
+                to ``new_parameter``, where ``new_parameter`` can be a new parameter object
+                or a numeric value.
+            inplace (bool): If False, a copy of the circuit with the bound parameters is
+                returned. If True the circuit instance itself is modified.
+
+        Raises:
+            CircuitError: If param_dict contains parameters not present in the circuit
+
+        Returns:
+            optional(QuantumCircuit): A copy of the circuit with bound parameters, if
+                ``inplace`` is True, otherwise None.
+
+        Examples:
+
+            >>> from qiskit.circuit import QuantumCircuit, Parameter
+            >>> circuit = QuantumCircuit(2)
+            >>> params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            >>> circuit.ry(params[0], 0)
+            >>> circuit.crx(params[1], 0, 1)
+            >>> circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(A) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(B) ├
+                             └───────┘
+            >>> circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+            >>> circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(C) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(B) ├
+                             └───────┘
+            >>> bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
+            >>> bound_circuit.draw()
+                    ┌───────┐
+            q_0: |0>┤ Ry(2) ├────■────
+                    └───────┘┌───┴───┐
+            q_1: |0>─────────┤ Rx(1) ├
+                             └───────┘
+            >>> bound_circuit.parameters  # this one has no free parameters anymore
+            set()
+            >>> circuit.parameters  # the original one is still parameterized
+            {Parameter(A), Parameter(C)}
+        """
+        # replace in self or in a copy depending on the value of in_place
+        bound_circuit = self if inplace else self.copy()
+
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
+        unrolled_param_dict = self._unroll_param_dict(param_dict)
+
+        # check that only existing parameters are in the parameter dictionary
+        if unrolled_param_dict.keys() > self._parameter_table.keys():
+            raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                [str(p) for p in param_dict.keys() - self._parameter_table]))
+
+        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
+        for parameter, value in unrolled_param_dict.items():
+            if isinstance(value, ParameterExpression):
+                bound_circuit._substitute_parameter(parameter, value)
+            else:
+                bound_circuit._bind_parameter(parameter, value)
+                del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
+
+        return None if inplace else bound_circuit
 
     def bind_parameters(self, value_dict):
-        """Assign parameters to values yielding a new circuit.
+        """Assign numeric parameters to values yielding a new circuit.
+
+        To assign new Parameter objects or bind the values in-place, without yielding a new
+        circuit, use the assign_parameters method.
 
         Args:
             value_dict (dict): {parameter: value, ...}
 
         Raises:
             CircuitError: If value_dict contains parameters not present in the circuit
+            TypeError: If value_dict contains a ParameterExpression in the values.
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
-        new_circuit = self.copy()
+        bound_circuit = self.copy()
+
+        # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
         unrolled_value_dict = self._unroll_param_dict(value_dict)
 
-        if unrolled_value_dict.keys() > self.parameters:
+        # check that only existing parameters are in the parameter dictionary
+        if len(unrolled_value_dict) > len(self._parameter_table):
             raise CircuitError('Cannot bind parameters ({}) not present in the circuit.'.format(
-                [str(p) for p in value_dict.keys() - self.parameters]))
+                [str(p) for p in value_dict.keys() - self._parameter_table.keys()]))
 
+        # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
         for parameter, value in unrolled_value_dict.items():
-            new_circuit._bind_parameter(parameter, value)
-        # clear evaluated expressions
-        for parameter in unrolled_value_dict:
-            del new_circuit._parameter_table[parameter]
-        return new_circuit
+            bound_circuit._bind_parameter(parameter, value)
+            del bound_circuit._parameter_table[parameter]  # clear evaluated expressions
+
+        return bound_circuit
 
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
@@ -1311,6 +1568,17 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
 
+    def _substitute_parameter(self, old_parameter, new_parameter_expr):
+        """Substitute an existing parameter in all circuit instructions and the parameter table."""
+        for instr, param_index in self._parameter_table[old_parameter]:
+            new_param = instr.params[param_index].subs({old_parameter: new_parameter_expr})
+            instr.params[param_index] = new_param
+            self._rebind_definition(instr, old_parameter, new_parameter_expr)
+
+        entry = self._parameter_table.pop(old_parameter)
+        for new_parameter in new_parameter_expr.parameters:
+            self._parameter_table[new_parameter] = entry
+
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
             for op, _, _ in instruction._definition:
@@ -1322,17 +1590,380 @@ class QuantumCircuit:
                             op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
 
-    def _substitute_parameters(self, parameter_map):
-        """For every {existing_parameter: replacement_parameter} pair in
-        parameter_map, substitute replacement for existing in all
-        circuit instructions and the parameter table.
+    def barrier(self, *qargs):
+        """Apply :class:`~qiskit.circuit.Barrier`. If qargs is None, applies to all."""
+        from .barrier import Barrier
+        qubits = []
+
+        if not qargs:  # None
+            for qreg in self.qregs:
+                for j in range(qreg.size):
+                    qubits.append(qreg[j])
+
+        for qarg in qargs:
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([qarg[j] for j in range(qarg.size)])
+            elif isinstance(qarg, list):
+                qubits.extend(qarg)
+            elif isinstance(qarg, range):
+                qubits.extend(list(qarg))
+            elif isinstance(qarg, slice):
+                qubits.extend(self.qubits[qarg])
+            else:
+                qubits.append(qarg)
+
+        return self.append(Barrier(len(qubits)), qubits, [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.HGate`."""
+        from .library.standard_gates.h import HGate
+        return self.append(HGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
+    def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
+           *, label=None, ctrl_state=None, ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CHGate`."""
+        from .library.standard_gates.h import CHGate
+        return self.append(CHGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def i(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.IGate`."""
+        from .library.standard_gates.i import IGate
+        return self.append(IGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def id(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.IGate`."""
+        return self.i(qubit)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Deprecated identity gate."""
+        warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.14.0, and '
+                      'will be removed no earlier than 3 months after that release date. '
+                      'You should use the QuantumCircuit.i() method instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.i(qubit)
+
+    def ms(self, theta, qubits):  # pylint: disable=invalid-name
+        """Apply :class:`~qiskit.circuit.library.MSGate`."""
+        from .library.standard_gates.ms import MSGate
+        return self.append(MSGate(len(qubits), theta), qubits)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.RGate`."""
+        from .library.standard_gates.r import RGate
+        return self.append(RGate(theta, phi), [qubit], [])
+
+    def rccx(self, control_qubit1, control_qubit2, target_qubit):
+        """Apply :class:`~qiskit.circuit.library.RCCXGate`."""
+        from .library.standard_gates.x import RCCXGate
+        return self.append(RCCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
+
+    def rcccx(self, control_qubit1, control_qubit2, control_qubit3, target_qubit):
+        """Apply :class:`~qiskit.circuit.library.RC3XGate`."""
+        from .library.standard_gates.x import RC3XGate
+        return self.append(RC3XGate(),
+                           [control_qubit1, control_qubit2, control_qubit3, target_qubit],
+                           [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    # pylint: disable=invalid-name,unused-argument
+    def rx(self, theta, qubit, *, label=None, q=None):
+        """Apply :class:`~qiskit.circuit.library.RXGate`."""
+        from .library.standard_gates.rx import RXGate
+        return self.append(RXGate(theta, label=label), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def crx(self, theta, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+            ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CRXGate`."""
+        from .library.standard_gates.rx import CRXGate
+        return self.append(CRXGate(theta, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    def rxx(self, theta, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.RXXGate`."""
+        from .library.standard_gates.rxx import RXXGate
+        return self.append(RXXGate(theta), [qubit1, qubit2], [])
+
+    # pylint: disable=invalid-name,unused-argument
+    @deprecate_arguments({'q': 'qubit'})
+    def ry(self, theta, qubit, *, label=None, q=None):
+        """Apply :class:`~qiskit.circuit.library.RYGate`."""
+        from .library.standard_gates.ry import RYGate
+        return self.append(RYGate(theta, label=label), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cry(self, theta, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+            ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CRYGate`."""
+        from .library.standard_gates.ry import CRYGate
+        return self.append(CRYGate(theta, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    def ryy(self, theta, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.RYYGate`."""
+        from .library.standard_gates.ryy import RYYGate
+        return self.append(RYYGate(theta), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def rz(self, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.RZGate`."""
+        from .library.standard_gates.rz import RZGate
+        return self.append(RZGate(phi), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
+    def crz(self, theta, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+            ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CRZGate`."""
+        from .library.standard_gates.rz import CRZGate
+        return self.append(CRZGate(theta, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    def rzx(self, theta, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.RZXGate`."""
+        from .library.standard_gates.rzx import RZXGate
+        return self.append(RZXGate(theta), [qubit1, qubit2], [])
+
+    def rzz(self, theta, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.RZZGate`."""
+        from .library.standard_gates.rzz import RZZGate
+        return self.append(RZZGate(theta), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def s(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.SGate`."""
+        from .library.standard_gates.s import SGate
+        return self.append(SGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def sdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.SdgGate`."""
+        from .library.standard_gates.s import SdgGate
+        return self.append(SdgGate(), [qubit], [])
+
+    def swap(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.SwapGate`."""
+        from .library.standard_gates.swap import SwapGate
+        return self.append(SwapGate(), [qubit1, qubit2], [])
+
+    def iswap(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.iSwapGate`."""
+        from .library.standard_gates.iswap import iSwapGate
+        return self.append(iSwapGate(), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt1': 'target_qubit1',
+                          'tgt2': 'target_qubit2'})
+    def cswap(self, control_qubit, target_qubit1, target_qubit2, *, label=None, ctrl_state=None,
+              ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CSwapGate`."""
+        from .library.standard_gates.swap import CSwapGate
+        return self.append(CSwapGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit1, target_qubit2], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt1': 'target_qubit1',
+                          'tgt2': 'target_qubit2'})
+    def fredkin(self, control_qubit, target_qubit1, target_qubit2,
+                *, ctl=None, tgt1=None, tgt2=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CSwapGate`."""
+        return self.cswap(control_qubit, target_qubit1, target_qubit2)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.TGate`."""
+        from .library.standard_gates.t import TGate
+        return self.append(TGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def tdg(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.TdgGate`."""
+        from .library.standard_gates.t import TdgGate
+        return self.append(TdgGate(), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.U1Gate`."""
+        from .library.standard_gates.u1 import U1Gate
+        return self.append(U1Gate(theta), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cu1(self, theta, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+            ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CU1Gate`."""
+        from .library.standard_gates.u1 import CU1Gate
+        return self.append(CU1Gate(theta, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    def mcu1(self, lam, control_qubits, target_qubit):
+        """Apply :class:`~qiskit.circuit.library.MCU1Gate`."""
+        from .library.standard_gates.u1 import MCU1Gate
+        num_ctrl_qubits = len(control_qubits)
+        return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def u2(self, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.U2Gate`."""
+        from .library.standard_gates.u2 import U2Gate
+        return self.append(U2Gate(phi, lam), [qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def u3(self, theta, phi, lam, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+        """Apply :class:`~qiskit.circuit.library.U3Gate`."""
+        from .library.standard_gates.u3 import U3Gate
+        return self.append(U3Gate(theta, phi, lam), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cu3(self, theta, phi, lam, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+            ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CU3Gate`."""
+        from .library.standard_gates.u3 import CU3Gate
+        return self.append(CU3Gate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def x(self, qubit, *, label=None, ctrl_state=None, q=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.XGate`."""
+        from .library.standard_gates.x import XGate
+        return self.append(XGate(label=label), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cx(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+           ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CXGate`."""
+        from .library.standard_gates.x import CXGate
+        return self.append(CXGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cnot(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+             ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CXGate`."""
+        self.cx(control_qubit, target_qubit, ctl=ctl, tgt=tgt)
+
+    def dcx(self, qubit1, qubit2):
+        """Apply :class:`~qiskit.circuit.library.DCXGate`."""
+        from .library.standard_gates.dcx import DCXGate
+        return self.append(DCXGate(), [qubit1, qubit2], [])
+
+    @deprecate_arguments({'ctl1': 'control_qubit1',
+                          'ctl2': 'control_qubit2',
+                          'tgt': 'target_qubit'})
+    def ccx(self, control_qubit1, control_qubit2, target_qubit,
+            *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CCXGate`."""
+        from .library.standard_gates.x import CCXGate
+        return self.append(CCXGate(),
+                           [control_qubit1, control_qubit2, target_qubit], [])
+
+    @deprecate_arguments({'ctl1': 'control_qubit1',
+                          'ctl2': 'control_qubit2',
+                          'tgt': 'target_qubit'})
+    def toffoli(self, control_qubit1, control_qubit2, target_qubit,
+                *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CCXGate`."""
+        self.ccx(control_qubit1, control_qubit2, target_qubit)
+
+    def mcx(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla'):
+        """Apply :class:`~qiskit.circuit.library.MCXGate`.
+
+        The multi-cX gate can be implemented using different techniques, which use different numbers
+        of ancilla qubits and have varying circuit depth. These modes are:
+        - 'no-ancilla': Requires 0 ancilla qubits.
+        - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
+        - 'v-chain': Requires 2 less ancillas than the number of control qubits.
+        - 'v-chain-dirty': Same as for the clean ancillas (but the circuit will be longer).
         """
-        for old_parameter, new_parameter in parameter_map.items():
-            for (instr, param_index) in self._parameter_table[old_parameter]:
-                new_param = instr.params[param_index].subs({old_parameter: new_parameter})
-                instr.params[param_index] = new_param
-                self._rebind_definition(instr, old_parameter, new_parameter)
-            self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
+        from .library.standard_gates.x import MCXGrayCode, MCXRecursive, MCXVChain
+        num_ctrl_qubits = len(control_qubits)
+
+        available_implementations = {
+            'noancilla': MCXGrayCode(num_ctrl_qubits),
+            'recursion': MCXRecursive(num_ctrl_qubits),
+            'v-chain': MCXVChain(num_ctrl_qubits, False),
+            'v-chain-dirty': MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
+            # outdated, previous names
+            'advanced': MCXRecursive(num_ctrl_qubits),
+            'basic': MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
+            'basic-dirty-ancilla': MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+        }
+
+        # check ancilla input
+        if ancilla_qubits:
+            _ = self.qbit_argument_conversion(ancilla_qubits)
+
+        try:
+            gate = available_implementations[mode]
+        except KeyError:
+            all_modes = list(available_implementations.keys())
+            raise ValueError('Unsupported mode ({}) selected, choose one of {}'.format(mode,
+                                                                                       all_modes))
+
+        if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
+            required = gate.num_ancilla_qubits
+            if ancilla_qubits is None:
+                raise AttributeError('No ancillas provided, but {} are needed!'.format(required))
+
+            # convert ancilla qubits to a list if they were passed as int or qubit
+            if not hasattr(ancilla_qubits, '__len__'):
+                ancilla_qubits = [ancilla_qubits]
+
+            if len(ancilla_qubits) < required:
+                actually = len(ancilla_qubits)
+                raise ValueError('At least {} ancillas required, but {} given.'.format(required,
+                                                                                       actually))
+            # size down if too many ancillas were provided
+            ancilla_qubits = ancilla_qubits[:required]
+        else:
+            ancilla_qubits = []
+
+        return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
+
+    def mct(self, control_qubits, target_qubit, ancilla_qubits=None, mode='noancilla'):
+        """Apply :class:`~qiskit.circuit.library.MCXGate`."""
+        return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode)
+
+    @deprecate_arguments({'q': 'qubit'})
+    def y(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.YGate`."""
+        from .library.standard_gates.y import YGate
+        return self.append(YGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cy(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+           ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CYGate`."""
+        from .library.standard_gates.y import CYGate
+        return self.append(CYGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
+    @deprecate_arguments({'q': 'qubit'})
+    def z(self, qubit, *, q=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.ZGate`."""
+        from .library.standard_gates.z import ZGate
+        return self.append(ZGate(), [qubit], [])
+
+    @deprecate_arguments({'ctl': 'control_qubit',
+                          'tgt': 'target_qubit'})
+    def cz(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
+           ctl=None, tgt=None):  # pylint: disable=unused-argument
+        """Apply :class:`~qiskit.circuit.library.CZGate`."""
+        from .library.standard_gates.z import CZGate
+        return self.append(CZGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
 
 
 def _circuit_from_qasm(qasm):

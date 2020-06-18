@@ -15,7 +15,7 @@
 
 """Add a barrier before final measurements."""
 
-from qiskit.extensions.standard.barrier import Barrier
+from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from .merge_adjacent_barriers import MergeAdjacentBarriers
@@ -57,7 +57,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
-        final_qubits = {final_op.qargs[0] for final_op in final_ops}
+        # Add a barrier across all qubits so swap mapper doesn't add a swap
+        # from an unmeasured qubit after a measure.
+        final_qubits = dag.qubits
 
         barrier_layer.apply_operation_back(
             Barrier(len(final_qubits)), list(final_qubits), [])
@@ -75,7 +77,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for final_op in final_ops:
             dag.remove_op_node(final_op)
 
-        dag.extend_back(barrier_layer)
+        dag.compose(barrier_layer)
 
         # Merge the new barrier into any other barriers
         adjacent_pass = MergeAdjacentBarriers()

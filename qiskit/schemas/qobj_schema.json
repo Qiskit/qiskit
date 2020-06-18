@@ -96,7 +96,12 @@
                                 "enum": [
                                     "pv",
                                     "fc",
+                                    "setp",
+                                    "shiftp",
+                                    "setf",
+                                    "shiftf",
                                     "acquire",
+                                    "delay",
                                     "parametric_pulse"
                                 ]
                             }
@@ -152,6 +157,98 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "setp"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set Phase"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftp"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift Phase"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "setf"
+                            ]
+                        },
+                        "frequency": {
+                            "OneOf":[
+                            {"type": "number"},
+                            {"type": "string"}]
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftf"
+                            ]
+                        },
+                        "frequency": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "delay"
+                            ]
+                        },
+                        "duration": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "duration",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Delay in pulse"
                 },
                 {
                     "properties": {
@@ -743,6 +840,10 @@
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
+                        },
+                        "init_qubits": {
+                            "description": "Whether to initialize the qubits in the ground state before each shot.",
+                            "type": "boolean"
                         }
                     },
                     "title": "Experiment level configuration",
@@ -1022,8 +1123,14 @@
                             "type": "array"
                         },
                         "rep_time": {
-                            "minimum": 1,
-                            "type": "integer"
+                            "minimum": 0,
+                            "description": "Execution time of program (microseconds).",
+                            "type": "number"
+                        },
+                        "rep_delay": {
+                            "minimum": 0,
+                            "description": "Delay between programs (microseconds).",
+                            "type": "number"
                         }
                     },
                     "required": [

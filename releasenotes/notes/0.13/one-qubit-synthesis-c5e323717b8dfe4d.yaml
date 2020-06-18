@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Two new methods, :meth:`~qiskit.quantum_info.OneQubitEulerDecomposer.angles`
+    and :meth:`~qiskit.quantum_info.OneQubitEulerDecomposer.angles_and_phase`,
+    have been added to the :class:`qiskit.quantum_info.OneQubitEulerDecomposer`
+    class. These methods will return the relevant parameters without
+    validation, and calling the ``OneQubitEulerDecomposer`` object will
+    perform the full synthesis with validation.
+  - |
+    An ``RR`` decomposition basis has been added to the
+    :class:`qiskit.quantum_info.OneQubitEulerDecomposer` for decomposing an
+    arbitrary 2x2 unitary into a two :class:`~qiskit.extensions.RGate`
+    circuit.
+deprecations:
+  - |
+    The function ``qiskit.quantum_info.synthesis.euler_angles_1q`` is now
+    deprecated. It has been superseded by the
+    :class:`qiskit.quantum_info.OneQubitEulerDecomposer` class which provides
+    the same functionality through::
+
+        OneQubitEulerDecomposer().angles(mat)

@@ -21,10 +21,20 @@ Executing Experiments (:mod:`qiskit.execute`)
 
 .. autofunction:: execute
 """
+import logging
+from time import time
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
+
+logger = logging.getLogger(__name__)
+
+
+def _log_submission_time(start_time, end_time):
+    log_msg = ("Total Job Submission Time - %.5f (ms)"
+               % ((end_time - start_time) * 1000))
+    logger.info(log_msg)
 
 
 def execute(experiments, backend,
@@ -36,8 +46,9 @@ def execute(experiments, backend,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
-            memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-            schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
+            memory_slots=None, memory_slot_size=100, rep_time=None, rep_delay=None,
+            parameter_binds=None, schedule_circuit=False, inst_map=None, meas_map=None,
+            scheduling_method=None, init_qubits=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -161,9 +172,13 @@ def execute(experiments, backend,
 
         memory_slot_size (int): Size of each memory slot if the output is Level 0.
 
-        rep_time (int): repetition time of the experiment in μs.
-            The delay between experiments will be rep_time.
-            Must be from the list provided by the device.
+        rep_time (list[float]): Time per program execution in sec. Must be from the list provided
+            by the backend (``backend.configuration().rep_times``).
+
+        rep_delay (list[float]): Delay between programs in sec. Only supported on certain
+            backends (``backend.configuration().dynamic_reprate_enabled`` ).
+            If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
+            provided by the backend (``backend.configuration().rep_delays``).
 
         parameter_binds (list[dict]): List of Parameter bindings over which the set of
             experiments will be executed. Each list element (bind) should be of the form
@@ -185,6 +200,9 @@ def execute(experiments, backend,
 
         scheduling_method (str or list(str)):
             Optionally specify a particular scheduling method.
+
+        init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
+                            Default: ``True``.
 
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
@@ -214,28 +232,38 @@ def execute(experiments, backend,
 
             job = execute(qc, backend, shots=4321)
     """
-
-    # transpiling the circuits using given transpile options
-    experiments = transpile(experiments,
-                            basis_gates=basis_gates,
-                            coupling_map=coupling_map,
-                            backend_properties=backend_properties,
-                            initial_layout=initial_layout,
-                            seed_transpiler=seed_transpiler,
-                            optimization_level=optimization_level,
-                            backend=backend,
-                            pass_manager=pass_manager,
-                            )
+    if isinstance(experiments, Schedule) or (isinstance(experiments, list) and
+                                             isinstance(experiments[0], Schedule)):
+        # do not transpile a schedule circuit
+        if schedule_circuit:
+            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
+    elif pass_manager is not None:
+        # transpiling using pass_manager
+        _check_conflicting_argument(optimization_level=optimization_level,
+                                    basis_gates=basis_gates,
+                                    coupling_map=coupling_map,
+                                    seed_transpiler=seed_transpiler,
+                                    backend_properties=backend_properties,
+                                    initial_layout=initial_layout,
+                                    backend=backend)
+        experiments = pass_manager.run(experiments)
+    else:
+        # transpiling the circuits using given transpile options
+        experiments = transpile(experiments,
+                                basis_gates=basis_gates,
+                                coupling_map=coupling_map,
+                                backend_properties=backend_properties,
+                                initial_layout=initial_layout,
+                                seed_transpiler=seed_transpiler,
+                                optimization_level=optimization_level,
+                                backend=backend)
 
     if schedule_circuit:
-        if isinstance(experiments, Schedule) or isinstance(experiments[0], Schedule):
-            raise QiskitError("Must supply QuantumCircuit to schedule circuit.")
         experiments = schedule(circuits=experiments,
                                backend=backend,
                                inst_map=inst_map,
                                meas_map=meas_map,
-                               method=scheduling_method
-                               )
+                               method=scheduling_method)
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,
@@ -253,10 +281,22 @@ def execute(experiments, backend,
                     memory_slots=memory_slots,
                     memory_slot_size=memory_slot_size,
                     rep_time=rep_time,
+                    rep_delay=rep_delay,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    **run_config
-                    )
+                    init_qubits=init_qubits,
+                    **run_config)
 
     # executing the circuits on the backend and returning the job
-    return backend.run(qobj, **run_config)
+    start_time = time()
+    job = backend.run(qobj, **run_config)
+    end_time = time()
+    _log_submission_time(start_time, end_time)
+    return job
+
+
+def _check_conflicting_argument(**kargs):
+    conflicting_args = [arg for arg, value in kargs.items() if value]
+    if conflicting_args:
+        raise QiskitError("The parameters pass_manager conflicts with the following "
+                          "parameter(s): {}.".format(', '.join(conflicting_args)))

@@ -26,20 +26,19 @@ except ImportError:
 
 REQUIREMENTS = [
     "jsonschema>=2.6",
-    "marshmallow>=3,<4",
-    "marshmallow_polyfield>=5.7,<6",
     "networkx>=2.2;python_version>'3.5'",
     # Networkx 2.4 is the final version with python 3.5 support.
     "networkx>=2.2,<2.4;python_version=='3.5'",
     "retworkx>=0.3.2",
-    "numpy>=1.13",
+    "numpy>=1.17",
     "ply>=3.10",
     "psutil>=5",
-    "scipy>=1.0",
+    "scipy>=1.4",
     "sympy>=1.3",
     "dill>=0.3",
     "fastjsonschema>=2.10",
     "python-constraint>=1.4",
+    "python-dateutil>=2.8.0",
 ]
 
 # Add Cython extensions here
@@ -81,7 +80,7 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.13.0",
+    version="0.15.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
@@ -113,7 +112,7 @@ setup(
     extras_require={
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
-                          "seaborn>=0.9.0"],
+                          "seaborn>=0.9.0", "pygments>=2.4"],
         'full-featured-simulators': ['qiskit-aer>=0.1'],
         'crosstalk-pass': ['z3-solver>=4.7'],
     },

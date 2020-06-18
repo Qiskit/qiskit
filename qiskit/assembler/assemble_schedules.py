@@ -15,9 +15,10 @@
 """Assemble function for converting a list of circuits into a qobj."""
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
+import hashlib
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, Acquire, Delay, Play
+from qiskit.pulse import Schedule, Acquire, Delay, Play, transforms
 from qiskit.pulse.pulse_lib import ParametricPulse, SamplePulse
 from qiskit.pulse.commands import (Command, PulseInstruction, AcquireInstruction,
                                    DelayInstruction, ParametricInstruction)
@@ -96,10 +97,11 @@ def _assemble_experiments(
 
     instruction_converter = getattr(run_config, 'instruction_converter', InstructionToQobjConverter)
     instruction_converter = instruction_converter(PulseQobjInstruction, **run_config.to_dict())
+    compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
     experiments = []
-    for idx, schedule in enumerate(schedules):
+    for idx, schedule in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
             schedule,
             instruction_converter,
@@ -134,8 +136,8 @@ def _assemble_experiments(
 
     # Top level Qobj configuration
     experiment_config = {
-        'pulse_library': [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
-                          for pulse in user_pulselib.values()],
+        'pulse_library': [PulseLibraryItem(name=name, samples=samples)
+                          for name, samples in user_pulselib.items()],
         'memory_slots': max([exp.header.memory_slots for exp in experiments])
     }
 
@@ -171,6 +173,9 @@ def _assemble_instructions(
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
 
+        if isinstance(instruction, ParametricInstruction):  # deprecated
+            instruction = Play(instruction.command, instruction.channels[0], name=instruction.name)
+
         if isinstance(instruction, Play) and isinstance(instruction.pulse, ParametricPulse):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
@@ -178,37 +183,20 @@ def _assemble_instructions(
                                    instruction.channel,
                                    name=instruction.name)
 
-        if isinstance(instruction, ParametricInstruction):  # deprecated
-            pulse_shape = ParametricPulseShapes(type(instruction.command)).name
-            if pulse_shape not in run_config.parametric_pulses:
-                # Convert to SamplePulse if the backend does not support it
-                instruction = PulseInstruction(instruction.command.get_sample_pulse(),
-                                               instruction.channels[0],
-                                               name=instruction.name)
+        if isinstance(instruction, PulseInstruction):  # deprecated
+            instruction = Play(SamplePulse(name=name, samples=instruction.command.samples),
+                               instruction.channels[0], name=name)
 
         if isinstance(instruction, Play) and isinstance(instruction.pulse, SamplePulse):
-            name = instruction.pulse.name
-            if instruction.pulse != user_pulselib.get(name):
-                name = "{0}-{1:x}".format(name, hash(instruction.pulse.samples.tostring()))
-                instruction = Play(SamplePulse(name=name, samples=instruction.pulse.samples),
-                                   channel=instruction.channel,
-                                   name=instruction.name)
-            user_pulselib[name] = instruction.pulse
-
-        if isinstance(instruction, PulseInstruction):  # deprecated
-            name = instruction.command.name
-            if name in user_pulselib and instruction.command != user_pulselib[name]:
-                name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
-                instruction = PulseInstruction(
-                    command=SamplePulse(name=name, samples=instruction.command.samples),
-                    name=instruction.name,
-                    channel=instruction.channels[0])
-            # add samples to pulse library
-            user_pulselib[name] = instruction.command
+            name = hashlib.sha256(instruction.pulse.samples).hexdigest()
+            instruction = Play(SamplePulse(name=name, samples=instruction.pulse.samples),
+                               channel=instruction.channel,
+                               name=name)
+            user_pulselib[name] = instruction.pulse.samples
 
         if isinstance(instruction, (AcquireInstruction, Acquire)):
-            max_memory_slot = max(max_memory_slot,
-                                  *[slot.index for slot in instruction.mem_slots])
+            if instruction.mem_slot:
+                max_memory_slot = max(max_memory_slot, instruction.mem_slot.index)
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
             # together into the Qobj as one instruction with many channels
             acquire_instruction_map[(time, instruction.command)].append(instruction)
@@ -251,7 +239,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, Acquire], List[AcquireIn
     for _, instructions in instruction_map.items():
         measured_qubits = set()
         for inst in instructions:
-            measured_qubits.update([acq.index for acq in inst.acquires])
+            measured_qubits.add(inst.channel.index)
 
         for meas_set in meas_map_sets:
             intersection = measured_qubits.intersection(meas_set)
@@ -276,9 +264,11 @@ def _bundle_channel_indices(
     mem_slots = []
     reg_slots = []
     for inst in instructions:
-        qubits.extend(aq.index for aq in inst.acquires)
-        mem_slots.extend(mem_slot.index for mem_slot in inst.mem_slots)
-        reg_slots.extend(reg.index for reg in inst.reg_slots)
+        qubits.append(inst.channel.index)
+        if inst.mem_slot:
+            mem_slots.append(inst.mem_slot.index)
+        if inst.reg_slot:
+            reg_slots.append(inst.reg_slot.index)
     return qubits, mem_slots, reg_slots
 
 

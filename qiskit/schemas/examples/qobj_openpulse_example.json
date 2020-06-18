@@ -13,6 +13,7 @@
         "meas_level": 2,
         "memory_slot_size": 1,
         "rep_time": 1000,
+        "init_qubits": false,
         "qubit_lo_freq": [5.2,5.15,5.05],
         "meas_lo_freq": [6.9,6.8,6.7],
         "pulse_library": [
@@ -28,14 +29,17 @@
         "instructions": [
             {"name": "pulse1", "ch": "d0", "t0": 0},
             {"name": "pv", "ch": "d0", "t0": 0, "val": [1,2]},
-            {"name": "fc", "ch": "u0", "t0": 10, "phase": -0.1},
+            {"name": "setp", "ch": "u0", "t0": 10, "phase": 3.14},
+            {"name": "setf", "ch": "d0", "t0": 10, "frequency": 8.0},
             {"name": "acquire", "t0": 10, "duration": 90, "qubits": [0,1,2], "register_slot": [0,1,2], "memory_slot": [0,1,2]},
+            {"name": "shiftf", "ch": "d0", "t0": 20, "frequency": 4.0},
+            {"name": "shiftp", "ch": "u0", "t0": 20, "phase": -0.1},
             {"name": "copy", "register_orig": 1, "register_copy": [3,4]},
             {"name": "bfunc", "mask": "0xE", "relation": "==", "val": "0xA", "register": 3, "memory": 3},
             {"name": "pulse1", "ch": "d0", "t0": 120, "conditional": 3},
             {"name": "parametric_pulse", "t0": 0, "parameters": {"amp": [0.0, 0.5], "sigma": 4, "duration": 25}, "ch": "d0", "pulse_shape": "gaussian"}
             ]
         }
-        ]    
+        ]
 }
 
