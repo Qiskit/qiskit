@@ -20,9 +20,10 @@ from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
-from qiskit.test.mock import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01, FakeOurenseFaultyCX13
 from qiskit.extensions.standard import CnotGate
 from qiskit.transpiler import TranspilerError
+from ..providers.faulty_backends import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01,\
+    FakeOurenseFaultyCX13
 
 
 class TestFaultyBackendCase(QiskitTestCase):

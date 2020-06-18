@@ -14,9 +14,6 @@
 
 """Faulty fake backends for testing"""
 
-import os
-import json
-
 from qiskit.providers.models import BackendProperties
 from qiskit.test.mock import FakeOurense
 
