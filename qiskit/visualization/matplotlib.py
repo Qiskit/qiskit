@@ -17,13 +17,10 @@
 """mpl circuit visualization backend."""
 
 import collections
-import fractions
 import itertools
 import json
 import logging
-import math
 from warnings import warn
-
 import numpy as np
 
 try:
@@ -193,41 +190,43 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
 
+        # These char arrays are for finding text_width when there is
+        # no get_renderer method for the matplotlib backend
         self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
-                             '\\dagger', '\\rangle', '\\;')
-        self._latex_chars1 = ('\\mapsto', '\\pi')
-        self._char_list = {' ': (0.0777, 0.0473), '!': (0.098, 0.0591), '"': (0.1132, 0.0709),
-                           '#': (0.2044, 0.1267), '$': (0.1554, 0.0946), '%': (0.2314, 0.1436),
-                           '&': (0.1892, 0.1182), "'": (0.0676, 0.0422), '(': (0.0946, 0.0591),
-                           ')': (0.0946, 0.0591), '*': (0.1216, 0.076), '+': (0.2027, 0.1267),
-                           ',': (0.0777, 0.0473), '-': (0.0878, 0.0541), '.': (0.0777, 0.049),
-                           '/': (0.0828, 0.0507), '0': (0.152, 0.0946), '1': (0.1537, 0.0946),
-                           '2': (0.1554, 0.0963), '3': (0.1554, 0.0946), '4': (0.1554, 0.0963),
-                           '5': (0.1554, 0.0946), '6': (0.1537, 0.0946), '7': (0.1554, 0.0963),
-                           '8': (0.1537, 0.0963), '9': (0.1554, 0.0963), ':': (0.0828, 0.049),
-                           ';': (0.0828, 0.049), '<': (0.2027, 0.125), '=': (0.2027, 0.1267),
-                           '>': (0.2027, 0.125), '?': (0.1284, 0.0794), '@': (0.2416, 0.1503),
-                           'A': (0.1672, 0.103), 'B': (0.1655, 0.103), 'C': (0.1689, 0.1047),
-                           'D': (0.1875, 0.1149), 'E': (0.152, 0.0946), 'F': (0.1385, 0.0861),
-                           'G': (0.1875, 0.1166), 'H': (0.1824, 0.1132), 'I': (0.0709, 0.0439),
-                           'J': (0.0709, 0.0439), 'K': (0.1588, 0.098), 'L': (0.1351, 0.0845),
-                           'M': (0.2095, 0.1301), 'N': (0.1824, 0.1132), 'O': (0.1909, 0.1182),
-                           'P': (0.147, 0.0912), 'Q': (0.1909, 0.1182), 'R': (0.1689, 0.1047),
-                           'S': (0.1537, 0.0963), 'T': (0.1503, 0.0912), 'U': (0.1791, 0.1098),
-                           'V': (0.1672, 0.103), 'W': (0.2399, 0.1486), 'X': (0.1672, 0.103),
-                           'Y': (0.1486, 0.0912), 'Z': (0.1655, 0.103), '[': (0.0946, 0.0608),
-                           '\\': (0.0828, 0.0507), ']': (0.0946, 0.0591), '^': (0.2044, 0.1267),
-                           '_': (0.1233, 0.076), '`': (0.1216, 0.076), 'a': (0.1503, 0.0929),
-                           'b': (0.1554, 0.0946), 'c': (0.1334, 0.0828), 'd': (0.1537, 0.0963),
-                           'e': (0.1503, 0.0929), 'f': (0.0845, 0.0541), 'g': (0.1537, 0.0963),
-                           'h': (0.1537, 0.0963), 'i': (0.0693, 0.0422), 'j': (0.0693, 0.0422),
-                           'k': (0.1402, 0.0878), 'l': (0.0693, 0.0422), 'm': (0.2365, 0.147),
-                           'n': (0.1537, 0.0963), 'o': (0.1486, 0.0912), 'p': (0.1554, 0.0946),
-                           'q': (0.1537, 0.0963), 'r': (0.1014, 0.0625), 's': (0.1267, 0.0777),
-                           't': (0.0946, 0.0591), 'u': (0.1537, 0.0963), 'v': (0.1436, 0.0895),
-                           'w': (0.1993, 0.1233), 'x': (0.1436, 0.0895), 'y': (0.1436, 0.0895),
-                           'z': (0.1267, 0.0794), '{': (0.1554, 0.0963), '|': (0.0811, 0.049),
-                           '}': (0.1537, 0.0963)}
+                             '\\dagger', '\\rangle')
+        self._latex_chars1 = ('\\mapsto', '\\pi', '\\;')
+        self._char_list = {' ': (0.0958, 0.0583), '!': (0.1208, 0.0729), '"': (0.1396, 0.0875),
+                           '#': (0.2521, 0.1562), '$': (0.1917, 0.1167), '%': (0.2854, 0.1771),
+                           '&': (0.2333, 0.1458), "'": (0.0833, 0.0521), '(': (0.1167, 0.0729),
+                           ')': (0.1167, 0.0729), '*': (0.15, 0.0938), '+': (0.25, 0.1562),
+                           ',': (0.0958, 0.0583), '-': (0.1083, 0.0667), '.': (0.0958, 0.0604),
+                           '/': (0.1021, 0.0625), '0': (0.1875, 0.1167), '1': (0.1896, 0.1167),
+                           '2': (0.1917, 0.1188), '3': (0.1917, 0.1167), '4': (0.1917, 0.1188),
+                           '5': (0.1917, 0.1167), '6': (0.1896, 0.1167), '7': (0.1917, 0.1188),
+                           '8': (0.1896, 0.1188), '9': (0.1917, 0.1188), ':': (0.1021, 0.0604),
+                           ';': (0.1021, 0.0604), '<': (0.25, 0.1542), '=': (0.25, 0.1562),
+                           '>': (0.25, 0.1542), '?': (0.1583, 0.0979), '@': (0.2979, 0.1854),
+                           'A': (0.2062, 0.1271), 'B': (0.2042, 0.1271), 'C': (0.2083, 0.1292),
+                           'D': (0.2312, 0.1417), 'E': (0.1875, 0.1167), 'F': (0.1708, 0.1062),
+                           'G': (0.2312, 0.1438), 'H': (0.225, 0.1396), 'I': (0.0875, 0.0542),
+                           'J': (0.0875, 0.0542), 'K': (0.1958, 0.1208), 'L': (0.1667, 0.1042),
+                           'M': (0.2583, 0.1604), 'N': (0.225, 0.1396), 'O': (0.2354, 0.1458),
+                           'P': (0.1812, 0.1125), 'Q': (0.2354, 0.1458), 'R': (0.2083, 0.1292),
+                           'S': (0.1896, 0.1188), 'T': (0.1854, 0.1125), 'U': (0.2208, 0.1354),
+                           'V': (0.2062, 0.1271), 'W': (0.2958, 0.1833), 'X': (0.2062, 0.1271),
+                           'Y': (0.1833, 0.1125), 'Z': (0.2042, 0.1271), '[': (0.1167, 0.075),
+                           '\\': (0.1021, 0.0625), ']': (0.1167, 0.0729), '^': (0.2521, 0.1562),
+                           '_': (0.1521, 0.0938), '`': (0.15, 0.0938), 'a': (0.1854, 0.1146),
+                           'b': (0.1917, 0.1167), 'c': (0.1646, 0.1021), 'd': (0.1896, 0.1188),
+                           'e': (0.1854, 0.1146), 'f': (0.1042, 0.0667), 'g': (0.1896, 0.1188),
+                           'h': (0.1896, 0.1188), 'i': (0.0854, 0.0521), 'j': (0.0854, 0.0521),
+                           'k': (0.1729, 0.1083), 'l': (0.0854, 0.0521), 'm': (0.2917, 0.1812),
+                           'n': (0.1896, 0.1188), 'o': (0.1833, 0.1125), 'p': (0.1917, 0.1167),
+                           'q': (0.1896, 0.1188), 'r': (0.125, 0.0771), 's': (0.1562, 0.0958),
+                           't': (0.1167, 0.0729), 'u': (0.1896, 0.1188), 'v': (0.1771, 0.1104),
+                           'w': (0.2458, 0.1521), 'x': (0.1771, 0.1104), 'y': (0.1771, 0.1104),
+                           'z': (0.1562, 0.0979), '{': (0.1917, 0.1188), '|': (0.1, 0.0604),
+                           '}': (0.1896, 0.1188)}
 
     def _registers(self, creg, qreg):
         self._creg = []
@@ -248,12 +247,12 @@ class MatplotlibDrawer:
 
         if self.renderer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
-            return t.get_window_extent(renderer=self.renderer).width / 74.0
+            return t.get_window_extent(renderer=self.renderer).width / 60.0
         else:
             # If backend does not have a get_renderer method.
             # First remove any latex chars before getting width
             for t in self._latex_chars1:
-                text = text.replace(t, 'x')
+                text = text.replace(t, 'r')
             for t in self._latex_chars:
                 text = text.replace(t, '')
 
@@ -264,8 +263,7 @@ class MatplotlibDrawer:
                     sum_text += self._char_list[c][f]
                 except KeyError:
                     # If non-ASCII char, use width of 'g', an average size
-                    sum_text += self._char_list['g'][f]
-            sum_text += 0.08    # Adjust for different backend tight_layout
+                    sum_text += self._char_list['r'][f]
             return sum_text
 
     def _get_max_width(self, text_width, sub_width, param_width=None):
@@ -283,13 +281,31 @@ class MatplotlibDrawer:
             return sub_width
         return WID
 
+    def param_parse(self, v):
+        # create an empty list to store the parameters in
+        param_parts = [None] * len(v)
+        for i, e in enumerate(v):
+            try:
+                param_parts[i] = pi_check(e, output='mpl', ndigits=3)
+            except TypeError:
+                param_parts[i] = str(e)
+
+            if param_parts[i].startswith('-'):
+                param_parts[i] = '$-$' + param_parts[i][1:]
+
+        param_parts = ', '.join(param_parts)
+        # Remove $'s since "${}$".format will add them back on the outside
+        param_parts = param_parts.replace('$', '')
+        return param_parts
+
     def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text='', subtext=''):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        text_width = self._get_text_width(text, self._style.fs) + .2
-        sub_width = self._get_text_width(subtext, self._style.sfs) + .2
+        # Added .21 is for qubit numbers on the left side
+        text_width = self._get_text_width(text, self._style.fs) + .21
+        sub_width = self._get_text_width(subtext, self._style.sfs) + .21
         wid = self._get_max_width(text_width, sub_width)
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
@@ -306,16 +322,16 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
         if text:
             if subtext:
-                self.ax.text(xpos+.1, ypos + 0.4 * height, text, ha='center',
+                self.ax.text(xpos+.11, ypos + 0.4 * height, text, ha='center',
                              va='center', fontsize=self._style.fs,
                              color=gt, clip_on=True,
                              zorder=PORDER_TEXT)
-                self.ax.text(xpos+.1, ypos + 0.2 * height, subtext, ha='center',
+                self.ax.text(xpos+.11, ypos + 0.2 * height, subtext, ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos+.1, ypos + .5 * (qubit_span - 1), text,
+                self.ax.text(xpos+.11, ypos + .5 * (qubit_span - 1), text,
                              ha='center', va='center', fontsize=self._style.fs,
                              color=gt, clip_on=True,
                              zorder=PORDER_TEXT, wrap=True)
@@ -405,45 +421,49 @@ class MatplotlibDrawer:
     def _conds(self, xy, istrue=False):
         xpos, ypos = xy
 
-        fc = self._style.lc if istrue else self._style.gc
+        fc = self._style.lc if istrue else self._style.bg
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15, fc=fc,
                              ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text='', text_loc=None):
+    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text='', text_top=None):
         xpos, ypos = xy
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
-        if text_loc== True:
+        # Display the control label at the top or bottom if there is one
+        if text_top is True:
             self.ax.text(xpos, ypos + 0.5 * HIG, text, ha='center', va='top',
-                     fontsize=self._style.sfs, color=self._style.tc,
-                     clip_on=True, zorder=PORDER_TEXT)
-        elif text_loc == False:
+                         fontsize=self._style.sfs, color=self._style.tc,
+                         clip_on=True, zorder=PORDER_TEXT)
+        elif text_top is False:
             self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
                          fontsize=self._style.sfs, color=tc,
                          clip_on=True, zorder=PORDER_TEXT)
 
-    def _set_multi_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit,
-                             ec=None, tc=None, text='', qargs=None):
-        qlist = [qubit.index for qubit in qargs]
-        cbits = qlist[:num_ctrl_qubits]
-        qbits = qlist[num_ctrl_qubits:]
-        max_cbit = max(cbits)
-        min_cbit = min(cbits)
-        top = False if min(qbits) < min_cbit else True
-        cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+    def _set_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, ec=None, tc=None,
+                       text='', qargs=None):
+        # Place the control text at the top or bottom of controls
+        if text:
+            qlist = [qubit.index for qubit in qargs]
+            ctbits = qlist[:num_ctrl_qubits]
+            qubits = qlist[num_ctrl_qubits:]
+            max_ctbit = max(ctbits)
+            min_ctbit = min(ctbits)
+            top = min(qubits) > min_ctbit
 
+        # Display the control qubits as open or closed based on ctrl_state
+        cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == '1' else self._style.bg
-            if top and qlist[i] == min_cbit:
-                text_loc = True
-            elif not top and qlist[i] == max_cbit:
-                text_loc = False
-            else:
-                text_loc = None
-            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, 
-                             text=text, text_loc=text_loc)
+            text_top = None
+            if text:
+                if top and qlist[i] == min_ctbit:
+                    text_top = True
+                elif not top and qlist[i] == max_ctbit:
+                    text_top = False
+            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc,
+                             text=text, text_top=text_top)
 
     def _x_tgt_qubit(self, xy, ec=None, ac=None):
         linewidth = 2
@@ -471,12 +491,6 @@ class MatplotlibDrawer:
 
     def _barrier(self, config):
         xys = config['coord']
-        group = config['group']
-        y_reg = []
-        for qreg in self._qreg_dict.values():
-            if qreg['group'] in group:
-                y_reg.append(qreg['y'])
-
         for xy in xys:
             xpos, ypos = xy
             self.ax.plot([xpos, xpos], [ypos + 0.5, ypos - 0.5],
@@ -514,7 +528,6 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
-        self.figure.tight_layout()
 
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
@@ -562,7 +575,7 @@ class MatplotlibDrawer:
                 label = _fix_double_script(label)
                 text_width = self._get_text_width(label, self._style.fs)
 
-            text_width = text_width * 1.15
+            text_width = text_width * 1.15  # to account for larger font used
             if text_width > longest_label_width:
                 longest_label_width = text_width
 
@@ -624,7 +637,7 @@ class MatplotlibDrawer:
             else:
                 this_creg_dict[y]['val'] += 1
         for y, this_creg in this_creg_dict.items():
-            # bundle
+            # cregbundle
             if this_creg['val'] > 1:
                 self.ax.plot([self.x_offset + 0.64, self.x_offset + 0.74], [y - .1, y + .1],
                              color=self._style.cc, zorder=PORDER_LINE)
@@ -693,9 +706,9 @@ class MatplotlibDrawer:
         return fc, ec, gt, self._style.tc, self._style.sc, lc
 
     def _draw_ops(self, verbose=False):
-        _narrow_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                         'rxx', 'ryy', 'rzx', 'u1', 'swap', 'reset']
-        _barrier_gates = ['barrier', 'snapshot', 'sn', 'load', 'save', 'noise']
+        _standard_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
+                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset']
+        _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
         #
@@ -719,27 +732,23 @@ class MatplotlibDrawer:
             # Compute the layer_width for this layer
             #
             for op in layer:
-                if op.name in (_barrier_gates, 'measure'):
-                    box_width = WID
+                if op.name in [*_barrier_gates, 'measure']:
                     continue
 
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 gate_text, ctrl_text = self._get_gate_ctrl_text(op)
 
+                # If a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
-                        ((op.name in _narrow_gates or base_name in _narrow_gates)
+                        ((op.name in _standard_gates or base_name in _standard_gates)
                          and gate_text in (op.name, base_name) and ctrl_text is None)):
-                    box_width = WID
                     continue
 
-                if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
-                    tname = 'U1' if op.name == 'cu1' else 'zz'
-                    side_width = (self._get_text_width(tname + ' ()', fontsize=self._style.sfs)
-                                  + param_width)
-                    gate_width = 1.5 * (side_width)
-                else:
-                    gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.05
-                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs)
+                # Small increments at end of the 3 _get_text_width calls are for small
+                # spacing adjustments between gates
+                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs) - 0.05
+
+                # Get param_width, but 0 for gates with array params
                 if (hasattr(op.op, 'params')
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])
                         and len(op.op.params) > 0):
@@ -747,9 +756,20 @@ class MatplotlibDrawer:
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
-                    param_width = self._get_text_width(param, fontsize=self._style.sfs) + 0.1
+                    param_width = self._get_text_width(param, fontsize=self._style.sfs) + 0.08
                 else:
                     param_width = 0.0
+
+                if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
+                    tname = 'U1' if op.name == 'cu1' else 'zz'
+                    gate_width = (self._get_text_width(tname + ' ()',
+                                                       fontsize=self._style.sfs)
+                                  + param_width) * 1.5
+                else:
+                    gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.10
+                    # Add .21 for the qubit numbers on the left of the multibit gates
+                    if (op.name not in _standard_gates and base_name not in _standard_gates):
+                        gate_width += 0.21
 
                 box_width = self._get_max_width(gate_width, ctrl_width, param_width)
                 if box_width > widest_box:
@@ -879,8 +899,8 @@ class MatplotlibDrawer:
                 # cx gates
                 elif isinstance(op.op, ControlledGate) and base_name == 'x':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._x_tgt_qubit(q_xy[num_ctrl_qubits], ec=ec,
                                       ac=self._style.dispcol['target'])
                     self._line(qreg_b, qreg_t, lc=lc)
@@ -888,8 +908,8 @@ class MatplotlibDrawer:
                 # cz gate
                 elif op.name == 'cz':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[1], fc=ec, ec=ec, tc=tc)
                     self._line(qreg_b, qreg_t, lc=lc, zorder=PORDER_LINE + 1)
 
@@ -897,8 +917,8 @@ class MatplotlibDrawer:
                 elif (op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz'):
                     num_ctrl_qubits = 0 if op.name == 'rzz' else op.op.num_ctrl_qubits
                     if op.name != 'rzz':
-                        self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                                  q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                        self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                            q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
                     if op.name != 'cu1':
                         self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=ec, ec=ec, tc=tc)
@@ -916,8 +936,8 @@ class MatplotlibDrawer:
                 # cswap gate
                 elif op.name != 'swap' and base_name == 'swap':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._swap(q_xy[num_ctrl_qubits], color=lc)
                     self._swap(q_xy[num_ctrl_qubits+1], color=lc)
                     self._line(qreg_b, qreg_t, lc=lc)
@@ -926,8 +946,8 @@ class MatplotlibDrawer:
                 elif isinstance(op.op, ControlledGate):
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
-                    self._set_multi_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
-                                              q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._line(qreg_b, qreg_t, lc=lc)
                     if num_qargs == 1:
                         self._gate(q_xy[num_ctrl_qubits], fc=fc, ec=ec, gt=gt, sc=sc,
@@ -981,48 +1001,3 @@ class MatplotlibDrawer:
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
-
-    @staticmethod
-    def param_parse(v):
-        # create an empty list to store the parameters in
-        param_parts = [None] * len(v)
-        for i, e in enumerate(v):
-            try:
-                param_parts[i] = pi_check(e, output='mpl', ndigits=3)
-            except TypeError:
-                param_parts[i] = str(e)
-
-            if param_parts[i].startswith('-'):
-                param_parts[i] = '$-$' + param_parts[i][1:]
-
-        param_parts = ', '.join(param_parts)
-        # Remove $'s since "${}$".format will add them back on the outside
-        param_parts = param_parts.replace('$', '')
-        return param_parts
-
-    @staticmethod
-    def format_numeric(val, tol=1e-5):
-        if isinstance(val, complex):
-            return str(val)
-        elif complex(val).imag != 0:
-            val = complex(val)
-        abs_val = abs(val)
-        if math.isclose(abs_val, 0.0, abs_tol=1e-100):
-            return '0'
-        if math.isclose(math.fmod(abs_val, 1.0),
-                        0.0, abs_tol=tol) and 0.5 < abs_val < 9999.5:
-            return str(int(val))
-        if 0.1 <= abs_val < 100.0:
-            return '{:.2f}'.format(val)
-        return '{:.1e}'.format(val)
-
-    @staticmethod
-    def fraction(val, base=np.pi, n=100, tol=1e-5):
-        abs_val = abs(val)
-        for i in range(1, n):
-            for j in range(1, n):
-                if math.isclose(abs_val, i / j * base, rel_tol=tol):
-                    if val < 0:
-                        i *= -1
-                    return fractions.Fraction(i, j)
-        return None
