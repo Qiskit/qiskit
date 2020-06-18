@@ -56,4 +56,5 @@ def circuit_to_dag(circuit):
     for instruction, qargs, cargs in circuit.data:
         dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs,
                                         instruction.condition)
+
     return dagcircuit

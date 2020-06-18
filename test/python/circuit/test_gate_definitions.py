@@ -18,7 +18,7 @@
 import numpy as np
 from ddt import ddt, data
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QiskitError
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
@@ -125,7 +125,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
                    'MCU1Gate', 'UnitaryGate', 'HamiltonianGate',
-                   'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate'}
+                   'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
+                   'VariadicZeroParamGate'}
         cls._gate_classes = []
         for aclass in class_list:
             if aclass.__name__ not in exclude:
@@ -155,7 +156,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     with self.subTest(msg=gate.name + '_' + str(ieq)):
                         op1 = Operator(gate)
                         op2 = Operator(equivalency)
-                        print(gate.name)
+                        # print(gate.name)
                         # np.set_printoptions(precision=4, linewidth=200, suppress=True)
                         # print('')
                         # print(gate.to_matrix_hide())
@@ -167,17 +168,10 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                         self.assertEqual(op1, op2)
                         try:
                             tomat = gate.to_matrix()
-                        except:
-                            try:
-                                tomat = gate.to_matrix_hide()
-                            except:
-                                pass
-                            else:
-                                self.assertTrue(np.allclose(op1.data, tomat))
-                                print('ok, HIDDEN')
+                        except (AttributeError, QiskitError):
+                            pass
                         else:
                             self.assertTrue(np.allclose(op1.data, tomat))
-                            print('ok')
 
     def test_phase_gate(self):
         from qiskit import transpile, QuantumRegister

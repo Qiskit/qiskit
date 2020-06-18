@@ -86,12 +86,15 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u1(pi/4, qr[0])
         ref_circuit.u3(0.5, 0, 0, qr[0])
         ref_circuit.u1(0.3, qr[0])
+        ref_circuit.u3(pi, -0.3/2, -0.3/2 - pi, qr[0])
+        ref_circuit.u3(pi, 0, pi, qr[0])
         ref_circuit.u3(0.1, -pi/2, pi/2, qr[0])
         ref_circuit.measure(qr[0], cr[0])
         ref_circuit.u3(pi, 0, pi, qr[0]).c_if(cr, 1)
         ref_circuit.u3(pi, pi/2, pi/2, qr[0]).c_if(cr, 1)
         ref_circuit.u1(pi, qr[0]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
+            
         self.assertEqual(unrolled_dag, ref_dag)
 
     def test_unroll_no_basis(self):
@@ -148,15 +151,18 @@ class TestUnroller(QiskitTestCase):
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
+        # unrolled crx(0.5, qr[1], qr[2])
         ref_circuit.u3(0, 0, pi/2, qr[2])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.u3(-0.25, 0, 0, qr[2])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.u3(0.25, -pi/2, 0, qr[2])
+        # unrolled cry(0.5, qr[1], qr[2])
         ref_circuit.u3(0.25, 0, 0, qr[2])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.u3(-0.25, 0, 0, qr[2])
         ref_circuit.cx(qr[1], qr[2])
+        # unrolled ccx(qr[0], qr[1], qr[2])
         ref_circuit.u3(pi/2, 0, pi, qr[2])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.u3(0, 0, -pi/4, qr[2])
@@ -172,6 +178,7 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.cx(qr[0], qr[1])
         ref_circuit.u3(0, 0, pi/4, qr[2])
         ref_circuit.u3(pi/2, 0, pi, qr[2])
+        # unrolled ch(qr[0], qr[2])
         ref_circuit.u3(0, 0, pi/2, qr[2])
         ref_circuit.u3(pi/2, 0, pi, qr[2])
         ref_circuit.u3(0, 0, pi/4, qr[2])
@@ -179,10 +186,12 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u3(0, 0, -pi/4, qr[2])
         ref_circuit.u3(pi/2, 0, pi, qr[2])
         ref_circuit.u3(0, 0, -pi/2, qr[2])
+        # unrolled crz(0.5, qr[1], qr[2])
         ref_circuit.u3(0, 0, 0.25, qr[2])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.u3(0, 0, -0.25, qr[2])
         ref_circuit.cx(qr[1], qr[2])
+        
         ref_circuit.cx(qr[2], qr[0])
         ref_circuit.u3(pi/2, 0, pi, qr[2])
         ref_circuit.cx(qr[0], qr[2])
@@ -216,12 +225,17 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u3(0, 0, -pi/2, qr[2])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.u3(pi/2, 0, pi, qr[1])
+        # unrolled ry(0.2, qr[0])
         ref_circuit.u3(0.2, 0, 0, qr[1])
+
         ref_circuit.u3(0, 0, pi/2, qr[2])
         ref_circuit.cx(qr[2], qr[0])
         ref_circuit.u3(pi/2, 0, pi, qr[0])
+        # unrolled identity gate
         ref_circuit.i(qr[0])
+        # unrolled rx(0.1, qr[0])
         ref_circuit.u3(0.1, -pi/2, pi/2, qr[0])
+
         ref_circuit.cx(qr[1], qr[0])
         ref_circuit.u3(0, 0, 0.6, qr[0])
         ref_circuit.cx(qr[1], qr[0])
@@ -230,7 +244,9 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u3(pi/2, 0.2, -0.1, qr[0])
         ref_circuit.u3(0, 0, pi, qr[0])
         ref_circuit.u3(0, 0, -pi/2, qr[1])
+        # unrolled rz(0.3, qr[2]) ?
         ref_circuit.u3(0, 0, 0.3, qr[2])
+
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.cx(qr[2], qr[1])
         ref_circuit.cx(qr[1], qr[2])
@@ -254,10 +270,12 @@ class TestUnroller(QiskitTestCase):
         qc.rz(theta, qr[0])
         dag = circuit_to_dag(qc)
 
-        unrolled_dag = Unroller(['u1', 'cx']).run(dag)
+        unrolled_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
         expected.u1(theta, qr[0])
+        expected.u3(pi, -theta/2, -theta/2 - pi, qr[0])
+        expected.u3(pi, 0, pi, qr[0])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
@@ -273,10 +291,12 @@ class TestUnroller(QiskitTestCase):
         qc.rz(sum_, qr[0])
         dag = circuit_to_dag(qc)
 
-        unrolled_dag = Unroller(['u1', 'cx']).run(dag)
+        unrolled_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
         expected.u1(sum_, qr[0])
+        expected.u3(pi, -sum_/2, -sum_/2 - pi, qr[0])
+        expected.u3(pi, 0, pi, qr[0])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
@@ -314,15 +334,24 @@ class TestUnroller(QiskitTestCase):
         qc.append(subqc.to_instruction(), [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(['u1', 'cx']).run(dag)
+        out_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
         expected.u1(theta, qr2[0])
-        expected.u1(theta, qr2[2])
+        expected.u3(pi, -theta/2, -theta/2 - pi, qr2[0])
+        expected.u3(pi, 0, pi, qr2[0])
         expected.cx(qr2[0], qr2[1])
-        expected.cx(qr2[2], qr2[3])
         expected.u1(theta, qr2[1])
+        expected.u3(pi, -theta/2, -theta/2 - pi, qr2[1])
+        expected.u3(pi, 0, pi, qr2[1])
+
+        expected.u1(theta, qr2[2])
+        expected.u3(pi, -theta/2, -theta/2 - pi, qr2[2])
+        expected.u3(pi, 0, pi, qr2[2])
+        expected.cx(qr2[2], qr2[3])
         expected.u1(theta, qr2[3])
+        expected.u3(pi, -theta/2, -theta/2 - pi, qr2[3])
+        expected.u3(pi, 0, pi, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
@@ -336,14 +365,23 @@ class TestUnroller(QiskitTestCase):
         qc.append(subqc.to_instruction({theta: gamma}), [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(['u1', 'cx']).run(dag)
+        out_dag = Unroller(['u1', 'u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
         expected.u1(phi, qr2[0])
-        expected.u1(gamma, qr2[2])
+        expected.u3(pi, -phi/2, -phi/2 - pi, qr2[0])
+        expected.u3(pi, 0, pi, qr2[0])
         expected.cx(qr2[0], qr2[1])
-        expected.cx(qr2[2], qr2[3])
         expected.u1(phi, qr2[1])
+        expected.u3(pi, -phi/2, -phi/2 - pi, qr2[1])
+        expected.u3(pi, 0, pi, qr2[1])
+
+        expected.u1(gamma, qr2[2])
+        expected.u3(pi, -gamma/2, -gamma/2 - pi, qr2[2])
+        expected.u3(pi, 0, pi, qr2[2])
+        expected.cx(qr2[2], qr2[3])
         expected.u1(gamma, qr2[3])
+        expected.u3(pi, -gamma/2, -gamma/2 - pi, qr2[3])
+        expected.u3(pi, 0, pi, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)

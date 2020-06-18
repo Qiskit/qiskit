@@ -88,7 +88,7 @@ class RYYGate(Gate):
 
     # TODO: this is the correct matrix and is equal to the definition above,
     # however the control mechanism cannot distinguish U1 and RZ yet.
-    def to_matrix_hide(self):
+    def to_matrix(self):
         """Return a numpy.array for the RYY gate."""
         theta = self.params[0]
         halfcos = np.cos(theta / 2)

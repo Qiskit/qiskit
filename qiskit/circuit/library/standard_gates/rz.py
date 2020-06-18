@@ -70,16 +70,6 @@ class RZGate(Gate):
             circ.u3(np.pi, circ.phase, circ.phase - np.pi, circ.qregs[0])
             circ.x(circ.qregs[0])
         self.definition = circ.to_gate().definition
-        
-        # from .u1 import U1Gate
-        # definition = []
-        # q = QuantumRegister(1, 'q')
-        # rule = [
-        #     (U1Gate(self.params[0]), [q[0]], [])
-        # ]
-        # for inst in rule:
-        #     definition.append(inst)
-        # self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RZ gate.
@@ -108,7 +98,7 @@ class RZGate(Gate):
 
     # TODO: this is the correct matrix however the control mechanism
     # cannot distinguish U1 and RZ yet.
-    def to_matrix_hide(self):
+    def to_matrix(self):
        """Return a numpy.array for the RZ gate."""
        import numpy as np
        lam = float(self.params[0])

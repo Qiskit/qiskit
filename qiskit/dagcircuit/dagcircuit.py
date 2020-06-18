@@ -29,6 +29,7 @@ import copy
 import itertools
 import networkx as nx
 import retworkx as rx
+import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister

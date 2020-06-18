@@ -633,11 +633,22 @@ class TestControlledGate(QiskitTestCase):
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
         """Test that UnitaryGate with control returns params."""
         umat = np.array([[1, 0], [0, -1]])
-        ugate = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        ugate = UnitaryGate(umat)
+        cugate = ugate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
-        import ipdb;ipdb.set_trace()
-        self.assertTrue(matrix_equal(Operator(ugate).data, ref_mat))
+        # np.set_printoptions(precision=2, linewidth=200, suppress=True)
+        # from qiskit.circuit.add_control import _unroll_gate, _gate_to_circuit
+        # print('')
+        # print(umat)
+        # base_circ = _gate_to_circuit(_unroll_gate(ugate, ['u1', 'u3', 'cx']))
+        # print(base_circ)
+        # print(Operator(base_circ).data)
+        # ccirc = _gate_to_circuit(_unroll_gate(cugate, ['u1', 'u3', 'cx']))
+        # print(ccirc)
+        # print(Operator(ccirc).data)
+        # print(ref_mat)
+        # import ipdb;ipdb.set_trace()
+        self.assertTrue(matrix_equal(Operator(cugate).data, ref_mat, ignore_phase=False))
 
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
