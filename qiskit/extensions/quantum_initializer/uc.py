@@ -42,11 +42,10 @@ import math
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.extensions.standard.h import HGate
+from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
@@ -263,14 +262,6 @@ class UCGate(Gate, metaclass=UCMeta):
     @staticmethod
     def _rz(alpha):
         return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
-
-    def validate_parameter(self, parameter):
-        """Uniformly controlled gate parameter has to be an ndarray."""
-        if isinstance(parameter, np.ndarray):
-            return parameter
-        else:
-            raise CircuitError("invalid param type {0} in gate "
-                               "{1}".format(type(parameter), self.name))
 
 
 def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):

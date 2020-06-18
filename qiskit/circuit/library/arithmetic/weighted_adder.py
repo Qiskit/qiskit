@@ -12,15 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Compute the weighted sum of qubit states."""
 
 from typing import List, Optional
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
+
+from ..blueprintcircuit import BlueprintCircuit
 
 
-class WeightedAdder(QuantumCircuit):
+class WeightedAdder(BlueprintCircuit):
     r"""A circuit to compute the weighted sum of qubit registers.
 
     Given :math:`n` qubit basis states :math:`q_0, \ldots, q_{n-1} \in \{0, 1\}` and non-negative
@@ -155,10 +159,6 @@ class WeightedAdder(QuantumCircuit):
             self._num_state_qubits = num_state_qubits
             self._reset_registers()
 
-    def _invalidate(self) -> None:
-        """Invalidate the current build of the circuit."""
-        self._data = None
-
     def _reset_registers(self):
         if self.num_state_qubits:
             qr_state = QuantumRegister(self.num_state_qubits, name='state')
@@ -207,13 +207,7 @@ class WeightedAdder(QuantumCircuit):
         """
         return self.num_carry_qubits + self.num_control_qubits
 
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return super().data
-
-    def _configuration_is_valid(self, raise_on_failure=True):
+    def _check_configuration(self, raise_on_failure=True):
         valid = True
         if self._num_state_qubits is None:
             valid = False
@@ -228,12 +222,7 @@ class WeightedAdder(QuantumCircuit):
         return valid
 
     def _build(self):
-        if self._data:
-            return
-
-        _ = self._configuration_is_valid()
-
-        self._data = []
+        super()._build()
 
         num_result_qubits = self.num_state_qubits + self.num_sum_qubits
 

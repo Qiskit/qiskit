@@ -25,10 +25,9 @@ Generic isometries from m to n qubits.
 import itertools
 import numpy as np
 
-from qiskit import QuantumRegister
-from qiskit.circuit import Instruction
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.extensions.quantum_initializer.uc import UCGate
@@ -205,10 +204,10 @@ class Isometry(Instruction):
             i_start = _a(k, s + 1)
         else:
             i_start = _a(k, s + 1) + 1
-        id_list = [np.eye(2, 2) for i in range(i_start)]
-        squs = [_reverse_qubit_state([v[2 * l * 2 ** s + _b(k, s), k_prime],
-                                      v[(2 * l + 1) * 2 ** s + _b(k, s), k_prime]], _k_s(k, s))
-                for l in range(i_start, 2 ** (n - s - 1))]
+        id_list = [np.eye(2, 2) for _ in range(i_start)]
+        squs = [_reverse_qubit_state([v[2 * i * 2 ** s + _b(k, s), k_prime],
+                                      v[(2 * i + 1) * 2 ** s + _b(k, s), k_prime]], _k_s(k, s))
+                for i in range(i_start, 2 ** (n - s - 1))]
         return id_list + squs
 
     # Append a UCGate up to diagonal to the circuit circ.
@@ -258,14 +257,6 @@ class Isometry(Instruction):
         q_ancillas_dirty = q[n + self.num_ancillas_zero:]
         return q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty
 
-    def validate_parameter(self, parameter):
-        """Isometry parameter has to be an ndarray."""
-        if isinstance(parameter, np.ndarray):
-            return parameter
-        else:
-            raise CircuitError("invalid param type {0} for gate  "
-                               "{1}".format(type(parameter), self.name))
-
 
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 # basis_state=1 respectively
@@ -308,11 +299,11 @@ def _apply_ucg(m, k, single_qubit_gates):
     for j in range(2 ** (num_qubits - 1)):
         i = (j // spacing) * spacing + j
         gate_index = i // (2 ** (num_qubits - k))
-        for l in range(num_col):
-            m[np.array([i, i + spacing]), np.array([l, l])] = \
+        for col in range(num_col):
+            m[np.array([i, i + spacing]), np.array([col, col])] = \
                 np.ndarray.flatten(
-                    single_qubit_gates[gate_index].dot(np.array([[m[i, l]],
-                                                                 [m[i + spacing, l]]]))).tolist()
+                    single_qubit_gates[gate_index].dot(np.array([[m[i, col]],
+                                                                 [m[i + spacing, col]]]))).tolist()
     return m
 
 
@@ -374,9 +365,9 @@ def _apply_multi_controlled_gate(m, control_labels, target_label, gate):
     basis_states_free = list(itertools.product([0, 1], repeat=free_qubits))
     for state_free in basis_states_free:
         (e1, e2) = _construct_basis_states(state_free, control_labels, target_label)
-        for l in range(num_cols):
-            m[np.array([e1, e2]), np.array([l, l])] = \
-                np.ndarray.flatten(gate.dot(np.array([[m[e1, l]], [m[e2, l]]]))).tolist()
+        for i in range(num_cols):
+            m[np.array([e1, e2]), np.array([i, i])] = \
+                np.ndarray.flatten(gate.dot(np.array([[m[e1, i]], [m[e2, i]]]))).tolist()
     return m
 
 

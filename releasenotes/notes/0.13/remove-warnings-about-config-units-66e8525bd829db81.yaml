@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    The following properties of
+    :py:class:`~qiskit.providers.models.BackendConfiguration`:
+
+    * ``dt``
+    * ``dtm``
+    * ``rep_time``
+
+    all have units of seconds. Prior to release 0.11.0, ``dt`` and ``dtm`` had
+    units of nanoseconds. Prior to release 0.12.0, ``rep_time`` had units of
+    microseconds. The warnings alerting users of these changes have now been
+    removed from ``BackendConfiguration``.

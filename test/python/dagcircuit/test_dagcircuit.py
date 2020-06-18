@@ -27,15 +27,15 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
-from qiskit.extensions.standard.i import IGate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.x import CXGate
-from qiskit.extensions.standard.z import CZGate
-from qiskit.extensions.standard.x import XGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.barrier import Barrier
+from qiskit.circuit.library.standard_gates.i import IGate
+from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.library.standard_gates.z import CZGate
+from qiskit.circuit.library.standard_gates.x import XGate
+from qiskit.circuit.library.standard_gates.u1 import U1Gate
+from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 try:
@@ -156,12 +156,12 @@ class TestDagRegisters(QiskitTestCase):
         dag.add_qreg(QuantumRegister(1, 'qr3'))
         dag.add_qreg(QuantumRegister(1, 'qr4'))
         dag.add_qreg(QuantumRegister(1, 'qr6'))
-        self.assertListEqual(dag.qubits(), [QuantumRegister(1, 'qr1')[0],
-                                            QuantumRegister(1, 'qr10')[0],
-                                            QuantumRegister(1, 'qr0')[0],
-                                            QuantumRegister(1, 'qr3')[0],
-                                            QuantumRegister(1, 'qr4')[0],
-                                            QuantumRegister(1, 'qr6')[0]])
+        self.assertListEqual(dag.qubits, [QuantumRegister(1, 'qr1')[0],
+                                          QuantumRegister(1, 'qr10')[0],
+                                          QuantumRegister(1, 'qr0')[0],
+                                          QuantumRegister(1, 'qr3')[0],
+                                          QuantumRegister(1, 'qr4')[0],
+                                          QuantumRegister(1, 'qr6')[0]])
 
     def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
@@ -582,12 +582,12 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
 
-        qbit = self.dag.qubits()[0]
+        qbit = self.dag.qubits[0]
         self.assertEqual([0, 10, 11, 1], [i._node_id for i in self.dag.nodes_on_wire(qbit)])
         self.assertEqual([10, 11],
                          [i._node_id for i in self.dag.nodes_on_wire(qbit, only_ops=True)])
 
-        cbit = self.dag.clbits()[0]
+        cbit = self.dag.clbits[0]
         self.assertEqual([6, 7], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
         self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
@@ -610,7 +610,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag.apply_operation_back(HGate(), [self.qubit1], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
 
-        nodes = self.dag.nodes_on_wire(self.dag.qubits()[1], only_ops=True)
+        nodes = self.dag.nodes_on_wire(self.dag.qubits[1], only_ops=True)
         node_names = [nd.name for nd in nodes]
 
         self.assertEqual(node_names, ['cx', 'h', 'cx'])
@@ -845,6 +845,12 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
+    def test_dag_from_networkx(self):
+        """Test DAG from networkx creates an expected DAGCircuit object."""
+        nx_graph = self.dag1.to_networkx()
+        from_nx_dag = DAGCircuit.from_networkx(nx_graph)
+        self.assertEqual(self.dag1, from_nx_dag)
+
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substituting a dag node with a sub-dag"""
@@ -1001,6 +1007,7 @@ class TestDagSubstituteNode(QiskitTestCase):
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties.
     """
+
     def setUp(self):
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)
@@ -1055,6 +1062,13 @@ class TestDagProperties(QiskitTestCase):
         qc = QuantumCircuit(q)
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 0)
+
+    def test_dag_idle_wires(self):
+        """Test dag idle_wires."""
+        wires = list(self.dag.idle_wires())
+        self.assertEqual(len(wires), 0)
+        wires = list(self.dag.idle_wires(['u2', 'cx']))
+        self.assertEqual(len(wires), 1)
 
     def test_dag_depth1(self):
         """Test DAG depth #1

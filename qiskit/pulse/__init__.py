@@ -47,6 +47,8 @@ Instructions (:mod:`~qiskit.pulse.instructions`)
    Delay
    Play
    SetFrequency
+   ShiftFrequency
+   SetPhase
    ShiftPhase
    Snapshot
 
@@ -60,7 +62,7 @@ Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
 
    ~qiskit.pulse.pulse_lib.discrete
    SamplePulse
-   ConstantPulse
+   Constant
    Drag
    Gaussian
    GaussianSquare
@@ -108,17 +110,18 @@ Configuration
 
    InstructionScheduleMap
 
-Rescheduling Utilities
-======================
+Schedule Transforms
+===================
 
-These utilities return modified :class:`~qiskit.pulse.Schedule` s.
+These functions take :class:`~qiskit.pulse.Schedule` s as input and return modified
+:class:`~qiskit.pulse.Schedule` s.
 
 .. autosummary::
    :toctree: ../stubs/
 
-   ~reschedule.align_measures
-   ~reschedule.add_implicit_acquires
-   ~reschedule.pad
+   ~transforms.align_measures
+   ~transforms.add_implicit_acquires
+   ~transforms.pad
 
 Exceptions
 ==========
@@ -136,8 +139,10 @@ from .commands import AcquireInstruction, FrameChange, PersistentValue
 from .configuration import LoConfig, LoRange, Kernel, Discriminator
 from .exceptions import PulseError
 from .instruction_schedule_map import InstructionScheduleMap
-from .instructions import Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot, SetFrequency
+from .instructions import (Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot,
+                           SetFrequency, ShiftFrequency, SetPhase)
 from .interfaces import ScheduleComponent
-from .pulse_lib import SamplePulse, Gaussian, GaussianSquare, Drag, ConstantPulse, ParametricPulse
+from .pulse_lib import (SamplePulse, Gaussian, GaussianSquare, Drag,
+                        Constant, ConstantPulse, ParametricPulse)
 from .pulse_lib.samplers.decorators import functional_pulse
 from .schedule import Schedule

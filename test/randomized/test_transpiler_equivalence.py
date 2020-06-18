@@ -25,16 +25,16 @@ import hypothesis.strategies as st
 
 from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset, Gate
+from qiskit.circuit import Measure, Reset, Gate, Barrier
 from qiskit.test.mock import (FakeYorktown, FakeTenerife, FakeOurense, FakeVigo,
                               FakeMelbourne, FakeRueschlikon,
                               FakeTokyo, FakePoughkeepsie, FakeAlmaden, FakeSingapore,
-                              FakeJohannesburg, FakeBoeblingen, FakeRochester)
+                              FakeJohannesburg, FakeBoeblingen)
 from qiskit.test.base import dicts_almost_equal
 
 
 # pylint: disable=wildcard-import,unused-wildcard-import
-from qiskit.extensions.standard import *
+from qiskit.circuit.library.standard_gates import *
 
 oneQ_gates = [HGate, IGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
 twoQ_gates = [CXGate, CYGate, CZGate, SwapGate, CHGate]
@@ -53,7 +53,9 @@ variadic_gates = [Barrier]
 mock_backends = [FakeYorktown(), FakeTenerife(), FakeOurense(), FakeVigo(),
                  FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie(), FakeAlmaden(), FakeSingapore(),
-                 FakeJohannesburg(), FakeBoeblingen(), FakeRochester()]
+                 FakeJohannesburg(), FakeBoeblingen()]
+
+# FakeRochester disabled until https://github.com/Qiskit/qiskit-aer/pull/693 is released.
 
 
 @settings(report_multiple_bugs=False,
@@ -65,7 +67,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     and simulating a series of random QuantumCircuits.
 
     Build circuits with up to QISKIT_RANDOM_QUBITS qubits, apply a random
-    selection of gates from qiskit.extensions.standard with randomly selected
+    selection of gates from qiskit.circuit.library with randomly selected
     qargs, cargs, and parameters. At random intervals, transpile the circuit for
     a random backend with a random optimization level and simulate both the
     initial and the transpiled circuits to verify that their counts are the
