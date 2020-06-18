@@ -331,7 +331,7 @@ class BackendProperties(SimpleNamespace):
         properties = self.gate_property(gate, qubits)
         if 'operational' in properties:
             return bool(properties['operational'][0])
-        return True  # if property operational not existant, then True
+        return True  # if property operational not existent, then True.
 
     def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
         """
