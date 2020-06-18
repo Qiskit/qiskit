@@ -112,7 +112,7 @@ class ControlledGate(Gate):
             # pylint: disable=cyclic-import
             from qiskit.circuit.library.standard_gates import XGate
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
-            qreg = QuantumRegister(self.num_qubits)
+            qreg = QuantumRegister(self.num_qubits, 'q')
             definition = [(closed_gate, qreg, [])]
             open_rules = []
             for qind, val in enumerate(bit_ctrl_state[::-1]):
