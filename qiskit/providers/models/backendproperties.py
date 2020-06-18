@@ -448,7 +448,7 @@ class BackendProperties(SimpleNamespace):
         properties = self.qubit_property(qubit)
         if 'operational' in properties:
             return bool(properties['operational'][0])
-        return True  # if property operational not existant, then True
+        return True  # if property operational not existent, then True.
 
     def _apply_prefix(self, value: float, unit: str) -> float:
         """
