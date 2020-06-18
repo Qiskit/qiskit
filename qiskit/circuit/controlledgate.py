@@ -141,7 +141,7 @@ class ControlledGate(Gate):
 
     @num_ctrl_qubits.setter
     def num_ctrl_qubits(self, num_ctrl_qubits):
-        """Set the nuumber of control qubits.
+        """Set the number of control qubits.
 
         Args:
             num_ctrl_qubits (int): The number of control qubits in [1, num_qubits-1].
