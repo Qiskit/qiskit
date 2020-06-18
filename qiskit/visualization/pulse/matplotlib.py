@@ -786,7 +786,6 @@ class ScheduleDrawer:
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
              channel_scales: Dict[Channel, float] = None,
-             channels_to_plot: List[Channel] = None,
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List[Channel] = None,
@@ -806,7 +805,6 @@ class ScheduleDrawer:
                 scaled channel by channel if not provided.
             channel_scales: Dictionary of scale factor for specific channels.
                 Scale of channels not specified here is overwritten by `scale`.
-            channels_to_plot: Deprecated, see `channels`.
             plot_all: When set `True` plot empty channels.
             table: When set `True` draw event table for supported commands.
             label: When set `True` draw label for individual instructions.
@@ -828,11 +826,6 @@ class ScheduleDrawer:
                           DeprecationWarning, 3)
             scale = scaling
         figure = plt.figure()
-
-        if channels_to_plot is not None:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                          DeprecationWarning, 3)
-            channels = channels_to_plot
 
         if channels is None:
             channels = []
