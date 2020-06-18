@@ -251,7 +251,7 @@ class QuantumCircuit:
         """
         warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse_ops() to '
                       'reverse the order of gates.', DeprecationWarning)
-        return self.reverse()
+        return self.reverse_ops()
 
     def reverse_ops(self):
         """Reverse the circuit by reversing the order of instructions.
