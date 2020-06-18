@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+   :meth:`~qiskit.dagcircuit.DAGCircuit.qubits` and
+   :meth:`~qiskit.dagcircuit.DAGCircuit.clbits` have been deprecated
+   as methods. They are now properties of the dag, and are cached so
+   accessing them is much faster.

@@ -36,7 +36,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
 from qiskit.pulse.commands import FrameChangeInstruction
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
-                          Instruction, ScheduleComponent)
+                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
 
 class EventsOutputChannels:
@@ -57,6 +57,7 @@ class EventsOutputChannels:
 
         self._waveform = None
         self._framechanges = None
+        self._setphase = None
         self._frequencychanges = None
         self._conditionals = None
         self._snapshots = None
@@ -98,8 +99,24 @@ class EventsOutputChannels:
         return self._trim(self._framechanges)
 
     @property
+    def setphase(self) -> Dict[int, SetPhase]:
+        """Get the SetPhase phase values."""
+        if self._setphase is None:
+            self._build_waveform()
+
+        return self._trim(self._setphase)
+
+    @property
     def frequencychanges(self) -> Dict[int, SetFrequency]:
         """Get the frequency changes."""
+        if self._frequencychanges is None:
+            self._build_waveform()
+
+        return self._trim(self._frequencychanges)
+
+    @property
+    def frequencyshift(self) -> Dict[int, ShiftFrequency]:
+        """Set the frequency changes."""
         if self._frequencychanges is None:
             self._build_waveform()
 
@@ -135,7 +152,8 @@ class EventsOutputChannels:
         Returns:
             bool: if the channel has nothing to plot
         """
-        if any(self.waveform) or self.framechanges or self.conditionals or self.snapshots:
+        if (any(self.waveform) or self.framechanges or self.setphase or
+                self.conditionals or self.snapshots):
             return False
 
         return True
@@ -152,12 +170,16 @@ class EventsOutputChannels:
         time_event = []
 
         framechanges = self.framechanges
+        setphase = self.setphase
         conditionals = self.conditionals
         snapshots = self.snapshots
         frequencychanges = self.frequencychanges
 
         for key, val in framechanges.items():
-            data_str = 'framechange: %.2f' % val
+            data_str = 'shift phase: %.2f' % val
+            time_event.append((key, name, data_str))
+        for key, val in setphase.items():
+            data_str = 'set phase: %.2f' % val
             time_event.append((key, name, data_str))
         for key, val in conditionals.items():
             data_str = 'conditional, %s' % val
@@ -175,6 +197,7 @@ class EventsOutputChannels:
         """Create waveform from stored pulses.
         """
         self._framechanges = {}
+        self._setphase = {}
         self._frequencychanges = {}
         self._conditionals = {}
         self._snapshots = {}
@@ -187,18 +210,27 @@ class EventsOutputChannels:
             if time > self.tf:
                 break
             tmp_fc = 0
+            tmp_set_phase = 0
             tmp_sf = None
             for command in commands:
                 if isinstance(command, (FrameChange, ShiftPhase)):
                     tmp_fc += command.phase
                     pv[time:] = 0
+                elif isinstance(command, SetPhase):
+                    tmp_set_phase = command.phase
+                    pv[time:] = 0
                 elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
+                elif isinstance(command, ShiftFrequency):
                     tmp_sf = command.frequency
                 elif isinstance(command, Snapshot):
                     self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
+            if tmp_set_phase != 0:
+                self._setphase[time] = tmp_set_phase
+                fc = tmp_set_phase
             if tmp_sf is not None:
                 self._frequencychanges[time] = tmp_sf
             for command in commands:
@@ -360,7 +392,7 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase)):
+                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase, SetPhase)):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)
@@ -749,7 +781,6 @@ class ScheduleDrawer:
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
              channel_scales: Dict[Channel, float] = None,
-             channels_to_plot: List[Channel] = None,
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List[Channel] = None,
@@ -768,7 +799,6 @@ class ScheduleDrawer:
                 scaled channel by channel if not provided.
             channel_scales: Dictionary of scale factor for specific channels.
                 Scale of channels not specified here is overwritten by `scale`.
-            channels_to_plot: Deprecated, see `channels`.
             plot_all: When set `True` plot empty channels.
             table: When set `True` draw event table for supported commands.
             label: When set `True` draw label for individual instructions.
@@ -791,11 +821,6 @@ class ScheduleDrawer:
             scale = scaling
         figure = plt.figure()
 
-        if channels_to_plot is not None:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                          DeprecationWarning, 3)
-            channels = channels_to_plot
-
         if channels is None:
             channels = []
         interp_method = interp_method or step_wise
@@ -813,7 +838,7 @@ class ScheduleDrawer:
             # we need to overwrite pulse duration by an integer greater than zero,
             # otherwise waveform returns empty array and matplotlib will be crashed.
             if channels:
-                tf = schedule.timeslots.ch_duration(*channels)
+                tf = schedule.ch_duration(*channels)
             else:
                 tf = schedule.stop_time
             tf = tf or 1
