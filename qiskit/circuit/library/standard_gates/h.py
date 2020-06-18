@@ -18,7 +18,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.qasm import pi
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
@@ -118,12 +117,11 @@ class CHGate(ControlledGate):
 
         CH\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
-            \frac{1}{\sqrt{2}}
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 1 \\
+                0 & \frac{1}{\sqrt{2}} & 0 & \frac{1}{\sqrt{2}} \\
                 0 & 0 & 1 & 0 \\
-                0 & 1 & 0 & -1
+                0 & \frac{1}{\sqrt{2}} & 0 & -\frac{1}{\sqrt{2}}
             \end{pmatrix}
 
     .. note::
@@ -151,8 +149,19 @@ class CHGate(ControlledGate):
                     0 & 0 & 1 & 1 \\
                     0 & 0 & 1 & -1
                 \end{pmatrix}
-
     """
+    # Define class constants. This saves future allocation time.
+    _sqrt2o2 = 1 / numpy.sqrt(2)
+    _matrix1 = numpy.array([[1, 0, 0, 0],
+                            [0, _sqrt2o2, 0, _sqrt2o2],
+                            [0, 0, 1, 0],
+                            [0, _sqrt2o2, 0, -_sqrt2o2]],
+                           dtype=complex)
+    _matrix0 = numpy.array([[_sqrt2o2, 0, _sqrt2o2, 0],
+                            [0, 1, 0, 0],
+                            [_sqrt2o2, 0, -_sqrt2o2, 0],
+                            [0, 0, 0, 1]],
+                           dtype=complex)
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CH gate."""
@@ -194,6 +203,7 @@ class CHGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        if self.ctrl_state:
+            return self._matrix1
+        else:
+            return self._matrix0
