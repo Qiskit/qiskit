@@ -8,6 +8,6 @@ features:
 deprecations:
   - |
     :meth:`~qiskit.circuit.QuantumCircuit.mirror` has been deprecated in favor
-    of :meth:`~qiskit.circuit.QuantumCircuit.reverse` since mirroring could be
+    of :meth:`~qiskit.circuit.QuantumCircuit.reverse_ops` since mirroring could be
     confused with swapping the output qubits of the circuit. Instead this method
     only reverses the order of gates that are applied.
