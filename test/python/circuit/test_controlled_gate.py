@@ -47,6 +47,10 @@ from qiskit.extensions import UnitaryGate
 
 from .gate_utils import _get_free_params
 
+DEPRECATED_GATES = [allGates.CU1Gate, allGates.Cu1Gate, allGates.CnotGate, allGates.ToffoliGate,
+                    allGates.FredkinGate, allGates.Cu3Gate, allGates.IdGate, allGates.CrxGate,
+                    allGates.CzGate, allGates.CryGate, allGates.CrzGate, allGates.CyGate]
+
 
 @ddt
 class TestControlledGate(QiskitTestCase):
@@ -989,7 +993,8 @@ class TestControlledStandardGates(QiskitTestCase):
     """Tests for control standard gates."""
 
     @combine(num_ctrl_qubits=[1, 2, 3],
-             gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
+             gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type) and
+                         cls not in DEPRECATED_GATES])
     def test_controlled_standard_gates(self, num_ctrl_qubits, gate_class):
         """Test controlled versions of all standard gates."""
         theta = pi / 2
