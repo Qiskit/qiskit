@@ -59,6 +59,7 @@ class FakeBackend(BaseBackend):
         """Return backend properties"""
         coupling_map = self.configuration().coupling_map
         unique_qubits = list(set().union(*coupling_map))
+
         properties = {
             'backend_name': self.name(),
             'backend_version': self.configuration().backend_version,
