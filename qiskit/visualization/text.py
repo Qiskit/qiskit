@@ -23,8 +23,9 @@ from numpy import ndarray
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
-from qiskit.extensions import IGate, UnitaryGate, HamiltonianGate, RZZGate, SwapGate, Snapshot
-from qiskit.extensions import Barrier as BarrierInstruction
+from qiskit.circuit import Barrier as BarrierInstruction
+from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate
+from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
@@ -954,8 +955,8 @@ class TextDrawing():
                 return layer, current_cons, connection_label
 
             for qubit in instruction.qargs:
-                layer.set_qubit(qubit, Barrier())
-
+                if qubit in self.qregs:
+                    layer.set_qubit(qubit, Barrier())
         elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]

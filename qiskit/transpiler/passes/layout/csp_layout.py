@@ -102,7 +102,7 @@ class CSPLayout(AnalysisPass):
         self.seed = seed
 
     def run(self, dag):
-        qubits = dag.qubits()
+        qubits = dag.qubits
         cxs = set()
 
         for gate in dag.two_qubit_ops():

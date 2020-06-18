@@ -79,7 +79,7 @@ class LayoutTransformation(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('LayoutTransform runs on physical circuits only')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
+        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         from_layout = self.from_layout
@@ -102,7 +102,7 @@ class LayoutTransformation(TransformationPass):
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
-        edge_map = {vqubit: dag.qubits()[pqubit]
+        edge_map = {vqubit: dag.qubits[pqubit]
                     for (pqubit, vqubit) in perm_circ.inputmap.items()}
         dag.compose(perm_circ.circuit, edge_map=edge_map)
         return dag
