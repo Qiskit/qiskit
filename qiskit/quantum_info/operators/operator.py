@@ -218,30 +218,6 @@ class Operator(BaseOperator):
         ret._set_dims(self._output_dims, self._input_dims)
         return ret
 
-    def mirror(self):
-        """Return the mirrored operator."""
-        def get_mirror_index(i, n):
-            """Return mirror of index i, in n entries."""
-            little_endian = '{0:0{1}b}'.format(i, n)
-            big_endian = little_endian[::-1]
-            return int(big_endian, 2)
-
-        # Make a shallow copy and update array
-        ret = copy.deepcopy(self)
-        num_rows = ret._data.shape[0]
-        num_cols = ret._data.shape[1]
-        num_qubits = int(np.log2(num_rows))
-
-        for i in range(int(num_rows/2)):
-            j = get_mirror_index(i, num_qubits)
-            if i != j:
-                ret._data[[i, j]] = ret._data[[j, i]]
-        for i in range(int(num_cols/2)):
-            j = get_mirror_index(i, num_qubits)
-            if i != j:
-                ret._data[:, [i, j]] = ret._data[:, [j, i]]
-        return ret
-
     def compose(self, other, qargs=None, front=False):
         """Return the composed operator.
 
