@@ -16,6 +16,7 @@
 
 import unittest
 import itertools
+import warnings
 from test.aqua import QiskitAquaTestCase
 import numpy as np
 from qiskit.quantum_info import Pauli
@@ -40,7 +41,9 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
                   for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
         weights = aqua_globals.random.random(len(paulis))
         self.qubit_op = WeightedPauliOperator.from_list(paulis, weights)
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
         self.var_form = RYRZ(self.qubit_op.num_qubits, 1)
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
         qasm_simulator = BasicAer.get_backend('qasm_simulator')
         self.quantum_instance_qasm = QuantumInstance(qasm_simulator, shots=65536,
