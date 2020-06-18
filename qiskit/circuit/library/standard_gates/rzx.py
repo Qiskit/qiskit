@@ -125,11 +125,12 @@ class RZXGate(Gate):
         """
         gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
         """
+        from qiskit.circuit.library.standard_gates import U1Gate
         q = QuantumRegister(2, 'q')
         self.definition = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (RZGate(self.params[0]), [q[1]], []),
+            (U1Gate(self.params[0]), [q[1]], []),  # Should be RZGate
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
@@ -147,6 +148,7 @@ class RZXGate(Gate):
     #    isin = 1j * numpy.sin(half_theta)
     #    return numpy.array([[    cos,      0,   -isin,      0],
     #                        [      0,    cos,       0,   isin],
-    #                        [-1j*sin,      0,     cos,      0],
+    #                        [-isin,      0,     cos,      0],
     #                        [      0,   isin,       0,    cos]],
+    #                     [0, 1j*halfsin, 0, halfcos]],
     #                       dtype=complex)

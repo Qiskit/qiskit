@@ -93,15 +93,11 @@ class U3Gate(Gate):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
         return numpy.array([
-            [
-                numpy.cos(theta / 2),
-                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
-            ],
-            [
-                numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
-            ]
+            [ cos                      , -numpy.exp(1j * lam) * sin ],
+            [ numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos ]
         ], dtype=complex)
 
 

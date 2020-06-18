@@ -275,7 +275,7 @@ _sel.add_equivalence(CRYGate(theta), def_cry)
 
 q = QuantumRegister(2, 'q')
 theta = Parameter('theta')
-def_ryy = QuantumCircuit(q)
+def_ryy = QuantumCircuit(q, phase=theta / 2)
 for inst, qargs, cargs in [
         (RXGate(pi / 2), [q[0]], []),
         (RXGate(pi / 2), [q[1]], []),
@@ -293,7 +293,7 @@ _sel.add_equivalence(RYYGate(theta), def_ryy)
 q = QuantumRegister(1, 'q')
 theta = Parameter('theta')
 def_rz = QuantumCircuit(q)
-def_rz.append(U1Gate(theta), [q[0]], [], phase=-theta/2)
+def_rz.append(U1Gate(theta), [q[0]], [], phase=-theta / 2)
 _sel.add_equivalence(RZGate(theta), def_rz)
 
 # CRZGate

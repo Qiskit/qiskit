@@ -64,15 +64,22 @@ class RZGate(Gate):
         """
         gate rz(phi) a { u1(phi) a; }
         """
-        from .u1 import U1Gate
-        definition = []
-        q = QuantumRegister(1, 'q')
-        rule = [
-            (U1Gate(self.params[0]), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        import numpy as np
+        circ = self.decompositions[0]
+        if circ.phase:
+            circ.u3(np.pi, circ.phase, circ.phase - np.pi, circ.qregs[0])
+            circ.x(circ.qregs[0])
+        self.definition = circ.to_gate().definition
+        
+        # from .u1 import U1Gate
+        # definition = []
+        # q = QuantumRegister(1, 'q')
+        # rule = [
+        #     (U1Gate(self.params[0]), [q[0]], [])
+        # ]
+        # for inst in rule:
+        #     definition.append(inst)
+        # self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RZ gate.
@@ -101,7 +108,7 @@ class RZGate(Gate):
 
     # TODO: this is the correct matrix however the control mechanism
     # cannot distinguish U1 and RZ yet.
-    def to_matrix(self):
+    def to_matrix_hide(self):
        """Return a numpy.array for the RZ gate."""
        import numpy as np
        lam = float(self.params[0])
@@ -214,13 +221,21 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
     # TODO: this is the correct definition but has a global phase with respect
     # to the decomposition above. Restore after allowing phase on circuits.
     # def to_matrix(self):
-    #    """Return a numpy.array for the CRZ gate."""
-    #    arg = 1j * self.params[0] / 2
-    #    return numpy.array([[1,               0, 0,              0],
-    #                        [0, numpy.exp(-arg), 0,              0],
-    #                        [0,               0, 1,              0],
-    #                        [0,               0, 0, numpy.exp(arg)]],
-    #                       dtype=complex)
+    #   """Return a numpy.array for the CRZ gate."""
+    #   import numpy
+    #   arg = 1j * self.params[0] / 2
+    #   if self.ctrl_state:
+    #       return numpy.array([[1,               0, 0,              0],
+    #                           [0, numpy.exp(-arg), 0,              0],
+    #                           [0,               0, 1,              0],
+    #                           [0,               0, 0, numpy.exp(arg)]],
+    #                          dtype=complex)
+    #   else:
+    #       return numpy.array([[numpy.exp(-arg), 0,              0, 0],
+    #                           [              0, 1,              0, 0],
+    #                           [              0, 0, numpy.exp(arg), 0],
+    #                           [              0, 0,              0, 1]],
+    #                          dtype=complex)
 
 
 class CrzGate(CRZGate, metaclass=CRZMeta):

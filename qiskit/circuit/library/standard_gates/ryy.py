@@ -75,25 +75,12 @@ class RYYGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        from .x import CXGate
-        from .rx import RXGate
-        from .rz import RZGate
-
-        definition = []
-        q = QuantumRegister(2, 'q')
-        theta = self.params[0]
-        rule = [
-            (RXGate(np.pi / 2), [q[0]], []),
-            (RXGate(np.pi / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RXGate(-np.pi / 2), [q[0]], []),
-            (RXGate(-np.pi / 2), [q[1]], []),
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        circ = self.decompositions[0]
+        gp = circ.phase / len(circ.qregs[0])
+        if circ.phase:
+            circ.u3(np.pi, gp, gp - np.pi, circ.qregs[0])
+            circ.x(circ.qregs[0])
+        self.definition = circ.to_gate().definition
 
     def inverse(self):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
@@ -101,12 +88,14 @@ class RYYGate(Gate):
 
     # TODO: this is the correct matrix and is equal to the definition above,
     # however the control mechanism cannot distinguish U1 and RZ yet.
-    # def to_matrix(self):
-    #     """Return a numpy.array for the RYY gate."""
-    #     theta = self.params[0]
-    #     return np.exp(0.5j * theta) * np.array([
-    #         [np.cos(theta / 2), 0, 0, 1j * np.sin(theta / 2)],
-    #         [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-    #         [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-    #         [1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]
-    #     ], dtype=complex)
+    def to_matrix_hide(self):
+        """Return a numpy.array for the RYY gate."""
+        theta = self.params[0]
+        halfcos = np.cos(theta / 2)
+        halfsin = np.sin(theta / 2)
+        return np.exp(0.5j * theta) * np.array([
+            [halfcos, 0, 0, 1j * halfsin],
+            [0, halfcos, -1j * halfsin, 0],
+            [0, -1j * halfsin, halfcos, 0],
+            [1j * halfsin, 0, 0, halfcos]
+        ], dtype=complex)

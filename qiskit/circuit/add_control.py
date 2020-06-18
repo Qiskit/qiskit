@@ -127,8 +127,23 @@ def control(operation: Union[Gate, ControlledGate],
         qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
+        if operation.name == 'ryy':
+            # print(len(operation.definition))
+            # operation.definition = operation.definition[:3]
+            from qiskit.quantum_info import Operator
+
         bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
         # now we have a bunch of single qubit rotation gates and cx
+        # if operation.name == 'ryy':
+        #     import numpy as np
+        #     np.set_printoptions(linewidth=200, precision=2, suppress=True)
+        #     print(_gate_to_circuit(operation))
+        #     print(Operator(operation).data)
+        #     print(Operator(bgate).data)
+        #     print(_gate_to_circuit(bgate))
+        #     print(operation.to_matrix_hide())
+        #     print(np.allclose(operation.to_matrix_hide(), Operator(bgate).data))
+        #     import ipdb;ipdb.set_trace()
         for rule in bgate.definition:
             if rule[0].name == 'u3':
                 theta, phi, lamb = rule[0].params

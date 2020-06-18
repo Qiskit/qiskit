@@ -114,6 +114,8 @@ class DAGCircuit:
         self._gx = None
         self._USE_RX = None
 
+        self._phase = 0
+
     # Multigraph methods where retworkx API differs syntactically from networkx.
     def _add_multi_graph_node(self, node):
         # nx: requires manual node id handling.
@@ -213,6 +215,32 @@ class DAGCircuit:
         Returns the number of nodes in the dag.
         """
         return len(self._multi_graph)
+
+    @property
+    def phase(self):
+        """Return the phase of the circuit."""
+        return self._phase
+
+    @phase.setter
+    def phase(self, angle):
+        """Set the phase of the circuit.
+
+        Args:
+            angle (float, ParameterExpression)
+        """
+        from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
+        if isinstance(angle, ParameterExpression):
+            self._phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._phase = 0
+            elif angle < 0:
+                self._phase = angle % (-2 * np.pi)
+            else:
+                self._phase = angle % (2 * np.pi)
+    
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
