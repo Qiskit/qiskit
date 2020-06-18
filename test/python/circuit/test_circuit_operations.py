@@ -15,13 +15,16 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+from ddt import ddt, data
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
+from qiskit.circuit import Gate, Instruction
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
@@ -369,6 +372,49 @@ class TestCircuitOperations(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(qc.mirror(), expected)
+
+    def test_repeat(self):
+        """Test repeating the circuit works."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.h(0).c_if(cr, 1)
+
+        with self.subTest('repeat 0 times'):
+            rep = qc.repeat(0)
+            self.assertEqual(rep, QuantumCircuit(qr, cr))
+
+        with self.subTest('repeat 3 times'):
+            inst = qc.to_instruction()
+            ref = QuantumCircuit(qr, cr)
+            for _ in range(3):
+                ref.append(inst, ref.qubits, ref.clbits)
+
+            rep = qc.repeat(3)
+            self.assertEqual(rep, ref)
+
+    @data('gate', 'instruction')
+    def test_repeat_appended_type(self, subtype):
+        """Test repeat appends Gate if circuit contains only gates and Instructions otherwise."""
+        sub = QuantumCircuit(2)
+        sub.x(0)
+
+        if subtype == 'gate':
+            sub = sub.to_gate()
+        else:
+            sub = sub.to_instruction()
+
+        qc = QuantumCircuit(2)
+        qc.append(sub, [0, 1])
+        rep = qc.repeat(3)
+
+        if subtype == 'gate':
+            self.assertTrue(all(isinstance(op[0], Gate) for op in rep.data))
+        else:
+            self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
 
 
 class TestCircuitBuilding(QiskitTestCase):

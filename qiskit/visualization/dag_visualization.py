@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,7 +33,7 @@ except ImportError:
     HAS_PIL = False
 
 
-def dag_drawer(dag, scale=0.7, filename=None, style='color'):
+def dag_drawer(dag, scale=0.7, filename=None, style='color', category=None):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -52,6 +52,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         filename (str): file path to save image to (format inferred from name)
         style (str): 'plain': B&W graph
                      'color' (default): color input/output/op nodes
+        category (str): 'dependency' for drawing DAG dependency
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -86,32 +87,64 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     except ImportError:
         raise ImportError("dag_drawer requires pydot. "
                           "Run 'pip install pydot'.")
+    if category is None:
+        G = dag.to_networkx()
+        G.graph['dpi'] = 100 * scale
 
-    G = dag.to_networkx()
-    G.graph['dpi'] = 100 * scale
+        if style == 'plain':
+            pass
+        elif style == 'color':
+            for node in G.nodes:
+                n = G.nodes[node]
+                n['label'] = node.name
+                if node.type == 'op':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.type == 'in':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.type == 'out':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
+            for e in G.edges(data=True):
+                e[2]['label'] = e[2]['name']
+        else:
+            raise VisualizationError("Unrecognized style for the dag_drawer.")
 
-    if style == 'plain':
-        pass
-    elif style == 'color':
-        for node in G.nodes:
-            n = G.nodes[node]
-            n['label'] = node.name
-            if node.type == 'op':
-                n['color'] = 'blue'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'lightblue'
-            if node.type == 'in':
-                n['color'] = 'black'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'green'
-            if node.type == 'out':
-                n['color'] = 'black'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'red'
-        for e in G.edges(data=True):
-            e[2]['label'] = e[2]['name']
+    elif category == 'dependency':
+        G = dag.to_networkx()
+        G.graph['dpi'] = 100 * scale
+
+        if style == 'plain':
+            pass
+        elif style == 'color':
+            for node in G.nodes:
+                n = G.nodes[node]
+                n['label'] = str(node.node_id) + ': ' + node.name
+                if node.name == 'measure':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.name == 'barrier':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.name == 'snapshot':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
+                if node.condition:
+                    n['label'] = str(node.node_id) + ': ' + node.name + ' (conditional)'
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightgreen'
+        else:
+            raise VisualizationError("Unrecognized style for the dag_drawer.")
     else:
-        raise VisualizationError("Unrecognized style for the dag_drawer.")
+        raise VisualizationError("Unrecognized category of DAG")
 
     dot = to_pydot(G)
 
