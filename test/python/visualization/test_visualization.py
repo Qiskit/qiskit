@@ -120,7 +120,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc.x(qr[2]).c_if(cr, 2)
         qc.measure(qr[2], cr[2])
         try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
+            circuit_drawer(qc, filename=filename, output='latex_source', cregbundle=False)
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):
