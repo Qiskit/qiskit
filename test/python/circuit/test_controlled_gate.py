@@ -860,6 +860,57 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
+    def test_open_controlled_equality(self):
+        """
+        Test open controlled gates are equal if their base gates and control states are equal.
+        """
+
+        self.assertEqual(
+            XGate().control(1),
+            XGate().control(1))
+
+        self.assertNotEqual(
+            XGate().control(1),
+            YGate().control(1))
+
+        self.assertNotEqual(
+            XGate().control(1),
+            XGate().control(2))
+
+        self.assertEqual(
+            XGate().control(1, ctrl_state='0'),
+            XGate().control(1, ctrl_state='0'))
+
+        self.assertNotEqual(
+            XGate().control(1, ctrl_state='0'),
+            XGate().control(1, ctrl_state='1'))
+
+
+@ddt
+class TestOpenControlledToMatrix(QiskitTestCase):
+    """Test controlled_gates implementing to_matrix work with ctrl_state"""
+
+    @combine(gate_class=ControlledGate.__subclasses__(), ctrl_state=[0, None])
+    def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
+        """Test open controlled to_matrix."""
+        num_free_params = len(_get_free_params(gate_class.__init__,
+                                               ignore=['self']))
+        free_params = [0.1 * i for i in range(1, num_free_params + 1)]
+        if gate_class in [MCU1Gate]:
+            free_params[1] = 3
+        elif gate_class in [MCXGate]:
+            free_params[0] = 3
+        cgate = gate_class(*free_params)
+        cgate.ctrl_state = ctrl_state
+        base_mat = Operator(cgate.base_gate).data
+        target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
+                                         ctrl_state=ctrl_state)
+        try:
+            actual = cgate.to_matrix()
+        except CircuitError as cerr:
+            self.skipTest(cerr)
+        self.assertTrue(np.allclose(actual, target))
+
 
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
