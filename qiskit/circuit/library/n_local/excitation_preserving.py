@@ -21,6 +21,7 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library.standard_gates import RZGate
 from .two_local import TwoLocal
 
+
 class ExcitationPreserving(TwoLocal):
     r"""The heurisitic excitation-preserving wave function ansatz.
 
@@ -53,7 +54,7 @@ class ExcitationPreserving(TwoLocal):
     and options such as skipping unentanglement qubits, which apply here too.
 
     The rotations of the ExcitationPreserving ansatz can be written as
-    
+
     """
 
     def __init__(self,
@@ -100,7 +101,7 @@ class ExcitationPreserving(TwoLocal):
         Examples:
 
             .. jupyter-execute::
-     
+
                 from typing import Union, Optional, List, Tuple, Callable, Any
                 from numpy import pi
                 from qiskit.circuit import QuantumCircuit, Parameter
@@ -108,18 +109,19 @@ class ExcitationPreserving(TwoLocal):
                 from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import ExcitationPreserving
 
-                ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True, entanglement='linear')
+                ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True,
+                entanglement='linear')
                 ansatz.draw('mpl')  # show the circuit
 
             .. jupyter-execute::
-     
+
                 from typing import Union, Optional, List, Tuple, Callable, Any
                 from numpy import pi
                 from qiskit.circuit import QuantumCircuit, Parameter
                 from qiskit.circuit.library.standard_gates import RZGate
                 from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import ExcitationPreserving
-     
+
                 ansatz = ExcitationPreserving(2, reps=1)
                 qc = QuantumCircuit(2)  # create a circuit and append the RY variational form
                 qc.cry(0.2, 0, 1)  # do some previous operation
@@ -134,8 +136,9 @@ class ExcitationPreserving(TwoLocal):
                 from qiskit.circuit.library.standard_gates import RZGate
                 from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import ExcitationPreserving
-     
-                ansatz = ExcitationPreserving(3,reps=1,mode='fsim',entanglement=[[0,2]],insert_barriers=True)
+
+                ansatz = ExcitationPreserving(3,reps=1,mode='fsim',
+                entanglement=[[0,2]],insert_barriers=True)
                 ansatz.draw('mpl')
         """
         supported_modes = ['iswap', 'fsim']

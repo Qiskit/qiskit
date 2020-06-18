@@ -18,8 +18,9 @@ from typing import Union, Optional, List, Tuple, Callable, Any
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.circuit.library.standard_gates import RZGate, RZGate, CXGate
+from qiskit.circuit.library.standard_gates import RZGate, RYGate, CXGate
 from .two_local import TwoLocal
+
 
 class EfficientSU2(TwoLocal):
     r"""The hardware efficient SU(2) 2-local circuit.
@@ -89,9 +90,9 @@ class EfficientSU2(TwoLocal):
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
-                
+
         Examples:
-    
+
             .. jupyter-execute::
 
                 from typing import Union, Optional, List, Tuple, Callable, Any
@@ -100,7 +101,7 @@ class EfficientSU2(TwoLocal):
                 from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
                 from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import EfficientSU2
-    
+
                 circuit = EfficientSU2(3, reps=1)
                 circuit.draw('mpl')
 
@@ -112,7 +113,7 @@ class EfficientSU2(TwoLocal):
                 from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
                 from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import EfficientSU2
-            
+
                 ansatz = EfficientSU2(4, su2_gates=['rx', 'y'], entanglement='circular', reps=1)
                 qc = QuantumCircuit(4)  # create a circuit and append the RY variational form
                 qc.compose(ansatz, inplace=True)
