@@ -48,14 +48,14 @@ def generate_latex_label(label):
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
     match = regex.search(label)
     if not match:
-        label = label.replace('\$', '$')  # noqa
+        label = label.replace(r'\$', '$')
         return utf8tolatex(label)
     else:
-        mathmode_string = match.group(1).replace('\$', '$')  # noqa
+        mathmode_string = match.group(1).replace(r'\$', '$')
         before_match = label[:match.start()]
-        before_match = before_match.replace('\$', '$')  # noqa
+        before_match = before_match.replace(r'\$', '$')
         after_match = label[match.end():]
-        after_match = after_match.replace('\$', '$')  # noqa
+        after_match = after_match.replace(r'\$', '$')
         return utf8tolatex(before_match) + mathmode_string + utf8tolatex(
             after_match)
 
@@ -125,8 +125,8 @@ def _get_layered_instructions(circuit, reverse_bits=False,
 
     dag = circuit_to_dag(circuit)
     ops = []
-    qregs = dag.qubits()
-    cregs = dag.clbits()
+    qregs = dag.qubits
+    cregs = dag.clbits
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
@@ -140,7 +140,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
         cregs.reverse()
 
     if not idle_wires:
-        for wire in dag.idle_wires():
+        for wire in dag.idle_wires(ignore=['barrier']):
             if wire in qregs:
                 qregs.remove(wire)
             if wire in cregs:
@@ -198,7 +198,7 @@ class _LayerSpooler(list):
         """Create spool"""
         super(_LayerSpooler, self).__init__()
         self.dag = dag
-        self.qregs = dag.qubits()
+        self.qregs = dag.qubits
         self.justification = justification
 
         if self.justification == 'left':

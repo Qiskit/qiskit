@@ -12,6 +12,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for builtin pulse_lib."""
+"""This library provides Pulse users with convenient methods to build Pulse waveforms.
+
+Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` s.
+
+The :py:mod:`~qiskit.pulse.pulse_lib.discrete` module will generate
+:py:class:`~qiskit.pulse.pulse_lib.SamplePulse` s for common waveform envelopes.
+
+The parametric pulses, :py:class:`~qiskit.pulse.pulse_lib.Gaussian`,
+:py:class:`~qiskit.pulse.pulse_lib.GaussianSquare`, :py:class:`~qiskit.pulse.pulse_lib.Drag` and
+:py:class:`~qiskit.pulse.pulse_lib.Constant` will generate parameterized descriptions of
+those pulses, which can greatly reduce the size of the job sent to the backend.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.pulse.pulse_lib.discrete
+   SamplePulse
+   Constant
+   Drag
+   Gaussian
+   GaussianSquare
+
+"""
 
 from .discrete import *
+from .parametric_pulses import (ParametricPulse, Gaussian, GaussianSquare,
+                                Drag, Constant, ConstantPulse)
+from .pulse import Pulse
+from .sample_pulse import SamplePulse

@@ -22,7 +22,7 @@ from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disab
 from IPython.core import magic_arguments                         # pylint: disable=import-error
 import matplotlib.pyplot as plt                                  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
-from qiskit.tools.monitor.backend_overview import get_unique_backends
+from qiskit.tools.monitor.overview import get_unique_backends
 from qiskit.visualization.gate_map import plot_gate_map
 
 
@@ -39,10 +39,9 @@ class BackendOverview(Magics):
         default=60,
         help='Interval for status check.'
     )
-    def qiskit_backend_overview(self, line='', cell=None):
+    def qiskit_backend_overview(self, line=''):
         """A Jupyter magic function to monitor backends.
         """
-        del cell  # Unused
         args = magic_arguments.parse_argstring(
             self.qiskit_backend_overview, line)
 
@@ -131,14 +130,14 @@ def backend_widget(backend):
     name = widgets.HTML(value="<h4>{name}</h4>".format(name=backend.name()),
                         layout=widgets.Layout())
 
-    n_qubits = config['n_qubits']
+    num_qubits = config['n_qubits']
 
     qv_val = '-'
     if 'quantum_volume' in config.keys():
         if config['quantum_volume']:
             qv_val = config['quantum_volume']
 
-    qubit_count = widgets.HTML(value="<h5><b>{qubits}</b></h5>".format(qubits=n_qubits),
+    qubit_count = widgets.HTML(value="<h5><b>{qubits}</b></h5>".format(qubits=num_qubits),
                                layout=widgets.Layout(justify_content='center'))
 
     qv_value = widgets.HTML(value="<h5>{qubits}</h5>".format(qubits=qv_val),
@@ -169,8 +168,8 @@ def backend_widget(backend):
                               layout=widgets.Layout(justify_content='center'))
 
     t1_units = props['qubits'][0][0]['unit']
-    avg_t1 = round(sum([q[0]['value'] for q in props['qubits']])/n_qubits, 1)
-    avg_t2 = round(sum([q[1]['value'] for q in props['qubits']])/n_qubits, 1)
+    avg_t1 = round(sum([q[0]['value'] for q in props['qubits']])/num_qubits, 1)
+    avg_t2 = round(sum([q[1]['value'] for q in props['qubits']])/num_qubits, 1)
     t12_widget = widgets.HTML(value="<h5>{t1} / {t2} {units}</h5>".format(t1=avg_t1,
                                                                           t2=avg_t2,
                                                                           units=t1_units),
@@ -198,7 +197,7 @@ def backend_widget(backend):
         for item in qub:
             if item['name'] == 'readout_error':
                 avg_meas_err += item['value']
-    avg_meas_err = round(avg_meas_err/n_qubits, 4)
+    avg_meas_err = round(avg_meas_err/num_qubits, 4)
     meas_widget = widgets.HTML(value="<h5>{meas_err}</h5>".format(meas_err=avg_meas_err),
                                layout=widgets.Layout())
 

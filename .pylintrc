@@ -22,9 +22,6 @@ persistent=yes
 # usually to register additional checkers.
 load-plugins=pylint.extensions.docparams, # enable checking of docstring args
     pylint.extensions.docstyle,  # basic docstring style checks
-    pylintfileheader  # Check license comments
-
-file-header=(?:(?:#[^\n]*)?\n)*# This code is part of Qiskit.\n#\n# \(C\) Copyright IBM [0-9, -]*.\n#\n# This code is licensed under the Apache License, Version 2.0. You may\n# obtain a copy of this license in the LICENSE.txt file in the root directory\n# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.\n#\n# Any modifications or derivative works of this code must retain this\n# copyright notice, and modified files need to carry a notice indicating\n# that they have been altered from the originals.\n
 
 # Use multiple processes to speed up Pylint.
 jobs=1
@@ -73,6 +70,7 @@ disable=no-self-use,        # disabled as it is too verbose
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
+    import-outside-toplevel
 
 
 
@@ -118,8 +116,8 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # pi = the PI constant
 # op = operation iterator
 # b = basis iterator
-good-names=i,j,k,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
-    __unittest
+good-names=i,j,k,d,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
+    __unittest,iSwapGate
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,toto,tutu,tata
@@ -172,7 +170,7 @@ attr-rgx=[a-z_][a-z0-9_]{2,30}$
 attr-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}|ax$
+argument-rgx=[a-z_][a-z0-9_]{2,30}|ax|dt$
 
 # Naming hint for argument names
 argument-name-hint=[a-z_][a-z0-9_]{2,30}$
@@ -297,7 +295,7 @@ ignore-mixin-members=yes
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=matplotlib.cm,numpy.random
+ignored-modules=matplotlib.cm,numpy.random,retworkx
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Previously, calling :meth:`qiskit.circuit.QuantumCircuit.bind_parameters`
+    prior to decomposing a circuit would result in the bound values not being
+    correctly substituted into the decomposed gates. This has been resolved
+    such that binding and decomposition may occur in any order. Fixes
+    `issue #2482 <https://github.com/Qiskit/qiskit-terra/issues/2482>`_ and
+    `issue #3509 <https://github.com/Qiskit/qiskit-terra/issues/3509>`_

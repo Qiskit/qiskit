@@ -29,52 +29,24 @@ from .exceptions import TranspilerError
 logger = logging.getLogger(__name__)
 
 
-class RunningPassManager():
+class RunningPassManager:
     """A RunningPassManager is a running pass manager."""
 
-    def __init__(self, max_iteration, callback):
+    def __init__(self, max_iteration):
         """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
-            callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 5 keyword
-                arguments:
-                    pass_ (Pass): the pass being run
-                    dag (DAGCircuit): the dag output of the pass
-                    time (float): the time to execute the pass
-                    property_set (PropertySet): the property set
-                    count (int): the index for the pass execution
-
-                The exact arguments pass expose the internals of the pass
-                manager and are subject to change as the pass manager internals
-                change. If you intend to reuse a callback function over
-                multiple releases be sure to check that the arguments being
-                passed are the same.
-
-                To use the callback feature you define a function that will
-                take in kwargs dict and access the variables. For example::
-
-                    def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
-                        property_set = kwargs['property_set']
-                        count = kwargs['count']
-                        ...
-
-                    PassManager(callback=callback_func)
-
         """
-        self.callback = callback
+        self.callback = None
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
         self.working_list = []
 
         # global property set is the context of the circuit held by the pass manager
-        # as it runs through its scheduled passes. Analysis passes may update the property_set,
-        # but transformation passes have read-only access (via the fenced_property_set).
+        # as it runs through its scheduled passes. The flow controller
+        # have read-only access (via the fenced_property_set).
         self.property_set = PropertySet()
         self.fenced_property_set = FencedPropertySet(self.property_set)
 
@@ -120,12 +92,14 @@ class RunningPassManager():
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
         return flow_controller
 
-    def run(self, circuit):
+    def run(self, circuit, output_name=None, callback=None):
         """Run all the passes on a QuantumCircuit
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
-
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
+            callback (callable): A callback function that will be called after each pass execution.
         Returns:
             QuantumCircuit: Transformed circuit.
         """
@@ -133,12 +107,18 @@ class RunningPassManager():
         dag = circuit_to_dag(circuit)
         del circuit
 
+        if callback:
+            self.callback = callback
+
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
 
         circuit = dag_to_circuit(dag)
-        circuit.name = name
+        if output_name:
+            circuit.name = output_name
+        else:
+            circuit.name = name
         circuit._layout = self.property_set['layout']
         return circuit
 
@@ -170,8 +150,8 @@ class RunningPassManager():
         return dag
 
     def _run_this_pass(self, pass_, dag):
+        pass_.property_set = self.property_set
         if pass_.is_transformation_pass:
-            pass_.property_set = self.fenced_property_set
             # Measure time if we have a callback or logging set
             start_time = time()
             new_dag = pass_.run(dag)
@@ -191,7 +171,6 @@ class RunningPassManager():
                                                                          type(new_dag)))
             dag = new_dag
         elif pass_.is_analysis_pass:
-            pass_.property_set = self.property_set
             # Measure time if we have a callback or logging set
             start_time = time()
             pass_.run(FencedDAGCircuit(dag))

@@ -12,153 +12,87 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Acquire.
-"""
-from typing import Union, List, Optional
+"""Acquire. Deprecated path."""
+import warnings
 
-from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
-from qiskit.pulse.exceptions import PulseError
-from .instruction import Instruction
-from .meas_opts import Discriminator, Kernel
-from .command import Command
+from typing import Optional
 
+from ..channels import MemorySlot, RegisterSlot, AcquireChannel
+from ..exceptions import PulseError
 
-class Acquire(Command):
-    """Acquire."""
+# pylint: disable=unused-import
 
-    ALIAS = 'acquire'
-    prefix = 'acq'
-
-    def __init__(self, duration: int, discriminator: Optional[Discriminator] = None,
-                 kernel: Optional[Kernel] = None, name: Optional[str] = None):
-        """Create new acquire command.
-
-        Args:
-            duration: Duration of acquisition
-            discriminator: Discriminators to be used (from the list of available discriminator)
-                if the measurement level is 2
-            kernel: The data structures defining the measurement kernels
-                to be used (from the list of available kernels) and set of parameters
-                (if applicable) if the measurement level is 1 or 2.
-            name: Name of this command.
-
-        Raises:
-            PulseError: when invalid discriminator or kernel object is input.
-        """
-        super().__init__(duration=duration)
-
-        self._name = Acquire.create_name(name)
-
-        if discriminator:
-            if isinstance(discriminator, Discriminator):
-                self._discriminator = discriminator
-            else:
-                raise PulseError('Invalid discriminator object is specified.')
-        else:
-            self._discriminator = None
-
-        if kernel:
-            if isinstance(kernel, Kernel):
-                self._kernel = kernel
-            else:
-                raise PulseError('Invalid kernel object is specified.')
-        else:
-            self._kernel = None
-
-    @property
-    def kernel(self):
-        """Return kernel settings."""
-        return self._kernel
-
-    @property
-    def discriminator(self):
-        """Return discrimination settings."""
-        return self._discriminator
-
-    def __eq__(self, other: 'Acquire'):
-        """Two Acquires are the same if they are of the same type
-        and have the same kernel and discriminator.
-
-        Args:
-            other: Other Acquire
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return (super().__eq__(other) and
-                self.kernel == other.kernel and
-                self.discriminator == other.discriminator)
-
-    def __hash__(self):
-        return hash((super().__hash__(), self.kernel, self.discriminator))
-
-    def __repr__(self):
-        return '%s(%s, duration=%d, kernel=%s, discriminator=%s)' % \
-               (self.__class__.__name__, self.name, self.duration,
-                self.kernel, self.discriminator)
-
-    # pylint: disable=arguments-differ
-    def to_instruction(self,
-                       qubits: Union[Qubit, List[Qubit]],
-                       mem_slots: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                       reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
-                       name: Optional[str] = None) -> 'AcquireInstruction':
-        return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
-    # pylint: enable=arguments-differ
+from ..instructions import Acquire
+from ..instructions import Instruction
 
 
 class AcquireInstruction(Instruction):
-    """Pulse to acquire measurement result."""
+    """Deprecated."""
 
     def __init__(self,
                  command: Acquire,
-                 acquires: Union[AcquireChannel, List[AcquireChannel]],
-                 mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 acquire: AcquireChannel,
+                 mem_slot: Optional[MemorySlot] = None,
+                 reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
-        if not isinstance(acquires, list):
-            acquires = [acquires]
+        warnings.warn("The ``AcquireInstruction`` has been deprecated. Please use Acquire with "
+                      "channels instead. For example, AcquireInstruction(Acquire(duration), "
+                      "AcquireChannel(0), MemorySlot(0)) becomes Acquire(duration, "
+                      "AcquireChannel(0), MemorySlot(0)).",
+                      DeprecationWarning)
 
-        if isinstance(acquires[0], Qubit):
-            raise PulseError("AcquireInstruction can not be instantiated with Qubits, "
-                             "which are deprecated.")
+        if isinstance(acquire, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
+            raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
+                             "classical memory destination for the measurement result.")
 
-        if not (mem_slots or reg_slots):
+        if not (mem_slot or reg_slot):
             raise PulseError('Neither memoryslots or registers were supplied')
 
-        if mem_slots:
-            if isinstance(mem_slots, MemorySlot):
-                mem_slots = [mem_slots]
-            elif len(acquires) != len(mem_slots):
-                raise PulseError("#mem_slots must be equals to #acquires")
+        all_channels = [chan for chan in [acquire, mem_slot, reg_slot] if chan is not None]
+        super().__init__((), command, all_channels, name=name)
 
-        if reg_slots:
-            if isinstance(reg_slots, RegisterSlot):
-                reg_slots = [reg_slots]
-            if len(acquires) != len(reg_slots):
-                raise PulseError("#reg_slots must be equals to #acquires")
-        else:
-            reg_slots = []
+        self._acquire = acquire
+        self._mem_slot = mem_slot
+        self._reg_slot = reg_slot
 
-        super().__init__(command, *acquires, *mem_slots, *reg_slots, name=name)
+    @property
+    def acquire(self):
+        """Acquire channel to be acquired on."""
+        return self._acquire
 
-        self._acquires = acquires
-        self._mem_slots = mem_slots
-        self._reg_slots = reg_slots
+    @property
+    def channel(self):
+        """Acquire channel to be acquired on."""
+        return self._acquire
+
+    @property
+    def mem_slot(self):
+        """MemorySlot."""
+        return self._mem_slot
+
+    @property
+    def reg_slot(self):
+        """RegisterSlot."""
+        return self._reg_slot
 
     @property
     def acquires(self):
         """Acquire channels to be acquired on."""
-        return self._acquires
+        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
+                      DeprecationWarning)
+        return [self._acquire]
 
     @property
     def mem_slots(self):
         """MemorySlots."""
-        return self._mem_slots
+        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
+                      DeprecationWarning)
+        return [self._mem_slot]
 
     @property
     def reg_slots(self):
         """RegisterSlots."""
-        return self._reg_slots
+        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
+                      DeprecationWarning)
+        return [self._reg_slot]

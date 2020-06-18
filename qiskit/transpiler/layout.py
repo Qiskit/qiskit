@@ -19,6 +19,8 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
+import warnings
+
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -212,15 +214,20 @@ class Layout():
            qr_2 -> 2        2 <- q_1         qr_2 -> q_1
            qr_3 -> 3        3 <- q_0         qr_3 -> q_0
 
-        The edge map is used to compose dags via, for example, compose_back.
+        The edge map is used to compose dags via, for example, compose.
 
         Args:
             another_layout (Layout): The other layout to combine.
         Returns:
             dict: A "edge map".
         Raises:
-            LayoutError: another_layout can be bigger than self, but not smaller. Otherwise, raises.
+            LayoutError: another_layout can be bigger than self, but not smaller.
+                Otherwise, raises.
         """
+        warnings.warn('combine_into_edge_map is deprecated as of 0.14.0 and '
+                      'will be removed in a future release. Instead '
+                      'reorder_bits() should be used', DeprecationWarning,
+                      stacklevel=2)
         edge_map = dict()
 
         for virtual, physical in self.get_virtual_bits().items():
@@ -230,6 +237,26 @@ class Layout():
             edge_map[virtual] = another_layout[physical]
 
         return edge_map
+
+    def reorder_bits(self, bits):
+        """Given an ordered list of bits, reorder them according to this layout.
+
+        The list of bits must exactly match the virtual bits in this layout.
+
+        Args:
+            bits (list[Bit]): the bits to reorder.
+
+        Returns:
+            List: ordered bits.
+        """
+        order = [0] * len(bits)
+
+        # the i-th bit is now sitting in position j
+        for i, v in enumerate(bits):
+            j = self[v]
+            order[i] = j
+
+        return order
 
     @staticmethod
     def generate_trivial_layout(*regs):
@@ -264,9 +291,9 @@ class Layout():
             raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')
-        n_qubits = sum(reg.size for reg in qregs)
+        num_qubits = sum(reg.size for reg in qregs)
         # Check if list is too short to cover all qubits
-        if len(int_list) < n_qubits:
+        if len(int_list) < num_qubits:
             err_msg = 'Integer list length must equal number of qubits in circuit.'
             raise LayoutError(err_msg)
         out = Layout()
@@ -298,7 +325,7 @@ class Layout():
         for physical, virtual in enumerate(qubit_list):
             if virtual is None:
                 continue
-            elif isinstance(virtual, Qubit):
+            if isinstance(virtual, Qubit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical

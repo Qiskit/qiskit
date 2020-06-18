@@ -47,7 +47,7 @@ class DefaultStyle:
         self.sfs = 8
         self.colored_add_width = 0.2
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -77,8 +77,13 @@ class DefaultStyle:
             'z': pauli_color,
             'h': clifford_color,
             'cx': clifford_color,
+            'cy': clifford_color,
+            'cz': clifford_color,
+            'swap': clifford_color,
             's': clifford_color,
             'sdg': clifford_color,
+            'dcx': clifford_color,
+            'iswap': clifford_color,
             't': other_color,
             'tdg': other_color,
             'r': other_color,
@@ -87,12 +92,10 @@ class DefaultStyle:
             'rz': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
-            'swap': other_color,
             'multi': other_color,
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = None  # To be removed after 0.10 is released
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -121,12 +124,6 @@ class DefaultStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'fold' in dic:
-            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
-                 DeprecationWarning, 5)
-            self.fold = dic.pop('fold', self.fold)
-            if self.fold < 2:
-                self.fold = -1
 
         if dic:
             warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
@@ -151,7 +148,7 @@ class BWStyle:
         self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
-            'id': 'Id',
+            'id': 'I',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -196,7 +193,6 @@ class BWStyle:
             'multi': '#000000'
         }
         self.latexmode = False
-        self.fold = 25
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -227,12 +223,6 @@ class BWStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'fold' in dic:
-            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
-                 DeprecationWarning, 5)
-            self.fold = dic.pop('fold', self.fold)
-            if self.fold < 2:
-                self.fold = -1
 
         if dic:
             warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),

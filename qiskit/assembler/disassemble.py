@@ -50,8 +50,6 @@ def _experiments_to_circuits(qobj):
             conditional = {}
             for i in x.instructions:
                 name = i.name
-                if i.name == 'id':
-                    name = 'iden'
                 qubits = []
                 params = getattr(i, 'params', [])
                 try:
@@ -79,6 +77,8 @@ def _experiments_to_circuits(qobj):
                             params=params)
                     elif i.name == 'initialize':
                         _inst = instr_method(params, qubits)
+                    elif i.name == 'isometry':
+                        _inst = instr_method(*params, qubits, clbits)
                     else:
                         _inst = instr_method(*params, *qubits, *clbits)
                 elif name == 'bfunc':

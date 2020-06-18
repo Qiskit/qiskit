@@ -26,6 +26,16 @@ class Clbit(Bit):
     """Implement a classical bit."""
 
     def __init__(self, register, index):
+        """Creates a classical bit.
+
+        Args:
+            register (ClassicalRegister): a classical register.
+            index (int): the index to insert the bit
+
+        Raises:
+            CircuitError: if the provided register is not a valid :class:`ClassicalRegister`
+        """
+
         if isinstance(register, ClassicalRegister):
             super().__init__(register, index)
         else:
