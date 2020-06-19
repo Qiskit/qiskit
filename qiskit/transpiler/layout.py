@@ -19,7 +19,6 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
-import warnings
 
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError

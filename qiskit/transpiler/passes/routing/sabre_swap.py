@@ -138,7 +138,7 @@ class SabreSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Sabre swap runs on physical circuits only.')
 
-        if len(dag.qubits()) > self.coupling_map.size():
+        if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical.')
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
@@ -152,7 +152,7 @@ class SabreSwap(TransformationPass):
 
         # A decay factor for each qubit used to heuristically penalize recently
         # used qubits (to encourage parallelism).
-        self.qubits_decay = dict(zip(dag.qubits(), len(dag.qubits()) * [1]))
+        self.qubits_decay = dict(zip(dag.qubits, len(dag.qubits) * [1]))
 
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0

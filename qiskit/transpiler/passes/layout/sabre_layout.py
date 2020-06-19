@@ -70,10 +70,10 @@ class SabreLayout(AnalysisPass):
             TranspilerError: if dag wider than self.coupling_map
         """
         from qiskit.converters import dag_to_circuit
-        from qiskit.transpiler.passes.layout import SetLayout
-        from qiskit.transpiler.passes.layout import FullAncillaAllocation
-        from qiskit.transpiler.passes.layout import EnlargeWithAncilla
-        from qiskit.transpiler.passes.layout import ApplyLayout
+        from qiskit.transpiler.passes.layout.set_layout import SetLayout
+        from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
+        from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
+        from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
         from qiskit.transpiler.passes.routing import SabreSwap
         from qiskit.transpiler.passmanager import PassManager
 
@@ -140,8 +140,8 @@ class SabreLayout(AnalysisPass):
                 circ = circ.mirror()
 
             # Diagnostics
-            logger.info('After round %d, num_swaps: %d' %
-                        (i+1, new_circ.count_ops().get('swap', 0)))
+            logger.info('After round %d, num_swaps: %d',
+                        i+1, new_circ.count_ops().get('swap', 0))
             logger.info('new initial layout')
             logger.info(initial_layout)
 
