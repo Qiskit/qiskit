@@ -27,8 +27,7 @@ a pulse:
 
 .. jupyter-execute::
 
-    from qiskit import execute
-    from qiskit import pulse
+    from qiskit import execute, pulse
 
     d0 = pulse.DriveChannel(0)
 
@@ -91,8 +90,7 @@ In the example below we demonstrate some more features of the pulse builder:
 
     import math
 
-    from qiskit import QuantumCircuit
-    from qiskit import pulse
+    from qiskit import pulse, QuantumCircuit
     from qiskit.pulse import pulse_lib
     from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -525,8 +523,7 @@ def build(backend=None,
 
     .. jupyter-execute::
 
-        from qiskit import execute
-        from qiskit import pulse
+        from qiskit import execute, pulse
         from qiskit.test.mock import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -1470,6 +1467,7 @@ def call_schedule(schedule: Schedule):
     .. jupyter-execute::
 
         from qiskit import pulse
+        from qiskit.pulse import builder
 
         d0 = pulse.DriveChannel(0)
 
@@ -1477,7 +1475,7 @@ def call_schedule(schedule: Schedule):
         sched += pulse.Play(pulse.Constant(10, 1.0), d0)
 
         with pulse.build() as pulse_prog:
-            pulse.call_schedule(sched)
+            builder.call_schedule(sched)
 
         assert pulse_prog == sched
 
@@ -1499,10 +1497,8 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
     .. jupyter-execute::
 
-        from qiskit import circuit
-        from qiskit import pulse
-        from qiskit import schedule
-        from qiskit import transpile
+        from qiskit import circuit, pulse, schedule, transpile
+        from qiskit.pulse import builder
         from qiskit.test.mock import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -1516,11 +1512,11 @@ def call_circuit(circ: circuit.QuantumCircuit):
 
         with pulse.build(backend) as pulse_prog:
             # with default settings
-            pulse.call_circuit(qc)
+            builder.call_circuit(qc)
 
         with pulse.build(backend) as pulse_prog:
             with pulse.transpiler_settings(optimization_level=3):
-                pulse.call_circuit(qc)
+                builder.call_circuit(qc)
 
         assert pulse_prog == sched
 
@@ -1539,10 +1535,7 @@ def call(target: Union[circuit.QuantumCircuit, Schedule]):
 
     .. jupyter-execute::
 
-        from qiskit import circuit
-        from qiskit import pulse
-        from qiskit import schedule
-        from qiskit import transpile
+        from qiskit import circuit, pulse, schedule, transpile
         from qiskit.test.mock import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -1805,13 +1798,14 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     .. jupyter-execute::
 
         from qiskit import pulse
+        from qiskit.pulse import builder
         from qiskit.circuit.library import standard_gates as gates
         from qiskit.test.mock import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
         with pulse.build(backend) as pulse_prog:
-            pulse.call_gate(gates.CXGate(), (0, 1))
+            builder.call_gate(gates.CXGate(), (0, 1))
 
     We can see the role of the transpiler in scheduling gates by optimizing
     away two consecutive CNOT gates:
@@ -1820,8 +1814,8 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
         with pulse.build(backend) as pulse_prog:
             with pulse.transpiler_settings(optimization_level=3):
-                pulse.call_gate(gates.CXGate(), (0, 1))
-                pulse.call_gate(gates.CXGate(), (0, 1))
+                builder.call_gate(gates.CXGate(), (0, 1))
+                builder.call_gate(gates.CXGate(), (0, 1))
 
         assert pulse_prog == pulse.Schedule()
 
