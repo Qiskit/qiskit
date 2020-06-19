@@ -563,26 +563,7 @@ class TestReplace(BaseTestSchedule):
         sched += Delay(100, DriveChannel(0))
 
         with self.assertRaises(PulseError):
-            sched.replace(old, new, enforce_identical_timing=False)
-
-    def test_enforce_identical_timing(self):
-        """Test that replacement fails on overlap."""
-        old = Play(Constant(20, 1.0), DriveChannel(0))
-        new = Play(Constant(100, 0.1), DriveChannel(0))
-
-        sched = Schedule()
-        sched += old
-
-        with self.assertRaises(PulseError):
-            sched.replace(old, new, enforce_identical_timing=True)
-
-        # now try with enforce identical timing
-        sched.replace(old,
-                      new,
-                      inplace=True,
-                      enforce_identical_timing=False)
-
-        self.assertEqual(sched, Schedule(new))
+            sched.replace(old, new)
 
 
 class TestDelay(BaseTestSchedule):

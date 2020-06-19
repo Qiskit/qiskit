@@ -517,13 +517,11 @@ class Schedule(ScheduleComponent):
 
         _check_nonnegative_timeslot(self._timeslots)
 
-    def replace(
-            self,
-            old: ScheduleComponent,
-            new: ScheduleComponent,
-            inplace: bool = False,
-            enforce_identical_timing: bool = True,
-    ) -> 'Schedule':
+    def replace(self,
+                old: ScheduleComponent,
+                new: ScheduleComponent,
+                inplace: bool = False,
+                ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
         instruction.
 
@@ -565,49 +563,17 @@ class Schedule(ScheduleComponent):
 
           assert sched == pulse.Schedule(new)
 
-        By default the replacement will fail if ``new`` and ``old`` occupy
-        different timeslots. This behavior can be disable by setting
-        ``enforce_identical_timing=False``.
-
-        .. jupyter-execute::
-
-          sched = pulse.Schedule()
-
-          old = pulse.Play(pulse.Constant(100, 1.0), d0)
-          new = pulse.Play(pulse.Constant(20, 0.1), d0)
-
-          sched += old
-
-          # Fails as new has different timing than old.
-          # sched = sched.replace(old, new)
-
-          # Turns timing check off.
-          sched.replace(old, new, inplace=True, enforce_identical_timing=False)
-
-          assert sched == pulse.Schedule(new)
-
-
         Args:
           old: Instruction to replace.
           new: Instruction to replace with.
           inplace: Replace instruction by mutably modifying this ``Schedule``.
-          enforce_identical_timing: Enforce that ``old`` and ``new``
-              occupy the same ``timeslots``.
 
         Returns:
           The modified schedule with ``old`` replaced by ``new``.
 
         Raises:
-            PulseError: If the ``old`` and ``new`` pulse do not have identical
-                timeslots if ``enforce_identical_timing=True`` or if the
-                ``Schedule`` after replacement will have a timing overlap.
+            PulseError: If the ``Schedule`` after replacements will has a timing overlap.
         """
-        identical_timing = old.timeslots == new.timeslots
-        if enforce_identical_timing and not identical_timing:
-            raise PulseError(
-                "{old} and {new} do not have identical "
-                "timeslots.".format(old=old, new=new))
-
         new_children = []
         for time, child in self._children:
             if child == old:
