@@ -107,7 +107,7 @@ class SabreLayout(AnalysisPass):
                             for v, _ in initial_layout.get_virtual_bits().items()}
             return Layout(final_layout)
 
-        if len(dag.qubits()) > self.coupling_map.size():
+        if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical.')
 
         # Choose a random initial_layout.
@@ -116,9 +116,9 @@ class SabreLayout(AnalysisPass):
         rng = np.random.default_rng(self.seed)
 
         physical_qubits = rng.choice(self.coupling_map.size(),
-                                     len(dag.qubits()), replace=False)
+                                     len(dag.qubits), replace=False)
         physical_qubits = rng.permutation(physical_qubits)
-        initial_layout = Layout({q: dag.qubits()[i]
+        initial_layout = Layout({q: dag.qubits[i]
                                  for i, q in enumerate(physical_qubits)})
 
         if self.routing_pass is None:

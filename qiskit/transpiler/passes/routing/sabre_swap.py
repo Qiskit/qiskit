@@ -301,7 +301,7 @@ class SabreSwap(TransformationPass):
                                   key=lambda q: (q.register.name, q.index))
                     candidate_swaps.add(tuple(swap))
 
-        return list(candidate_swaps)
+        return list(sorted(candidate_swaps, key=lambda x: (x[0].index, x[1].index)))
 
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
         """Return a heuristic score for a trial layout.

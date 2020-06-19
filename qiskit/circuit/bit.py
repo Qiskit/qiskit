@@ -70,7 +70,7 @@ class Bit:
 
     def __repr__(self):
         """Return the official string representing the bit."""
-        return "%s(%s, %s)" % (self.__class__.__name__, self._register, self._index)
+        return "%s[%s]" % (self._register.name, self._index)
 
     def __hash__(self):
         return self._hash
