@@ -214,12 +214,12 @@ class TestContexts(TestBuilder):
 
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=0):
-                pulse.call_circuit(twice_cx_qc)
+                builder.call_circuit(twice_cx_qc)
         self.assertNotEqual(len(schedule.instructions), 0)
 
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=3):
-                pulse.call_circuit(twice_cx_qc)
+                builder.call_circuit(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
 
     def test_scheduler_settings(self):
@@ -236,7 +236,7 @@ class TestContexts(TestBuilder):
         with pulse.build(backend=self.backend) as schedule:
             with pulse.transpiler_settings(basis_gates=['x']):
                 with pulse.circuit_scheduler_settings(inst_map=inst_map):
-                    pulse.call_circuit(x_qc)
+                    builder.call_circuit(x_qc)
 
         self.assertEqual(schedule, test_x_sched)
 
@@ -486,7 +486,7 @@ class TestInstructions(TestBuilder):
 
         with pulse.build() as schedule:
             with pulse.align_right():
-                pulse.call_schedule(reference)
+                builder.call_schedule(reference)
 
         self.assertEqual(schedule, reference)
 
@@ -510,7 +510,7 @@ class TestInstructions(TestBuilder):
                          default_transpiler_settings=transpiler_settings
                          ) as schedule:
             with pulse.align_right():
-                pulse.call_circuit(u1_qc)
+                builder.call_circuit(u1_qc)
 
         self.assertEqual(schedule, reference)
 

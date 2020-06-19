@@ -160,7 +160,6 @@ from qiskit.pulse.builder import (
     acquire,
     barrier,
     call,
-    call_schedule,
     delay,
     play,
     set_frequency,
@@ -188,8 +187,6 @@ from qiskit.pulse.builder import (
     measure_all,
     delay_qubits,
     # Circuit instructions.
-    call_circuit,
-    call_gate,
     cx,
     u1,
     u2,
