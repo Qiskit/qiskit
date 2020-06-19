@@ -20,11 +20,11 @@ matplotlib pulse visualization.
 import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit import pulse
-from qiskit.pulse import channels as chans
-from qiskit.visualization import exceptions
+from qiskit.pulse import Schedule, Instruction, SamplePulse, ScheduleComponent
+from qiskit.pulse.channels import Channel
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
-from qiskit.visualization.pulse import qcstyle
 
 try:
     from matplotlib import get_backend
@@ -33,20 +33,20 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 
-def pulse_drawer(data: Union[pulse.SamplePulse, pulse.ScheduleComponent],
+def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
                  dt: int = 1,
-                 style: Union[qcstyle.PulseStyle, qcstyle.SchedStyle] = None,
+                 style: Union[PulseStyle, SchedStyle] = None,
                  filename: str = None,
                  interp_method: Callable = None,
                  scale: float = None,
-                 channel_scales: Dict[chans.Channel, float] = None,
+                 channel_scales: Dict[Channel, float] = None,
                  plot_all: bool = False,
                  plot_range: Tuple[Union[int, float], Union[int, float]] = None,
                  interactive: bool = False,
                  table: bool = True,
                  label: bool = False,
                  framechange: bool = True,
-                 channels: List[chans.Channel] = None,
+                 channels: List[Channel] = None,
                  scaling: float = None,
                  show_framechange_channels: bool = True
                  ):
@@ -154,10 +154,10 @@ def pulse_drawer(data: Union[pulse.SamplePulse, pulse.ScheduleComponent],
 
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    if isinstance(data, pulse.SamplePulse):
+    if isinstance(data, SamplePulse):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
-    elif isinstance(data, (pulse.Schedule, pulse.Instruction)):
+    elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
                             channel_scales=channel_scales, plot_range=plot_range,
@@ -165,7 +165,7 @@ def pulse_drawer(data: Union[pulse.SamplePulse, pulse.ScheduleComponent],
                             framechange=framechange, channels=channels,
                             show_framechange_channels=show_framechange_channels)
     else:
-        raise exceptions.VisualizationError('This data cannot be visualized.')
+        raise VisualizationError('This data cannot be visualized.')
 
     if filename:
         image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')

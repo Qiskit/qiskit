@@ -28,14 +28,15 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.pulse import channels as chans
-from qiskit.pulse import commands
-from qiskit.pulse import exceptions
-from qiskit.pulse import instructions
-from qiskit.pulse import interfaces
-from qiskit.pulse import pulse_lib
-from qiskit.visualization.pulse import qcstyle
-from qiskit.visualization.pulse import interpolation
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
+from qiskit.visualization.pulse.interpolation import step_wise
+from qiskit.pulse.channels import (DriveChannel, ControlChannel,
+                                   MeasureChannel, AcquireChannel,
+                                   SnapshotChannel, Channel)
+from qiskit.pulse.commands import FrameChangeInstruction
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
+                          Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
+                          Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
 
 class EventsOutputChannels:
@@ -63,7 +64,7 @@ class EventsOutputChannels:
         self._labels = None
         self.enable = False
 
-    def add_instruction(self, start_time: int, instruction: instructions.Instruction):
+    def add_instruction(self, start_time: int, instruction: Instruction):
         """Add new pulse instruction to channel.
 
         Args:
@@ -72,7 +73,7 @@ class EventsOutputChannels:
         """
         if instruction.command is not None:
             pulse = instruction.command
-        elif isinstance(instruction, instructions.Play):
+        elif isinstance(instruction, Play):
             pulse = instruction.pulse
         else:
             pulse = instruction
@@ -90,7 +91,7 @@ class EventsOutputChannels:
         return self._waveform[self.t0:self.tf]
 
     @property
-    def framechanges(self) -> Dict[int, commands.FrameChangeInstruction]:
+    def framechanges(self) -> Dict[int, FrameChangeInstruction]:
         """Get frame changes."""
         if self._framechanges is None:
             self._build_waveform()
@@ -98,7 +99,7 @@ class EventsOutputChannels:
         return self._trim(self._framechanges)
 
     @property
-    def setphase(self) -> Dict[int, instructions.SetPhase]:
+    def setphase(self) -> Dict[int, SetPhase]:
         """Get the SetPhase phase values."""
         if self._setphase is None:
             self._build_waveform()
@@ -106,7 +107,7 @@ class EventsOutputChannels:
         return self._trim(self._setphase)
 
     @property
-    def frequencychanges(self) -> Dict[int, instructions.SetFrequency]:
+    def frequencychanges(self) -> Dict[int, SetFrequency]:
         """Get the frequency changes."""
         if self._frequencychanges is None:
             self._build_waveform()
@@ -114,7 +115,7 @@ class EventsOutputChannels:
         return self._trim(self._frequencychanges)
 
     @property
-    def frequencyshift(self) -> Dict[int, instructions.ShiftFrequency]:
+    def frequencyshift(self) -> Dict[int, ShiftFrequency]:
         """Set the frequency changes."""
         if self._frequencychanges is None:
             self._build_waveform()
@@ -130,7 +131,7 @@ class EventsOutputChannels:
         return self._trim(self._conditionals)
 
     @property
-    def snapshots(self) -> Dict[int, instructions.Snapshot]:
+    def snapshots(self) -> Dict[int, Snapshot]:
         """Get snapshots."""
         if self._snapshots is None:
             self._build_waveform()
@@ -138,7 +139,7 @@ class EventsOutputChannels:
         return self._trim(self._snapshots)
 
     @property
-    def labels(self) -> Dict[int, Union[pulse_lib.SamplePulse, instructions.Acquire]]:
+    def labels(self) -> Dict[int, Union[SamplePulse, Acquire]]:
         """Get labels."""
         if self._labels is None:
             self._build_waveform()
@@ -205,25 +206,25 @@ class EventsOutputChannels:
         pv = np.zeros(self.tf + 1, dtype=np.complex128)
         wf = np.zeros(self.tf + 1, dtype=np.complex128)
         last_pv = None
-        for time, instrs in sorted(self.pulses.items()):
+        for time, commands in sorted(self.pulses.items()):
             if time > self.tf:
                 break
             tmp_fc = 0
             tmp_set_phase = 0
             tmp_sf = None
-            for instr in instrs:
-                if isinstance(instr, (commands.FrameChange, instructions.ShiftPhase)):
-                    tmp_fc += instr.phase
+            for command in commands:
+                if isinstance(command, (FrameChange, ShiftPhase)):
+                    tmp_fc += command.phase
                     pv[time:] = 0
-                elif isinstance(instr, instructions.SetPhase):
-                    tmp_set_phase = instr.phase
+                elif isinstance(command, SetPhase):
+                    tmp_set_phase = command.phase
                     pv[time:] = 0
-                elif isinstance(instr, instructions.SetFrequency):
-                    tmp_sf = instr.frequency
-                elif isinstance(instr, instructions.ShiftFrequency):
-                    tmp_sf = instr.frequency
-                elif isinstance(instr, instructions.Snapshot):
-                    self._snapshots[time] = instr.name
+                elif isinstance(command, SetFrequency):
+                    tmp_sf = command.frequency
+                elif isinstance(command, ShiftFrequency):
+                    tmp_sf = command.frequency
+                elif isinstance(command, Snapshot):
+                    self._snapshots[time] = command.name
             if tmp_fc != 0:
                 self._framechanges[time] = tmp_fc
                 fc += tmp_fc
@@ -232,29 +233,29 @@ class EventsOutputChannels:
                 fc = tmp_set_phase
             if tmp_sf is not None:
                 self._frequencychanges[time] = tmp_sf
-            for instr in instrs:
-                if isinstance(instr, commands.PersistentValue):
-                    pv[time:] = np.exp(1j*fc) * instr.value
-                    last_pv = (time, instr)
+            for command in commands:
+                if isinstance(command, PersistentValue):
+                    pv[time:] = np.exp(1j*fc) * command.value
+                    last_pv = (time, command)
                     break
 
-            for instr in instrs:
-                duration = instr.duration
+            for command in commands:
+                duration = command.duration
                 tf = min(time + duration, self.tf)
-                if isinstance(instr, pulse_lib.ParametricPulse):
-                    instr = instr.get_sample_pulse()
-                if isinstance(instr, pulse_lib.SamplePulse):
-                    wf[time:tf] = np.exp(1j*fc) * instr.samples[:tf-time]
+                if isinstance(command, ParametricPulse):
+                    command = command.get_sample_pulse()
+                if isinstance(command, SamplePulse):
+                    wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
-                    self._labels[time] = (tf, instr)
+                    self._labels[time] = (tf, command)
                     if last_pv is not None:
                         pv_cmd = last_pv[1]
                         self._labels[last_pv[0]] = (time, pv_cmd)
                         last_pv = None
 
-                elif isinstance(instr, instructions.Acquire):
+                elif isinstance(command, Acquire):
                     wf[time:tf] = np.ones(tf - time)
-                    self._labels[time] = (tf, instr)
+                    self._labels[time] = (tf, command)
         self._waveform = wf + pv
 
     def _trim(self, events: Dict[int, Any]) -> Dict[int, Any]:
@@ -278,15 +279,15 @@ class EventsOutputChannels:
 class SamplePulseDrawer:
     """A class to create figure for sample pulse."""
 
-    def __init__(self, style: qcstyle.PulseStyle):
+    def __init__(self, style: PulseStyle):
         """Create new figure.
 
         Args:
             style: Style sheet for pulse visualization.
         """
-        self.style = style or qcstyle.PulseStyle()
+        self.style = style or PulseStyle()
 
-    def draw(self, pulse: pulse_lib.SamplePulse,
+    def draw(self, pulse: SamplePulse,
              dt: float = 1.0,
              interp_method: Callable = None,
              scale: float = 1, scaling: float = None):
@@ -310,7 +311,7 @@ class SamplePulseDrawer:
         # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
-        interp_method = interp_method or interpolation.step_wise
+        interp_method = interp_method or step_wise
 
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
@@ -354,21 +355,21 @@ class SamplePulseDrawer:
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
-    def __init__(self, style: qcstyle.SchedStyle):
+    def __init__(self, style: SchedStyle):
         """Create new figure.
 
         Args:
             style: Style sheet for pulse schedule visualization.
         """
-        self.style = style or qcstyle.SchedStyle()
+        self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule: interfaces.ScheduleComponent,
-                        channels: List[chans.Channel],
+    def _build_channels(self, schedule: ScheduleComponent,
+                        channels: List[Channel],
                         t0: int, tf: int,
                         show_framechange_channels: bool = True
-                        ) -> Tuple[Dict[chans.Channel, EventsOutputChannels],
-                                   Dict[chans.Channel, EventsOutputChannels],
-                                   Dict[chans.Channel, EventsOutputChannels]]:
+                        ) -> Tuple[Dict[Channel, EventsOutputChannels],
+                                   Dict[Channel, EventsOutputChannels],
+                                   Dict[Channel, EventsOutputChannels]]:
         """Create event table of each pulse channels in the given schedule.
 
         Args:
@@ -395,38 +396,35 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction,
-                                  (commands.FrameChangeInstruction,
-                                   instructions.ShiftPhase,
-                                   instructions.SetPhase)):
+                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase, SetPhase)):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)
         for chan in _channels:
-            if isinstance(chan, chans.DriveChannel):
+            if isinstance(chan, DriveChannel):
                 try:
                     drive_channels[chan] = EventsOutputChannels(t0, tf)
-                except exceptions.PulseError:
+                except PulseError:
                     pass
-            elif isinstance(chan, chans.MeasureChannel):
+            elif isinstance(chan, MeasureChannel):
                 try:
                     measure_channels[chan] = EventsOutputChannels(t0, tf)
-                except exceptions.PulseError:
+                except PulseError:
                     pass
-            elif isinstance(chan, chans.ControlChannel):
+            elif isinstance(chan, ControlChannel):
                 try:
                     control_channels[chan] = EventsOutputChannels(t0, tf)
-                except exceptions.PulseError:
+                except PulseError:
                     pass
-            elif isinstance(chan, chans.AcquireChannel):
+            elif isinstance(chan, AcquireChannel):
                 try:
                     acquire_channels[chan] = EventsOutputChannels(t0, tf)
-                except exceptions.PulseError:
+                except PulseError:
                     pass
-            elif isinstance(chan, chans.SnapshotChannel):
+            elif isinstance(chan, SnapshotChannel):
                 try:
                     snapshot_channels[chan] = EventsOutputChannels(t0, tf)
-                except exceptions.PulseError:
+                except PulseError:
                     pass
 
         output_channels = {**drive_channels, **measure_channels,
@@ -447,11 +445,11 @@ class ScheduleDrawer:
         return channels, output_channels, snapshot_channels
 
     @staticmethod
-    def _scale_channels(output_channels: Dict[chans.Channel, EventsOutputChannels],
+    def _scale_channels(output_channels: Dict[Channel, EventsOutputChannels],
                         scale: float,
-                        channel_scales: Dict[chans.Channel, float] = None,
-                        channels: List[chans.Channel] = None,
-                        plot_all: bool = False) -> Dict[chans.Channel, float]:
+                        channel_scales: Dict[Channel, float] = None,
+                        channels: List[Channel] = None,
+                        plot_all: bool = False) -> Dict[Channel, float]:
         """Count number of channels that contains any instruction to show
         and find scale factor of that channel.
 
@@ -497,7 +495,7 @@ class ScheduleDrawer:
         return scale_dict
 
     def _draw_table(self, figure,
-                    channels: Dict[chans.Channel, EventsOutputChannels],
+                    channels: Dict[Channel, EventsOutputChannels],
                     dt: float):
         """Draw event table if events exist.
 
@@ -566,7 +564,7 @@ class ScheduleDrawer:
 
     @staticmethod
     def _draw_snapshots(ax,
-                        snapshot_channels: Dict[chans.Channel, EventsOutputChannels],
+                        snapshot_channels: Dict[Channel, EventsOutputChannels],
                         y0: float) -> None:
         """Draw snapshots to given mpl axis.
 
@@ -583,7 +581,7 @@ class ScheduleDrawer:
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax,
-                           fcs: Dict[int, commands.FrameChangeInstruction],
+                           fcs: Dict[int, FrameChangeInstruction],
                            y0: float) -> bool:
         """Draw frame change of given channel to given mpl axis.
 
@@ -598,7 +596,7 @@ class ScheduleDrawer:
                     ha='center', va='center')
 
     def _draw_frequency_changes(self, ax,
-                                sf: Dict[int, instructions.SetFrequency],
+                                sf: Dict[int, SetFrequency],
                                 y0: float) -> bool:
         """Draw set frequency of given channel to given mpl axis.
 
@@ -612,7 +610,7 @@ class ScheduleDrawer:
                     fontsize=self.style.icon_font_size,
                     ha='center', va='center', rotation=90)
 
-    def _get_channel_color(self, channel: chans.Channel) -> str:
+    def _get_channel_color(self, channel: Channel) -> str:
         """Lookup table for waveform color.
 
         Args:
@@ -622,21 +620,20 @@ class ScheduleDrawer:
             Color code or name of color.
         """
         # choose color
-        if isinstance(channel, chans.DriveChannel):
+        if isinstance(channel, DriveChannel):
             color = self.style.d_ch_color
-        elif isinstance(channel, chans.ControlChannel):
+        elif isinstance(channel, ControlChannel):
             color = self.style.u_ch_color
-        elif isinstance(channel, chans.MeasureChannel):
+        elif isinstance(channel, MeasureChannel):
             color = self.style.m_ch_color
-        elif isinstance(channel, chans.AcquireChannel):
+        elif isinstance(channel, AcquireChannel):
             color = self.style.a_ch_color
         else:
             color = 'black'
         return color
 
     @staticmethod
-    def _prev_label_at_time(prev_labels: List[Dict[int, Union[pulse_lib.SamplePulse,
-                                                              instructions.Acquire]]],
+    def _prev_label_at_time(prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
                             time: int) -> bool:
         """Check overlap of pulses with pervious channels.
 
@@ -654,10 +651,8 @@ class ScheduleDrawer:
         return False
 
     def _draw_labels(self, ax,
-                     labels: Dict[int, Union[pulse_lib.SamplePulse,
-                                             instructions.Acquire]],
-                     prev_labels: List[Dict[int, Union[pulse_lib.SamplePulse,
-                                                       instructions.Acquire]]],
+                     labels: Dict[int, Union[SamplePulse, Acquire]],
+                     prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
                      y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
@@ -668,9 +663,9 @@ class ScheduleDrawer:
             y0: vertical position to draw the labels.
         """
         for t0, (tf, cmd) in labels.items():
-            if isinstance(cmd, commands.PersistentValue):
+            if isinstance(cmd, PersistentValue):
                 name = cmd.name if cmd.name else 'pv'
-            elif isinstance(cmd, instructions.Acquire):
+            elif isinstance(cmd, Acquire):
                 name = cmd.name if cmd.name else 'acquire'
             else:
                 name = cmd.name
@@ -693,10 +688,10 @@ class ScheduleDrawer:
                            linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax,
-                       output_channels: Dict[chans.Channel, EventsOutputChannels],
+                       output_channels: Dict[Channel, EventsOutputChannels],
                        interp_method: Callable,
                        t0: int, tf: int,
-                       scale_dict: Dict[chans.Channel, float],
+                       scale_dict: Dict[Channel, float],
                        label: bool = False,
                        framechange: bool = True,
                        frequencychange: bool = True) -> float:
@@ -783,14 +778,14 @@ class ScheduleDrawer:
                 y0 -= 1
         return y0
 
-    def draw(self, schedule: interfaces.ScheduleComponent,
+    def draw(self, schedule: ScheduleComponent,
              dt: float, interp_method: Callable,
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
-             channel_scales: Dict[chans.Channel, float] = None,
+             channel_scales: Dict[Channel, float] = None,
              plot_all: bool = True, table: bool = True,
              label: bool = False, framechange: bool = True,
-             scaling: float = None, channels: List[chans.Channel] = None,
+             scaling: float = None, channels: List[Channel] = None,
              show_framechange_channels: bool = True):
         """Draw figure.
 
@@ -830,7 +825,7 @@ class ScheduleDrawer:
 
         if channels is None:
             channels = []
-        interp_method = interp_method or interpolation.step_wise
+        interp_method = interp_method or step_wise
 
         if channel_scales is None:
             channel_scales = {}
