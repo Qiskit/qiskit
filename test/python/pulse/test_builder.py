@@ -608,17 +608,16 @@ class TestUtilities(TestBuilder):
         with pulse.build(self.backend):
             self.assertEqual(pulse.active_backend(), self.backend)
 
-    def test_append_block(self):
-        """Test appending a block to the active builder."""
+    def test_append_schedule(self):
+        """Test appending a schedule to the active builder."""
         d0 = pulse.DriveChannel(0)
-        block = pulse.Schedule()
-        block += instructions.Delay(10, d0)
+        reference = pulse.Schedule()
+        reference += instructions.Delay(10, d0)
 
-        schedule = pulse.Schedule()
         with pulse.build() as schedule:
-            builder.append_block(block)
+            builder.append_schedule(reference)
 
-        self.assertEqual(schedule, block)
+        self.assertEqual(schedule, reference)
 
     def test_append_instruction(self):
         """Test appending an instruction to the active builder."""

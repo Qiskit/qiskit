@@ -125,9 +125,9 @@ In the example below we demonstrate some more features of the pulse builder:
 
             # We can also nest contexts as each instruction is
             # contained in its local scheduling context.
-            # The output of a child context is a scheduled block
+            # The output of a child context is a context-schedule
             # with the internal instructions timing fixed relative to
-            # one another. This is block is then called in the parent context.
+            # one another. This is schedule is then called in the parent context.
 
             # Context starts at t=30.
             with pulse.align_left():
@@ -284,7 +284,7 @@ class _PulseBuilder():
         Args:
             backend (BaseBackend): Input backend to use in builder. If not set
                 certain functionality will be unavailable.
-            schedule: Initital schedule block to build off. If not supplied
+            schedule: Initital schedule to build on. If not supplied
                 a schedule will be created.
             name: Name of pulse program to be built. Only used if `schedule`
                 is not ``None``.
@@ -302,7 +302,7 @@ class _PulseBuilder():
         self._backend_ctx_token = None
 
         #: pulse.Schedule: Active schedule of BuilderContext.
-        self._block = None
+        self._context_schedule = None
 
         #: QuantumCircuit: Lazily constructed quantum circuit
         self._lazy_circuit = None
@@ -317,10 +317,10 @@ class _PulseBuilder():
         self._circuit_scheduler_settings = \
             default_circuit_scheduler_settings or {}
 
-        # pulse.Schedule: Root program block
+        # pulse.Schedule: Root program context-schedule
         self._schedule = schedule or Schedule(name=name)
 
-        self.set_active_block(Schedule())
+        self.set_context_schedule(Schedule())
 
     def __enter__(self) -> Schedule:
         """Enter this builder context and yield either the supplied schedule
@@ -350,9 +350,9 @@ class _PulseBuilder():
         return self._backend
 
     @property
-    def block(self) -> Schedule:
-        """Return the active block of this bulder."""
-        return self._block
+    def context_schedule(self) -> Schedule:
+        """Return the current context schedule."""
+        return self._context_schedule
 
     @property
     @_requires_backend
@@ -388,36 +388,36 @@ class _PulseBuilder():
         # Not much happens because we currently compile as we build.
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
-        program = self._schedule.append(self.block, inplace=True)
-        self.set_active_block(Schedule())
+        program = self._schedule.append(self.context_schedule, inplace=True)
+        self.set_context_schedule(Schedule())
         return program
 
     @_compile_lazy_circuit_before
-    def set_active_block(self, block: Schedule):
-        """Set the active block for the builder."""
-        self._block = block
+    def set_context_schedule(self, context_schedule: Schedule):
+        """Set the current context's schedule for the builder."""
+        self._context_schedule = context_schedule
 
     @_compile_lazy_circuit_before
-    def append_block(self, block: Schedule):
-        """Add a block to the active schedule block.
+    def append_schedule(self, context_schedule: Schedule):
+        """Add a :class:`Schedule` to the builder's context schedule.
 
         Args:
-            block: Schedule to append to the active schedule block.
+            context_schedule: Schedule to append to the current context schedule.
         """
-        self.block.append(block, inplace=True)
+        self.context_schedule.append(context_schedule, inplace=True)
 
     @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
-        """Add an instruction to the active schedule block.
+        """Add an instruction to the builder's context schedule.
 
         Args:
             instruction: Instruction to append.
         """
-        self.block.append(instruction, inplace=True)
+        self.context_schedule.append(instruction, inplace=True)
 
     def _compile_lazy_circuit(self):
         """Call a QuantumCircuit and append the output pulse schedule
-        to the active block."""
+        to the builder's context schedule."""
         if self._lazy_circuit:
             import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
@@ -433,8 +433,8 @@ class _PulseBuilder():
             self.call_schedule(sched)
 
     def call_schedule(self, schedule: Schedule):
-        """Call a schedule and append to the active block."""
-        self.append_block(schedule)
+        """Call a schedule and append to the builder's context schedule."""
+        self.append_schedule(schedule)
 
     def new_circuit(self):
         """Create a new circuit for lazy circuit scheduling."""
@@ -607,13 +607,13 @@ def active_backend():
     return builder
 
 
-def append_block(block: Schedule):
-    """Call a block by appending to the active builder block."""
-    _active_builder().append_block(block)
+def append_schedule(schedule: Schedule):
+    """Call a schedule by appending to the active builder's context schedule."""
+    _active_builder().append_schedule(schedule)
 
 
 def append_instruction(instruction: instructions.Instruction):
-    """Append an instruction to the current active builder context block.
+    """Append an instruction to the active builder's context schedule.
 
     Examples:
 
@@ -775,13 +775,13 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
     ContextManager function.
 
     When the context is entered it creates a new schedule, sets it as the
-    active block and then yields.
+    builder's context schedule and then yields.
 
-    Finally it will reset the initial active block after exiting
+    Finally it will reset the initial builder's context schedule after exiting
     the context and apply the decorated transform function to the
     context Schedule. The output transformed schedule will then be
-    appended to the initial active block. This effectively builds a stack
-    of active blocks that is automatically collapsed upon exiting the context.
+    appended to the initial builder's context schedule. This effectively builds a stack
+    of builder's context schedules that is automatically collapsed upon exiting the context.
 
     Args:
         transform: Transform to decorate as context.
@@ -796,19 +796,21 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
         @contextmanager
         def wrapped_transform(*args, **kwargs):
             builder = _active_builder()
-            active_block = builder.block
-            transform_block = Schedule()
-            builder.set_active_block(transform_block)
+            context_schedule = builder.context_schedule
+            transform_schedule = Schedule()
+            builder.set_context_schedule(transform_schedule)
             try:
                 yield
             finally:
                 builder._compile_lazy_circuit()
-                transformed_block = transform(transform_block,
-                                              *args,
-                                              **kwargs,
-                                              **transform_kwargs)
-                builder.set_active_block(active_block)
-                builder.append_block(transformed_block)
+                transformed_schedule = transform(
+                    transform_schedule,
+                    *args,
+                    **kwargs,
+                    **transform_kwargs,
+                )
+                builder.set_context_schedule(context_schedule)
+                builder.append_schedule(transformed_schedule)
         return wrapped_transform
 
     return wrap
@@ -955,15 +957,15 @@ def inline() -> ContextManager[None]:
         to be ignored.
     """
     builder = _active_builder()
-    active_block = builder.block
-    transform_block = Schedule()
-    builder.set_active_block(transform_block)
+    context_schedule = builder.context_schedule
+    transform_schedule = Schedule()
+    builder.set_context_schedule(transform_schedule)
     try:
         yield
     finally:
         builder._compile_lazy_circuit()
-        builder.set_active_block(active_block)
-        for _, instruction in transform_block.instructions:
+        builder.set_context_schedule(context_schedule)
+        for _, instruction in transform_schedule.instructions:
             append_instruction(instruction)
 
 
@@ -1133,7 +1135,7 @@ def frequency_offset(frequency: float,
         None
     """
     builder = _active_builder()
-    t0 = builder.block.duration
+    t0 = builder.context_schedule.duration
 
     for channel in channels:
         shift_frequency(frequency, channel)
@@ -1141,7 +1143,7 @@ def frequency_offset(frequency: float,
         yield
     finally:
         if compensate_phase:
-            duration = builder.block.duration - t0
+            duration = builder.context_schedule.duration - t0
             dt = active_backend().configuration().dt
             accumulated_phase = duration * dt * frequency % (2*np.pi)
             for channel in channels:
