@@ -421,11 +421,7 @@ class TestInstructions(TestBuilder):
         self.assertEqual(schedule, reference)
 
     def test_shift_frequency(self):  # pylint: disable=no-member
-        """Test shift frequency instruction.
-
-        .. note::
-            Expected to fail as ``ShiftFrequency`` is not yet implemented.
-        """
+        """Test shift frequency instruction."""
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
@@ -436,13 +432,8 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
-    @unittest.expectedFailure
     def test_set_phase(self):  # pylint: disable=no-member
-        """Test set phase instruction.
-
-        .. note::
-            Expected to fail as ``SetPhase`` is not yet implemented.
-        """
+        """Test set phase instruction."""
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:

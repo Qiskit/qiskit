@@ -1412,7 +1412,7 @@ def set_phase(phase: float,
         phase: Phase in radians to set channel carrier signal to.
         channel: Channel to set phase of.
     """
-    raise NotImplementedError()
+    append_instruction(instructions.SetPhase(phase, channel))
 
 
 def shift_phase(phase: float,
