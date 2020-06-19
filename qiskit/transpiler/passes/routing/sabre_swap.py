@@ -200,9 +200,9 @@ class SabreSwap(TransformationPass):
             # After all free gates are exhausted, heuristically find
             # the best swap and insert it.
             extended_set = self._obtain_extended_set(dag, front_layer)
-            swap_candidate_list = self._obtain_swaps(front_layer, current_layout)
-            swap_scores = []
-            for i, swap_qubits in enumerate(swap_candidate_list):
+            swap_candidates = self._obtain_swaps(front_layer, current_layout)
+            swap_scores = dict.fromkeys(swap_candidates, 0)
+            for swap_qubits in swap_scores:
                 trial_layout = current_layout.copy()
                 trial_layout.swap(*swap_qubits)
                 score = self._score_heuristic(self.heuristic,
@@ -210,7 +210,8 @@ class SabreSwap(TransformationPass):
                                               extended_set,
                                               trial_layout,
                                               swap_qubits)
-                swap_scores.append(score)
+                swap_scores[swap_qubits] = score
+            print(swap_scores)
             min_score = min(swap_scores)
             best_swap = swap_candidate_list[swap_scores.index(min_score)]
             swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
@@ -282,7 +283,7 @@ class SabreSwap(TransformationPass):
         return extended_set
 
     def _obtain_swaps(self, front_layer, current_layout):
-        """Return a list of candidate swaps that affect qubits in front_layer.
+        """Return a set of candidate swaps that affect qubits in front_layer.
 
         For each virtual qubit in front_layer, find its current location
         on hardware and the physical qubits in that neighborhood. Every SWAP
@@ -301,7 +302,7 @@ class SabreSwap(TransformationPass):
                                   key=lambda q: (q.register.name, q.index))
                     candidate_swaps.add(tuple(swap))
 
-        return list(sorted(candidate_swaps, key=lambda x: (x[0].index, x[1].index)))
+        return candidate_swaps
 
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
         """Return a heuristic score for a trial layout.
