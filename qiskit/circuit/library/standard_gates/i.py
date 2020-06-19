@@ -14,7 +14,6 @@
 
 """Identity gate."""
 
-import warnings
 import numpy
 from qiskit.circuit.gate import Gate
 
