@@ -42,7 +42,7 @@ def random_circuit(num_qubits, depth, max_operands=3, measure=False,
         from qiskit.circuit.random import random_circuit
 
         circ = random_circuit(2, 2, measure=True)
-        circ.draw(output='mpl')
+        circ.draw('mpl')
 
     Args:
         num_qubits (int): number of quantum wires

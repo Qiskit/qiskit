@@ -66,7 +66,7 @@ class ControlledGate(Gate):
            qc = QuantumCircuit(qr)
            c3h_gate = HGate().control(2)
            qc.append(c3h_gate, qr)
-           qc.draw()
+           qc.draw('mpl')
 
         Create a controlled custom gate and apply it to a circuit.
 
@@ -82,7 +82,7 @@ class ControlledGate(Gate):
 
            qc2 = QuantumCircuit(4)
            qc2.append(custom, [0, 3, 1, 2])
-           qc2.draw()
+           qc2.draw('mpl')
         """
         super().__init__(name, num_qubits, params, label=label)
         if num_ctrl_qubits < num_qubits:

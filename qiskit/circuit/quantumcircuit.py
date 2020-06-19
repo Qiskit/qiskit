@@ -92,7 +92,7 @@ class QuantumCircuit:
             qc.h(0)
             qc.cx(0, 1)
             qc.measure([0, 1], [0, 1])
-            qc.draw(output='mpl')
+            qc.draw('mpl')
 
         Construct a 5-qubit GHZ circuit.
 
@@ -124,7 +124,7 @@ class QuantumCircuit:
             qc.barrier(qr)
             qc.measure(qr, cr)
 
-            qc.draw(output='mpl')
+            qc.draw('mpl')
     """
     instances = 0
     prefix = 'circuit'
@@ -1445,37 +1445,37 @@ class QuantumCircuit:
             optional(QuantumCircuit): A copy of the circuit with bound parameters, if
                 ``inplace`` is True, otherwise None.
 
+
         Examples:
 
-            >>> from qiskit.circuit import QuantumCircuit, Parameter
-            >>> circuit = QuantumCircuit(2)
-            >>> params = [Parameter('A'), Parameter('B'), Parameter('C')]
-            >>> circuit.ry(params[0], 0)
-            >>> circuit.crx(params[1], 0, 1)
-            >>> circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(A) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(B) ├
-                             └───────┘
-            >>> circuit.assign_parameters({params[0]: params[2]}, inplace=True)
-            >>> circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(C) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(B) ├
-                             └───────┘
-            >>> bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
-            >>> bound_circuit.draw()
-                    ┌───────┐
-            q_0: |0>┤ Ry(2) ├────■────
-                    └───────┘┌───┴───┐
-            q_1: |0>─────────┤ Rx(1) ├
-                             └───────┘
-            >>> bound_circuit.parameters  # this one has no free parameters anymore
-            set()
-            >>> circuit.parameters  # the original one is still parameterized
-            {Parameter(A), Parameter(C)}
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+            circuit = QuantumCircuit(2)
+            params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            circuit.ry(params[0], 0)
+            circuit.crx(params[1], 0, 1)
+            circuit.draw('mpl')
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+            circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+            circuit.draw()
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+            bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
+            bound_circuit.draw()
+            bound_circuit.parameters  # this one has no free parameters anymore
+
+        >>> set()
+
+            circuit.parameters  # the original one is still parameterized
+
+        >>> {Parameter(A), Parameter(C)}
+
         """
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()

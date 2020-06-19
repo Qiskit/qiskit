@@ -55,55 +55,6 @@ class RealAmplitudes(TwoLocal):
     on these qubits, since a sequence of :math:`Y` rotations can be reduced to a single :math:`Y`
     rotation with summed rotation angles.
 
-    Examples:
-
-        >>> ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
-        >>> print(ansatz)
-             ┌──────────┐          ┌──────────┐                      ┌──────────┐
-        q_0: ┤ RY(θ[0]) ├──■────■──┤ RY(θ[3]) ├──────────────■────■──┤ RY(θ[6]) ├────────────
-             ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
-        q_1: ┤ RY(θ[1]) ├┤ X ├──┼───────■──────┤ RY(θ[4]) ├┤ X ├──┼───────■──────┤ RY(θ[7]) ├
-             ├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤
-        q_2: ┤ RY(θ[2]) ├─────┤ X ├───┤ X ├────┤ RY(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├
-             └──────────┘     └───┘   └───┘    └──────────┘     └───┘   └───┘    └──────────┘
-
-        >>> ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
-        >>> qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
-        >>> qc.compose(ansatz, inplace=True)
-        >>> qc.draw()
-             ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
-        q_0: ┤ RY(θ[0]) ├─░───■────────░─┤ RY(θ[3]) ├─░───■────────░─┤ RY(θ[6]) ├
-             ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
-        q_1: ┤ RY(θ[1]) ├─░─┤ X ├──■───░─┤ RY(θ[4]) ├─░─┤ X ├──■───░─┤ RY(θ[7]) ├
-             ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
-        q_2: ┤ RY(θ[2]) ├─░──────┤ X ├─░─┤ RY(θ[5]) ├─░──────┤ X ├─░─┤ RY(θ[8]) ├
-             └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
-
-        >>> ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
-        >>> print(ansatz)
-             ┌──────────┐ ░ ┌───┐                ░ ┌──────────┐
-        q_0: ┤ RY(θ[0]) ├─░─┤ X ├──■─────────────░─┤ RY(θ[4]) ├
-             ├──────────┤ ░ └─┬─┘┌─┴─┐           ░ ├──────────┤
-        q_1: ┤ RY(θ[1]) ├─░───┼──┤ X ├──■────────░─┤ RY(θ[5]) ├
-             ├──────────┤ ░   │  └───┘┌─┴─┐      ░ ├──────────┤
-        q_2: ┤ RY(θ[2]) ├─░───┼───────┤ X ├──■───░─┤ RY(θ[6]) ├
-             ├──────────┤ ░   │       └───┘┌─┴─┐ ░ ├──────────┤
-        q_3: ┤ RY(θ[3]) ├─░───■────────────┤ X ├─░─┤ RY(θ[7]) ├
-             └──────────┘ ░                └───┘ ░ └──────────┘
-
-        >>> ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
-        ... skip_unentangled_qubits=True)
-        >>> print(ansatz)
-             ┌──────────┐                 ┌──────────┐                 ┌──────────┐
-        q_0: ┤ RY(θ[0]) ├──■───────■──────┤ RY(θ[3]) ├──■───────■──────┤ RY(θ[6]) ├
-             └──────────┘  │       │      └──────────┘  │       │      └──────────┘
-        q_1: ──────────────┼───────┼────────────────────┼───────┼──────────────────
-             ┌──────────┐  │     ┌─┴─┐    ┌──────────┐  │     ┌─┴─┐    ┌──────────┐
-        q_2: ┤ RY(θ[1]) ├──┼─────┤ X ├────┤ RY(θ[4]) ├──┼─────┤ X ├────┤ RY(θ[7]) ├
-             ├──────────┤┌─┴─┐┌──┴───┴───┐└──────────┘┌─┴─┐┌──┴───┴───┐└──────────┘
-        q_3: ┤ RY(θ[2]) ├┤ X ├┤ RY(θ[5]) ├────────────┤ X ├┤ RY(θ[8]) ├────────────
-             └──────────┘└───┘└──────────┘            └───┘└──────────┘
-
     """
 
     def __init__(self,
@@ -141,6 +92,51 @@ class RealAmplitudes(TwoLocal):
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
+
+          Examples:
+
+               .. jupyter-execute::
+
+                   from typing import Union, Optional, List, Tuple, Callable, Any
+                   import numpy as np
+                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
+                   from .two_local import TwoLocal
+
+                   ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
+                   ansatz.draw('mpl')
+
+               .. jupyter-execute::
+
+                   from typing import Union, Optional, List, Tuple, Callable, Any
+                   import numpy as np
+                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
+                   from .two_local import TwoLocal
+
+                   ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
+                   qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
+                   qc.compose(ansatz, inplace=True)
+                   qc.draw('mpl')
+
+               .. jupyter-execute::
+
+                   from typing import Union, Optional, List, Tuple, Callable, Any
+                   import numpy as np
+                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
+                   from .two_local import TwoLocal
+
+                   ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
+                   ansatz.draw('mpl')
+
+               .. jupyter-execute::
+
+                   from typing import Union, Optional, List, Tuple, Callable, Any
+                   import numpy as np
+                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
+                   from .two_local import TwoLocal
+
+                   ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
+                   skip_unentangled_qubits=True)
+                   ansatz.draw('mpl')
 
         """
         super().__init__(num_qubits=num_qubits,

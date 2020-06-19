@@ -44,7 +44,7 @@ def dag_to_circuit(dag):
             circ.rz(0.5, q[1]).c_if(c, 2)
             dag = circuit_to_dag(circ)
             circuit = dag_to_circuit(dag)
-            circuit.draw()
+            circuit.draw('mpl')
     """
 
     name = dag.name or None
