@@ -19,17 +19,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 
 
-class IMeta(type):
-    """A metaclass to ensure that Id and I are of the same type.
-
-    Can be removed when IdGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {IGate, IdGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class IGate(Gate, metaclass=IMeta):
+class IGate(Gate):
     r"""Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
@@ -64,14 +54,3 @@ class IGate(Gate, metaclass=IMeta):
         """Return a numpy.array for the identity gate."""
         return numpy.array([[1, 0],
                             [0, 1]], dtype=complex)
-
-
-class IdGate(IGate, metaclass=IMeta):
-    """The deprecated IGate class."""
-
-    def __init__(self):
-        warnings.warn('The class IdGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class IGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()

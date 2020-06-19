@@ -116,17 +116,7 @@ class XGate(Gate):
                             [1, 0]], dtype=complex)
 
 
-class CXMeta(type):
-    """A metaclass to ensure that CnotGate and CXGate are of the same type.
-
-    Can be removed when CnotGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CnotGate, CXGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CXGate(ControlledGate, metaclass=CXMeta):
+class CXGate(ControlledGate):
     r"""Controlled-X gate.
 
     **Circuit symbol:**
@@ -228,29 +218,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
                                 [0, 0, 0, 1]], dtype=complex)
 
 
-class CnotGate(CXGate, metaclass=CXMeta):
-    """The deprecated CXGate class."""
-
-    def __init__(self, label=None, ctrl_state=None):
-        import warnings
-        warnings.warn('The class CnotGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(label=label, ctrl_state=ctrl_state)
-
-
-class CCXMeta(type):
-    """A metaclass to ensure that CCXGate and ToffoliGate are of the same type.
-
-    Can be removed when ToffoliGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CCXGate, ToffoliGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CCXGate(ControlledGate, metaclass=CCXMeta):
+class CCXGate(ControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
     **Circuit symbol:**
@@ -380,18 +348,6 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         return _compute_control_matrix(self.base_gate.to_matrix(),
                                        self.num_ctrl_qubits,
                                        ctrl_state=self.ctrl_state)
-
-
-class ToffoliGate(CCXGate, metaclass=CCXMeta):
-    """The deprecated CCXGate class."""
-
-    def __init__(self):
-        import warnings
-        warnings.warn('The class ToffoliGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CCXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()
 
 
 class RCCXGate(Gate):

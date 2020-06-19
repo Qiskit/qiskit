@@ -104,17 +104,7 @@ class SwapGate(Gate):
                             [0, 0, 0, 1]], dtype=complex)
 
 
-class CSwapMeta(type):
-    """A Metaclass to ensure that CSwapGate and FredkinGate are of the same type.
-
-    Can be removed when FredkinGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CSwapGate, FredkinGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CSwapGate(ControlledGate, metaclass=CSwapMeta):
+class CSwapGate(ControlledGate):
     r"""Controlled-X gate.
 
     **Circuit symbol:**
@@ -240,15 +230,3 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
             return self._matrix1
         else:
             return self._matrix0
-
-
-class FredkinGate(CSwapGate, metaclass=CSwapMeta):
-    """The deprecated CSwapGate class."""
-
-    def __init__(self):
-        import warnings
-        warnings.warn('The class FredkinGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CSwapGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()

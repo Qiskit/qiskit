@@ -109,17 +109,7 @@ class RZGate(Gate):
     #                        [0, numpy.exp(1j * lam / 2)]], dtype=complex)
 
 
-class CRZMeta(type):
-    """A metaclass to ensure that CrzGate and CRZGate are of the same type.
-
-    Can be removed when CrzGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRZGate, CrzGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRZGate(ControlledGate, metaclass=CRZMeta):
+class CRZGate(ControlledGate):
     r"""Controlled-RZ gate.
 
     This is a diagonal but non-symmetric gate that induces a
@@ -221,15 +211,3 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
     #                        [0,               0, 1,              0],
     #                        [0,               0, 0, numpy.exp(arg)]],
     #                       dtype=complex)
-
-
-class CrzGate(CRZGate, metaclass=CRZMeta):
-    """The deprecated CRZGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CrzGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRZGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)

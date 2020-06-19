@@ -122,17 +122,7 @@ class U1Gate(Gate):
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
-class CU1Meta(type):
-    """A metaclass to ensure that Cu1Gate and CU1Gate are of the same type.
-
-    Can be removed when Cu1Gate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CU1Gate, Cu1Gate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CU1Gate(ControlledGate, metaclass=CU1Meta):
+class CU1Gate(ControlledGate):
     r"""Controlled-U1 gate.
 
     This is a diagonal and symmetric gate that induces a
@@ -229,18 +219,6 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
     #                        [0, 0, 1,    0],
     #                        [0, 0, 0, eith]],
     #                       dtype=complex)
-
-
-class Cu1Gate(CU1Gate, metaclass=CU1Meta):
-    """The deprecated CU1Gate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class Cu1Gate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CU1Gate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
 
 
 class MCU1Gate(ControlledGate):

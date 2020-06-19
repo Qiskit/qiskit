@@ -25,20 +25,10 @@ import math
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, UCPauliRotMeta
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRZMeta(UCPauliRotMeta):
-    """A metaclass to ensure that UCRZGate and UCZ are of the same type.
-
-    Can be removed when UCZ gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {UCRZGate, UCZ}  # pylint: disable=unidiomatic-typecheck
-
-
-class UCRZGate(UCPauliRotGate, metaclass=UCRZMeta):
+class UCRZGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -101,27 +91,4 @@ def ucrz(self, angle_list, q_controls, q_target):
     return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
 
-class UCZ(UCRZGate, metaclass=UCRZMeta):
-    """The deprecated UCRZGate class."""
-
-    def __init__(self, angle_list):
-        import warnings
-        warnings.warn('The class UCZ is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class UCRZGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(angle_list)
-
-
-def ucz(self, angle_list, q_controls, q_target):
-    """Deprecated version of ucrz."""
-    import warnings
-    warnings.warn('The QuantumCircuit.ucz() method is deprecated as of 0.14.0, and '
-                  'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit.ucrz() method instead.',
-                  DeprecationWarning, stacklevel=2)
-    return ucrz(self, angle_list, q_controls, q_target)
-
-
 QuantumCircuit.ucrz = ucrz
-QuantumCircuit.ucz = ucz  # deprecated, but still supported

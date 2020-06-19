@@ -28,20 +28,10 @@ import math
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, UCPauliRotMeta
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRXMeta(UCPauliRotMeta):
-    """A metaclass to ensure that UCRXGate and UCX are of the same type.
-
-    Can be removed when UCX gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {UCRXGate, UCX}  # pylint: disable=unidiomatic-typecheck
-
-
-class UCRXGate(UCPauliRotGate, metaclass=UCRXMeta):
+class UCRXGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -103,27 +93,4 @@ def ucrx(self, angle_list, q_controls, q_target):
     return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
 
 
-class UCX(UCRXGate, metaclass=UCRXMeta):
-    """The deprecated UCRXGate class."""
-
-    def __init__(self, angle_list):
-        import warnings
-        warnings.warn('The class UCX is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class UCRXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(angle_list)
-
-
-def ucx(self, angle_list, q_controls, q_target):
-    """Deprecated version of ucrx."""
-    import warnings
-    warnings.warn('The QuantumCircuit. ucx() method is deprecated as of 0.14.0, and '
-                  'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit. ucrx() method instead.',
-                  DeprecationWarning, stacklevel=2)
-    return ucrx(self, angle_list, q_controls, q_target)
-
-
 QuantumCircuit.ucrx = ucrx
-QuantumCircuit.ucx = ucx  # deprecated, but still supported

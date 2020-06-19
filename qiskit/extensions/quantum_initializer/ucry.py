@@ -25,20 +25,10 @@ import math
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, UCPauliRotMeta
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRYMeta(UCPauliRotMeta):
-    """A metaclass to ensure that UCRYGate and UCY are of the same type.
-
-    Can be removed when UCY gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {UCRYGate, UCY}  # pylint: disable=unidiomatic-typecheck
-
-
-class UCRYGate(UCPauliRotGate, metaclass=UCRYMeta):
+class UCRYGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -100,18 +90,6 @@ def ucry(self, angle_list, q_controls, q_target):
     return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
 
 
-class UCY(UCRYGate, metaclass=UCRYMeta):
-    """The deprecated UCRYGate class."""
-
-    def __init__(self, angle_list):
-        import warnings
-        warnings.warn('The class UCY is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class UCRYGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(angle_list)
-
-
 def ucy(self, angle_list, q_controls, q_target):
     """Deprecated version of ucry."""
     import warnings
@@ -123,4 +101,3 @@ def ucy(self, angle_list, q_controls, q_target):
 
 
 QuantumCircuit.ucry = ucry
-QuantumCircuit.ucy = ucy  # deprecated, but still supported

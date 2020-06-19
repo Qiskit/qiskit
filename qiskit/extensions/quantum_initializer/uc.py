@@ -53,17 +53,7 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 _DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
-class UCMeta(type):
-    """A metaclass to ensure that UCGate and UCG are of the same type.
-
-    Can be removed when UCGG gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {UCGate, UCG}  # pylint: disable=unidiomatic-typecheck
-
-
-class UCGate(Gate, metaclass=UCMeta):
+class UCGate(Gate):
     """Uniformly controlled gate (also called multiplexed gate).
     The decomposition is based on: https://arxiv.org/pdf/quant-ph/0410066.pdf.
     """
@@ -321,28 +311,4 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
-class UCG(UCGate, metaclass=UCMeta):
-    """The deprecated UCGate class."""
-
-    def __init__(self, gate_list, up_to_diagonal=False):
-        import warnings
-        warnings.warn('The class UCG is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class UCGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(gate_list, up_to_diagonal)
-
-
-def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):
-    """Deprecated version of uc."""
-
-    import warnings
-    warnings.warn('The QuantumCircuit.ucg() method is deprecated as of 0.14.0, and '
-                  'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit.uc() method instead.',
-                  DeprecationWarning, stacklevel=2)
-    return uc(self, angle_list, q_controls, q_target, up_to_diagonal)
-
-
 QuantumCircuit.uc = uc
-QuantumCircuit.ucg = ucg  # deprecated, but still supported
