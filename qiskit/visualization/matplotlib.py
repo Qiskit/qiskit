@@ -39,7 +39,7 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
 # import matplotlib
-# matplotlib.use('ps') # For testing text_width without renderer
+# matplotlib.use('ps') # for testing text_width without renderer
 
 # Default gate width and height
 WID = 0.65
@@ -190,7 +190,7 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
 
-        # These char arrays are for finding text_width when there is
+        # these char arrays are for finding text_width when there is
         # no get_renderer method for the matplotlib backend
         self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
                              '\\dagger', '\\rangle')
@@ -249,8 +249,8 @@ class MatplotlibDrawer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
             return t.get_window_extent(renderer=self.renderer).width / 60.0
         else:
-            # If backend does not have a get_renderer method.
-            # First remove any latex chars before getting width
+            # if backend does not have a get_renderer method
+            # first remove any latex chars before getting width
             for t in self._latex_chars1:
                 text = text.replace(t, 'r')
             for t in self._latex_chars:
@@ -262,24 +262,9 @@ class MatplotlibDrawer:
                 try:
                     sum_text += self._char_list[c][f]
                 except KeyError:
-                    # If non-ASCII char, use width of 'g', an average size
+                    # if non-ASCII char, use width of 'r', an average size
                     sum_text += self._char_list['r'][f]
             return sum_text
-
-    def _get_max_width(self, text_width, sub_width, param_width=None):
-        if param_width:
-            if (text_width > sub_width and text_width > param_width and
-                    text_width > WID):
-                return text_width
-            elif sub_width > param_width and sub_width > WID:
-                return sub_width
-            elif param_width > WID:
-                return param_width
-        elif text_width > sub_width and text_width > WID:
-            return text_width
-        elif sub_width > WID:
-            return sub_width
-        return WID
 
     def param_parse(self, v):
         # create an empty list to store the parameters in
@@ -294,7 +279,7 @@ class MatplotlibDrawer:
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
-        # Remove $'s since "${}$".format will add them back on the outside
+        # remove $'s since "${}$".format will add them back on the outside
         param_parts = param_parts.replace('$', '')
         return param_parts
 
@@ -303,10 +288,10 @@ class MatplotlibDrawer:
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        # Added .21 is for qubit numbers on the left side
+        # added .21 is for qubit numbers on the left side
         text_width = self._get_text_width(text, self._style.fs) + .21
         sub_width = self._get_text_width(subtext, self._style.sfs) + .21
-        wid = self._get_max_width(text_width, sub_width)
+        wid = max((text_width, sub_width, WID))
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
@@ -315,7 +300,7 @@ class MatplotlibDrawer:
             fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-        # Annotate inputs
+        # annotate inputs
         for bit, y in enumerate([x[1] for x in xy]):
             self.ax.text(xpos + .07 - 0.5 * wid, y, str(bit), ha='left', va='center',
                          fontsize=self._style.fs, color=gt,
@@ -341,7 +326,7 @@ class MatplotlibDrawer:
 
         text_width = self._get_text_width(text, self._style.fs)
         sub_width = self._get_text_width(subtext, self._style.sfs)
-        wid = self._get_max_width(text_width, sub_width)
+        wid = max((text_width, sub_width, WID))
 
         box = patches.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
                                 width=wid, height=HIG, fc=fc, ec=ec,
@@ -364,7 +349,7 @@ class MatplotlibDrawer:
     def _sidetext(self, xy, tc=None, text=''):
         xpos, ypos = xy
 
-        # 0.15 = the initial gap, add 1/2 text width to place on the right
+        # 0.08 = the initial gap, add 1/2 text width to place on the right
         text_width = self._get_text_width(text, self._style.sfs)
         xp = xpos + 0.08 + text_width / 2
         self.ax.text(xp, ypos + HIG, text, ha='center', va='top',
@@ -431,7 +416,7 @@ class MatplotlibDrawer:
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
                              fc=fc, ec=ec, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
-        # Display the control label at the top or bottom if there is one
+        # display the control label at the top or bottom if there is one
         if text_top is True:
             self.ax.text(xpos, ypos + 0.5 * HIG, text, ha='center', va='top',
                          fontsize=self._style.sfs, color=self._style.tc,
@@ -443,7 +428,7 @@ class MatplotlibDrawer:
 
     def _set_ctrl_bits(self, ctrl_state, num_ctrl_qubits, qbit, ec=None, tc=None,
                        text='', qargs=None):
-        # Place the control text at the top or bottom of controls
+        # place the control label at the top or bottom of controls
         if text:
             qlist = [qubit.index for qubit in qargs]
             ctbits = qlist[:num_ctrl_qubits]
@@ -452,7 +437,7 @@ class MatplotlibDrawer:
             min_ctbit = min(ctbits)
             top = min(qubits) > min_ctbit
 
-        # Display the control qubits as open or closed based on ctrl_state
+        # display the control qubits as open or closed based on ctrl_state
         cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == '1' else self._style.bg
@@ -723,13 +708,13 @@ class MatplotlibDrawer:
             c_anchors[key] = Anchor(reg_num=self._cond['n_lines'],
                                     yind=creg['y'], fold=self.fold)
         #
-        # Draw the ops
+        # draw the ops
         #
         prev_anc = -1
         for layer in self._ops:
             widest_box = 0.0
             #
-            # Compute the layer_width for this layer
+            # compute the layer_width for this layer
             #
             for op in layer:
                 if op.name in [*_barrier_gates, 'measure']:
@@ -738,17 +723,17 @@ class MatplotlibDrawer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
                 gate_text, ctrl_text = self._get_gate_ctrl_text(op)
 
-                # If a standard_gate, no params, and no labels, layer_width is 1
+                # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
                         ((op.name in _standard_gates or base_name in _standard_gates)
                          and gate_text in (op.name, base_name) and ctrl_text is None)):
                     continue
 
-                # Small increments at end of the 3 _get_text_width calls are for small
+                # small increments at end of the 3 _get_text_width calls are for small
                 # spacing adjustments between gates
                 ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style.sfs) - 0.05
 
-                # Get param_width, but 0 for gates with array params
+                # get param_width, but 0 for gates with array params
                 if (hasattr(op.op, 'params')
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])
                         and len(op.op.params) > 0):
@@ -767,18 +752,18 @@ class MatplotlibDrawer:
                                   + param_width) * 1.5
                 else:
                     gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.10
-                    # Add .21 for the qubit numbers on the left of the multibit gates
+                    # add .21 for the qubit numbers on the left of the multibit gates
                     if (op.name not in _standard_gates and base_name not in _standard_gates):
                         gate_width += 0.21
 
-                box_width = self._get_max_width(gate_width, ctrl_width, param_width)
+                box_width = max((gate_width, ctrl_width, param_width, WID))
                 if box_width > widest_box:
                     widest_box = box_width
 
             layer_width = int(widest_box) + 1
             this_anc = prev_anc + 1
             #
-            # Draw the gates in this layer
+            # draw the gates in this layer
             #
             for op in layer:
                 base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
@@ -803,8 +788,8 @@ class MatplotlibDrawer:
                             c_idxs.append(index)
                             break
 
-                # Only add the gate to the anchors if it is going to be plotted.
-                # This prevents additional blank wires at the end of the line if
+                # only add the gate to the anchors if it is going to be plotted.
+                # this prevents additional blank wires at the end of the line if
                 # the last instruction is a barrier type
                 if self.plot_barriers or op.name not in _barrier_gates:
                     for ii in q_idxs:
@@ -826,6 +811,7 @@ class MatplotlibDrawer:
                 if verbose:
                     print(op)
 
+                # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])):
                     param = "${}$".format(self.param_parse(op.op.params))
@@ -942,7 +928,7 @@ class MatplotlibDrawer:
                     self._swap(q_xy[num_ctrl_qubits+1], color=lc)
                     self._line(qreg_b, qreg_t, lc=lc)
 
-                # All other controlled gates
+                # all other controlled gates
                 elif isinstance(op.op, ControlledGate):
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     num_qargs = len(q_xy) - num_ctrl_qubits
