@@ -18,7 +18,6 @@ import logging
 from copy import deepcopy
 from itertools import cycle
 
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -122,6 +121,8 @@ class SabreSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.heuristic = heuristic
+        self.applied_gates = None
+        self.qubits_decay = None
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -182,10 +183,10 @@ class SabreSwap(TransformationPass):
                     for successor in dag.quantum_successors(node):
                         if successor.type != 'op':
                             continue
-                        elif self._is_resolved(successor, dag):
+                        if self._is_resolved(successor, dag):
                             front_layer.append(successor)
 
-                    if len(node.qargs):
+                    if node.qargs:
                         self._reset_qubits_decay()
 
                 # Diagnostics
@@ -198,42 +199,41 @@ class SabreSwap(TransformationPass):
 
             # After all free gates are exhausted, heuristically find
             # the best swap and insert it.
+            extended_set = self._obtain_extended_set(dag, front_layer)
+            swap_candidate_list = self._obtain_swaps(front_layer, current_layout)
+            swap_scores = []
+            for i, swap_qubits in enumerate(swap_candidate_list):
+                trial_layout = current_layout.copy()
+                trial_layout.swap(*swap_qubits)
+                score = self._score_heuristic(self.heuristic,
+                                              front_layer,
+                                              extended_set,
+                                              trial_layout,
+                                              swap_qubits)
+                swap_scores.append(score)
+            min_score = min(swap_scores)
+            best_swap = swap_candidate_list[swap_scores.index(min_score)]
+            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
+            swap_node = _transform_gate_for_layout(swap_node, current_layout)
+            mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
+            current_layout.swap(*best_swap)
+
+            num_search_steps += 1
+            if num_search_steps % DECAY_RESET_INTERVAL == 0:
+                self._reset_qubits_decay()
             else:
-                extended_set = self._obtain_extended_set(dag, front_layer)
-                swap_candidate_list = self._obtain_swaps(front_layer, current_layout)
-                swap_scores = []
-                for i, swap_qubits in enumerate(swap_candidate_list):
-                    trial_layout = current_layout.copy()
-                    trial_layout.swap(*swap_qubits)
-                    score = self._score_heuristic(self.heuristic,
-                                                  front_layer,
-                                                  extended_set,
-                                                  trial_layout,
-                                                  swap_qubits)
-                    swap_scores.append(score)
-                min_score = min(swap_scores)
-                best_swap = swap_candidate_list[swap_scores.index(min_score)]
-                swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
-                swap_node = _transform_gate_for_layout(swap_node, current_layout)
-                mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
-                current_layout.swap(*best_swap)
+                self.qubits_decay[best_swap[0]] += DECAY_RATE
+                self.qubits_decay[best_swap[1]] += DECAY_RATE
 
-                num_search_steps += 1
-                if num_search_steps % DECAY_RESET_INTERVAL == 0:
-                    self._reset_qubits_decay()
-                else:
-                    self.qubits_decay[best_swap[0]] += DECAY_RATE
-                    self.qubits_decay[best_swap[1]] += DECAY_RATE
-
-                # Diagnostics
-                logger.debug('SWAP Selection...')
-                logger.debug('extended_set: %s',
-                             [(n.name, n.qargs) for n in extended_set])
-                logger.debug('swap scores: %s',
-                             [(swap_candidate_list[i], swap_scores[i])
-                              for i in range(len(swap_scores))])
-                logger.debug('best swap: %s', best_swap)
-                logger.debug('qubits decay: %s', self.qubits_decay)
+            # Diagnostics
+            logger.debug('SWAP Selection...')
+            logger.debug('extended_set: %s',
+                         [(n.name, n.qargs) for n in extended_set])
+            logger.debug('swap scores: %s',
+                         [(swap_candidate_list[i], swap_scores[i])
+                          for i in range(len(swap_scores))])
+            logger.debug('best swap: %s', best_swap)
+            logger.debug('qubits decay: %s', self.qubits_decay)
 
         self.property_set['final_layout'] = current_layout
 
@@ -250,10 +250,7 @@ class SabreSwap(TransformationPass):
         """
         predecessors = dag.quantum_predecessors(node)
         predecessors = filter(lambda x: x.type == 'op', predecessors)
-        if all([n in self.applied_gates for n in predecessors]):
-            return True
-        else:
-            return False
+        return all([n in self.applied_gates for n in predecessors])
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.

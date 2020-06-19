@@ -285,7 +285,7 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     additional_args = {'seed': 0}
 
 
-class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
+class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using SabreSwap."""
     pass_class = SabreSwap
 

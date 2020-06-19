@@ -50,6 +50,7 @@ class SabreLayout(AnalysisPass):
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
+            routing_pass (BasePass): the routing pass to use while iterating.
             seed (int): seed for setting a random first trial layout.
             max_iterations (int): number of forward-backward iterations.
         """
