@@ -22,6 +22,7 @@ Visualization functions for quantum states.
 import colorsys
 import itertools
 import math
+import warnings
 from functools import reduce
 from typing import Union, Tuple, Optional, List
 
@@ -155,7 +156,7 @@ def plot_state_hinton(
 
 
 def plot_quantum_channel_hinton(
-        channel: Union[QuantumChannel, QuantumCircuit],
+        channel: Union[QuantumChannel, QuantumCircuit, np.ndarray],
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         ax_real=None,
@@ -220,6 +221,8 @@ def plot_quantum_channel_hinton(
     basis = basis or ['i', 'x', 'y', 'z']
 
     try:
+        if isinstance(channel, np.ndarray):
+            warnings.warn('Input ndarray should be Chi matrix representation.')
         mat = Chi(channel).data
     except QiskitError:
         raise VisualizationError('Specified object is not a quantum channel.')
@@ -557,7 +560,7 @@ def plot_state_city(
 
 
 def plot_quantum_channel_city(
-        channel: Union[QuantumChannel, QuantumCircuit],
+        channel: Union[QuantumChannel, QuantumCircuit, np.ndarray],
         title: Optional[str] = '',
         figsize: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
         color: Optional[List[str]] = None,
@@ -622,6 +625,8 @@ def plot_quantum_channel_city(
     basis = basis or ['i', 'x', 'y', 'z']
 
     try:
+        if isinstance(channel, np.ndarray):
+            warnings.warn('Input ndarray should be Chi matrix representation.')
         mat = Chi(channel).data
     except QiskitError:
         raise VisualizationError('Specified object is not a quantum channel.')
