@@ -21,11 +21,7 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import channels as chans
-from qiskit.pulse import commands
-from qiskit.pulse import exceptions
-from qiskit.pulse import instructions
-from qiskit.pulse import interfaces
+from qiskit.pulse import channels as chans, commands, exceptions, instructions, interfaces
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule

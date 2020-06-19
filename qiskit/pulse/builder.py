@@ -221,13 +221,15 @@ import numpy as np
 
 from qiskit import circuit
 from qiskit.circuit.library import standard_gates as gates
-from qiskit.pulse import channels as chans
-from qiskit.pulse import configuration
-from qiskit.pulse import exceptions
-from qiskit.pulse import instructions
-from qiskit.pulse import macros
-from qiskit.pulse import pulse_lib
-from qiskit.pulse import transforms
+from qiskit.pulse import (
+    channels as chans,
+    configuration,
+    exceptions,
+    instructions,
+    macros,
+    pulse_lib,
+    transforms,
+)
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
 

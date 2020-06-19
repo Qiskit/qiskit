@@ -19,10 +19,18 @@ from typing import List, Set
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
-                          Gaussian, GaussianSquare, Constant)
-from qiskit.pulse import transforms
-from qiskit.pulse import instructions
+from qiskit.pulse import (
+    Play,
+    Delay,
+    Acquire,
+    Schedule,
+    SamplePulse,
+    Drag,
+    Gaussian,
+    GaussianSquare,
+    Constant,
+)
+from qiskit.pulse import transforms, instructions
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import directives

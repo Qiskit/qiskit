@@ -18,13 +18,8 @@ from math import pi
 
 import numpy as np
 
-from qiskit import circuit
-from qiskit import compiler
-from qiskit import pulse
-from qiskit.pulse import builder
-from qiskit.pulse import exceptions
-from qiskit.pulse import macros
-from qiskit.pulse import transforms
+from qiskit import circuit, compiler, pulse
+from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q

@@ -17,16 +17,11 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 import hashlib
 
-from qiskit import qobj
-from qiskit import pulse
+from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions
-from qiskit.pulse import transforms
-from qiskit.pulse import pulse_lib
-from qiskit.pulse import commands
-from qiskit.qobj import converters
-from qiskit.qobj import utils as qobj_utils
+from qiskit.pulse import instructions, transforms, pulse_lib, commands
+from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
 

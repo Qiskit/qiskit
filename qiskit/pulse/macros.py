@@ -16,11 +16,7 @@
 
 from typing import Dict, List, Optional, Union
 
-from qiskit.pulse import channels
-from qiskit.pulse import commands
-from qiskit.pulse import exceptions
-from qiskit.pulse import instructions
-from qiskit.pulse import utils
+from qiskit.pulse import channels, commands, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 

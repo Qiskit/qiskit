@@ -18,11 +18,32 @@ from unittest.mock import patch
 
 import numpy as np
 
-from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
-                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
-                          functional_pulse, ShiftFrequency, SetPhase)
-from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
-                                   SnapshotChannel, MeasureChannel)
+from qiskit.pulse import (
+    Play,
+    SamplePulse,
+    ShiftPhase,
+    Instruction,
+    SetFrequency,
+    Acquire,
+    pulse_lib,
+    Snapshot,
+    Delay,
+    Gaussian,
+    Drag,
+    GaussianSquare,
+    Constant,
+    functional_pulse,
+    ShiftFrequency,
+    SetPhase,
+)
+from qiskit.pulse.channels import (
+    MemorySlot,
+    RegisterSlot,
+    DriveChannel,
+    AcquireChannel,
+    SnapshotChannel,
+    MeasureChannel,
+)
 from qiskit.pulse.commands import PersistentValue, PulseInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _insertion_index

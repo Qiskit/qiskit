@@ -16,10 +16,7 @@
 
 import numpy as np
 
-from qiskit.pulse import channels
-from qiskit.pulse import configuration
-from qiskit.pulse import instructions
-from qiskit.pulse import pulse_lib
+from qiskit.pulse import channels, configuration, instructions, pulse_lib
 from qiskit.test import QiskitTestCase
 
 
