@@ -22,6 +22,86 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.19.5
+*************
+
+Terra 0.14.2
+============
+
+No Change
+
+Aer 0.5.2
+=========
+
+No Change
+
+Ignis 0.3.2
+===========
+
+Bug Fixes
+---------
+
+- The :meth:`qiskit.ignis.verification.TomographyFitter.fit` method has improved
+  detection logic for the default fitter. Previously, the ``cvx`` fitter method
+  was used whenever `cvxpy <https://www.cvxpy.org/>`__ was installed. However,
+  it was possible to install cvxpy without an SDP solver that would work for the
+  ``cvx`` fitter method. This logic has been reworked so that the ``cvx``
+  fitter method is only used if ``cvxpy`` is installed and an SDP solver is present
+  that can be used. Otherwise, the ``lstsq`` fitter is used.
+
+- Fixes an edge case in
+  :meth:`qiskit.ignis.mitigation.measurement.fitters.MeasurementFitter.apply`
+  for input that has invalid or incorrect state labels that don't match
+  the calibration circuit. Previously, this would not error and just return
+  an empty result. Instead now this case is correctly caught and a
+  ``QiskitError`` exception is raised when using incorrect labels.
+
+Aqua 0.7.3
+==========
+
+.. _Release Notes_0.7.3_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- The `cvxpy <https://www.cvxpy.org/>`__ dependency which is required for
+  the the svm classifier has been removed from the requirements list and made
+  an optional dependency. This is because installing cvxpy is not seamless
+  in every environment and often requires a compiler be installed to run.
+  To use the svm classifier now you'll need to install cvxpy by either
+  running ``pip install cvxpy<1.1.0`` or to install it with aqua running
+  ``pip install qiskit-aqua[cvx]``.
+
+
+.. _Release Notes_0.7.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+- The ``compose`` method of the ``CircuitOp`` used ``QuantumCircuit.combine`` which has been
+  changed to use ``QuantumCircuit.compose``. Using combine leads to the problem that composing
+  an operator with a ``CircuitOp`` based on a named register does not chain the operators but
+  stacks them. E.g. composing ``Z ^ 2`` with a circuit based on a 2-qubit named register yielded
+  a 4-qubit operator instead of a 2-qubit operator.
+
+- The ``MatrixOp.to_instruction`` method previously returned an operator and not
+  an instruction. This method has been updated to return an Instruction.
+  Note that this only works if the operator primitive is unitary, otherwise
+  an error is raised upon the construction of the instruction.
+
+- The ``__hash__`` method of the ``PauliOp`` class used the ``id()`` method
+  which prevents set comparisons to work as expected since they rely on hash
+  tables and identical objects used to not have identical hashes. Now, the
+  implementation uses a hash of the string representation inline with the
+  implementation in the ``Pauli`` class.
+
+IBM Q Provider 0.7.2
+====================
+
+No Change
+
+
+*************
 Qiskit 0.19.4
 *************
 
