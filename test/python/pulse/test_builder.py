@@ -15,7 +15,6 @@
 """Test pulse builder context utilities."""
 
 from math import pi
-import unittest
 
 import numpy as np
 
