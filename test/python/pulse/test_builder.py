@@ -111,6 +111,7 @@ class TestBuilderBase(TestBuilder):
 
 class TestContexts(TestBuilder):
     """Test builder contexts."""
+
     def test_align_sequential(self):
         """Test the sequential alignment context."""
         d0 = pulse.DriveChannel(0)
