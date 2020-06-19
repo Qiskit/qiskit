@@ -81,7 +81,8 @@ class Instruction(ScheduleComponent, ABC):
 
         for channel in channels:
             if not isinstance(channel, Channel):
-                raise PulseError('Input {} is not a channel.'.format(channel))
+                raise PulseError(
+                    "Expected a channel, got {} instead.".format(channel))
 
         self._channels = channels
         self._timeslots = {channel: [(0, self.duration)] for channel in channels}
