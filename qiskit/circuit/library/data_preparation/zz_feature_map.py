@@ -82,4 +82,5 @@ class ZZFeatureMap(PauliFeatureMap):
                          reps=reps,
                          entanglement=entanglement,
                          paulis=['Z', 'ZZ'],
-                         data_map_func=data_map_func)
+                         data_map_func=data_map_func,
+                         insert_barriers=insert_barriers)

@@ -130,13 +130,16 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
+            'qubits': [instruction.acquire.index],
+            'memory_slot': mem_slot
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -149,9 +152,9 @@ class InstructionToQobjConverter:
                     ]
                 })
             # setup register_slots
-            if instruction.reg_slots:
+            if instruction.reg_slot:
                 command_dict.update({
-                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                    'register_slot': [instruction.reg_slot.index]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
@@ -176,13 +179,16 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         meas_level = self._run_config.get('meas_level', 2)
+        mem_slot = []
+        if instruction.mem_slot:
+            mem_slot = [instruction.mem_slot.index]
 
         command_dict = {
             'name': 'acquire',
             't0': shift + instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
+            'qubits': [instruction.channel.index],
+            'memory_slot': mem_slot
         }
         if meas_level == MeasLevel.CLASSIFIED:
             # setup discriminators
@@ -195,9 +201,9 @@ class InstructionToQobjConverter:
                     ]
                 })
             # setup register_slots
-            if instruction.reg_slots:
+            if instruction.reg_slot:
                 command_dict.update({
-                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                    'register_slot': [instruction.reg_slot.index]
                 })
         if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
             # setup kernels
@@ -270,6 +276,43 @@ class InstructionToQobjConverter:
             't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
             'frequency': instruction.frequency / 1e9
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.ShiftFrequency)
+    def convert_shift_frequency(self, shift, instruction):
+        """Return converted `ShiftFrequency`.
+
+        Args:
+            shift (int): Offset time.
+            instruction (ShiftFrequency): Shift frequency instruction.
+
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'shiftf',
+            't0': shift+instruction.start_time,
+            'ch': instruction.channel.name,
+            'frequency': instruction.frequency / 1e9
+        }
+        return self._qobj_model(**command_dict)
+
+    @bind_instruction(instructions.SetPhase)
+    def convert_set_phase(self, shift, instruction):
+        """Return converted `SetPhase`.
+
+        Args:
+            shift(int): Offset time.
+            instruction (SetPhase): Set phase instruction.
+        Returns:
+            dict: Dictionary of required parameters.
+        """
+        command_dict = {
+            'name': 'setp',
+            't0': shift + instruction.start_time,
+            'ch': instruction.channel.name,
+            'phase': instruction.phase
         }
         return self._qobj_model(**command_dict)
 
@@ -495,6 +538,32 @@ class QobjToInstructionConverter:
 
         return schedule
 
+    @bind_name('setp')
+    def convert_set_phase(self, instruction):
+        """Return converted `SetPhase`.
+
+        Args:
+            instruction (PulseQobjInstruction): phase set qobj instruction
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        phase = instruction.phase
+
+        # This is parameterized
+        if isinstance(phase, str):
+            phase_expr = parse_string_expr(phase, partial_binding=False)
+
+            def gen_fc_sched(*args, **kwargs):
+                # this should be real value
+                _phase = phase_expr(*args, **kwargs)
+                return instructions.SetPhase(_phase, channel) << t0
+
+            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
+
+        return instructions.SetPhase(phase, channel) << t0
+
     @bind_name('fc')
     def convert_shift_phase(self, instruction):
         """Return converted `ShiftPhase`.
@@ -544,6 +613,31 @@ class QobjToInstructionConverter:
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
         return instructions.SetFrequency(frequency, channel) << t0
+
+    @bind_name('shiftf')
+    def convert_shift_frequency(self, instruction):
+        """Return converted `ShiftFrequency`.
+
+        Args:
+            instruction (PulseQobjInstruction): Shift frequency qobj instruction.
+
+        Returns:
+            Schedule: Converted and scheduled Instruction
+        """
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        frequency = instruction.frequency * 1e9
+
+        if isinstance(frequency, str):
+            frequency_expr = parse_string_expr(frequency, partial_binding=False)
+
+            def gen_sf_schedule(*args, **kwargs):
+                _frequency = frequency_expr(*args, **kwargs)
+                return instructions.ShiftFrequency(_frequency, channel) << t0
+
+            return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
+
+        return instructions.ShiftFrequency(frequency, channel) << t0
 
     @bind_name('delay')
     def convert_delay(self, instruction):

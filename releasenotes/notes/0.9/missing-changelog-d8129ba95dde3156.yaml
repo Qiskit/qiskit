@@ -21,6 +21,7 @@ upgrade:
   - |
     The deprecated ``qiskit.mapper`` module has been removed. The list of
     functions and classes with their alternatives are:
+
      * ``qiskit.mapper.CouplingMap``: ``qiskit.transpiler.CouplingMap`` should
        be used instead.
      * ``qiskit.mapper.Layout``: ``qiskit.transpiler.Layout`` should be used
@@ -31,6 +32,7 @@ upgrade:
      * ``qiskit.mapper.compiling.two_qubit_kak()``:
        ``qiskit.quantum_info.synthesis.two_qubit_cnot_decompose()`` should be
        used instead.
+
     The deprecated exception classes ``qiskit.mapper.exceptions.CouplingError``
     and ``qiskit.mapper.exceptions.LayoutError`` don't have an alternative
     since they serve no purpose without a ``qiskit.mapper`` module.
@@ -58,11 +60,13 @@ deprecations:
   - |
     The module ``qiskit.pulse.ops`` has been deprecated. All the functions it
     provided:
+
      * ``union``
      * ``flatten``
      * ``shift``
      * ``insert``
      * ``append``
+
     have equivalent methods available directly on the ``qiskit.pulse.Schedule``
     and ``qiskit.pulse.Instruction`` classes. Those methods should be used
     instead.
