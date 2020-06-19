@@ -1,6 +1,6 @@
 .. _qiskit-pulse:
 
 .. automodule:: qiskit.pulse
-   :members:
+   :no-members:
    :no-inherited-members:
    :no-special-members:
