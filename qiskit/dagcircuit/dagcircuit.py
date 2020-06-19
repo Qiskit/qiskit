@@ -1097,16 +1097,6 @@ class DAGCircuit:
         """Returns iterator of the predecessors of a node as DAGNodes."""
         raise NotImplementedError()
 
-    def quantum_successors(self, node):
-        """Returns iterator of the successors of a node that are
-        connected by a qubit edge."""
-        for successor in self.successors(node):
-            if any(isinstance(x['wire'], Qubit)
-                   for x in
-                   self._get_all_multi_graph_edges(
-                       node._node_id, successor._node_id)):
-                yield successor
-
     def quantum_predecessors(self, node):
         """Returns iterator of the predecessors of a node that are
         connected by a quantum edge as DAGNodes."""
@@ -1131,6 +1121,16 @@ class DAGCircuit:
         and [DAGNode] is its successors in  BFS order.
         """
         raise NotImplementedError()
+
+    def quantum_successors(self, node):
+        """Returns iterator of the successors of a node that are
+        connected by a qubit edge."""
+        for successor in self.successors(node):
+            if any(isinstance(x['wire'], Qubit)
+                   for x in
+                   self._get_all_multi_graph_edges(
+                       node._node_id, successor._node_id)):
+                yield successor
 
     def remove_op_node(self, node):
         """Remove an operation node n.

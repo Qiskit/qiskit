@@ -185,8 +185,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
                                     initial_layout=initial_layout, layout_method=layout_method,
-                                    routing_method=routing_method,
-                                    backend=backend)
+                                    routing_method=routing_method, backend=backend)
 
         warnings.warn("The parameter pass_manager in transpile is being deprecated. "
                       "The preferred way to tranpile a circuit using a custom pass manager is"
@@ -311,8 +310,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method,
-                          seed_transpiler,
-                          optimization_level, callback, output_name) -> List[Dict]:
+                          seed_transpiler, optimization_level,
+                          callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -345,8 +344,8 @@ def _parse_transpile_args(circuits, backend,
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, layout_method, routing_method,
-                    seed_transpiler,
-                    optimization_level, output_name, callback):
+                    seed_transpiler, optimization_level,
+                    output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
                                                                    backend_properties=args[2],
