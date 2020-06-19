@@ -466,6 +466,26 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(cx_box_box.reverse_bits().decompose().decompose(), expected2)
 
+    def test_reverse_bits_with_registers(self):
+        """Test reversing order of bits when registers are present."""
+        a = QuantumRegister(3, 'a')
+        b = QuantumRegister(2, 'b')
+        qc = QuantumCircuit(a, b)
+        qc.h(a[0])
+        qc.cx(a[0], a[1])
+        qc.cx(a[1], a[2])
+        qc.cx(a[2], b[0])
+        qc.cx(b[0], b[1])
+
+        expected = QuantumCircuit(b, a)
+        expected.h(a[2])
+        expected.cx(a[2], a[1])
+        expected.cx(a[1], a[0])
+        expected.cx(a[0], b[1])
+        expected.cx(b[1], b[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
