@@ -61,6 +61,8 @@ Instructions (:mod:`~qiskit.pulse.instructions`)
    Delay
    Play
    SetFrequency
+   ShiftFrequency
+   SetPhase
    ShiftPhase
    Snapshot
 
@@ -220,6 +222,7 @@ from qiskit.pulse.instructions import (
     Instruction,
     Play,
     SetFrequency,
+    SetPhase,
     ShiftFrequency,
     ShiftPhase,
     Snapshot,
