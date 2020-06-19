@@ -88,10 +88,10 @@ class TestParser(QiskitTestCase):
         res_if = qasm_if.parse()
         inspect(res_if)
 
-    def test_get_tokens(self):
+    def test_generate_tokens(self):
         """Test whether we get only valid tokens."""
         qasm = Qasm(self.qasm_file_path)
-        for token in qasm.get_tokens():
+        for token in qasm.generate_tokens():
             self.assertTrue(isinstance(token, ply.lex.LexToken))
 
 
