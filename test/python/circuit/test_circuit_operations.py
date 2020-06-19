@@ -468,21 +468,21 @@ class TestCircuitOperations(QiskitTestCase):
 
     def test_reverse_bits_with_registers(self):
         """Test reversing order of bits when registers are present."""
-        qa = QuantumRegister(3, 'a')
-        qb = QuantumRegister(2, 'b')
-        qc = QuantumCircuit(qa, qb)
-        qc.h(qa[0])
-        qc.cx(qa[0], qa[1])
-        qc.cx(qa[1], qa[2])
-        qc.cx(qa[2], qb[0])
-        qc.cx(qb[0], qb[1])
+        qr1 = QuantumRegister(3, 'a')
+        qr2 = QuantumRegister(2, 'b')
+        qc = QuantumCircuit(qr1, qr2)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
+        qc.cx(qr2[0], qr2[1])
 
-        expected = QuantumCircuit(qb, qa)
-        expected.h(qa[2])
-        expected.cx(qa[2], qa[1])
-        expected.cx(qa[1], qa[0])
-        expected.cx(qa[0], qb[1])
-        expected.cx(qb[1], qb[0])
+        expected = QuantumCircuit(qr2, qr1)
+        expected.h(qr1[2])
+        expected.cx(qr1[2], qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[1])
+        expected.cx(qr2[1], qr2[0])
 
         self.assertEqual(qc.reverse_bits(), expected)
 
