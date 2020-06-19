@@ -114,6 +114,15 @@ class CouplingTest(QiskitTestCase):
 
         self.assertFalse(coupling.is_symmetric)
 
+    def test_make_symmetric(self):
+        coupling_list = [[0, 1], [0, 2]]
+        coupling = CouplingMap(coupling_list)
+
+        coupling.make_symmetric()
+        edges = coupling.get_edges()
+
+        self.assertEqual(set(edges), set([(0, 1), (0, 2), (2, 0), (1, 0)]))
+
     def test_full_factory(self):
         coupling = CouplingMap.from_full(4)
         edges = coupling.get_edges()
