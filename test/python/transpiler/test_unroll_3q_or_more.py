@@ -20,8 +20,8 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeLondon
 from qiskit.extensions import UnitaryGate
+
 
 class TestUnroll3qOrMore(QiskitTestCase):
     """Tests the Unroll3qOrMore pass, for unrolling all
@@ -96,5 +96,3 @@ class TestUnroll3qOrMore(QiskitTestCase):
         after_dag = pass_.run(dag)
         after_circ = dag_to_circuit(after_dag)
         self.assertTrue(Operator(circuit).equiv(Operator(after_circ)))
-
-
