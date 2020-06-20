@@ -15,7 +15,6 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-import random
 from copy import deepcopy
 from itertools import cycle
 import numpy as np

@@ -18,6 +18,13 @@
 import logging
 import numpy as np
 
+from qiskit.converters import dag_to_circuit
+from qiskit.transpiler.passes.layout.set_layout import SetLayout
+from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
+from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
+from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
+from qiskit.transpiler.passes.routing import SabreSwap
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -69,15 +76,7 @@ class SabreLayout(AnalysisPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
-        from qiskit.converters import dag_to_circuit
-        from qiskit.transpiler.passes.layout.set_layout import SetLayout
-        from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
-        from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
-        from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
-        from qiskit.transpiler.passes.routing import SabreSwap
-        from qiskit.transpiler.passmanager import PassManager
-
-        def _layout_and_route_passmanager():
+        def _layout_and_route_passmanager(initial_layout):
             """Return a passmanager for a full layout and routing.
 
             We use a factory to remove potential statefulness of passes.
@@ -128,16 +127,16 @@ class SabreLayout(AnalysisPass):
         circ = dag_to_circuit(dag)
         for i in range(self.max_iterations):
             for _ in ('forward', 'backward'):
-                pm = _layout_and_route_passmanager()
+                pm = _layout_and_route_passmanager(initial_layout)
                 new_circ = pm.run(circ)
 
-                # Update initial layout and mirror the unmapped circuit.
+                # Update initial layout and reverse the unmapped circuit.
                 pass_final_layout = pm.property_set['final_layout']
                 final_layout = _compose_layouts(initial_layout,
                                                 pass_final_layout,
                                                 circ.qregs)
                 initial_layout = final_layout
-                circ = circ.mirror()
+                circ = circ.reverse_ops()
 
             # Diagnostics
             logger.info('After round %d, num_swaps: %d',
