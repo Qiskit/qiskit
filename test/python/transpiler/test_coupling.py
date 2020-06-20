@@ -123,6 +123,15 @@ class CouplingTest(QiskitTestCase):
 
         self.assertEqual(set(edges), set([(0, 1), (0, 2), (2, 0), (1, 0)]))
 
+    def test_neighbors(self):
+        coupling_list = [[0, 1], [0, 2], [2, 0]]
+        coupling = CouplingMap(coupling_list)
+
+        physical_qubits = coupling.physical_qubits
+        self.assertEqual(set(coupling.neighbors(physical_qubits[0])), set([1, 2]))
+        self.assertEqual(set(coupling.neighbors(physical_qubits[1])), set([]))
+        self.assertEqual(set(coupling.neighbors(physical_qubits[2])), set([0]))
+
     def test_full_factory(self):
         coupling = CouplingMap.from_full(4)
         edges = coupling.get_edges()
