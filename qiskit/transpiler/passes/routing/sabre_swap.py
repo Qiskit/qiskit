@@ -157,7 +157,7 @@ class SabreSwap(TransformationPass):
 
         # A decay factor for each qubit used to heuristically penalize recently
         # used qubits (to encourage parallelism).
-        self.qubits_decay = dict(zip(dag.qubits, len(dag.qubits) * [1]))
+        self.qubits_decay = {qubit: 1 for qubit in dag.qubits}
 
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0
