@@ -1,0 +1,13 @@
+---
+prelude: >
+    allow use of type integer for for QuantumRegister size 
+
+issues:
+  - |
+    QuantumRegister allows only int, slice, list to denote size
+
+fixes:
+  - |
+    Added numbers.Integral as another allowable type to denote size of QuantumRegister
+    
+
