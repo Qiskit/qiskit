@@ -36,7 +36,7 @@ DECAY_RESET_INTERVAL = 5   # How often to reset all decay rates to 1.
 
 
 class SabreSwap(TransformationPass):
-    """Map input circuit onto a backend topology via insertion of SWAPs.
+    r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
     mapping paper [1] (Algorithm 1). The hueristic aims to minimize the number
