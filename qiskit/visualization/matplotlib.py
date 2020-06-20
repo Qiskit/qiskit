@@ -180,6 +180,7 @@ class MatplotlibDrawer:
             self.renderer = fig.canvas.get_renderer()
         else:
             self.renderer = None
+        self.renderer = None
 
         self.fold = fold
         if self.fold < 2:
@@ -259,11 +260,15 @@ class MatplotlibDrawer:
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
             for c in text:
-                try:
-                    sum_text += self._char_list[c][f]
-                except KeyError:
-                    # if non-ASCII char, use width of 'r', an average size
-                    sum_text += self._char_list['r'][f]
+                # mathtext uses wide minus, so must use wide char for '-'
+                if c == '-':
+                    sum_text += self._char_list['@'][f] + .015
+                else:
+                    try:
+                        sum_text += self._char_list[c][f]
+                    except KeyError:
+                        # if non-ASCII char, use width of 'r', an average size
+                        sum_text += self._char_list['r'][f]
             return sum_text
 
     def param_parse(self, v):
@@ -418,7 +423,7 @@ class MatplotlibDrawer:
         self.ax.add_patch(box)
         # display the control label at the top or bottom if there is one
         if text_top is True:
-            self.ax.text(xpos, ypos + 0.5 * HIG, text, ha='center', va='top',
+            self.ax.text(xpos, ypos + 0.7 * HIG, text, ha='center', va='top',
                          fontsize=self._style.sfs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
         elif text_top is False:
@@ -513,6 +518,7 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
+        #self.figure.tight_layout()
 
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
@@ -747,7 +753,7 @@ class MatplotlibDrawer:
 
                 if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
                     tname = 'U1' if op.name == 'cu1' else 'zz'
-                    gate_width = (self._get_text_width(tname + ' ()',
+                    gate_width = (self._get_text_width(tname + ' ()$$',
                                                        fontsize=self._style.sfs)
                                   + param_width) * 1.5
                 else:
