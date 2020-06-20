@@ -15,8 +15,10 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
+import random
 from copy import deepcopy
 from itertools import cycle
+import numpy as np
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -66,13 +68,14 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic='basic'):
+    def __init__(self, coupling_map, heuristic='basic', seed=None):
         r"""SabreSwap initializer.
 
         Args:
             coupling_map (CouplingMap): CouplingMap of the target backend.
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
+            seed (int): random seed used to tie-break among candidate swaps.
 
         Additional Information:
 
@@ -121,6 +124,7 @@ class SabreSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.heuristic = heuristic
+        self.seed = seed
         self.applied_gates = None
         self.qubits_decay = None
 
@@ -140,6 +144,8 @@ class SabreSwap(TransformationPass):
 
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError('More virtual qubits exist than physical.')
+
+        rng = np.random.default_rng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = _copy_circuit_metadata(dag)
@@ -198,7 +204,8 @@ class SabreSwap(TransformationPass):
                 continue
 
             # After all free gates are exhausted, heuristically find
-            # the best swap and insert it.
+            # the best swap and insert it. When two or more swaps tie
+            # for best score, pick one randomly.
             extended_set = self._obtain_extended_set(dag, front_layer)
             swap_candidates = self._obtain_swaps(front_layer, current_layout)
             swap_scores = dict.fromkeys(swap_candidates, 0)
@@ -211,9 +218,10 @@ class SabreSwap(TransformationPass):
                                               trial_layout,
                                               swap_qubits)
                 swap_scores[swap_qubits] = score
-            print(swap_scores)
-            min_score = min(swap_scores)
-            best_swap = swap_candidate_list[swap_scores.index(min_score)]
+            min_score = min(swap_scores.values())
+            best_swaps = [k for k, v in swap_scores.items() if v == min_score]
+            best_swaps.sort(key=lambda x: (x[0].index, x[1].index))
+            best_swap = rng.choice(best_swaps)
             swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type='op')
             swap_node = _transform_gate_for_layout(swap_node, current_layout)
             mapped_dag.apply_operation_back(swap_node.op, swap_node.qargs)
@@ -230,9 +238,7 @@ class SabreSwap(TransformationPass):
             logger.debug('SWAP Selection...')
             logger.debug('extended_set: %s',
                          [(n.name, n.qargs) for n in extended_set])
-            logger.debug('swap scores: %s',
-                         [(swap_candidate_list[i], swap_scores[i])
-                          for i in range(len(swap_scores))])
+            logger.debug('swap scores: %s', swap_scores)
             logger.debug('best swap: %s', best_swap)
             logger.debug('qubits decay: %s', self.qubits_decay)
 
