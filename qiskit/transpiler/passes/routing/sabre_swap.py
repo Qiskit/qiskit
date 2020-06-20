@@ -97,7 +97,7 @@ class SabreSwap(TransformationPass):
 
             This is the sum of two costs: first is the same as the basic cost.
             Second is the basic cost but now evaluated for the
-            extended set as well (i.e. |E| number of upcoming successors to gates in
+            extended set as well (i.e. :math:`|E|` number of upcoming successors to gates in
             front_layer F). This is weighted by some amount EXTENDED_SET_WEIGHT (W) to
             signify that upcoming gates are less important that the front_layer.
 
