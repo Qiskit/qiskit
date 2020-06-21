@@ -474,7 +474,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_cx_equivalence_0cx(self, seed=0):
         """Check circuits with  0 cx gates locally equivalent to identity
         """
-        state = np.random.RandomState(seed)
+        state = np.random.default_rng(seed)
         rnd = 2 * np.pi * state.random(size=6)
 
         qr = QuantumRegister(2, name='q')
@@ -490,7 +490,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_cx_equivalence_1cx(self, seed=1):
         """Check circuits with  1 cx gates locally equivalent to a cx
         """
-        state = np.random.RandomState(seed)
+        state = np.random.default_rng(seed)
         rnd = 2 * np.pi * state.random(size=12)
 
         qr = QuantumRegister(2, name='q')
@@ -511,7 +511,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_cx_equivalence_2cx(self, seed=2):
         """Check circuits with  2 cx gates locally equivalent to some circuit with 2 cx.
         """
-        state = np.random.RandomState(seed)
+        state = np.random.default_rng(seed)
         rnd = 2 * np.pi * state.random(size=18)
 
         qr = QuantumRegister(2, name='q')
@@ -537,7 +537,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
     def test_cx_equivalence_3cx(self, seed=3):
         """Check circuits with 3 cx gates are outside the 0, 1, and 2 qubit regions.
         """
-        state = np.random.RandomState(seed)
+        state = np.random.default_rng(seed)
         rnd = 2 * np.pi * state.random(size=24)
 
         qr = QuantumRegister(2, name='q')
