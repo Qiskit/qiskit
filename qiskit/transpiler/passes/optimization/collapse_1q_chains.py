@@ -20,12 +20,10 @@ from itertools import groupby
 import numpy as np
 
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.operators import Quaternion, Operator
+from qiskit.quantum_info.operators import Quaternion
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
 DEFAULT_ATOL = 1e-15
@@ -49,7 +47,6 @@ class Collapse1qChains(TransformationPass):
         """
         self.ignore_solo = ignore_solo
         super().__init__()
-
 
     def run(self, dag):
         """Run the Collapse1qChains pass on `dag`.
@@ -98,11 +95,11 @@ class Collapse1qChains(TransformationPass):
             for gate in reversed(chain):
                 right_parameters = decomposer(gate.op.to_matrix()).data[0][0].params
                 left_parameters = _compose_u3(left_parameters[0],
-                                               left_parameters[1],
-                                               left_parameters[2],
-                                               right_parameters[0],
-                                               right_parameters[1],
-                                               right_parameters[2])
+                                              left_parameters[1],
+                                              left_parameters[2],
+                                              right_parameters[0],
+                                              right_parameters[1],
+                                              right_parameters[2])
             for node in chain[1:]:
                 dag.remove_op_node(node)
             new_op = U3Gate(*left_parameters)

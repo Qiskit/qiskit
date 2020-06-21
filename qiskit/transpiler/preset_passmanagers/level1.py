@@ -40,7 +40,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import Collapse1qChains
 from qiskit.transpiler.passes import SimplifyU3
 from qiskit.transpiler.passes import ApplyLayout
@@ -170,18 +169,18 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
+    # 9. Optimize single-qubit gates and cancel CNOT gates iteratively
+    # until no more change in depth. If basis_gate is None, we interpret that
+    # to mean final circuit should be over the original circuit gates. Since
+    # our optimizations require an intermediary mapping to U3 gates and it's
+    # hard to recover the original gates, we forego optimizations in this case.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    # TODO: temporary hack to make sure user basis are respected. eventually, all optimizations
-    # should be done in terms of u3 and the result re-written in the requested basis.
-    if 'u1' in basis_gates and 'u2' in basis_gates and 'u3' in basis_gates:
+    if basis_gates is not None:
         _opt = [Collapse1qChains(), SimplifyU3(), CXCancellation()]
-    elif 'u3' in basis_gates:
-        _opt = [Collapse1qChains(), CXCancellation()]
     else:
         _opt = [CXCancellation()]
 

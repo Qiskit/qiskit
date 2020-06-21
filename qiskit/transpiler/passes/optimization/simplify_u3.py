@@ -15,15 +15,13 @@
 """A strength reduction pass to simplify single qubit U3 gates, if possible.
 """
 
+import numbers
 import numpy as np
 
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.add_control import add_control
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info import Operator
 
 
 DEFAULT_ATOL = 1e-12
@@ -33,7 +31,7 @@ class SimplifyU3(TransformationPass):
     """A strength reduction pass to simplify single qubit U3 gates, if possible.
 
     The cost metric is the number of X90 pulses required to implement the gate.
-    Can convert U3 -> U2 OR U1 OR None. 
+    Can convert U3 to U2 or U1 or None.
     Also makes all Euler angles modulo 2*pi.
 
     Additional Information
@@ -73,19 +71,17 @@ class SimplifyU3(TransformationPass):
 
             if isinstance(op, U3Gate):
                 theta, phi, lam = op.params
-
+                if not all(isinstance(param, numbers.Number) for param in op.params):
+                    continue
                 new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
-
 
                 if np.isclose(_mod2pi(theta), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
                     if np.isclose(_mod2pi(phi+lam), [0., 2*np.pi], atol=DEFAULT_ATOL).any():
                         new_op = None
                     else:
                         new_op = U1Gate(_mod2pi(phi+lam))
-
                 elif np.isclose(theta, [np.pi/2, 3*np.pi/2], atol=DEFAULT_ATOL).any():
                     new_op = U2Gate(_mod2pi(phi+theta-np.pi/2), _mod2pi(lam+theta-np.pi/2))
-
                 else:
                     new_op = U3Gate(_mod2pi(theta), _mod2pi(phi), _mod2pi(lam))
 
@@ -93,7 +89,8 @@ class SimplifyU3(TransformationPass):
                     dag.remove_op_node(node)
                 else:
                     if num_ctrl_qubits is not None:
-                       new_op = add_control(new_op, num_ctrl_qubits)
+                        new_op = add_control(new_op, num_ctrl_qubits,
+                                             new_op.label, new_op.ctrl_state)
                     dag.substitute_node(node, new_op)
 
         return dag

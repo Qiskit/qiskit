@@ -164,18 +164,18 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # 8. Optimize single-qubit gates and commutative cancellation iteratively
+    # until no more change in depth. If basis_gate is None, we interpret that
+    # to mean final circuit should be over the original circuit gates. Since
+    # our optimizations require an intermediary mapping to U3 gates and it's
+    # hard to recover the original gates, we forego optimizations in this case.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    # TODO: temporary hack to make sure user basis are respected. eventually, all optimizations
-    # should be done in terms of u3 and the result re-written in the requested basis.
-    if 'u1' in basis_gates and 'u2' in basis_gates and 'u3' in basis_gates:
+    if basis_gates is not None:
         _opt = [Collapse1qChains(), SimplifyU3(), CommutativeCancellation()]
-    elif 'u3' in basis_gates:
-        _opt = [Collapse1qChains(), CommutativeCancellation()]
     else:
         _opt = [CommutativeCancellation()]
 

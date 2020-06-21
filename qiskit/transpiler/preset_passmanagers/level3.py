@@ -164,8 +164,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
-    # 8. Optimize iteratively until no more change in depth. Removes useless gates
-    # after reset and before measure, commutes gates and optimizes continguous blocks.
+    # 8. Optimize single-qubit and two-qubit chains of gates iteratively
+    # until no more change in depth. If basis_gate is None, we interpret that
+    # to mean final circuit should be over the original circuit gates. Since
+    # our optimizations require an intermediary mapping to U3 gates and it's
+    # hard to recover the original gates, we forego optimizations in this case.
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -193,9 +196,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
-    # TODO: temporary hack to make sure user basis are respected. eventually, all optimizations
-    # should be done in terms of u3 and the result re-written in the requested basis.
-    if 'u1' in basis_gates and 'u2' in basis_gates and 'u3' in basis_gates:
+    if basis_gates is not None:
         _opt += [Collapse1qChains(), SimplifyU3()]
     elif 'u3' in basis_gates:
         _opt += [Collapse1qChains()]
