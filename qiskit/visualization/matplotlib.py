@@ -39,7 +39,7 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
 # import matplotlib
-# matplotlib.use('ps') # for testing text_width without renderer
+# matplotlib.use('ps') # for testing different backends
 
 # Default gate width and height
 WID = 0.65
@@ -175,11 +175,13 @@ class MatplotlibDrawer:
         self.x_offset = 0
         self._reg_long_text = 0
 
-        fig = plt.figure()
+        # default is to use character table for text width,
+        # but get_renderer will work with some mpl backends
+        """fig = plt.figure()
         if hasattr(fig.canvas, 'get_renderer'):
             self.renderer = fig.canvas.get_renderer()
         else:
-            self.renderer = None
+            self.renderer = None"""
         self.renderer = None
 
         self.fold = fold
@@ -191,8 +193,8 @@ class MatplotlibDrawer:
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
 
-        # these char arrays are for finding text_width when there is
-        # no get_renderer method for the matplotlib backend
+        # these char arrays are for finding text_width when not
+        # using get_renderer method for the matplotlib backend
         self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
                              '\\dagger', '\\rangle')
         self._latex_chars1 = ('\\mapsto', '\\pi', '\\;')
@@ -250,8 +252,8 @@ class MatplotlibDrawer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
             return t.get_window_extent(renderer=self.renderer).width / 60.0
         else:
-            # if backend does not have a get_renderer method
-            # first remove any latex chars before getting width
+            # if not using a get_renderer method, first remove
+            # any latex chars before getting width
             for t in self._latex_chars1:
                 text = text.replace(t, 'r')
             for t in self._latex_chars:
@@ -287,6 +289,53 @@ class MatplotlibDrawer:
         # remove $'s since "${}$".format will add them back on the outside
         param_parts = param_parts.replace('$', '')
         return param_parts
+
+    def _get_gate_ctrl_text(self, op):
+        op_label = getattr(op.op, 'label', None)
+        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
+        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
+        ctrl_text = None
+        if base_label:
+            gate_text = base_label
+            ctrl_text = op_label
+        elif op_label and isinstance(op.op, ControlledGate):
+            gate_text = base_name
+            ctrl_text = op_label
+        elif op_label:
+            gate_text = op_label
+        elif base_name:
+            gate_text = base_name
+        else:
+            gate_text = op.name
+
+        if gate_text in self._style.disptex:
+            gate_text = "${}$".format(self._style.disptex[gate_text])
+        else:
+            gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
+
+        # mathtext .format removes spaces so add them back
+        gate_text = gate_text.replace(' ', '\\;')
+        if ctrl_text:
+            ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
+            ctrl_text = ctrl_text.replace(' ', '\\;')
+        return gate_text, ctrl_text
+
+    def _get_colors(self, op):
+        if op.name in self._style.dispcol:
+            fc = self._style.dispcol[op.name]
+        else:
+            fc = self._style.gc
+        if self._style.name != 'bw':
+            ec = fc
+            lc = fc
+        else:
+            ec = self._style.edge_color
+            lc = self._style.lc
+        if op.name == 'reset':
+            gt = self._style.not_gate_lc
+        else:
+            gt = self._style.gt
+        return fc, ec, gt, self._style.tc, self._style.sc, lc
 
     def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text='', subtext=''):
         xpos = min([x[0] for x in xy])
@@ -518,7 +567,6 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * self._scale * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
-        #self.figure.tight_layout()
 
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
@@ -648,53 +696,6 @@ class MatplotlibDrawer:
         if feedline_l:
             self._linefeed_mark((self.x_offset + 0.3,
                                  - n_fold * (self._cond['n_lines'] + 1)))
-
-    def _get_gate_ctrl_text(self, op):
-        op_label = getattr(op.op, 'label', None)
-        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
-        base_label = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.label
-        ctrl_text = None
-        if base_label:
-            gate_text = base_label
-            ctrl_text = op_label
-        elif op_label and isinstance(op.op, ControlledGate):
-            gate_text = base_name
-            ctrl_text = op_label
-        elif op_label:
-            gate_text = op_label
-        elif base_name:
-            gate_text = base_name
-        else:
-            gate_text = op.name
-
-        if gate_text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[gate_text])
-        else:
-            gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
-
-        # mathtext .format removes spaces so add them back
-        gate_text = gate_text.replace(' ', '\\;')
-        if ctrl_text:
-            ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
-            ctrl_text = ctrl_text.replace(' ', '\\;')
-        return gate_text, ctrl_text
-
-    def _get_colors(self, op):
-        if op.name in self._style.dispcol:
-            fc = self._style.dispcol[op.name]
-        else:
-            fc = self._style.gc
-        if self._style.name != 'bw':
-            ec = fc
-            lc = fc
-        else:
-            ec = self._style.edge_color
-            lc = self._style.lc
-        if op.name == 'reset':
-            gt = self._style.not_gate_lc
-        else:
-            gt = self._style.gt
-        return fc, ec, gt, self._style.tc, self._style.sc, lc
 
     def _draw_ops(self, verbose=False):
         _standard_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
