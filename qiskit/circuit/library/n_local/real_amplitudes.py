@@ -97,20 +97,15 @@ class RealAmplitudes(TwoLocal):
 
                .. jupyter-execute::
 
-                   from typing import Union, Optional, List, Tuple, Callable, Any
-                   import numpy as np
-                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
-                   from .two_local import TwoLocal
+                   from qiskit.circuit.library.n_local import RealAmplitudes
 
                    ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
                    ansatz.draw('mpl')
 
                .. jupyter-execute::
 
-                   from typing import Union, Optional, List, Tuple, Callable, Any
-                   import numpy as np
-                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
-                   from .two_local import TwoLocal
+                   from qiskit import QuantumCircuit
+                   from qiskit.circuit.library.n_local import RealAmplitudes
 
                    ansatz = RealAmplitudes(3, entanglement='linear', reps=2, insert_barriers=True)
                    qc = QuantumCircuit(3)  # create a circuit and append the RY variational form
@@ -119,20 +114,14 @@ class RealAmplitudes(TwoLocal):
 
                .. jupyter-execute::
 
-                   from typing import Union, Optional, List, Tuple, Callable, Any
-                   import numpy as np
-                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
-                   from .two_local import TwoLocal
+                   from qiskit.circuit.library.n_local import RealAmplitudes
 
                    ansatz = RealAmplitudes(4, reps=1, entanglement='circular', insert_barriers=True)
                    ansatz.draw('mpl')
 
                .. jupyter-execute::
 
-                   from typing import Union, Optional, List, Tuple, Callable, Any
-                   import numpy as np
-                   from qiskit.circuit.library.standard_gates import RYGate, CXGate
-                   from .two_local import TwoLocal
+                   from qiskit.circuit.library.n_local import RealAmplitudes
 
                    ansatz = RealAmplitudes(4, reps=2, entanglement=[[0,3], [0,2]],
                    skip_unentangled_qubits=True)

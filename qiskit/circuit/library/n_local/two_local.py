@@ -149,10 +149,15 @@ class TwoLocal(NLocal):
 
      .. jupyter-execute::
 
+         from qiskit.circuit.library.n_local import TwoLocal
+
          two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
          two.draw('mpl')  # decompose the layers into standard gates
 
      .. jupyter-execute::
+
+         from qiskit.circuit.library.n_local import TwoLocal
+         from qiskit.circuit import QuantumCircuit
 
          two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
          qc = QuantumCircuit(3)
@@ -161,11 +166,16 @@ class TwoLocal(NLocal):
 
      .. jupyter-execute::
 
+         from qiskit.circuit.library.n_local import TwoLocal
+
          entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
          two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
          two.draw('mpl')  # note: no barriers inserted this time!
 
      .. jupyter-execute::
+
+         from qiskit.circuit.library.n_local import TwoLocal
+         from qiskit.circuit import QuantumCircuit
 
          entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
          two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
@@ -173,6 +183,8 @@ class TwoLocal(NLocal):
          circuit.decompose().draw('mpl')  # note, that the parameters are the same!
 
      .. jupyter-execute::
+
+         from qiskit.circuit.library.n_local import TwoLocal
 
          layer_1 = [(0, 1), (0, 2)]
          layer_2 = [(1, 2)]

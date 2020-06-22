@@ -102,11 +102,6 @@ class ExcitationPreserving(TwoLocal):
 
             .. jupyter-execute::
 
-                from typing import Union, Optional, List, Tuple, Callable, Any
-                from numpy import pi
-                from qiskit.circuit import QuantumCircuit, Parameter
-                from qiskit.circuit.library.standard_gates import RZGate
-                from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import ExcitationPreserving
 
                 ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True,
@@ -115,11 +110,7 @@ class ExcitationPreserving(TwoLocal):
 
             .. jupyter-execute::
 
-                from typing import Union, Optional, List, Tuple, Callable, Any
-                from numpy import pi
-                from qiskit.circuit import QuantumCircuit, Parameter
-                from qiskit.circuit.library.standard_gates import RZGate
-                from qiskit.circuit.library.n_local import TwoLocal
+                from qiskit.circuit import QuantumCircuit
                 from qiskit.circuit.library.n_local import ExcitationPreserving
 
                 ansatz = ExcitationPreserving(2, reps=1)
@@ -130,11 +121,6 @@ class ExcitationPreserving(TwoLocal):
 
             .. jupyter-execute::
 
-                from typing import Union, Optional, List, Tuple, Callable, Any
-                from numpy import pi
-                from qiskit.circuit import QuantumCircuit, Parameter
-                from qiskit.circuit.library.standard_gates import RZGate
-                from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import ExcitationPreserving
 
                 ansatz = ExcitationPreserving(3,reps=1,mode='fsim',

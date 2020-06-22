@@ -95,11 +95,6 @@ class EfficientSU2(TwoLocal):
 
             .. jupyter-execute::
 
-                from typing import Union, Optional, List, Tuple, Callable, Any
-                from numpy import pi
-                from qiskit.circuit import QuantumCircuit, Instruction
-                from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
-                from qiskit.circuit.library.n_local import TwoLocal
                 from qiskit.circuit.library.n_local import EfficientSU2
 
                 circuit = EfficientSU2(3, reps=1)
@@ -107,11 +102,7 @@ class EfficientSU2(TwoLocal):
 
             .. jupyter-execute::
 
-                from typing import Union, Optional, List, Tuple, Callable, Any
-                from numpy import pi
-                from qiskit.circuit import QuantumCircuit, Instruction
-                from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
-                from qiskit.circuit.library.n_local import TwoLocal
+                from qiskit.circuit import QuantumCircuit
                 from qiskit.circuit.library.n_local import EfficientSU2
 
                 ansatz = EfficientSU2(4, su2_gates=['rx', 'y'], entanglement='circular', reps=1)
