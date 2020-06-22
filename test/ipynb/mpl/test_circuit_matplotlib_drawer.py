@@ -19,7 +19,7 @@ import os
 from contextlib import contextmanager
 
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import circuit_drawer
 
 
@@ -82,6 +82,20 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
 
         self.circuit_drawer(circuit, output='mpl', filename='long_name.png')
+
+    def test_simple_cregbundle(self):
+        """Test cregbundle=True in a simple example
+        See: https://github.com/Qiskit/qiskit-terra/issues/4290
+        """
+
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr)
+        circuit.measure(qr, cr)
+
+        self.circuit_drawer(circuit, output='mpl', filename='simple_cregbundle.png',
+                            cregbundle=True)
 
 
 if __name__ == '__main__':
