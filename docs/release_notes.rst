@@ -65,7 +65,7 @@ Upgrade Notes
 -------------
 
 - The `cvxpy <https://www.cvxpy.org/>`__ dependency which is required for
-  the the svm classifier has been removed from the requirements list and made
+  the svm classifier has been removed from the requirements list and made
   an optional dependency. This is because installing cvxpy is not seamless
   in every environment and often requires a compiler be installed to run.
   To use the svm classifier now you'll need to install cvxpy by either
@@ -984,7 +984,7 @@ New Features
 
 - A new kwarg option, ``formatted`` ,  has been added to
   :meth:`qiskit.circuit.QuantumCircuit.qasm` . When set to ``True`` the
-  the method will print a syntax highlighted version (using pygments) to
+  method will print a syntax highlighted version (using pygments) to
   stdout and return ``None`` (which differs from the normal behavior of
   returning the QASM code as a string).
 
