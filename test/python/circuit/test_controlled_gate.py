@@ -42,7 +42,8 @@ from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
                                     MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
                                     MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix
-import qiskit.extensions.standard as allGates
+import qiskit.circuit.library.standard_gates as allGates
+from qiskit.extensions import UnitaryGate
 
 from .gate_utils import _get_free_params
 
@@ -174,7 +175,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
-        import qiskit.extensions.standard.u3 as u3
+        import qiskit.circuit.library.standard_gates.u3 as u3
 
         num_ctrl = 3
         # U3 gate params
@@ -235,7 +236,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
-        import qiskit.extensions.standard.u1 as u1
+        import qiskit.circuit.library.standard_gates.u1 as u1
 
         num_ctrl = 3
         # U1 gate params
@@ -628,6 +629,14 @@ class TestControlledGate(QiskitTestCase):
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
+    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[None, 0])
+    def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
+        """Test that UnitaryGate with control returns params."""
+        umat = np.array([[1, 0], [0, -1]])
+        ugate = UnitaryGate(umat).control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
+        self.assertTrue(matrix_equal(Operator(ugate).data, ref_mat))
+
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
         """test open controlled unitary matrix"""
@@ -666,6 +675,76 @@ class TestControlledGate(QiskitTestCase):
                         ((output_ctrl == input_ctrl) and
                          (output_target != cond_output)) or
                         output_ctrl != input_ctrl)
+
+    def test_open_control_cx_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1, ctrl_state=0)
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cx'])
+        uqc = dag_to_circuit(unroller.run(dag))
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cx(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
+
+    def test_open_control_cy_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qc = QuantumCircuit(2)
+        qc.cy(0, 1, ctrl_state=0)
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cy'])
+        uqc = dag_to_circuit(unroller.run(dag))
+
+        ref_circuit = QuantumCircuit(2)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        ref_circuit.cy(0, 1)
+        ref_circuit.u3(np.pi, 0, np.pi, 0)
+        self.assertEqual(uqc, ref_circuit)
+
+    def test_open_control_cxx_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        qreg = QuantumRegister(3)
+        qc = QuantumCircuit(qreg)
+        ccx = CCXGate(ctrl_state=0)
+        qc.append(ccx, [0, 1, 2])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['x', 'ccx'])
+        unrolled_dag = unroller.run(dag)
+
+        ref_circuit = QuantumCircuit(qreg)
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_circuit.ccx(qreg[0], qreg[1], qreg[2])
+        ref_circuit.x(qreg[0])
+        ref_circuit.x(qreg[1])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_open_control_composite_unrolling(self):
+        """test unrolling of open control gates when gate is in basis"""
+        # create composite gate
+        qreg = QuantumRegister(2)
+        qcomp = QuantumCircuit(qreg, name='bell')
+        qcomp.h(qreg[0])
+        qcomp.cx(qreg[0], qreg[1])
+        bell = qcomp.to_gate()
+        # create controlled composite gate
+        cqreg = QuantumRegister(3)
+        qc = QuantumCircuit(cqreg)
+        qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['x', 'u1', 'cbell'])
+        unrolled_dag = unroller.run(dag)
+        # create reference circuit
+        ref_circuit = QuantumCircuit(cqreg)
+        ref_circuit.x(cqreg[0])
+        ref_circuit.append(bell.control(), [cqreg[0], cqreg[1], cqreg[2]])
+        ref_circuit.x(cqreg[0])
+        ref_dag = circuit_to_dag(ref_circuit)
+        self.assertEqual(unrolled_dag, ref_dag)
 
     @data(*ControlledGate.__subclasses__())
     def test_base_gate_setting(self, gate_class):
@@ -781,14 +860,65 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
+    def test_open_controlled_equality(self):
+        """
+        Test open controlled gates are equal if their base gates and control states are equal.
+        """
+
+        self.assertEqual(
+            XGate().control(1),
+            XGate().control(1))
+
+        self.assertNotEqual(
+            XGate().control(1),
+            YGate().control(1))
+
+        self.assertNotEqual(
+            XGate().control(1),
+            XGate().control(2))
+
+        self.assertEqual(
+            XGate().control(1, ctrl_state='0'),
+            XGate().control(1, ctrl_state='0'))
+
+        self.assertNotEqual(
+            XGate().control(1, ctrl_state='0'),
+            XGate().control(1, ctrl_state='1'))
+
+
+@ddt
+class TestOpenControlledToMatrix(QiskitTestCase):
+    """Test controlled_gates implementing to_matrix work with ctrl_state"""
+
+    @combine(gate_class=ControlledGate.__subclasses__(), ctrl_state=[0, None])
+    def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
+        """Test open controlled to_matrix."""
+        num_free_params = len(_get_free_params(gate_class.__init__,
+                                               ignore=['self']))
+        free_params = [0.1 * i for i in range(1, num_free_params + 1)]
+        if gate_class in [MCU1Gate]:
+            free_params[1] = 3
+        elif gate_class in [MCXGate]:
+            free_params[0] = 3
+        cgate = gate_class(*free_params)
+        cgate.ctrl_state = ctrl_state
+        base_mat = Operator(cgate.base_gate).data
+        target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
+                                         ctrl_state=ctrl_state)
+        try:
+            actual = cgate.to_matrix()
+        except CircuitError as cerr:
+            self.skipTest(cerr)
+        self.assertTrue(np.allclose(actual, target))
+
 
 @ddt
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
-    import qiskit.extensions.standard.u1 as u1
-    import qiskit.extensions.standard.rx as rx
-    import qiskit.extensions.standard.ry as ry
-    import qiskit.extensions.standard.rz as rz
+    import qiskit.circuit.library.standard_gates.u1 as u1
+    import qiskit.circuit.library.standard_gates.rx as rx
+    import qiskit.circuit.library.standard_gates.ry as ry
+    import qiskit.circuit.library.standard_gates.rz as rz
 
     num_ctrl = 2
     num_target = 1
@@ -906,16 +1036,16 @@ class TestDeprecatedGates(QiskitTestCase):
 
     import qiskit.extensions as ext
 
-    import qiskit.extensions.standard.i as i
-    import qiskit.extensions.standard.rx as rx
-    import qiskit.extensions.standard.ry as ry
-    import qiskit.extensions.standard.rz as rz
-    import qiskit.extensions.standard.swap as swap
-    import qiskit.extensions.standard.u1 as u1
-    import qiskit.extensions.standard.u3 as u3
-    import qiskit.extensions.standard.x as x
-    import qiskit.extensions.standard.y as y
-    import qiskit.extensions.standard.z as z
+    import qiskit.circuit.library.standard_gates.i as i
+    import qiskit.circuit.library.standard_gates.rx as rx
+    import qiskit.circuit.library.standard_gates.ry as ry
+    import qiskit.circuit.library.standard_gates.rz as rz
+    import qiskit.circuit.library.standard_gates.swap as swap
+    import qiskit.circuit.library.standard_gates.u1 as u1
+    import qiskit.circuit.library.standard_gates.u3 as u3
+    import qiskit.circuit.library.standard_gates.x as x
+    import qiskit.circuit.library.standard_gates.y as y
+    import qiskit.circuit.library.standard_gates.z as z
 
     import qiskit.extensions.quantum_initializer.diagonal as diagonal
     import qiskit.extensions.quantum_initializer.uc as uc
