@@ -2,7 +2,7 @@ jsonschema>=2.6
 networkx>=2.2;python_version>'3.5'
 networkx>=2.2,<2.4;python_version=='3.5'
 retworkx>=0.3.2
-numpy>=1.17,<=1.18
+numpy>=1.17
 ply>=3.10
 psutil>=5
 scipy>=1.4
