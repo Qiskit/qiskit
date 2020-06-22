@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.visualization import circuit_drawer
-
+from qiskit.circuit import Gate
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -82,6 +82,23 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
 
         self.circuit_drawer(circuit, output='mpl', filename='long_name.png')
+
+    def test_generic_gate_color(self):
+        """Test to see that long register names can be seen completely
+        See: https://github.com/Qiskit/qiskit-terra/pull/4519
+        """
+        gateA = Gate('A', 1, [])
+        gateB = Gate('B', 1, [])
+        gateC = Gate('C', 1, [])
+
+        circuit = QuantumCircuit(2)
+        circuit.append(gateC, [0])
+        circuit.cz(0, 1)
+        circuit.append(gateB, [0])
+        circuit.cz(0, 1)
+        circuit.append(gateA, [0])
+
+        self.circuit_drawer(circuit, output='mpl', filename='generic_gate_color.png')
 
 
 if __name__ == '__main__':
