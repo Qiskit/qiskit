@@ -23,14 +23,16 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector
 
 
-from qiskit.extensions.standard import (
+from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
     ZGate, CZGate, RYYGate
 )
 
-from qiskit.extensions.standard.equivalence_library import StandardEquivalenceLibrary as std_eqlib
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib
+)
 
 from .gate_utils import _get_free_params
 

@@ -287,9 +287,5 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
 if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == 'regenerate':
         CommonUtilitiesMixin.regenerate_expected = True
-
-        for qasm_filename in os.listdir(DIRNAME):
-            os.remove(os.path.join(DIRNAME, qasm_filename))
-
         del sys.argv[1]
     unittest.main()

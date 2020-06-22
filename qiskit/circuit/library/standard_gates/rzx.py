@@ -142,9 +142,11 @@ class RZXGate(Gate):
     # to the decomposition above. Restore after allowing phase on circuits.
     # def to_matrix(self):
     #    """Return a numpy.array for the RZX gate."""
-    #    theta = self.params[0]
-    #    return np.array([[np.cos(theta/2), 0, -1j*np.sin(theta/2), 0],
-    #                     [0, np.cos(theta/2), 0, 1j*np.sin(theta/2)],
-    #                     [-1j*np.sin(theta/2), 0, np.cos(theta/2), 0],
-    #                     [0, 1j*np.sin(theta/2), 0, np.cos(theta/2)]],
-    #                    dtype=complex)
+    #    half_theta = self.params[0] / 2
+    #    cos = numpy.cos(half_theta)
+    #    isin = 1j * numpy.sin(half_theta)
+    #    return numpy.array([[    cos,      0,   -isin,      0],
+    #                        [      0,    cos,       0,   isin],
+    #                        [-1j*sin,      0,     cos,      0],
+    #                        [      0,   isin,       0,    cos]],
+    #                       dtype=complex)
