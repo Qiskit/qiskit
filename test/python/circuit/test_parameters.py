@@ -761,15 +761,15 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, inverse.parameters)
         raise_if_parameter_table_invalid(inverse)
 
-    def test_copy_after_mirror(self):
-        """Verify circuit.mirror generates a valid ParameterTable."""
+    def test_copy_after_reverse(self):
+        """Verify circuit.reverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         qc.rz(theta, 0)
 
-        mirror = qc.mirror()
-        self.assertIn(theta, mirror.parameters)
-        raise_if_parameter_table_invalid(mirror)
+        reverse = qc.reverse_ops()
+        self.assertIn(theta, reverse.parameters)
+        raise_if_parameter_table_invalid(reverse)
 
     def test_copy_after_dot_data_setter(self):
         """Verify setting circuit.data generates a valid ParameterTable."""
