@@ -105,7 +105,7 @@ class ExcitationPreserving(TwoLocal):
                 from qiskit.circuit.library.n_local import ExcitationPreserving
 
                 ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True,
-                entanglement='linear')
+                                              entanglement='linear')
                 ansatz.draw('mpl')  # show the circuit
 
             .. jupyter-execute::
