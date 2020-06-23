@@ -170,7 +170,7 @@ class MCMTVChain(MCMT):
 
     .. jupyter-execute::
 
-        from qiskit.circuit.library import HGate
+        from qiskit.circuit.library import MCMTVChain, HGate
         MCMTVChain(HGate(), 3, 2).draw('mpl')
 
     """
