@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Added numbers.Integral as another allowable type to denote size of QuantumRegister
+    Use numbers.Integral instead of Python's built-in ``int`` as 
+    input type to denote the size of a ``QuantumRegister``.
     
