@@ -14,7 +14,6 @@
 """Utility module to open an issue on the repository when CIs fail."""
 
 import os
-import re
 
 from github import Github
 
@@ -34,7 +33,6 @@ class CIFailureReporter:
         """
         self._repo = repository
         self._api = Github(token)
-        self._stable_regex = re.compile(r"stable\/.*")
 
     def report(self, branch, commit, infourl=None, job_name=None):
         """Report on GitHub that the specified branch is failing to build at
@@ -49,7 +47,7 @@ class CIFailureReporter:
                 build logs.
             job_name (str): name of the failed ci job.
         """
-        if branch != 'master' and not self._stable_regex.search(branch):
+        if branch != 'master' and not branch.startswith('stable/'):
             return None
         key_label = self._key_label(branch, job_name)
         issue_number = self._get_report_issue_number(key_label)
@@ -65,7 +63,7 @@ class CIFailureReporter:
             return 'benchmarks failing'
         elif branch_name == 'master':
             return 'master failing'
-        elif branch_name.startswith('stable'):
+        elif branch_name.startswith('stable/'):
             return 'stable failing'
         else:
             return ''
