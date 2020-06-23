@@ -94,9 +94,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
         circuit.measure(qr, cr)
 
-        self.circuit_drawer(circuit, output='mpl', filename='simple_cregbundle.png',
+        self.circuit_drawer(circuit, output='mpl', filename='simple_cregbundle_true.png',
                             cregbundle=True)
-
+        self.circuit_drawer(circuit, output='mpl', filename='simple_cregbundle_false.png',
+                            cregbundle=False)
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
