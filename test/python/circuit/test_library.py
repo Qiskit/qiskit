@@ -30,13 +30,14 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     IntegerComparator, PiecewiseLinearPauliRotations,
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
-                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS)
+                                    ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
+                                    HiddenLinearFunction, GraphState)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
-                                        RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
-from qiskit.quantum_info import Statevector, Operator
+from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
+                                    RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
+from qiskit.quantum_info import Statevector, Operator, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
@@ -141,6 +142,92 @@ class TestPermutationLibrary(QiskitTestCase):
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+@ddt
+class TestHiddenLinearFunctionLibrary(QiskitTestCase):
+    """Test library of Hidden Linear Function circuits."""
+
+    def assertHLFIsCorrect(self, hidden_function, hlf):
+        """Assert that the HLF circuit produces the correct matrix.
+
+        Number of qubits is equal to the number of rows (or number of columns)
+        of hidden_function.
+        """
+        num_qubits = len(hidden_function)
+        hidden_function = np.asarray(hidden_function)
+        simulated = Operator(hlf)
+
+        expected = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
+        for i in range(2**num_qubits):
+            i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
+            x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
+            expected[i_qiskit, i_qiskit] = 1j**(np.dot(x_vec.transpose(),
+                                                       np.dot(hidden_function, x_vec)))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(range(num_qubits))
+        qc = Operator(qc)
+        expected = qc.compose(Operator(expected)).compose(qc)
+        self.assertTrue(expected.equiv(simulated))
+
+    @data(
+        [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+    )
+    def test_hlf(self, hidden_function):
+        """Test if the HLF matrix produces the right matrix."""
+        hlf = HiddenLinearFunction(hidden_function)
+        self.assertHLFIsCorrect(hidden_function, hlf)
+
+    def test_non_symmetric_raises(self):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
+
+
+@ddt
+class TestGraphStateLibrary(QiskitTestCase):
+    """Test the graph state circuit."""
+
+    def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
+        """Check the stabilizers of the graph state against the expected stabilizers.
+        Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
+        """
+
+        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
+
+        expected_stabilizers = []  # keep track of all expected stabilizers
+        num_vertices = len(adjacency_matrix)
+        for vertex_a in range(num_vertices):
+            stabilizer = [None] * num_vertices  # Paulis must be put into right place
+            for vertex_b in range(num_vertices):
+                if vertex_a == vertex_b:  # self-connection --> 'X'
+                    stabilizer[vertex_a] = 'X'
+                elif adjacency_matrix[vertex_a][vertex_b] != 0:  # vertices connected --> 'Z'
+                    stabilizer[vertex_b] = 'Z'
+                else:  # else --> 'I'
+                    stabilizer[vertex_b] = 'I'
+
+            # need to reverse for Qiskit's tensoring order
+            expected_stabilizers.append(''.join(stabilizer)[::-1])
+
+        self.assertListEqual(expected_stabilizers, stabilizers)
+
+    @data(
+        [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
+    )
+    def test_graph_state(self, adjacency_matrix):
+        """Verify the GraphState by checking if the circuit has the expected stabilizers."""
+        graph_state = GraphState(adjacency_matrix)
+        self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
+
+    @data(
+        [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
+    )
+    def test_non_symmetric_raises(self, adjacency_matrix):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            GraphState(adjacency_matrix)
 
 
 class TestIQPLibrary(QiskitTestCase):

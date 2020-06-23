@@ -24,7 +24,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate
+from qiskit.circuit.library import HGate
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
@@ -139,6 +139,22 @@ class TestDensityMatrix(QiskitTestCase):
         circ.x(0)
         circuit.ch(0, 1)
         target = DensityMatrix.from_label('00').evolve(Operator(circuit))
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test initialize instruction
+        init = Statevector([1, 0, 0, 1j]) / np.sqrt(2)
+        target = DensityMatrix(init)
+        circuit = QuantumCircuit(2)
+        circuit.initialize(init.data, [0, 1])
+        rho = DensityMatrix.from_instruction(circuit)
+        self.assertEqual(rho, target)
+
+        # Test reset instruction
+        target = DensityMatrix([1, 0])
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.reset(0)
         rho = DensityMatrix.from_instruction(circuit)
         self.assertEqual(rho, target)
 
@@ -358,6 +374,22 @@ class TestDensityMatrix(QiskitTestCase):
                     key = '{1},{0}|{1},{0}'.format(i, j)
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
+
+    def test_densitymatrix_to_statevector_pure(self):
+        """Test converting a pure density matrix to statevector."""
+        state = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        psi = Statevector(state)
+        rho = DensityMatrix(psi)
+        phi = rho.to_statevector()
+        self.assertTrue(psi.equiv(phi))
+
+    def test_densitymatrix_to_statevector_mixed(self):
+        """Test converting a pure density matrix to statevector."""
+        state_1 = 1/np.sqrt(2) * (np.array([1, 0, 0, 0, 0, 0, 0, 1]))
+        state_2 = 1/np.sqrt(2) * (np.array([0, 0, 0, 0, 0, 0, 1, 1]))
+        psi = 0.5 * (Statevector(state_1) + Statevector(state_2))
+        rho = DensityMatrix(psi)
+        self.assertRaises(QiskitError, rho.to_statevector)
 
     def test_probabilities_product(self):
         """Test probabilities method for product state"""
@@ -823,6 +855,24 @@ class TestDensityMatrix(QiskitTestCase):
             else:
                 target = DensityMatrix(np.diag([0, 0, 1]))
                 self.assertEqual(value, target)
+
+    def test_from_int(self):
+        """Test from_int method"""
+
+        with self.subTest(msg='from_int(0, 4)'):
+            target = DensityMatrix([1, 0, 0, 0])
+            value = DensityMatrix.from_int(0, 4)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='from_int(3, 4)'):
+            target = DensityMatrix([0, 0, 0, 1])
+            value = DensityMatrix.from_int(3, 4)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg='from_int(8, (3, 3))'):
+            target = DensityMatrix([0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(3, 3))
+            value = DensityMatrix.from_int(8, (3, 3))
+            self.assertEqual(target, value)
 
 
 if __name__ == '__main__':

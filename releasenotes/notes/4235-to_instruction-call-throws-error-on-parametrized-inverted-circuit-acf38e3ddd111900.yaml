@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    As reported in https://github.com/Qiskit/qiskit-terra/issues/4235 , the
-    ``QuantumCircuit.inverse``, ``QuantumCircuit.mirror`` methods, as well as
-    the ``QuantumCircuit.data`` setter would generate an invalid circuit when
-    used on a parameterized circuit instance. This has been resolved.

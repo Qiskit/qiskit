@@ -91,11 +91,22 @@ class DAGCircuit:
         # Edges carry wire labels (reg,idx) and each operation has
         # corresponding in- and out-edges with the same wire labels.
 
-        # Map of qreg name to QuantumRegister object
+        # Map of qreg/creg name to Register object.
         self.qregs = OrderedDict()
-
-        # Map of creg name to ClassicalRegister object
         self.cregs = OrderedDict()
+
+        # List of Qubit/Clbit wires that the DAG acts on.
+        class DummyCallableList(list):
+            """Dummy class so we can deprecate dag.qubits() and do
+            dag.qubits as property.
+            """
+            def __call__(self):
+                warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
+                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
+                              stacklevel=2)
+                return self
+        self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
+        self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
         self._id_to_node = {}
 
@@ -152,13 +163,42 @@ class DAGCircuit:
 
         return G
 
+    @classmethod
+    def from_networkx(cls, graph):
+        """Take a networkx MultiDigraph and create a new DAGCircuit.
+
+        Args:
+            graph (networkx.MultiDiGraph): The graph to create a DAGCircuit
+                object from. The format of this MultiDiGraph format must be
+                in the same format as returned by to_networkx.
+
+        Returns:
+            DAGCircuit: The dagcircuit object created from the networkx
+                MultiDiGraph.
+        """
+
+        dag = DAGCircuit()
+        for node in nx.topological_sort(graph):
+            if node.type == 'out':
+                continue
+            if node.type == 'in':
+                dag._add_wire(node.wire)
+            elif node.type == 'op':
+                dag.apply_operation_back(node.op.copy(), node.qargs,
+                                         node.cargs, node.condition)
+        return dag
+
+    @property
     def qubits(self):
         """Return a list of qubits (as a list of Qubit instances)."""
-        return [qubit for qreg in self.qregs.values() for qubit in qreg]
+        # TODO: remove this property after DeprecationWarning period (~9/2020)
+        return self._qubits
 
+    @property
     def clbits(self):
         """Return a list of classical bits (as a list of Clbit instances)."""
-        return [clbit for creg in self.cregs.values() for clbit in creg]
+        # TODO: remove this property after DeprecationWarning period (~9/2020)
+        return self._clbits
 
     @property
     def wires(self):
@@ -187,6 +227,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
         for j in range(qreg.size):
+            self.qubits.append(qreg[j])
             self._add_wire(qreg[j])
 
     def add_creg(self, creg):
@@ -197,6 +238,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
         for j in range(creg.size):
+            self.clbits.append(creg[j])
             self._add_wire(creg[j])
 
     def _add_wire(self, wire):
@@ -521,8 +563,8 @@ class DAGCircuit:
         if front:
             raise DAGCircuitError("Front composition not supported yet.")
 
-        if len(other.qubits()) > len(self.qubits()) or \
-           len(other.clbits()) > len(self.clbits()):
+        if len(other.qubits) > len(self.qubits) or \
+           len(other.clbits) > len(self.clbits):
             raise DAGCircuitError("Trying to compose with another DAGCircuit "
                                   "which has more 'in' edges.")
 
@@ -535,15 +577,15 @@ class DAGCircuit:
             qubits = []
         if clbits is None:
             clbits = []
-        qubit_map = {other.qubits()[i]: (self.qubits()[q] if isinstance(q, int) else q)
+        qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
                      for i, q in enumerate(qubits)}
-        clbit_map = {other.clbits()[i]: (self.clbits()[c] if isinstance(c, int) else c)
+        clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
                      for i, c in enumerate(clbits)}
         edge_map = edge_map or {**qubit_map, **clbit_map} or None
         # if no edge_map, try to do a 1-1 mapping in order
         if edge_map is None:
-            identity_qubit_map = dict(zip(other.qubits(), self.qubits()))
-            identity_clbit_map = dict(zip(other.clbits(), self.clbits()))
+            identity_qubit_map = dict(zip(other.qubits, self.qubits))
+            identity_clbit_map = dict(zip(other.clbits, self.clbits))
             edge_map = {**identity_qubit_map, **identity_clbit_map}
 
         # Check the edge_map for duplicate values
@@ -584,15 +626,21 @@ class DAGCircuit:
         else:
             return None
 
-    def idle_wires(self):
+    def idle_wires(self, ignore=None):
         """Return idle wires.
+
+        Args:
+            ignore (list(str)): List of node names to ignore. Default: []
 
         Yields:
             Bit: Bit in idle wire.
         """
+        if ignore is None:
+            ignore = []
         for wire in self._wires:
-            nodes = self.nodes_on_wire(wire, only_ops=False)
-            if len(list(nodes)) == 2:
+            nodes = [node for node in self.nodes_on_wire(wire, only_ops=False)
+                     if node.name not in ignore]
+            if len(nodes) == 2:
                 yield wire
 
     def size(self):
@@ -1076,7 +1124,7 @@ class DAGCircuit:
 
     def quantum_successors(self, node):
         """Returns iterator of the successors of a node that are
-        connected by a quantum edge as DAGNodes."""
+        connected by a qubit edge."""
         for successor in self.successors(node):
             if any(isinstance(x['wire'], Qubit)
                    for x in
@@ -1134,6 +1182,19 @@ class DAGCircuit:
             if n.type == "op":
                 self.remove_op_node(n)
 
+    def front_layer(self):
+        """Return a list of op nodes in the first layer of this dag.
+        """
+        graph_layers = self.multigraph_layers()
+        try:
+            next(graph_layers)  # Remove input nodes
+        except StopIteration:
+            return []
+
+        op_nodes = [node for node in next(graph_layers) if node.type == "op"]
+
+        return op_nodes
+
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
@@ -1144,9 +1205,9 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
-        New but semantically equivalent DAGNodes will be included in the returned layers,
-        NOT the DAGNodes from the original DAG. The original vs. new nodes can be compared using
-        DAGNode.semantic_eq(node1, node2).
+        The returned layer contains new (but semantically equivalent) DAGNodes.
+        These are not the same as nodes of the original dag, but are equivalent
+        via DAGNode.semantic_eq(node1, node2).
 
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
@@ -1166,7 +1227,7 @@ class DAGCircuit:
             # Sort to make sure they are in the order they were added to the original DAG
             # It has to be done by node_id as graph_layer is just a list of nodes
             # with no implied topology
-            # Drawing tools that rely on _node_id to infer order of node creation
+            # Drawing tools rely on _node_id to infer order of node creation
             # so we need this to be preserved by layers()
             op_nodes.sort(key=lambda nd: nd._node_id)
 

@@ -15,7 +15,7 @@
 """Tests PassManager.run()"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import CXGate
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne

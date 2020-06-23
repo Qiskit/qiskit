@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    Improve performance of :class:`qiskit.quantum_info.Statevector` and
-    :class:`qiskit.quantum_info.DensityMatrix` for low-qubit circuit
-    simulations by optimizing the class init function.
