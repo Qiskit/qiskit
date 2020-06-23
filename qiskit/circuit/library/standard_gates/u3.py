@@ -26,7 +26,8 @@ class U3Gate(Gate):
     Implemented using two X90 pulses on IBM Quantum systems:
 
     .. math::
-        U2(\phi, \lambda) = RZ(\phi+\pi/2) RX(\frac{\pi}{2}) RZ(\lambda-\pi/2)
+        U3(\theta, \phi, \lambda) =
+            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
 
     **Circuit symbol:**
 
@@ -44,8 +45,8 @@ class U3Gate(Gate):
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & e^{-i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
+                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     **Examples:**
@@ -212,6 +213,19 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CRY gate."""
+    #    theta, phi, lam = self.params
+    #    cos = numpy.cos(theta / 2)
+    #    sin = numpy.sin(theta / 2)
+    #    return numpy.array([[1,0, 0, 0],
+    #                        [0, cos, 0, numpy.exp(-1j * lam) * sin],
+    #                        [0, 0, 1, 0],
+    #                        [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
+    #                       dtype=complex)
 
 
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):
