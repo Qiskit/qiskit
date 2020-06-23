@@ -1460,22 +1460,46 @@ class QuantumCircuit:
         .. jupyter-execute::
 
             from qiskit.circuit import QuantumCircuit, Parameter
+            circuit = QuantumCircuit(2)
+            params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            circuit.ry(params[0], 0)
+            circuit.crx(params[1], 0, 1)
             circuit.assign_parameters({params[0]: params[2]}, inplace=True)
-            circuit.draw()
+            circuit.draw('mpl')
 
         .. jupyter-execute::
 
             from qiskit.circuit import QuantumCircuit, Parameter
+            circuit = QuantumCircuit(2)
+            params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            circuit.ry(params[0], 0)
+            circuit.crx(params[1], 0, 1)
+            circuit.assign_parameters({params[0]: params[2]}, inplace=True)
             bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
-            bound_circuit.draw()
+            bound_circuit.draw('mpl')
+
+        .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, Parameter
+            circuit = QuantumCircuit(2)
+            params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            circuit.ry(params[0], 0)
+            circuit.crx(params[1], 0, 1)
+            circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+            bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
             bound_circuit.parameters  # this one has no free parameters anymore
 
-        >>> set()
+        .. jupyter-execute::
 
+            from qiskit.circuit import QuantumCircuit, Parameter
+            circuit = QuantumCircuit(2)
+            params = [Parameter('A'), Parameter('B'), Parameter('C')]
+            circuit.ry(params[0], 0)
+            circuit.crx(params[1], 0, 1)
+            circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+            bound_circuit = circuit.assign_parameters({params[1]: 1, params[2]: 2})
+            bound_circuit.parameters  # this one has no free parameters anymore
             circuit.parameters  # the original one is still parameterized
-
-        >>> {Parameter(A), Parameter(C)}
-
         """
         # replace in self or in a copy depending on the value of in_place
         bound_circuit = self if inplace else self.copy()
