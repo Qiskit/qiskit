@@ -21,8 +21,8 @@ import scipy.linalg as la
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import (HGate, IGate, SdgGate, SGate, U3Gate,
-                                        XGate, YGate, ZGate, CXGate)
+from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate,
+                                    XGate, YGate, ZGate, CXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary

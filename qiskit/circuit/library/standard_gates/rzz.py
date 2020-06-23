@@ -110,8 +110,9 @@ class RZZGate(Gate):
     # however the control mechanism cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
     #    """Return a numpy.array for the RZZ gate."""
+    #    import numpy
     #    theta = float(self.params[0])
-    #    return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
-    #                     [0, np.exp(1j*theta/2), 0, 0],
-    #                     [0, 0, np.exp(1j*theta/2), 0],
-    #                     [0, 0, 0, np.exp(-1j*theta/2)]], dtype=complex)
+    #    return numpy.array([[numpy.exp(-1j*theta/2), 0, 0, 0],
+    #                     [0, numpy.exp(1j*theta/2), 0, 0],
+    #                     [0, 0, numpy.exp(1j*theta/2), 0],
+    #                     [0, 0, 0, numpy.exp(-1j*theta/2)]], dtype=complex)
