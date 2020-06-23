@@ -65,7 +65,7 @@ class CIFailureReporter:
             return 'benchmarks failing'
         elif branch_name == 'master':
             return 'master failing'
-        elif 'stable' in branch_name:
+        elif branch_name.startswith('stable'):
             return 'stable failing'
         else:
             return ''
