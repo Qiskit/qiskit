@@ -118,8 +118,7 @@ class U1Gate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the U1 gate."""
-        lam = self.params[0]
-        lam = float(lam)
+        lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
@@ -219,6 +218,17 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
         return CU1Gate(-self.params[0])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CU1 gate."""
+    #    eith = numpy.exp(1j * self.params[0])
+    #    return numpy.array([[1, 0, 0,    0],
+    #                        [0, 1, 0,    0],
+    #                        [0, 0, 1,    0],
+    #                        [0, 0, 0, eith]],
+    #                       dtype=complex)
 
 
 class Cu1Gate(CU1Gate, metaclass=CU1Meta):
