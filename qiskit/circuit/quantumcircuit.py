@@ -247,23 +247,93 @@ class QuantumCircuit:
         return has_reg
 
     def mirror(self):
-        """Mirror the circuit by reversing the instructions.
-
-        This is done by recursively mirroring all instructions.
-        It does not invert any gate.
+        """DEPRECATED: use circuit.reverse_ops().
 
         Returns:
-            QuantumCircuit: the mirrored circuit
+            QuantumCircuit: the reversed circuit.
+        """
+        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse_ops() to '
+                      'reverse the order of gates.', DeprecationWarning)
+        return self.reverse_ops()
+
+    def reverse_ops(self):
+        """Reverse the circuit by reversing the order of instructions.
+
+        This is done by recursively reversing all instructions.
+        It does not invert (adjoint) any gate.
+
+        Returns:
+            QuantumCircuit: the reversed circuit.
+
+        Examples:
+
+            input:
+                 ┌───┐
+            q_0: ┤ H ├─────■──────
+                 └───┘┌────┴─────┐
+            q_1: ─────┤ RX(1.57) ├
+                      └──────────┘
+
+            output:
+                             ┌───┐
+            q_0: ─────■──────┤ H ├
+                 ┌────┴─────┐└───┘
+            q_1: ┤ RX(1.57) ├─────
+                 └──────────┘
         """
         reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                      name=self.name + '_mirror')
+                                      name=self.name + '_reverse')
 
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ._append(inst.mirror(), qargs, cargs)
+            reverse_circ._append(inst.reverse_ops(), qargs, cargs)
         return reverse_circ
 
+    def reverse_bits(self):
+        """Return a circuit with the opposite order of wires.
+
+        The circuit is "vertically" flipped. If a circuit is
+        defined over multiple registers, the resulting circuit will have
+        the same registers but with their order flipped.
+
+        This method is useful for converting a circuit written in little-endian
+        convention to the big-endian equivalent, and vice versa.
+
+        Returns:
+            QuantumCircuit: the circuit with reversed bit order.
+
+        Examples:
+
+            input:
+                 ┌───┐
+            q_0: ┤ H ├─────■──────
+                 └───┘┌────┴─────┐
+            q_1: ─────┤ RX(1.57) ├
+                      └──────────┘
+
+            output:
+                      ┌──────────┐
+            q_0: ─────┤ RX(1.57) ├
+                 ┌───┐└────┬─────┘
+            q_1: ┤ H ├─────■──────
+                 └───┘
+        """
+        circ = QuantumCircuit(*reversed(self.qregs), *reversed(self.cregs),
+                              name=self.name)
+        num_qubits = self.num_qubits
+        num_clbits = self.num_clbits
+        old_qubits = self.qubits
+        old_clbits = self.clbits
+        new_qubits = circ.qubits
+        new_clbits = circ.clbits
+
+        for inst, qargs, cargs in self.data:
+            new_qargs = [new_qubits[num_qubits - old_qubits.index(q) - 1] for q in qargs]
+            new_cargs = [new_clbits[num_clbits - old_clbits.index(c) - 1] for c in cargs]
+            circ._append(inst, new_qargs, new_cargs)
+        return circ
+
     def inverse(self):
-        """Invert this circuit.
+        """Invert (take adjoint of) this circuit.
 
         This is done by recursively inverting all gates.
 
@@ -272,6 +342,22 @@ class QuantumCircuit:
 
         Raises:
             CircuitError: if the circuit cannot be inverted.
+
+        Examples:
+
+            input:
+                 ┌───┐
+            q_0: ┤ H ├─────■──────
+                 └───┘┌────┴─────┐
+            q_1: ─────┤ RX(1.57) ├
+                      └──────────┘
+
+            output:
+                              ┌───┐
+            q_0: ──────■──────┤ H ├
+                 ┌─────┴─────┐└───┘
+            q_1: ┤ RX(-1.57) ├─────
+                 └───────────┘
         """
         inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
                                       name=self.name + '_dg', phase=-self.phase)
