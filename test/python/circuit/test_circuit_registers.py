@@ -58,13 +58,13 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.name, "q")
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
-    
+
     def test_register_int_types(self):
-        """Test attempt to pass different types of integer as register sizes           
+        """Test attempt to pass different types of integer as register size
         """
-        ints = [int(2), float(2), np.int(2) ] 
+        ints = [int(2), float(2), np.int(2)]
         for size in ints:
-            with self.subTest(size=size): 
+            with self.subTest(size=size):
                 qr = QuantumRegister(size)
                 cr = ClassicalRegister(size)
                 self.assertEqual(qr.size, 2)
