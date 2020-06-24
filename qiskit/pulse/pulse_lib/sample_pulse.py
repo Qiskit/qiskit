@@ -51,7 +51,7 @@ class SamplePulse(Pulse):
         """Return sample values."""
         return self._samples
 
-    def _clip(self, samples: np.ndarray, epsilon: float = 1e-7) -> np.ndarray:
+    def _clip(self, samples: np.ndarray, epsilon: float = 1e-4) -> np.ndarray:
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
 
         If difference is greater than epsilon error is raised.
@@ -84,8 +84,8 @@ class SamplePulse(Pulse):
             to_clip_epsilon = clipped_sample_norms > 1.
             if np.any(to_clip_epsilon):
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
-                clipped_samples_epsilon = np.exp(
-                    (1-epsilon)*1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
+                clipped_samples_epsilon = (1-epsilon)*np.exp(
+                    1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
 
             # update samples with clipped values
