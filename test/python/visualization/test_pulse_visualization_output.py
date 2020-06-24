@@ -23,7 +23,8 @@ from qiskit.pulse import pulse_lib
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import FrameChange
-from qiskit.pulse.instructions import SetFrequency, Play, Acquire, Delay, Snapshot, ShiftFrequency
+from qiskit.pulse.instructions import (SetFrequency, Play, Acquire, Delay, Snapshot, ShiftFrequency,
+                                       SetPhase, ShiftPhase)
 from qiskit.pulse.schedule import Schedule
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization import pulse_drawer
@@ -59,7 +60,6 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         gp1 = pulse_lib.gaussian(duration=20, amp=-1.0, sigma=2.0)
         gs0 = pulse_lib.gaussian_square(duration=20, amp=-1.0, sigma=2.0, risefall=3)
 
-        fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
         delay = Delay(100)
         sched = Schedule(name='test_schedule')
@@ -68,11 +68,12 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
             ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
         sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
+        sched = sched.insert(60, SetPhase(3.14, DriveChannel(0)))
         sched = sched.insert(70, ShiftFrequency(4.0e6, DriveChannel(0)))
         sched = sched.insert(30, gp1(DriveChannel(1)))
         sched = sched.insert(60, gp0(ControlChannel(0)))
         sched = sched.insert(60, gs0(MeasureChannel(0)))
-        sched = sched.insert(90, fc_pi_2(DriveChannel(0)))
+        sched = sched.insert(90, ShiftPhase(1.57, DriveChannel(0)))
         sched = sched.insert(90, acquire(AcquireChannel(1),
                                          MemorySlot(1),
                                          RegisterSlot(1)))

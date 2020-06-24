@@ -442,7 +442,6 @@ class Schedule(ScheduleComponent):
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,
              channel_scales: Optional[Dict[Channel, float]] = None,
-             channels_to_plot: Optional[List[Channel]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True, scaling: float = None,
@@ -457,7 +456,6 @@ class Schedule(ScheduleComponent):
             interp_method: A function for interpolation.
             scale: Relative visual scaling of waveform amplitudes, see Additional Information.
             channel_scales: Channel independent scaling as a dictionary of ``Channel`` object.
-            channels_to_plot: Deprecated, see ``channels``.
             plot_all: Plot empty channels.
             plot_range: A tuple of time range to plot.
             interactive: When set true show the circuit in a new window
@@ -492,11 +490,6 @@ class Schedule(ScheduleComponent):
             scale = scaling
 
         from qiskit import visualization
-
-        if channels_to_plot:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                          DeprecationWarning, 3)
-            channels = channels_to_plot
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,

@@ -127,7 +127,7 @@ class TestParameters(QiskitTestCase):
 
     def test_get_parameters(self):
         """Test instantiating gate with variable parameters"""
-        from qiskit.extensions.standard.rx import RXGate
+        from qiskit.circuit.library.standard_gates.rx import RXGate
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -140,8 +140,8 @@ class TestParameters(QiskitTestCase):
 
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
-        from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.rx import RXGate
+        from qiskit.circuit.library.standard_gates.h import HGate
+        from qiskit.circuit.library.standard_gates.rx import RXGate
         theta = Parameter('θ')
         rxg = RXGate(theta)
         self.assertTrue(rxg.is_parameterized())
@@ -296,7 +296,7 @@ class TestParameters(QiskitTestCase):
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
-        from qiskit.extensions.standard import RZGate
+        from qiskit.circuit.library.standard_gates.rz import RZGate
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         gate = RZGate(theta)
@@ -761,15 +761,15 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, inverse.parameters)
         raise_if_parameter_table_invalid(inverse)
 
-    def test_copy_after_mirror(self):
-        """Verify circuit.mirror generates a valid ParameterTable."""
+    def test_copy_after_reverse(self):
+        """Verify circuit.reverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         qc.rz(theta, 0)
 
-        mirror = qc.mirror()
-        self.assertIn(theta, mirror.parameters)
-        raise_if_parameter_table_invalid(mirror)
+        reverse = qc.reverse_ops()
+        self.assertIn(theta, reverse.parameters)
+        raise_if_parameter_table_invalid(reverse)
 
     def test_copy_after_dot_data_setter(self):
         """Verify setting circuit.data generates a valid ParameterTable."""
@@ -1101,7 +1101,7 @@ class TestParameterExpressions(QiskitTestCase):
         """Bind a parameter which was included via a broadcast instruction."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3008
 
-        from qiskit.extensions.standard import RZGate
+        from qiskit.circuit.library.standard_gates.rz import RZGate
         theta = Parameter('θ')
         n = 5
 
