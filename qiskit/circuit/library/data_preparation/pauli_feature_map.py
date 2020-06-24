@@ -122,7 +122,7 @@ class PauliFeatureMap(NLocal):
                 from qiskit.circuit.library.data_preparation import PauliFeatureMap
                 from qiskit.circuit.library import EfficientSU2
 
-                prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
+                prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'] )
                 wavefunction = EfficientSU2(3)
                 classifier = prep.compose(wavefunction)
                 classifier.num_parameters
