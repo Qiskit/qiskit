@@ -62,7 +62,7 @@ class TestCircuitRegisters(QiskitTestCase):
     def test_register_int_types(self):
         """Test attempt to pass different types of integer as register size
         """
-        ints = [int(2), float(2), np.int(2)]
+        ints = [int(2), float(2), np.int(2), np.int32(2), np.int64(2)]
         for size in ints:
             with self.subTest(size=size):
                 qr = QuantumRegister(size)
