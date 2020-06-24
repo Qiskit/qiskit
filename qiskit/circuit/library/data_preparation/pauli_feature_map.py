@@ -65,41 +65,6 @@ class PauliFeatureMap(NLocal):
     and to :class:`ZZFeatureMap` for the case :math:`k = 2`, :math:`P_0 = Z` and
     :math:`P_{0,1} = ZZ`.
 
-    Examples:
-
-        >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZZ'])
-        >>> print(prep)
-             ┌───┐
-        q_0: ┤ H ├──■───────────────────────────────────────■──
-             ├───┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐
-        q_1: ┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
-             └───┘└───┘└─────────────────────────────────┘└───┘
-
-        >>> prep = PauliFeatureMap(2, reps=1, paulis=['Z', 'XX'])
-        >>> print(prep)
-             ┌───┐┌──────────────┐┌───┐                                             ┌───┐
-        q_0: ┤ H ├┤ U1(2.0*x[0]) ├┤ H ├──■───────────────────────────────────────■──┤ H ├
-             ├───┤├──────────────┤├───┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐├───┤
-        q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ H ├
-             └───┘└──────────────┘└───┘└───┘└─────────────────────────────────┘└───┘└───┘
-
-        >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZY'])
-        >>> print(prep)
-             ┌───┐┌──────────┐                                             ┌───────────┐
-        q_0: ┤ H ├┤ RX(pi/2) ├──■───────────────────────────────────────■──┤ RX(-pi/2) ├
-             ├───┤└──────────┘┌─┴─┐┌─────────────────────────────────┐┌─┴─┐└───────────┘
-        q_1: ┤ H ├────────────┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
-             └───┘            └───┘└─────────────────────────────────┘└───┘
-
-        >>> from qiskit.circuit.library import EfficientSU2
-        >>> prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
-        >>> wavefunction = EfficientSU2(3)
-        >>> classifier = prep.compose(wavefunction
-        >>> classifier.num_parameters
-        27
-        >>> classifier.count_ops()
-        OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
-
     References:
         [1]: Havlicek et al. (2018), Supervised learning with quantum enhanced feature spaces.
            `arXiv:1804.11326 <https://arxiv.org/abs/1804.11326>`_
@@ -129,6 +94,48 @@ class PauliFeatureMap(NLocal):
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
+        Examples:
+
+            .. jupyter-execute::
+
+                from qiskit.circuit.library.data_preparation import PauliFeatureMap
+
+                prep = PauliFeatureMap(2, reps=1, paulis=['ZZ'])
+                prep.draw('mpl')
+
+            .. jupyter-execute::
+
+                from qiskit.circuit.library.data_preparation import PauliFeatureMap
+
+                prep = PauliFeatureMap(2, reps=1, paulis=['Z', 'XX'])
+                prep.draw('mpl')
+
+            .. jupyter-execute::
+
+                from qiskit.circuit.library.data_preparation import PauliFeatureMap
+
+                prep = PauliFeatureMap(2, reps=1, paulis=['ZY'])
+                prep.draw('mpl')
+
+            .. jupyter-execute::
+
+                from qiskit.circuit.library.data_preparation import PauliFeatureMap
+                from qiskit.circuit.library import EfficientSU2
+
+                prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
+                wavefunction = EfficientSU2(3)
+                classifier = prep.compose(wavefunction)
+                classifier.num_parameters
+
+            .. jupyter-execute::
+
+                from qiskit.circuit.library.data_preparation import PauliFeatureMap
+                from qiskit.circuit.library import EfficientSU2
+
+                prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
+                wavefunction = EfficientSU2(3)
+                classifier = prep.compose(wavefunction)
+                classifier.count_ops()
         """
 
         super().__init__(num_qubits=feature_dimension,
