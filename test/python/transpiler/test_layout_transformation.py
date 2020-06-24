@@ -42,7 +42,7 @@ class TestLayoutTransformation(QiskitTestCase):
                                       to_layout=to_layout)
         qc = QuantumCircuit(3)  # input (empty) physical circuit
         dag = circuit_to_dag(qc)
-        q = dag.qubits()
+        q = dag.qubits
         output_dag = ltpass.run(dag)
         # output_dag.draw()
         # Check that only two swaps were performed
