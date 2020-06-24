@@ -30,10 +30,12 @@ from qiskit.transpiler.passes import CSPLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
+from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
+from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
@@ -86,8 +88,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
-    # 1. Unroll to the basis first, to prepare for noise-adaptive layout
-    _unroll = Unroller(basis_gates)
+    # 1. Unroll to 1q or 2q gates
+    _unroll3q = Unroll3qOrMore()
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
@@ -102,39 +104,34 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
     elif layout_method == 'noise_adaptive':
         _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
+    elif layout_method == 'sabre':
+        _choose_layout_2 = SabreLayout(coupling_map, max_iterations=4, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 4. Unroll to 1q or 2q gates, swap to fit the coupling map
+    # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
 
-    _swap = [BarrierBeforeFinalMeasurements(), Unroll3qOrMore()]
+    _swap = [BarrierBeforeFinalMeasurements()]
     if routing_method == 'basic':
         _swap += [BasicSwap(coupling_map)]
     elif routing_method == 'stochastic':
         _swap += [StochasticSwap(coupling_map, trials=200, seed=seed_transpiler)]
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=6)]
+    elif routing_method == 'sabre':
+        _swap += [SabreSwap(coupling_map, heuristic='decay', seed=seed_transpiler)]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 5. 1q rotation merge and commutative cancellation iteratively until no more change in depth
-    _depth_check = [Depth(), FixedPoint('depth')]
-
-    def _opt_control(property_set):
-        return not property_set['depth_fixed_point']
-
-    _opt = [RemoveResetInZeroState(),
-            Collect2qBlocks(), ConsolidateBlocks(),
-            Unroller(basis_gates),  # unroll unitaries
-            Optimize1qGates(basis_gates), CommutativeCancellation(),
-            OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+    # 5. Unroll to the basis
+    _unroll = [Unroller(basis_gates)]
 
     # 6. Fix any CX direction mismatch
     _direction_check = [CheckCXDirection(coupling_map)]
@@ -144,19 +141,35 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [CXDirection(coupling_map)]
 
+    # 8. Optimize iteratively until no more change in depth. Removes useless gates
+    # after reset and before measure, commutes gates and optimizes continguous blocks.
+    _depth_check = [Depth(), FixedPoint('depth')]
+
+    def _opt_control(property_set):
+        return not property_set['depth_fixed_point']
+
+    _reset = [RemoveResetInZeroState()]
+
+    _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
+
+    _opt = [Collect2qBlocks(), ConsolidateBlocks(),
+            Optimize1qGates(basis_gates), CommutativeCancellation()]
+
     # Build pass manager
     pm3 = PassManager()
-    pm3.append(_unroll)
+    pm3.append(_unroll3q)
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
         pm3.append(_embed)
+        pm3.append(_reset + _meas)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
-    pm3.append(_depth_check + _opt, do_while=_opt_control)
+    pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if coupling_map and not coupling_map.is_symmetric:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
+    pm3.append(_reset)
 
     return pm3
