@@ -472,8 +472,9 @@ class C3XGate(ControlledGate):
                 string (e.g. '110'), or None. If None, use all 1s.
         """
         super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
-        from . import U3Gate
-        self.base_gate = U3Gate(angle*4, -pi/2, pi/2)
+        self.base_gate = XGate()
+        # from . import U3Gate
+        # self.base_gate = U3Gate(angle*4, -pi/2, pi/2)
         self._angle = angle
 
     def _define(self):
