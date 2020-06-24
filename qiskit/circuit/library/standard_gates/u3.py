@@ -96,8 +96,8 @@ class U3Gate(Gate):
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         return numpy.array([
-            [ cos                      , -numpy.exp(1j * lam) * sin ],
-            [ numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos ]
+            [cos, -numpy.exp(1j * lam) * sin],
+            [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos]
         ], dtype=complex)
 
 

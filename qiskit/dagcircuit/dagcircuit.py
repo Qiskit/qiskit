@@ -241,7 +241,6 @@ class DAGCircuit:
                 self._phase = angle % (-2 * np.pi)
             else:
                 self._phase = angle % (2 * np.pi)
-    
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""

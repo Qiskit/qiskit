@@ -15,6 +15,7 @@
 """Tests basic functionality of the transpile function"""
 
 import math
+from math import pi
 import io
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
@@ -418,6 +419,8 @@ class TestTranspile(QiskitTestCase):
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(theta, qr[0])
+        expected_qc.u3(pi, -0.5*theta, -0.5*theta - pi, qr[0])
+        expected_qc.u3(pi, 0, pi, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -435,6 +438,8 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(theta, qr[0])
+        expected_qc.u3(pi, -0.5*theta, -0.5*theta - pi, qr[0])
+        expected_qc.u3(pi, 0, pi, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -452,6 +457,8 @@ class TestTranspile(QiskitTestCase):
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
+        expected_qc.u3(pi, -0.5*square, -0.5*square - pi, qr[0])
+        expected_qc.u3(pi, 0, pi, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -471,7 +478,8 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
+        expected_qc.u3(pi, -0.5*square, -0.5*square - pi, qr[0])
+        expected_qc.u3(pi, 0, pi, qr[0])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):

@@ -99,11 +99,11 @@ class RZGate(Gate):
     # TODO: this is the correct matrix however the control mechanism
     # cannot distinguish U1 and RZ yet.
     def to_matrix(self):
-       """Return a numpy.array for the RZ gate."""
-       import numpy as np
-       lam = float(self.params[0])
-       return np.array([[np.exp(-1j * lam / 2), 0],
-                        [0, np.exp(1j * lam / 2)]], dtype=complex)
+        """Return a numpy.array for the RZ gate."""
+        import numpy as np
+        ilam2 = 0.5j * float(self.params[0])
+        return np.array([[np.exp(-ilam2), 0],
+                         [0, np.exp(ilam2)]], dtype=complex)
 
 
 class CRZMeta(type):

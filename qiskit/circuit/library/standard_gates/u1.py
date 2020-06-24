@@ -219,35 +219,22 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
         return CU1Gate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CU1 gate."""
-    #    eith = numpy.exp(1j * self.params[0])
-    #    return numpy.array([[1, 0, 0,    0],
-    #                        [0, 1, 0,    0],
-    #                        [0, 0, 1,    0],
-    #                        [0, 0, 0, eith]],
-    #                       dtype=complex)
-
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
     def to_matrix(self):
-       """Return a numpy.array for the CU1 gate."""
+        """Return a numpy.array for the CU1 gate."""
 
-       eith = numpy.exp(1j * float(self.params[0]))
-       if self.ctrl_state:
-           return numpy.array([[1, 0, 0,    0],
-                               [0, 1, 0,    0],
-                               [0, 0, 1,    0],
-                               [0, 0, 0, eith]],
-                              dtype=complex)
-       else:
-           return numpy.array([[1, 0,    0, 0],
-                               [0, 1,    0, 0],
-                               [0, 0, eith, 0],
-                               [0, 0,    0, 1]],
-                              dtype=complex)
+        eith = numpy.exp(1j * float(self.params[0]))
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, eith]],
+                               dtype=complex)
+        else:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, eith, 0],
+                                [0, 0, 0, 1]],
+                               dtype=complex)
 
 
 class Cu1Gate(CU1Gate, metaclass=CU1Meta):

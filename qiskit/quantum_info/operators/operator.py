@@ -492,6 +492,7 @@ class Operator(BaseOperator):
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
             if instruction.phase:
+                #import ipdb;ipdb.set_trace()
                 op *= ScalarOp(op.dim[0], np.exp(1j * float(instruction.phase)))
             instruction = instruction.to_instruction()
         op._append_instruction(instruction)

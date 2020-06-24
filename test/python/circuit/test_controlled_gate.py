@@ -636,18 +636,6 @@ class TestControlledGate(QiskitTestCase):
         ugate = UnitaryGate(umat)
         cugate = ugate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        # np.set_printoptions(precision=2, linewidth=200, suppress=True)
-        # from qiskit.circuit.add_control import _unroll_gate, _gate_to_circuit
-        # print('')
-        # print(umat)
-        # base_circ = _gate_to_circuit(_unroll_gate(ugate, ['u1', 'u3', 'cx']))
-        # print(base_circ)
-        # print(Operator(base_circ).data)
-        # ccirc = _gate_to_circuit(_unroll_gate(cugate, ['u1', 'u3', 'cx']))
-        # print(ccirc)
-        # print(Operator(ccirc).data)
-        # print(ref_mat)
-        # import ipdb;ipdb.set_trace()
         self.assertTrue(matrix_equal(Operator(cugate).data, ref_mat, ignore_phase=False))
 
     @data(1, 2, 3)
@@ -1040,17 +1028,7 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
-                np.set_printoptions(precision=2, linewidth=200, suppress=True)
-                # if gate.name == 'ryy' and num_ctrl_qubits==1 and ctrl_state==1:
-                #     print(gate_class)
-                #     import ipdb;ipdb.set_trace()
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
-
-    def pgdef(self, gate):
-        for rule in gate.definition:
-            qubit_inds = [qubit.index for qubit in rule[1]]
-            params = np.array(rule[0].params)
-            print(f'{rule[0].name:5s} {str(qubit_inds):8s} {params} ')
 
 @ddt
 class TestDeprecatedGates(QiskitTestCase):

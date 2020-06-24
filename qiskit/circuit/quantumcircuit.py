@@ -77,6 +77,7 @@ class QuantumCircuit:
 
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
+        phase (float): The global phase of the circuit.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -582,7 +583,7 @@ class QuantumCircuit:
         instructions = InstructionSet()
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
-        self.phase += phase 
+        self.phase += phase
         return instructions
 
     def _append(self, instruction, qargs, cargs):
