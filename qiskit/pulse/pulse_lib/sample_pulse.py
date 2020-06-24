@@ -96,6 +96,7 @@ class SamplePulse(Pulse):
             print(np.argwhere(samples_norm > 1.))
             print(samples[np.argwhere(samples_norm > 1.)])
             print(samples_norm[np.argwhere(samples_norm > 1.)])
+            print(samples_norm)
             raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
 
         return samples
