@@ -74,8 +74,8 @@ class CSPLayout(AnalysisPass):
                  time_limit=10):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
-        If not possible, does not set the layout property. In all the cases, the property
-        :meth:`qiskit.transpiler.passes.CSPLayout_stop_reason` will be added with one of the
+        If not possible, does not set the layout property. In all the cases,
+        the property `CSPLayout_stop_reason` will be added with one of the
         following values:
 
         * solution found: If a perfect layout was found.
@@ -102,7 +102,7 @@ class CSPLayout(AnalysisPass):
         self.seed = seed
 
     def run(self, dag):
-        qubits = dag.qubits()
+        qubits = dag.qubits
         cxs = set()
 
         for gate in dag.two_qubit_ops():
