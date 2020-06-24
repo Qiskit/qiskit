@@ -86,21 +86,9 @@ class RZZGate(Gate):
         super().__init__('rzz', 2, [theta])
 
     def _define(self):
-        """
-        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
-        """
-        from .u1 import U1Gate
-        from .x import CXGate
-        definition = []
-        q = QuantumRegister(2, 'q')
-        rule = [
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        """Calculate a subcircuit that implements this unitary."""
+        circ = self.decompositions[0]
+        self.definition = circ.to_gate().definition
 
     def inverse(self):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
@@ -108,11 +96,11 @@ class RZZGate(Gate):
 
     # TODO: this is the correct matrix and is equal to the definition above,
     # however the control mechanism cannot distinguish U1 and RZ yet.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZZ gate."""
-    #    import numpy
-    #    theta = float(self.params[0])
-    #    return numpy.array([[numpy.exp(-1j*theta/2), 0, 0, 0],
-    #                     [0, numpy.exp(1j*theta/2), 0, 0],
-    #                     [0, 0, numpy.exp(1j*theta/2), 0],
-    #                     [0, 0, 0, numpy.exp(-1j*theta/2)]], dtype=complex)
+    def to_matrix(self):
+       """Return a numpy.array for the RZZ gate."""
+       import numpy
+       itheta2 = 1j * float(self.params[0]) / 2
+       return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
+                        [0, numpy.exp(itheta2), 0, 0],
+                        [0, 0, numpy.exp(itheta2), 0],
+                        [0, 0, 0, numpy.exp(-itheta2)]], dtype=complex)

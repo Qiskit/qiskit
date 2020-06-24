@@ -124,16 +124,8 @@ class RZXGate(Gate):
         """
         gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.standard_gates import U1Gate
-        q = QuantumRegister(2, 'q')
-        self.definition = [
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),  # Should be RZGate
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], [])
-        ]
+        circ = self.decompositions[0]
+        self.definition = circ.to_gate().definition
 
     def inverse(self):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
@@ -141,14 +133,14 @@ class RZXGate(Gate):
 
     # TODO: this is the correct definition but has a global phase with respect
     # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZX gate."""
-    #    half_theta = self.params[0] / 2
-    #    cos = numpy.cos(half_theta)
-    #    isin = 1j * numpy.sin(half_theta)
-    #    return numpy.array([[    cos,      0,   -isin,      0],
-    #                        [      0,    cos,       0,   isin],
-    #                        [-isin,      0,     cos,      0],
-    #                        [      0,   isin,       0,    cos]],
-    #                     [0, 1j*halfsin, 0, halfcos]],
-    #                       dtype=complex)
+    def to_matrix(self):
+       """Return a numpy.array for the RZX gate."""
+       import numpy
+       half_theta = self.params[0] / 2
+       cos = numpy.cos(half_theta)
+       isin = 1j * numpy.sin(half_theta)
+       return numpy.array([[    cos,      0,   -isin,      0],
+                           [      0,    cos,       0,   isin],
+                           [-isin,      0,     cos,      0],
+                           [      0,   isin,       0,    cos]],
+                          dtype=complex)

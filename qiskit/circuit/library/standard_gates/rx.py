@@ -200,17 +200,23 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
 
     # TODO: this is the correct definition but has a global phase with respect
     # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CRX gate."""
-    #    half_theta = self.params[0] / 2
-    #    cos = numpy.cos(half_theta)
-    #    isin = 1j * numpy.sin(half_theta)
-    #    return numpy.array([[1,     0, 0,     0],
-    #                        [0,   cos, 0, -isin],
-    #                        [0,     0, 1,     0],
-    #                        [0, -isin, 0,   cos]],
-    #                       dtype=complex)
-
+    def to_matrix(self):
+       """Return a numpy.array for the CRX gate."""
+       half_theta = self.params[0] / 2
+       cos = numpy.cos(half_theta)
+       isin = 1j * numpy.sin(half_theta)
+       if self.ctrl_state:
+           return numpy.array([[1, 0, 0, 0],
+                               [0, cos, 0, -isin],
+                               [0, 0, 1, 0],
+                               [0, -isin, 0, cos]],
+                              dtype=complex)
+       else:
+           return numpy.array([[cos, 0, 0, -isin],
+                               [0, 1, 0, 0],
+                               [-isin, 0, cos, 0],
+                               [0, 0, 0, 1]],
+                              dtype=complex)
 
 class CrxGate(CRXGate, metaclass=CRXMeta):
     """The deprecated CRXGate class."""

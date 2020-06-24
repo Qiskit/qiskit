@@ -37,6 +37,7 @@ from . import (
     RZGate,
     CRZGate,
     RZZGate,
+    RZXGate,
     SGate,
     SdgGate,
     SwapGate,
@@ -241,13 +242,29 @@ for inst, qargs, cargs in [
         (HGate(), [q[0]], []),
         (HGate(), [q[1]], []),
         (CXGate(), [q[0], q[1]], []),
-        (U1Gate(theta), [q[1]], []),
+        (RZGate(theta), [q[1]], []),
         (CXGate(), [q[0], q[1]], []),
         (HGate(), [q[1]], []),
         (HGate(), [q[0]], []),
 ]:
     def_rxx.append(inst, qargs, cargs)
 _sel.add_equivalence(RXXGate(theta), def_rxx)
+
+# RZXGate
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+def_rzx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[1]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (RZGate(theta), [q[1]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (HGate(), [q[1]], []),
+]:
+    def_rzx.append(inst, qargs, cargs)
+_sel.add_equivalence(RZXGate(theta), def_rzx)
+
 
 # RYGate
 
@@ -317,7 +334,7 @@ theta = Parameter('theta')
 def_rzz = QuantumCircuit(q)
 for inst, qargs, cargs in [
         (CXGate(), [q[0], q[1]], []),
-        (U1Gate(theta), [q[1]], []),
+        (RZGate(theta), [q[1]], []),
         (CXGate(), [q[0], q[1]], [])
 ]:
     def_rzz.append(inst, qargs, cargs)

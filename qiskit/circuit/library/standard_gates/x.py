@@ -472,7 +472,8 @@ class C3XGate(ControlledGate):
                 string (e.g. '110'), or None. If None, use all 1s.
         """
         super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+        from . import U3Gate
+        self.base_gate = U3Gate(angle*4, -pi/2, pi/2)
         self._angle = angle
 
     def _define(self):
@@ -550,7 +551,12 @@ class C3XGate(ControlledGate):
         """Invert this gate. The C3X is its own inverse."""
         return C3XGate(angle=self._angle)
 
-    # This matrix is only correct if the angle is pi/4
+    # def to_matrix(self):
+    #     """Return a numpy.array for the C3X gate."""
+    #     return _compute_control_matrix(self.base_gate.to_matrix(),
+    #                                    self.num_ctrl_qubits,
+    #                                    ctrl_state=self.ctrl_state)
+    
     # def to_matrix(self):
     #     """Return a numpy.array for the C3X gate."""
     #     return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -731,6 +737,12 @@ class C4XGate(ControlledGate):
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate()
+
+    def to_matrix(self):
+        """Return a numpy.array for the C4X gate."""
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class MCXGate(ControlledGate):

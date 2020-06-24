@@ -278,6 +278,7 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in reversed(self._data):
             inverse_circ._append(inst.inverse(), qargs, cargs)
+        self.phase = -self.phase
         return inverse_circ
 
     def repeat(self, reps):

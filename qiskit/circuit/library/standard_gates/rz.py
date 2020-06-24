@@ -64,7 +64,6 @@ class RZGate(Gate):
         """
         gate rz(phi) a { u1(phi) a; }
         """
-        import numpy as np
         circ = self.decompositions[0]
         self.definition = circ.to_gate().definition
 
@@ -205,24 +204,22 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         """Return inverse RZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #   """Return a numpy.array for the CRZ gate."""
-    #   import numpy
-    #   arg = 1j * self.params[0] / 2
-    #   if self.ctrl_state:
-    #       return numpy.array([[1,               0, 0,              0],
-    #                           [0, numpy.exp(-arg), 0,              0],
-    #                           [0,               0, 1,              0],
-    #                           [0,               0, 0, numpy.exp(arg)]],
-    #                          dtype=complex)
-    #   else:
-    #       return numpy.array([[numpy.exp(-arg), 0,              0, 0],
-    #                           [              0, 1,              0, 0],
-    #                           [              0, 0, numpy.exp(arg), 0],
-    #                           [              0, 0,              0, 1]],
-    #                          dtype=complex)
+    def to_matrix(self):
+      """Return a numpy.array for the CRZ gate."""
+      import numpy
+      arg = 1j * self.params[0] / 2
+      if self.ctrl_state:
+          return numpy.array([[1,               0, 0,              0],
+                              [0, numpy.exp(-arg), 0,              0],
+                              [0,               0, 1,              0],
+                              [0,               0, 0, numpy.exp(arg)]],
+                             dtype=complex)
+      else:
+          return numpy.array([[numpy.exp(-arg), 0,              0, 0],
+                              [              0, 1,              0, 0],
+                              [              0, 0, numpy.exp(arg), 0],
+                              [              0, 0,              0, 1]],
+                             dtype=complex)
 
 
 class CrzGate(CRZGate, metaclass=CRZMeta):

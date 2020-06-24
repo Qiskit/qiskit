@@ -193,18 +193,23 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         """Return inverse RY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CRY gate."""
-    #    half_theta = self.params[0] / 2
-    #    cos = numpy.cos(half_theta)
-    #    sin = numpy.sin(half_theta)
-    #    return numpy.array([[1,     0, 0,    0],
-    #                        [0,   cos, 0, -sin],
-    #                        [0,     0, 1,    0],
-    #                        [0,   sin, 0,  cos]],
-    #                       dtype=complex)
+    def to_matrix(self):
+       """Return a numpy.array for the CRY gate."""
+       half_theta = self.params[0] / 2
+       cos = numpy.cos(half_theta)
+       sin = numpy.sin(half_theta)
+       if self.ctrl_state:
+           return numpy.array([[1, 0, 0, 0],
+                               [0, cos, 0, -sin],
+                               [0, 0, 1, 0],
+                               [0, sin, 0, cos]],
+                              dtype=complex)
+       else:
+           return numpy.array([[cos, 0, -sin, 0],
+                               [0, 1, 0, 0],
+                               [sin, 0, cos, 0],
+                               [0, 0, 0, 1]],
+                              dtype=complex)
 
 
 class CryGate(CRYGate, metaclass=CRYMeta):

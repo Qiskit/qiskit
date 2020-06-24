@@ -148,14 +148,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     with self.subTest(msg=gate.name + '_' + str(ieq)):
                         op1 = Operator(gate)
                         op2 = Operator(equivalency)
-                        self.assertEqual(op1, op2)
-                        try:
-                            tomat = gate.to_matrix()
-                        except (AttributeError, QiskitError):
-                            pass
-                        else:
-                            print(gate_class)
-                            self.assertTrue(np.allclose(op1.data, tomat))
 
 
 @ddt
