@@ -66,9 +66,6 @@ class RZGate(Gate):
         """
         import numpy as np
         circ = self.decompositions[0]
-        if circ.phase:
-            circ.u3(np.pi, circ.phase, circ.phase - np.pi, circ.qregs[0])
-            circ.x(circ.qregs[0])
         self.definition = circ.to_gate().definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):

@@ -636,7 +636,7 @@ class TestControlledGate(QiskitTestCase):
         ugate = UnitaryGate(umat)
         cugate = ugate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
-        self.assertTrue(matrix_equal(Operator(cugate).data, ref_mat, ignore_phase=False))
+        self.assertEqual(Operator(cugate), Operator(ref_mat))
 
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
@@ -1028,7 +1028,7 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
-                self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
+                self.assertEqual(Operator(cgate), Operator(target_mat))
 
 @ddt
 class TestDeprecatedGates(QiskitTestCase):

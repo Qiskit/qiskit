@@ -75,10 +75,6 @@ class RYYGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         circ = self.decompositions[0]
-        phase = circ.phase / len(circ.qregs[0])
-        if circ.phase:
-            circ.u3(np.pi, phase, phase - np.pi, circ.qregs[0])
-            circ.x(circ.qregs[0])
         self.definition = circ.to_gate().definition
 
     def inverse(self):
