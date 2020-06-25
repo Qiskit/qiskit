@@ -382,6 +382,16 @@ class TestDagNodeSelection(QiskitTestCase):
         self.clbit1 = creg[1]
         self.condition = (creg, 3)
 
+    def test_front_layer(self):
+        """The method dag.front_layer() returns first layer"""
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        op_nodes = self.dag.front_layer()
+        self.assertEqual(len(op_nodes), 1)
+        self.assertIsInstance(op_nodes[0].op, HGate)
+
     def test_get_op_nodes_all(self):
         """The method dag.op_nodes() returns all op nodes"""
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
