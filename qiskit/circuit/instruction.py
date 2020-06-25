@@ -32,6 +32,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
+import warnings
 import copy
 from itertools import zip_longest
 
@@ -42,6 +43,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+from .tools import pi_check
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -140,6 +142,8 @@ class Instruction:
             # example: u2(pi/2, sin(pi/4))
             if isinstance(single_param, (ParameterExpression)):
                 self._params.append(single_param)
+            elif isinstance(single_param, numpy.number):
+                self._params.append(single_param.item())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
                 self._params.append(single_param)
@@ -155,15 +159,15 @@ class Instruction:
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
             else:
                 raise CircuitError("invalid param type {0} in instruction "
                                    "{1}".format(type(single_param), self.name))
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
-        return any(isinstance(param, ParameterExpression) for param in self.params)
+        return any(isinstance(param, ParameterExpression)
+                   and param.parameters
+                   for param in self.params)
 
     @property
     def definition(self):
@@ -218,21 +222,33 @@ class Instruction:
         return instruction
 
     def mirror(self):
-        """For a composite instruction, reverse the order of sub-gates.
+        """DEPRECATED: use instruction.reverse_ops().
 
-        This is done by recursively mirroring all sub-instructions.
+        Return:
+            qiskit.circuit.Instruction: a new instruction with sub-instructions
+                reversed.
+        """
+        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse_ops()'
+                      'to reverse the order of gates.', DeprecationWarning)
+        return self.reverse_ops()
+
+    def reverse_ops(self):
+        """For a composite instruction, reverse the order of sub-instructions.
+
+        This is done by recursively reversing all sub-instructions.
         It does not invert any gate.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh gate with sub-gates reversed
+            qiskit.circuit.Instruction: a new instruction with
+                sub-instructions reversed.
         """
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name + '_mirror')
+        reverse_inst = self.copy(name=self.name + '_reverse')
         reverse_inst.definition = []
         for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
+            reverse_inst._definition.append((inst.reverse_ops(), qargs, cargs))
         return reverse_inst
 
     def inverse(self):
@@ -308,7 +324,7 @@ class Instruction:
         name_param = self.name
         if self.params:
             name_param = "%s(%s)" % (name_param, ",".join(
-                [str(i) for i in self.params]))
+                [pi_check(i, ndigits=8, output='qasm') for i in self.params]))
 
         return self._qasmif(name_param)
 

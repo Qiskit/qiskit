@@ -22,7 +22,7 @@ from . import _gate_extension  # pylint: disable=W0611
 try:
     from z3 import And, Or, Not, Implies, Solver, Bool, unsat
     HAS_Z3 = True
-except ModuleNotFoundError:
+except ImportError:
     HAS_Z3 = False
 
 
@@ -69,7 +69,7 @@ class HoareOptimizer(TransformationPass):
         Args:
             dag (DAGCircuit): input DAG to get qubits from
         """
-        for qbt in dag.qubits():
+        for qbt in dag.qubits:
             self.gatenum[qbt.index] = 0
             self.variables[qbt.index] = []
             self.gatecache[qbt.index] = []
@@ -338,6 +338,6 @@ class HoareOptimizer(TransformationPass):
         self._initialize(dag)
         self._traverse_dag(dag)
         if self.size > 1:
-            for qbt in dag.qubits():
+            for qbt in dag.qubits:
                 self._multigate_opt(dag, qbt.index)
         return dag

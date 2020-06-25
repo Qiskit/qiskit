@@ -20,7 +20,6 @@ import numpy as np
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
-from ..instructions import Play
 from .pulse import Pulse
 
 
@@ -43,6 +42,7 @@ class SamplePulse(Pulse):
                 norm is greater than 1+epsilon an error will be raised.
         """
         samples = np.asarray(samples, dtype=np.complex_)
+        self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
         super().__init__(duration=len(samples), name=name)
 
@@ -132,7 +132,8 @@ class SamplePulse(Pulse):
                                           interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and (self.samples == other.samples).all()
+        return super().__eq__(other) and self.samples.shape == other.samples.shape and \
+               np.allclose(self.samples, other.samples, rtol=0, atol=self.epsilon)
 
     def __hash__(self) -> int:
         return hash(self.samples.tostring())
@@ -144,10 +145,10 @@ class SamplePulse(Pulse):
         return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
                                  ", name='{}'".format(self.name) if self.name is not None else "")
 
-    def __call__(self, channel: PulseChannel) -> Play:
+    def __call__(self, channel: PulseChannel):
         warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
                       "instruction directly with a pulse and a channel. In this case, please "
                       "use: `Play(SamplePulse(samples), {})`."
                       "".format(self.__class__.__name__, channel),
                       DeprecationWarning)
-        return Play(self, channel)
+        return super().__call__(channel)

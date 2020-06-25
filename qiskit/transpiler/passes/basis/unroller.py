@@ -17,6 +17,7 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import ControlledGate
 
 
 class Unroller(TransformationPass):
@@ -30,7 +31,8 @@ class Unroller(TransformationPass):
         """Unroller initializer.
 
         Args:
-            basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']` .
+            basis (list[str] or None): Target basis names to unroll to, e.g. `['u3', 'cx']` . If
+                None, does not unroll any gate.
         """
         super().__init__()
         self.basis = basis
@@ -48,6 +50,9 @@ class Unroller(TransformationPass):
         Returns:
             DAGCircuit: output unrolled dag
         """
+        if self.basis is None:
+            return dag
+
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
@@ -57,7 +62,10 @@ class Unroller(TransformationPass):
                 #  backend reports "measure", for example.
                 continue
             if node.name in self.basis:  # If already a base, ignore.
-                continue
+                if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
+                    pass
+                else:
+                    continue
 
             # TODO: allow choosing other possible decompositions
             try:

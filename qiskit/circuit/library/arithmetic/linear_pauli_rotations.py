@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-member
+
 """Linearly-controlled X, Y or Z rotation."""
 
 from typing import Optional
@@ -138,7 +140,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
         else:
             self.qregs = []
 
-    def _configuration_is_valid(self, raise_on_failure: bool = True) -> bool:
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
 
         if self.num_state_qubits is None:

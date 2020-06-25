@@ -3,29 +3,10 @@
 # least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
 # Global rule, unless specialized by a later one
-* @ajavadia @kdk @mtreinish @1ucian0
-
-# Individual folders on root directory
-/tools/               @mtreinish @kdk
-/examples/            @jaygambetta @mtreinish @maddy-tod
-test/                 @ajavadia @mtreinish @kdk @1ucian0
-docs/                 @nonhermitian @mtreinish
+* @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-circuit/              @ajavadia @kdk @ewinston @1ucian0 @mtreinish
-extensions/           @ajavadia @kdk @ewinston @1ucian0 @mtreinish
-dagcircuit/           @ajavadia @kdk @1ucian0 @maddy-tod
-providers/            @ajavadia @mtreinish @jyu00 @chriseclectic @ewinston
-basicaer/             @chriseclectic @ajavadia
-pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
-scheduler/            @lcapelluto @taalexander @eggerdj @nkanazawa1989 @danpuzzuoli
-quantum_info/         @chriseclectic @ajavadia @ewinston
-qi/                   @chriseclectic @ajavadia
-result/               @jyu00 @taalexander @mtreinish @ajavadia
-schemas/              @mtreinish @taalexander
-transpiler/           @ajavadia @kdk @1ucian0 @itoko @mtreinish
-assembler/            @ajavadia @kdk @taalexander @mtreinish @lcapelluto
-compiler/             @ajavadia @kdk @1ucian0 @taalexander @mtreinish @lcapelluto
-qobj/                 @jyu00 @taalexander @kdk @mtreinish
-validation/           @ajavadia @taalexander @mtreinish
-visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod @ajavadia
+providers/            @Qiskit/terra-core @jyu00
+pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
+scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
+visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod

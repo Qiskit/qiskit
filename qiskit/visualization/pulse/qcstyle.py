@@ -17,12 +17,19 @@
 """
 Style sheets for pulse visualization.
 """
-from typing import Tuple, List
+from collections import namedtuple
+from typing import Optional, Tuple
+
+import logging
+
+logger = logging.getLogger(__name__)
+ComplexColors = namedtuple('ComplexColors', ['real', 'imaginary'])
+SchedTableColors = namedtuple('SchedTableColors', ['time', 'channel', 'event'])
 
 
 class SchedStyle:
     """Style sheet for Qiskit-Pulse schedule drawer."""
-    def __init__(self, figsize: Tuple[float, float] = (10, 12),
+    def __init__(self, figsize: Optional[Tuple[float, float]] = (10.0, 12.0),
                  fig_unit_h_table: float = 0.4,
                  use_table: bool = True,
                  table_columns: int = 2,
@@ -30,33 +37,48 @@ class SchedStyle:
                  axis_font_size: int = 18,
                  label_font_size: int = 10,
                  icon_font_size: int = 18,
+                 title_font_size: Optional[int] = 25,
                  label_ch_linestyle: str = '--',
-                 label_ch_color: str = None,
+                 label_ch_color: str = '#222222',
                  label_ch_alpha: float = 0.3,
-                 d_ch_color: List[str] = None,
-                 u_ch_color: List[str] = None,
-                 m_ch_color: List[str] = None,
-                 s_ch_color: List[str] = None,
+                 d_ch_color: ComplexColors = ('#648fff', '#002999'),
+                 u_ch_color: ComplexColors = ('#ffb000', '#994A00'),
+                 m_ch_color: ComplexColors = ('#dc267f', '#760019'),
+                 s_ch_color: str = '#7da781',
                  s_ch_linestyle: str = '-',
-                 table_color: str = None,
-                 bg_color: str = None,
+                 table_color: SchedTableColors = ('#e0e0e0', '#f6f6f6', '#f6f6f6'),
+                 bg_color: str = '#f2f3f4',
                  num_points: int = 1000,
-                 dpi: int = 150,
+                 dpi: Optional[int] = 150,
                  remove_spacing: bool = True,
                  max_table_ratio: float = 0.5,
                  vertical_span: float = 0.2,
-                 axis_formatter: str = None):
+                 axis_formatter: str = '%s'):
         """Create new style sheet.
 
+        For any of the Optional fields, if that field is None then it will revert to its
+        matplotlib.rcParams counterpart. See for usage on rcParams.  Each argument that
+        is optonal also describes it's mapped rcParam key below.
+
         Args:
-            figsize: Size of figure.
+            figsize: Size of the figure.
+                If ``None``, will default to the figure size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.figsize']``.
             fig_unit_h_table: Height of row of event table. See Example.
             use_table: When set `True` use event table.
             table_columns: Number of event table columns.
             table_font_size: Font size of event table.
             axis_font_size: Font size of channel aliases.
+                If ``None``, will revert to the axis label size of the drawing backend.
+                If the output is ``matplotlib``, the default parameter is
+                ``rcParams['axes.titlesize']``.
             label_font_size: Font size of labels in canvas.
             icon_font_size: Size of symbols.
+            title_font_size: Font size of schedule name in title.
+                If ``None``, will default to the title font size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.titlesize']``.
             label_ch_linestyle: Line style for channel pulse label line.
             label_ch_color: Color code or name of color for channel pulse label line.
             label_ch_alpha: Transparency for channel pulse label line from 0 to 1.
@@ -73,6 +95,9 @@ class SchedStyle:
             bg_color: Color code or name of color for canvas background.
             num_points: Number of points for interpolation of each channel.
             dpi: Resolution in the unit of dot per inch to save image.
+                If ``None``, will revert to the DPI setting of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.dpi']``.
             remove_spacing: Remove redundant spacing
                 when the waveform has no negative values.
             max_table_ratio: Maximum portion of the plot the table can take up.
@@ -85,7 +110,7 @@ class SchedStyle:
         Example:
             Height of the event table is decided by multiple parameters.::
 
-                figsize = (10, 12)
+                figsize = (10.0, 12.0)
                 fig_unit_h_table = 0.4
                 table_columns = 2
                 max_table_ratio = 0.5
@@ -104,44 +129,66 @@ class SchedStyle:
         self.axis_font_size = axis_font_size
         self.label_font_size = label_font_size
         self.icon_font_size = icon_font_size
-        self.d_ch_color = d_ch_color or ['#648fff', '#002999']
+        self.title_font_size = title_font_size
+        self.d_ch_color = d_ch_color
         self.label_ch_linestyle = label_ch_linestyle
-        self.label_ch_color = label_ch_color or '#222222'
+        self.label_ch_color = label_ch_color
         self.label_ch_alpha = label_ch_alpha
-        self.u_ch_color = u_ch_color or ['#ffb000', '#994A00']
-        self.m_ch_color = m_ch_color or ['#dc267f', '#760019']
-        self.a_ch_color = m_ch_color or ['#333333', '#666666']
-        self.s_ch_color = s_ch_color or '#7da781'
+        self.u_ch_color = u_ch_color
+        self.m_ch_color = m_ch_color
+        self.a_ch_color = m_ch_color
+        self.s_ch_color = s_ch_color
         self.s_ch_linestyle = s_ch_linestyle
-        self.table_color = table_color or ['#e0e0e0', '#f6f6f6', '#f6f6f6']
-        self.bg_color = bg_color or '#f2f3f4'
+        self.table_color = table_color
+        self.bg_color = bg_color
         self.num_points = num_points
         self.dpi = dpi
         self.remove_spacing = remove_spacing
+
+        if max_table_ratio < 0.0 or max_table_ratio > 1.0:
+            logger.warning('max_table_ratio of %.2f is not in range [0.0, 1.0], clamping...',
+                           max_table_ratio)
+
         self.max_table_ratio = max(min(max_table_ratio, 0.0), 1.0)
         self.vertical_span = vertical_span
-        self.axis_formatter = axis_formatter or '%s'
+        self.axis_formatter = axis_formatter
 
 
 class PulseStyle:
     """Style sheet for Qiskit-Pulse sample pulse drawer."""
-    def __init__(self, figsize: Tuple[float, float] = (7, 5),
-                 wave_color: List[str] = None,
-                 bg_color: str = None,
-                 num_points: int = None,
-                 dpi: int = None):
+    def __init__(self, figsize: Optional[Tuple[float, float]] = (7.0, 5.0),
+                 title_font_size: Optional[int] = 18,
+                 wave_color: ComplexColors = ('#ff0000', '#0000ff'),
+                 bg_color: str = '#f2f3f4',
+                 num_points: int = 1000,
+                 dpi: Optional[int] = None):
         """Create new style sheet.
 
+        For any of the Optional fields, if that field is None then it will revert to its
+        matplotlib.rcParams counterpart. See for usage on rcParams.  Each argument that
+        is optonal also describes it's mapped rcParam key below.
+
         Args:
-            figsize: Size of figure.
-            wave_color: Color code or name of colors for real and imaginary part
-                of SamplePulse waveform.
+            figsize: Size of the figure.
+                If ``None``, will default to the figure size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.figsize']``.
+            title_font_size: Font size of schedule name in title.
+                If ``None``, will default to the title font size of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.titlesize']``.
+            wave_color: Color code or name of colors for
+                the real and imaginary parts of SamplePulse waveform.
             bg_color: Color code or name of color for pulse canvas background.
             num_points: Number of points for interpolation.
             dpi: Resolution in the unit of dot per inch to save image.
+                If ``None``, will revert to the DPI setting of the drawing backend.
+                If the output is ``matplotlib``, the default
+                parameter is ``rcParams['figure.dpi']``.
         """
         self.figsize = figsize
-        self.wave_color = wave_color or ['#ff0000', '#0000ff']
-        self.bg_color = bg_color or '#f2f3f4'
-        self.num_points = num_points or 1000
-        self.dpi = dpi or 150
+        self.title_font_size = title_font_size
+        self.wave_color = wave_color
+        self.bg_color = bg_color
+        self.num_points = num_points
+        self.dpi = dpi
