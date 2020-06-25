@@ -19,7 +19,7 @@ import os
 from contextlib import contextmanager
 
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.visualization import circuit_drawer
 
 
