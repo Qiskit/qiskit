@@ -22,6 +22,57 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.19.6
+*************
+
+Terra 0.14.2
+============
+
+No Change
+
+Aer 0.5.2
+=========
+
+No Change
+
+Ignis 0.3.3
+===========
+
+.. _Release Notes_0.3.3_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- A new requirement `scikit-learn <https://scikit-learn.org/stable/>`__ has
+  been added to the requirements list. This dependency was added in the 0.3.0
+  release but wasn't properly exposed as a dependency in that release. This
+  would lead to an ``ImportError`` if the
+  :mod:`qiskit.ignis.measurement.discriminator.iq_discriminators` module was
+  imported. This is now correctly listed as a dependency so that
+  ``scikit-learn`` will be installed with qiskit-ignis.
+
+
+.. _Release Notes_0.3.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes an issue in qiskit-ignis 0.3.2 which would raise an ``ImportError``
+  when :mod:`qiskit.ignis.verification.tomography.fitters.process_fitter` was
+  imported without ``cvxpy`` being installed.
+
+Aqua 0.7.3
+==========
+
+No Change
+
+IBM Q Provider 0.7.2
+====================
+
+No Change
+
+
+*************
 Qiskit 0.19.5
 *************
 
