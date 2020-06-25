@@ -19,7 +19,7 @@ import os
 from contextlib import contextmanager
 
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import circuit_drawer
 
 
@@ -82,6 +82,20 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
 
         self.circuit_drawer(circuit, output='mpl', filename='long_name.png')
+
+    def test_conditional(self):
+        """Test that circuits with conditionals draw correctly
+        """
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(qr, cr)
+
+        # check gates are shifted over accordingly
+        circuit.h(qr)
+        circuit.measure(qr, cr)
+        circuit.h(qr[0]).c_if(cr, 2)
+
+        self.circuit_drawer(circuit, output='mpl', filename='conditional.png', creg)
 
 
 if __name__ == '__main__':
