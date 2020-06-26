@@ -47,6 +47,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               initial_layout: Optional[Union[Layout, Dict, List]] = None,
               layout_method: Optional[str] = None,
               routing_method: Optional[str] = None,
+              translation_method: Optional[str] = None,
               scheduling_method: Optional[str] = None,
               instruction_durations: Optional[List[Tuple[str, Optional[List[int]], int]]] = None,
               meas_map: Optional[List[List[int]]] = None,
@@ -118,9 +119,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive')
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
             Sometimes a perfect layout can be available in which case the layout_method
             may not run.
+        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
+        translation_method: Name of translation pass ('unroller', 'translator')
         routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible on a
@@ -202,7 +205,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
                                     initial_layout=initial_layout, layout_method=layout_method,
-                                    routing_method=routing_method, backend=backend)
+                                    routing_method=routing_method,
+                                    translation_method=translation_method,
+                                    backend=backend)
 
         warnings.warn("The parameter pass_manager in transpile is being deprecated. "
                       "The preferred way to tranpile a circuit using a custom pass manager is"
@@ -217,6 +222,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
+                                           layout_method, routing_method, translation_method,
                                            layout_method, routing_method,
                                            scheduling_method, instruction_durations, meas_map,
                                            seed_transpiler, optimization_level,
@@ -292,7 +298,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     pass_manager_config = transpile_config['pass_manager_config']
 
     ms_basis_swap = None
-    if pass_manager_config.basis_gates is not None:
+    if (pass_manager_config.translation_method == 'unroller'
+            and pass_manager_config.basis_gates is not None):
         # Workaround for ion trap support: If basis gates includes
         # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
         # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
@@ -346,7 +353,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
-                          initial_layout, layout_method, routing_method,
+                          initial_layout, layout_method, routing_method, translation_method,
                           scheduling_method, instruction_durations, meas_map,
                           seed_transpiler, optimization_level,
                           callback, output_name) -> List[Dict]:
@@ -374,6 +381,7 @@ def _parse_transpile_args(circuits, backend,
     initial_layout = _parse_initial_layout(initial_layout, circuits)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
+    translation_method = _parse_translation_method(translation_method, num_circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     durations = None
     if scheduling_method[0]:
@@ -387,8 +395,8 @@ def _parse_transpile_args(circuits, backend,
     callback = _parse_callback(callback, num_circuits)
 
     list_transpile_args = []
-    for args in zip(basis_gates, coupling_map, backend_properties,
-                    initial_layout, layout_method, routing_method, scheduling_method,
+    for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
+                    layout_method, routing_method, translation_method, scheduling_method,
                     seed_transpiler, optimization_level,
                     output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
@@ -397,13 +405,14 @@ def _parse_transpile_args(circuits, backend,
                                                                    initial_layout=args[3],
                                                                    layout_method=args[4],
                                                                    routing_method=args[5],
-                                                                   scheduling_method=args[6],
-                                                                   seed_transpiler=args[7]),
+                                                                   translation_method=args[6],
+                                                                   scheduling_method=args[7],
+                                                                   seed_transpiler=args[8]),
                           'instruction_durations': durations,  # FIXME?
                           'meas_map': meas_map,  # FIXME?
-                          'optimization_level': args[8],
-                          'output_name': args[9],
-                          'callback': args[10]}
+                          'optimization_level': args[9],
+                          'output_name': args[10],
+                          'callback': args[11]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -492,6 +501,12 @@ def _parse_routing_method(routing_method, num_circuits):
     if not isinstance(routing_method, list):
         routing_method = [routing_method] * num_circuits
     return routing_method
+
+
+def _parse_translation_method(translation_method, num_circuits):
+    if not isinstance(translation_method, list):
+        translation_method = [translation_method] * num_circuits
+    return translation_method
 
 
 def _parse_scheduling_method(scheduling_method, num_circuits):

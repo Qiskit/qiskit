@@ -21,6 +21,7 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
+from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
@@ -245,23 +246,93 @@ class QuantumCircuit:
         return has_reg
 
     def mirror(self):
-        """Mirror the circuit by reversing the instructions.
-
-        This is done by recursively mirroring all instructions.
-        It does not invert any gate.
+        """DEPRECATED: use circuit.reverse_ops().
 
         Returns:
-            QuantumCircuit: the mirrored circuit
+            QuantumCircuit: the reversed circuit.
+        """
+        warnings.warn('circuit.mirror() is deprecated. Use circuit.reverse_ops() to '
+                      'reverse the order of gates.', DeprecationWarning)
+        return self.reverse_ops()
+
+    def reverse_ops(self):
+        """Reverse the circuit by reversing the order of instructions.
+
+        This is done by recursively reversing all instructions.
+        It does not invert (adjoint) any gate.
+
+        Returns:
+            QuantumCircuit: the reversed circuit.
+
+        Examples:
+
+            input:
+                 ┌───┐
+            q_0: ┤ H ├─────■──────
+                 └───┘┌────┴─────┐
+            q_1: ─────┤ RX(1.57) ├
+                      └──────────┘
+
+            output:
+                             ┌───┐
+            q_0: ─────■──────┤ H ├
+                 ┌────┴─────┐└───┘
+            q_1: ┤ RX(1.57) ├─────
+                 └──────────┘
         """
         reverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                      name=self.name + '_mirror')
+                                      name=self.name + '_reverse')
 
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ._append(inst.mirror(), qargs, cargs)
+            reverse_circ._append(inst.reverse_ops(), qargs, cargs)
         return reverse_circ
 
+    def reverse_bits(self):
+        """Return a circuit with the opposite order of wires.
+
+        The circuit is "vertically" flipped. If a circuit is
+        defined over multiple registers, the resulting circuit will have
+        the same registers but with their order flipped.
+
+        This method is useful for converting a circuit written in little-endian
+        convention to the big-endian equivalent, and vice versa.
+
+        Returns:
+            QuantumCircuit: the circuit with reversed bit order.
+
+        Examples:
+
+            input:
+                 ┌───┐
+            q_0: ┤ H ├─────■──────
+                 └───┘┌────┴─────┐
+            q_1: ─────┤ RX(1.57) ├
+                      └──────────┘
+
+            output:
+                      ┌──────────┐
+            q_0: ─────┤ RX(1.57) ├
+                 ┌───┐└────┬─────┘
+            q_1: ┤ H ├─────■──────
+                 └───┘
+        """
+        circ = QuantumCircuit(*reversed(self.qregs), *reversed(self.cregs),
+                              name=self.name)
+        num_qubits = self.num_qubits
+        num_clbits = self.num_clbits
+        old_qubits = self.qubits
+        old_clbits = self.clbits
+        new_qubits = circ.qubits
+        new_clbits = circ.clbits
+
+        for inst, qargs, cargs in self.data:
+            new_qargs = [new_qubits[num_qubits - old_qubits.index(q) - 1] for q in qargs]
+            new_cargs = [new_clbits[num_clbits - old_clbits.index(c) - 1] for c in cargs]
+            circ._append(inst, new_qargs, new_cargs)
+        return circ
+
     def inverse(self):
-        """Invert this circuit.
+        """Invert (take adjoint of) this circuit.
 
         This is done by recursively inverting all gates.
 
@@ -270,6 +341,22 @@ class QuantumCircuit:
 
         Raises:
             CircuitError: if the circuit cannot be inverted.
+
+        Examples:
+
+            input:
+                 ┌───┐
+            q_0: ┤ H ├─────■──────
+                 └───┘┌────┴─────┐
+            q_1: ─────┤ RX(1.57) ├
+                      └──────────┘
+
+            output:
+                              ┌───┐
+            q_0: ──────■──────┤ H ├
+                 ┌─────┴─────┐└───┘
+            q_1: ┤ RX(-1.57) ├─────
+                 └───────────┘
         """
         inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
                                       name=self.name + '_dg')
@@ -293,7 +380,10 @@ class QuantumCircuit:
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
         if reps > 0:
-            inst = self.to_instruction()
+            try:  # try to append as gate if possible to not disallow to_gate
+                inst = self.to_gate()
+            except QiskitError:
+                inst = self.to_instruction()
             for _ in range(reps):
                 repeated_circ.append(inst, self.qubits, self.clbits)
 
@@ -555,9 +645,19 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
 
+        Raises:
+            CircuitError: if object passed is a subclass of Instruction
+            CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
-        # Convert input to Instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
+            if issubclass(instruction, Instruction):
+                raise CircuitError('Object is a subclass of Instruction, please add () to '
+                                   'pass an instance of this object.')
+
+            raise CircuitError('Object to append must be an Instruction or '
+                               'have a to_instruction() method.')
+        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
@@ -692,7 +792,7 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
 
-    def to_gate(self, parameter_map=None):
+    def to_gate(self, parameter_map=None, label=None):
         """Create a Gate out of this circuit.
 
         Args:
@@ -700,13 +800,14 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                gate. If None, existing circuit parameters will also
                parameterize the gate.
+            label (str): Optional gate label.
 
         Returns:
             Gate: a composite gate encapsulating this circuit
             (can be decomposed back)
         """
         from qiskit.converters.circuit_to_gate import circuit_to_gate
-        return circuit_to_gate(self, parameter_map)
+        return circuit_to_gate(self, parameter_map, label=label)
 
     def decompose(self):
         """Call a decomposition pass on this circuit,
@@ -790,7 +891,7 @@ class QuantumCircuit:
             return string_temp
 
     def draw(self, output=None, scale=0.7, filename=None, style=None,
-             interactive=False, line_length=None, plot_barriers=True,
+             interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
@@ -824,13 +925,6 @@ class QuantumCircuit:
                 supporting this). Note when used with either the `text` or the
                 `latex_source` output type this has no effect and will be
                 silently ignored.
-            line_length (int): Deprecated; see `fold` which supersedes this
-                option. Sets the length of the lines generated by `text` output
-                type. This is useful when the drawing does not fit in the console.
-                If None (default), it will try to guess the console width using
-                ``shutil.get_terminal_size()``. However, if you're running in
-                jupyter, the default line length is set to 80 characters. If you
-                don't want pagination at all, set ``line_length=-1``.
             reverse_bits (bool): When set to True, reverse the bit order inside
                 registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
@@ -1000,7 +1094,6 @@ class QuantumCircuit:
                               filename=filename, style=style,
                               output=output,
                               interactive=interactive,
-                              line_length=line_length,
                               plot_barriers=plot_barriers,
                               reverse_bits=reverse_bits,
                               justify=justify,

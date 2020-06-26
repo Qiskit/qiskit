@@ -214,6 +214,19 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         """
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CRY gate."""
+    #    theta, phi, lam = self.params
+    #    cos = numpy.cos(theta / 2)
+    #    sin = numpy.sin(theta / 2)
+    #    return numpy.array([[1,0, 0, 0],
+    #                        [0, cos, 0, numpy.exp(-1j * lam) * sin],
+    #                        [0, 0, 1, 0],
+    #                        [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
+    #                       dtype=complex)
+
 
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):
     """The deprecated CU3Gate class."""

@@ -45,7 +45,13 @@ class DAGNode:
             self.name = data_dict.get('name')
             self._qargs = data_dict.get('qargs')
             self.cargs = data_dict.get('cargs')
-            self.condition = data_dict.get('condition')
+            if data_dict.get('condition'):
+                warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                              DeprecationWarning)
+            if self._op:
+                self._op.condition = (data_dict.get('condition') if self._op.condition is None
+                                      else self._op.condition)
+            self.condition = self._op.condition if self._op is not None else None
             self._wire = data_dict.get('wire')
         else:
             self.type = type
@@ -53,7 +59,12 @@ class DAGNode:
             self.name = name
             self._qargs = qargs if qargs is not None else []
             self.cargs = cargs if cargs is not None else []
-            self.condition = condition
+            if condition:
+                warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
+                              DeprecationWarning)
+            if self._op:
+                self._op.condition = condition if self._op.condition is None else self._op.condition
+            self.condition = self._op.condition if self._op is not None else None
             self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)

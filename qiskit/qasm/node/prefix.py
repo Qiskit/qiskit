@@ -14,6 +14,8 @@
 
 """Node for an OPENQASM prefix expression."""
 
+import warnings
+
 from .node import Node
 
 
@@ -28,13 +30,21 @@ class Prefix(Node):
         """Create the prefix node."""
         super().__init__('prefix', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return self.children[0].value + "(" + self.children[1].qasm(prec) + ")"
+        if prec is not None:
+            warnings.warn('Parameter \'Prefix.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return self.children[0].value + "(" + self.children[1].qasm() + ")"
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        del prec  # TODO prec ignored
+        if prec is not None:
+            warnings.warn('Parameter \'Prefix.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        if nested_scope is not None:
+            warnings.warn('Parameter \'Prefix.latex(..., nested_scope)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError:
@@ -42,12 +52,15 @@ class Prefix(Node):
                               "pylatexenc needs to be installed. Run "
                               "'pip install pylatexenc' before using this "
                               "method.")
-        return utf8tolatex(self.sym(nested_scope))
+        return utf8tolatex(self.sym())
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
+        if nested_scope is not None:
+            warnings.warn('Parameter \'Prefix.real(..., nested_scope)\' is no longer '
+                          'used and is being deprecated.', DeprecationWarning)
         operation = self.children[0].operation()
-        expr = self.children[1].real(nested_scope)
+        expr = self.children[1].real()
         return operation(expr)
 
     def sym(self, nested_scope=None):

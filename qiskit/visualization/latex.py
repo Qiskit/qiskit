@@ -145,7 +145,7 @@ class QCircuitImage:
         Returns:
             string: for writing to a LaTeX file.
         """
-        self._initialize_latex_array(aliases)
+        self._initialize_latex_array()
         self._build_latex_array(aliases)
         header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
@@ -198,8 +198,7 @@ class QCircuitImage:
         output.close()
         return contents
 
-    def _initialize_latex_array(self, aliases=None):
-        del aliases  # unused
+    def _initialize_latex_array(self):
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
