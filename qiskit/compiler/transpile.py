@@ -376,7 +376,7 @@ def _parse_transpile_args(circuits, backend,
     routing_method = _parse_routing_method(routing_method, num_circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     durations = None
-    if scheduling_method:
+    if scheduling_method[0]:
         from qiskit.transpiler.instruction_durations import InstructionDurations
         durations = InstructionDurations.from_backend(backend).update(instruction_durations)
         if not meas_map and backend:
