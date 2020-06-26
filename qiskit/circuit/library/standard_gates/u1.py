@@ -79,16 +79,16 @@ class U1Gate(Gate):
         """Create new U1 gate."""
         super().__init__('u1', 1, [theta], label=label)
 
-    def _define(self):
-        from .u3 import U3Gate  # pylint: disable=cyclic-import
-        definition = []
-        q = QuantumRegister(1, 'q')
-        rule = [
-            (U3Gate(0, 0, self.params[0]), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     from .u3 import U3Gate  # pylint: disable=cyclic-import
+    #     definition = []
+    #     q = QuantumRegister(1, 'q')
+    #     rule = [
+    #         (U3Gate(0, 0, self.params[0]), [q[0]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-U1 gate.
@@ -175,27 +175,27 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
                          ctrl_state=ctrl_state)
         self.base_gate = U1Gate(theta)
 
-    def _define(self):
-        """
-        gate cu1(lambda) a,b
-        { u1(lambda/2) a; cx a,b;
-          u1(-lambda/2) b; cx a,b;
-          u1(lambda/2) b;
-        }
-        """
-        from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
-        q = QuantumRegister(2, 'q')
-        rule = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate cu1(lambda) a,b
+    #     { u1(lambda/2) a; cx a,b;
+    #       u1(-lambda/2) b; cx a,b;
+    #       u1(lambda/2) b;
+    #     }
+    #     """
+    #     from .x import CXGate  # pylint: disable=cyclic-import
+    #     definition = []
+    #     q = QuantumRegister(2, 'q')
+    #     rule = [
+    #         (U1Gate(self.params[0] / 2), [q[0]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (U1Gate(-self.params[0] / 2), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (U1Gate(self.params[0] / 2), [q[1]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
@@ -275,7 +275,9 @@ class MCU1Gate(ControlledGate):
         self.base_gate = U1Gate(lam)
 
     def _define(self):
+        from qiskit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, 'q')
+        qc = QuantumCircuit(q, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
@@ -286,8 +288,8 @@ class MCU1Gate(ControlledGate):
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CU1Gate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-
-        self.definition = definition
+        qc.data = definition
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.

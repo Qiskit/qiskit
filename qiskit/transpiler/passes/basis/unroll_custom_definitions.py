@@ -66,9 +66,12 @@ class UnrollCustomDefinitions(TransformationPass):
                     continue
 
             try:
-                rule = node.op.definition
+                rule = node.op.definition.data
             except TypeError as err:
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
+            except AttributeError as aerr:
+                # definition is None
+                rule = None
 
             if not rule:
                 if rule == []:

@@ -50,16 +50,16 @@ class DCXGate(Gate):
         """Create new DCX gate."""
         super().__init__('dcx', 2, [])
 
-    def _define(self):
-        """
-        gate dcx a, b { cx a, b; cx a, b; }
-        """
-        from .x import CXGate
-        q = QuantumRegister(2, 'q')
-        self.definition = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], [])
-        ]
+    # def _define(self):
+    #     """
+    #     gate dcx a, b { cx a, b; cx a, b; }
+    #     """
+    #     from .x import CXGate
+    #     q = QuantumRegister(2, 'q')
+    #     self.definition = [
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (CXGate(), [q[1], q[0]], [])
+    #     ]
 
     def to_matrix(self):
         """Return a numpy.array for the DCX gate."""

@@ -69,7 +69,7 @@ class Unroller(TransformationPass):
 
             # TODO: allow choosing other possible decompositions
             try:
-                rule = node.op.definition
+                rule = node.op.definition.data
             except TypeError as err:
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
@@ -82,7 +82,7 @@ class Unroller(TransformationPass):
                     dag.substitute_node(node, rule[0][0], inplace=True)
                     break
                 try:
-                    rule = rule[0][0].definition
+                    rule = rule[0][0].definition.data
                 except TypeError as err:
                     raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 

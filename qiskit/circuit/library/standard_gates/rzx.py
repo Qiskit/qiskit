@@ -121,18 +121,18 @@ class RZXGate(Gate):
         """Create new RZX gate."""
         super().__init__('rzx', 2, [theta])
 
-    def _define(self):
-        """
-        gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
-        """
-        q = QuantumRegister(2, 'q')
-        self.definition = [
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(self.params[0]), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], [])
-        ]
+    # def _define(self):
+    #     """
+    #     gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
+    #     """
+    #     q = QuantumRegister(2, 'q')
+    #     self.definition = [
+    #         (HGate(), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (RZGate(self.params[0]), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (HGate(), [q[1]], [])
+    #     ]
 
     def inverse(self):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""

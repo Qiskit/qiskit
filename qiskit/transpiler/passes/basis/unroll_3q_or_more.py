@@ -34,7 +34,7 @@ class Unroll3qOrMore(TransformationPass):
         """
         for node in dag.multi_qubit_ops():
             # TODO: allow choosing other possible decompositions
-            rule = node.op.definition
+            rule = node.op.definition.data
             if not rule:
                 if rule == []:  # empty node
                     dag.remove_op_node(node)

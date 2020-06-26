@@ -53,19 +53,19 @@ class HGate(Gate):
         """Create new H gate."""
         super().__init__('h', 1, [], label=label)
 
-    def _define(self):
-        """
-        gate h a { u2(0,pi) a; }
-        """
-        from .u2 import U2Gate
-        definition = []
-        q = QuantumRegister(1, 'q')
-        rule = [
-            (U2Gate(0, pi), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate h a { u2(0,pi) a; }
+    #     """
+    #     from .u2 import U2Gate
+    #     definition = []
+    #     q = QuantumRegister(1, 'q')
+    #     rule = [
+    #         (U2Gate(0, pi), [q[0]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-H gate.
@@ -169,33 +169,33 @@ class CHGate(ControlledGate):
                          ctrl_state=ctrl_state)
         self.base_gate = HGate()
 
-    def _define(self):
-        """
-        gate ch a,b {
-            s b;
-            h b;
-            t b;
-            cx a, b;
-            tdg b;
-            h b;
-            sdg b;
-        }
-        """
-        from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
-        q = QuantumRegister(2, 'q')
-        rule = [
-            (SGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (TGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (TdgGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (SdgGate(), [q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate ch a,b {
+    #         s b;
+    #         h b;
+    #         t b;
+    #         cx a, b;
+    #         tdg b;
+    #         h b;
+    #         sdg b;
+    #     }
+    #     """
+    #     from .x import CXGate  # pylint: disable=cyclic-import
+    #     definition = []
+    #     q = QuantumRegister(2, 'q')
+    #     rule = [
+    #         (SGate(), [q[1]], []),
+    #         (HGate(), [q[1]], []),
+    #         (TGate(), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (TdgGate(), [q[1]], []),
+    #         (HGate(), [q[1]], []),
+    #         (SdgGate(), [q[1]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Return inverted CH gate (itself)."""

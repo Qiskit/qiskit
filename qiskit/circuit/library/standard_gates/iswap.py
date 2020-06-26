@@ -81,29 +81,29 @@ class iSwapGate(Gate):
         """Create new iSwap gate."""
         super().__init__('iswap', 2, [])
 
-    def _define(self):
-        """
-        gate iswap a,b {
-            s q[0];
-            s q[1];
-            h q[0];
-            cx q[0],q[1];
-            cx q[1],q[0];
-            h q[1];
-        }
-        """
-        from .h import HGate
-        from .s import SGate
-        from .x import CXGate
-        q = QuantumRegister(2, 'q')
-        self.definition = [
-            (SGate(), [q[0]], []),
-            (SGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], [])
-        ]
+    # def _define(self):
+    #     """
+    #     gate iswap a,b {
+    #         s q[0];
+    #         s q[1];
+    #         h q[0];
+    #         cx q[0],q[1];
+    #         cx q[1],q[0];
+    #         h q[1];
+    #     }
+    #     """
+    #     from .h import HGate
+    #     from .s import SGate
+    #     from .x import CXGate
+    #     q = QuantumRegister(2, 'q')
+    #     self.definition = [
+    #         (SGate(), [q[0]], []),
+    #         (SGate(), [q[1]], []),
+    #         (HGate(), [q[0]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (CXGate(), [q[1], q[0]], []),
+    #         (HGate(), [q[1]], [])
+    #     ]
 
     def to_matrix(self):
         """Return a numpy.array for the iSWAP gate."""

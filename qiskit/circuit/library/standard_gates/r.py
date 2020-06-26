@@ -48,21 +48,21 @@ class RGate(Gate):
         """Create new r single-qubit gate."""
         super().__init__('r', 1, [theta, phi])
 
-    def _define(self):
-        """
-        gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
-        """
-        from .u3 import U3Gate
-        definition = []
-        q = QuantumRegister(1, 'q')
-        theta = self.params[0]
-        phi = self.params[1]
-        rule = [
-            (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
+    #     """
+    #     from .u3 import U3Gate
+    #     definition = []
+    #     q = QuantumRegister(1, 'q')
+    #     theta = self.params[0]
+    #     phi = self.params[1]
+    #     rule = [
+    #         (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Invert this gate.

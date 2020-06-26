@@ -56,21 +56,21 @@ class SwapGate(Gate):
         """Create new SWAP gate."""
         super().__init__('swap', 2, [], label=label)
 
-    def _define(self):
-        """
-        gate swap a,b { cx a,b; cx b,a; cx a,b; }
-        """
-        from .x import CXGate
-        definition = []
-        q = QuantumRegister(2, 'q')
-        rule = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (CXGate(), [q[0], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate swap a,b { cx a,b; cx b,a; cx a,b; }
+    #     """
+    #     from .x import CXGate
+    #     definition = []
+    #     q = QuantumRegister(2, 'q')
+    #     rule = [
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (CXGate(), [q[1], q[0]], []),
+    #         (CXGate(), [q[0], q[1]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SWAP gate.
@@ -210,25 +210,25 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
                          ctrl_state=ctrl_state)
         self.base_gate = SwapGate()
 
-    def _define(self):
-        """
-        gate cswap a,b,c
-        { cx c,b;
-          ccx a,b,c;
-          cx c,b;
-        }
-        """
-        from .x import CXGate, CCXGate
-        definition = []
-        q = QuantumRegister(3, 'q')
-        rule = [
-            (CXGate(), [q[2], q[1]], []),
-            (CCXGate(), [q[0], q[1], q[2]], []),
-            (CXGate(), [q[2], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate cswap a,b,c
+    #     { cx c,b;
+    #       ccx a,b,c;
+    #       cx c,b;
+    #     }
+    #     """
+    #     from .x import CXGate, CCXGate
+    #     definition = []
+    #     q = QuantumRegister(3, 'q')
+    #     rule = [
+    #         (CXGate(), [q[2], q[1]], []),
+    #         (CCXGate(), [q[0], q[1], q[2]], []),
+    #         (CXGate(), [q[2], q[1]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Return inverse CSwap gate (itself)."""

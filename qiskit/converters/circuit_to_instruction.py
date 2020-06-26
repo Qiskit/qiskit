@@ -15,6 +15,7 @@
 """Helper function for converting a circuit to an instruction."""
 
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -95,15 +96,22 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     definition = target.data
 
+    qregs = []
     if instruction.num_qubits > 0:
         q = QuantumRegister(instruction.num_qubits, 'q')
+        qregs.append(q)
+
     if instruction.num_clbits > 0:
         c = ClassicalRegister(instruction.num_clbits, 'c')
-
+        qregs.append(c)
+    
     definition = list(map(lambda x:
                           (x[0],
                            list(map(lambda y: q[find_bit_position(y)], x[1])),
                            list(map(lambda y: c[find_bit_position(y)], x[2]))), definition))
-    instruction.definition = definition
+
+    qc = QuantumCircuit(*qregs, name=instruction.name)
+    qc.data = definition
+    instruction.definition = qc
 
     return instruction

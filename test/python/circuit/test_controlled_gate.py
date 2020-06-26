@@ -574,7 +574,9 @@ class TestControlledGate(QiskitTestCase):
                         i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
-
+                np.set_printoptions(precision=3, linewidth=200, suppress=True)
+                # if isinstance(gate, MCXRecursive):
+                #     import ipdb;ipdb.set_trace()
                 np.testing.assert_array_almost_equal(statevector.real, reference)
 
     @data(1, 2, 3, 4)
@@ -1010,10 +1012,12 @@ class TestControlledStandardGates(QiskitTestCase):
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
             with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
                                                              ctrl_state)):
+                np.set_printoptions(precision=3, linewidth=200, suppress=True)
                 if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
                 try:
+                    #import ipdb;ipdb.set_trace()
                     cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
                 except (AttributeError, QiskitError):
                     # 'object has no attribute "control"'
@@ -1027,6 +1031,9 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
+
+                #import ipdb;ipdb.set_trace()
+                src_mat = Operator(cgate).data
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
 

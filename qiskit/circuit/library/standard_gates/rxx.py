@@ -72,26 +72,26 @@ class RXXGate(Gate):
         """Create new RXX gate."""
         super().__init__('rxx', 2, [theta])
 
-    def _define(self):
-        """Calculate a subcircuit that implements this unitary."""
-        from .x import CXGate
-        from .u1 import U1Gate
-        from .h import HGate
-        definition = []
-        q = QuantumRegister(2, 'q')
-        theta = self.params[0]
-        rule = [
-            (HGate(), [q[0]], []),
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """Calculate a subcircuit that implements this unitary."""
+    #     from .x import CXGate
+    #     from .u1 import U1Gate
+    #     from .h import HGate
+    #     definition = []
+    #     q = QuantumRegister(2, 'q')
+    #     theta = self.params[0]
+    #     rule = [
+    #         (HGate(), [q[0]], []),
+    #         (HGate(), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (U1Gate(theta), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (HGate(), [q[1]], []),
+    #         (HGate(), [q[0]], []),
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""

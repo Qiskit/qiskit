@@ -50,19 +50,19 @@ class RYGate(Gate):
         """Create new RY gate."""
         super().__init__('ry', 1, [theta], label=label)
 
-    def _define(self):
-        """
-        gate ry(theta) a { r(theta, pi/2) a; }
-        """
-        from .r import RGate
-        definition = []
-        q = QuantumRegister(1, 'q')
-        rule = [
-            (RGate(self.params[0], pi / 2), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate ry(theta) a { r(theta, pi/2) a; }
+    #     """
+    #     from .r import RGate
+    #     definition = []
+    #     q = QuantumRegister(1, 'q')
+    #     rule = [
+    #         (RGate(self.params[0], pi / 2), [q[0]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RY gate.
@@ -168,26 +168,26 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
                          ctrl_state=ctrl_state)
         self.base_gate = RYGate(theta)
 
-    def _define(self):
-        """
-        gate cry(lambda) a,b
-        { u3(lambda/2,0,0) b; cx a,b;
-          u3(-lambda/2,0,0) b; cx a,b;
-        }
-        """
-        from .u3 import U3Gate
-        from .x import CXGate
-        definition = []
-        q = QuantumRegister(2, 'q')
-        rule = [
-            (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate cry(lambda) a,b
+    #     { u3(lambda/2,0,0) b; cx a,b;
+    #       u3(-lambda/2,0,0) b; cx a,b;
+    #     }
+    #     """
+    #     from .u3 import U3Gate
+    #     from .x import CXGate
+    #     definition = []
+    #     q = QuantumRegister(2, 'q')
+    #     rule = [
+    #         (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], []),
+    #         (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+    #         (CXGate(), [q[0], q[1]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Return inverse RY gate (i.e. with the negative rotation angle)."""

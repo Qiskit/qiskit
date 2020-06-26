@@ -52,19 +52,19 @@ class TGate(Gate):
         """Create new T gate."""
         super().__init__('t', 1, [], label=label)
 
-    def _define(self):
-        """
-        gate t a { u1(pi/4) a; }
-        """
-        from .u1 import U1Gate
-        definition = []
-        q = QuantumRegister(1, 'q')
-        rule = [
-            (U1Gate(pi / 4), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate t a { u1(pi/4) a; }
+    #     """
+    #     from .u1 import U1Gate
+    #     definition = []
+    #     q = QuantumRegister(1, 'q')
+    #     rule = [
+    #         (U1Gate(pi / 4), [q[0]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Return inverse T gate (i.e. Tdg)."""
@@ -107,19 +107,19 @@ class TdgGate(Gate):
         """Create new Tdg gate."""
         super().__init__('tdg', 1, [], label=label)
 
-    def _define(self):
-        """
-        gate tdg a { u1(pi/4) a; }
-        """
-        from .u1 import U1Gate
-        definition = []
-        q = QuantumRegister(1, 'q')
-        rule = [
-            (U1Gate(-pi / 4), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+    # def _define(self):
+    #     """
+    #     gate tdg a { u1(pi/4) a; }
+    #     """
+    #     from .u1 import U1Gate
+    #     definition = []
+    #     q = QuantumRegister(1, 'q')
+    #     rule = [
+    #         (U1Gate(-pi / 4), [q[0]], [])
+    #     ]
+    #     for inst in rule:
+    #         definition.append(inst)
+    #     self.definition = definition
 
     def inverse(self):
         """Return inverse Tdg gate (i.e. T)."""
