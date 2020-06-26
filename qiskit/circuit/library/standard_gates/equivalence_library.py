@@ -61,6 +61,8 @@ from . import (
     YGate,
     CYGate,
     RYYGate,
+    RZXGate,
+    ECRGate,
     ZGate,
     CZGate,
 )
@@ -302,6 +304,33 @@ for inst, qargs, cargs in [
 ]:
     def_rzz.append(inst, qargs, cargs)
 _sel.add_equivalence(RZZGate(theta), def_rzz)
+
+# RZXGate
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+def_rzx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[1]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (RZGate(theta), [q[1]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (HGate(), [q[1]], [])
+]:
+    def_rzx.append(inst, qargs, cargs)
+_sel.add_equivalence(RZXGate(theta), def_rzx)
+
+# ECRGate
+
+q = QuantumRegister(2, 'q')
+def_ecr = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (RZXGate(pi/4), [q[0], q[1]], []),
+        (XGate(), [q[0]], []),
+        (RZXGate(-pi/4), [q[0], q[1]], [])
+]:
+    def_ecr.append(inst, qargs, cargs)
+_sel.add_equivalence(ECRGate(), def_ecr)
 
 # SGate
 
@@ -616,6 +645,16 @@ for inst, qargs, cargs in [
     cx_to_iswap.append(inst, qargs, cargs)
 _sel.add_equivalence(CXGate(), cx_to_iswap)
 
+q = QuantumRegister(2, 'q')
+cx_to_ecr = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (RZGate(-pi/2), [q[0]], []),
+        (RYGate(pi), [q[0]], []),
+        (RXGate(pi/2), [q[1]], []),
+        (ECRGate(), [q[0], q[1]], [])
+]:
+    cx_to_ecr.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_ecr)
 
 # CCXGate
 
