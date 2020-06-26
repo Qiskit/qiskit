@@ -1745,41 +1745,6 @@ class QuantumCircuit:
 
         return self.append(Delay(len(qubits), duration, unit), qubits)
 
-    def timestep(self, length, *qargs):
-        """Apply timestep to circuit.
-
-        Args:
-            length (int): length of the timestep
-            qargs (QuantumRegister or list or range or slice): quantum register
-
-        Returns:
-            qiskit.Instruction: the attached timestep instruction.
-
-        Raises:
-            CircuitError: if arguments have bad format.
-        """
-        from .timestep import Timestep
-        qubits = []
-
-        if not qargs:  # None
-            for qreg in self.qregs:
-                for j in range(qreg.size):
-                    qubits.append(qreg[j])
-
-        for qarg in qargs:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, range):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
-        return self.append(Timestep(len(qubits), length), qubits)
-
     @deprecate_arguments({'q': 'qubit'})
     def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.HGate`."""

@@ -302,7 +302,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         # Workaround for ion trap support: If basis gates includes
         # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
         # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
-        basic_insts = ['measure', 'reset', 'barrier', 'snapshot', 'delay', 'timestep']
+        basic_insts = ['measure', 'reset', 'barrier', 'snapshot', 'delay']
         device_insts = set(pass_manager_config.basis_gates).union(basic_insts)
         if 'rxx' in pass_manager_config.basis_gates and \
                 not device_insts >= circuit.count_ops().keys():
