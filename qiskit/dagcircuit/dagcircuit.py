@@ -637,19 +637,19 @@ class DAGCircuit:
         else:
             return None
 
-    def mirror(self):
-        """Mirror the ``self`` circuit.
+    def reverse_ops(self):
+        """Reverse the operations in the ``self`` circuit.
 
         Returns:
-            DAGCircuit: the mirrored dag.
+            DAGCircuit: the reversed dag.
         """
         # TODO: speed up
         from qiskit.converters import dag_to_circuit, circuit_to_dag
         qc = dag_to_circuit(self)
-        mirrored_qc = qc.reverse_ops()
-        mirrored_dag = circuit_to_dag(mirrored_qc)
-        mirrored_dag.duration = self.duration
-        return mirrored_dag
+        reversed_qc = qc.reverse_ops()
+        reversed_dag = circuit_to_dag(reversed_qc)
+        reversed_dag.duration = self.duration
+        return reversed_dag
 
     def idle_wires(self, ignore=None):
         """Return idle wires.

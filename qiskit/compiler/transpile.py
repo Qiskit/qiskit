@@ -333,7 +333,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         from qiskit.transpiler.passes.scheduling.alap import ALAPSchedule
         from qiskit.transpiler.passes.scheduling.asap import ASAPSchedule
         from qiskit.transpiler.passes.scheduling.delayindt import DelayInDt
-        from qiskit.transpiler.passes.scheduling.measurereschedule import MeasureReschedule
+        from qiskit.transpiler.passes.scheduling.measure_reschedule import MeasureReschedule
         if 'delay' not in pass_manager_config.basis_gates:
             pass_manager_config.basis_gates.append('delay')
         instruction_durations = transpile_config['instruction_durations']

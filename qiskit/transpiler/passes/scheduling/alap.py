@@ -47,9 +47,9 @@ class ALAPSchedule(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ALAP schedule runs on physical circuits only')
 
-        new_dag = dag.mirror()
+        new_dag = dag.reverse_ops()
         new_dag = self.asap.run(new_dag)
-        new_dag = new_dag.mirror()
+        new_dag = new_dag.reverse_ops()
 
         new_dag.name = dag.name
         return new_dag
