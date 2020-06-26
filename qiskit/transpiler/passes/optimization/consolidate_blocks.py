@@ -108,7 +108,7 @@ class ConsolidateBlocks(TransformationPass):
                                     or block[0].op.is_parameterized()):
                 # an intermediate node that was added into the overall list
                 new_dag.apply_operation_back(block[0].op, block[0].qargs,
-                                             block[0].cargs, block[0].condition)
+                                             block[0].cargs)
             else:
                 # find the qubits involved in this block
                 block_qargs = set()
@@ -139,7 +139,7 @@ class ConsolidateBlocks(TransformationPass):
                             sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
-                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, nd.condition)
+                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
 
         return new_dag
 
