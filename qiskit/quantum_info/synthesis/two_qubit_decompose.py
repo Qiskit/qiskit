@@ -36,6 +36,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates.u3 import U3Gate
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
@@ -284,7 +285,8 @@ class TwoQubitBasisDecomposer():
     def __init__(self, gate, basis_fidelity=1.0):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
-        basis = self.basis = TwoQubitWeylDecomposition(gate.to_matrix())
+
+        basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
 
         # FIXME: find good tolerances
         self.is_supercontrolled = np.isclose(basis.a, np.pi/4) and np.isclose(basis.c, 0.)
