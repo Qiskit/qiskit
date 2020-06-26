@@ -38,7 +38,7 @@ from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
                                     CCXGate, HGate, RZGate, RXGate,
                                     RYGate, CRYGate, CRXGate, CSwapGate,
                                     U3Gate, CHGate, CRZGate, CU3Gate,
-                                    MSGate, Barrier, RCCXGate, RC3XGate,
+                                    MSGate, RCCXGate, RC3XGate,
                                     MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
                                     MCXVChain, C3XGate, C4XGate)
 from qiskit.circuit._utils import _compute_control_matrix

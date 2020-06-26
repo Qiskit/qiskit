@@ -14,7 +14,6 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 
-from typing import Optional, Union
 from math import ceil
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -1012,7 +1011,7 @@ def c3_root_decomposition(v_gate):
             two qubit instruction implementing the controlled version :math:`CV`.
 
     Returns:
-        The definition for the 3-controlled :math:`U` gate.
+        list: The definition for the 3-controlled :math:`U` gate.
 
     Raises:
         ValueError: If ``v_base_gate`` is not a 1-qubit gate or 2-qubit instruction.
