@@ -23,9 +23,9 @@ from qiskit.circuit.instruction import Instruction
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
-    def __init__(self, num_qubits, duration, unit='dt'):
+    def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
-        super().__init__("delay", num_qubits, 0, params=[duration], duration=duration)
+        super().__init__("delay", 1, 0, params=[duration], duration=duration)
         self.unit = unit
 
     def inverse(self):
@@ -51,3 +51,8 @@ class Delay(Instruction):
         """Return the identity matrix."""
         return np.array([[1, 0],
                          [0, 1]], dtype=complex)
+
+    def __repr__(self):
+        """Return the official string representing the delay."""
+        return "%s(duration=%s[unit=%s])" % \
+               (self.__class__.__name__, self.params[0], self.unit)

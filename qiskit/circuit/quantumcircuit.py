@@ -1698,13 +1698,14 @@ class QuantumCircuit:
 
         return self.append(Barrier(len(qubits)), qubits, [])
 
-    def delay(self, duration, *qargs, unit='dt'):
-        """Apply :class:`~qiskit.circuit.Delay`. If qargs is None, applies to all.
+    def delay(self, duration, qarg=None, unit='dt'):
+        """Apply :class:`~qiskit.circuit.Delay`. If qarg is None, applies to all qubits.
+        When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
             duration (int or float): duration. Integer type indicates duration is unitless, i.e.
                 use dt of backend. In the case of float, its `unit` must be specified.
-            qargs (QuantumRegister or list or range or slice): quantum register
+            qarg (Object): qubit argument to apply this delay.
             unit (str): unit of the duration. Default unit is ``dt``, which depends on backend.
 
         Returns:
@@ -1715,18 +1716,16 @@ class QuantumCircuit:
         """
         from .delay import Delay
         qubits = []
-
-        if not qargs:  # None
+        if qarg is None:  # -> apply delays to all qubits
             for qreg in self.qregs:
                 for j in range(qreg.size):
                     qubits.append(qreg[j])
-
-        for qarg in qargs:
+        else:
             if isinstance(qarg, QuantumRegister):
                 qubits.extend([qarg[j] for j in range(qarg.size)])
             elif isinstance(qarg, list):
                 qubits.extend(qarg)
-            elif isinstance(qarg, range):
+            elif isinstance(qarg, range) or isinstance(qarg, tuple):
                 qubits.extend(list(qarg))
             elif isinstance(qarg, slice):
                 qubits.extend(self.qubits[qarg])
@@ -1743,7 +1742,13 @@ class QuantumCircuit:
         if unit not in {'dt', 's', 'us', 'ns', 'ps'}:
             raise CircuitError('Unknown unit is specified.')
 
-        return self.append(Delay(len(qubits), duration, unit), qubits)
+        instructions = InstructionSet()
+        for q in qubits:
+            added = self.append(Delay(duration, unit), [q])
+            for inst in added:
+                instructions.add(inst, [q], [])
+        return instructions
+        # return self.append(Delay(len(qubits), duration, unit), qubits)
 
     @deprecate_arguments({'q': 'qubit'})
     def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument

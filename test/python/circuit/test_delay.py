@@ -18,11 +18,40 @@
 
 import numpy as np
 from qiskit.circuit import Delay
+from qiskit.circuit import QuantumCircuit
 from qiskit.test.base import QiskitTestCase
 
 
 class TestDelayClass(QiskitTestCase):
     """Test delay instruction for quantum circuits."""
+
+    def test_add_delay_on_single_qubit_to_circuit(self):
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.delay(100, 0)
+        qc.delay(200, [0])
+        qc.delay(300, qc.qubits[0])
+        self.assertEqual(qc.data[1], (Delay(duration=100), qc.qubits, []))
+        self.assertEqual(qc.data[2], (Delay(duration=200), qc.qubits, []))
+        self.assertEqual(qc.data[3], (Delay(duration=300), qc.qubits, []))
+
+    def test_add_delay_on_multiple_qubits_to_circuit(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.delay(100)
+        qc.delay(200, range(2))
+        qc.delay(300, qc.qubits[1:])
+
+        expected = QuantumCircuit(3)
+        expected.h(0)
+        expected.delay(100, 0)
+        expected.delay(100, 1)
+        expected.delay(100, 2)
+        expected.delay(200, 0)
+        expected.delay(200, 1)
+        expected.delay(300, 1)
+        expected.delay(300, 2)
+        self.assertEqual(qc, expected)
 
     def test_to_matrix_return_identity_matrix(self):
         actual = Delay(1, 100).to_matrix()

@@ -64,7 +64,7 @@ class ASAPSchedule(TransformationPass):
             for q in qubits:
                 if qubit_time_available[q] < until:
                     idle_duration = until - qubit_time_available[q]
-                    new_dag.apply_operation_back(Delay(1, idle_duration), [q])
+                    new_dag.apply_operation_back(Delay(idle_duration), [q])
 
         for node in dag.topological_op_nodes():
             start_time = max(qubit_time_available[q] for q in node.qargs)

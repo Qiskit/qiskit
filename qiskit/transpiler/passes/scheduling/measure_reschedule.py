@@ -122,7 +122,7 @@ class MeasureReschedule(TransformationPass):
                 qr = QuantumRegister(1)
                 splitted = DAGCircuit()
                 splitted.add_qreg(qr)
-                delay = Delay(1, duration=end_delay-start_delay)
+                delay = Delay(duration=end_delay-start_delay)
                 meas = Measure()
                 meas.duration = end_meas - start_meas
                 splitted.apply_operation_back(delay, [qr[0]])
