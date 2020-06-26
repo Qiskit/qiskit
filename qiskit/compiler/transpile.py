@@ -223,7 +223,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
-                                           layout_method, routing_method,
                                            scheduling_method, instruction_durations, meas_map,
                                            seed_transpiler, optimization_level,
                                            callback, output_name)

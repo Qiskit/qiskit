@@ -57,7 +57,7 @@ class MeasureReschedule(TransformationPass):
             raise TranspilerError('MeasureReschedule runs on physical circuits only')
 
         qubit = {}  # qubit-index (qidx) -> qubit
-        for q in dag.qubits():
+        for q in dag.qubits:
             qubit[q.index] = q
 
         measures = list(dag.op_nodes(op=Measure))
