@@ -1,0 +1,13 @@
+# This program is executed by binder for image testing:
+# https://github.com/Qiskit/qiskit-terra/pull/4544/
+# See https://mybinder.readthedocs.io/en/latest/config_files.html?#postbuild-run-code-after-installing-the-environment
+
+# Dependencies
+# - matplotlib: for MPL drawer
+# - pillow: for image comparison
+# - appmode: jupyter extension for executing the notebook
+pip install matplotlib pillow appmode
+
+# Activation of appmode extension
+jupyter nbextension     enable --py --sys-prefix appmode
+jupyter serverextension enable --py --sys-prefix appmode

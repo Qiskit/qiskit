@@ -22,8 +22,28 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RGate(Gate):
-    """Rotation θ around the cos(φ)x + sin(φ)y axis."""
+    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
 
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌──────┐
+        q_0: ┤ R(ϴ) ├
+             └──────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        RY(\theta) = e^{-i \th Y} =
+            \begin{pmatrix}
+                \cos{\th} & -i e^{-i \phi} \sin{\th} \\
+                -i e^{i \phi} \sin{\th} & \cos{\th}
+            \end{pmatrix}
+    """
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
         super().__init__('r', 1, [theta, phi])
