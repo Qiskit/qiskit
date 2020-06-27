@@ -1725,7 +1725,7 @@ class QuantumCircuit:
                 qubits.extend([qarg[j] for j in range(qarg.size)])
             elif isinstance(qarg, list):
                 qubits.extend(qarg)
-            elif isinstance(qarg, range) or isinstance(qarg, tuple):
+            elif isinstance(qarg, (range, tuple)):
                 qubits.extend(list(qarg))
             elif isinstance(qarg, slice):
                 qubits.extend(self.qubits[qarg])
@@ -1748,7 +1748,6 @@ class QuantumCircuit:
             for inst in added:
                 instructions.add(inst, [q], [])
         return instructions
-        # return self.append(Delay(len(qubits), duration, unit), qubits)
 
     @deprecate_arguments({'q': 'qubit'})
     def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
