@@ -121,7 +121,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename='plot_barriers_true.png', plot_barriers=True)
         self.circuit_drawer(circuit, filename='plot_barriers_false.png', plot_barriers=False)
 
-    def test_plot_barriers_false(self):
+    def test_no_barriers_false(self):
         """Generate the same circuit as test_plot_barriers but without the barrier commands
          as this is what the circuit should look like when displayed with plot barriers false"""
         q1 = QuantumRegister(2, 'q')
@@ -130,7 +130,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(q1[0])
         circuit.h(q1[1])
 
-        self.circuit_drawer(circuit, filename='plot_barriers_false.png', plot_barriers=False)
+        self.circuit_drawer(circuit, filename='no_barriers.png', plot_barriers=False)
 
 
 if __name__ == '__main__':

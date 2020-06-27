@@ -56,6 +56,8 @@ def black_or_b(diff_image, image, reference, opacity=0.85):
     shade = new_gray(size, 0)
     new = reference.copy()
     new.paste(shade, mask=mask)
+    if image.size != new.size:
+        image = image.resize(new.size)
     new.paste(image, mask=thresholded_diff)
     return new
 
