@@ -18,10 +18,14 @@ Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules and unitary synthesis.
 """
 
+import math
+
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
@@ -85,6 +89,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or 'dense'
     routing_method = pass_manager_config.routing_method or 'stochastic'
+    translation_method = pass_manager_config.translation_method or 'translator'
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -131,7 +136,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
-    _unroll = [Unroller(basis_gates)]
+    if translation_method == 'unroller':
+        _unroll = [Unroller(basis_gates)]
+    elif translation_method == 'translator':
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        _unroll = [UnrollCustomDefinitions(sel, basis_gates),
+                   BasisTranslator(sel, basis_gates)]
+    else:
+        raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any CX direction mismatch
     _direction_check = [CheckCXDirection(coupling_map)]
@@ -152,7 +164,18 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    _opt = [Collect2qBlocks(), ConsolidateBlocks(),
+    # Choose the first available 2q gate to use in the KAK decomposition.
+    from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
+    kak_gate_names = {
+        'iswap': iSwapGate(), 'cx': CXGate(), 'cz': CZGate(), 'rxx': RXXGate(math.pi / 2)
+    }
+
+    kak_gate = None
+    kak_gates = set(basis_gates or []).intersection(kak_gate_names.keys())
+    if kak_gates:
+        kak_gate = kak_gate_names[kak_gates.pop()]
+
+    _opt = [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=kak_gate),
             Optimize1qGates(basis_gates), CommutativeCancellation()]
 
     # Build pass manager

@@ -102,12 +102,6 @@ def control(operation: Union[Gate, ControlledGate],
     # pylint: disable=unused-import
     import qiskit.circuit.library.standard_gates.multi_control_rotation_gates
 
-    # check args
-    if num_ctrl_qubits == 0:
-        return operation
-    elif num_ctrl_qubits < 0:
-        raise CircuitError('number of control qubits must be positive integer')
-
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
     q_ancillae = None  # TODO: add
