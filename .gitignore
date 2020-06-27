@@ -146,3 +146,4 @@ docs/stubs/*
 # Notebook testing images
 test/ipynb/mpl/*.png
 test/ipynb/mpl/result_test.json
+test/ipynb/mpl_tester.ipynb
