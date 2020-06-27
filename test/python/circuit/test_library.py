@@ -255,9 +255,8 @@ class TestFourierCheckingLibrary(QiskitTestCase):
 
         self.assertEqual(expected, simulated)
 
-    @data(
-        ([1, -1, -1, -1], [1, 1, -1, -1])
-    )
+    @data(([1, -1, -1, -1], [1, 1, -1, -1]),
+          ([1, 1, 1, 1], [1, 1, 1, 1]))
     @unpack
     def test_fourier_checking(self, f_truth_table, g_truth_table):
         """Test if the Fourier Checking circuit produces the correct matrix."""
