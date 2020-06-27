@@ -21,7 +21,8 @@ from .exceptions import OracleCompilerError
 
 
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
-    """ Converts a Tweedledum circuit into a Qiskit circuit. A Tweedledum circuit is a
+    """ Converts a `Tweedledum <https://github.com/boschmitt/tweedledum>`_
+    circuit into a Qiskit circuit. A Tweedledum circuit is a
     dictionary with the following shape:
         {
         "num_qubits": 2,
