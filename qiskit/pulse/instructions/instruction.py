@@ -239,8 +239,8 @@ class Instruction(ScheduleComponent, ABC):
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = 1, channels_to_plot: Optional[List[Channel]] = None,
-             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
+             scale: float = 1, plot_all: bool = False,
+             plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None,
@@ -253,7 +253,6 @@ class Instruction(ScheduleComponent, ABC):
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
-            channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
             interactive: When set true show the circuit in a new window
@@ -274,11 +273,6 @@ class Instruction(ScheduleComponent, ABC):
             scale = scaling
 
         from qiskit import visualization
-
-        if channels_to_plot:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                          DeprecationWarning, 3)
-            channels = channels_to_plot
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,

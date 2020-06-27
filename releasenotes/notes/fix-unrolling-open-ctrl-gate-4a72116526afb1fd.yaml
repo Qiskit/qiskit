@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Open controls were implemented by modifying a gate\'s 
+    definition. However, when the gate already exists in the basis,
+    this definition is not used, which yields incorrect circuits sent
+    to a backend. This modifies the unroller to output the definition
+    if it encounters a controlled gate with open controls.
