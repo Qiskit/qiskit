@@ -58,7 +58,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
              meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
              meas_map: Optional[List[List[Qubit]]] = None,
              memory_slot_size: int = 100,
-             rep_time: Optional[float] = None,
+             rep_time: Optional[int] = None,
              rep_delay: Optional[float] = None,
              parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
              parametric_pulses: Optional[List[str]] = None,
@@ -293,7 +293,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                           "used instead, if specified.", RuntimeWarning)
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
-        rep_time = rep_time * 1e6  # convert sec to μs
+        rep_time = int(rep_time * 1e6)  # convert sec to μs
 
     rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
     if rep_delay:

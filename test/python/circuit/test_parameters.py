@@ -1189,6 +1189,11 @@ class TestParameterExpressions(QiskitTestCase):
 
         self.assertEqual(updated_expr, expected)
 
+    def test_conjugate(self):
+        """Test calling conjugate on a ParameterExpression."""
+        x = Parameter('x')
+        self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
