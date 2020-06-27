@@ -220,6 +220,7 @@ stages:
             set -e
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
+            tools/verify_headers.py qiskit test
             reno lint
           displayName: 'Style and lint'
     - job: 'Docs'

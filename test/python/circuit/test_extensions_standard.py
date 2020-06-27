@@ -1365,7 +1365,7 @@ class TestStandardMethods(QiskitTestCase):
                 # n_qubits argument is no longer supported.
                 free_params = 2
             else:
-                free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
+                free_params = len(set(sig.parameters) - {'label'})
             try:
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
