@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-This module is used internally by ``qiskit.transpiler.oracle_compiler.LogicNetwork``.
+This module is used internally by ``qiskit.transpiler.oracle_compiler.Oracle``.
 """
 
 import ast
@@ -84,7 +84,7 @@ class OracleVisitor(ast.NodeVisitor):
         return (type_value, signal_value)
 
     def bit_binop(self, op, values):
-        """Uses LogicNetwork.bitops to extend self._network"""
+        """Uses OracleVisitor.bitops to extend self._network"""
         bitop = OracleVisitor.bitops.get(type(op))
         if not bitop:
             raise OracleParseError("Unknown binop.op %s" % op)

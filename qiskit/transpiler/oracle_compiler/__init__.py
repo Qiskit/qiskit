@@ -80,7 +80,7 @@ Logic Network
 .. autosummary::
    :toctree: ../stubs/
 
-   LogicNetwork
+   Oracle
 
 Exceptions
 ----------
@@ -93,6 +93,6 @@ Exceptions
    OracleCompilerTypeError
 
 """
-from .logic_network import LogicNetwork
+from .oracle import Oracle
 from .exceptions import OracleParseError, OracleCompilerError, OracleCompilerTypeError
 from .compile_oracle import compile_oracle

@@ -22,19 +22,19 @@ Oracle compiler (:mod:`qiskit.transpiler.oracle_compiler.compile_oracle`)
 """
 
 import inspect
-from .logic_network import LogicNetwork
+from .oracle import Oracle
 
 
 def compile_oracle(func):
     """
-    Parses and type checks the callable ``func`` to compile it into a ``LogicNetwork``
+    Parses and type checks the callable ``func`` to compile it into an ``Oracle``
     that can be synthesised into a ``QuantumCircuit``.
 
     Args:
         func (callable): A callable (with type hints) to compile into a logic network.
 
     Returns:
-        LogicNetwork: An object that can synthesis into a QuantumCircuit (via ``synth()`` method).
+        Oracle: An object that can synthesis into a QuantumCircuit (via ``synth()`` method).
     """
     source = inspect.getsource(func).strip()
-    return LogicNetwork(source)
+    return Oracle(source)

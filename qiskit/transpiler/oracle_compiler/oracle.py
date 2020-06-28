@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""LogicNetwork and the related exceptions"""
+"""Oracle class"""
 
 import ast
 try:
@@ -25,12 +25,12 @@ from .oracle_visitor import OracleVisitor
 from .utils import tweedledum2qiskit
 
 
-class LogicNetwork:
-    """A logical network represents an oracle function."""
+class Oracle:
+    """An oracle object represents an oracle function and its logic network."""
 
     def __init__(self, source):
-        """Creates a LogicNetwork from Python source code in ``source``. The code should be
-        a single function with type hints.
+        """Creates a ``Oracle`` from Python source code in ``source``. The code should be
+        a single function with types.
 
         Args:
             source (str): Python code with type hints.
