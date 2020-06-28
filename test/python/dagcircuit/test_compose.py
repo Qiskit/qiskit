@@ -42,7 +42,8 @@ class TestDagCompose(QiskitTestCase):
         self.left_qubit4 = qreg2[1]
         self.left_clbit0 = creg[0]
         self.left_clbit1 = creg[1]
-        self.condition = (creg, 3)
+        self.condition1 = (creg, 2)
+        self.condition2 = (creg, 1)
 
     def test_compose_inorder(self):
         """Composing two dags of the same width, default order.
@@ -274,7 +275,7 @@ class TestDagCompose(QiskitTestCase):
                     ┌──┴───┴──┐             └─┬─┘    │    ║ └╥┘
         lqr_1_2: |0>┤ U1(0.1) ├  +         ┌──┴──┐┌──┴──┐ ║  ║
                     └─────────┘     rcr_0: ╡     ╞╡     ╞═╩══╬═
-        lqr_2_0: |0>─────■─────            │ = 3 ││ = 3 │    ║
+        lqr_2_0: |0>─────■─────            │ = 2 ││ = 1 │    ║
                        ┌─┴─┐        rcr_1: ╡     ╞╡     ╞════╩═
         lqr_2_1: |0>───┤ X ├───            └─────┘└─────┘
                        └───┘
@@ -295,7 +296,7 @@ class TestDagCompose(QiskitTestCase):
                     └───┘    └─┬─┘    │   └╥┘ ║
                             ┌──┴──┐┌──┴──┐ ║  ║
         lcr_0: ═════════════╡     ╞╡     ╞═╩══╬═
-                            │ = 3 ││ = 3 │    ║
+                            │ = 2 ││ = 1 │    ║
         lcr_1: ═════════════╡     ╞╡     ╞════╩═
                             └─────┘└─────┘
         """
@@ -303,8 +304,8 @@ class TestDagCompose(QiskitTestCase):
         creg = ClassicalRegister(2, 'rcr')
 
         circuit_right = QuantumCircuit(qreg, creg)
-        circuit_right.x(qreg[1]).c_if(creg, 3)
-        circuit_right.h(qreg[0]).c_if(creg, 3)
+        circuit_right.x(qreg[1]).c_if(creg, 1)
+        circuit_right.h(qreg[0]).c_if(creg, 2)
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
@@ -317,8 +318,8 @@ class TestDagCompose(QiskitTestCase):
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
-        circuit_expected.x(self.left_qubit4).c_if(*self.condition)
-        circuit_expected.h(self.left_qubit1).c_if(*self.condition)
+        circuit_expected.x(self.left_qubit4).c_if(*self.condition1)
+        circuit_expected.h(self.left_qubit1).c_if(*self.condition2)
         circuit_expected.measure(self.left_qubit4, self.left_clbit0)
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
 
