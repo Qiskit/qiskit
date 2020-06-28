@@ -60,6 +60,10 @@ class OracleVisitor(ast.NodeVisitor):
         if node.returns is None:
             raise OracleParseError("return type is needed")
         scope = {'return': (node.returns.id, None), node.returns.id: ('type', None)}
+
+        # Extend scope with the decorator's names
+        scope.update({decorator.id: ('decorator', None) for decorator in node.decorator_list})
+
         self.scopes.append(scope)
         self._network = xag_network()
         self.extend_scope(node.args)
