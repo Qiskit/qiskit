@@ -33,7 +33,7 @@ def save_data(image_filename, testname):
             data = json.load(datafile)
     else:
         data = {}
-    data[image_filename] = testname
+    data[image_filename] = {'testname': testname}
     with open(datafilename, 'w') as datafile:
         json.dump(data, datafile)
 

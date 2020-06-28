@@ -15,6 +15,7 @@
 import os
 import json
 from PIL import Image, ImageChops, ImageDraw
+import zipfile
 
 SWD = os.path.dirname(os.path.abspath(__file__))
 
@@ -62,11 +63,20 @@ def black_or_b(diff_image, image, reference, opacity=0.85):
     return new
 
 
+def zipfiles(files, zipname):
+    with zipfile.ZipFile(zipname, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for file in files:
+            zipf.write(file, arcname=os.path.basename(file))
+
+
 class Results:
     def __init__(self, names, directory):
         self.names = names
         self.directory = directory
         self.data = {}
+        self.exact_match = []
+        self.mismatch = []
+        self.missing = []
         datafilename = os.path.join(SWD, directory, 'result_test.json')
         if os.path.exists(datafilename):
             with open(datafilename, 'r') as datafile:
@@ -99,20 +109,58 @@ class Results:
         ret += '</tr></table></details>'
         return ret
 
+    def diff_images(self):
+        for name in self.names:
+            ratio = diff_name = title = None
+            fullpath_name = os.path.join(self.directory, name)
+            fullpath_reference = os.path.join(self.directory, 'references', name)
+
+            if os.path.exists(os.path.join(SWD, fullpath_reference)):
+                ratio, diff_name = similarity_ratio(fullpath_name, fullpath_reference)
+                title = '<tt><b>%s</b> | %s </tt> | ratio: %s' % (name,
+                                                                  self.data[name]['testname'],
+                                                                  ratio)
+                if ratio == 1:
+                    self.exact_match.append(fullpath_name)
+                else:
+                    self.mismatch.append(fullpath_name)
+            else:
+                self.missing.append(fullpath_name)
+
+            self.data[name]['ratio'] = ratio
+            self.data[name]['diff_name'] = diff_name
+            self.data[name]['title'] = title
+
+    def summary(self):
+        ret = ''
+
+        if len(self.mismatch) >= 2:
+            zipfiles(self.mismatch, 'mpl/mismatch.zip')
+            ret += '<div><a href="mpl/mismatch.zip">' \
+                   'Download %s mismatch results as a zip</a></div>' % len(self.mismatch)
+
+        if len(self.mismatch) >= 2:
+            zipfiles(self.missing, 'mpl/missing.zip')
+            ret += '<div><a href="mpl/missing.zip">' \
+                   'Download %s missing results as a zip</a></div>' % len(self.missing)
+
+        return ret
+
     def _repr_html_(self):
-        ret = "<div>"
+        ret = self.summary()
+        ret += "<div>"
         for name in self.names:
             fullpath_name = os.path.join(self.directory, name)
             fullpath_reference = os.path.join(self.directory, 'references', name)
             if os.path.exists(os.path.join(SWD, fullpath_reference)):
-                ratio, diff_name = similarity_ratio(fullpath_name, fullpath_reference)
-                title = '<tt><b>%s</b> | %s </tt> | ratio: %s' % (name, self.data[name], ratio)
-                if ratio == 1:
+                if self.data[name]['ratio'] == 1:
                     ret += Results.passed_result_html(fullpath_name, fullpath_reference,
-                                                      diff_name, title)
+                                                      self.data[name]['diff_name'],
+                                                      self.data[name]['title'])
                 else:
                     ret += Results.failed_result_html(fullpath_name, fullpath_reference,
-                                                      diff_name, title)
+                                                      self.data[name]['diff_name'],
+                                                      self.data[name]['title'])
             else:
                 title = 'Download <a download="%s" href="%s">this image</a> to <tt>%s</tt>' \
                         ' and add/push to the repo</td>' % (name, fullpath_name, fullpath_reference)
@@ -127,3 +175,4 @@ if __name__ == '__main__':
         if file.endswith(".png") and not file.endswith(".diff.png"):
             result_files.append(file)
     results = Results(result_files, 'mpl')
+    results.diff_images()
