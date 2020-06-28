@@ -17,7 +17,7 @@
 import unittest
 import os
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit import visualization
 
 from .visualization import QiskitVisualizationTestCase
