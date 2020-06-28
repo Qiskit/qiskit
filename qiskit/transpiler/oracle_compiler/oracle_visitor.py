@@ -59,8 +59,8 @@ class OracleVisitor(ast.NodeVisitor):
         """The function definition should have type hints"""
         if node.returns is None:
             raise OracleParseError("return type is needed")
-        self.scopes.append({'return': (node.returns.id, None),
-                            node.returns.id: ('type', None)})
+        scope = {'return': (node.returns.id, None), node.returns.id: ('type', None)}
+        self.scopes.append(scope)
         self._network = xag_network()
         self.extend_scope(node.args)
         return super().generic_visit(node)
