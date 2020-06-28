@@ -508,31 +508,19 @@ class DAGCircuit:
         Returns:
             tuple(ClassicalRegister,int): new condition
         """
-        print("WIRE", wire_map, condition)
         if condition is None:
             new_condition = None
         else:
-            # Map the register name, using fact that registers must not be
-            # fragmented by the wire_map (this must have been checked
-            # elsewhere)
-            """bit0 = condition[0][0]
-            new_condition = (wire_map.get(bit0, bit0).register, condition[1])
-            print('bit0, wire_reg, cond1', bit0, wire_map.get(bit0, bit0).register, condition[1])
-            print('New2', new_condition)"""
+            # if there is a condition, map the condition bits to the
+            # composed cregs based on the wire_map
             cond_val = condition[1]
             new_cond_val = 0
             for bit in wire_map:
                 if isinstance(bit, Clbit):
-                    new_clbit = wire_map[bit].register
-                    if 2**bit.index & cond_val:
-                        print('wire2       ', bit, wire_map[bit], wire_map[bit].index)
-                        new_cond_val += 2**(wire_map[bit].index)# * (2**bit.index & cond_val)
-                        print('wire3    ', 2**wire_map[bit].index, 2**(bit.index), (2**bit.index & cond_val), new_cond_val)
-
-            new_condition = (new_clbit, new_cond_val)#(condition[0], new_cond_val)
-
-
-        print('NEW       ', new_condition)
+                    new_creg = wire_map[bit].register
+                    if 2**(bit.index) & cond_val:
+                        new_cond_val += 2**(wire_map[bit].index)
+            new_condition = (new_creg, new_cond_val)
         return new_condition
 
     def extend_back(self, dag, edge_map=None):

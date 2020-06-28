@@ -42,8 +42,8 @@ class TestDagCompose(QiskitTestCase):
         self.left_qubit4 = qreg2[1]
         self.left_clbit0 = creg[0]
         self.left_clbit1 = creg[1]
-        self.condition1 = (creg, 2)
-        self.condition2 = (creg, 1)
+        self.condition1 = (creg, 1)
+        self.condition2 = (creg, 2)
 
     def test_compose_inorder(self):
         """Composing two dags of the same width, default order.
@@ -296,7 +296,7 @@ class TestDagCompose(QiskitTestCase):
                     └───┘    └─┬─┘    │   └╥┘ ║
                             ┌──┴──┐┌──┴──┐ ║  ║
         lcr_0: ═════════════╡     ╞╡     ╞═╩══╬═
-                            │ = 2 ││ = 1 │    ║
+                            │ = 1 ││ = 2 │    ║
         lcr_1: ═════════════╡     ╞╡     ╞════╩═
                             └─────┘└─────┘
         """
@@ -304,8 +304,8 @@ class TestDagCompose(QiskitTestCase):
         creg = ClassicalRegister(2, 'rcr')
 
         circuit_right = QuantumCircuit(qreg, creg)
-        circuit_right.x(qreg[1]).c_if(creg, 1)
-        circuit_right.h(qreg[0]).c_if(creg, 2)
+        circuit_right.x(qreg[1]).c_if(creg, 2)
+        circuit_right.h(qreg[0]).c_if(creg, 1)
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
