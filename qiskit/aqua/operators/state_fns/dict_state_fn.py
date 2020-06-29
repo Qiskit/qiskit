@@ -205,10 +205,10 @@ class DictStateFn(StateFn):
         # we define all missing strings to have a function value of
         # zero.
         if isinstance(front, DictStateFn):
-            return round(
+            return np.round(
                 cast(float, sum([v * front.primitive.get(b, 0) for (b, v) in
                                  self.primitive.items()]) * self.coeff * front.coeff),
-                ndigits=EVAL_SIG_DIGITS)
+                decimals=EVAL_SIG_DIGITS)
 
         # All remaining possibilities only apply when self.is_measurement is True
 
@@ -217,10 +217,10 @@ class DictStateFn(StateFn):
             # TODO does it need to be this way for measurement?
             # return sum([v * front.primitive.data[int(b, 2)] *
             # np.conj(front.primitive.data[int(b, 2)])
-            return round(
+            return np.round(
                 cast(float, sum([v * front.primitive.data[int(b, 2)] for (b, v) in
                                  self.primitive.items()]) * self.coeff),
-                ndigits=EVAL_SIG_DIGITS)
+                decimals=EVAL_SIG_DIGITS)
 
         from .circuit_state_fn import CircuitStateFn
         if isinstance(front, CircuitStateFn):

@@ -148,14 +148,14 @@ class VectorStateFn(StateFn):
         from .operator_state_fn import OperatorStateFn
         from .circuit_state_fn import CircuitStateFn
         if isinstance(front, DictStateFn):
-            return round(sum([v * self.primitive.data[int(b, 2)] * front.coeff  # type: ignore
-                              for (b, v) in front.primitive.items()]) * self.coeff,
-                         ndigits=EVAL_SIG_DIGITS)
+            return np.round(sum([v * self.primitive.data[int(b, 2)] * front.coeff  # type: ignore
+                                 for (b, v) in front.primitive.items()]) * self.coeff,
+                            decimals=EVAL_SIG_DIGITS)
 
         if isinstance(front, VectorStateFn):
             # Need to extract the element or np.array([1]) is returned.
-            return round(np.dot(self.to_matrix(), front.to_matrix())[0],
-                         ndigits=EVAL_SIG_DIGITS)
+            return np.round(np.dot(self.to_matrix(), front.to_matrix())[0],
+                            decimals=EVAL_SIG_DIGITS)
 
         if isinstance(front, CircuitStateFn):
             # Don't reimplement logic from CircuitStateFn
