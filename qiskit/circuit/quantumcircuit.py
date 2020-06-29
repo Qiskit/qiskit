@@ -410,11 +410,12 @@ class QuantumCircuit:
                                'be in the circuit for this operation.')
 
         controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
-        control_qubits = QuantumRegister(self.num_ctrl_qubits, 'ctrl')
-        controlled_circuit = QuantumCircuit(control_qubits[:] + self.qubits, name='c_')
-        controlled_circuit.append(controlled_gate, controlled_circuit.qubits)
+        control_qreg = QuantumRegister(num_ctrl_qubits)
+        controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
+                                         name='c_{}'.format(self.name))
+        controlled_circ.append(controlled_gate, controlled_circ.qubits)
 
-        return controlled_circuit
+        return controlled_circ
 
     def combine(self, rhs):
         """Append rhs to self if self contains compatible registers.
