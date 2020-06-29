@@ -82,7 +82,7 @@ class MCMT(QuantumCircuit):
         super().__init__(num_qubits, name='mcmt')
 
         if label is None:
-            self.label = '{}-{}'.format(num_target_qubits, gate.name.capitalize())
+            self.label = '{}-{}'.format(num_target_qubits, self.gate.name.capitalize())
         else:
             self.label = label
 
