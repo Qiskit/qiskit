@@ -111,8 +111,6 @@ class Counts(dict):
         if not bin_data:
             bin_data = postprocess.format_counts(self.hex_raw, header=header)
         super().__init__(bin_data)
-        self.name = name
-        self.shots = shots
         self.time_taken = time_taken
 
     def most_frequent(self):
