@@ -190,7 +190,8 @@ class OperatorStateFn(StateFn):
             front = StateFn(front)
 
         if isinstance(self.primitive, ListOp) and self.primitive.distributive:
-            evals = [OperatorStateFn(op, coeff=self.coeff, is_measurement=self.is_measurement).eval(
+            coeff = self.coeff * self.primitive.coeff
+            evals = [OperatorStateFn(op, coeff=coeff, is_measurement=self.is_measurement).eval(
                 front) for op in self.primitive.oplist]
             return self.primitive.combo_fn(evals)
 

@@ -123,9 +123,9 @@ class ComposedOp(ListOp):
         def distribute_compose(l, r):
             if isinstance(l, ListOp) and l.distributive:
                 # Either ListOp or SummedOp, returns correct type
-                return l.__class__([distribute_compose(l_op, r) for l_op in l.oplist])
+                return l.__class__([distribute_compose(l_op * l.coeff, r) for l_op in l.oplist])
             if isinstance(r, ListOp) and r.distributive:
-                return r.__class__([distribute_compose(l, r_op) for r_op in r.oplist])
+                return r.__class__([distribute_compose(l, r_op * r.coeff) for r_op in r.oplist])
             else:
                 return l.compose(r)
 

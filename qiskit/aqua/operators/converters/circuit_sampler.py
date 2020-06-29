@@ -47,6 +47,7 @@ class CircuitSampler(ConverterBase):
     the same circuit efficiently. If you are converting multiple different Operators,
     you are better off using a different CircuitSampler for each Operator to avoid cache thrashing.
     """
+
     def __init__(self,
                  backend: Union[BaseBackend, QuantumInstance] = None,
                  statevector: Optional[bool] = None,
@@ -302,7 +303,7 @@ class CircuitSampler(ConverterBase):
                     result_sfn = StateFn(op_c.coeff * results.get_statevector(circ_index))
                 else:
                     shots = self.quantum_instance._run_config.shots
-                    result_sfn = StateFn({b: (v * op_c.coeff / shots) ** .5
+                    result_sfn = StateFn({b: (v / shots) ** 0.5 * op_c.coeff
                                           for (b, v) in results.get_counts(circ_index).items()})
                 if self._attach_results:
                     result_sfn.execution_results = circ_results
