@@ -29,8 +29,8 @@ from qiskit import exceptions
 class Counts(dict):
     """A class to store a counts result from a circuit execution."""
 
-    def __init__(self, data, name=None, shots=None, time_taken=None,
-                 creg_sizes=None, memory_slots=None):
+    def __init__(self, data, time_taken=None, creg_sizes=None,
+                 memory_slots=None):
         """Build a counts object
 
         Args:
@@ -48,8 +48,6 @@ class Counts(dict):
                        kwargs don't work and :meth:`hex_outcomes` and
                        :meth:`int_outcomes` also do not work.
 
-            name (str): A string name for the counts object
-            shots (int): The number of shots used in the experiment
             time_taken (float): The duration of the experiment that generated
                 the counts
             creg_sizes (list): a nested list where the inner element is a list
@@ -58,7 +56,6 @@ class Counts(dict):
                 ``[('c_reg', 2), ('my_creg', 4)]``.
             memory_slots (int): The number of total ``memory_slots`` in the
                 experiment.
-            metadata: Any arbitrary key value metadata passed in as kwargs.
         Raises:
             TypeError: If the input key type is not an int or string
             QiskitError: If a dit string key is input with creg_sizes and/or
