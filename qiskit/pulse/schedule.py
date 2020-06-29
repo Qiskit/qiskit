@@ -546,9 +546,9 @@ class Schedule(ScheduleComponent):
                         continue
 
                 raise PulseError(
-                    "Cannot find interval ({t0}, {tf}) on "
-                    "channel {ch}.".format(
-                        ch=channel, t0=interval[0], tf=interval[1]))
+                    "Cannot find interval ({t0}, {tf}) to remove from "
+                    "channel {ch} in Schedule(name='{name}').".format(
+                        ch=channel, t0=interval[0], tf=interval[1], name=schedule.name))
 
             if not channel_timeslots:
                 self._timeslots.pop(channel)
