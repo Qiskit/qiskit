@@ -537,7 +537,7 @@ class Schedule(ScheduleComponent):
                     'The channel {} is not present in the schedule'.format(channel))
 
             channel_timeslots = self._timeslots[channel]
-            for idx, interval in enumerate(schedule._timeslots[channel]):
+            for interval in schedule._timeslots[channel]:
                 if channel_timeslots:
                     interval = (interval[0] + time, interval[1] + time)
                     index = _find_interval(channel_timeslots, interval)
