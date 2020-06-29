@@ -65,6 +65,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
     def setUp(self):
         self.circuit_drawer = save_data_wrap(_matplotlib_circuit_drawer, str(self))
 
+    def test_empty_circuit(self):
+        """Test empty circuit"""
+        circuit = QuantumCircuit()
+
+        self.circuit_drawer(circuit, filename='empty_circut.png')
+
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
