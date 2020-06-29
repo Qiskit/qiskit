@@ -55,12 +55,12 @@ from . import (
     C3XGate,
     C4XGate,
     RC3XGate,
+    C3SqrtXGate,
     YGate,
     CYGate,
     RYYGate,
     ZGate,
     CZGate,
-    C3SqrtXGate,
 )
 
 
@@ -193,6 +193,39 @@ for inst, qargs, cargs in [
     def_c3x.append(inst, qargs, cargs)
 _sel.add_equivalence(C3XGate(), def_c3x)
 
+q = QuantumRegister(4, 'q')
+def_c3sqrtx = QuantumCircuit(4)
+for inst, qargs, cargs in [
+        (HGate(), [q[3]], []),
+        (CU1Gate(-pi/8), [q[0], q[3]], []),
+        (HGate(), [q[3]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (HGate(), [q[3]], []),
+        (CU1Gate(pi/8), [q[1], q[3]], []),
+        (HGate(), [q[3]], []),
+        (CXGate(), [q[0], q[1]], []),
+        (HGate(), [q[3]], []),
+        (CU1Gate(-pi/8), [q[1], q[3]], []),
+        (HGate(), [q[3]], []),
+        (CXGate(), [q[1], q[2]], []),
+        (HGate(), [q[3]], []),
+        (CU1Gate(pi/8), [q[2], q[3]], []),
+        (HGate(), [q[3]], []),
+        (CXGate(), [q[0], q[2]], []),
+        (HGate(), [q[3]], []),
+        (CU1Gate(-pi/8), [q[2], q[3]], []),
+        (HGate(), [q[3]], []),
+        (CXGate(), [q[1], q[2]], []),
+        (HGate(), [q[3]], []),
+        (CU1Gate(pi/8), [q[2], q[3]], []),
+        (HGate(), [q[3]], []),
+        (CXGate(), [q[0], q[2]], []),
+        (HGate(), [q[3]], []),
+        (CU1Gate(-pi/8), [q[2], q[3]], []),
+        (HGate(), [q[3]], [])
+]:
+    def_c3sqrtx.append(inst, qargs, cargs)
+_sel.add_equivalence(C3SqrtXGate(), def_c3sqrtx)
 
 # C4XGate
 
