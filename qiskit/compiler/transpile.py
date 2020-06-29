@@ -219,6 +219,21 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', 1)
 
+    if scheduling_method is None:
+        delay_in_circuit = False
+        for qc in circuits:
+            if 'delay' in qc.count_ops():
+                delay_in_circuit = True
+                break
+        if delay_in_circuit:
+            raise TranspilerError("Invalid arguments: When transpiling circuits with delays,"
+                                  "'scheduling_method' is required.")
+    else:
+        if backend is None:
+            if not basis_gates or not instruction_durations:
+                raise TranspilerError("Invalid arguments: When scheduling circuits without backend,"
+                                      "'basis_gates' and 'instruction_durations' are required.")
+
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
