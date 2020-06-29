@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``insert_barriers`` keyword argument in the ``ZZFeatureMap`` class
+    didn't actually insert barriers in between the Hadamard layers and 
+    evolution layers. This has been fixed.
