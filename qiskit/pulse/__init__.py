@@ -140,6 +140,7 @@ from .instruction_schedule_map import InstructionScheduleMap
 from .instructions import (Acquire, Instruction, Delay, Play, ShiftPhase, Snapshot,
                            SetFrequency, ShiftFrequency)
 from .interfaces import ScheduleComponent
+from .program import Program
 from .pulse_lib import (SamplePulse, Gaussian, GaussianSquare, Drag,
                         Constant, ConstantPulse, ParametricPulse)
 from .pulse_lib.samplers.decorators import functional_pulse

@@ -13,11 +13,16 @@
 # that they have been altered from the originals.
 
 """Passmanager module for pulse schedules."""
+import logging
+import time
 from typing import Union, List
 
 from qiskit import pulse
 from qiskit.pulse.basepasses import BasePass
-from qiskit.pulse.exceptions import CompilerError
+from qiskit.pulse import exceptions
+from qiskit.pulse import propertyset
+
+logger = logging.getLogger(__name__)
 
 
 class PassManager:
@@ -45,7 +50,9 @@ class PassManager:
             for pass_ in passes:
                 self.append(pass_)
 
-        self.property_set = None
+        self.property_set = propertyset.PropertySet()
+        # passes already run that have not been invalidated
+        self.valid_passes = set()
 
     @property
     def passes(self) -> List[BasePass]:
@@ -83,7 +90,8 @@ class PassManager:
         try:
             self._passes[index] = pass_
         except IndexError:
-            raise CompilerError('Index to replace %s does not exists' % index)
+            raise exceptions.CompilerError(
+                'Index to replace %s does not exists' % index)
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -108,7 +116,7 @@ class PassManager:
                 new_passmanager._passes += self._passes
                 new_passmanager.append(other)
                 return new_passmanager
-            except CompilerError:
+            except exceptions.CompilerError:
                 raise TypeError('unsupported operand type + for {} and {}'.format(
                     self.__class__, other.__class__))
 
@@ -125,8 +133,64 @@ class PassManager:
             The transformed program.
         """
         for pass_ in self._passes:
-            pass_.property_set = self.property_set
-            program = pass_.run(program)
+            program = self._do_pass(pass_, program)
+
+        return program
+
+    def _do_pass(
+        self,
+        pass_: BasePass,
+        program: pulse.Program,
+    ) -> pulse.Program:
+        """Do a pass and its "requires"."""
+        # First, do the requires of pass_
+        for required_pass in pass_.requires:
+            program = self._do_pass(required_pass, program)
+
+        # Run the pass itself, if not already run
+        if pass_ not in self.valid_passes:
+            program = self._run_this_pass(pass_, program)
+
+            # update the valid_passes property
+            self._update_valid_passes(pass_)
+
+        return program
+
+    def _run_this_pass(self, pass_, program):
+        pass_.property_set = self.property_set
+        if pass_.is_transformation_pass:
+            # Measure time if we have a callback or logging set
+            start_time = time.time()
+            new_program = pass_.run(program)
+            end_time = time.time()
+            self._log_pass(start_time, end_time, pass_.name())
+            if not isinstance(new_program, pulse.Program):
+                raise exceptions.CompilerError(
+                    "Transformation passes should return a transformed Program."
+                    "The pass {} is returning a {}".format(
+                        type(pass_).__name__, type(new_program)))
+            program = new_program
+        elif pass_.is_analysis_pass:
+            # Measure time if we have a callback or logging set
+            start_time = time.time()
+            pass_.run(program)
+            self.property_set = pass_.property_set
+            end_time = time.time()
+            self._log_pass(start_time, end_time, pass_.name())
+        else:
+            raise exceptions.CompilerError(
+                "I dont know how to handle this type of pass")
+        return program
+
+    def _log_pass(self, start_time, end_time, name):
+        log_msg = "Pass: %s - %.5f (ms)" % (
+            name, (end_time - start_time) * 1000)
+        logger.info(log_msg)
+
+    def _update_valid_passes(self, pass_):
+        self.valid_passes.add(pass_)
+        if not pass_.is_analysis_pass:  # Analysis passes preserve all
+            self.valid_passes.intersection_update(set(pass_.preserves))
 
     def run_schedules(
         self,

@@ -29,7 +29,7 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.pulse.transforms import add_implicit_acquires, align_measures, pad, compress_pulses
 
 
-class TestAutoMerge(QiskitTestCase):
+class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
     def setUp(self):

@@ -27,3 +27,7 @@ class PulseError(QiskitError):
     def __str__(self):
         """Return the message."""
         return repr(self.message)
+
+
+class CompilerError(PulseError):
+    """Errors raised by the pulse module's compiler."""
