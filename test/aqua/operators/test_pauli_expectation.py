@@ -89,7 +89,7 @@ class TestPauliExpectation(QiskitAquaTestCase):
         # !!NOTE!!: Depolarizing channel (Sampling) means interference
         # does not happen between circuits in sum, so expectation does
         # not equal expectation for Zero!!
-        np.testing.assert_array_almost_equal(sampled_zero_mean.eval(), [0, 0, 0, 2], decimal=1)
+        np.testing.assert_array_almost_equal(sampled_zero_mean.eval(), [0, 0, 0, 1], decimal=1)
 
         for i, op in enumerate(paulis_op.oplist):
             mat_op = op.to_matrix()
