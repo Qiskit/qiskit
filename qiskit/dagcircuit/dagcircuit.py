@@ -102,7 +102,8 @@ class DAGCircuit:
             """
             def __call__(self):
                 warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
-                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning)
+                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
+                              stacklevel=2)
                 return self
         self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
@@ -313,20 +314,19 @@ class DAGCircuit:
         """
         return [] if cond is None else list(cond[0])
 
-    def _add_op_node(self, op, qargs, cargs, condition=None):
+    def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
-            condition (tuple or None): optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: The node for the new op on the DAG
         """
         # Add a new operation node to the graph
         new_node = DAGNode(type="op", op=op, name=op.name, qargs=qargs,
-                           cargs=cargs, condition=condition)
+                           cargs=cargs)
         self._add_multi_graph_node(new_node)
         return new_node
 
@@ -337,8 +337,7 @@ class DAGCircuit:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-            condition (tuple or None): optional condition (ClassicalRegister, int)
-
+            condition (tuple or None): DEPRACTED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
@@ -346,17 +345,22 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                          DeprecationWarning)
+        op.condition = condition if op.condition is None else op.condition
+
         qargs = qargs or []
         cargs = cargs or []
 
-        all_cbits = self._bits_in_condition(condition)
+        all_cbits = self._bits_in_condition(op.condition)
         all_cbits = set(all_cbits).union(cargs)
 
-        self._check_condition(op.name, condition)
+        self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
-        node = self._add_op_node(op, qargs, cargs, condition)
+        node = self._add_op_node(op, qargs, cargs)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -383,21 +387,25 @@ class DAGCircuit:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
-            condition (tuple or None): optional condition (ClassicalRegister, value)
-
+            condition (tuple or None): DEPRACTED optional condition (ClassicalRegister, int)
         Returns:
             DAGNode: the current max node
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
-        all_cbits = self._bits_in_condition(condition)
+        if condition:
+            warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                          DeprecationWarning)
+
+        op.condition = condition if op.condition is None else op.condition
+        all_cbits = self._bits_in_condition(op.condition)
         all_cbits.extend(cargs)
 
-        self._check_condition(op.name, condition)
+        self._check_condition(op.name, op.condition)
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
-        node = self._add_op_node(op, qargs, cargs, condition)
+        node = self._add_op_node(op, qargs, cargs)
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
@@ -616,7 +624,9 @@ class DAGCircuit:
                 dag._check_condition(nd.name, condition)
                 m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
                 m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
-                dag.apply_operation_back(nd.op, m_qargs, m_cargs, condition)
+                op = nd.op.copy()
+                op.condition = condition
+                dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
 
@@ -816,7 +826,7 @@ class DAGCircuit:
                 input_dag.remove_op_node(input_node)
             for replay_node in to_replay:
                 input_dag.apply_operation_back(replay_node.op, replay_node.qargs,
-                                               replay_node.cargs, condition=condition)
+                                               replay_node.cargs)
 
         if wires is None:
             wires = input_dag.wires
@@ -878,7 +888,7 @@ class DAGCircuit:
                                sorted_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x),
                                sorted_node.cargs))
-            node = self._add_op_node(sorted_node.op, m_qargs, m_cargs, condition)
+            node = self._add_op_node(sorted_node.op, m_qargs, m_cargs)
             # Add edges from predecessor nodes to new node
             # and update predecessor nodes that change
             all_cbits = self._bits_in_condition(condition)
@@ -1123,7 +1133,7 @@ class DAGCircuit:
 
     def quantum_successors(self, node):
         """Returns iterator of the successors of a node that are
-        connected by a quantum edge as DAGNodes."""
+        connected by a qubit edge."""
         for successor in self.successors(node):
             if any(isinstance(x['wire'], Qubit)
                    for x in
@@ -1181,6 +1191,19 @@ class DAGCircuit:
             if n.type == "op":
                 self.remove_op_node(n)
 
+    def front_layer(self):
+        """Return a list of op nodes in the first layer of this dag.
+        """
+        graph_layers = self.multigraph_layers()
+        try:
+            next(graph_layers)  # Remove input nodes
+        except StopIteration:
+            return []
+
+        op_nodes = [node for node in next(graph_layers) if node.type == "op"]
+
+        return op_nodes
+
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
@@ -1191,9 +1214,9 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
-        New but semantically equivalent DAGNodes will be included in the returned layers,
-        NOT the DAGNodes from the original DAG. The original vs. new nodes can be compared using
-        DAGNode.semantic_eq(node1, node2).
+        The returned layer contains new (but semantically equivalent) DAGNodes.
+        These are not the same as nodes of the original dag, but are equivalent
+        via DAGNode.semantic_eq(node1, node2).
 
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
@@ -1213,7 +1236,7 @@ class DAGCircuit:
             # Sort to make sure they are in the order they were added to the original DAG
             # It has to be done by node_id as graph_layer is just a list of nodes
             # with no implied topology
-            # Drawing tools that rely on _node_id to infer order of node creation
+            # Drawing tools rely on _node_id to infer order of node creation
             # so we need this to be preserved by layers()
             op_nodes.sort(key=lambda nd: nd._node_id)
 
@@ -1235,8 +1258,7 @@ class DAGCircuit:
                 # this creates new DAGNodes in the new_layer
                 new_layer.apply_operation_back(node.op,
                                                node.qargs,
-                                               node.cargs,
-                                               node.condition)
+                                               node.cargs)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
@@ -1269,7 +1291,7 @@ class DAGCircuit:
             _ = self._bits_in_condition(co)
 
             # Add node to new_layer
-            new_layer.apply_operation_back(op, qa, ca, co)
+            new_layer.apply_operation_back(op, qa, ca)
             # Add operation to partition
             if next_node.name not in ["barrier",
                                       "snapshot", "save", "load", "noise"]:

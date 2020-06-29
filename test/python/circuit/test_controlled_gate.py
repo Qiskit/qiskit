@@ -541,14 +541,14 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
                 self.assertTrue(matrix_equal(simulated, expected))
 
-    @data(0, 1, 2)
+    @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test the creating a MCX gate yields the explicit definition if we know it."""
         cls = MCXGate(num_ctrl_qubits).__class__
-        explicit = {0: XGate, 1: CXGate, 2: CCXGate}
+        explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @data(0, 3, 4, 5, 8)
+    @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):
         """Test the mcx gates."""
         backend = BasicAer.get_backend('statevector_simulator')
@@ -859,6 +859,67 @@ class TestControlledGate(QiskitTestCase):
             base_gate.control(num_ctrl_qubits, ctrl_state=2 ** num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
+
+    @data(-1, 0, 1.4, '1', 4, 10)
+    def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
+        """
+        Test improperly specified num_ctrl_qubits.
+        """
+        num_qubits = 4
+        with self.assertRaises(CircuitError):
+            ControlledGate(name='cgate', num_qubits=num_qubits,
+                           params=[], num_ctrl_qubits=num_ctrl_qubits)
+
+    def test_open_controlled_equality(self):
+        """
+        Test open controlled gates are equal if their base gates and control states are equal.
+        """
+
+        self.assertEqual(
+            XGate().control(1),
+            XGate().control(1))
+
+        self.assertNotEqual(
+            XGate().control(1),
+            YGate().control(1))
+
+        self.assertNotEqual(
+            XGate().control(1),
+            XGate().control(2))
+
+        self.assertEqual(
+            XGate().control(1, ctrl_state='0'),
+            XGate().control(1, ctrl_state='0'))
+
+        self.assertNotEqual(
+            XGate().control(1, ctrl_state='0'),
+            XGate().control(1, ctrl_state='1'))
+
+
+@ddt
+class TestOpenControlledToMatrix(QiskitTestCase):
+    """Test controlled_gates implementing to_matrix work with ctrl_state"""
+
+    @combine(gate_class=ControlledGate.__subclasses__(), ctrl_state=[0, None])
+    def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
+        """Test open controlled to_matrix."""
+        num_free_params = len(_get_free_params(gate_class.__init__,
+                                               ignore=['self']))
+        free_params = [0.1 * i for i in range(1, num_free_params + 1)]
+        if gate_class in [MCU1Gate]:
+            free_params[1] = 3
+        elif gate_class in [MCXGate]:
+            free_params[0] = 3
+        cgate = gate_class(*free_params)
+        cgate.ctrl_state = ctrl_state
+        base_mat = Operator(cgate.base_gate).data
+        target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
+                                         ctrl_state=ctrl_state)
+        try:
+            actual = cgate.to_matrix()
+        except CircuitError as cerr:
+            self.skipTest(cerr)
+        self.assertTrue(np.allclose(actual, target))
 
 
 @ddt

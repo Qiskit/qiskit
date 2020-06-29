@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    A new method :meth:`~qiskit.circuit.QuantumCircuit.reverse_bits` has been
+    added to reverse the order of bits in a circuit (both quantum and classical
+    bits). This can be used to switch a circuit from little-endian to big-endian
+    and vice-versa.
+deprecations:
+  - |
+    :meth:`~qiskit.circuit.QuantumCircuit.mirror` has been deprecated in favor
+    of :meth:`~qiskit.circuit.QuantumCircuit.reverse_ops` since mirroring could be
+    confused with swapping the output qubits of the circuit. Instead this method
+    only reverses the order of gates that are applied.

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added Phase instruction - :py:class:`~qiskit.pulse.SetPhase`. It sets the phase of the
+    proceeding pulses to ``phase`` radians. For example::
+
+       sched += SetPhase(3.14, DriveChannel(0))
+
+    In this example, the phase of the pulses applied to ``DriveChannel(0)`` after the
+    ``SetPhase`` instruction will be set to 3.14 radians.
