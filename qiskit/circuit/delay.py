@@ -25,7 +25,7 @@ class Delay(Instruction):
 
     def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
-        super().__init__("delay", 1, 0, params=[duration], duration=duration)
+        super().__init__("delay", 1, 0, params=[duration])
         self.unit = unit
 
     def inverse(self):
@@ -40,12 +40,11 @@ class Delay(Instruction):
 
     @property
     def duration(self):
-        return self._duration
+        return self.params[0]
 
     @duration.setter
     def duration(self, duration):
         self.params = [duration]
-        self._duration = duration
 
     def to_matrix(self) -> np.ndarray:
         """Return the identity matrix."""

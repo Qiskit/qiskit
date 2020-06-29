@@ -1703,8 +1703,9 @@ class QuantumCircuit:
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
-            duration (int or float): duration. Integer type indicates duration is unitless, i.e.
-                use dt of backend. In the case of float, its `unit` must be specified.
+            duration (int or float or ParameterExpression): duration. Integer type indicates
+                duration is unitless, i.e. use dt of backend.
+                In the case of float, its `unit` must be specified.
             qarg (Object): qubit argument to apply this delay.
             unit (str): unit of the duration. Default unit is ``dt``, which depends on backend.
 
@@ -1736,7 +1737,7 @@ class QuantumCircuit:
             if unit == 'dt':
                 raise CircuitError('duration in dt must be integer.')
         else:
-            if not isinstance(duration, int):
+            if not isinstance(duration, (int, ParameterExpression)):
                 raise CircuitError('Invalid duration type.')
 
         if unit not in {'dt', 's', 'us', 'ns', 'ps'}:

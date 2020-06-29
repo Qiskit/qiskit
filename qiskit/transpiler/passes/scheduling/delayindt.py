@@ -16,6 +16,7 @@
 import warnings
 
 from qiskit.circuit.delay import Delay
+from qiskit.circuit import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -49,6 +50,15 @@ class DelayInDt(TransformationPass):
             raise TranspilerError('DelayInDt runs on physical circuits only')
 
         for node in dag.op_nodes(op=Delay):
+            if isinstance(node.op.duration, ParameterExpression):
+                try:
+                    node.op.duration = float(node.op.duration)
+                except TypeError:
+                    raise TranspilerError("Durations of delays must be bounded before scheduling."
+                                          "Use 'QuantumCircuit.bind_parameters' for that.")
+                if node.op.unit == 'dt':
+                    node.op.duration = int(node.op.duration)
+
             if node.op.unit != 'dt':  # convert unit of duration to dt
                 if self.dt is None:
                     raise TranspilerError('If using unit in delay, backend must have dt.')
