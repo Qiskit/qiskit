@@ -443,7 +443,7 @@ class Schedule(ScheduleComponent):
              scale: Optional[float] = None,
              channel_scales: Optional[Dict[Channel, float]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
-             interactive: bool = False, table: bool = True, label: bool = False,
+             interactive: bool = False, table: bool = False, label: bool = False,
              framechange: bool = True, scaling: float = None,
              channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True):
