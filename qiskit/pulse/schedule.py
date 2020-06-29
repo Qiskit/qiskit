@@ -642,7 +642,7 @@ class Schedule(ScheduleComponent):
         except PulseError as err:
             raise PulseError(
                 'Replacement of {old} with {new} results in '
-                'overlapping timeslots.'.format(
+                'overlapping instructions.'.format(
                     old=old, new=new)) from err
 
     def draw(self, dt: float = 1, style=None,
