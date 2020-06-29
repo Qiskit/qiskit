@@ -262,15 +262,11 @@ class MatplotlibDrawer:
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
             for c in text:
-                # mathtext uses wide minus, so must use wide char for '-'
-                if c == '-':
-                    sum_text += self._char_list['@'][f] + .015
-                else:
-                    try:
-                        sum_text += self._char_list[c][f]
-                    except KeyError:
-                        # if non-ASCII char, use width of 'r', an average size
-                        sum_text += self._char_list['r'][f]
+                try:
+                    sum_text += self._char_list[c][f]
+                except KeyError:
+                    # if non-ASCII char, use width of 'r', an average size
+                    sum_text += self._char_list['r'][f]
             return sum_text
 
     def param_parse(self, v):
@@ -288,6 +284,7 @@ class MatplotlibDrawer:
         param_parts = ', '.join(param_parts)
         # remove $'s since "${}$".format will add them back on the outside
         param_parts = param_parts.replace('$', '')
+        param_parts = param_parts.replace('-', u'\u02d7')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
@@ -313,11 +310,14 @@ class MatplotlibDrawer:
         else:
             gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
 
-        # mathtext .format removes spaces so add them back
+        # mathtext .format removes spaces so add them back and it changes
+        # hyphen to wide minus sign, so use unicode hyphen to prevent that
         gate_text = gate_text.replace(' ', '\\;')
+        gate_text = gate_text.replace('-', u'\u02d7')
         if ctrl_text:
             ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
             ctrl_text = ctrl_text.replace(' ', '\\;')
+            ctrl_text = ctrl_text.replace('-', u'\u02d7')
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
