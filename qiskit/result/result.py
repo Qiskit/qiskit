@@ -246,8 +246,7 @@ class Result:
                 if header:
                     counts_header = {
                         k: v for k, v in header.items() if k in {
-                            'name', 'shots', 'time_taken', 'creg_sizes',
-                            'memory_slots'}}
+                            'time_taken', 'creg_sizes', 'memory_slots'}}
                 else:
                     counts_header = {}
                 dict_list.append(Counts(self.data(key)['counts'], **counts_header))
