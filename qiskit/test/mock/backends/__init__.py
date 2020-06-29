@@ -49,3 +49,4 @@ from .mumbai import FakeMumbai
 from .lima import FakeLima
 from .belem import FakeBelem
 from .quito import FakeQuito
+from .johannesburg_ecr import FakeJohannesburgECR
