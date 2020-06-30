@@ -919,7 +919,7 @@ class NLocal(BlueprintCircuit):
                        'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
                        'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
         return transpile(self, basis_gates=basis_gates,
-                         optimization_level=0).draw().single_string()
+                         optimization_level=0).draw(output='text').single_string()
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:

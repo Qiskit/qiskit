@@ -127,7 +127,7 @@ class TestParameters(QiskitTestCase):
 
     def test_get_parameters(self):
         """Test instantiating gate with variable parameters"""
-        from qiskit.extensions.standard.rx import RXGate
+        from qiskit.circuit.library.standard_gates.rx import RXGate
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -140,8 +140,8 @@ class TestParameters(QiskitTestCase):
 
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
-        from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.rx import RXGate
+        from qiskit.circuit.library.standard_gates.h import HGate
+        from qiskit.circuit.library.standard_gates.rx import RXGate
         theta = Parameter('θ')
         rxg = RXGate(theta)
         self.assertTrue(rxg.is_parameterized())
@@ -177,6 +177,17 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
+        self.assertEqual(qc.parameters, {theta, x})
+
+    def test_multiple_named_parameters(self):
+        """Test setting multiple named/keyword argument based parameters"""
+        theta = Parameter(name='θ')
+        x = Parameter(name='x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+        self.assertEqual(theta.name, 'θ')
         self.assertEqual(qc.parameters, {theta, x})
 
     def test_partial_binding(self):
@@ -285,7 +296,7 @@ class TestParameters(QiskitTestCase):
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
-        from qiskit.extensions.standard import RZGate
+        from qiskit.circuit.library.standard_gates.rz import RZGate
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         gate = RZGate(theta)
@@ -731,6 +742,15 @@ class TestParameters(QiskitTestCase):
         inv_instr = qc.inverse().to_instruction()
         self.assertIsInstance(inv_instr, Instruction)
 
+    def test_repeated_circuit(self):
+        """Test repeating a circuit maintains the parameters."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+        rep = qc.repeat(3)
+
+        self.assertEqual(rep.parameters, {theta})
+
     def test_copy_after_inverse(self):
         """Verify circuit.inverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
@@ -741,15 +761,15 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, inverse.parameters)
         raise_if_parameter_table_invalid(inverse)
 
-    def test_copy_after_mirror(self):
-        """Verify circuit.mirror generates a valid ParameterTable."""
+    def test_copy_after_reverse(self):
+        """Verify circuit.reverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         qc.rz(theta, 0)
 
-        mirror = qc.mirror()
-        self.assertIn(theta, mirror.parameters)
-        raise_if_parameter_table_invalid(mirror)
+        reverse = qc.reverse_ops()
+        self.assertIn(theta, reverse.parameters)
+        raise_if_parameter_table_invalid(reverse)
 
     def test_copy_after_dot_data_setter(self):
         """Verify setting circuit.data generates a valid ParameterTable."""
@@ -1081,7 +1101,7 @@ class TestParameterExpressions(QiskitTestCase):
         """Bind a parameter which was included via a broadcast instruction."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3008
 
-        from qiskit.extensions.standard import RZGate
+        from qiskit.circuit.library.standard_gates.rz import RZGate
         theta = Parameter('θ')
         n = 5
 
@@ -1168,6 +1188,11 @@ class TestParameterExpressions(QiskitTestCase):
         expected = (y + z) * (y + z)
 
         self.assertEqual(updated_expr, expected)
+
+    def test_conjugate(self):
+        """Test calling conjugate on a ParameterExpression."""
+        x = Parameter('x')
+        self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
 
 
 class TestParameterEquality(QiskitTestCase):
