@@ -221,19 +221,14 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         optimization_level = config.get('transpile_optimization_level', 1)
 
     if scheduling_method is None:
-        delay_in_circuit = False
-        for qc in circuits:
-            if 'delay' in qc.count_ops():
-                delay_in_circuit = True
-                break
-        if delay_in_circuit:
-            raise TranspilerError("Invalid arguments: When transpiling circuits with delays,"
+        if any_delay_in(circuits):
+            raise TranspilerError("Invalid arguments: When transpiling circuits with delays, "
                                   "'scheduling_method' is required.")
     else:
         if backend is None:
             if not basis_gates or not instruction_durations:
                 raise TranspilerError("Invalid arguments: When scheduling circuits without backend,"
-                                      "'basis_gates' and 'instruction_durations' are required.")
+                                      " 'basis_gates' and 'instruction_durations' are required.")
 
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
@@ -255,6 +250,25 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     end_time = time()
     _log_transpile_time(start_time, end_time)
     return circuits
+
+
+def any_delay_in(circuits: Union[List[QuantumCircuit], QuantumCircuit]) -> bool:
+    """Check if the circuits have any delay instruction.
+
+    Args:
+        circuits: Circuits to be checked
+
+    Returns:
+        True if there is any delay in either of the circuit, otherwise False.
+    """
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+    has_delay = False
+    for qc in circuits:
+        if 'delay' in qc.count_ops():
+            has_delay = True
+            break
+    return has_delay
 
 
 def _check_conflicting_argument(**kargs):

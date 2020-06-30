@@ -17,7 +17,7 @@
 """Test scheduled circuit (quantum circuit with duration)."""
 # import unittest
 
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit, transpile, execute, QiskitError
 from qiskit.circuit import Parameter
 from qiskit.compiler import sequence
 from qiskit.transpiler.exceptions import TranspilerError
@@ -30,7 +30,15 @@ class TestScheduledCircuitClass(QiskitTestCase):
     def setUp(self):
         self.backend = FakeParis()
 
-    def test_transpile_schedule_circuit_with_backend(self):
+    def test_cannot_execute_delay_circuit_when_schedule_circuit_off(self):
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+        with self.assertRaises(QiskitError):
+            execute(qc, backend=self.backend, schedule_circuit=False)
+
+    def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
@@ -38,7 +46,7 @@ class TestScheduledCircuitClass(QiskitTestCase):
         scheduled = transpile(qc, backend=self.backend, scheduling_method='alap')
         self.assertEqual(scheduled.duration, 1908)
 
-    def test_transpile_schedule_circuit_without_backend(self):
+    def test_transpile_delays_circuit_without_backend(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
@@ -50,7 +58,7 @@ class TestScheduledCircuitClass(QiskitTestCase):
                               )
         self.assertEqual(scheduled.duration, 1300)
 
-    def test_raises_error_if_transpile_circuit_with_delay_without_scheduling_method(self):
+    def test_raise_error_if_transpile_circuit_with_delay_without_scheduling_method(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
@@ -58,7 +66,7 @@ class TestScheduledCircuitClass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             transpile(qc)
 
-    def test_raises_error_if_transpile_with_scheduling_method_but_without_backend(self):
+    def test_raise_error_if_transpile_with_scheduling_method_but_without_backend(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)

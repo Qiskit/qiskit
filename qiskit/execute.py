@@ -27,6 +27,7 @@ from qiskit.compiler import transpile, assemble, schedule
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule
 from qiskit.exceptions import QiskitError
+from qiskit.compiler.transpile import any_delay_in
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,14 @@ def execute(experiments, backend,
                                     backend=backend)
         experiments = pass_manager.run(experiments)
     else:
+        if 'delay' not in backend.configuration().basis_gates and any_delay_in(experiments):
+            if schedule_circuit and backend.configuration().open_pulse:
+                pass  # no problem in this case exceptionally
+            else:
+                raise QiskitError("Backend %s does not support delay instruction. "
+                                  "Use 'schedule_circuit=True' for pulse-enabled backends."
+                                  % backend.name())
+
         # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
