@@ -100,22 +100,22 @@ class TestScheduledCircuitClass(QiskitTestCase):
             transpile(qc, scheduling_method='alap',
                       basis_gates=['u2'], instruction_durations=[('u2', 0, 200)])
 
-    # TODO: Complete test!
     def test_transpile_and_sequence_agree_with_schedule(self):
         qc = QuantumCircuit(2, name="bell")
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
         sc = transpile(qc, self.backend, scheduling_method='alap', coupling_map=[[0, 1], [1, 2]])
-        sched = sequence(sc, self.backend)
+        sequence(sc, self.backend)
+        # TODO: Complete test!
 
-    # TODO: Complete test!
     def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
         qc = QuantumCircuit(2, name="bell_without_measurement")
         qc.h(0)
         qc.cx(0, 1)
         sc = transpile(qc, self.backend, scheduling_method='alap', coupling_map=[[0, 1], [1, 2]])
-        sched = sequence(sc, self.backend)
+        sequence(sc, self.backend)
+        # TODO: Complete test!
 
     def test_instruction_durations_option_in_transpile(self):
         qc = QuantumCircuit(2)

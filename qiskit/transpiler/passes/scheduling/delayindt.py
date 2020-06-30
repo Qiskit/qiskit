@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""ASAP Scheduling."""
+"""Pass to convert time unit of delays into dt."""
 import warnings
 
 from qiskit.circuit.delay import Delay

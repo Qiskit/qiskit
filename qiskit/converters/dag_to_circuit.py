@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit."""
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def dag_to_circuit(dag):
