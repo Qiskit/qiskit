@@ -1123,9 +1123,9 @@
                             "type": "array"
                         },
                         "rep_time": {
-                            "minimum": 0,
+                            "minimum": 1,
                             "description": "Execution time of program (microseconds).",
-                            "type": "number"
+                            "type": "integer"
                         },
                         "rep_delay": {
                             "minimum": 0,
