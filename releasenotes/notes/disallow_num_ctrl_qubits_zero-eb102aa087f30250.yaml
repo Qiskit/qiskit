@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Previously it was possible to set the number of control qubits to zero in which case the
+    the original, potentially non-controlled, operation would be returned. This could cause
+    an AttributeError if the caller attempts to access an attribute which only ControlledGates
+    have. This fix adds a getter/setter for num_ctrl_qubits to handle validation.

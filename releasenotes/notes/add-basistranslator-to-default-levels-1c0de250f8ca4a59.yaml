@@ -1,0 +1,14 @@
+---
+prelude:
+    The transpiler now supports directly targeting a broader range of
+    device basis sets, including backends implementing the CZ and
+    iSwap gates.
+features:
+  - |
+    A new ``translation_method`` keyword argument has been added to
+    ``qiskit.transpile`` to allow selection of the method to be used
+    for translating circuits to the available device gates. For example,
+    ``transpile(circ, backend, translation_method='translator')``. Valid
+    choices are ``'unroller'`` to use the ``Unroller`` pass and
+    ``'translator'`` to use the ``BasisTranslator`` pass. The default value
+    is ``'translator'``.

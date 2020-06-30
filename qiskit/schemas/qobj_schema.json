@@ -96,7 +96,10 @@
                                 "enum": [
                                     "pv",
                                     "fc",
+                                    "setp",
+                                    "shiftp",
                                     "setf",
+                                    "shiftf",
                                     "acquire",
                                     "delay",
                                     "parametric_pulse"
@@ -159,6 +162,42 @@
                     "properties": {
                         "name": {
                             "enum": [
+                                "setp"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set Phase"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftp"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift Phase"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
                                 "setf"
                             ]
                         },
@@ -174,6 +213,24 @@
                         "ch"
                     ],
                     "title": "Set frequency"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftf"
+                            ]
+                        },
+                        "frequency": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "frequency",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift frequency"
                 },
                 {
                     "properties": {
@@ -783,6 +840,10 @@
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
+                        },
+                        "init_qubits": {
+                            "description": "Whether to initialize the qubits in the ground state before each shot.",
+                            "type": "boolean"
                         }
                     },
                     "title": "Experiment level configuration",
@@ -1063,7 +1124,13 @@
                         },
                         "rep_time": {
                             "minimum": 1,
+                            "description": "Execution time of program (microseconds).",
                             "type": "integer"
+                        },
+                        "rep_delay": {
+                            "minimum": 0,
+                            "description": "Delay between programs (microseconds).",
+                            "type": "number"
                         }
                     },
                     "required": [

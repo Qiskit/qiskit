@@ -21,6 +21,8 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
@@ -28,13 +30,14 @@ from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
+from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
+from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
@@ -49,7 +52,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     Any unused physical qubit is allocated as ancilla space.
 
     The pass manager then unrolls the circuit to the desired basis, and transforms the
-    circuit to match the coupling map. Finally, extra resets are removed.
+    circuit to match the coupling map.
 
     Note:
         In simulators where ``coupling_map=None``, only the unrolling and
@@ -69,6 +72,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or 'trivial'
     routing_method = pass_manager_config.routing_method or 'stochastic'
+    translation_method = pass_manager_config.translation_method or 'translator'
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -84,6 +88,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _choose_layout = DenseLayout(coupling_map, backend_properties)
     elif layout_method == 'noise_adaptive':
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
+    elif layout_method == 'sabre':
+        _choose_layout = SabreLayout(coupling_map, max_iterations=1, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
@@ -106,11 +112,20 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
+    elif routing_method == 'sabre':
+        _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
-    _unroll = Unroller(basis_gates)
+    if translation_method == 'unroller':
+        _unroll = [Unroller(basis_gates)]
+    elif translation_method == 'translator':
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        _unroll = [UnrollCustomDefinitions(sel, basis_gates),
+                   BasisTranslator(sel, basis_gates)]
+    else:
+        raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]
@@ -119,9 +134,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set['is_direction_mapped']
 
     _direction = [CXDirection(coupling_map)]
-
-    # 7. Remove zero-state reset
-    _reset = RemoveResetInZeroState()
 
     # Build pass manager
     pm0 = PassManager()
@@ -136,6 +148,5 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map and not coupling_map.is_symmetric:
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
-    pm0.append(_reset)
 
     return pm0
