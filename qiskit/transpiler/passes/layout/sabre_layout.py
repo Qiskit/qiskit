@@ -91,7 +91,7 @@ class SabreLayout(AnalysisPass):
                                  for i, q in enumerate(physical_qubits)})
 
         if self.routing_pass is None:
-            self.routing_pass = SabreSwap(self.coupling_map, 'decay')
+            self.routing_pass = SabreSwap(self.coupling_map, 'decay', seed=self.seed)
 
         # Do forward-backward iterations.
         circ = dag_to_circuit(dag)
