@@ -14,13 +14,13 @@
 
 """The pulse program. A collection of pulses schedules."""
 
-from typing import List
+from typing import List, Optional
 
 from qiskit.pulse.schedule import Schedule
 
 
 class Program:
-    def __init__(self, schedules: List[Schedule]):
+    def __init__(self, schedules: Optional[List[Schedule]] = None):
         """Qiskit pulse program.
 
         A collection of :class:`qiskit.pulse.schedule.Schedule`s.
@@ -28,17 +28,22 @@ class Program:
         Args:
             schedules: Schedules to run in this program.
         """
-        try:
-            iter(schedules)
-        except TypeError:
-            schedules = [schedules]
-        self._schedules = schedules
+        self._schedules = []
+
+        if schedules:
+            try:
+                iter(schedules)
+            except TypeError:
+                schedules = [schedules]
+
+            for schedule in schedules:
+                self.append_schedule(schedule)
 
     @property
     def schedules(self):
         """Schedules in this program."""
         return self._schedules
 
-    def append(self, schedule: Schedule):
+    def append_schedule(self, schedule: Schedule):
         """Append a schedule to this program."""
         self._schedules.append(schedule)

@@ -15,33 +15,54 @@
 """Compiler module for pulse schedules."""
 
 from qiskit import pulse
-from qiskit.pulse.propertyset import PropertyDict
+from qiskit.pulse.passmanager import PassManager
+from qiskit.pulse.states import AttrDict, State
 
 
-class State(PropertyDict):
-    """State of the compilation.
-
-    ..note:: Should be replaced with dataclass
-    """
-    def __init__(self):
-        self.property_set = PropertyDict()
-        self.pulse_program = None
+class CompilerResult(AttrDict):
+    """Result from the compiler."""
+    def __init__(self, pulse_program, analysis, lowered=None):
+        self.pulse_program = pulse_program
+        self.analysis = analysis
+        self.lowered = lowered
 
 
-class Compiler():
+class Compiler:
     """The default pulse compiler."""
 
     def __init__(self):
         self.state = State()
+        self._pipelines = []
 
     @property
     def pipelines(self):
         """Return compiler pipelines"""
+        return self._pipelines
 
-    @pipelines.setter
-    def pipelines(self, pipeline):
+    def append_pipeline(self, pipeline: PassManager):
         """Add compiler pipeline."""
+        self._pipelines.append(pipeline)
 
     def compile(self, program: pulse.Program) -> pulse.Program:
+        self.state.program = program
         for pipeline in self.pipelines:
             program = pipeline.run(program)
+            self.state = pipeline.state
+            self.state.program = program
+
+        return CompilerResult(
+            program,
+            self.state.analysis,
+            lowered=self.state.lowered,
+        )
+
+    def default_pipelines(self):
+        """Build the default pipelines."""
+        self.pipelines.append_pipeline(PipeLineBuilder.default_optimization_pipeline())
+
+
+class PipeLineBuilder:
+    """Builder for standard pipelines."""
+    @staticmethod
+    def default_optimization_pipeline() -> PassManager:
+        return PassManager()

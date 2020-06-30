@@ -60,7 +60,7 @@ class AlignMeasuresAnalysis(AnalysisPass):
             if acquire_times:
                 last_acquire = max(acquire_times)
             align_time = max(align_time, last_acquire)
-        self.property_set['meas_align_time'] = align_time
+        self.analysis.meas_align_time = align_time
         return program
 
     def get_max_calibration_duration(self):
@@ -104,8 +104,8 @@ class AlignMeasures(TransformationPass):
 
         self.align_time = align_time
 
-    def run(self, program):
-        align_time = self.align_time or self.property_set['meas_align_time']
+    def run(self, program: pulse.Program):
+        align_time = self.align_time or self.analysis.meas_align_time
         # Shift acquires according to the new scheduled time
         new_schedules = []
         for schedule in program.schedules:
@@ -140,7 +140,7 @@ class AlignMeasures(TransformationPass):
 
             new_schedules.append(new_schedule)
 
-        return pulse.Program(new_schedules)
+        return pulse.Program(schedules=new_schedules)
 
 
 def align_measures(schedules: Iterable[ScheduleComponent],
@@ -178,7 +178,7 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         ),
     )
 
-    return pm.run(pulse.Program(schedules)).schedules
+    return pm.run(pulse.Program(schedules=schedules)).schedules
 
 
 def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:

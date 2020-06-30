@@ -17,15 +17,10 @@
 from abc import abstractmethod
 from collections.abc import Hashable
 from inspect import signature
+from typing import Any
 
 from qiskit import pulse
-
-
-class PropertySet(dict):
-    """ A default dictionary-like object """
-
-    def __missing__(self, key):
-        return None
+from qiskit.pulse.states import Analysis, State
 
 
 class MetaPass(type):
@@ -62,7 +57,7 @@ class BasePass(metaclass=MetaPass):
     def __init__(self):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
-        self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
+        self.state = State()
         self._hash = None
 
     def __hash__(self):
@@ -71,9 +66,15 @@ class BasePass(metaclass=MetaPass):
     def __eq__(self, other):
         return hash(self) == hash(other)
 
+    @property
     def name(self):
         """Return the name of the pass."""
         return self.__class__.__name__
+
+    @property
+    def analysis(self) -> Analysis:
+        """Return the current analysis information available to this pass."""
+        return self.state.analysis
 
     @abstractmethod
     def run(self, program: pulse.Program) -> pulse.Program:
@@ -88,31 +89,42 @@ class BasePass(metaclass=MetaPass):
 
     @property
     def is_transformation_pass(self):
-        """Check if the pass is a transformation pass.
-
-        If the pass is a TransformationPass, that means that the pass can
-        manipulate the pulse schedule, but cannot modify the
-        property set (but it can be read).
-        """
+        """Check if the pass is a transformation pass."""
         return isinstance(self, TransformationPass)
 
     @property
     def is_analysis_pass(self):
-        """Check if the pass is an analysis pass.
-
-        If the pass is an AnalysisPass, that means that the pass can analyze the
-        pulse program and write the results of that analysis in the property set.
-        Modifications on the pulse schedule are not allowed
-        by this kind of pass.
-        """
+        """Check if the pass is an analysis pass."""
         return isinstance(self, AnalysisPass)
+
+    @property
+    def is_lowering_pass(self):
+        """Check if the pass is a lowering pass."""
+        return isinstance(self, LoweringPass)
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: changes the property set and not the pulse schedule."""
-    pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: changes the pulse schedule and not the property set."""
-    pass
+
+
+class LoweringPass(BasePass):
+    """A lowering pass: Emits a ``lowering`` field in the compiler ``State``."""
+
+    def run(self, program: pulse.Program) -> pulse.Program:
+        """Run a pass on the pulse program. This is implemented by the pass developer.
+
+        Args:
+            program: The program on which the pass is run.
+        Raises:
+            NotImplementedError: when this is left unimplemented for a pass.
+        """
+        self.state.lowered = self.lower(program)
+        return program
+
+    @abstractmethod
+    def lower(self, program: pulse.Program) -> Any:
+        """Lower the pulse program."""

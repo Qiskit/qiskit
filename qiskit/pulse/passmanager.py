@@ -20,7 +20,7 @@ from typing import Union, List
 from qiskit import pulse
 from qiskit.pulse.basepasses import BasePass
 from qiskit.pulse import exceptions
-from qiskit.pulse import propertyset
+from qiskit.pulse.states import State
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +31,13 @@ class PassManager:
     def __init__(
             self,
             passes: Union[BasePass, List[BasePass]] = None,
+            name="",
     ):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
         Args:
             passes: A list of passes to add to passmanger.
+            name: Name of this passmanager.
         """
         # the pass manager's schedule of passes.
         # Populated via PassManager.append().
@@ -50,7 +52,9 @@ class PassManager:
             for pass_ in passes:
                 self.append(pass_)
 
-        self.property_set = propertyset.PropertySet()
+        self.name = name
+
+        self.state = State()
         # passes already run that have not been invalidated
         self.valid_passes = set()
 
@@ -157,29 +161,28 @@ class PassManager:
         return program
 
     def _run_this_pass(self, pass_, program):
-        pass_.property_set = self.property_set
-        if pass_.is_transformation_pass:
+        pass_.state = self.state
+        if pass_.is_analysis_pass:
+            # Measure time if we have a callback or logging set
+            start_time = time.time()
+            pass_.run(program)
+            self.state = pass_.state
+            end_time = time.time()
+            self._log_pass(start_time, end_time, pass_.name)
+        else:
             # Measure time if we have a callback or logging set
             start_time = time.time()
             new_program = pass_.run(program)
+            self.state = pass_.state
+            self.state.program = new_program
             end_time = time.time()
-            self._log_pass(start_time, end_time, pass_.name())
+            self._log_pass(start_time, end_time, pass_.name)
             if not isinstance(new_program, pulse.Program):
                 raise exceptions.CompilerError(
                     "Transformation passes should return a transformed Program."
                     "The pass {} is returning a {}".format(
                         type(pass_).__name__, type(new_program)))
             program = new_program
-        elif pass_.is_analysis_pass:
-            # Measure time if we have a callback or logging set
-            start_time = time.time()
-            pass_.run(program)
-            self.property_set = pass_.property_set
-            end_time = time.time()
-            self._log_pass(start_time, end_time, pass_.name())
-        else:
-            raise exceptions.CompilerError(
-                "I dont know how to handle this type of pass")
         return program
 
     def _log_pass(self, start_time, end_time, name):
