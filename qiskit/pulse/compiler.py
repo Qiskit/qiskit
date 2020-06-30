@@ -13,8 +13,11 @@
 # that they have been altered from the originals.
 
 """Compiler module for pulse schedules."""
+from abc import abstractmethod
+from typing import Optional
 
 from qiskit import pulse
+from qiskit.pulse import transforms
 from qiskit.pulse.passmanager import PassManager
 from qiskit.pulse.states import AttrDict, State
 
@@ -27,12 +30,13 @@ class CompilerResult(AttrDict):
         self.lowered = lowered
 
 
-class Compiler:
+class BaseCompiler:
     """The default pulse compiler."""
 
     def __init__(self):
         self.state = State()
         self._pipelines = []
+        self._finalized = False
 
     @property
     def pipelines(self):
@@ -44,6 +48,7 @@ class Compiler:
         self._pipelines.append(pipeline)
 
     def compile(self, program: pulse.Program) -> pulse.Program:
+        self.finalize()
         self.state.program = program
         for pipeline in self.pipelines:
             program = pipeline.run(program)
@@ -56,13 +61,44 @@ class Compiler:
             lowered=self.state.lowered,
         )
 
+    @abstractmethod
+    def default_pipelines(self):
+        """Build the default pipelines for the compiler."""
+
+    def finalize(self):
+        """Finalize the compiler before compilation if not already done."""
+        if not self._finalized:
+            self.default_pipelines()
+
+
+class Compiler(BaseCompiler):
+    """The default pulse compiler."""
     def default_pipelines(self):
         """Build the default pipelines."""
-        self.pipelines.append_pipeline(PipeLineBuilder.default_optimization_pipeline())
+        self.append_pipeline(PipeLineBuilder.default_optimization_pipeline())
 
 
 class PipeLineBuilder:
     """Builder for standard pipelines."""
     @staticmethod
     def default_optimization_pipeline() -> PassManager:
-        return PassManager()
+        pm = PassManager()
+        pm.append(transforms.CompressPulses())
+        return pm
+
+
+def compile_result(
+    program: pulse.Program,
+    compiler: BaseCompiler,
+) -> CompilerResult:
+    """Compile a pulse program returning the compiler result."""
+    return compiler.compile(program)
+
+
+def compile(
+    program: pulse.Program,
+    compiler: Optional[Compiler] = None,
+) -> pulse.Program:
+    """Compile a pulse program."""
+    compiler = compiler or Compiler()
+    return compile_result(program, compiler).pulse_program

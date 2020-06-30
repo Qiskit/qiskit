@@ -29,7 +29,7 @@ from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.validation.jsonschema import SchemaValidationError
 from qiskit.providers import BaseBackend
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, Program
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +40,8 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, List[Schedule]],
+def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit],
+                                Schedule, List[Schedule], Program],
              backend: Optional[BaseBackend] = None,
              qobj_id: Optional[str] = None,
              qobj_header: Optional[Union[QobjHeader, Dict]] = None,
@@ -148,7 +149,12 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
-    elif all(isinstance(exp, ScheduleComponent) for exp in experiments):
+    elif all(isinstance(exp, ScheduleComponent) for exp in experiments) or \
+            isinstance(experiments, Program):
+        if isinstance(experiments, Program):
+            program = experiments
+        else:
+            program = Program(schedules=experiments)
         run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
@@ -158,7 +164,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
         end_time = time()
         _log_assembly_time(start_time, end_time)
-        return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
+        return assemble_schedules(program, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
 
     else:
