@@ -14,6 +14,7 @@
 
 """The pulse program. A collection of pulses schedules."""
 
+import copy
 from typing import List, Optional
 
 from qiskit.pulse.schedule import Schedule
@@ -30,7 +31,7 @@ class Program:
         """
         self._schedules = []
 
-        if schedules:
+        if schedules or isinstance(schedules, Schedule):
             try:
                 iter(schedules)
             except TypeError:
@@ -42,8 +43,12 @@ class Program:
     @property
     def schedules(self):
         """Schedules in this program."""
-        return self._schedules
+        return copy.copy(self._schedules)
 
     def append_schedule(self, schedule: Schedule):
         """Append a schedule to this program."""
         self._schedules.append(schedule)
+
+    def replace_schedule(self, idx: int, schedule: Schedule):
+        """Replace schedule at index."""
+        self._schedules[idx] = schedule

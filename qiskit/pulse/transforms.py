@@ -35,7 +35,7 @@ class AlignMeasuresAnalysis(AnalysisPass):
         self,
         inst_map: InstructionScheduleMap,
         cal_gate: str = 'u3',
-        max_calibration_duration: int = None
+        max_calibration_duration: int = None,
     ):
         """Calculate the latest time to align all measures in a program."""
         super().__init__()
@@ -84,7 +84,7 @@ class AlignMeasures(TransformationPass):
         cal_gate: str = 'u3',
         max_calibration_duration: Optional[int] = None,
         align_time: Optional[int] = None,
-    ) -> Schedule:
+    ):
         """Return new schedules where measurements occur at the same physical time.
 
         Args:
@@ -107,8 +107,7 @@ class AlignMeasures(TransformationPass):
     def run(self, program: pulse.Program):
         align_time = self.align_time or self.analysis.meas_align_time
         # Shift acquires according to the new scheduled time
-        new_schedules = []
-        for schedule in program.schedules:
+        for idx, schedule in enumerate(program.schedules):
             new_schedule = Schedule(name=schedule.name)
             acquired_channels = set()
             measured_channels = set()
@@ -138,9 +137,9 @@ class AlignMeasures(TransformationPass):
                 else:
                     new_schedule |= inst << time
 
-            new_schedules.append(new_schedule)
+            program.replace_schedule(idx, new_schedule)
 
-        return pulse.Program(schedules=new_schedules)
+        return program
 
 
 def align_measures(schedules: Iterable[ScheduleComponent],
@@ -181,7 +180,66 @@ def align_measures(schedules: Iterable[ScheduleComponent],
     return pm.run(pulse.Program(schedules=schedules)).schedules
 
 
-def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
+class AddImplicitAcquires(TransformationPass):
+        def __init__(
+            self,
+            meas_map: List[List[int]]
+        ):
+            """Transformation pass that returns a new pulse program with missing acquires
+            added as defined by the ``meas_map``.
+
+            .. warning:: Since new acquires are being added, Memory Slots will be set to match the
+                         qubit index. This may overwrite your specification.
+
+            Args:
+                meas_map: List of lists of qubits that are measured together.
+
+            Returns:
+                A ``Schedule`` with the additional acquisition commands.
+            """
+            super().__init__()
+            self.meas_map = meas_map
+
+        def run(self, program: pulse.Program):
+            for idx, schedule in enumerate(program.schedules):
+                new_schedule = Schedule(name=schedule.name)
+                acquire_map = dict()
+
+                for time, inst in schedule.instructions:
+                    if isinstance(inst, (Acquire, AcquireInstruction)):
+                        if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
+                            warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
+                                          " the qubit index. I'm relabeling them to match.")
+
+                        # Get the label of all qubits that are measured with the qubit(s) in this instruction
+                        all_qubits = []
+                        for sublist in self.meas_map:
+                            if inst.channel.index in sublist:
+                                all_qubits.extend(sublist)
+                        # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
+                        # the measurement group.
+                        for i in all_qubits:
+                            explicit_inst = Acquire(inst.duration, AcquireChannel(i),
+                                                    mem_slot=MemorySlot(i),
+                                                    kernel=inst.kernel,
+                                                    discriminator=inst.discriminator) << time
+                            if time not in acquire_map:
+                                new_schedule |= explicit_inst
+                                acquire_map = {time: {i}}
+                            elif i not in acquire_map[time]:
+                                new_schedule |= explicit_inst
+                                acquire_map[time].add(i)
+                    else:
+                        new_schedule |= inst << time
+
+                program.replace_schedule(idx, new_schedule)
+            return program
+
+
+def add_implicit_acquires(
+    schedule: ScheduleComponent,
+    meas_map: List[List[int]],
+) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
@@ -195,42 +253,67 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     Returns:
         A ``Schedule`` with the additional acquisition commands.
     """
-    new_schedule = Schedule(name=schedule.name)
-    acquire_map = dict()
+    pm = PassManager()
+    pm.append(AddImplicitAcquires(
+        meas_map,
+        ),
+    )
 
-    for time, inst in schedule.instructions:
-        if isinstance(inst, (Acquire, AcquireInstruction)):
-            if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
-                warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
-                              " the qubit index. I'm relabeling them to match.")
-
-            # Get the label of all qubits that are measured with the qubit(s) in this instruction
-            all_qubits = []
-            for sublist in meas_map:
-                if inst.channel.index in sublist:
-                    all_qubits.extend(sublist)
-            # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
-            # the measurement group.
-            for i in all_qubits:
-                explicit_inst = Acquire(inst.duration, AcquireChannel(i),
-                                        mem_slot=MemorySlot(i),
-                                        kernel=inst.kernel,
-                                        discriminator=inst.discriminator) << time
-                if time not in acquire_map:
-                    new_schedule |= explicit_inst
-                    acquire_map = {time: {i}}
-                elif i not in acquire_map[time]:
-                    new_schedule |= explicit_inst
-                    acquire_map[time].add(i)
-        else:
-            new_schedule |= inst << time
-
-    return new_schedule
+    return pm.run(pulse.Program(schedules=schedule)).schedules[0]
 
 
-def pad(schedule: Schedule,
-        channels: Optional[Iterable[Channel]] = None,
-        until: Optional[int] = None) -> Schedule:
+class PadProgram(TransformationPass):
+        def __init__(
+            self,
+            channels: Optional[Iterable[Channel]] = None,
+            until: Optional[int] = None,
+        ):
+            """Transformation pass that pads empty times in a program with delays.
+
+            Args:
+                meas_map: List of lists of qubits that are measured together.
+
+            Returns:
+                A ``Schedule`` with the additional acquisition commands.
+            """
+            super().__init__()
+            self.channels = channels
+            self.until = until
+
+        def run(self, program: pulse.Program):
+            for idx, schedule in enumerate(program.schedules):
+                until = self.until or schedule.duration
+                channels = self.channels or schedule.channels
+
+                until = until or schedule.duration
+                channels = channels or schedule.channels
+
+                for channel in channels:
+                    if channel not in schedule.channels:
+                        schedule |= Delay(until, channel)
+                        continue
+
+                    curr_time = 0
+                    # TODO: Replace with method of getting instructions on a channel
+                    for interval in schedule.timeslots[channel]:
+                        if curr_time >= until:
+                            break
+                        if interval[0] != curr_time:
+                            end_time = min(interval[0], until)
+                            schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
+                        curr_time = interval[1]
+                    if curr_time < until:
+                        schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
+
+                program.replace_schedule(idx, schedule)
+            return program
+
+
+def pad(
+    schedule: Schedule,
+    channels: Optional[Iterable[Channel]] = None,
+    until: Optional[int] = None,
+) -> Schedule:
     """Pad the input ``Schedule`` with ``Delay`` s on all unoccupied timeslots until ``until``
     if it is provided, otherwise until ``schedule.duration``.
 
@@ -243,27 +326,37 @@ def pad(schedule: Schedule,
     Returns:
         The padded schedule.
     """
-    until = until or schedule.duration
-    channels = channels or schedule.channels
+    pm = PassManager()
+    pm.append(PadProgram(
+        channels,
+        until
+        ),
+    )
+    return pm.run(pulse.Program(schedules=schedule)).schedules[0]
 
-    for channel in channels:
-        if channel not in schedule.channels:
-            schedule |= Delay(until, channel)
-            continue
 
-        curr_time = 0
-        # TODO: Replace with method of getting instructions on a channel
-        for interval in schedule.timeslots[channel]:
-            if curr_time >= until:
-                break
-            if interval[0] != curr_time:
-                end_time = min(interval[0], until)
-                schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
-            curr_time = interval[1]
-        if curr_time < until:
-            schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
+class CompressPulses(TransformationPass):
+    """Transformation pass to replace identical pulses."""
 
-    return schedule
+    def run(self, program: pulse.Program):
+        existing_pulses = []
+        for sched_idx, schedule in enumerate(program.schedules):
+            new_schedule = Schedule(name=schedule.name)
+
+            for time, inst in schedule.instructions:
+                if isinstance(inst, Play):
+                    if inst.pulse in existing_pulses:
+                        idx = existing_pulses.index(inst.pulse)
+                        identical_pulse = existing_pulses[idx]
+                        new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
+                    else:
+                        existing_pulses.append(inst.pulse)
+                        new_schedule |= inst << time
+                else:
+                    new_schedule |= inst << time
+
+            program.replace_schedule(sched_idx, new_schedule)
+        return program
 
 
 def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
@@ -275,25 +368,6 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     Returns:
         Compressed schedules.
     """
-
-    existing_pulses = []
-    new_schedules = []
-
-    for schedule in schedules:
-        new_schedule = Schedule(name=schedule.name)
-
-        for time, inst in schedule.instructions:
-            if isinstance(inst, Play):
-                if inst.pulse in existing_pulses:
-                    idx = existing_pulses.index(inst.pulse)
-                    identical_pulse = existing_pulses[idx]
-                    new_schedule |= Play(identical_pulse, inst.channel, inst.name) << time
-                else:
-                    existing_pulses.append(inst.pulse)
-                    new_schedule |= inst << time
-            else:
-                new_schedule |= inst << time
-
-        new_schedules.append(new_schedule)
-
-    return new_schedules
+    pm = PassManager()
+    pm.append(CompressPulses())
+    return pm.run(pulse.Program(schedules=schedules)).schedules
