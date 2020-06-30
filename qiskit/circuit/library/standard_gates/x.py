@@ -471,57 +471,60 @@ class C3XGate(ControlledGate):
         self.base_gate = XGate()
         self._angle = angle
 
-    # def _define(self):
-    #     """
-    #     gate c3x a,b,c,d
-    #     {
-    #         h d; cu1(-pi/4) a,d; h d;
-    #         cx a,b;
-    #         h d; cu1(pi/4) b,d; h d;
-    #         cx a,b;
-    #         h d; cu1(-pi/4) b,d; h d;
-    #         cx b,c;
-    #         h d; cu1(pi/4) c,d; h d;
-    #         cx a,c;
-    #         h d; cu1(-pi/4) c,d; h d;
-    #         cx b,c;
-    #         h d; cu1(pi/4) c,d; h d;
-    #         cx a,c;
-    #         h d; cu1(-pi/4) c,d; h d;
-    #     }
-    #     """
-    #     from .u1 import CU1Gate
-    #     q = QuantumRegister(4, name='q')
-    #     definition = [
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(-self._angle), [q[0], q[3]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(self._angle), [q[1], q[3]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(-self._angle), [q[1], q[3]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CXGate(), [q[1], q[2]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(self._angle), [q[2], q[3]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CXGate(), [q[0], q[2]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(-self._angle), [q[2], q[3]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CXGate(), [q[1], q[2]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(self._angle), [q[2], q[3]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CXGate(), [q[0], q[2]], []),
-    #         (HGate(), [q[3]], []),
-    #         (CU1Gate(-self._angle), [q[2], q[3]], []),
-    #         (HGate(), [q[3]], [])
-    #     ]
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate c3x a,b,c,d
+        {
+            h d; cu1(-pi/4) a,d; h d;
+            cx a,b;
+            h d; cu1(pi/4) b,d; h d;
+            cx a,b;
+            h d; cu1(-pi/4) b,d; h d;
+            cx b,c;
+            h d; cu1(pi/4) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/4) c,d; h d;
+            cx b,c;
+            h d; cu1(pi/4) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/4) c,d; h d;
+        }
+        """
+        from qiskit import QuantumCircuit
+        from .u1 import CU1Gate
+        q = QuantumRegister(4, name='q')
+        definition = [
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[0], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[1], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[1], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-self._angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], [])
+        ]
+        qc = QuantumCircuit(q)
+        qc.data = definition
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
@@ -664,47 +667,50 @@ class C4XGate(ControlledGate):
         self.base_gate = XGate()
 
     # seems like open controls not hapening?
-    # def _define(self):
-    #     """
-    #     gate c3sqrtx a,b,c,d
-    #     {
-    #         h d; cu1(-pi/8) a,d; h d;
-    #         cx a,b;
-    #         h d; cu1(pi/8) b,d; h d;
-    #         cx a,b;
-    #         h d; cu1(-pi/8) b,d; h d;
-    #         cx b,c;
-    #         h d; cu1(pi/8) c,d; h d;
-    #         cx a,c;
-    #         h d; cu1(-pi/8) c,d; h d;
-    #         cx b,c;
-    #         h d; cu1(pi/8) c,d; h d;
-    #         cx a,c;
-    #         h d; cu1(-pi/8) c,d; h d;
-    #     }
-    #     gate c4x a,b,c,d,e
-    #     {
-    #         h e; cu1(-pi/2) d,e; h e;
-    #         c3x a,b,c,d;
-    #         h d; cu1(pi/4) d,e; h d;
-    #         c3x a,b,c,d;
-    #         c3sqrtx a,b,c,e;
-    #     }
-    #     """
-    #     from .u1 import CU1Gate
-    #     q = QuantumRegister(5, name='q')
-    #     definition = [
-    #         (HGate(), [q[4]], []),
-    #         (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
-    #         (HGate(), [q[4]], []),
-    #         (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-    #         (HGate(), [q[4]], []),
-    #         (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
-    #         (HGate(), [q[4]], []),
-    #         (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-    #         (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
-    #     ]
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate c3sqrtx a,b,c,d
+        {
+            h d; cu1(-pi/8) a,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(-pi/8) b,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx b,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(-pi/8) c,d; h d;
+        }
+        gate c4x a,b,c,d,e
+        {
+            h e; cu1(-pi/2) d,e; h e;
+            c3x a,b,c,d;
+            h d; cu1(pi/4) d,e; h d;
+            c3x a,b,c,d;
+            c3sqrtx a,b,c,e;
+        }
+        """
+        from qiskit import QuantumCircuit
+        from .u1 import CU1Gate
+        q = QuantumRegister(5, name='q')
+        definition = [
+            (HGate(), [q[4]], []),
+            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
+            (HGate(), [q[4]], []),
+            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (HGate(), [q[4]], []),
+            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
+            (HGate(), [q[4]], []),
+            (C3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
+        ]
+        qc = QuantumCircuit(q)
+        qc.data = definition
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.

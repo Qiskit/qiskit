@@ -78,7 +78,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
                               params=sorted(parameter_dict.values(), key=lambda p: p.name))
     instruction.condition = None
 
-    def find_bit_position(bit):
+    def find_bit_position(bit):  # 
         """find the index of a given bit (Register, int) within
         a flat ordered list of bits of the circuit
         """
@@ -96,21 +96,31 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     definition = target.data
 
-    qregs = []
+    regs = []
     if instruction.num_qubits > 0:
         q = QuantumRegister(instruction.num_qubits, 'q')
-        qregs.append(q)
+        regs.append(q)
 
     if instruction.num_clbits > 0:
         c = ClassicalRegister(instruction.num_clbits, 'c')
-        qregs.append(c)
+        regs.append(c)
     
     definition = list(map(lambda x:
                           (x[0],
                            list(map(lambda y: q[find_bit_position(y)], x[1])),
                            list(map(lambda y: c[find_bit_position(y)], x[2]))), definition))
 
-    qc = QuantumCircuit(*qregs, name=instruction.name)
+    # fix condition
+    for rule in definition:
+        condition = rule[0].condition
+        if condition:
+            reg, val = condition
+            if reg.size == c.size:
+                rule[0].condition = (c, val)
+            else:
+                raise CircuitError('Cannot convert condition in circuit with multiple classical registers to instruction')
+
+    qc = QuantumCircuit(*regs, name=instruction.name)
     qc.data = definition
     instruction.definition = qc
 

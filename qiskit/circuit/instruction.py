@@ -387,6 +387,11 @@ class Instruction:
 
         if instruction.definition is None:
             from qiskit import QuantumCircuit
-            instruction.definition = QuantumCircuit(self.num_qubits)
-        instruction.definition.data = [(self, qargs[:], cargs[:])] * n
+            qc = QuantumCircuit()
+            if qargs:
+                qc.add_register(qargs)
+            if cargs:
+                qc.add_register(cargs)
+            qc.data = [(self, qargs[:], cargs[:])] * n
+        instruction.definition = qc
         return instruction

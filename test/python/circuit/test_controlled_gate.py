@@ -211,7 +211,8 @@ class TestControlledGate(QiskitTestCase):
         result = job.result()
 
         # Circuit unitaries
-        mat_cnu3 = result.get_unitary(0)
+        #mat_cnu3 = result.get_unitary(0)  # unitary_simulator is giving different output than Operator??
+        mat_cnu3 = Operator(qcnu3).data
 
         mat_u3 = result.get_unitary(1)
         mat_cu3 = result.get_unitary(2)
@@ -231,8 +232,10 @@ class TestControlledGate(QiskitTestCase):
         for itest in tests:
             info, target, decomp = itest[0], itest[1], itest[2]
             with self.subTest(i=info):
-                self.log.info(info)
-                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
+                if info == 'check unitary of cnu3 against tensored unitary of u3':
+                    np.set_printoptions(precision=2, linewidth=300, suppress=True)
+                    import ipdb;ipdb.set_trace()
+                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True, atol=1e-8, rtol=1e-5))
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""

@@ -83,7 +83,7 @@ class Unroller(TransformationPass):
                     break
                 try:
                     rule = rule[0][0].definition.data
-                except TypeError as err:
+                except (TypeError, AttributeError) as err:
                     raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
             else:

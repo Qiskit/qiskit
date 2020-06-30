@@ -769,6 +769,7 @@ class QuantumCircuit:
         if not all(isinstance(i, Clbit) for i in cargs):
             raise CircuitError("carg is not a Clbit")
         if not all(self.has_register(i.register) for i in cargs):
+            #import ipdb;ipdb.set_trace()
             raise CircuitError("register not in this circuit")
 
     def to_instruction(self, parameter_map=None):

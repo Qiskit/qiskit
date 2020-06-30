@@ -187,7 +187,7 @@ class TestInstructions(QiskitTestCase):
         circ.measure(q[0], c[0])
         circ.rz(0.8, q[0]).c_if(c, 6)
         inst = circ.to_instruction()
-
+        
         circ = QuantumCircuit(q, c, name='circ')
         circ.rz(0.8, q[0]).c_if(c, 6)
         circ.measure(q[0], c[0])
@@ -195,6 +195,7 @@ class TestInstructions(QiskitTestCase):
         circ.u3(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
         inst_reverse = circ.to_instruction()
+
         self.assertEqual(inst.reverse_ops().definition, inst_reverse.definition)
 
     def test_reverse_opaque(self):
