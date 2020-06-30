@@ -142,7 +142,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test to see that fold=-1 is no folding"""
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(1, 'c')
-        circuit = QuantumCircuit(qr,cr)
+        circuit = QuantumCircuit(qr, cr)
         for _ in range(3):
             circuit.h(0)
             circuit.x(0)
@@ -153,12 +153,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test to see that fold=4 is folding"""
         qr = QuantumRegister(2, 'q')
         cr = ClassicalRegister(1, 'c')
-        circuit = QuantumCircuit(qr,cr)
+        circuit = QuantumCircuit(qr, cr)
         for _ in range(3):
             circuit.h(0)
             circuit.x(0)
 
         self.circuit_drawer(circuit, fold=4, filename='fold_4.png')
+        
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
