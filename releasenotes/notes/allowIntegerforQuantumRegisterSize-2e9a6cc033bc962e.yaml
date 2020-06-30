@@ -2,5 +2,5 @@
 fixes:
   - |
     Use numbers.Integral instead of Python's built-in ``int`` as 
-    input type to denote the size of a ``QuantumRegister``.
+    supported index to ``QuantumRegister`` and ``ClassicalRegister``.
     
