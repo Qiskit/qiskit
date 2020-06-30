@@ -51,7 +51,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None):
+    def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
 
         Args:
@@ -60,8 +60,6 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (int or float): instruction's duration. Its type indicates its unit:
-                integer means unitless (dt of backend) and float means seconds.
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -84,7 +82,6 @@ class Instruction:
         # empty definition means opaque or fundamental instruction
         self._definition = None
         self.params = params
-        self._duration = duration
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -125,9 +122,6 @@ class Instruction:
             except TypeError:
                 pass
 
-            return False
-
-        if self.duration != other.duration:
             return False
 
         return True
@@ -207,16 +201,6 @@ class Instruction:
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         sel.add_equivalence(self, decomposition)
 
-    @property
-    def duration(self):
-        """Get the duration."""
-        return self._duration
-
-    @duration.setter
-    def duration(self, duration):
-        """Set the duration."""
-        self._duration = duration
-
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
         instruction = QasmQobjInstruction(name=self.name)
@@ -235,8 +219,6 @@ class Instruction:
         # conversion will be deleted by the assembler.
         if self.condition:
             instruction._condition = self.condition
-        if self.duration is not None and isinstance(self.duration, int):
-            instruction.duration = self.duration
         return instruction
 
     def mirror(self):

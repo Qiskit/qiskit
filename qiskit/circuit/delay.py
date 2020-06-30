@@ -40,10 +40,12 @@ class Delay(Instruction):
 
     @property
     def duration(self):
+        """Get the duration of this delay."""
         return self.params[0]
 
     @duration.setter
     def duration(self, duration):
+        """Set the duration of this delay."""
         self.params = [duration]
 
     def to_matrix(self) -> np.ndarray:
