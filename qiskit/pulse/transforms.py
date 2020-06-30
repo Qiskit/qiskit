@@ -50,8 +50,9 @@ class AlignMeasuresAnalysis(AnalysisPass):
         """Return the the max between the duration of the calibration time and
         the absolute time of the latest scheduled acquire."""
         if self.max_calibration_duration is None:
-            max_calibration_duration = self.get_max_calibration_duration()
-        align_time = max_calibration_duration
+            align_time = self.get_max_calibration_duration()
+        else:
+            align_time = self.max_calibration_duration
         for schedule in program.schedules:
             last_acquire = 0
             acquire_times = [time for time, inst in schedule.instructions
@@ -98,9 +99,10 @@ class AlignMeasures(TransformationPass):
         if align_time is not None and align_time < 0:
             raise CompilerError("Align time cannot be negative.")
         if align_time is None:
-            self.requires.append(AlignMeasuresAnalysis(inst_map, cal_gate))
+            self.requires.append(AlignMeasuresAnalysis(
+                inst_map, cal_gate, max_calibration_duration=max_calibration_duration))
 
-        self.align_time = None
+        self.align_time = align_time
 
     def run(self, program):
         align_time = self.align_time or self.property_set['meas_align_time']

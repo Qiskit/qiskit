@@ -16,8 +16,14 @@
 about the current state of the circuit """
 
 
-class PropertySet(dict):
+class PropertyDict(dict):
     """ A default dictionary-like object """
 
-    def __missing__(self, key):
-        return None
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise None
+
+    def __setattr__(self, attr, value):
+        self[attr] = value
