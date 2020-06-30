@@ -2322,7 +2322,7 @@ class QuantumCircuit:
         from .library.standard_gates.ecr import ECRGate
         return self.append(ECRGate(), [qubit1, qubit2], [])
 
-    def s(self, qubit,):  # pylint: disable=invalid-name
+    def s(self, qubit):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.SGate`."""
         from .library.standard_gates.s import SGate
         return self.append(SGate(), [qubit], [])
