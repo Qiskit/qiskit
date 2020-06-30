@@ -90,6 +90,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    synthesis_fidelity = pass_manager_config.synthesis_fidelity
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -156,7 +157,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates),
+            UnitarySynthesis(basis_gates, fidelity=synthesis_fidelity),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)

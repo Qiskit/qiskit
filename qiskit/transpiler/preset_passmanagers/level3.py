@@ -96,6 +96,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
+    synthesis_fidelity = pass_manager_config.synthesis_fidelity
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = Unroll3qOrMore()
@@ -182,7 +183,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _opt = [
         Collect2qBlocks(),
         ConsolidateBlocks(basis_gates=basis_gates),
-        UnitarySynthesis(basis_gates),
+        UnitarySynthesis(basis_gates, fidelity=synthesis_fidelity),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
     ]
