@@ -48,11 +48,12 @@ For example:
     sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     ```
 In above example, `sched1` and `sched2` will create different frame. The final phase of `sched1`
-should be visualized as 3.14, while that of `sched2` becomes 1.57.
+should be visualized as 3.14, while that of `sched2` becomes 1.57. Since the `SetPhase` and
+the `ShiftPhase` instruction behave differently, we cannot sum up the phase values to show.
 
 Because those instructions are issued at the same time, they will be overlapped on the
 canvas of the plotter. Thus it is convenient to plot the frame value at the time rather
-than plotting the phase value bound to the instruction.
+than plotting each phase value bound to the instruction.
 """
 from collections import defaultdict, namedtuple
 from typing import Union, Optional, Dict, List, Iterator, Tuple
