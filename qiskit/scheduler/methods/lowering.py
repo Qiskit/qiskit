@@ -27,6 +27,7 @@ from qiskit.pulse.channels import AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import instructions as pulse_inst
+from qiskit.transpiler.passes.scheduling.delayindt import delay_in_dt
 
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.utils import measure
@@ -62,6 +63,9 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
+    # convert the unit of durations of delays into dt
+    circuit = delay_in_dt(circuit, dt_in_sec=schedule_config.dt)
+
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
@@ -84,15 +88,10 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
 
         elif isinstance(inst, Delay):
-            if inst.unit == 'dt':
-                duration = inst.duration
-            else:
-                duration_s = _convert_to_seconds(inst.duration, inst.unit)
-                duration = int(duration_s // schedule_config.dt)
             sched = Schedule(name=inst.name)
             for qubit in inst_qubits:
                 for channel in [DriveChannel, AcquireChannel, MeasureChannel]:
-                    sched += pulse_inst.Delay(duration=duration, channel=channel(qubit))
+                    sched += pulse_inst.Delay(duration=inst.duration, channel=channel(qubit))
             circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
 
         elif isinstance(inst, Measure):
@@ -116,15 +115,3 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
         circ_pulse_defs.append(get_measure_schedule())
 
     return circ_pulse_defs
-
-
-def _convert_to_seconds(value: float, unit: str) -> float:
-    """Convert input value to seconds by applying unit to value."""
-    prefixes = {'p': 1e-12, 'n': 1e-9, 'u': 1e-6, 'µ': 1e-6,
-                'm': 1e-3, 'k': 1e3, 'M': 1e6, 'G': 1e9, 's': 1}
-    if not unit:
-        return value
-    try:
-        return value * prefixes[unit[0]]
-    except KeyError:
-        raise QiskitError("Error parsing delay operation duration.")

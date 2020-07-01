@@ -15,27 +15,27 @@
 """Pass to convert time unit of delays into dt."""
 import warnings
 
-from qiskit.circuit.delay import Delay
 from qiskit.circuit import ParameterExpression
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit.delay import Delay
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.util import apply_prefix
 
 
 class DelayInDt(TransformationPass):
     """Pass to convert time unit of delays into dt."""
 
-    def __init__(self, dt):
+    def __init__(self, dt_in_sec):
         """DelayInDt initializer.
 
         Args:
-            dt (float): .
+            dt_in_sec (float): Sampling time [sec] used for the conversion.
         """
         super().__init__()
-        self.dt = dt
+        self.dt = dt_in_sec
 
     def run(self, dag):
-        """Update durations in dt for all delays whose units are not dt (None).
+        """Convert durations of delays in the circuit to be in dt.
 
         Args:
             dag (DAGCircuit): DAG to be converted.
@@ -44,11 +44,8 @@ class DelayInDt(TransformationPass):
             DAGCircuit: A converted DAG.
 
         Raises:
-            TranspilerError: if ...
+            TranspilerError: if failing to the unit conversion for some reason.
         """
-        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('DelayInDt runs on physical circuits only')
-
         for node in dag.op_nodes(op=Delay):
             if isinstance(node.op.duration, ParameterExpression):
                 try:
@@ -61,18 +58,14 @@ class DelayInDt(TransformationPass):
 
             if node.op.unit != 'dt':  # convert unit of duration to dt
                 if self.dt is None:
-                    raise TranspilerError('If using unit in delay, backend must have dt.')
-                if node.op.unit == 'ps':
-                    scale = 1e-12
-                elif node.op.unit == 'ns':
-                    scale = 1e-9
-                elif node.op.unit == 'us':
-                    scale = 1e-6
-                elif node.op.unit == 's':
-                    scale = 1.0
+                    raise TranspilerError("If using unit in delay, backend must have dt.")
+                if node.op.unit == 's':
+                    duration_in_sec = node.op.duration
                 else:
-                    raise TranspilerError('Invalid unit %s in delay instruction.' % node.op.unit)
-                duration_in_sec = scale * node.op.duration
+                    try:
+                        duration_in_sec = apply_prefix(node.op.duration, node.op.unit)
+                    except Exception:
+                        raise TranspilerError("Invalid unit %s in delay." % node.op.unit)
                 duration_in_dt = round(duration_in_sec / self.dt)
                 rounding_error = abs(duration_in_sec - duration_in_dt * self.dt)
                 if rounding_error > 1e-15:
@@ -80,6 +73,23 @@ class DelayInDt(TransformationPass):
                                   % (duration_in_dt, duration_in_dt * self.dt, duration_in_sec),
                                   UserWarning)
                 node.op.duration = duration_in_dt
-                node.op.unit = None
+                node.op.unit = 'dt'
 
         return dag
+
+
+def delay_in_dt(circuit, dt_in_sec):
+    """Convert durations of delays in the circuit to be in dt.
+
+    Args:
+        circuit (QuantumCircuit): Circuit to be converted.
+        dt_in_sec (float): Sample time [sec] used for the conversion.
+
+    Returns:
+        QuantumCircuit: A converted circuit.
+    """
+    from qiskit.converters.circuit_to_dag import circuit_to_dag
+    from qiskit.converters.dag_to_circuit import dag_to_circuit
+    dag = circuit_to_dag(circuit)
+    dag = DelayInDt(dt_in_sec).run(dag)
+    return dag_to_circuit(dag)
