@@ -19,6 +19,7 @@ from test.aqua import QiskitAquaTestCase
 import numpy as np
 
 from qiskit import QuantumCircuit, BasicAer, execute
+from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
 
 from qiskit.aqua.operators import (StateFn, Zero, One, Plus, Minus, PrimitiveOp,
@@ -191,6 +192,16 @@ class TestStateConstruction(QiskitAquaTestCase):
         self.assertNotEqual(c_op, c_op_perm)
         c_op_id = c_op_perm.permute(perm)
         self.assertEqual(c_op, c_op_id)
+
+    def test_primitive_param_binding(self):
+        """Test that assign_parameters binds parameters of both the underlying primitive and coeffs.
+        """
+        theta = ParameterVector('theta', 2)
+        # only OperatorStateFn can have a primitive with a parameterized coefficient
+        op = StateFn(theta[0] * X) * theta[1]
+        bound = op.assign_parameters(dict(zip(theta, [0.2, 0.3])))
+        self.assertEqual(bound.coeff, 0.3)
+        self.assertEqual(bound.primitive.coeff, 0.2)
 
 
 if __name__ == '__main__':
