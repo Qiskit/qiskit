@@ -19,10 +19,13 @@ import warnings
 from typing import List, Optional, Iterable
 
 from qiskit import pulse
-from qiskit.pulse import (analysis, Acquire, AcquireInstruction, Delay, Play,
-                          InstructionScheduleMap, ScheduleComponent, Schedule)
+from qiskit.pulse import (analysis, Acquire, AcquireInstruction, Delay,
+                          instructions, InstructionScheduleMap, Play, pulse_lib,
+                          ScheduleComponent, Schedule)
 from qiskit.pulse.passmanager import PassManager
 from qiskit.pulse.basepasses import TransformationPass
+from qiskit.qobj import converters
+
 from .channels import Channel, AcquireChannel, MeasureChannel, MemorySlot
 from .exceptions import PulseError, CompilerError
 
@@ -331,3 +334,35 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     pm = PassManager()
     pm.append(CompressPulses())
     return pm.run(pulse.Program(schedules=schedules)).schedules
+
+
+class NoInvalidParametricPulses(TransformationPass):
+    """Transformation pass to replace unsupported parametric pulses with waveforms."""
+
+    def __init__(
+        self,
+        parametric_pulses: List[str],
+    ):
+        """Accepts list of supported parametric pulse names."""
+        super().__init__()
+        self.parametric_pulses = parametric_pulses
+
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        for sched_idx, schedule in enumerate(program.schedules):
+            for _, instruction in schedule.instructions:
+                if isinstance(instruction, instructions.Play):
+                    pulse = instruction.pulse
+                    if isinstance(pulse, pulse_lib.ParametricPulse):
+                        pulse_shape = converters.pulse_instruction.ParametricPulseShapes(
+                            type(instruction.pulse)).name
+                        if pulse_shape not in self.parametric_pulses:
+                            schedule.replace(
+                                instruction,
+                                instructions.Play(
+                                    pulse.get_sample_pulse(),
+                                    instruction.channel,
+                                    name=instruction.name
+                                ),
+                                inplace=True
+                            )
+        return program

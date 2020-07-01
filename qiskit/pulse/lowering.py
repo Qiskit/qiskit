@@ -19,7 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from qiskit import pulse, qobj
 from qiskit.assembler.run_config import RunConfig
-from qiskit.pulse import analysis, instructions, commands, pulse_lib, validation
+from qiskit.pulse import (analysis, instructions, commands,
+                          pulse_lib, transforms, validation)
 from qiskit.pulse.basepasses import LoweringPass
 from qiskit.pulse.compiler import BaseCompiler, Compiler, compile_result
 from qiskit.pulse.exceptions import CompilerError
@@ -96,6 +97,9 @@ class LowerQobj(LoweringPass):
         self.requires.append(analysis.AmalgamatedAcquires())
         if hasattr(run_config, 'meas_map'):
             self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
+        self.requires.append(
+            transforms.NoInvalidParametricPulses(run_config.parametric_pulses),
+        )
 
     def lower(
         self,
@@ -262,17 +266,6 @@ class LowerQobj(LoweringPass):
                     instruction.command,
                     instruction.channels[0],
                     name=instruction.name,
-                )
-
-            if isinstance(instruction, instructions.Play) and \
-                    isinstance(instruction.pulse, pulse_lib.ParametricPulse):
-                pulse_shape = converters.pulse_instruction.ParametricPulseShapes(
-                    type(instruction.pulse)).name
-                if pulse_shape not in run_config.parametric_pulses:
-                    instruction = instructions.Play(
-                        instruction.pulse.get_sample_pulse(),
-                        instruction.channel,
-                        name=instruction.name,
                 )
 
             if isinstance(instruction, commands.PulseInstruction):  # deprecated
