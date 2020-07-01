@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The method :meth:`~qiskit.circuit.QuantumCircuit.to_gate` was extended with a
+    parameter ``label`` to set a label to the resulting gate.

@@ -137,18 +137,10 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         float_entry = std_eqlib.get_entry(float_gate)
 
         if not param_gate.definition or not param_gate.definition.data:
-            self.assertEqual(len(param_entry), 0)
-            self.assertEqual(len(float_entry), 0)
             return
 
-        if gate_class is CXGate:
-            # CXGate currently has a definition in terms of CXGate.
-            self.assertEqual(len(param_entry), 0)
-            self.assertEqual(len(float_entry), 0)
-            return
-
-        self.assertEqual(len(param_entry), 1)
-        self.assertEqual(len(float_entry), 1)
+        self.assertGreaterEqual(len(param_entry), 1)
+        self.assertGreaterEqual(len(float_entry), 1)
 
         param_qc = QuantumCircuit(param_gate.num_qubits)
         float_qc = QuantumCircuit(float_gate.num_qubits)
@@ -156,5 +148,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_qc.append(param_gate, param_qc.qregs[0])
         float_qc.append(float_gate, float_qc.qregs[0])
 
-        self.assertEqual(param_entry[0], param_qc.decompose())
-        self.assertEqual(float_entry[0], float_qc.decompose())
+        self.assertTrue(any(equiv == param_qc.decompose()
+                            for equiv in param_entry))
+        self.assertTrue(any(equiv == float_qc.decompose()
+                            for equiv in float_entry))
