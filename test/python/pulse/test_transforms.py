@@ -21,7 +21,7 @@ import numpy as np
 from qiskit import pulse
 from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
                           Gaussian, GaussianSquare, Constant, instructions,
-                          transforms)
+                          pulse_lib, transforms)
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.passmanager import PassManager
@@ -530,6 +530,38 @@ class TestFoldShiftFrequency(QiskitTestCase):
         ref_sched += instructions.Delay(10, d0)
 
         self.assertEqual(opt_sched, ref_sched)
+
+
+class TestTruncateWaveformPrecision(QiskitTestCase):
+    """Test truncation of waveform precision."""
+    def truncate_pulses(self, schedule):
+        pm = PassManager()
+        pm.append(transforms.TruncateWaveformPrecision())
+        return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
+
+    def test_truncation_of_waveform(self):
+        d0 = DriveChannel(0)
+        d1 = DriveChannel(1)
+
+        pulse0 = pulse_lib.SamplePulse([0.000055, 1.])
+        trunc_pulse0 = pulse_lib.SamplePulse([0.00006, 1.])
+        pulse1 = pulse_lib.SamplePulse([1., 1.])
+        trunc_pulse1 = pulse_lib.SamplePulse([1., 1.])
+
+        sched = Schedule()
+        sched += Play(pulse0, d0)
+        sched += Play(pulse0, d1)
+        sched += Play(pulse1, d0)
+        sched += Play(pulse1, d1)
+        sched = self.truncate_pulses(sched)
+
+        ref_sched = Schedule()
+        ref_sched += Play(trunc_pulse0, d0)
+        ref_sched += Play(trunc_pulse0, d1)
+        ref_sched += Play(trunc_pulse1, d0)
+        ref_sched += Play(trunc_pulse1, d1)
+
+        self.assertEqual(sched, ref_sched)
 
 
 if __name__ == '__main__':

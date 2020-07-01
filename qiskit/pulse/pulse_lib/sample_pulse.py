@@ -51,6 +51,13 @@ class SamplePulse(Pulse):
         """Return sample values."""
         return self._samples
 
+    @samples.setter
+    def samples(self, samples) -> np.ndarray:
+        """Return sample values."""
+        if len(samples) != self.duration:
+            raise PulseError("Can't set with array of different duration.")
+        self._samples = samples
+
     def _clip(self, samples: np.ndarray, epsilon: float = 1e-7) -> np.ndarray:
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
 

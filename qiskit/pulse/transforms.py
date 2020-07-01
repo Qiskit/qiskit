@@ -14,6 +14,7 @@
 
 """Transformation passes and functions for pulse programs."""
 
+import numpy as np
 import warnings
 
 from typing import List, Optional, Iterable
@@ -539,3 +540,38 @@ class FoldShiftFrequency(TransformationPass):
         if frequency:
             new_instr = instructions.ShiftFrequency(frequency, channel)
             schedule.insert(time, new_instr, inplace=True)
+
+
+class TruncateWaveformPrecision(TransformationPass):
+    """Truncate the precision of waveforms to "{1}.{precision}" bits."""
+    def __init__(
+        self,
+        precision=14,
+    ):
+        super().__init__()
+        self.precision = precision
+        self._decimals = int(np.ceil(precision * np.log(2) / np.log(10)))
+
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        self._truncated_pulses = set()
+        self.visit_Program(program)
+        return program
+
+    def visit_Program(self, program):
+        for schedule in program.schedules:
+            self.visit_Schedule(schedule)
+
+    def visit_Schedule(self, schedule, parent=None):
+        for time, child in schedule._children:
+            if isinstance(child, pulse.Schedule):
+                self.visit_Schedule(child, schedule)
+            elif isinstance(child, instructions.Play):
+                self.visit_Play(child, schedule)
+
+    def visit_Play(self, play, schedule):
+        pulse = play.pulse
+        if isinstance(pulse, pulse_lib.SamplePulse):
+            if pulse not in self._truncated_pulses:
+                pulse.samples = np.around(pulse.samples, decimals=self._decimals)
+                self._truncated_pulses.add(pulse)
+    

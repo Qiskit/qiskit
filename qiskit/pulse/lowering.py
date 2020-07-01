@@ -95,12 +95,11 @@ class LowerQobj(LoweringPass):
         self.requires.append(transforms.ConvertDeprecatedInstructions())
         self.requires.append(analysis.MaxMemorySlotUsed())
         self.requires.append(analysis.AmalgamatedAcquires())
-        self.requires.append(
-            transforms.NoInvalidParametricPulses(run_config.parametric_pulses),
-        )
+        self.requires.append(transforms.NoInvalidParametricPulses(run_config.parametric_pulses))
         if hasattr(run_config, 'meas_map'):
             self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
         self.requires.append(transforms.DeDuplicateWaveformNames())
+        self.requires.append(transforms.TruncateWaveformPrecision())
 
     def lower(
         self,
