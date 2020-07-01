@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-
+from qiskit.quantum_info.random import random_unitary
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -137,6 +137,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(q1[1])
 
         self.circuit_drawer(circuit, filename='no_barriers.png', plot_barriers=False)
+
+    def test_scale(self):
+        """Tests scale
+        See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
+        circuit = QuantumCircuit(5)
+        circuit.unitary(random_unitary(2 ** 5), circuit.qubits)
+        circuit.draw('mpl')
+
+        self.circuit_drawer(circuit, filename='scale_default.png')
+        self.circuit_drawer(circuit, filename='scale_half.png', scale=0.5)
+        self.circuit_drawer(circuit, filename='scale_double.png', scale=2)
 
 
 if __name__ == '__main__':
