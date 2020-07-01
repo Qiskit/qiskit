@@ -511,7 +511,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 class TestReplace(BaseTestSchedule):
     """Test schedule replacement."""
 
-    def test_replace_instruction(self):
+    def test_instruction(self):
         """Test replacement of simple instruction"""
         old = Play(Constant(100, 1.0), DriveChannel(0))
         new = Play(Constant(100, 0.1), DriveChannel(0))
@@ -525,7 +525,7 @@ class TestReplace(BaseTestSchedule):
         sched.replace(old, new, inplace=True)
         self.assertEqual(sched, Schedule(new))
 
-    def test_replace_schedule(self):
+    def test_schedule(self):
         """Test replacement of schedule."""
 
         old = Schedule(
@@ -553,7 +553,7 @@ class TestReplace(BaseTestSchedule):
         sched.replace(old, new, inplace=True)
         self.assertEqual(sched, ref_sched)
 
-    def test_replace_fails_on_overlap(self):
+    def test_fails_on_overlap(self):
         """Test that replacement fails on overlap."""
         old = Play(Constant(20, 1.0), DriveChannel(0))
         new = Play(Constant(100, 0.1), DriveChannel(0))
@@ -564,6 +564,125 @@ class TestReplace(BaseTestSchedule):
 
         with self.assertRaises(PulseError):
             sched.replace(old, new)
+
+
+class TestRemoveAtTime(BaseTestSchedule):
+    """Test schedule removal at time."""
+
+    def test_instruction(self):
+        """Test replacement of simple instruction"""
+        old_delay = Delay(10, DriveChannel(0))
+        old = Schedule(
+            (0, old_delay),
+            (10, old_delay),
+        )
+
+        new = old.remove_at_time(10, old_delay)
+
+        ref_sched = Schedule()
+        ref_sched += old_delay
+        self.assertEqual(new, ref_sched)
+
+        # test replace inplace
+        old.remove_at_time(10, old_delay, inplace=True)
+        self.assertEqual(old, ref_sched)
+
+    def test_schedule(self):
+        """Test replacement of schedule."""
+
+        old = Schedule(
+            Delay(10, DriveChannel(0)),
+            Delay(100, DriveChannel(1)),
+        )
+        const = Play(Constant(100, 1.0), DriveChannel(0))
+
+        sched = Schedule()
+        sched += old
+        sched += old
+
+        new_sched = sched.replace_at_time(100, old, const)
+
+        ref_sched = Schedule()
+        ref_sched += old
+        ref_sched |= const << 100
+        self.assertEqual(new_sched, ref_sched)
+
+    def test_remove_first(self):
+        """Test only first instruction is removed"""
+        instr = ShiftPhase(np.pi/2, DriveChannel(0))
+
+        sched = Schedule()
+        sched += instr
+        sched += instr
+
+        ref_sched = Schedule()
+        ref_sched += instr
+
+        # test replace inplace
+        sched.remove_at_time(0, instr, inplace=True)
+        self.assertEqual(sched, ref_sched)
+
+    def test_remove_zero_duration(self):
+        """Test removal of zero duration instruction."""
+        d0 = DriveChannel(0)
+        instr = ShiftPhase(np.pi/2, d0)
+
+        sched = Schedule()
+        sched += instr
+        sched += Delay(10, d0)
+        sched += instr
+
+        ref_sched = Schedule()
+        ref_sched += instr
+        ref_sched += Delay(10, d0)
+
+        # test replace inplace
+        sched.remove_at_time(10, instr, inplace=True)
+        self.assertEqual(sched, ref_sched)
+
+
+class TestReplaceAtTime(BaseTestSchedule):
+    """Test schedule replacement at time."""
+
+    def test_instruction(self):
+        """Test replacement of simple instruction"""
+        old_delay = Delay(10, DriveChannel(0))
+        old = Schedule(
+            (0, old_delay),
+            (10, old_delay),
+        )
+        const = Play(Constant(100, 1.0), DriveChannel(0))
+
+        new = old.replace_at_time(10, old_delay, const)
+
+        ref_sched = Schedule()
+        ref_sched += old_delay
+        ref_sched += const
+        self.assertEqual(new, ref_sched)
+
+        # test replace inplace
+        old.replace_at_time(10, old_delay, const, inplace=True)
+        self.assertEqual(old, ref_sched)
+
+    def test_schedule(self):
+        """Test replacement of schedule."""
+
+        old = Schedule(
+            Delay(10, DriveChannel(0)),
+            Delay(100, DriveChannel(1)),
+        )
+        const = Play(Constant(100, 1.0), DriveChannel(0))
+
+        sched = Schedule()
+        sched += old
+        sched += old
+
+        new_sched = sched.replace_at_time(100, old, const)
+
+        ref_sched = Schedule()
+        ref_sched += old
+        ref_sched |= const << 100
+        self.assertEqual(new_sched, ref_sched)
 
 
 class TestDelay(BaseTestSchedule):

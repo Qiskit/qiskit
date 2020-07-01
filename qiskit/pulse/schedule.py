@@ -645,6 +645,153 @@ class Schedule(ScheduleComponent):
                 'overlapping instructions.'.format(
                     old=old, new=new)) from err
 
+    def remove_at_time(
+        self,
+        time: int,
+        old: ScheduleComponent,
+        inplace: bool = False,
+    ) -> 'Schedule':
+        """Return a schedule with the first instruction matching ``old`` removed
+        at ``time``.
+
+        The removal is based on an instruction equality check.
+
+        .. jupyter-kernel:: python3
+          :id: replace
+
+        .. jupyter-execute::
+
+          from qiskit import pulse
+
+          d0 = pulse.DriveChannel(0)
+
+          sched = pulse.Schedule()
+
+          old = pulse.Play(pulse.Constant(100, 1.0), d0) << 10
+
+          sched += old
+
+          sched = sched.remove_at_time(10, old)
+
+          assert sched == pulse.Schedule(new)
+
+        Only matches at the top-level of the schedule tree. If you wish to
+        perform this removal over all instructions in the schedule tree.
+        Flatten the schedule prior to running::
+
+        .. jupyter-execute::
+
+          sched = pulse.Schedule()
+
+          sched += pulse.Schedule(old) << 10
+
+          sched = sched.flatten()
+
+          sched = sched.remove_at_time(10, old)
+
+          assert sched == pulse.Schedule(new)
+
+        Args:
+          time: Time to replace instruction at.
+          old: Instruction to replace.
+          new: Instruction to replace with.
+          inplace: Replace instruction by mutably modifying this ``Schedule``.
+
+        Returns:
+          The modified schedule with ``old`` replaced by ``new``.
+
+        Raises:
+            PulseError: If the ``Schedule`` after replacements will has a timing overlap.
+                Or no replacement was found for ``old``.
+        """
+        removal_ocurred = False
+        new_children = []
+        for child_time, child in self._children:
+            if child == old and time == child_time and not removal_ocurred:
+                removal_ocurred = True
+                if inplace:
+                    self._remove_timeslots(time, old)
+            else:
+                new_children.append((child_time, child))
+
+        if removal_ocurred:
+            if inplace:
+                self.__children = new_children
+                return self
+            else:
+                return Schedule(*new_children)
+        else:
+            raise PulseError('No match for {old} at time={time} '
+                             'was found'.format(old=old, time=time))
+
+    def replace_at_time(
+        self,
+        time: int,
+        old: ScheduleComponent,
+        new: ScheduleComponent,
+        inplace: bool = False,
+    ) -> 'Schedule':
+        """Return a schedule with the ``old`` instruction replaced with a ``new``
+        instruction only at ``time``.
+
+        The replacment matching is based on an instruction equality check.
+
+        .. jupyter-kernel:: python3
+          :id: replace
+
+        .. jupyter-execute::
+
+          from qiskit import pulse
+
+          d0 = pulse.DriveChannel(0)
+
+          sched = pulse.Schedule()
+
+          old = pulse.Play(pulse.Constant(100, 1.0), d0) << 10
+          new = pulse.Play(pulse.Constant(100, 0.1), d0)
+
+          sched += old
+
+          sched = sched.replace_at_time(10, old, new)
+
+          assert sched == pulse.Schedule(new)
+
+        Only matches at the top-level of the schedule tree. If you wish to
+        perform this replacement over all instructions in the schedule tree.
+        Flatten the schedule prior to running::
+
+        .. jupyter-execute::
+
+          sched = pulse.Schedule()
+
+          sched += pulse.Schedule(old) << 10
+
+          sched = sched.flatten()
+
+          sched = sched.replace_at_time(10, old, new)
+
+          assert sched == pulse.Schedule(new)
+
+        Args:
+          time: Time to replace instruction at.
+          old: Instruction to replace.
+          new: Instruction to replace with.
+          inplace: Replace instruction by mutably modifying this ``Schedule``.
+
+        Returns:
+          The modified schedule with ``old`` replaced by ``new``.
+
+        Raises:
+            PulseError: If the ``Schedule`` after replacements will has a timing overlap.
+                Or no replacement was found for ``old``.
+        """
+        try:
+            replaced = self.remove_at_time(time, old, inplace=inplace)
+        except PulseError:
+            raise PulseError('No match for {old} at time={time} '
+                             'was found'.format(old, time))
+        return replaced.insert(time, new, inplace=inplace)
+
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,
@@ -859,12 +1006,12 @@ class ParameterizedSchedule:
         return self.bind_parameters(*args, **kwargs)
 
 
-def _find_interval(intervals: List[Interval], new_interval: Interval, index: int = 0) -> int:
+def _find_interval(intervals: List[Interval], interval: Interval, index: int = 0) -> int:
     """Using binary search on start times, find an interval.
 
     Args:
         intervals: A sorted list of non-overlapping Intervals.
-        new_interval: The interval for which the index into intervals will be found.
+        interval: The interval for which the index into intervals will be found.
         index: A running tally of the index, for recursion. The user should not pass a value.
 
     Returns:
@@ -875,10 +1022,11 @@ def _find_interval(intervals: List[Interval], new_interval: Interval, index: int
         return index
 
     mid_idx = len(intervals) // 2
-    if new_interval[1] <= intervals[mid_idx][0]:
-        return _find_interval(intervals[:mid_idx], new_interval, index=index)
+    mid = intervals[mid_idx]
+    if interval[1] <= mid[0] and (interval != mid):
+        return _find_interval(intervals[:mid_idx], interval, index=index)
     else:
-        return _find_interval(intervals[mid_idx:], new_interval, index=index + mid_idx)
+        return _find_interval(intervals[mid_idx:], interval, index=index + mid_idx)
 
 
 def _insertion_index(intervals: List[Interval], new_interval: Interval) -> int:

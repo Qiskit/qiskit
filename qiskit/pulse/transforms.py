@@ -455,3 +455,45 @@ class InlineInstructions(TransformationPass):
             program.replace_schedule(idx, schedule.flatten())
 
         return program
+
+
+class FoldShiftPhases(TransformationPass):
+    """Compress consecutive frame shifts and remove trivial frameshifts."""
+    def __init__(self):
+        super().__init__()
+        self.requires.append(ConvertDeprecatedInstructions())
+
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        self.visit_Program(program)
+        return program
+
+    def visit_Program(self, program):
+        for schedule in program.schedules:
+            self.visit_Schedule(schedule)
+
+    def visit_Schedule(self, schedule, parent=None):
+        replace_shiftphases = {}
+        for time, child in schedule._children:
+            if isinstance(child, pulse.Schedule):
+                self.visit_Schedule(child, schedule)
+            elif isinstance(child, instructions.ShiftPhase):
+                channel = child.channel
+                current_frame = replace_shiftphases.get(channel)
+                if current_frame:
+                    current_frame[-1] += child.phase
+                else:
+                    replace_shiftphases[channel] = [time, child.phase]
+                schedule.remove_at_time(time, child, inplace=True)
+
+            else:
+                for channel in child.channels:
+                    replace = replace_shiftphases.pop(channel)
+                    if replace:
+                        self._insert_optimized(schedule, channel, *replace)
+
+        # Drop last framechanges on channel as they should not effect the program.
+
+    def _insert_optimized(self, schedule, channel, time, phase):
+        if phase:
+            new_instr = instructions.ShiftPhase(phase, channel)
+            schedule.insert(time, new_instr, inplace=True)

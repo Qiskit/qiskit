@@ -64,6 +64,12 @@ class ShiftPhase(Instruction):
         """Return the rotation angle enacted by this instruction in radians."""
         return self._phase
 
+    @phase.setter
+    def phase(self, phase) -> phase:
+        """Set the rotation angle enacted by this instruction in radians."""
+        self._phase = phase
+        self.operands[0] = phase
+
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is

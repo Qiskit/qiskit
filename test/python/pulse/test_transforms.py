@@ -20,9 +20,11 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.pulse import (Play, Delay, Acquire, Schedule, SamplePulse, Drag,
-                          Gaussian, GaussianSquare, Constant)
+                          Gaussian, GaussianSquare, Constant, instructions,
+                          transforms)
 from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.passmanager import PassManager
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -406,6 +408,68 @@ class TestCompressTransform(QiskitTestCase):
         compressed_pulse_ids = get_pulse_ids(compressed_schedule)
         self.assertEqual(len(original_pulse_ids), 6)
         self.assertEqual(len(compressed_pulse_ids), 2)
+
+
+class TestFoldShiftPhases(QiskitTestCase):
+    """Test compress shift phase transforms."""
+    def compress_shift_phase(self, schedule):
+        pm = PassManager()
+        pm.append(transforms.FoldShiftPhases())
+        return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
+
+    def test_consecutive_phase(self):
+        d0 = DriveChannel(0)
+        sched = Schedule()
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.Delay(10, d0)
+
+        opt_sched = self.compress_shift_phase(sched.flatten())
+
+        ref_sched = Schedule(
+            instructions.ShiftPhase(np.pi, d0),
+            instructions.Delay(10, d0),
+        )
+
+        self.assertEqual(opt_sched, ref_sched)
+
+    def test_different_channels(self):
+        d0 = DriveChannel(0)
+        d1 = DriveChannel(1)
+        sched = Schedule()
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.ShiftPhase(np.pi/2, d1)
+        sched += instructions.Delay(10, d0)
+        sched += instructions.Delay(10, d1)
+
+        ref_sched = Schedule()
+        ref_sched += instructions.ShiftPhase(np.pi, d0)
+        ref_sched += instructions.ShiftPhase(np.pi/2, d1)
+        ref_sched += instructions.Delay(10, d0)
+        ref_sched += instructions.Delay(10, d1)
+
+        opt_sched = self.compress_shift_phase(sched.flatten())
+        self.assertEqual(opt_sched, ref_sched)
+
+    def test_interruped_phases(self):
+        d0 = DriveChannel(0)
+        sched = Schedule()
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.Delay(10, d0)
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.ShiftPhase(np.pi/2, d0)
+        sched += instructions.Delay(10, d0)
+
+        opt_sched = self.compress_shift_phase(sched.flatten())
+
+        ref_sched = Schedule()
+        ref_sched += instructions.ShiftPhase(np.pi/2, d0)
+        ref_sched += instructions.Delay(10, d0)
+        ref_sched += instructions.ShiftPhase(np.pi, d0)
+        ref_sched += instructions.Delay(10, d0)
+
+        self.assertEqual(opt_sched, ref_sched)
 
 
 if __name__ == '__main__':
