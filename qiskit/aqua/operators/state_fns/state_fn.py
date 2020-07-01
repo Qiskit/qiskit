@@ -303,7 +303,7 @@ class StateFn(OperatorBase):
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
                 param_value = float(self.coeff.bind(binds))
-        return self.__class__(self.primitive, is_measurement=self.is_measurement, coeff=param_value)
+        return self.traverse(lambda x: x.assign_parameters(param_dict), coeff=param_value)
 
     # Try collapsing primitives where possible. Nothing to collapse here.
     def reduce(self) -> OperatorBase:
