@@ -328,7 +328,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
 
 
 def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
-    faulty_qubits = backend.faulty_qubits()
+    faulty_qubits = backend.properties().faulty_qubits() if backend.properties() else []
     disconnected_qubits = {k for k, v in faulty_qubits_map.items()
                            if v is None}.difference(faulty_qubits)
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
@@ -514,8 +514,8 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
             backend_properties = backend.properties()
             if backend_properties and \
                     (backend_properties.faulty_qubits() or backend_properties.faulty_gates()):
-                faulty_qubits = sorted(backend.faulty_qubits(), reverse=True)
-                faulty_edges = [gates.qubits for gates in backend.faulty_gates()]
+                faulty_qubits = sorted(backend_properties.faulty_qubits(), reverse=True)
+                faulty_edges = [gates.qubits for gates in backend_properties.faulty_gates()]
                 # remove faulty qubits in backend_properties.qubits
                 for faulty_qubit in faulty_qubits:
                     del backend_properties.qubits[faulty_qubit]
