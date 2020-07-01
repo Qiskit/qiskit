@@ -644,6 +644,7 @@ class DAGCircuit:
             DAGCircuit: the reversed dag.
         """
         # TODO: speed up
+        # pylint: disable=cyclic-import
         from qiskit.converters import dag_to_circuit, circuit_to_dag
         qc = dag_to_circuit(self)
         reversed_qc = qc.reverse_ops()

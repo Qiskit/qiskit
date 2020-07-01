@@ -14,7 +14,6 @@
 
 """ALAP Scheduling."""
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.asap import ASAPSchedule

@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """Rescheduling measurements to be compatible with the meas_map constraint."""
-import warnings
 from collections import defaultdict
 from itertools import groupby
 
@@ -22,7 +21,6 @@ from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 
 
