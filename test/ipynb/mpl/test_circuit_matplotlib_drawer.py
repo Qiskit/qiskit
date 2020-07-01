@@ -254,7 +254,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='creg_initial_true.png',
                             cregbundle=True, initial_state=True)
-        self.circuit_drawer(circuit, filename='creg_initial_False.png',
+        self.circuit_drawer(circuit, filename='creg_initial_false.png',
                             cregbundle=False, initial_state=False)
 
     def test_4_gates(self):
