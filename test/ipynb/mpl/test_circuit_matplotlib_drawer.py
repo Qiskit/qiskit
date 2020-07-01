@@ -17,11 +17,19 @@ import unittest
 import json
 import os
 from contextlib import contextmanager
-
 from qiskit.test import QiskitTestCase
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
+from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
+                               MCXGate, YGate, HGate, ZGate, C4XGate, C3XGate, MSGate, RZZGate)
+from qiskit.extensions import HamiltonianGate, UnitaryGate
+from qiskit.circuit import Gate, Parameter
+from qiskit.circuit.library import IQP
 
+import math
+import numpy as np
+pi = np.pi
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -159,7 +167,35 @@ class TestMatplotlibDrawer(QiskitTestCase):
             circuit.x(0)
 
         self.circuit_drawer(circuit, fold=4, filename='fold_4.png')
-        
+
+    def test_big_gates(self):
+        """Test large gates with params"""
+        pi = np.pi
+        qr = QuantumRegister(6, 'q')
+        circuit = QuantumCircuit(qr)
+        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+        circuit.append(IQP(A), [0,1,2])
+
+        desired_vector = [
+            1 / math.sqrt(16) * complex(0, 1),
+            1 / math.sqrt(8) * complex(1, 0),
+            1 / math.sqrt(16) * complex(1, 1),
+            0,
+            0,
+            1 / math.sqrt(8) * complex(1, 2),
+            1 / math.sqrt(16) * complex(1, 0),
+            0]
+
+        circuit.initialize(desired_vector, [qr[3],qr[4],qr[5]])
+        circuit.unitary([[1,0],[0,1]], [qr[0]])
+        matrix = np.zeros((4, 4))
+        theta = Parameter('theta')
+        circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
+        circuit = circuit.bind_parameters({theta: 1})
+        circuit.isometry(np.eye(4, 4), [i for i in range(3,5)],[])
+
+        self.circuit_drawer(circuit, filename='big_gates.png')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
