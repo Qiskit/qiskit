@@ -53,7 +53,7 @@ class RGate(Gate):
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)

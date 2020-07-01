@@ -54,7 +54,8 @@ class RXGate(Gate):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
-        from qiskit import QuantumCircuit
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -178,7 +179,8 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
           u3(theta/2,-pi/2,0) t;
         }
         """
-        from qiskit import QuantumCircuit
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate

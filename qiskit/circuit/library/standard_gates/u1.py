@@ -81,7 +81,7 @@ class U1Gate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate  # pylint: disable=cyclic-import
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -185,7 +185,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -278,7 +278,7 @@ class MCU1Gate(ControlledGate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, 'q')
         qc = QuantumCircuit(q, name=self.name)
 

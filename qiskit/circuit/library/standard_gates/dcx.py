@@ -54,7 +54,8 @@ class DCXGate(Gate):
         """
         gate dcx a, b { cx a, b; cx a, b; }
         """
-        from qiskit import QuantumCircuit
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)

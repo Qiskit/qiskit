@@ -56,7 +56,7 @@ class SGate(Gate):
         gate s a { u1(pi/2) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -112,7 +112,7 @@ class SdgGate(Gate):
         gate sdg a { u1(-pi/2) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)

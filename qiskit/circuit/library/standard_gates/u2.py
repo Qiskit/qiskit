@@ -65,7 +65,7 @@ class U2Gate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)

@@ -192,7 +192,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
         q = QuantumRegister(2, 'q')

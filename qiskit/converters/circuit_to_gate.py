@@ -15,7 +15,6 @@
 
 """Helper function for converting a circuit to a gate"""
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
@@ -46,6 +45,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
         input circuit. Upon decomposition, this gate will
         yield the components comprising the original circuit.
     """
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
     if circuit.clbits:
         raise QiskitError('Circuit with classical bits cannot be converted '
                           'to gate.')

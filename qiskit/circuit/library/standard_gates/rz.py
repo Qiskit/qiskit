@@ -65,7 +65,7 @@ class RZGate(Gate):
         gate rz(phi) a { u1(phi) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -195,7 +195,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate
         q = QuantumRegister(2, 'q')

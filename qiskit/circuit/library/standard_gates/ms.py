@@ -37,7 +37,7 @@ class MSGate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .rxx import RXXGate
         q = QuantumRegister(self.num_qubits, 'q')
         qc = QuantumCircuit(q, name=self.name)

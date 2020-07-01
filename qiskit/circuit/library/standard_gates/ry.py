@@ -54,7 +54,8 @@ class RYGate(Gate):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
-        from qiskit import QuantumCircuit
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -175,7 +176,8 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
           u3(-lambda/2,0,0) b; cx a,b;
         }
         """
-        from qiskit import QuantumCircuit
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
         from .x import CXGate
         q = QuantumRegister(2, 'q')

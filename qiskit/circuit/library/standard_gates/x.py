@@ -79,7 +79,7 @@ class XGate(Gate):
         gate x a { u3(pi,0,pi) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -331,7 +331,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         t a; tdg b; cx a,b;}
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(3, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -428,7 +428,7 @@ class RCCXGate(Gate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(3, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -500,7 +500,7 @@ class C3XGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import CU1Gate
         q = QuantumRegister(4, name='q')
         rules = [
@@ -619,7 +619,7 @@ class RC3XGate(Gate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(4, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -708,7 +708,7 @@ class C4XGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import CU1Gate
         q = QuantumRegister(5, name='q')
         qc = QuantumCircuit(q, name=self.name)
@@ -800,7 +800,7 @@ class MCXGate(ControlledGate):
     def _define(self):
         """The standard definition used the Gray code implementation."""
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q)
         qc.append(MCXGrayCode(self.num_ctrl_qubits), qargs=q[:])
@@ -844,7 +844,7 @@ class MCXGrayCode(MCXGate):
     def _define(self):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import MCU1Gate
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
@@ -873,7 +873,7 @@ class MCXRecursive(MCXGate):
     def _define(self):
         """Define the MCX gate using recursion."""
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
         if self.num_qubits == 4:
@@ -933,7 +933,7 @@ class MCXVChain(MCXGate):
     def _define(self):
         """Define the MCX gate using a V-chain of CX gates."""
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
         q_controls = q[:self.num_ctrl_qubits]

@@ -15,7 +15,6 @@
 """Helper function for converting a circuit to an instruction."""
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -61,6 +60,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             circ.rz(0.5, q[1]).c_if(c, 2)
             circuit_to_instruction(circ)
     """
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}

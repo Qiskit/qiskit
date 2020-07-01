@@ -70,7 +70,7 @@ class ZGate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
@@ -161,7 +161,7 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         gate cz a,b { h b; cx a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .x import CXGate
         q = QuantumRegister(2, 'q')

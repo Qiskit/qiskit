@@ -76,7 +76,7 @@ class RYYGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         from .rx import RXGate
         from .rz import RZGate
