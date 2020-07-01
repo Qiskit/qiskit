@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """Passmanager module for pulse schedules."""
+
+import contextlib
 import logging
 import time
 from typing import Union, List
@@ -163,20 +165,21 @@ class PassManager:
     def _run_this_pass(self, pass_, program):
         pass_.state = self.state
         if pass_.is_analysis_pass:
+            with self._log_pass(pass_.name):
+                pass_.run(program)
+                self.state = pass_.state
+
+        if pass_.is_validation_pass:
             # Measure time if we have a callback or logging set
-            start_time = time.time()
-            pass_.run(program)
-            self.state = pass_.state
-            end_time = time.time()
-            self._log_pass(start_time, end_time, pass_.name)
+            with self._log_pass(pass_.name):
+                pass_.run(program)
         else:
             # Measure time if we have a callback or logging set
-            start_time = time.time()
-            new_program = pass_.run(program)
-            self.state = pass_.state
-            self.state.program = new_program
-            end_time = time.time()
-            self._log_pass(start_time, end_time, pass_.name)
+            with self._log_pass(pass_.name):
+                new_program = pass_.run(program)
+                self.state = pass_.state
+                self.state.program = new_program
+
             if not isinstance(new_program, pulse.Program):
                 raise exceptions.CompilerError(
                     "Transformation passes should return a transformed Program."
@@ -185,10 +188,16 @@ class PassManager:
             program = new_program
         return program
 
-    def _log_pass(self, start_time, end_time, name):
-        log_msg = "Pass: %s - %.5f (ms)" % (
-            name, (end_time - start_time) * 1000)
-        logger.info(log_msg)
+    @contextlib.contextmanager
+    def _log_pass(self, name):
+        start_time = time.time()
+        try:
+            yield
+        finally:
+            end_time = time.time()
+            log_msg = "Pass: %s - %.5f (ms)" % (
+                name, (end_time - start_time) * 1000)
+            logger.info(log_msg)
 
     def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)

@@ -102,6 +102,11 @@ class BasePass(metaclass=MetaPass):
         """Check if the pass is a lowering pass."""
         return isinstance(self, LoweringPass)
 
+    @property
+    def is_validation_pass(self):
+        """Check if the pass is a validation pass."""
+        return isinstance(self, ValidationPass)
+
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: changes the property set and not the pulse schedule."""
@@ -128,3 +133,17 @@ class LoweringPass(BasePass):
     @abstractmethod
     def lower(self, program: pulse.Program) -> Any:
         """Lower the pulse program."""
+
+
+class ValidationPass(BasePass):  # pylint: disable=abstract-method
+    """Validates a property of the pulse program. Does not modify the attributes
+    or program."""
+
+    @abstractmethod
+    def run(self, program: pulse.Program) -> pulse.Program:
+        """Validate a property of the supplied program.
+
+        Raises:
+            CompilerError: If the program fails validation.
+        """
+        raise NotImplementedError

@@ -13,13 +13,13 @@
 # that they have been altered from the originals.
 
 """Lowering compilation module for pulse programs."""
-import collections
+import copy
 import hashlib
 from typing import Any, Dict, List, Optional, Tuple
 
 from qiskit import pulse, qobj
 from qiskit.assembler.run_config import RunConfig
-from qiskit.pulse import instructions, commands, pulse_lib
+from qiskit.pulse import analysis, instructions, commands, pulse_lib, validation
 from qiskit.pulse.basepasses import LoweringPass
 from qiskit.pulse.compiler import BaseCompiler, Compiler, compile_result
 from qiskit.pulse.exceptions import CompilerError
@@ -91,6 +91,11 @@ class LowerQobj(LoweringPass):
         self.run_config = run_config
         self.qobj_id = qobj_id
         self.qobj_header = qobj_header
+
+        self.requires.append(analysis.MaxMemorySlotUsed())
+        self.requires.append(analysis.AmalgamatedAcquires())
+        if hasattr(run_config, 'meas_map'):
+            self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
 
     def lower(
         self,
@@ -173,7 +178,8 @@ class LowerQobj(LoweringPass):
         user_pulselib = {}
         experiments = []
         for idx, schedule in enumerate(program.schedules):
-            qobj_instructions, max_memory_slot = self._assemble_instructions(
+            qobj_instructions = self._assemble_instructions(
+                idx,
                 schedule,
                 instruction_converter,
                 self.run_config,
@@ -182,7 +188,7 @@ class LowerQobj(LoweringPass):
 
             # TODO: add other experimental header items (see circuit assembler)
             qobj_experiment_header = qobj.QobjExperimentHeader(
-                memory_slots=max_memory_slot + 1,  # Memory slots are 0 indexed
+                memory_slots=self.analysis.max_memory_slot_used[idx] + 1,  # Memory slots are 0 indexed
                 name=schedule.name or 'Experiment-%d' % idx,
             )
 
@@ -223,6 +229,7 @@ class LowerQobj(LoweringPass):
 
     def _assemble_instructions(
         self,
+        idx: int,
         schedule: pulse.Schedule,
         instruction_converter: converters.InstructionToQobjConverter,
         run_config: RunConfig,
@@ -235,6 +242,7 @@ class LowerQobj(LoweringPass):
         The dictionary is not returned to avoid redundancy.
 
         Args:
+            idx: Index of schedule in program.
             schedule: Schedule to assemble.
             instruction_converter: A converter instance which can convert PulseInstructions to
                                    PulseQobjInstructions.
@@ -245,10 +253,8 @@ class LowerQobj(LoweringPass):
             A list of converted instructions, the user pulse library dictionary (from pulse name to
             pulse command), and the maximum number of readout memory slots used by this Schedule.
         """
-        max_memory_slot = 0
         qobj_instructions = []
 
-        acquire_instruction_map = collections.defaultdict(list)
         for time, instruction in schedule.instructions:
 
             if isinstance(instruction, commands.ParametricInstruction):  # deprecated
@@ -294,11 +300,6 @@ class LowerQobj(LoweringPass):
                 user_pulselib[name] = instruction.pulse.samples
 
             if isinstance(instruction, (commands.AcquireInstruction, instructions.Acquire)):
-                if instruction.mem_slot:
-                    max_memory_slot = max(max_memory_slot, instruction.mem_slot.index)
-                # Acquires have a single AcquireChannel per inst, but we have to bundle them
-                # together into the Qobj as one instruction with many channels
-                acquire_instruction_map[(time, instruction.command)].append(instruction)
                 continue
 
             if isinstance(instruction, (commands.DelayInstruction, instructions.Delay)):
@@ -307,12 +308,8 @@ class LowerQobj(LoweringPass):
 
             qobj_instructions.append(instruction_converter(time, instruction))
 
-        if acquire_instruction_map:
-            if hasattr(run_config, 'meas_map'):
-                self._validate_meas_map(
-                    acquire_instruction_map,
-                    run_config.meas_map,
-                    )
+        acquire_instruction_map = self.analysis.acquire_instruction_maps[idx]
+        if self.analysis.acquire_instruction_maps[idx]:
             for (time, _), instrs in acquire_instruction_map.items():
                 qubits, mem_slots, reg_slots = self._bundle_channel_indices(instrs)
                 qobj_instructions.append(
@@ -325,38 +322,7 @@ class LowerQobj(LoweringPass):
                         ),
                     )
 
-        return qobj_instructions, max_memory_slot
-
-    def _validate_meas_map(
-        self,
-        instruction_map: Dict[Tuple[int, instructions.Acquire], List[commands.AcquireInstruction]],
-        meas_map: List[List[int]],
-    ) -> None:
-        """Validate all qubits tied in ``meas_map`` are to be acquired.
-
-        Args:
-            instruction_map: A dictionary grouping AcquireInstructions according to their start time
-                             and the command features (notably, their duration).
-            meas_map: List of groups of qubits that must be acquired together.
-
-        Raises:
-            QiskitError: If the instructions do not satisfy the measurement map.
-        """
-        meas_map_sets = [set(m) for m in meas_map]
-
-        # Check each acquisition time individually
-        for _, instrs in instruction_map.items():
-            measured_qubits = set()
-            for inst in instrs:
-                measured_qubits.add(inst.channel.index)
-
-            for meas_set in meas_map_sets:
-                intersection = measured_qubits.intersection(meas_set)
-                if intersection and intersection != meas_set:
-                    raise CompilerError(
-                        'Qubits to be acquired: {0} do not satisfy required qubits '
-                        'in measurement map: {1}'.format(measured_qubits, meas_set),
-                        )
+        return qobj_instructions
 
     def _bundle_channel_indices(
         self,
@@ -397,7 +363,7 @@ class LowerQobj(LoweringPass):
         Returns:
             The assembled PulseQobjConfig.
         """
-        qobj_config = self.run_config.to_dict()
+        qobj_config = copy.copy(self.run_config.to_dict())
         qobj_config.update(experiment_config)
 
         # Run config not needed in qobj config
