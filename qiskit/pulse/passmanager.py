@@ -17,7 +17,7 @@
 import contextlib
 import logging
 import time
-from typing import Union, List
+from typing import Union, List, Set
 
 from qiskit import pulse
 from qiskit.pulse.basepasses import BasePass
@@ -57,13 +57,15 @@ class PassManager:
         self.name = name
 
         self.state = State()
-        # passes already run that have not been invalidated
-        self.valid_passes = set()
 
     @property
     def passes(self) -> List[BasePass]:
         """Return this PassManager's passes."""
         return self._passes
+
+    @property
+    def valid_passes(self) -> Set[str]:
+        return self.state.valid_passes
 
     def append(
             self,

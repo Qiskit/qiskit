@@ -40,6 +40,7 @@ class State(AttrDict):
     """
     def __init__(self):
         self.analysis = Analysis()
+        self.valid_passes = set()
         self.pulse_program = None
         self.circuit = None
         self.lowered = None
