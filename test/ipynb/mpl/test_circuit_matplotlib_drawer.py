@@ -243,6 +243,71 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='u_gates.png')
 
+    def test_creg_initial(self):
+        """Test cregbundle and initial state options"""
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(0)
+        circuit.h(0)
+        circuit.x(1)
+
+        self.circuit_drawer(circuit, filename='creg_initial_true.png',
+                            cregbundle=True, initial_state=True)
+        self.circuit_drawer(circuit, filename='creg_initial_False.png',
+                            cregbundle=False, initial_state=False)
+
+    def test_4_gates(self):
+        """Test all R gates"""
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.r(3*pi/4, 3*pi/8, 0)
+        circuit.rx(pi/2, 1)
+        circuit.ry(-pi/2, 2)
+        circuit.rz(3*pi/4, 3)
+        circuit.rxx(pi/2, 0, 1)
+        circuit.ryy(3*pi/4, 2, 3)
+        circuit.rzx(-pi/2, 0, 1)
+        circuit.rzz(pi/2, 2, 3)
+
+        self.circuit_drawer(circuit, filename='r_gates.png')
+
+    def test_ctrl_labels(self):
+        """Test control labels"""
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cy(1, 0, label='Bottom Y Label')
+        circuit.cy(2, 3, label='Top Y Label')
+        circuit.ch(0, 1, label='Top H Label')
+        circuit.append(HGate(label='H Gate Label').control(3, label='H Control Label',
+                                                           ctrl_state='010'),
+                       [qr[1], qr[2], qr[3], qr[0]])
+
+        self.circuit_drawer(circuit, filename='ctrl_labels.png')
+
+    def test_cswap_rzz(self):
+        """Test controlled swap and rzz gates"""
+        qr = QuantumRegister(5, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cswap(0, 1, 2)
+        circuit.append(RZZGate(3*pi/4).control(3, ctrl_state='010'), [2, 1, 4, 3, 0])
+
+        self.circuit_drawer(circuit, filename='cswap_rzz.png')
+
+    def test_ghz_to_gate(self):
+        """Test controlled GHZ to_gate circuit"""
+        qr = QuantumRegister(5, 'q')
+        circuit = QuantumCircuit(qr)
+        ghz_circuit = QuantumCircuit(3, name='This is a WWWWWWWWWWWide name Ctrl-GHZ Circuit')
+        ghz_circuit.h(0)
+        ghz_circuit.cx(0, 1)
+        ghz_circuit.cx(1, 2)
+        ghz = ghz_circuit.to_gate()
+        ccghz = ghz.control(2, ctrl_state='10')
+        circuit.append(ccghz, [4, 0, 1, 3, 2])
+
+        self.circuit_drawer(circuit, filename='ghz_to_gate.png')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)

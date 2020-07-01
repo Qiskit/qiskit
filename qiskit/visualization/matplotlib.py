@@ -600,18 +600,18 @@ class MatplotlibDrawer:
             if len(self._qreg) > 1:
                 if self.layout is None:
                     label = '${{{name}}}_{{{index}}}$'.format(name=reg.register.name,
-                                                              index=reg.index) + initial_qbit
-                    label = _fix_double_script(label)
+                                                              index=reg.index)
+                    label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
                     label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
                         name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index, physical=reg.index) + initial_qbit
-                    label = _fix_double_script(label)
+                        index=self.layout[reg.index].index, physical=reg.index)
+                    label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
-                label = '${name}$'.format(name=reg.register.name) + initial_qbit
-                label = _fix_double_script(label)
+                label = '${name}$'.format(name=reg.register.name)
+                label = _fix_double_script(label) + initial_qbit
                 text_width = self._get_text_width(label, self._style.fs)
 
             text_width = text_width * 1.15  # to account for larger font used
@@ -632,8 +632,8 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self.cregbundle:
-                    label = '${}$'.format(reg.register.name) + initial_cbit
-                    label = _fix_double_script(label)
+                    label = '${}$'.format(reg.register.name)
+                    label = _fix_double_script(label) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
                         longest_label_width = text_width
@@ -642,8 +642,8 @@ class MatplotlibDrawer:
                     if not (not nreg or reg.register != nreg.register):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index) + initial_cbit
-                    label = _fix_double_script(label)
+                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
+                    label = _fix_double_script(label) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
                         longest_label_width = text_width
