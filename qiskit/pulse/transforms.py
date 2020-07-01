@@ -488,7 +488,7 @@ class FoldShiftPhase(TransformationPass):
 
             else:
                 for channel in child.channels:
-                    replace = replace_shiftphases.pop(channel)
+                    replace = replace_shiftphases.pop(channel, None)
                     if replace:
                         self._insert_optimized(schedule, channel, *replace)
 
@@ -530,7 +530,7 @@ class FoldShiftFrequency(TransformationPass):
 
             else:
                 for channel in child.channels:
-                    replace = replace_shiftphases.pop(channel)
+                    replace = replace_shiftphases.pop(channel, None)
                     if replace:
                         self._insert_optimized(schedule, channel, *replace)
 
