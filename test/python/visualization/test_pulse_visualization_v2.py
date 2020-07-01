@@ -106,3 +106,15 @@ class TestChannelEvents(QiskitTestCase):
 
         _, frame, _ = frames[1]
         self.assertAlmostEqual(frame.freq, 5.0)
+
+    def test_sample_pulse(self):
+        """Test parsing sample pulse."""
+        test_pulse = pulse.Gaussian(10, 0.1, 3).get_sample_pulse()
+
+        events = ChannelEvents.parse_program(test_pulse)
+
+        waveforms = [waveform for waveform in events._waveforms]
+        t0, _, inst = waveforms[0]
+
+        self.assertEqual(t0, 0)
+        self.assertEqual(inst, test_pulse)
