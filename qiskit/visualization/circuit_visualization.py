@@ -133,6 +133,7 @@ def circuit_drawer(circuit,
             Default: ``False``.
         cregbundle (bool): Optional. If set True bundle classical registers. Not used by
             the ``matplotlib`` output. Default: ``False``.
+
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:

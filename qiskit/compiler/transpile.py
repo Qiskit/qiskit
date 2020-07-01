@@ -49,6 +49,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               initial_layout: Optional[Union[Layout, Dict, List]] = None,
               layout_method: Optional[str] = None,
               routing_method: Optional[str] = None,
+              translation_method: Optional[str] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,
@@ -117,10 +118,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive')
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
             Sometimes a perfect layout can be available in which case the layout_method
             may not run.
-        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic')
+        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
+        translation_method: Name of translation pass ('unroller', 'translator')
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -187,7 +189,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
                                     initial_layout=initial_layout, layout_method=layout_method,
-                                    routing_method=routing_method, backend=backend)
+                                    routing_method=routing_method,
+                                    translation_method=translation_method,
+                                    backend=backend)
 
         warnings.warn("The parameter pass_manager in transpile is being deprecated. "
                       "The preferred way to tranpile a circuit using a custom pass manager is"
@@ -204,7 +208,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
-                                           layout_method, routing_method,
+                                           layout_method, routing_method, translation_method,
                                            seed_transpiler, optimization_level,
                                            callback, output_name, faulty_qubits_map)
 
@@ -284,7 +288,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
     pass_manager_config = transpile_config['pass_manager_config']
 
     ms_basis_swap = None
-    if pass_manager_config.basis_gates is not None:
+    if (pass_manager_config.translation_method == 'unroller'
+            and pass_manager_config.basis_gates is not None):
         # Workaround for ion trap support: If basis gates includes
         # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
         # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
@@ -377,7 +382,7 @@ def _remap_layout_faulty_backend(layout, faulty_qubits_map):
 
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
-                          initial_layout, layout_method, routing_method,
+                          initial_layout, layout_method, routing_method, translation_method,
                           seed_transpiler, optimization_level,
                           callback, output_name, faulty_qubits_map) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
@@ -405,6 +410,7 @@ def _parse_transpile_args(circuits, backend,
     initial_layout = _parse_initial_layout(initial_layout, circuits, faulty_qubits_map)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
+    translation_method = _parse_translation_method(translation_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -412,7 +418,7 @@ def _parse_transpile_args(circuits, backend,
 
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties,
-                    initial_layout, layout_method, routing_method,
+                    initial_layout, layout_method, routing_method, translation_method,
                     seed_transpiler, optimization_level,
                     output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
@@ -421,10 +427,11 @@ def _parse_transpile_args(circuits, backend,
                                                                    initial_layout=args[3],
                                                                    layout_method=args[4],
                                                                    routing_method=args[5],
-                                                                   seed_transpiler=args[6]),
-                          'optimization_level': args[7],
-                          'output_name': args[8],
-                          'callback': args[9]}
+                                                                   translation_method=args[6],
+                                                                   seed_transpiler=args[7]),
+                          'optimization_level': args[8],
+                          'output_name': args[9],
+                          'callback': args[10]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -573,6 +580,12 @@ def _parse_routing_method(routing_method, num_circuits):
     if not isinstance(routing_method, list):
         routing_method = [routing_method] * num_circuits
     return routing_method
+
+
+def _parse_translation_method(translation_method, num_circuits):
+    if not isinstance(translation_method, list):
+        translation_method = [translation_method] * num_circuits
+    return translation_method
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
