@@ -318,7 +318,7 @@ class BackendProperties(SimpleNamespace):
         """Return a list of faulty qubits.
         """
         faulty = []
-        for qubit in self._qubits.keys():
+        for qubit in self._qubits:
             if not self.is_qubit_operational(qubit):
                 faulty.append(qubit)
         return faulty
