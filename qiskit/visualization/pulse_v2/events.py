@@ -14,21 +14,53 @@
 """
 Channel event manager for pulse schedules.
 
-This
+This module provide `ChannelEvents` class that manages series of instruction in
+specified channel. This makes arrangement of pulse channels easier later in
+the core drawing function. The `ChannelEvents` class is expected to be called by
+other programs, not by end-users.
 
+The `ChannelEvents` class instance is created with the class method ``parse_program``:
+    ```python
+    event = ChannelEvents.parse_program(sched, DriveChannel(0))
+    ```
+
+The manager is created for a specific pulse channel and assorts pulse instructions within
+the channel with different visualization types. The grouped instructions are
+returned as an iterator by corresponding method call:
+    ```python
+    for t0, frame, instruction in event.get_waveform():
+        ...
+    ```
+A phase and frequency related instruction are managed as frame changes,
+and those instructions are returned with new frame at the time of instruction.
+Initial frame is assumed to be phase, frequency = 0, 0, which can be directly overwritten.
+
+Because a frame change instruction is zero duration, multiple instructions can be issued at
+the same time. It should be noted that the list of frame change instruction is order sensitive.
+For example:
+    ```python
+    sched1 = Schedule()
+    sched1 = sched1.insert(0, ShiftPhase(-1.57, DriveChannel(0))
+    sched1 = sched1.insert(0, SetPhase(3.14, DriveChannel(0))
+
+    sched2 = Schedule()
+    sched2 = sched2.insert(0, SetPhase(3.14, DriveChannel(0))
+    sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
+    ```
+In above example, `sched1` and `sched2` will create different frame. The final phase of `sched1`
+should be visualized as 3.14, while that of `sched2` becomes 1.57.
+
+Because those instructions are issued at the same time, they will be overlapped on the
+canvas of the plotter. Thus it is convenient to plot the frame value at the time rather
+than plotting the phase value bound to the instruction.
 """
-from collections import defaultdict, namedtuple, OrderedDict
-
-from typing import Tuple, Union, Optional, Dict, List
+from collections import defaultdict, namedtuple
+from typing import Union, Optional, Dict, List, Iterator, Tuple
 
 from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
-import numpy as np
 
-
-Waveform = namedtuple('Waveform', 'samples phase frequency attribute')
-Frame = namedtuple('Frame', 'type value')
-Auxiliary = namedtuple('Auxiliary', 'type attribute')
+Frame = namedtuple('Frame', 'phase freq')
 
 
 class ChannelEvents:
@@ -36,22 +68,26 @@ class ChannelEvents:
     """
 
     def __init__(self,
-                 waveforms: Dict[int, Waveform],
-                 frames: Dict[int, List[Waveform]],
-                 snapshots: Dict[int, List[Auxiliary]],
+                 waveforms: Dict[int, pulse.Instruction],
+                 frames: Dict[int, List[pulse.Instruction]],
+                 snapshots: Dict[int, List[pulse.Instruction]],
                  channel: pulse.channels.Channel):
         """Create new event manager.
 
         Args:
             waveforms: List of waveforms shown in this channel.
-            frames: List of frame instructions shown in this channel.
+            frames: List of frame change type instructions shown in this channel.
             snapshots: List of snapshot instruction shown in this channel.
             channel: Channel object associated with this manager.
         """
-        self.waveforms = waveforms
-        self.frames = frames
-        self.snapshots = snapshots
+        self._waveforms = waveforms
+        self._frames = frames
+        self._snapshots = snapshots
         self.channel = channel
+
+        # initial frame
+        self.init_phase = 0
+        self.init_frequency = 0
 
     @classmethod
     def parse_program(cls,
@@ -77,99 +113,25 @@ class ChannelEvents:
             if channel is None:
                 raise VisualizationError('Pulse channel should be specified.')
 
-            # parse frame
-            filter_kwargs = {
-                'channels': [channel],
-                'instruction_types': [pulse.SetPhase,
-                                      pulse.ShiftPhase,
-                                      pulse.SetFrequency,
-                                      pulse.ShiftFrequency]
-            }
-            phase, freq = {0: 0}, {0: 0}
-            for t0, inst in program.filter(**filter_kwargs).instructions:
-                if isinstance(inst, pulse.SetPhase):
-                    oper = Frame(type=type(inst), value=inst.phase)
-                    phase = _update_frame(t0, inst.phase, phase, overwrite=True)
-                elif isinstance(inst, pulse.ShiftPhase):
-                    oper = Frame(type=type(inst), value=inst.phase)
-                    phase = _update_frame(t0, inst.phase, phase, overwrite=False)
-                elif isinstance(inst, pulse.SetFrequency):
-                    oper = Frame(type=type(inst), value=inst.frequency)
-                    freq = _update_frame(t0, inst.frequency, freq, overwrite=True)
-                elif isinstance(inst, pulse.ShiftFrequency):
-                    oper = Frame(type=type(inst), value=inst.frequency)
-                    freq = _update_frame(t0, inst.frequency, freq, overwrite=False)
-                else:
-                    continue
-                frames[t0].append(oper)
-
-            # parse other instructions
+            # parse instructions
             for t0, inst in program.filter(channels=[channel]).instructions:
                 if isinstance(inst, pulse.Play):
-                    # Pulse type
-                    target = inst.pulse
-                    attribute = {
-                        'name': target.name,
-                        'id': target.id,
-                        'duration': target.duration
-                    }
-                    # convert ParametricPulse into SamplePulse
-                    if isinstance(target, pulse.ParametricPulse):
-                        target = target.get_sample_pulse()
-                        attribute.update(**target.parameters)
-                    oper = Waveform(samples=target.samples,
-                                    phase=_get_nearlest_frame(t0, phase),
-                                    frequency=_get_nearlest_frame(t0, freq),
-                                    attribute=attribute)
-                    waveforms[t0] = oper
-                elif isinstance(inst, pulse.Delay):
-                    # Delay type
-                    attribute = {
-                        'duration': inst.duration,
-                        'name': 'Delay'
-                    }
-                    oper = Waveform(samples=np.zeros(inst.duration),
-                                    phase=0,
-                                    frequency=0,
-                                    attribute=attribute)
-                    waveforms[t0] = oper
-                elif isinstance(inst, pulse.Acquire):
-                    # Acquire type
-                    attribute = {
-                        'kernel': inst.kernel,
-                        'discriminator': inst.discriminator,
-                        'mem_slot': inst.mem_slot,
-                        'reg_slot': inst.reg_slot,
-                        'duration': inst.duration,
-                        'name': 'Acquire'
-                    }
-                    oper = Waveform(samples=np.ones(inst.duration),
-                                    phase=0,
-                                    frequency=0,
-                                    attribute=attribute)
-                    waveforms[t0] = oper
+                    # play
+                    waveforms[t0] = inst.pulse
+                elif isinstance(inst, (pulse.Delay, pulse.Acquire)):
+                    # waveform type
+                    waveforms[t0] = inst
+                elif isinstance(inst, (pulse.SetFrequency, pulse.ShiftFrequency,
+                                       pulse.SetPhase, pulse.ShiftPhase)):
+                    # frame types
+                    frames[t0].append(inst)
                 elif isinstance(inst, pulse.Snapshot):
                     # Snapshot type
-                    attribute = {
-                        'label': inst.label,
-                        'snapshot_type': inst.type,
-                        'name': 'Snapshot'
-                    }
-                    oper = Auxiliary(type=type(inst), attribute=attribute)
-                    snapshots[t0].append(oper)
+                    snapshots[t0].append(inst)
 
         elif isinstance(program, pulse.SamplePulse):
             # sample pulse
-            attribute = {
-                'name': program.name,
-                'id': program.id,
-                'duration': program.duration
-            }
-            oper = Waveform(samples=program.samples,
-                            phase=0,
-                            frequency=0,
-                            attribute=attribute)
-            waveforms[0] = oper
+            waveforms[0] = program
         else:
             VisualizationError('%s is not valid data type for this drawer.' % type(program))
 
@@ -181,45 +143,60 @@ class ChannelEvents:
         Note:
             Frame and other auxiliary type instructions are ignored.
         """
-        for waveform in self.waveforms.values():
-            if np.nonzero(waveform.samples)[0].size > 0:
+        for waveform in self._waveforms.values():
+            if isinstance(waveform, (pulse.SamplePulse, pulse.ParametricPulse, pulse.Acquire)):
                 return False
         else:
             return True
 
+    def get_waveform(self) -> Iterator[Tuple[int, Frame, pulse.Instruction]]:
+        """Return waveform type instructions with phase and frequency.
+        """
+        sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
 
-def _update_frame(t0: int,
-                  value: float,
-                  frame: Dict[int, float],
-                  overwrite: bool) -> Dict[int, float]:
-    """Update frame value.
+        # bind phase and frequency with instruction
+        phase = self.init_phase
+        frequency = self.init_frequency
+        for t0, inst in self._waveforms.items():
+            while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
+                _, frame_changes = sorted_frame_changes.pop()
+                for frame_change in frame_changes:
+                    if isinstance(frame_change, pulse.SetFrequency):
+                        frequency = frame_change.frequency
+                    elif isinstance(frame_change, pulse.ShiftFrequency):
+                        frequency += frame_change.frequency
+                    elif isinstance(frame_change, pulse.SetPhase):
+                        phase = frame_change.phase
+                    elif isinstance(frame_change, pulse.ShiftPhase):
+                        phase += frame_change.phase
+            frame = Frame(phase, frequency)
 
-    Args:
-        t0: Issued time of frame change instruction.
-        value: New frame value.
-        frame: List of phase or frequency with time.
-        overwrite: Set ``True`` when frame value is overwritten.
-    """
-    if not overwrite:
-        if t0 not in frame:
-            frame[t0] = frame[max(frame.keys())] + value
-        else:
-            frame[t0] += value
-    else:
-        frame[t0] = value
+            yield t0, frame, inst
 
-    return frame
+    def get_framechange(self) -> Iterator[Tuple[int, Frame, List[pulse.Instruction]]]:
+        """Return frame change type instructions with total phase and total frequency.
+        """
+        sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
+        # bind phase and frequency with instruction
+        phase = self.init_phase
+        frequency = self.init_frequency
+        for t0, insts in sorted_frame_changes:
+            for inst in insts:
+                if isinstance(inst, pulse.SetFrequency):
+                    frequency = inst.frequency
+                elif isinstance(inst, pulse.ShiftFrequency):
+                    frequency += inst.frequency
+                elif isinstance(inst, pulse.SetPhase):
+                    phase = inst.phase
+                elif isinstance(inst, pulse.ShiftPhase):
+                    phase += inst.phase
+            frame = Frame(phase, frequency)
 
-def _get_nearlest_frame(t0: int,
-                        frames: Dict[int, float]) -> float:
-    """Find frame value at time t0.
+            yield t0, frame, insts
 
-    Args:
-        t0: Issued time of instruction.
-        frames: List of phase or frequency with time.
-    """
-    time_array = np.array(sorted(list(frames.keys())))
-    ind = np.argwhere(time_array <= t0)[-1]
-
-    return frames[time_array[ind[0]]]
+    def get_snapshots(self) -> Iterator[Tuple[int, List[pulse.Instruction]]]:
+        """Return snapshot instructions.
+        """
+        for t0, insts in self._snapshots:
+            yield t0, insts
