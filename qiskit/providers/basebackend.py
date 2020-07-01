@@ -62,30 +62,6 @@ class BaseBackend(ABC):
         """
         return self._configuration
 
-    def faulty_qubits(self):
-        """Return a list of faulty qubits.
-        """
-        properties = self.properties()  # pylint: disable=assignment-from-none
-        faulty = []
-        if properties is None:
-            return faulty
-        for qubit in range(self._configuration.n_qubits):
-            if not properties.is_qubit_operational(qubit):
-                faulty.append(qubit)
-        return faulty
-
-    def faulty_gates(self):
-        """Return a list of faulty gates.
-        """
-        properties = self.properties()  # pylint: disable=assignment-from-none
-        faulty = []
-        if properties is None:
-            return faulty
-        for gate in properties.gates:
-            if not properties.is_gate_operational(gate.gate, gate.qubits):
-                faulty.append(gate)
-        return faulty
-
     def properties(self):
         """Return the backend properties.
 

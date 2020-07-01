@@ -314,6 +314,24 @@ class BackendProperties(SimpleNamespace):
             raise BackendPropertyError("Could not find the desired property for {g}".format(g=gate))
         return result
 
+    def faulty_qubits(self):
+        """Return a list of faulty qubits.
+        """
+        faulty = []
+        for qubit in self._qubits.keys():
+            if not self.is_qubit_operational(qubit):
+                faulty.append(qubit)
+        return faulty
+
+    def faulty_gates(self):
+        """Return a list of faulty gates.
+        """
+        faulty = []
+        for gate in self.gates:
+            if not self.is_gate_operational(gate.gate, gate.qubits):
+                faulty.append(gate)
+        return faulty
+
     def is_gate_operational(self,
                             gate: str,
                             qubits: Union[int, Iterable[int]] = None) -> bool:

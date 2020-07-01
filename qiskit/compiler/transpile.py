@@ -442,8 +442,12 @@ def _create_faulty_qubits_map(backend):
        from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
-        faulty_qubits = backend.faulty_qubits()
-        faulty_edges = [gates.qubits for gates in backend.faulty_gates()]
+        if backend.properties():
+            faulty_qubits = backend.properties().faulty_qubits()
+            faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
+        else:
+            faulty_qubits = []
+            faulty_edges = []
 
         if faulty_qubits or faulty_edges:
             faulty_qubits_map = {}
@@ -508,7 +512,8 @@ def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_
     if backend_properties is None:
         if getattr(backend, 'properties', None):
             backend_properties = backend.properties()
-            if backend_properties is not None and backend.faulty_qubits() or backend.faulty_gates():
+            if backend_properties and \
+                    (backend_properties.faulty_qubits() or backend_properties.faulty_gates()):
                 faulty_qubits = sorted(backend.faulty_qubits(), reverse=True)
                 faulty_edges = [gates.qubits for gates in backend.faulty_gates()]
                 # remove faulty qubits in backend_properties.qubits
