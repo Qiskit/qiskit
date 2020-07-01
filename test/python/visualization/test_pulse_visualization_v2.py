@@ -36,7 +36,7 @@ class TestChannelEvents(QiskitTestCase):
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
 
         # check waveform data
-        waveforms = [waveform for waveform in events._waveforms]
+        waveforms = [waveform for waveform in events.get_waveform()]
         t0, frame, inst = waveforms[0]
 
         self.assertEqual(t0, 0)
@@ -94,8 +94,8 @@ class TestChannelEvents(QiskitTestCase):
     def test_frequency(self):
         """Test parse frequency."""
         sched = pulse.Schedule()
-        sched = sched.insert(5, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
+        sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
         events.init_frequency = 3.0
@@ -113,7 +113,7 @@ class TestChannelEvents(QiskitTestCase):
 
         events = ChannelEvents.parse_program(test_pulse)
 
-        waveforms = [waveform for waveform in events._waveforms]
+        waveforms = [waveform for waveform in events.get_waveform()]
         t0, _, inst = waveforms[0]
 
         self.assertEqual(t0, 0)
