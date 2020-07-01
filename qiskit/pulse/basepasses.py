@@ -111,9 +111,28 @@ class BasePass(metaclass=MetaPass):
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: changes the property set and not the pulse schedule."""
 
+    def run(self, program: pulse.Program) -> pulse.Program:
+        """Run the ``analyze`` method."""
+        self.analyze(program)
+        return program
+
+    @abstractmethod
+    def analyze(self, program: pulse.Program):
+        """Perform program analysis."""
+        raise NotImplementedError
+
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: changes the pulse schedule and not the property set."""
+
+    def run(self, program: pulse.Program) -> pulse.Program:
+        """Run the ``analyze`` method."""
+        return self.transform(program)
+
+    @abstractmethod
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        """Perform program analysis."""
+        raise NotImplementedError
 
 
 class LoweringPass(BasePass):
@@ -132,7 +151,7 @@ class LoweringPass(BasePass):
 
     @abstractmethod
     def lower(self, program: pulse.Program) -> Any:
-        """Lower the pulse program."""
+        """Lower the pulse program returning the lowered program."""
 
 
 class ValidationPass(BasePass):  # pylint: disable=abstract-method
@@ -146,4 +165,11 @@ class ValidationPass(BasePass):  # pylint: disable=abstract-method
         Raises:
             CompilerError: If the program fails validation.
         """
+        self.validate(program)
+        return program
+
+    @abstractmethod
+    def validate(self, program: pulse.Program) -> pulse.Program:
+        """Validate the program. Raise :class:`qiskit.pulse.exceptions.CompilerError`
+        if validation fails."""
         raise NotImplementedError

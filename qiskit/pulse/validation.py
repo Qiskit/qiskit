@@ -37,7 +37,7 @@ class ValidateMeasMap(ValidationPass):
         self.meas_map = meas_map
         self.requires.append(analysis.AmalgamatedAcquires())
 
-    def run(self, program: pulse.Program) -> pulse.Program:
+    def validate(self, program: pulse.Program) -> pulse.Program:
         acquire_instruction_maps = self.analysis.acquire_instruction_maps
         if acquire_instruction_maps:
             meas_map_sets = [set(m) for m in self.meas_map]

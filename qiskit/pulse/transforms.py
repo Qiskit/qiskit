@@ -64,7 +64,7 @@ class AlignMeasures(TransformationPass):
 
         self.align_time = align_time
 
-    def run(self, program: pulse.Program):
+    def transform(self, program: pulse.Program) -> pulse.Program:
         align_time = self.align_time or self.analysis.meas_align_time
         # Shift acquires according to the new scheduled time
         for idx, schedule in enumerate(program.schedules):
@@ -160,7 +160,7 @@ class AddImplicitAcquires(TransformationPass):
             super().__init__()
             self.meas_map = meas_map
 
-        def run(self, program: pulse.Program):
+        def transform(self, program: pulse.Program) -> pulse.Program:
             for idx, schedule in enumerate(program.schedules):
                 new_schedule = Schedule(name=schedule.name)
                 acquire_map = dict()
@@ -223,50 +223,50 @@ def add_implicit_acquires(
 
 
 class PadProgram(TransformationPass):
-        def __init__(
-            self,
-            channels: Optional[Iterable[Channel]] = None,
-            until: Optional[int] = None,
-        ):
-            """Transformation pass that pads empty times in a program with delays.
+    def __init__(
+        self,
+        channels: Optional[Iterable[Channel]] = None,
+        until: Optional[int] = None,
+    ):
+        """Transformation pass that pads empty times in a program with delays.
 
-            Args:
-                meas_map: List of lists of qubits that are measured together.
+        Args:
+            meas_map: List of lists of qubits that are measured together.
 
-            Returns:
-                A ``Schedule`` with the additional acquisition commands.
-            """
-            super().__init__()
-            self.channels = channels
-            self.until = until
+        Returns:
+            A ``Schedule`` with the additional acquisition commands.
+        """
+        super().__init__()
+        self.channels = channels
+        self.until = until
 
-        def run(self, program: pulse.Program):
-            for idx, schedule in enumerate(program.schedules):
-                until = self.until or schedule.duration
-                channels = self.channels or schedule.channels
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        for idx, schedule in enumerate(program.schedules):
+            until = self.until or schedule.duration
+            channels = self.channels or schedule.channels
 
-                until = until or schedule.duration
-                channels = channels or schedule.channels
+            until = until or schedule.duration
+            channels = channels or schedule.channels
 
-                for channel in channels:
-                    if channel not in schedule.channels:
-                        schedule |= Delay(until, channel)
-                        continue
+            for channel in channels:
+                if channel not in schedule.channels:
+                    schedule |= Delay(until, channel)
+                    continue
 
-                    curr_time = 0
-                    # TODO: Replace with method of getting instructions on a channel
-                    for interval in schedule.timeslots[channel]:
-                        if curr_time >= until:
-                            break
-                        if interval[0] != curr_time:
-                            end_time = min(interval[0], until)
-                            schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
-                        curr_time = interval[1]
-                    if curr_time < until:
-                        schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
+                curr_time = 0
+                # TODO: Replace with method of getting instructions on a channel
+                for interval in schedule.timeslots[channel]:
+                    if curr_time >= until:
+                        break
+                    if interval[0] != curr_time:
+                        end_time = min(interval[0], until)
+                        schedule = schedule.insert(curr_time, Delay(end_time - curr_time, channel))
+                    curr_time = interval[1]
+                if curr_time < until:
+                    schedule = schedule.insert(curr_time, Delay(until - curr_time, channel))
 
-                program.replace_schedule(idx, schedule)
-            return program
+            program.replace_schedule(idx, schedule)
+        return program
 
 
 def pad(
@@ -298,7 +298,7 @@ def pad(
 class CompressPulses(TransformationPass):
     """Transformation pass to replace identical pulses."""
 
-    def run(self, program: pulse.Program):
+    def transform(self, program: pulse.Program) -> pulse.Program:
         existing_pulses = []
         for sched_idx, schedule in enumerate(program.schedules):
             new_schedule = Schedule(name=schedule.name)
