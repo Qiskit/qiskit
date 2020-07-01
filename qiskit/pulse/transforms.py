@@ -400,3 +400,48 @@ class ConvertDeprecatedInstructions(TransformationPass):
                         inplace=True,
                     )
         return program
+
+
+class DeDuplicateWaveformNames(TransformationPass):
+    """Deduplicate pulse names. If a duplicate "{name}" is found terminate it with
+    "{n}" with the form "{name}_{n}" where "{n}" is the first available integer."""
+    def __init__(self):
+        super().__init__()
+        self.requires.append(ConvertDeprecatedInstructions())
+
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        unique_pulses = {}
+
+        for sched_idx, schedule in enumerate(program.schedules):
+            for _, instruction in schedule.instructions:
+                if isinstance(instruction, instructions.Play):
+                    pulse = instruction.pulse
+
+                    if isinstance(pulse, pulse_lib.SamplePulse):
+                        pulse_name = pulse.name
+
+                        # Add a pulse name if necessary
+                        if pulse_name is None:
+                            pulse_name = "pulse"
+
+                        found_pulse = unique_pulses.get(pulse_name)
+                        # We've encountered a new pulse.
+                        if not found_pulse:
+                            unique_pulses[pulse_name] = pulse
+                        # Otherwise deduplicate the name.
+                        else:
+                            new_name = pulse_name
+                            idx = 1
+                            while found_pulse:
+                                # If different create deduplicated name.
+                                if pulse != found_pulse:
+                                    new_name = "{}_{}".format(pulse_name, idx)
+                                    idx += 1
+                                    found_pulse = unique_pulses.get(new_name)
+                                else:
+                                    pulse.name = new_name
+                                    break
+
+                            if not found_pulse:
+                                unique_pulses[new_name] = pulse
+        return program

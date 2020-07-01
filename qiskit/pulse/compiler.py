@@ -83,6 +83,7 @@ class PipeLineBuilder:
     @staticmethod
     def default_optimization_pipeline() -> PassManager:
         pm = PassManager()
+        pm.append(transforms.ConvertDeprecatedInstructions())
         pm.append(transforms.CompressPulses())
         return pm
 

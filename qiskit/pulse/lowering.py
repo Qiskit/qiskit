@@ -101,6 +101,7 @@ class LowerQobj(LoweringPass):
         )
         if hasattr(run_config, 'meas_map'):
             self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
+        self.requires.append(transforms.DeDuplicateWaveformNames())
 
     def lower(
         self,
