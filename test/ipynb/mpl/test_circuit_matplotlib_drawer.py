@@ -19,8 +19,8 @@ import os
 from contextlib import contextmanager
 
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.visualization import circuit_drawer
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +33,7 @@ def save_data(image_filename, testname):
             data = json.load(datafile)
     else:
         data = {}
-    data[image_filename] = testname
+    data[image_filename] = {'testname': testname}
     with open(datafilename, 'w') as datafile:
         json.dump(data, datafile)
 
@@ -63,7 +63,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
     def setUp(self):
-        self.circuit_drawer = save_data_wrap(circuit_drawer, str(self))
+        self.circuit_drawer = save_data_wrap(_matplotlib_circuit_drawer, str(self))
+
+    def test_empty_circuit(self):
+        """Test empty circuit"""
+        circuit = QuantumCircuit()
+
+        self.circuit_drawer(circuit, filename='empty_circut.png')
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -81,7 +87,56 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        self.circuit_drawer(circuit, output='mpl', filename='long_name.png')
+        self.circuit_drawer(circuit, filename='long_name.png')
+
+    def test_conditional(self):
+        """Test that circuits with conditionals draw correctly
+        """
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(qr, cr)
+
+        # check gates are shifted over accordingly
+        circuit.h(qr)
+        circuit.measure(qr, cr)
+        circuit.h(qr[0]).c_if(cr, 2)
+
+        self.circuit_drawer(circuit, filename='conditional.png')
+
+    def test_plot_barriers(self):
+        """Test to see that plotting barriers works.
+        If it is set to False, no blank columns are introduced"""
+
+        # generate a circuit with barriers and other barrier like instructions in
+        q = QuantumRegister(2, 'q')
+        c = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(q, c)
+
+        # check for barriers
+        circuit.h(q[0])
+        circuit.barrier()
+
+        # check for other barrier like commands
+        circuit.h(q[1])
+
+        # this import appears to be unused, but is actually needed to get snapshot instruction
+        import qiskit.extensions.simulator  # pylint: disable=unused-import
+        circuit.snapshot('1')
+
+        # check the barriers plot properly when plot_barriers= True
+        self.circuit_drawer(circuit, filename='plot_barriers_true.png', plot_barriers=True)
+        self.circuit_drawer(circuit, filename='plot_barriers_false.png', plot_barriers=False)
+
+    def test_no_barriers_false(self):
+        """Generate the same circuit as test_plot_barriers but without the barrier commands
+         as this is what the circuit should look like when displayed with plot barriers false"""
+        q1 = QuantumRegister(2, 'q')
+        c1 = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(q1, c1)
+        circuit.h(q1[0])
+        circuit.h(q1[1])
+
+        self.circuit_drawer(circuit, filename='no_barriers.png', plot_barriers=False)
 
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly
