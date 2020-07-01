@@ -94,14 +94,15 @@ class TestChannelEvents(QiskitTestCase):
     def test_frequency(self):
         """Test parse frequency."""
         sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
         sched = sched.insert(5, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events.init_frequency = 3.0
         frames = [frame for frame in events.get_framechange()]
 
         _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.freq, 5.0)
+        self.assertAlmostEqual(frame.freq, 4.0)
 
         _, frame, _ = frames[1]
-        self.assertAlmostEqual(frame.freq, 6.0)
+        self.assertAlmostEqual(frame.freq, 5.0)

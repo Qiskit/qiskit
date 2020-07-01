@@ -178,7 +178,6 @@ class ChannelEvents:
         """
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
-        # bind phase and frequency with instruction
         phase = self.init_phase
         frequency = self.init_frequency
         for t0, insts in sorted_frame_changes:
