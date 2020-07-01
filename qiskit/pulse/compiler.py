@@ -85,7 +85,8 @@ class PipeLineBuilder:
         pm = PassManager()
         pm.append(transforms.InlineInstructions())
         pm.append(transforms.ConvertDeprecatedInstructions())
-        pm.append(transforms.FoldShiftPhases())
+        pm.append(transforms.FoldShiftPhase())
+        pm.append(transforms.FoldShiftFrequency())
         pm.append(transforms.CompressPulses())
         return pm
 

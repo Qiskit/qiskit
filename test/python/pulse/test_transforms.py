@@ -410,11 +410,11 @@ class TestCompressTransform(QiskitTestCase):
         self.assertEqual(len(compressed_pulse_ids), 2)
 
 
-class TestFoldShiftPhases(QiskitTestCase):
+class TestFoldShiftPhase(QiskitTestCase):
     """Test compress shift phase transforms."""
     def compress_shift_phase(self, schedule):
         pm = PassManager()
-        pm.append(transforms.FoldShiftPhases())
+        pm.append(transforms.FoldShiftPhase())
         return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
 
     def test_consecutive_phase(self):
@@ -426,10 +426,9 @@ class TestFoldShiftPhases(QiskitTestCase):
 
         opt_sched = self.compress_shift_phase(sched.flatten())
 
-        ref_sched = Schedule(
-            instructions.ShiftPhase(np.pi, d0),
-            instructions.Delay(10, d0),
-        )
+        ref_sched = Schedule()
+        ref_sched += instructions.ShiftPhase(np.pi, d0)
+        ref_sched += instructions.Delay(10, d0)
 
         self.assertEqual(opt_sched, ref_sched)
 
@@ -467,6 +466,67 @@ class TestFoldShiftPhases(QiskitTestCase):
         ref_sched += instructions.ShiftPhase(np.pi/2, d0)
         ref_sched += instructions.Delay(10, d0)
         ref_sched += instructions.ShiftPhase(np.pi, d0)
+        ref_sched += instructions.Delay(10, d0)
+
+        self.assertEqual(opt_sched, ref_sched)
+
+
+class TestFoldShiftFrequency(QiskitTestCase):
+    """Test compress shift frequency transforms."""
+    def compress_shift_frequency(self, schedule):
+        pm = PassManager()
+        pm.append(transforms.FoldShiftFrequency())
+        return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
+
+    def test_consecutive_frequencies(self):
+        d0 = DriveChannel(0)
+        sched = Schedule()
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.Delay(10, d0)
+
+        opt_sched = self.compress_shift_frequency(sched.flatten())
+
+        ref_sched = Schedule()
+        ref_sched += instructions.ShiftFrequency(1, d0)
+        ref_sched += instructions.Delay(10, d0)
+
+        self.assertEqual(opt_sched, ref_sched)
+
+    def test_different_channels(self):
+        d0 = DriveChannel(0)
+        d1 = DriveChannel(1)
+        sched = Schedule()
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.ShiftFrequency(1/2, d1)
+        sched += instructions.Delay(10, d0)
+        sched += instructions.Delay(10, d1)
+
+        ref_sched = Schedule()
+        ref_sched += instructions.ShiftFrequency(1, d0)
+        ref_sched += instructions.ShiftFrequency(1/2, d1)
+        ref_sched += instructions.Delay(10, d0)
+        ref_sched += instructions.Delay(10, d1)
+
+        opt_sched = self.compress_shift_frequency(sched.flatten())
+        self.assertEqual(opt_sched, ref_sched)
+
+    def test_interruped_frequencies(self):
+        d0 = DriveChannel(0)
+        sched = Schedule()
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.Delay(10, d0)
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.ShiftFrequency(1/2, d0)
+        sched += instructions.Delay(10, d0)
+
+        opt_sched = self.compress_shift_frequency(sched.flatten())
+
+        ref_sched = Schedule()
+        ref_sched += instructions.ShiftFrequency(1/2, d0)
+        ref_sched += instructions.Delay(10, d0)
+        ref_sched += instructions.ShiftFrequency(1, d0)
         ref_sched += instructions.Delay(10, d0)
 
         self.assertEqual(opt_sched, ref_sched)
