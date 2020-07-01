@@ -129,7 +129,6 @@ def control(operation: Union[Gate, ControlledGate],
     else:
         bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
         # now we have a bunch of single qubit rotation gates and cx
-        bgate.definition.data
         for rule in bgate.definition.data:
             if rule[0].name == 'u3':
                 theta, phi, lamb = rule[0].params

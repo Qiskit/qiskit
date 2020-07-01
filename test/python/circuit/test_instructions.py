@@ -187,7 +187,7 @@ class TestInstructions(QiskitTestCase):
         circ.measure(q[0], c[0])
         circ.rz(0.8, q[0]).c_if(c, 6)
         inst = circ.to_instruction()
-        
+
         circ = QuantumCircuit(q, c, name='circ')
         circ.rz(0.8, q[0]).c_if(c, 6)
         circ.measure(q[0], c[0])

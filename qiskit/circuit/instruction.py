@@ -128,11 +128,7 @@ class Instruction:
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
-        try:
-            self._definition = self.decompositions[0]
-        except IndexError:
-            # u3 or cx
-            pass
+        pass
 
     @property
     def params(self):
@@ -183,10 +179,11 @@ class Instruction:
     @definition.setter
     def definition(self, definition):
         """Set gate representation"""
+        # pylint: disable=cyclic-import
         from qiskit import QuantumCircuit
         if not isinstance(definition, QuantumCircuit) and definition is not None:
-            raise CircuitError('Instruction definition must be QuantumCircuit. Got {}'.format(
-                type(definition)))
+            raise CircuitError('Instruction "{}" definition must be QuantumCircuit. Got {}'.format(
+                self.name, type(definition)))
         self._definition = definition
 
     @property
@@ -386,6 +383,7 @@ class Instruction:
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
 
         if instruction.definition is None:
+            # pylint: disable=cyclic-import
             from qiskit import QuantumCircuit
             qc = QuantumCircuit()
             if qargs:

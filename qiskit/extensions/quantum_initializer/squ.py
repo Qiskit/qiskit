@@ -27,9 +27,6 @@ from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-
 from qiskit.util import deprecate_arguments
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -84,14 +81,13 @@ class SingleQubitUnitary(Gate):
             raise QiskitError('The decomposition mode is not known.')
 
         self._diag = diag
-        
+
         self.definition = circuit
 
     def _zyz_circuit(self):
         """Get the circuit for the ZYZ decomposition."""
         q = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(q, name=self.name)
-        rule = []
 
         diag = [1., 1.]
         alpha, beta, gamma, _ = self._zyz_dec()

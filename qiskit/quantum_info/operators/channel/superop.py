@@ -392,8 +392,9 @@ class SuperOp(QuantumChannel):
                 raise QiskitError('Cannot apply Instruction: {}'.format(
                     obj.name))
             if not isinstance(obj.definition, QuantumCircuit):
-                raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
-                    obj.name, type(obj.definition)))
+                raise QiskitError('{0} instruction definition is {1}; '
+                                  'expected QuantumCircuit'.format(
+                                      obj.name, type(obj.definition)))
             for instr, qregs, cregs in obj.definition.data:
                 if cregs:
                     raise QiskitError(

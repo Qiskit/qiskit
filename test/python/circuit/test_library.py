@@ -640,7 +640,6 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         pw_linear_rotations = PiecewiseLinearPauliRotations(num_state_qubits, breakpoints,
                                                             [2 * slope for slope in slopes],
                                                             [2 * offset for offset in offsets])
-
         self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
 
     def test_piecewise_linear_rotations_mutability(self):

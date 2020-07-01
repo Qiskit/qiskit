@@ -16,6 +16,7 @@
 
 import numpy
 from qiskit.qasm import pi
+# pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -68,16 +69,17 @@ class YGate(Gate):
         """Create new Y gate."""
         super().__init__('y', 1, [], label=label)
 
-    # def _define(self):
-    #     from .u3 import U3Gate
-    #     definition = []
-    #     q = QuantumRegister(1, 'q')
-    #     rule = [
-    #         (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .u3 import U3Gate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-Y gate.
@@ -187,22 +189,23 @@ class CYGate(ControlledGate, metaclass=CYMeta):
                          ctrl_state=ctrl_state)
         self.base_gate = YGate()
 
-    # def _define(self):
-    #     """
-    #     gate cy a,b { sdg b; cx a,b; s b; }
-    #     """
-    #     from .s import SGate, SdgGate
-    #     from .x import CXGate
-    #     definition = []
-    #     q = QuantumRegister(2, 'q')
-    #     rule = [
-    #         (SdgGate(), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (SGate(), [q[1]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate cy a,b { sdg b; cx a,b; s b; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .s import SGate, SdgGate
+        from .x import CXGate
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (SdgGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (SGate(), [q[1]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverted CY gate (itself)."""

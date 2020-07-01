@@ -85,22 +85,23 @@ class RZZGate(Gate):
         """Create new RZZ gate."""
         super().__init__('rzz', 2, [theta])
 
-    # def _define(self):
-    #     """
-    #     gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
-    #     """
-    #     from .u1 import U1Gate
-    #     from .x import CXGate
-    #     definition = []
-    #     q = QuantumRegister(2, 'q')
-    #     rule = [
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (U1Gate(self.params[0]), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .u1 import U1Gate
+        from .x import CXGate
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (CXGate(), [q[0], q[1]], []),
+            (U1Gate(self.params[0]), [q[1]], []),
+            (CXGate(), [q[0], q[1]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""

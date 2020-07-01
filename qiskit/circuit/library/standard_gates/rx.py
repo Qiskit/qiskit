@@ -50,19 +50,19 @@ class RXGate(Gate):
         """Create new RX gate."""
         super().__init__('rx', 1, [theta], label=label)
 
-    # def _define(self):
-    #     """
-    #     gate rx(theta) a {r(theta, 0) a;}
-    #     """
-    #     from .r import RGate
-    #     definition = []
-    #     q = QuantumRegister(1, 'q')
-    #     rule = [
-    #         (RGate(self.params[0], 0), [q[0]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate rx(theta) a {r(theta, 0) a;}
+        """
+        from qiskit import QuantumCircuit
+        from .r import RGate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (RGate(self.params[0], 0), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RX gate.
@@ -168,31 +168,31 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
                          label=label, ctrl_state=ctrl_state)
         self.base_gate = RXGate(theta)
 
-    # def _define(self):
-    #     """
-    #     gate cu3(theta,phi,lambda) c, t
-    #     { u1(pi/2) t;
-    #       cx c,t;
-    #       u3(-theta/2,0,0) t;
-    #       cx c,t;
-    #       u3(theta/2,-pi/2,0) t;
-    #     }
-    #     """
-    #     from .u1 import U1Gate
-    #     from .u3 import U3Gate
-    #     from .x import CXGate
-    #     definition = []
-    #     q = QuantumRegister(2, 'q')
-    #     rule = [
-    #         (U1Gate(pi / 2), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate cu3(theta,phi,lambda) c, t
+        { u1(pi/2) t;
+          cx c,t;
+          u3(-theta/2,0,0) t;
+          cx c,t;
+          u3(theta/2,-pi/2,0) t;
+        }
+        """
+        from qiskit import QuantumCircuit
+        from .u1 import U1Gate
+        from .u3 import U3Gate
+        from .x import CXGate
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U1Gate(pi / 2), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RX gate (i.e. with the negative rotation angle)."""

@@ -53,9 +53,6 @@ def circuit_to_dag(circuit):
         dagcircuit.add_creg(register)
 
     for instruction, qargs, cargs in circuit.data:
-        # print(instruction.name, qargs, cargs)
-        # if instruction.name == 'h':
-        #     import ipdb;ipdb.set_trace()
         dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs,
                                         instruction.condition)
     return dagcircuit

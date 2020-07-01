@@ -68,16 +68,17 @@ class ZGate(Gate):
         """Create new Z gate."""
         super().__init__('z', 1, [], label=label)
 
-    # def _define(self):
-    #     from .u1 import U1Gate
-    #     definition = []
-    #     q = QuantumRegister(1, 'q')
-    #     rule = [
-    #         (U1Gate(pi), [q[0]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .u1 import U1Gate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U1Gate(pi), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-Z gate.
@@ -155,22 +156,23 @@ class CZGate(ControlledGate, metaclass=CZMeta):
                          ctrl_state=ctrl_state)
         self.base_gate = ZGate()
 
-    # def _define(self):
-    #     """
-    #     gate cz a,b { h b; cx a,b; h b; }
-    #     """
-    #     from .h import HGate
-    #     from .x import CXGate
-    #     definition = []
-    #     q = QuantumRegister(2, 'q')
-    #     rule = [
-    #         (HGate(), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (HGate(), [q[1]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate cz a,b { h b; cx a,b; h b; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .h import HGate
+        from .x import CXGate
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (HGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[1]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverted CZ gate (itself)."""

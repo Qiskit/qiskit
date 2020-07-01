@@ -51,19 +51,20 @@ class SGate(Gate):
         """Create new S gate."""
         super().__init__('s', 1, [], label=label)
 
-    # def _define(self):
-    #     """
-    #     gate s a { u1(pi/2) a; }
-    #     """
-    #     from .u1 import U1Gate
-    #     definition = []
-    #     q = QuantumRegister(1, 'q')
-    #     rule = [
-    #         (U1Gate(pi / 2), [q[0]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate s a { u1(pi/2) a; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .u1 import U1Gate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U1Gate(pi / 2), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse of S (SdgGate)."""
@@ -106,19 +107,20 @@ class SdgGate(Gate):
         """Create new Sdg gate."""
         super().__init__('sdg', 1, [], label=label)
 
-    # def _define(self):
-    #     """
-    #     gate sdg a { u1(-pi/2) a; }
-    #     """
-    #     from .u1 import U1Gate
-    #     definition = []
-    #     q = QuantumRegister(1, 'q')
-    #     rule = [
-    #         (U1Gate(-pi / 2), [q[0]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate sdg a { u1(-pi/2) a; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .u1 import U1Gate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U1Gate(-pi / 2), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse of Sdg (SGate)."""

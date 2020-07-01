@@ -180,32 +180,33 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                          label=label, ctrl_state=ctrl_state)
         self.base_gate = U3Gate(theta, phi, lam)
 
-    # def _define(self):
-    #     """
-    #     gate cu3(theta,phi,lambda) c, t
-    #     { u1((lambda+phi)/2) c;
-    #       u1((lambda-phi)/2) t;
-    #       cx c,t;
-    #       u3(-theta/2,0,-(phi+lambda)/2) t;
-    #       cx c,t;
-    #       u3(theta/2,phi,0) t;
-    #     }
-    #     """
-    #     from .u1 import U1Gate
-    #     from .x import CXGate  # pylint: disable=cyclic-import
-    #     definition = []
-    #     q = QuantumRegister(2, 'q')
-    #     rule = [
-    #         (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-    #         (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-    #         (CXGate(), [q[0], q[1]], []),
-    #         (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
-    #     ]
-    #     for inst in rule:
-    #         definition.append(inst)
-    #     self.definition = definition
+    def _define(self):
+        """
+        gate cu3(theta,phi,lambda) c, t
+        { u1((lambda+phi)/2) c;
+          u1((lambda-phi)/2) t;
+          cx c,t;
+          u3(-theta/2,0,-(phi+lambda)/2) t;
+          cx c,t;
+          u3(theta/2,phi,0) t;
+        }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit import QuantumCircuit
+        from .u1 import U1Gate
+        from .x import CXGate  # pylint: disable=cyclic-import
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         r"""Return inverted CU3 gate.

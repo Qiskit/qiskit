@@ -283,7 +283,6 @@ class DAGCircuit:
         """
         # Verify creg exists
         if condition is not None and condition[0].name not in self.cregs:
-            #import ipdb;ipdb.set_trace()
             raise DAGCircuitError("invalid creg in condition for %s" % name)
 
     def _check_bits(self, args, amap):

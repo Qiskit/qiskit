@@ -14,13 +14,11 @@
 
 """Controlled unitary gate."""
 
-from typing import Tuple, List, Optional, Union
+from typing import List, Optional, Union
 from qiskit.circuit.exceptions import CircuitError
 
 from .gate import Gate
 from .quantumregister import QuantumRegister
-from .quantumregister import Qubit
-from .classicalregister import Clbit
 
 # pylint: disable=missing-return-doc
 

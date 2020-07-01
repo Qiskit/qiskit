@@ -146,10 +146,9 @@ class TestControlledGate(QiskitTestCase):
         target = QuantumRegister(num_target)
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:] + target[:])
-        simulator = BasicAer.get_backend('unitary_simulator')
-        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        op_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
-        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_single_controlled_composite_gate(self):
@@ -167,10 +166,9 @@ class TestControlledGate(QiskitTestCase):
         target = QuantumRegister(num_target, 'target')
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:] + target[:])
-        simulator = BasicAer.get_backend('unitary_simulator')
-        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        op_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
-        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_multi_control_u3(self):
@@ -206,17 +204,11 @@ class TestControlledGate(QiskitTestCase):
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
 
-        job = execute([qcnu3, qu3, qcu3, qc_cu3], BasicAer.get_backend('unitary_simulator'),
-                      basis_gates=['u1', 'u2', 'u3', 'id', 'cx'])
-        result = job.result()
-
         # Circuit unitaries
-        #mat_cnu3 = result.get_unitary(0)  # unitary_simulator is giving different output than Operator??
         mat_cnu3 = Operator(qcnu3).data
-
-        mat_u3 = result.get_unitary(1)
-        mat_cu3 = result.get_unitary(2)
-        mat_c_cu3 = result.get_unitary(3)
+        mat_u3 = Operator(qu3).data
+        mat_cu3 = Operator(qcu3).data
+        mat_c_cu3 = Operator(qc_cu3).data
 
         # Target Controlled-U3 unitary
         target_cnu3 = _compute_control_matrix(mat_u3, num_ctrl)
@@ -232,10 +224,8 @@ class TestControlledGate(QiskitTestCase):
         for itest in tests:
             info, target, decomp = itest[0], itest[1], itest[2]
             with self.subTest(i=info):
-                if info == 'check unitary of cnu3 against tensored unitary of u3':
-                    np.set_printoptions(precision=2, linewidth=300, suppress=True)
-                    import ipdb;ipdb.set_trace()
-                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True, atol=1e-8, rtol=1e-5))
+                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True,
+                                             atol=1e-8, rtol=1e-5))
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
@@ -577,9 +567,6 @@ class TestControlledGate(QiskitTestCase):
                         i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
-                np.set_printoptions(precision=3, linewidth=200, suppress=True)
-                # if isinstance(gate, MCXRecursive):
-                #     import ipdb;ipdb.set_trace()
                 np.testing.assert_array_almost_equal(statevector.real, reference)
 
     @data(1, 2, 3, 4)
@@ -1015,12 +1002,10 @@ class TestControlledStandardGates(QiskitTestCase):
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
             with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
                                                              ctrl_state)):
-                np.set_printoptions(precision=3, linewidth=200, suppress=True)
                 if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
                 try:
-                    #import ipdb;ipdb.set_trace()
                     cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
                 except (AttributeError, QiskitError):
                     # 'object has no attribute "control"'
@@ -1034,9 +1019,6 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
-
-                #import ipdb;ipdb.set_trace()
-                src_mat = Operator(cgate).data
                 self.assertTrue(matrix_equal(Operator(cgate).data, target_mat, ignore_phase=True))
 
 
