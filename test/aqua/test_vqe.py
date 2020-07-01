@@ -120,7 +120,7 @@ class TestVQE(QiskitAquaTestCase):
 
     @data(
         (SLSQP(maxiter=50), 5, 4),
-        (SPSA(max_trials=150), 3, 2),  # max_evals_grouped=n or =2 if n>2
+        (SPSA(maxiter=150), 3, 2),  # max_evals_grouped=n or =2 if n>2
     )
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
@@ -133,7 +133,7 @@ class TestVQE(QiskitAquaTestCase):
 
     def test_basic_aer_qasm(self):
         """Test the VQE on BasicAer's QASM simulator."""
-        optimizer = SPSA(max_trials=300, last_avg=5)
+        optimizer = SPSA(maxiter=300, last_avg=5)
         wavefunction = self.ry_wavefunction
 
         vqe = VQE(self.h2_op, wavefunction, optimizer, max_evals_grouped=1)
