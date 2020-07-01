@@ -19,7 +19,7 @@ import warnings
 from typing import List, Optional, Iterable
 
 from qiskit import pulse
-from qiskit.pulse import (analysis, Acquire, AcquireInstruction, Delay,
+from qiskit.pulse import (analysis, Acquire, AcquireInstruction, Delay, commands,
                           instructions, InstructionScheduleMap, Play, pulse_lib,
                           ScheduleComponent, Schedule)
 from qiskit.pulse.passmanager import PassManager
@@ -356,13 +356,47 @@ class NoInvalidParametricPulses(TransformationPass):
                         pulse_shape = converters.pulse_instruction.ParametricPulseShapes(
                             type(instruction.pulse)).name
                         if pulse_shape not in self.parametric_pulses:
+                            new_instruction = instructions.Play(
+                                pulse.get_sample_pulse(),
+                                instruction.channel,
+                                name=instruction.name
+                            )
                             schedule.replace(
                                 instruction,
-                                instructions.Play(
-                                    pulse.get_sample_pulse(),
-                                    instruction.channel,
-                                    name=instruction.name
-                                ),
-                                inplace=True
+                                new_instruction,
+                                inplace=True,
                             )
+
+        return program
+
+
+class ConvertDeprecatedInstructions(TransformationPass):
+    """Convert deprecated instructions to supported instructions."""
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        for sched_idx, schedule in enumerate(program.schedules):
+            for _, instruction in schedule.instructions:
+                if isinstance(instruction, commands.PulseInstruction):
+                    new_instruction = instructions.Play(
+                        pulse_lib.SamplePulse(
+                            name=instruction.name,
+                            samples=instruction.command.samples,
+                            ),
+                        instruction.channels[0],
+                        name=instruction.name,
+                    )
+                    schedule.replace(
+                        instruction,
+                        new_instruction,
+                        inplace=True,
+                    )
+                elif isinstance(instruction, commands.ParametricInstruction):
+                    schedule.replace(
+                        instruction,
+                        instructions.Play(
+                            instruction.command,
+                            instruction.channels[0],
+                            name=instruction.name,
+                        ),
+                        inplace=True,
+                    )
         return program

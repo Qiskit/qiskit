@@ -93,13 +93,14 @@ class LowerQobj(LoweringPass):
         self.qobj_id = qobj_id
         self.qobj_header = qobj_header
 
+        self.requires.append(transforms.ConvertDeprecatedInstructions())
         self.requires.append(analysis.MaxMemorySlotUsed())
         self.requires.append(analysis.AmalgamatedAcquires())
-        if hasattr(run_config, 'meas_map'):
-            self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
         self.requires.append(
             transforms.NoInvalidParametricPulses(run_config.parametric_pulses),
         )
+        if hasattr(run_config, 'meas_map'):
+            self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
 
     def lower(
         self,
@@ -260,24 +261,6 @@ class LowerQobj(LoweringPass):
         qobj_instructions = []
 
         for time, instruction in schedule.instructions:
-
-            if isinstance(instruction, commands.ParametricInstruction):  # deprecated
-                instruction = instructions.Play(
-                    instruction.command,
-                    instruction.channels[0],
-                    name=instruction.name,
-                )
-
-            if isinstance(instruction, commands.PulseInstruction):  # deprecated
-                name = hashlib.sha256(instruction.pulse.samples).hexdigest()
-                instruction = instructions.Play(
-                    pulse_lib.SamplePulse(
-                        name=name,
-                        samples=instruction.command.samples,
-                        ),
-                    instruction.channels[0],
-                    name=name,
-                )
 
             if isinstance(instruction, instructions.Play) and \
                     isinstance(instruction.pulse, pulse_lib.SamplePulse):
