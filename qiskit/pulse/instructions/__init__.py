@@ -55,6 +55,6 @@ from .acquire import Acquire
 from .delay import Delay
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
-from .phase import ShiftPhase
+from .phase import SetPhase, ShiftPhase
 from .play import Play
 from .snapshot import Snapshot

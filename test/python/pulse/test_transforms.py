@@ -564,5 +564,48 @@ class TestTruncateWaveformPrecision(QiskitTestCase):
         self.assertEqual(sched, ref_sched)
 
 
+class TestTruncatePhasePrecision(QiskitTestCase):
+    """Test truncation of waveform precision."""
+    def truncate_phases(self, schedule):
+        pm = PassManager()
+        pm.append(transforms.TruncatePhasePrecision())
+        return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
+
+    def test_phase_truncation(self):
+        d0 = DriveChannel(0)
+
+        shift_instr = instructions.ShiftPhase(0.00000055, d0)
+        shift_twopi_instr = instructions.ShiftPhase(2*np.pi, d0)
+
+        trunc_shift_instr = instructions.ShiftPhase(0.0000006, d0)
+        trunc_shift_twopi_instr = instructions.ShiftPhase(0., d0)
+
+        set_instr = instructions.SetPhase(0.00000055, d0)
+        set_twopi_instr = instructions.SetPhase(2*np.pi, d0)
+
+        trunc_set_instr = instructions.SetPhase(0.0000006, d0)
+        trunc_set_twopi_instr = instructions.SetPhase(0., d0)
+
+        sched = Schedule()
+        sched += shift_instr
+        sched += shift_instr
+        sched += set_instr
+        sched += set_instr
+        sched += shift_twopi_instr
+        sched += set_twopi_instr
+
+        sched = self.truncate_phases(sched)
+
+        ref_sched = Schedule()
+        ref_sched += trunc_shift_instr
+        ref_sched += trunc_shift_instr
+        ref_sched += trunc_set_instr
+        ref_sched += trunc_set_instr
+        ref_sched += trunc_shift_twopi_instr
+        ref_sched += trunc_set_twopi_instr
+
+        self.assertEqual(sched, ref_sched)
+
+
 if __name__ == '__main__':
     unittest.main()

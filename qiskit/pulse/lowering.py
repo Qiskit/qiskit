@@ -100,6 +100,7 @@ class LowerQobj(LoweringPass):
             self.requires.append(validation.ValidateMeasMap(run_config.meas_map))
         self.requires.append(transforms.DeDuplicateWaveformNames())
         self.requires.append(transforms.TruncateWaveformPrecision())
+        self.requires.append(transforms.TruncatePhasePrecision())
 
     def lower(
         self,

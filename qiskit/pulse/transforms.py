@@ -574,4 +574,40 @@ class TruncateWaveformPrecision(TransformationPass):
             if pulse not in self._truncated_pulses:
                 pulse.samples = np.around(pulse.samples, decimals=self._decimals)
                 self._truncated_pulses.add(pulse)
-    
+
+
+class TruncatePhasePrecision(TransformationPass):
+    """Truncate the precision of shiftphase instruction to "{[0, 2pi]}.{precision}" bits."""
+    def __init__(
+        self,
+        precision=20,
+    ):
+        super().__init__()
+        self.precision = precision
+        self._decimals = int(np.ceil(precision * np.log(2) / np.log(10)))
+
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        self.visit_Program(program)
+        return program
+
+    def visit_Program(self, program):
+        for schedule in program.schedules:
+            self.visit_Schedule(schedule)
+
+    def visit_Schedule(self, schedule, parent=None):
+        for time, child in schedule._children:
+            if isinstance(child, pulse.Schedule):
+                self.visit_Schedule(child, schedule)
+            elif isinstance(child, instructions.ShiftPhase):
+                self.visit_ShiftPhase(child, schedule)
+            elif isinstance(child, instructions.SetPhase):
+                self.visit_SetPhase(child, schedule)
+
+    def visit_ShiftPhase(self, instr, schedule):
+        self._truncate_phase(instr)
+
+    def visit_SetPhase(self, instr, schedule):
+        self._truncate_phase(instr)
+
+    def _truncate_phase(self, instr):
+        instr.phase = np.around(instr.phase % (2*np.pi), decimals=self._decimals)
