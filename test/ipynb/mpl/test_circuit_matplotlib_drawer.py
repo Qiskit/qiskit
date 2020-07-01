@@ -228,7 +228,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.iswap(3, 4)
         circuit.dcx(3, 4)
 
-        self.circuit_drawer(circuit, filename='ctrl_x.png')
+        self.circuit_drawer(circuit, filename='pauli_clifford.png')
 
     def test_u_gates(self):
         """Test U 1, 2, & 3 gates"""
