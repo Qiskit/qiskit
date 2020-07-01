@@ -136,7 +136,8 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
 
 
 class LoweringPass(BasePass):
-    """A lowering pass: Emits a ``lowering`` field in the compiler ``State``."""
+    """A lowering pass: Emits a ``lowering`` field in the compiler ``State`` it
+    should not modify the input program."""
 
     def run(self, program: pulse.Program) -> pulse.Program:
         """Run a pass on the pulse program. This is implemented by the pass developer.

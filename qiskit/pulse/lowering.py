@@ -14,7 +14,6 @@
 
 """Lowering compilation module for pulse programs."""
 import copy
-import hashlib
 from typing import Any, Dict, List, Optional, Tuple
 
 from qiskit import pulse, qobj
@@ -265,16 +264,7 @@ class LowerQobj(LoweringPass):
 
             if isinstance(instruction, instructions.Play) and \
                     isinstance(instruction.pulse, pulse_lib.SamplePulse):
-                name = hashlib.sha256(instruction.pulse.samples).hexdigest()
-                instruction = instructions.Play(
-                    pulse_lib.SamplePulse(
-                        name=name,
-                        samples=instruction.pulse.samples,
-                    ),
-                    channel=instruction.channel,
-                    name=name,
-                )
-                user_pulselib[name] = instruction.pulse.samples
+                user_pulselib[instruction.pulse.name] = instruction.pulse.samples
 
             if isinstance(instruction, (commands.AcquireInstruction, instructions.Acquire)):
                 continue

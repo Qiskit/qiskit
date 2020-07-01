@@ -433,15 +433,25 @@ class DeDuplicateWaveformNames(TransformationPass):
                             new_name = pulse_name
                             idx = 1
                             while found_pulse:
+                                if pulse == found_pulse:
+                                    break
                                 # If different create deduplicated name.
-                                if pulse != found_pulse:
+                                else:
                                     new_name = "{}_{}".format(pulse_name, idx)
                                     idx += 1
                                     found_pulse = unique_pulses.get(new_name)
-                                else:
-                                    pulse.name = new_name
-                                    break
 
+                            pulse.name = new_name
                             if not found_pulse:
                                 unique_pulses[new_name] = pulse
+        return program
+
+
+class InlineInstructions(TransformationPass):
+    """Inline all possible instructions in a program."""
+
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        for idx, schedule in enumerate(program.schedules):
+            program.replace_schedule(idx, schedule.flatten())
+
         return program

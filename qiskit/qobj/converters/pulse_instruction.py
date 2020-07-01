@@ -392,7 +392,7 @@ class InstructionToQobjConverter:
             }
         else:
             command_dict = {
-                'name': instruction.name,
+                'name': instruction.pulse.name,
                 't0': shift + instruction.start_time,
                 'ch': instruction.channel.name
             }
