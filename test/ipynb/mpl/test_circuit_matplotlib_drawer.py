@@ -22,13 +22,15 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
-                               MCXGate, YGate, HGate, ZGate, C4XGate, C3XGate, MSGate, RZZGate)
+                                    MCXGate, YGate, HGate, ZGate,
+                                    C4XGate, C3XGate, MSGate, RZZGate)
 from qiskit.extensions import HamiltonianGate, UnitaryGate
 from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import IQP
 
 import math
 import numpy as np
+
 pi = np.pi
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
@@ -122,7 +124,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         # check for barriers
         circuit.h(q[0])
-        circuit.barrier()
+        circuit.barrier(0)
+        circuit.h(q[0])
 
         # check for other barrier like commands
         circuit.h(q[1])
@@ -170,11 +173,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_big_gates(self):
         """Test large gates with params"""
-        pi = np.pi
         qr = QuantumRegister(6, 'q')
         circuit = QuantumCircuit(qr)
         A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-        circuit.append(IQP(A), [0,1,2])
+        circuit.append(IQP(A), [0, 1, 2])
 
         desired_vector = [
             1 / math.sqrt(16) * complex(0, 1),
@@ -186,15 +188,60 @@ class TestMatplotlibDrawer(QiskitTestCase):
             1 / math.sqrt(16) * complex(1, 0),
             0]
 
-        circuit.initialize(desired_vector, [qr[3],qr[4],qr[5]])
-        circuit.unitary([[1,0],[0,1]], [qr[0]])
+        circuit.initialize(desired_vector, [qr[3], qr[4], qr[5]])
+        circuit.unitary([[1, 0], [0, 1]], [qr[0]])
         matrix = np.zeros((4, 4))
         theta = Parameter('theta')
         circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
         circuit = circuit.bind_parameters({theta: 1})
-        circuit.isometry(np.eye(4, 4), [i for i in range(3,5)],[])
+        circuit.isometry(np.eye(4, 4), [i for i in range(3, 5)], [])
 
         self.circuit_drawer(circuit, filename='big_gates.png')
+
+    def test_ctrl_x(self):
+        """Test different control-x gates"""
+        qr = QuantumRegister(5, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        circuit.cx(0, 1)
+        circuit.ccx(0, 1, 2)
+        circuit.append(XGate().control(3, ctrl_state='010'), [qr[2], qr[3], qr[0], qr[1]])
+        circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state='101'), [qr[0], qr[1], qr[2], qr[4]])
+
+        self.circuit_drawer(circuit, filename='ctrl_x.png')
+
+    def test_pauli_clifford(self):
+        """Test Pauli(green) and Clifford(blue) gates"""
+        qr = QuantumRegister(5, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        circuit.y(0)
+        circuit.z(0)
+        circuit.id(0)
+        circuit.h(1)
+        circuit.cx(1, 2)
+        circuit.cy(1, 2)
+        circuit.cz(1, 2)
+        circuit.swap(3, 4)
+        circuit.s(3)
+        circuit.sdg(3)
+        circuit.iswap(3, 4)
+        circuit.dcx(3, 4)
+
+        self.circuit_drawer(circuit, filename='ctrl_x.png')
+
+    def test_u_gates(self):
+        """Test U 1, 2, & 3 gates"""
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.u1(3*pi/2, 0)
+        circuit.u2(3*pi/2, 2*pi/3, 1)
+        circuit.u3(3*pi/2, 4.5, pi/4, 2)
+        circuit.cu1(pi/4, 0, 1)
+        circuit.append(U2Gate(pi/2, 3*pi/2).control(1), [qr[2], qr[3]])
+        circuit.cu3(3*pi/2, -3*pi/4, -pi/2, 0, 1)
+
+        self.circuit_drawer(circuit, filename='u_gates.png')
 
 
 if __name__ == '__main__':
