@@ -125,7 +125,7 @@ gate cu3(theta,phi,lambda) c, t
   u3(theta/2,phi,0) t;
 }
 // controlled-sqrt(X)
-gate csx a { h b; cu1(pi/2) a,b; h b; }
+gate csx a b { h b; cu1(pi/2) a,b; h b; }
 // two-qubit XX rotation
 gate rxx(theta) a,b
 {
