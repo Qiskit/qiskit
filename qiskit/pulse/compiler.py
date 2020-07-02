@@ -14,7 +14,6 @@
 
 """Compiler module for pulse schedules."""
 from abc import abstractmethod
-import copy
 from typing import Optional
 
 from qiskit import pulse
@@ -103,11 +102,7 @@ def compile_result(
 def compile(
     program: pulse.Program,
     compiler: Optional[Compiler] = None,
-    inplace: bool = True,
 ) -> pulse.Program:
     """Compile a pulse program."""
-    if inplace:
-        copy.deepcopy(program)
-
     compiler = compiler or Compiler()
     return compile_result(program, compiler).pulse_program
