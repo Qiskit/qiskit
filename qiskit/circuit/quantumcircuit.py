@@ -1908,6 +1908,17 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CSwapGate`."""
         return self.cswap(control_qubit, target_qubit1, target_qubit2)
 
+    def sx(self, qubit):
+        """Apply :class:`~qiskit.circuit.library.SXGate`."""
+        from .library.standard_gates.sx import SXGate
+        return self.append(SXGate(), [qubit], [])
+
+    def csx(self, control_qubit, target_qubit, label=None, ctrl_state=None):
+        """Apply :class:`~qiskit.circuit.library.CSXGate`."""
+        from .library.standard_gates.sx import CSXGate
+        return self.append(CSXGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
     @deprecate_arguments({'q': 'qubit'})
     def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.TGate`."""
