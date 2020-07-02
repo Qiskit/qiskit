@@ -145,9 +145,9 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
     return amp*np.sin(2*np.pi*freq*times+phase).astype(np.complex_)
 
 
-def fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: float,
-                       zeroed_width: Optional[float] = None, rescale_amp: bool = False,
-                       ret_scale_factor: bool = False) -> np.ndarray:
+def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: float,
+                        zeroed_width: Optional[float] = None, rescale_amp: bool = False,
+                        ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
     This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
@@ -205,8 +205,8 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
     gauss = amp*np.exp(-x**2/2).astype(np.complex_)
 
     if zeroed_width is not None:
-        gauss = fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
-                                   zeroed_width=zeroed_width, rescale_amp=rescale_amp)
+        gauss = _fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
+                                    zeroed_width=zeroed_width, rescale_amp=rescale_amp)
 
     if ret_x:
         return gauss, x
@@ -377,10 +377,10 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
     gauss_deriv, gauss = gaussian_deriv(times, amp=amp, center=center, sigma=sigma,
                                         ret_gaussian=True)
     if zeroed_width is not None:
-        gauss, scale_factor = fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
-                                                 zeroed_width=zeroed_width,
-                                                 rescale_amp=rescale_amp,
-                                                 ret_scale_factor=True)
+        gauss, scale_factor = _fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
+                                                  zeroed_width=zeroed_width,
+                                                  rescale_amp=rescale_amp,
+                                                  ret_scale_factor=True)
         gauss_deriv *= scale_factor
 
     return gauss + 1j*beta*gauss_deriv
