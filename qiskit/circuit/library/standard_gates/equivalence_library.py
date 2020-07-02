@@ -41,6 +41,8 @@ from . import (
     SwapGate,
     CSwapGate,
     iSwapGate,
+    SXGate,
+    CSXGate,
     DCXGate,
     TGate,
     TdgGate,
@@ -288,6 +290,30 @@ for inst, qargs, cargs in [
 ]:
     def_iswap.append(inst, qargs, cargs)
 _sel.add_equivalence(iSwapGate(), def_iswap)
+
+# SXGate
+
+q = QuantumRegister(1, 'q')
+def_sx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[0]], []),
+        (U1Gate(pi / 2), [q[0]], []),
+        (HGate(), [q[0]], [])
+]:
+    def_sx.append(inst, qargs, cargs)
+_sel.add_equivalence(SXGate(), def_sx)
+
+# CSXGate
+
+q = QuantumRegister(2, 'q')
+def_csx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[1]], []),
+        (CU1Gate(pi / 2), [q[0], q[1]], []),
+        (HGate(), [q[1]], [])
+]:
+    def_csx.append(inst, qargs, cargs)
+_sel.add_equivalence(CSXGate(), def_csx)
 
 # DCXGate
 
