@@ -45,6 +45,8 @@ gate rz(phi) a { u1(phi) a; }
 
 // --- QE Standard User-Defined Gates  ---
 
+// sqrt(X)
+gate sx a { h a; u1(pi/2) a; h a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
@@ -122,6 +124,8 @@ gate cu3(theta,phi,lambda) c, t
   cx c,t;
   u3(theta/2,phi,0) t;
 }
+// controlled-sqrt(X)
+gate csx a { h b; cu1(pi/2) a,b; h b; }
 // two-qubit XX rotation
 gate rxx(theta) a,b
 {

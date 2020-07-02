@@ -61,6 +61,9 @@ class SXGate(Gate):
         super().__init__('sx', 1, [], label=label)
 
     def _define(self):
+        """
+        gate sx a { h a; u1(pi/2) a; h a ;}
+        """
         from .u1 import U1Gate
         from .h import HGate
         definition = []
@@ -170,7 +173,7 @@ class CSXGate(ControlledGate):
 
     def _define(self):
         """
-        gate csx a,b { sdg b; cx a,b; s b; }
+        gate csx a,b { h b; cu1(pi/2) a,b; h b; }
         """
         from .h import HGate
         from .u1 import CU1Gate
