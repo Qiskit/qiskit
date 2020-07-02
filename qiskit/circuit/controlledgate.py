@@ -85,10 +85,8 @@ class ControlledGate(Gate):
            qc2.draw()
         """
         super().__init__(name, num_qubits, params, label=label)
-        if num_ctrl_qubits < num_qubits:
-            self.num_ctrl_qubits = num_ctrl_qubits
-        else:
-            raise CircuitError('number of control qubits must be less than the number of qubits')
+        self._num_ctrl_qubits = 1
+        self.num_ctrl_qubits = num_ctrl_qubits
         self.base_gate = None
         if definition:
             self.definition = definition
@@ -114,7 +112,7 @@ class ControlledGate(Gate):
             # pylint: disable=cyclic-import
             from qiskit.circuit.library.standard_gates import XGate
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
-            qreg = QuantumRegister(self.num_qubits)
+            qreg = QuantumRegister(self.num_qubits, 'q')
             definition = [(closed_gate, qreg, [])]
             open_rules = []
             for qind, val in enumerate(bit_ctrl_state[::-1]):
@@ -131,6 +129,31 @@ class ControlledGate(Gate):
     def definition(self, excited_def: List):
         """Set controlled gate definition with closed controls."""
         super(Gate, self.__class__).definition.fset(self, excited_def)
+
+    @property
+    def num_ctrl_qubits(self):
+        """Get number of control qubits.
+
+        Returns:
+            int: The number of control qubits for the gate.
+        """
+        return self._num_ctrl_qubits
+
+    @num_ctrl_qubits.setter
+    def num_ctrl_qubits(self, num_ctrl_qubits):
+        """Set the number of control qubits.
+
+        Args:
+            num_ctrl_qubits (int): The number of control qubits in [1, num_qubits-1].
+
+        Raises:
+            CircuitError: num_ctrl_qubits is not an integer in [1, num_qubits - 1].
+        """
+        if (num_ctrl_qubits == int(num_ctrl_qubits) and
+                1 <= num_ctrl_qubits < self.num_qubits):
+            self._num_ctrl_qubits = num_ctrl_qubits
+        else:
+            raise CircuitError('The number of control qubits must be in [1, num_qubits-1]')
 
     @property
     def ctrl_state(self) -> int:

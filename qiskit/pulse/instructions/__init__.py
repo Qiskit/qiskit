@@ -40,6 +40,7 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    Play
    SetFrequency
    ShiftFrequency
+   SetPhase
    ShiftPhase
    Snapshot
 
