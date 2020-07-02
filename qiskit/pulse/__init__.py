@@ -61,7 +61,7 @@ know the real-time dynamics of our program, we need to know the value of
 .. code:: ipython3
 
     from qiskit.pulse.pulse_lib import SamplePulse
-    
+
     my_pulse = SamplePulse([0.00043, 0.0007 , 0.00112, 0.00175, 0.00272, 0.00414, 0.00622,
                             0.00919, 0.01337, 0.01916, 0.02702, 0.03751, 0.05127, 0.06899,
                             0.09139, 0.1192 , 0.15306, 0.19348, 0.24079, 0.29502, 0.35587,
@@ -105,9 +105,9 @@ channel lets us enact single qubit operations.
 .. code:: ipython3
 
     from qiskit.pulse import Play, DriveChannel
-    
+
     qubit_idx = 0
-    
+
     sched = sched.insert(0, Play(my_pulse, DriveChannel(qubit_idx)))
 
 Note that the pulse we defined operates on the :py:class:`~qiskit.pulse.channels.DriveChannel`,
@@ -148,7 +148,7 @@ Grab a backend
 .. code:: ipython3
 
     from qiskit.test.mock import FakeAlmaden
-    
+
     backend = FakeAlmaden()
 
 Add measurements
@@ -159,7 +159,7 @@ Now we can use this backend to add the measurement instructions for us.
 .. code:: ipython3
 
     from qiskit.scheduler.utils import measure_all
-    
+
     sched = sched.insert(sched.duration, measure_all(backend))
 
 Let’s see what the convenience function has added for us, using draw
