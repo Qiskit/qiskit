@@ -92,6 +92,23 @@ class TestSamplePulse(QiskitTestCase):
 class TestParametricPulses(QiskitTestCase):
     """Tests for all subclasses of ParametricPulse."""
 
+    def _gauss_func(self, x, amp, sigma):
+        """Formulaic gaussian samples."""
+        return amp * np.exp(-(x / sigma)**2 / 2)
+
+    def _zero_ends_gaussian(self, times, amp, sigma, duration):
+        """Return a gaussian samples array w/ zeroed ends and amplitude rescaled. Also return
+        amplitude scale factor to modify potential additional terms (ie drag derivative term)."""
+        gauss = self._gauss_func(times, amp, sigma)
+
+        # zero ends and rescale the amp
+        zero_offset = self._gauss_func(duration/2, amp, sigma)
+        gauss -= zero_offset
+        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1.
+        gauss *= amp_scale_factor
+
+        return gauss, amp_scale_factor
+
     def test_construction(self):
         """Test that parametric pulses can be constructed without error."""
         Gaussian(duration=25, sigma=4, amp=0.5j)
@@ -105,7 +122,7 @@ class TestParametricPulses(QiskitTestCase):
         sample_pulse = gauss.get_sample_pulse()
         self.assertIsInstance(sample_pulse, SamplePulse)
         pulse_lib_gaus = gaussian(duration=25, sigma=4,
-                                  amp=0.5j, zero_ends=False).samples
+                                  amp=0.5j, zero_ends=True).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gaus)
 
     def test_gauss_samples(self):
@@ -114,9 +131,10 @@ class TestParametricPulses(QiskitTestCase):
         sigma = 4
         amp = 0.5j
         # formulaic
-        times = np.array(range(25), dtype=np.complex_)
+        times = np.array(range(duration), dtype=np.complex_)
         times = times - (duration / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
+        gauss, _ = self._zero_ends_gaussian(times, amp, sigma, duration)
+
         # command
         command = Gaussian(duration=duration, sigma=sigma, amp=amp)
         samples = command.get_sample_pulse().samples
@@ -127,16 +145,20 @@ class TestParametricPulses(QiskitTestCase):
         duration = 125
         sigma = 4
         amp = 0.5j
+        width = 100
         # formulaic
-        times = np.array(range(25), dtype=np.complex_)
-        times = times - (25 / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
+        gauss_duration = duration - width
+        times = np.array(range(gauss_duration), dtype=np.complex_)
+        times = times - (gauss_duration / 2) + 0.5
+        gauss, _ = self._zero_ends_gaussian(times, amp, sigma, gauss_duration)
+
+        gauss_square = np.concatenate((gauss[:gauss_duration//2],
+                                       amp*np.ones(width),
+                                       gauss[gauss_duration//2:]))
         # command
-        command = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=100)
+        command = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=width)
         samples = command.get_sample_pulse().samples
-        np.testing.assert_almost_equal(samples[50], amp)
-        np.testing.assert_almost_equal(samples[100], amp)
-        np.testing.assert_almost_equal(samples[:10], gauss[:10])
+        np.testing.assert_almost_equal(samples, gauss_square)
 
     def test_gauss_square_extremes(self):
         """Test that the gaussian square pulse can build a gaussian."""
@@ -161,9 +183,13 @@ class TestParametricPulses(QiskitTestCase):
         # formulaic
         times = np.array(range(25), dtype=np.complex_)
         times = times - (25 / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        gauss_deriv = -(times / sigma**2) * gauss
+
+        gauss_unscaled = self._gauss_func(times, amp, sigma)
+        gauss_deriv = -(times / sigma**2) * gauss_unscaled
+        gauss, amp_scale_factor = self._zero_ends_gaussian(times, amp, sigma, duration)
+        gauss_deriv *= amp_scale_factor
         drag = gauss + 1j * beta * gauss_deriv
+
         # command
         command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         samples = command.get_sample_pulse().samples

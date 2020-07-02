@@ -157,7 +157,7 @@ class Gaussian(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian(duration=self.duration, amp=self.amp,
-                        sigma=self.sigma, zero_ends=False)
+                        sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -235,7 +235,7 @@ class GaussianSquare(ParametricPulse):
     def get_sample_pulse(self) -> SamplePulse:
         return gaussian_square(duration=self.duration, amp=self.amp,
                                width=self.width, sigma=self.sigma,
-                               zero_ends=False)
+                               zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -329,7 +329,7 @@ class Drag(ParametricPulse):
 
     def get_sample_pulse(self) -> SamplePulse:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
-                    beta=self.beta, zero_ends=False)
+                    beta=self.beta, zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
