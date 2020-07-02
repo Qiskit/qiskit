@@ -130,6 +130,7 @@ from .basis import BasisTranslator
 # optimization
 from .optimization import Optimize1qGates
 from .optimization import Collect2qBlocks
+from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation

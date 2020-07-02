@@ -780,14 +780,14 @@ class DAGCircuit:
         """
         raise NotImplementedError()
 
-    def topological_op_nodes(self):
+    def topological_op_nodes(self, key_func=None):
         """
         Yield op nodes in topological order.
 
         Returns:
             generator(DAGNode): op node in topological order
         """
-        return (nd for nd in self.topological_nodes() if nd.type == 'op')
+        return (nd for nd in self.topological_nodes(key_func) if nd.type == 'op')
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.

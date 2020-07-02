@@ -99,7 +99,7 @@ class RetworkxDAGCircuit(DAGCircuit):
             slf, oth,
             DAGNode.semantic_eq)
 
-    def topological_nodes(self):
+    def topological_nodes(self, key_func=None):
         """
         Yield nodes in topological order.
 
@@ -109,6 +109,10 @@ class RetworkxDAGCircuit(DAGCircuit):
         def _key(x):
             return x.sort_key
 
+        if key_func is not None:
+            return iter(rx.lexicographical_topological_sort(
+                self._multi_graph,
+                key=key_func))
         return iter(rx.lexicographical_topological_sort(
             self._multi_graph,
             key=_key))
