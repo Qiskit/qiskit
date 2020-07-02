@@ -257,7 +257,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename='creg_initial_false.png',
                             cregbundle=False, initial_state=False)
 
-    def test_4_gates(self):
+    def test_r_gates(self):
         """Test all R gates"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
