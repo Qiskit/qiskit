@@ -272,7 +272,7 @@ class CircuitStateFn(StateFn):
                 param_instersection = set(unrolled_dict.keys()) & self.primitive.parameters
                 binds = {param: unrolled_dict[param] for param in param_instersection}
                 qc = self.to_circuit().assign_parameters(binds)
-        return self.__class__(qc, coeff=param_value)
+        return self.__class__(qc, coeff=param_value, is_measurement=self.is_measurement)
 
     def eval(self,
              front: Union[str, dict, np.ndarray,
