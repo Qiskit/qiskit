@@ -21,6 +21,7 @@ from qiskit.pulse.schedule import Schedule
 
 
 class Program:
+    """A pulse program, which is a collection of schedules."""
     def __init__(self, schedules: Optional[List[Schedule]] = None):
         """Qiskit pulse program.
 

@@ -26,6 +26,7 @@ class CompilerResult(AttrDict):
     """Result from the compiler."""
 
     def __init__(self, pulse_program, analysis, lowered=None):
+        super().__init__()
         self.pulse_program = pulse_program
         self.analysis = analysis
         self.lowered = lowered
@@ -49,6 +50,7 @@ class BaseCompiler:
         self._pipelines.append(pipeline)
 
     def compile(self, program: pulse.Program) -> pulse.Program:
+        """Compile the pulse program."""
         self.finalize()
         self.state.program = program
         for pipeline in self.pipelines:
@@ -81,6 +83,7 @@ class PipeLineBuilder:
 
     @staticmethod
     def default_optimization_pipeline() -> PassManager:
+        """Build the default optimization pipeline."""
         pm = PassManager()
         pm.append(transforms.InlineInstructions())
         pm.append(transforms.ConvertDeprecatedInstructions())
@@ -95,8 +98,9 @@ def compile_result(program: pulse.Program, compiler: BaseCompiler,) -> CompilerR
     return compiler.compile(program)
 
 
+# pylint: disable=redefined-builtin
 def compile(
-    program: pulse.Program, compiler: Optional[Compiler] = None,
+        program: pulse.Program, compiler: Optional[Compiler] = None,
 ) -> pulse.Program:
     """Compile a pulse program."""
     compiler = compiler or Compiler()

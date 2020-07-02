@@ -39,10 +39,10 @@ def lower(program: pulse.Program, compiler: Optional[BaseCompiler] = None,) -> A
 
 
 def lower_qobj(
-    program: pulse.Program,
-    qobj_id: int,
-    qobj_header: qobj.QobjHeader,
-    run_config: RunConfig,
+        program: pulse.Program,
+        qobj_id: int,
+        qobj_header: qobj.QobjHeader,
+        run_config: RunConfig,
 ) -> qobj.PulseQobj:
     """Lower a pulse program."""
     compiler = QobjCompiler(qobj_id, qobj_header, run_config,)
@@ -53,7 +53,11 @@ class QobjCompiler(Compiler):
     """A qobj lowering compiler."""
 
     def __init__(
-        self, qobj_id: int, qobj_header: qobj.QobjHeader, run_config: RunConfig,
+            self,
+            qobj_id: int,
+            qobj_header:
+            qobj.QobjHeader,
+            run_config: RunConfig,
     ):
         super().__init__()
         self.qobj_id = qobj_id
@@ -73,7 +77,11 @@ class LowerQobj(LoweringPass):
     """Return lowered qobj."""
 
     def __init__(
-        self, qobj_id: int, qobj_header: qobj.QobjHeader, run_config: RunConfig,
+            self,
+            qobj_id: int,
+            qobj_header:
+            qobj.QobjHeader,
+            run_config: RunConfig,
     ):
         super().__init__()
         self.run_config = run_config
@@ -122,7 +130,9 @@ class LowerQobj(LoweringPass):
         )
 
     def _assemble_experiments(
-        self, program: pulse.Program, lo_converter: converters.LoConfigConverter,
+            self,
+            program: pulse.Program,
+            lo_converter: converters.LoConfigConverter,
     ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
         """Assembles a list of schedules into PulseQobjExperiments, and returns
         related metadata that will be assembled into the Qobj configuration.
@@ -135,7 +145,7 @@ class LowerQobj(LoweringPass):
             The list of assembled experiments, and the dictionary of related experiment config.
 
         Raises:
-            QiskitError: when frequency settings are not compatible with the experiments.
+            CompilerError: when frequency settings are not compatible with the experiments.
         """
         freq_configs = [
             lo_converter(lo_dict)
@@ -165,7 +175,7 @@ class LowerQobj(LoweringPass):
         experiments = []
         for idx, schedule in enumerate(program.schedules):
             qobj_instructions = self._assemble_instructions(
-                idx, schedule, instruction_converter, self.run_config, user_pulselib,
+                idx, schedule, instruction_converter, user_pulselib,
             )
 
             # TODO: add other experimental header items (see circuit assembler)
@@ -211,25 +221,25 @@ class LowerQobj(LoweringPass):
         return experiments, experiment_config
 
     def _assemble_instructions(
-        self,
-        idx: int,
-        schedule: pulse.Schedule,
-        instruction_converter: converters.InstructionToQobjConverter,
-        run_config: RunConfig,
-        user_pulselib: Dict[str, commands.Command],
+            self,
+            idx: int,
+            schedule: pulse.Schedule,
+            instruction_converter: converters.InstructionToQobjConverter,
+            user_pulselib: Dict[str, commands.Command],
     ) -> Tuple[List[qobj.PulseQobjInstruction], int]:
-        """Assembles the instructions in a schedule into a list of PulseQobjInstructions and returns
-        related metadata that will be assembled into the Qobj configuration. Lookup table for
-        pulses defined in all experiments are registered in ``user_pulselib``. This object should be
-        mutable python dictionary so that items are properly updated after each instruction assemble.
-        The dictionary is not returned to avoid redundancy.
+        """Assembles the instructions in a schedule into a list of
+        PulseQobjInstructions and returns related metadata that will be
+        assembled into the Qobj configuration. Lookup table for pulses defined
+        in all experiments are registered in ``user_pulselib``. This object
+        should be mutable python dictionary so that items are properly updated
+        after each instruction assemble. The dictionary is not returned to
+        avoid redundancy.
 
         Args:
             idx: Index of schedule in program.
             schedule: Schedule to assemble.
-            instruction_converter: A converter instance which can convert PulseInstructions to
-                                   PulseQobjInstructions.
-            run_config: Configuration of the runtime environment.
+            instruction_converter: A converter instance which can convert
+                PulseInstructions to PulseQobjInstructions.
             user_pulselib: User pulse library from previous schedule.
 
         Returns:
@@ -240,13 +250,13 @@ class LowerQobj(LoweringPass):
 
         for time, instruction in schedule.instructions:
 
-            if isinstance(instruction, instructions.Play) and isinstance(
-                instruction.pulse, pulse_lib.SamplePulse
-            ):
+            if isinstance(instruction, instructions.Play) and \
+                    isinstance(instruction.pulse, pulse_lib.SamplePulse):
                 user_pulselib[instruction.pulse.name] = instruction.pulse.samples
 
             if isinstance(
-                instruction, (commands.AcquireInstruction, instructions.Acquire)
+                    instruction,
+                    (commands.AcquireInstruction, instructions.Acquire),
             ):
                 continue
 
@@ -273,13 +283,14 @@ class LowerQobj(LoweringPass):
         return qobj_instructions
 
     def _bundle_channel_indices(
-        self, instructions: List[commands.AcquireInstruction]
+            self,
+            instrs: List[commands.AcquireInstruction]
     ) -> Tuple[List[int], List[int], List[int]]:
         """From the list of AcquireInstructions, bundle the indices of the acquire channels,
         memory slots, and register slots into a 3-tuple of lists.
 
         Args:
-            instructions: A list of AcquireInstructions to be bundled.
+            instrs: A list of AcquireInstructions to be bundled.
 
         Returns:
             The qubit indices, the memory slot indices, and register slot indices from instructions.
@@ -287,7 +298,7 @@ class LowerQobj(LoweringPass):
         qubits = []
         mem_slots = []
         reg_slots = []
-        for inst in instructions:
+        for inst in instrs:
             qubits.append(inst.channel.index)
             if inst.mem_slot:
                 mem_slots.append(inst.mem_slot.index)
@@ -296,16 +307,15 @@ class LowerQobj(LoweringPass):
         return qubits, mem_slots, reg_slots
 
     def _assemble_config(
-        self,
-        lo_converter: converters.LoConfigConverter,
-        experiment_config: Dict[str, Any],
+            self,
+            lo_converter: converters.LoConfigConverter,
+            experiment_config: Dict[str, Any],
     ) -> qobj.PulseQobjConfig:
         """Assembles the QobjConfiguration from experimental config and runtime config.
 
         Args:
             lo_converter: The configured frequency converter and validator.
             experiment_config: Schedules to assemble.
-            run_config: Configuration of the runtime environment.
 
         Returns:
             The assembled PulseQobjConfig.

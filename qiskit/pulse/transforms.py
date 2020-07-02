@@ -14,10 +14,10 @@
 
 """Transformation passes and functions for pulse programs."""
 
-import numpy as np
 import warnings
-
 from typing import List, Optional, Iterable
+
+import numpy as np
 
 from qiskit import pulse
 from qiskit.pulse import (analysis, Acquire, AcquireInstruction, Delay, commands,
@@ -38,11 +38,11 @@ class AlignMeasures(TransformationPass):
     """
 
     def __init__(
-        self,
-        inst_map: Optional[InstructionScheduleMap] = None,
-        cal_gate: str = 'u3',
-        max_calibration_duration: Optional[int] = None,
-        align_time: Optional[int] = None,
+            self,
+            inst_map: Optional[InstructionScheduleMap] = None,
+            cal_gate: str = 'u3',
+            max_calibration_duration: Optional[int] = None,
+            align_time: Optional[int] = None,
     ):
         """Return new schedules where measurements occur at the same physical time.
 
@@ -51,10 +51,16 @@ class AlignMeasures(TransformationPass):
             cal_gate: The name of the gate to inspect for the calibration time
             max_calibration_duration: If provided, inst_map and cal_gate will be ignored
             align_time: If provided, this will be used as final align time.
+
+        Raises:
+            CompilerError: If one of ``inst_map``, ``alignment_time`` or
+                ``calibration_duration`` is not supplied. Or if the alignment
+                time is negative.
         """
         super().__init__()
         if align_time is None and max_calibration_duration is None and inst_map is None:
-            raise CompilerError("Must provide a inst_map, an alignment time, or a calibration duration.")
+            raise CompilerError(
+                "Must provide a inst_map, an alignment time, or a calibration duration.")
         if align_time is not None and align_time < 0:
             raise CompilerError("Align time cannot be negative.")
         if align_time is None:
@@ -68,6 +74,7 @@ class AlignMeasures(TransformationPass):
 
         self.align_time = align_time
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         align_time = self.align_time or self.analysis.meas_align_time
         # Shift acquires according to the new scheduled time
@@ -138,71 +145,74 @@ def align_measures(schedules: Iterable[ScheduleComponent],
         cal_gate,
         max_calibration_duration,
         align_time,
-        ),
-    )
+        ))
 
     return pm.run(pulse.Program(schedules=schedules)).schedules
 
 
 class AddImplicitAcquires(TransformationPass):
-        def __init__(
+    """Transformation to add acquires to fill out the demands of the ``meas_map``."""
+    def __init__(
             self,
             meas_map: List[List[int]]
-        ):
-            """Transformation pass that returns a new pulse program with missing acquires
-            added as defined by the ``meas_map``.
+    ):
+        """Transformation pass that returns a new pulse program with missing acquires
+        added as defined by the ``meas_map``.
 
-            .. warning:: Since new acquires are being added, Memory Slots will be set to match the
-                         qubit index. This may overwrite your specification.
+        .. warning:: Since new acquires are being added, Memory Slots will be set to match the
+                     qubit index. This may overwrite your specification.
 
-            Args:
-                meas_map: List of lists of qubits that are measured together.
+        Args:
+            meas_map: List of lists of qubits that are measured together.
 
-            Returns:
-                A ``Schedule`` with the additional acquisition commands.
-            """
-            super().__init__()
-            self.meas_map = meas_map
+        Returns:
+            A ``Schedule`` with the additional acquisition commands.
+        """
+        super().__init__()
+        self.meas_map = meas_map
 
-        def transform(self, program: pulse.Program) -> pulse.Program:
-            for idx, schedule in enumerate(program.schedules):
-                new_schedule = Schedule(name=schedule.name)
-                acquire_map = dict()
+    # pylint: disable=missing-function-docstring
+    def transform(self, program: pulse.Program) -> pulse.Program:
+        for idx, schedule in enumerate(program.schedules):
+            new_schedule = Schedule(name=schedule.name)
+            acquire_map = dict()
 
-                for time, inst in schedule.instructions:
-                    if isinstance(inst, (Acquire, AcquireInstruction)):
-                        if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
-                            warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
-                                          " the qubit index. I'm relabeling them to match.")
+            for time, inst in schedule.instructions:
+                if isinstance(inst, (Acquire, AcquireInstruction)):
+                    if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
+                        warnings.warn(
+                            "One of your acquires was mapped to a memory slot which didn't match"
+                            " the qubit index. I'm relabeling them to match.")
 
-                        # Get the label of all qubits that are measured with the qubit(s) in this instruction
-                        all_qubits = []
-                        for sublist in self.meas_map:
-                            if inst.channel.index in sublist:
-                                all_qubits.extend(sublist)
-                        # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
-                        # the measurement group.
-                        for i in all_qubits:
-                            explicit_inst = Acquire(inst.duration, AcquireChannel(i),
-                                                    mem_slot=MemorySlot(i),
-                                                    kernel=inst.kernel,
-                                                    discriminator=inst.discriminator) << time
-                            if time not in acquire_map:
-                                new_schedule |= explicit_inst
-                                acquire_map = {time: {i}}
-                            elif i not in acquire_map[time]:
-                                new_schedule |= explicit_inst
-                                acquire_map[time].add(i)
-                    else:
-                        new_schedule |= inst << time
+                    # Get the label of all qubits that are measured with the
+                    # qubit(s) in this instruction.
+                    all_qubits = []
+                    for sublist in self.meas_map:
+                        if inst.channel.index in sublist:
+                            all_qubits.extend(sublist)
+                    # Replace the old acquire instruction by a new one explicitly
+                    # acquiring all qubits in the measurement group.
+                    for i in all_qubits:
+                        explicit_inst = Acquire(inst.duration, AcquireChannel(i),
+                                                mem_slot=MemorySlot(i),
+                                                kernel=inst.kernel,
+                                                discriminator=inst.discriminator) << time
+                        if time not in acquire_map:
+                            new_schedule |= explicit_inst
+                            acquire_map = {time: {i}}
+                        elif i not in acquire_map[time]:
+                            new_schedule |= explicit_inst
+                            acquire_map[time].add(i)
+                else:
+                    new_schedule |= inst << time
 
-                program.replace_schedule(idx, new_schedule)
-            return program
+            program.replace_schedule(idx, new_schedule)
+        return program
 
 
 def add_implicit_acquires(
-    schedule: ScheduleComponent,
-    meas_map: List[List[int]],
+        schedule: ScheduleComponent,
+        meas_map: List[List[int]],
 ) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
@@ -218,24 +228,23 @@ def add_implicit_acquires(
         A ``Schedule`` with the additional acquisition commands.
     """
     pm = PassManager()
-    pm.append(AddImplicitAcquires(
-        meas_map,
-        ),
-    )
+    pm.append(AddImplicitAcquires(meas_map))
 
     return pm.run(pulse.Program(schedules=schedule)).schedules[0]
 
 
 class PadProgram(TransformationPass):
+    """Transformation pass to pad empty timeslots with delays."""
     def __init__(
-        self,
-        channels: Optional[Iterable[Channel]] = None,
-        until: Optional[int] = None,
+            self,
+            channels: Optional[Iterable[Channel]] = None,
+            until: Optional[int] = None,
     ):
         """Transformation pass that pads empty times in a program with delays.
 
         Args:
-            meas_map: List of lists of qubits that are measured together.
+            channels: Channels to pad.
+            until: Time to pad until.
 
         Returns:
             A ``Schedule`` with the additional acquisition commands.
@@ -244,6 +253,7 @@ class PadProgram(TransformationPass):
         self.channels = channels
         self.until = until
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         for idx, schedule in enumerate(program.schedules):
             until = self.until or schedule.duration
@@ -274,9 +284,9 @@ class PadProgram(TransformationPass):
 
 
 def pad(
-    schedule: Schedule,
-    channels: Optional[Iterable[Channel]] = None,
-    until: Optional[int] = None,
+        schedule: Schedule,
+        channels: Optional[Iterable[Channel]] = None,
+        until: Optional[int] = None,
 ) -> Schedule:
     """Pad the input ``Schedule`` with ``Delay`` s on all unoccupied timeslots until ``until``
     if it is provided, otherwise until ``schedule.duration``.
@@ -291,17 +301,14 @@ def pad(
         The padded schedule.
     """
     pm = PassManager()
-    pm.append(PadProgram(
-        channels,
-        until
-        ),
-    )
+    pm.append(PadProgram(channels, until))
     return pm.run(pulse.Program(schedules=schedule)).schedules[0]
 
 
 class CompressPulses(TransformationPass):
     """Transformation pass to replace identical pulses."""
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         existing_pulses = []
         for sched_idx, schedule in enumerate(program.schedules):
@@ -341,24 +348,25 @@ class NoInvalidParametricPulses(TransformationPass):
     """Transformation pass to replace unsupported parametric pulses with waveforms."""
 
     def __init__(
-        self,
-        parametric_pulses: List[str],
+            self,
+            parametric_pulses: List[str],
     ):
         """Accepts list of supported parametric pulse names."""
         super().__init__()
         self.parametric_pulses = parametric_pulses
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
-        for sched_idx, schedule in enumerate(program.schedules):
+        for _, schedule in enumerate(program.schedules):
             for _, instruction in schedule.instructions:
                 if isinstance(instruction, instructions.Play):
-                    pulse = instruction.pulse
+                    pulse_ = instruction.pulse
                     if isinstance(pulse, pulse_lib.ParametricPulse):
                         pulse_shape = converters.pulse_instruction.ParametricPulseShapes(
-                            type(instruction.pulse)).name
+                            type(pulse_)).name
                         if pulse_shape not in self.parametric_pulses:
                             new_instruction = instructions.Play(
-                                pulse.get_sample_pulse(),
+                                pulse_.get_sample_pulse(),
                                 instruction.channel,
                                 name=instruction.name
                             )
@@ -373,8 +381,10 @@ class NoInvalidParametricPulses(TransformationPass):
 
 class ConvertDeprecatedInstructions(TransformationPass):
     """Convert deprecated instructions to supported instructions."""
+
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
-        for sched_idx, schedule in enumerate(program.schedules):
+        for _, schedule in enumerate(program.schedules):
             for _, instruction in schedule.instructions:
                 if isinstance(instruction, commands.PulseInstruction):
                     new_instruction = instructions.Play(
@@ -410,16 +420,17 @@ class DeDuplicateWaveformNames(TransformationPass):
         super().__init__()
         self.requires.append(ConvertDeprecatedInstructions())
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         unique_pulses = {}
 
-        for sched_idx, schedule in enumerate(program.schedules):
+        for _, schedule in enumerate(program.schedules):
             for _, instruction in schedule.instructions:
                 if isinstance(instruction, instructions.Play):
-                    pulse = instruction.pulse
+                    pulse_ = instruction.pulse
 
                     if isinstance(pulse, pulse_lib.SamplePulse):
-                        pulse_name = pulse.name
+                        pulse_name = pulse_.name
 
                         # Add a pulse name if necessary
                         if pulse_name is None:
@@ -428,7 +439,7 @@ class DeDuplicateWaveformNames(TransformationPass):
                         found_pulse = unique_pulses.get(pulse_name)
                         # We've encountered a new pulse.
                         if not found_pulse:
-                            unique_pulses[pulse_name] = pulse
+                            unique_pulses[pulse_name] = pulse_
                         # Otherwise deduplicate the name.
                         else:
                             new_name = pulse_name
@@ -437,20 +448,20 @@ class DeDuplicateWaveformNames(TransformationPass):
                                 if pulse == found_pulse:
                                     break
                                 # If different create deduplicated name.
-                                else:
-                                    new_name = "{}_{}".format(pulse_name, idx)
-                                    idx += 1
-                                    found_pulse = unique_pulses.get(new_name)
+                                new_name = "{}_{}".format(pulse_name, idx)
+                                idx += 1
+                                found_pulse = unique_pulses.get(new_name)
 
-                            pulse.name = new_name
+                            pulse_.name = new_name
                             if not found_pulse:
-                                unique_pulses[new_name] = pulse
+                                unique_pulses[new_name] = pulse_
         return program
 
 
 class InlineInstructions(TransformationPass):
     """Inline all possible instructions in a program."""
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         for idx, schedule in enumerate(program.schedules):
             program.replace_schedule(idx, schedule.flatten())
@@ -460,23 +471,27 @@ class InlineInstructions(TransformationPass):
 
 class FoldShiftPhase(TransformationPass):
     """Compress consecutive frame shifts and remove trivial frameshifts."""
+
     def __init__(self):
         super().__init__()
         self.requires.append(ConvertDeprecatedInstructions())
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         self.visit_Program(program)
         return program
 
+    # pylint: disable=missing-function-docstring, invalid-name
     def visit_Program(self, program):
         for schedule in program.schedules:
             self.visit_Schedule(schedule)
 
-    def visit_Schedule(self, schedule, parent=None):
+    # pylint: disable=missing-function-docstring, invalid-name
+    def visit_Schedule(self, schedule):
         replace_shiftphases = {}
         for time, child in schedule._children:
             if isinstance(child, pulse.Schedule):
-                self.visit_Schedule(child, schedule)
+                self.visit_Schedule(child)
             elif isinstance(child, instructions.ShiftPhase):
                 channel = child.channel
                 current_frame = replace_shiftphases.get(channel)
@@ -502,23 +517,29 @@ class FoldShiftPhase(TransformationPass):
 
 class FoldShiftFrequency(TransformationPass):
     """Compress consecutive frequency shifts and remove trivial frequency shifts."""
+
     def __init__(self):
         super().__init__()
+        self._truncated_pulses = None
+
         self.requires.append(ConvertDeprecatedInstructions())
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         self.visit_Program(program)
         return program
 
+    # pylint: disable=missing-function-docstring, invalid-name
     def visit_Program(self, program):
         for schedule in program.schedules:
             self.visit_Schedule(schedule)
 
-    def visit_Schedule(self, schedule, parent=None):
+    # pylint: disable=missing-function-docstring, invalid-name
+    def visit_Schedule(self, schedule):
         replace_shiftphases = {}
         for time, child in schedule._children:
             if isinstance(child, pulse.Schedule):
-                self.visit_Schedule(child, schedule)
+                self.visit_Schedule(child)
             elif isinstance(child, instructions.ShiftFrequency):
                 channel = child.channel
                 current_frame = replace_shiftphases.get(channel)
@@ -544,68 +565,80 @@ class FoldShiftFrequency(TransformationPass):
 
 class TruncateWaveformPrecision(TransformationPass):
     """Truncate the precision of waveforms to "{1}.{precision}" bits."""
+
     def __init__(
-        self,
-        precision=14,
+            self,
+            precision=14,
     ):
         super().__init__()
         self.precision = precision
         self._decimals = int(np.ceil(precision * np.log(2) / np.log(10)))
+        self._truncated_pulses = set()
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         self._truncated_pulses = set()
         self.visit_Program(program)
         return program
 
+    # pylint: disable=missing-function-docstring, invalid-name
     def visit_Program(self, program):
         for schedule in program.schedules:
             self.visit_Schedule(schedule)
 
-    def visit_Schedule(self, schedule, parent=None):
-        for time, child in schedule._children:
+    # pylint: disable=missing-function-docstring, invalid-name
+    def visit_Schedule(self, schedule):
+        for _, child in schedule._children:
             if isinstance(child, pulse.Schedule):
-                self.visit_Schedule(child, schedule)
+                self.visit_Schedule(child)
             elif isinstance(child, instructions.Play):
                 self.visit_Play(child, schedule)
 
+    # pylint: disable=missing-function-docstring, invalid-name, unused-argument
     def visit_Play(self, play, schedule):
-        pulse = play.pulse
-        if isinstance(pulse, pulse_lib.SamplePulse):
-            if pulse not in self._truncated_pulses:
+        pulse_ = play.pulse
+        if isinstance(pulse_, pulse_lib.SamplePulse):
+            if pulse_ not in self._truncated_pulses:
                 pulse.samples = np.around(pulse.samples, decimals=self._decimals)
                 self._truncated_pulses.add(pulse)
 
 
 class TruncatePhasePrecision(TransformationPass):
     """Truncate the precision of shiftphase instruction to "{[0, 2pi]}.{precision}" bits."""
+
     def __init__(
-        self,
-        precision=20,
+            self,
+            precision=20,
     ):
         super().__init__()
         self.precision = precision
         self._decimals = int(np.ceil(precision * np.log(2) / np.log(10)))
 
+    # pylint: disable=missing-function-docstring
     def transform(self, program: pulse.Program) -> pulse.Program:
         self.visit_Program(program)
         return program
 
+    # pylint: disable=missing-function-docstring, invalid-name
     def visit_Program(self, program):
         for schedule in program.schedules:
             self.visit_Schedule(schedule)
 
-    def visit_Schedule(self, schedule, parent=None):
-        for time, child in schedule._children:
+    # pylint: disable=missing-function-docstring, invalid-name
+    def visit_Schedule(self, schedule):
+        for _, child in schedule._children:
             if isinstance(child, pulse.Schedule):
-                self.visit_Schedule(child, schedule)
+                self.visit_Schedule(child)
             elif isinstance(child, instructions.ShiftPhase):
                 self.visit_ShiftPhase(child, schedule)
             elif isinstance(child, instructions.SetPhase):
                 self.visit_SetPhase(child, schedule)
 
+    # pylint: disable=missing-function-docstring, invalid-name, unused-argument
     def visit_ShiftPhase(self, instr, schedule):
         self._truncate_phase(instr)
 
+    # pylint: disable=missing-function-docstring, invalid-name, unused-argument
     def visit_SetPhase(self, instr, schedule):
         self._truncate_phase(instr)
 

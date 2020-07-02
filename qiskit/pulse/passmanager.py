@@ -31,7 +31,9 @@ class PassManager:
     """Manager for a set of Passes and their scheduling during compilation."""
 
     def __init__(
-        self, passes: Union[BasePass, List[BasePass]] = None, name="",
+            self,
+            passes: Union[BasePass, List[BasePass]] = None,
+            name: str = "",
     ):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
@@ -63,6 +65,7 @@ class PassManager:
 
     @property
     def valid_passes(self) -> Set[str]:
+        """Returns the set of valid passes that have already been applied."""
         return self.state.valid_passes
 
     def append(self, pass_: BasePass,) -> None:
@@ -196,7 +199,7 @@ class PassManager:
             self.valid_passes.intersection_update(set(pass_.preserves))
 
     def run_schedules(
-        self, schedules: Union[pulse.Schedule, List[pulse.Schedule]]
+            self, schedules: Union[pulse.Schedule, List[pulse.Schedule]]
     ) -> List[pulse.Schedule]:
         """Run all the passes on the supplied ``schedules``.
 

@@ -140,13 +140,7 @@ class LoweringPass(BasePass):
     should not modify the input program."""
 
     def run(self, program: pulse.Program) -> pulse.Program:
-        """Run a pass on the pulse program. This is implemented by the pass developer.
-
-        Args:
-            program: The program on which the pass is run.
-        Raises:
-            NotImplementedError: when this is left unimplemented for a pass.
-        """
+        """Run the ``lower`` function."""
         self.state.lowered = self.lower(program)
         return program
 
@@ -159,13 +153,8 @@ class ValidationPass(BasePass):  # pylint: disable=abstract-method
     """Validates a property of the pulse program. Does not modify the attributes
     or program."""
 
-    @abstractmethod
     def run(self, program: pulse.Program) -> pulse.Program:
-        """Validate a property of the supplied program.
-
-        Raises:
-            CompilerError: If the program fails validation.
-        """
+        """Run the ``validate`` function."""
         self.validate(program)
         return program
 

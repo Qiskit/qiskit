@@ -646,10 +646,10 @@ class Schedule(ScheduleComponent):
                     old=old, new=new)) from err
 
     def remove_at_time(
-        self,
-        time: int,
-        old: ScheduleComponent,
-        inplace: bool = False,
+            self,
+            time: int,
+            old: ScheduleComponent,
+            inplace: bool = False,
     ) -> 'Schedule':
         """Return a schedule with the first instruction matching ``old`` removed
         at ``time``.
@@ -694,7 +694,6 @@ class Schedule(ScheduleComponent):
         Args:
           time: Time to replace instruction at.
           old: Instruction to replace.
-          new: Instruction to replace with.
           inplace: Replace instruction by mutably modifying this ``Schedule``.
 
         Returns:
@@ -725,11 +724,11 @@ class Schedule(ScheduleComponent):
                              'was found'.format(old=old, time=time))
 
     def replace_at_time(
-        self,
-        time: int,
-        old: ScheduleComponent,
-        new: ScheduleComponent,
-        inplace: bool = False,
+            self,
+            time: int,
+            old: ScheduleComponent,
+            new: ScheduleComponent,
+            inplace: bool = False,
     ) -> 'Schedule':
         """Return a schedule with the ``old`` instruction replaced with a ``new``
         instruction only at ``time``.
@@ -789,7 +788,7 @@ class Schedule(ScheduleComponent):
             replaced = self.remove_at_time(time, old, inplace=inplace)
         except PulseError:
             raise PulseError('No match for {old} at time={time} '
-                             'was found'.format(old, time))
+                             'was found'.format(old=old, time=time))
         return replaced.insert(time, new, inplace=inplace)
 
     def draw(self, dt: float = 1, style=None,

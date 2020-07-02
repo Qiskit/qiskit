@@ -24,11 +24,12 @@ from qiskit.pulse import InstructionScheduleMap
 
 
 class MeasurementAlignmentAnalysis(AnalysisPass):
+    """Analyze which measurements happen at the same time."""
     def __init__(
-        self,
-        inst_map: InstructionScheduleMap,
-        cal_gate: str = "u3",
-        max_calibration_duration: int = None,
+            self,
+            inst_map: InstructionScheduleMap,
+            cal_gate: str = "u3",
+            max_calibration_duration: int = None,
     ):
         """Calculate the latest time to align all measures in a program."""
         super().__init__()
@@ -36,7 +37,7 @@ class MeasurementAlignmentAnalysis(AnalysisPass):
         self.cal_gate = cal_gate
         self.max_calibration_duration = max_calibration_duration
 
-    def run(self, program: pulse.Program,) -> pulse.Program:
+    def analyze(self, program: pulse.Program,) -> pulse.Program:
         """Set the the max between the duration of the calibration time and
         the absolute time of the latest scheduled acquire."""
         if self.max_calibration_duration is None:
@@ -69,7 +70,7 @@ class AmalgamatedAcquires(AnalysisPass):
     """Produce a dictionary of acquire instructions that ocurr at the same time.
     across channels."""
 
-    def run(self, program: pulse.Program,) -> pulse.Program:
+    def analyze(self, program: pulse.Program,) -> pulse.Program:
         """Set a dictionary of acquire instructions across qubits at the same time."""
         acquire_instruction_maps = []
         acquire_instruction_map = collections.defaultdict(list)
@@ -78,7 +79,7 @@ class AmalgamatedAcquires(AnalysisPass):
             acquire_instruction_map = collections.defaultdict(list)
             for time, instruction in schedule.instructions:
                 if isinstance(
-                    instruction, (commands.AcquireInstruction, instructions.Acquire)
+                        instruction, (commands.AcquireInstruction, instructions.Acquire)
                 ):
                     # Acquires have a single AcquireChannel per inst, but we have to bundle them
                     # together into the Qobj as one instruction with many channels
@@ -94,14 +95,14 @@ class AmalgamatedAcquires(AnalysisPass):
 class MaxMemorySlotUsed(AnalysisPass):
     """Produce the maximum memory slot used in each program."""
 
-    def run(self, program: pulse.Program,) -> pulse.Program:
+    def analyze(self, program: pulse.Program,) -> pulse.Program:
         """Set a dictionary of acquire instructions across qubits at the same time."""
         max_memory_slots = []
         for schedule in program.schedules:
             max_memory_slot = 0
-            for time, instruction in schedule.instructions:
+            for _, instruction in schedule.instructions:
                 if isinstance(
-                    instruction, (commands.AcquireInstruction, instructions.Acquire)
+                        instruction, (commands.AcquireInstruction, instructions.Acquire)
                 ):
                     if instruction.mem_slot:
                         max_memory_slot = max(

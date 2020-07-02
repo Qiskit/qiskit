@@ -413,11 +413,13 @@ class TestCompressTransform(QiskitTestCase):
 class TestFoldShiftPhase(QiskitTestCase):
     """Test compress shift phase transforms."""
     def compress_shift_phase(self, schedule):
+        """Apply the pass."""
         pm = PassManager()
         pm.append(transforms.FoldShiftPhase())
         return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
 
     def test_consecutive_phase(self):
+        """Test consecutive phase shifts are optimized away."""
         d0 = DriveChannel(0)
         sched = Schedule()
         sched += instructions.ShiftPhase(np.pi/2, d0)
@@ -433,6 +435,7 @@ class TestFoldShiftPhase(QiskitTestCase):
         self.assertEqual(opt_sched, ref_sched)
 
     def test_different_channels(self):
+        """Test that phase compressions works properly across different channels."""
         d0 = DriveChannel(0)
         d1 = DriveChannel(1)
         sched = Schedule()
@@ -451,7 +454,8 @@ class TestFoldShiftPhase(QiskitTestCase):
         opt_sched = self.compress_shift_phase(sched.flatten())
         self.assertEqual(opt_sched, ref_sched)
 
-    def test_interruped_phases(self):
+    def test_interupted_phases(self):
+        """That that two phase shifts with an instruction between aren't compressed."""
         d0 = DriveChannel(0)
         sched = Schedule()
         sched += instructions.ShiftPhase(np.pi/2, d0)
@@ -474,11 +478,13 @@ class TestFoldShiftPhase(QiskitTestCase):
 class TestFoldShiftFrequency(QiskitTestCase):
     """Test compress shift frequency transforms."""
     def compress_shift_frequency(self, schedule):
+        """Apply the pass."""
         pm = PassManager()
         pm.append(transforms.FoldShiftFrequency())
         return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
 
     def test_consecutive_frequencies(self):
+        """Test consecutive frequency shifts are optimized away."""
         d0 = DriveChannel(0)
         sched = Schedule()
         sched += instructions.ShiftFrequency(1/2, d0)
@@ -494,6 +500,7 @@ class TestFoldShiftFrequency(QiskitTestCase):
         self.assertEqual(opt_sched, ref_sched)
 
     def test_different_channels(self):
+        """Test that frequency compressions works properly across different channels."""
         d0 = DriveChannel(0)
         d1 = DriveChannel(1)
         sched = Schedule()
@@ -512,7 +519,8 @@ class TestFoldShiftFrequency(QiskitTestCase):
         opt_sched = self.compress_shift_frequency(sched.flatten())
         self.assertEqual(opt_sched, ref_sched)
 
-    def test_interruped_frequencies(self):
+    def test_interrupted_frequencies(self):
+        """That that two frequency shifts with an instruction between aren't compressed."""
         d0 = DriveChannel(0)
         sched = Schedule()
         sched += instructions.ShiftFrequency(1/2, d0)
@@ -535,11 +543,13 @@ class TestFoldShiftFrequency(QiskitTestCase):
 class TestTruncateWaveformPrecision(QiskitTestCase):
     """Test truncation of waveform precision."""
     def truncate_pulses(self, schedule):
+        """Apply the pass."""
         pm = PassManager()
         pm.append(transforms.TruncateWaveformPrecision())
         return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
 
     def test_truncation_of_waveform(self):
+        """Test truncation of waveform resolutions."""
         d0 = DriveChannel(0)
         d1 = DriveChannel(1)
 
@@ -567,11 +577,13 @@ class TestTruncateWaveformPrecision(QiskitTestCase):
 class TestTruncatePhasePrecision(QiskitTestCase):
     """Test truncation of waveform precision."""
     def truncate_phases(self, schedule):
+        """Apply the pass."""
         pm = PassManager()
         pm.append(transforms.TruncatePhasePrecision())
         return pm.run(pulse.Program(schedules=[schedule])).schedules[0]
 
     def test_phase_truncation(self):
+        """Test truncation of phase instruction resolutions."""
         d0 = DriveChannel(0)
 
         shift_instr = instructions.ShiftPhase(0.00000055, d0)
