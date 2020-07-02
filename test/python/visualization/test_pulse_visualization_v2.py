@@ -29,17 +29,23 @@ class TestChannelEvents(QiskitTestCase):
         test_pulse = pulse.Gaussian(10, 0.1, 3)
 
         sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftPhase(1.57, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
         sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
         sched = sched.insert(10, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
+        sched = sched.insert(10, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
 
         # check waveform data
         waveforms = [waveform for waveform in events.get_waveform()]
         t0, frame, inst = waveforms[0]
-
         self.assertEqual(t0, 0)
+        self.assertEqual(frame.phase, 3.14)
+        self.assertEqual(frame.freq, 0)
+        self.assertEqual(inst, test_pulse)
+
+        t0, frame, inst = waveforms[1]
+        self.assertEqual(t0, 10)
         self.assertEqual(frame.phase, 1.57)
         self.assertEqual(frame.freq, 0)
         self.assertEqual(inst, test_pulse)
@@ -47,11 +53,16 @@ class TestChannelEvents(QiskitTestCase):
         # check frame data
         frames = [frame for frame in events.get_framechange()]
         t0, frame, insts = frames[0]
-
         self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 1.57)
+        self.assertEqual(frame.phase, 3.14)
         self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.ShiftPhase(1.57, pulse.DriveChannel(0))])
+        self.assertListEqual(insts, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
+
+        t0, frame, insts = frames[1]
+        self.assertEqual(t0, 10)
+        self.assertEqual(frame.phase, -1.57)
+        self.assertEqual(frame.freq, 0)
+        self.assertListEqual(insts, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
 
     def test_empty(self):
         """Test is_empty check."""
@@ -102,10 +113,10 @@ class TestChannelEvents(QiskitTestCase):
         frames = [frame for frame in events.get_framechange()]
 
         _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.freq, 4.0)
+        self.assertAlmostEqual(frame.freq, 1.0)
 
         _, frame, _ = frames[1]
-        self.assertAlmostEqual(frame.freq, 5.0)
+        self.assertAlmostEqual(frame.freq, 1.0)
 
     def test_sample_pulse(self):
         """Test parsing sample pulse."""

@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
+r"""
 Channel event manager for pulse schedules.
 
 This module provide `ChannelEvents` class that manages series of instruction in
@@ -25,18 +25,31 @@ The `ChannelEvents` class instance is created with the class method ``parse_prog
     ```
 
 The manager is created for a specific pulse channel and assorts pulse instructions within
-the channel with different visualization types. The grouped instructions are
-returned as an iterator by corresponding method call:
+the channel with different visualization types.
+A phase and frequency related instruction are managed as frame change.
+Those information is combined as ``PhaseFreqTuple``.
+
+The grouped instructions are returned as an iterator by corresponding method call:
     ```python
     for t0, frame, instruction in event.get_waveform():
         ...
-    ```
-A phase and frequency related instruction are managed as frame changes,
-and those instructions are returned with new frame at the time of instruction.
-Initial frame is assumed to be phase, frequency = 0, 0, which can be directly overwritten.
 
-Because a frame change instruction is zero duration, multiple instructions can be issued at
-the same time. It should be noted that the list of frame change instruction is order sensitive.
+    for t0, frame_change, instructions in event.get_framechange():
+        ...
+    ```
+
+The classmethod ``get_waveform`` returns the frame at the time when instruction is issued.
+This is because a pulse envelope of ``SamplePulse`` may be modulated with a phase factor
+$exp(-i \omega t - \phi)$ with frequency $\omega$ and phase $\phi$ in the canvas of the plotter.
+Thus, it is better to tell users in which phase and frequency the pulse is modulated
+from a viewpoint of debugging.
+
+On the other hand, the classmethod ``get_framechange`` returns an amount of change of the frame
+at the time when instructions are issued. Because we have set and shift type instructions,
+the set type instruction will be converted into the corresponding shift amount for visualization.
+
+Because a frame change instruction is zero duration, multiple instructions can be issued
+at the same time and those instructions are order sensitive.
 For example:
     ```python
     sched1 = Schedule()
@@ -47,12 +60,13 @@ For example:
     sched2 = sched2.insert(0, SetPhase(3.14, DriveChannel(0))
     sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     ```
-In above example, `sched1` and `sched2` will create different frame. The final phase of `sched1`
-should be visualized as 3.14, while that of `sched2` becomes 1.57. Since the `SetPhase` and
-the `ShiftPhase` instruction behave differently, we cannot sum up the phase values to show.
+In above example, `sched1` and `sched2` will create different frame.
+The total frame change value of `sched1` should be +3.14, while `sched2` is +1.57.
+Since the `SetPhase` and the `ShiftPhase` instruction behave differently,
+we cannot simply sum up the phase values to show.
 
-Because those instructions are issued at the same time, they will be overlapped on the
-canvas of the plotter. Thus it is convenient to plot the frame value at the time rather
+It should be noted that zero-time instructions issued at the same time will be overlapped on the
+canvas of the plotter. Thus it is convenient to plot an apparent frame change value rather
 than plotting each phase value bound to the instruction.
 """
 from collections import defaultdict, namedtuple
@@ -61,7 +75,7 @@ from typing import Union, Optional, Dict, List, Iterator, Tuple
 from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
 
-Frame = namedtuple('Frame', 'phase freq')
+PhaseFreqTuple = namedtuple('PhaseFreqTuple', 'phase freq')
 
 
 class ChannelEvents:
@@ -150,7 +164,7 @@ class ChannelEvents:
         else:
             return True
 
-    def get_waveform(self) -> Iterator[Tuple[int, Frame, pulse.Instruction]]:
+    def get_waveform(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
         """Return waveform type instructions with phase and frequency.
         """
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
@@ -170,18 +184,23 @@ class ChannelEvents:
                         phase = frame_change.phase
                     elif isinstance(frame_change, pulse.ShiftPhase):
                         phase += frame_change.phase
-            frame = Frame(phase, frequency)
+            frame = PhaseFreqTuple(phase, frequency)
 
             yield t0, frame, inst
 
-    def get_framechange(self) -> Iterator[Tuple[int, Frame, List[pulse.Instruction]]]:
+    def get_framechange(self) -> Iterator[Tuple[int, PhaseFreqTuple, List[pulse.Instruction]]]:
         """Return frame change type instructions with total phase and total frequency.
+
+        Change to return delta value
+
         """
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
         phase = self.init_phase
         frequency = self.init_frequency
         for t0, insts in sorted_frame_changes:
+            pre_phase = phase
+            pre_frequency = frequency
             for inst in insts:
                 if isinstance(inst, pulse.SetFrequency):
                     frequency = inst.frequency
@@ -191,7 +210,7 @@ class ChannelEvents:
                     phase = inst.phase
                 elif isinstance(inst, pulse.ShiftPhase):
                     phase += inst.phase
-            frame = Frame(phase, frequency)
+            frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
             yield t0, frame, insts
 
