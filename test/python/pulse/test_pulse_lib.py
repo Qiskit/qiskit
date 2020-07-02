@@ -93,7 +93,7 @@ class TestParametricPulses(QiskitTestCase):
     """Tests for all subclasses of ParametricPulse."""
 
     def _gauss_func(self, x, amp, sigma):
-        """Formulaic gaussian samples."""
+        """Formulaic gaussian function."""
         return amp * np.exp(-(x / sigma)**2 / 2)
 
     def _zero_ends_gaussian(self, times, amp, sigma, duration):
@@ -152,6 +152,7 @@ class TestParametricPulses(QiskitTestCase):
         times = times - (gauss_duration / 2) + 0.5
         gauss, _ = self._zero_ends_gaussian(times, amp, sigma, gauss_duration)
 
+        # compute gaussian square as combination of gaussians and constant pulse
         gauss_square = np.concatenate((gauss[:gauss_duration//2],
                                        amp*np.ones(width),
                                        gauss[gauss_duration//2:]))
