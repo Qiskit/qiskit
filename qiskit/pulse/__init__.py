@@ -50,7 +50,7 @@ Build waveforms
 
 The next thing we will want to do is create a pulse waveform to add to our schedule.
 
-One of the core features of building schedules are :py:class:`~qiskit.pulse.pulse_lib.Pulse`s.
+One of the core features of building schedules are ``Pulse`` s.
 Here, we will build a certain kind of pulse called a
 :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`, which specifies a pulse signal as an array of
 time-ordered complex amplitudes, or *samples*. Each sample is played for
