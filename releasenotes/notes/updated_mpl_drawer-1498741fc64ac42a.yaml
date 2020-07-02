@@ -42,6 +42,7 @@ features:
     .. jupyter-execute::
 
         from qiskit import QuantumCircuit
+        from qiskit.library.standard_gates import YGate
         circuit = QuantumCircuit(2)
         circuit.append(YGate(label='A Y Gate').control(label='Y Control'), [0, 1])
         circuit.draw(output='mpl')
@@ -58,7 +59,7 @@ fixes:
   - |
     On some occasions long gate and register names would overflow, or leave
     excessive empty space around them. This has been fixed by using correct
-    text widths for a proportional font. Fixes ssues #4611, #4605, #4545,
+    text widths for a proportional font. Fixes issues #4611, #4605, #4545,
     #4497, #4449, #3641.
   - |
     When using the style dictionary key 'showindex', the index numbers at
