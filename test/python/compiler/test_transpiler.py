@@ -719,6 +719,21 @@ class TestTranspile(QiskitTestCase):
 
         self.assertLessEqual(out.count_ops()[twoq_gate], 2)
 
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay(self, optimization_level):
+        """Verify a circuit with delay can transpile to a scheduled circuit."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+
+        out = transpile(qc, scheduling_method='alap', basis_gates=['h', 'cx'],
+                        instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)],
+                        optimization_level=optimization_level)
+
+        self.assertEqual(out.duration, 1200)
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""

@@ -19,13 +19,13 @@
 
 from qiskit import QuantumCircuit, transpile, execute, QiskitError
 from qiskit.circuit import Parameter
-from qiskit.compiler import sequence
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.backends import FakeParis
+from qiskit.transpiler.exceptions import TranspilerError
+
+from qiskit.test.base import QiskitTestCase
 
 
-class TestScheduledCircuitClass(QiskitTestCase):
+class TestScheduledCircuit(QiskitTestCase):
     """Test scheduled circuit (quantum circuit with duration)."""
     def setUp(self):
         self.backend = FakeParis()
@@ -54,9 +54,9 @@ class TestScheduledCircuitClass(QiskitTestCase):
         scheduled = transpile(qc,
                               scheduling_method='alap',
                               basis_gates=['h', 'cx'],
-                              instruction_durations=[('h', 0, 200), ('cx', [0, 1], 800)]
+                              instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)]
                               )
-        self.assertEqual(scheduled.duration, 1300)
+        self.assertEqual(scheduled.duration, 1200)
 
     def test_raise_error_if_transpile_circuit_with_delay_without_scheduling_method(self):
         qc = QuantumCircuit(2)
@@ -107,23 +107,6 @@ class TestScheduledCircuitClass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             transpile(qc, scheduling_method='alap',
                       basis_gates=['u2'], instruction_durations=[('u2', 0, 200)])
-
-    def test_transpile_and_sequence_agree_with_schedule(self):
-        qc = QuantumCircuit(2, name="bell")
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure_all()
-        sc = transpile(qc, self.backend, scheduling_method='alap', coupling_map=[[0, 1], [1, 2]])
-        sequence(sc, self.backend)
-        # TODO: Complete test!
-
-    def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
-        qc = QuantumCircuit(2, name="bell_without_measurement")
-        qc.h(0)
-        qc.cx(0, 1)
-        sc = transpile(qc, self.backend, scheduling_method='alap', coupling_map=[[0, 1], [1, 2]])
-        sequence(sc, self.backend)
-        # TODO: Complete test!
 
     def test_instruction_durations_option_in_transpile(self):
         qc = QuantumCircuit(2)
