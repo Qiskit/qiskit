@@ -30,8 +30,7 @@ from qiskit.circuit.library import IQP
 
 import math
 import numpy as np
-
-pi = np.pi
+from numpy import pi
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 
