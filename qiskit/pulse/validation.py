@@ -25,10 +25,7 @@ from qiskit.pulse.exceptions import CompilerError
 class ValidateMeasMap(ValidationPass):
     """Validate all acquires in the qobj obey the measurement map."""
 
-    def __init__(
-        self,
-        meas_map: List[List[int]]
-    ):
+    def __init__(self, meas_map: List[List[int]]):
         """
         Args:
             meas_map: List of groups of qubits that must be acquired together.
@@ -52,6 +49,8 @@ class ValidateMeasMap(ValidationPass):
                         intersection = measured_qubits.intersection(meas_set)
                         if intersection and intersection != meas_set:
                             raise CompilerError(
-                                'Qubits to be acquired: {0} do not satisfy required qubits '
-                                'in measurement map: {1}'.format(measured_qubits, meas_set),
-                                )
+                                "Qubits to be acquired: {0} do not satisfy required qubits "
+                                "in measurement map: {1}".format(
+                                    measured_qubits, meas_set
+                                ),
+                            )

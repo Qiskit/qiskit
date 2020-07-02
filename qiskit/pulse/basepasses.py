@@ -40,7 +40,7 @@ class MetaPass(type):
         self_guard = object()
         init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = [('class_.__name__', class_.__name__)]
+        arguments = [("class_.__name__", class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue

@@ -38,6 +38,7 @@ class State(AttrDict):
 
     ..note:: Should be replaced with dataclass
     """
+
     def __init__(self):
         self.analysis = Analysis()
         self.valid_passes = set()

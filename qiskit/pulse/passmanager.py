@@ -31,9 +31,7 @@ class PassManager:
     """Manager for a set of Passes and their scheduling during compilation."""
 
     def __init__(
-            self,
-            passes: Union[BasePass, List[BasePass]] = None,
-            name="",
+        self, passes: Union[BasePass, List[BasePass]] = None, name="",
     ):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
@@ -67,10 +65,7 @@ class PassManager:
     def valid_passes(self) -> Set[str]:
         return self.state.valid_passes
 
-    def append(
-            self,
-            pass_: BasePass,
-    ) -> None:
+    def append(self, pass_: BasePass,) -> None:
         """Append a Pass Set to the schedule of passes.
 
         Args:
@@ -81,11 +76,7 @@ class PassManager:
         """
         self._passes.append(pass_)
 
-    def replace(
-            self,
-            index: int,
-            pass_: BasePass,
-    ) -> None:
+    def replace(self, index: int, pass_: BasePass,) -> None:
         """Replace a particular pass in the scheduler.
 
         Args:
@@ -99,7 +90,8 @@ class PassManager:
             self._passes[index] = pass_
         except IndexError:
             raise exceptions.CompilerError(
-                'Index to replace %s does not exists' % index)
+                "Index to replace %s does not exists" % index
+            )
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -125,13 +117,13 @@ class PassManager:
                 new_passmanager.append(other)
                 return new_passmanager
             except exceptions.CompilerError:
-                raise TypeError('unsupported operand type + for {} and {}'.format(
-                    self.__class__, other.__class__))
+                raise TypeError(
+                    "unsupported operand type + for {} and {}".format(
+                        self.__class__, other.__class__
+                    )
+                )
 
-    def run(
-            self,
-            program: pulse.Program,
-    ) -> pulse.Program:
+    def run(self, program: pulse.Program,) -> pulse.Program:
         """Run all the passes on the supplied pulse program.
 
         Args:
@@ -145,11 +137,7 @@ class PassManager:
 
         return program
 
-    def _do_pass(
-        self,
-        pass_: BasePass,
-        program: pulse.Program,
-    ) -> pulse.Program:
+    def _do_pass(self, pass_: BasePass, program: pulse.Program,) -> pulse.Program:
         """Do a pass and its "requires"."""
         # First, do the requires of pass_
         for required_pass in pass_.requires:
@@ -186,7 +174,9 @@ class PassManager:
                 raise exceptions.CompilerError(
                     "Transformation passes should return a transformed Program."
                     "The pass {} is returning a {}".format(
-                        type(pass_).__name__, type(new_program)))
+                        type(pass_).__name__, type(new_program)
+                    )
+                )
             program = new_program
         return program
 
@@ -197,8 +187,7 @@ class PassManager:
             yield
         finally:
             end_time = time.time()
-            log_msg = "Pass: %s - %.5f (ms)" % (
-                name, (end_time - start_time) * 1000)
+            log_msg = "Pass: %s - %.5f (ms)" % (name, (end_time - start_time) * 1000)
             logger.info(log_msg)
 
     def _update_valid_passes(self, pass_):
@@ -207,8 +196,7 @@ class PassManager:
             self.valid_passes.intersection_update(set(pass_.preserves))
 
     def run_schedules(
-        self,
-        schedules: Union[pulse.Schedule, List[pulse.Schedule]]
+        self, schedules: Union[pulse.Schedule, List[pulse.Schedule]]
     ) -> List[pulse.Schedule]:
         """Run all the passes on the supplied ``schedules``.
 

@@ -27,7 +27,7 @@ class MeasurementAlignmentAnalysis(AnalysisPass):
     def __init__(
         self,
         inst_map: InstructionScheduleMap,
-        cal_gate: str = 'u3',
+        cal_gate: str = "u3",
         max_calibration_duration: int = None,
     ):
         """Calculate the latest time to align all measures in a program."""
@@ -36,10 +36,7 @@ class MeasurementAlignmentAnalysis(AnalysisPass):
         self.cal_gate = cal_gate
         self.max_calibration_duration = max_calibration_duration
 
-    def run(
-        self,
-        program: pulse.Program,
-    ) -> pulse.Program:
+    def run(self, program: pulse.Program,) -> pulse.Program:
         """Set the the max between the duration of the calibration time and
         the absolute time of the latest scheduled acquire."""
         if self.max_calibration_duration is None:
@@ -48,9 +45,11 @@ class MeasurementAlignmentAnalysis(AnalysisPass):
             align_time = self.max_calibration_duration
         for schedule in program.schedules:
             last_acquire = 0
-            acquire_times = [time for time, inst in schedule.instructions
-                             if isinstance(inst, (instructions.Acquire,
-                                                  commands.AcquireInstruction))]
+            acquire_times = [
+                time
+                for time, inst in schedule.instructions
+                if isinstance(inst, (instructions.Acquire, commands.AcquireInstruction))
+            ]
             if acquire_times:
                 last_acquire = max(acquire_times)
             align_time = max(align_time, last_acquire)
@@ -69,10 +68,8 @@ class MeasurementAlignmentAnalysis(AnalysisPass):
 class AmalgamatedAcquires(AnalysisPass):
     """Produce a dictionary of acquire instructions that ocurr at the same time.
     across channels."""
-    def run(
-        self,
-        program: pulse.Program,
-    ) -> pulse.Program:
+
+    def run(self, program: pulse.Program,) -> pulse.Program:
         """Set a dictionary of acquire instructions across qubits at the same time."""
         acquire_instruction_maps = []
         acquire_instruction_map = collections.defaultdict(list)
@@ -80,10 +77,14 @@ class AmalgamatedAcquires(AnalysisPass):
         for schedule in program.schedules:
             acquire_instruction_map = collections.defaultdict(list)
             for time, instruction in schedule.instructions:
-                if isinstance(instruction, (commands.AcquireInstruction, instructions.Acquire)):
+                if isinstance(
+                    instruction, (commands.AcquireInstruction, instructions.Acquire)
+                ):
                     # Acquires have a single AcquireChannel per inst, but we have to bundle them
                     # together into the Qobj as one instruction with many channels
-                    acquire_instruction_map[(time, instruction.command)].append(instruction)
+                    acquire_instruction_map[(time, instruction.command)].append(
+                        instruction
+                    )
             acquire_instruction_maps.append(acquire_instruction_map)
 
         self.analysis.acquire_instruction_maps = acquire_instruction_maps
@@ -92,18 +93,20 @@ class AmalgamatedAcquires(AnalysisPass):
 
 class MaxMemorySlotUsed(AnalysisPass):
     """Produce the maximum memory slot used in each program."""
-    def run(
-        self,
-        program: pulse.Program,
-    ) -> pulse.Program:
+
+    def run(self, program: pulse.Program,) -> pulse.Program:
         """Set a dictionary of acquire instructions across qubits at the same time."""
         max_memory_slots = []
         for schedule in program.schedules:
             max_memory_slot = 0
             for time, instruction in schedule.instructions:
-                if isinstance(instruction, (commands.AcquireInstruction, instructions.Acquire)):
+                if isinstance(
+                    instruction, (commands.AcquireInstruction, instructions.Acquire)
+                ):
                     if instruction.mem_slot:
-                        max_memory_slot = max(max_memory_slot, instruction.mem_slot.index)
+                        max_memory_slot = max(
+                            max_memory_slot, instruction.mem_slot.index
+                        )
 
             max_memory_slots.append(max_memory_slot)
         self.analysis.max_memory_slot_used = max_memory_slots

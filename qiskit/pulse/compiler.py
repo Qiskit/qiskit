@@ -24,6 +24,7 @@ from qiskit.pulse.states import AttrDict, State
 
 class CompilerResult(AttrDict):
     """Result from the compiler."""
+
     def __init__(self, pulse_program, analysis, lowered=None):
         self.pulse_program = pulse_program
         self.analysis = analysis
@@ -55,11 +56,7 @@ class BaseCompiler:
             self.state = pipeline.state
             self.state.program = program
 
-        return CompilerResult(
-            program,
-            self.state.analysis,
-            lowered=self.state.lowered,
-        )
+        return CompilerResult(program, self.state.analysis, lowered=self.state.lowered,)
 
     @abstractmethod
     def default_pipelines(self):
@@ -73,6 +70,7 @@ class BaseCompiler:
 
 class Compiler(BaseCompiler):
     """The default pulse compiler."""
+
     def default_pipelines(self):
         """Build the default pipelines."""
         self.append_pipeline(PipeLineBuilder.default_optimization_pipeline())
@@ -80,6 +78,7 @@ class Compiler(BaseCompiler):
 
 class PipeLineBuilder:
     """Builder for standard pipelines."""
+
     @staticmethod
     def default_optimization_pipeline() -> PassManager:
         pm = PassManager()
@@ -91,17 +90,13 @@ class PipeLineBuilder:
         return pm
 
 
-def compile_result(
-    program: pulse.Program,
-    compiler: BaseCompiler,
-) -> CompilerResult:
+def compile_result(program: pulse.Program, compiler: BaseCompiler,) -> CompilerResult:
     """Compile a pulse program returning the compiler result."""
     return compiler.compile(program)
 
 
 def compile(
-    program: pulse.Program,
-    compiler: Optional[Compiler] = None,
+    program: pulse.Program, compiler: Optional[Compiler] = None,
 ) -> pulse.Program:
     """Compile a pulse program."""
     compiler = compiler or Compiler()
