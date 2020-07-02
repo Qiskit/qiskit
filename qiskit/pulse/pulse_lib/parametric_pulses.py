@@ -26,7 +26,8 @@ This module can easily be extended to describe more pulse shapes. The new class 
   - be a well known and/or well described formula (include the formula in the class docstring)
   - take some parameters (at least `duration`) and validate them, if necessary
   - implement a `get_sample_pulse` method which returns a corresponding SamplePulse in the
-    case that it is assembled for a backend which does not support it.
+    case that it is assembled for a backend which does not support it. Ends are zeroed to more
+    closely reflect the behavior of the backend.
 
 The new pulse must then be registered by the assembler in
 `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
