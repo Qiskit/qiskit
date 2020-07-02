@@ -27,6 +27,7 @@ from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
 from qiskit.extensions import HamiltonianGate, UnitaryGate
 from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import IQP
+from qiskit.quantum_info.random import random_unitary
 
 import math
 import numpy as np
@@ -307,6 +308,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(ccghz, [4, 0, 1, 3, 2])
 
         self.circuit_drawer(circuit, filename='ghz_to_gate.png')
+
+    def test_scale(self):
+        """Tests scale
+        See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
+        circuit = QuantumCircuit(5)
+        circuit.unitary(random_unitary(2 ** 5), circuit.qubits)
+        circuit.draw('mpl')
+
+        self.circuit_drawer(circuit, filename='scale_default.png')
+        self.circuit_drawer(circuit, filename='scale_half.png', scale=0.5)
+        self.circuit_drawer(circuit, filename='scale_double.png', scale=2)
 
 
 if __name__ == '__main__':
