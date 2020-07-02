@@ -34,7 +34,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                    CYGate, CZGate, CU1Gate, SwapGate,
+                                    CYGate, CZGate, CU1Gate, SwapGate, SXGate, CSXGate,
                                     CCXGate, HGate, RZGate, RXGate,
                                     RYGate, CRYGate, CRXGate, CSwapGate,
                                     U3Gate, CHGate, CRZGate, CU3Gate,
@@ -1147,6 +1147,8 @@ class TestControlledGateLabel(QiskitTestCase):
                       (CZGate, []),
                       (CU1Gate, [0.1]),
                       (SwapGate, []),
+                      (SXGate, []),
+                      (CSXGate, []),
                       (CCXGate, []),
                       (RZGate, [0.1]),
                       (RXGate, [0.1]),
