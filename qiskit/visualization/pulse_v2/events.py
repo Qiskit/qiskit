@@ -190,9 +190,6 @@ class ChannelEvents:
 
     def get_framechange(self) -> Iterator[Tuple[int, PhaseFreqTuple, List[pulse.Instruction]]]:
         """Return frame change type instructions with total phase and total frequency.
-
-        Change to return delta value
-
         """
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
