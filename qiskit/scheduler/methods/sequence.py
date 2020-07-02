@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-TODO: TO be filled.
+Mapping a scheduled QuantumCircuit to a pulse Schedule.
 """
 import warnings
 from collections import defaultdict
@@ -48,10 +48,6 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     measure_times = []
     for inst, qubits, _ in scheduled_circuit.data:
         start_time = qubit_time_available[qubits[0]]
-        # for q in qubits:
-        #     if qubit_time_available[q] != start_time:
-        #         raise Exception("Bug in scheduling pass.")
-
         if isinstance(inst, Measure):
             measure_times.append(start_time)
         else:
@@ -73,8 +69,6 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     assert len(start_times) == len(circ_pulse_defs)
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
-    # for time, sched in timed_schedules:
-    #     print(time, sched.name, sched.duration, sched.channels)
     sched = Schedule(*timed_schedules, name=scheduled_circuit.name)
     assert sched.duration == scheduled_circuit.duration
     return pad(sched)

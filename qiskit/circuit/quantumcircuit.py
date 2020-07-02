@@ -1741,7 +1741,7 @@ class QuantumCircuit:
             if not isinstance(duration, (int, ParameterExpression)):
                 raise CircuitError('Invalid duration type.')
 
-        if unit not in {'dt', 's', 'us', 'ns', 'ps'}:
+        if unit not in {'dt', 's', 'ms', 'us', 'µs', 'ns', 'ps'}:
             raise CircuitError('Unknown unit is specified.')
 
         instructions = InstructionSet()

@@ -29,7 +29,7 @@ class DelayInDt(TransformationPass):
         """DelayInDt initializer.
 
         Args:
-            dt_in_sec (float): Sampling time [sec] used for the conversion.
+            dt_in_sec (float): Sample duration [sec] used for the conversion.
         """
         super().__init__()
         self.dt = dt_in_sec
@@ -83,7 +83,7 @@ def delay_in_dt(circuit, dt_in_sec):
 
     Args:
         circuit (QuantumCircuit): Circuit to be converted.
-        dt_in_sec (float): Sample time [sec] used for the conversion.
+        dt_in_sec (float): Sample duration [sec] used for the conversion.
 
     Returns:
         QuantumCircuit: A converted circuit.

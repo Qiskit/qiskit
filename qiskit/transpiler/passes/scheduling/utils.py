@@ -20,10 +20,21 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 
 
 class DurationMapper:
+    """Providing duration for each DAGNode."""
+
     def __init__(self, instruction_durations: InstructionDurations):
         self.instruction_durations = instruction_durations
 
-    def get(self, node: DAGNode):
+    def get(self, node: DAGNode) -> int:
+        """Get the duration [dt] of the node.
+
+        Args:
+            node: A node whose duration to be returned.
+
+        Returns:
+            Duration of the node in dt.
+        """
+
         if isinstance(node.op, Barrier):
             return 0
         elif isinstance(node.op, Delay):
