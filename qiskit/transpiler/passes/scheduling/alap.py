@@ -22,14 +22,14 @@ from qiskit.transpiler.passes.scheduling.asap import ASAPSchedule
 class ALAPSchedule(TransformationPass):
     """ALAP Scheduling."""
 
-    def __init__(self, backend):
+    def __init__(self, durations):
         """ALAPSchedule initializer.
 
         Args:
-            backend (Backend): .
+            durations (InstructionDurations): Durations of instructions to be used in scheduling
         """
         super().__init__()
-        self.asap = ASAPSchedule(backend)
+        self._asap = ASAPSchedule(durations)
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -41,13 +41,13 @@ class ALAPSchedule(TransformationPass):
             DAGCircuit: A scheduled DAG.
 
         Raises:
-            TranspilerError: if ...
+            TranspilerError: if the circuit is not mapped on physical qubits.
         """
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ALAP schedule runs on physical circuits only')
 
         new_dag = dag.reverse_ops()
-        new_dag = self.asap.run(new_dag)
+        new_dag = self._asap.run(new_dag)
         new_dag = new_dag.reverse_ops()
 
         new_dag.name = dag.name

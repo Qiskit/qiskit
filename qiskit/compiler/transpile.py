@@ -364,7 +364,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 
         # TODO: Remove MeasureReschedule after we're free from meas_map
         from qiskit.transpiler.passes.scheduling.measure_reschedule import MeasureReschedule
-        pass_manager.append(MeasureReschedule(meas_map=transpile_config['meas_map']))
+        pass_manager.append(MeasureReschedule(meas_map=transpile_config['meas_map'],
+                                              durations=pass_manager_config.instruction_durations))
 
     return pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])

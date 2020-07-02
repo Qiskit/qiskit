@@ -27,14 +27,14 @@ from .utils import DurationMapper
 class ASAPSchedule(TransformationPass):
     """ASAP Scheduling."""
 
-    def __init__(self, instruction_durations):
+    def __init__(self, durations):
         """ASAPSchedule initializer.
 
         Args:
-            instruction_durations (InstructionDurations): .
+            durations (InstructionDurations): Durations of instructions to be used in scheduling
         """
         super().__init__()
-        self.durations = DurationMapper(instruction_durations)
+        self.durations = DurationMapper(durations)
 
     def run(self, dag):
         """Run the ASAPSchedule pass on `dag`.
@@ -46,7 +46,7 @@ class ASAPSchedule(TransformationPass):
             DAGCircuit: A scheduled DAG.
 
         Raises:
-            TranspilerError: if ...
+            TranspilerError: if the circuit is not mapped on physical qubits.
         """
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ASAP schedule runs on physical circuits only')

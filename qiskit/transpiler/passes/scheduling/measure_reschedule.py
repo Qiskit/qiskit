@@ -23,20 +23,24 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+from .utils import DurationMapper
+
 
 class MeasureReschedule(TransformationPass):
     """Pass to reschedule circuit to be compatible with the meas_map constraint.
     Assume all measurements are done at once at the last of the circuit.
     """
 
-    def __init__(self, meas_map):
+    def __init__(self, meas_map, durations):
         """MeasureReschedule initializer.
 
         Args:
-            meas_map (list): .
+            meas_map (list): List of sets of qubits that must be measured together.
+            durations (InstructionDurations): Durations of instructions to be used in scheduling.
         """
         super().__init__()
         self.meas_map = meas_map
+        self.durations = DurationMapper(durations)
 
     def run(self, dag):
         """Extend measurements to be compatible with the meas_map constraint.
@@ -49,7 +53,7 @@ class MeasureReschedule(TransformationPass):
             DAGCircuit: A converted DAG.
 
         Raises:
-            TranspilerError: if ...
+            TranspilerError: if the circuit is not mapped on physical qubits.
         """
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('MeasureReschedule runs on physical circuits only')
@@ -67,7 +71,7 @@ class MeasureReschedule(TransformationPass):
         qubit_time_available = defaultdict(int)
         for node in dag.op_nodes():
             start = qubit_time_available[node.qargs[0]]
-            stop = start + node.op.duration
+            stop = start + self.durations.get(node)
             intervals[node] = (start, stop)
             for q in node.qargs:
                 qubit_time_available[q] = stop
