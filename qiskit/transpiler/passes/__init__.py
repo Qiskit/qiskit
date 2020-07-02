@@ -75,6 +75,16 @@ Optimizations
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
 
+Scheduling
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ALAPSchedule
+   ASAPSchedule
+   DelayInDt
+
 Circuit Analysis
 ================
 
@@ -153,6 +163,11 @@ from .analysis import CountOps
 from .analysis import CountOpsLongestPath
 from .analysis import NumTensorFactors
 from .analysis import DAGLongestPath
+
+# circuit scheduling
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import DelayInDt
 
 # additional utility passes
 from .utils import CheckMap

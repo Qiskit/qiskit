@@ -14,23 +14,24 @@
 
 """Circuit transpile function"""
 import logging
-from time import time
 import warnings
+from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
+
+from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import Qubit
+from qiskit.converters import isinstanceint, isinstancelist
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
+from qiskit.pulse import Schedule
+from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.pulse import Schedule
-from qiskit.circuit.quantumregister import Qubit
-from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.converters import isinstanceint, isinstancelist
 from qiskit.transpiler.passes.basis.ms_basis_decomposer import MSBasisDecomposer
+from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
@@ -357,23 +358,12 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     if ms_basis_swap is not None:
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
-    # Should scheduling incorporate with preset pass managers?
-    scheduling_method = pass_manager_config.scheduling_method
-    if scheduling_method is not None:
-        from qiskit.transpiler.passes.scheduling.alap import ALAPSchedule
-        from qiskit.transpiler.passes.scheduling.asap import ASAPSchedule
-        from qiskit.transpiler.passes.scheduling.delayindt import DelayInDt
-        from qiskit.transpiler.passes.scheduling.measure_reschedule import MeasureReschedule
+    if pass_manager_config.scheduling_method is not None:
         if 'delay' not in pass_manager_config.basis_gates:
             pass_manager_config.basis_gates.append('delay')
-        instruction_durations = transpile_config['instruction_durations']
-        pass_manager.append(DelayInDt(instruction_durations.schedule_dt))
-        if scheduling_method in {'alap', 'as_late_as_possible'}:
-            pass_manager.append(ALAPSchedule(instruction_durations))
-        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
-            pass_manager.append(ASAPSchedule(instruction_durations))
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+
+        # TODO: Remove MeasureReschedule after we're free from meas_map
+        from qiskit.transpiler.passes.scheduling.measure_reschedule import MeasureReschedule
         pass_manager.append(MeasureReschedule(meas_map=transpile_config['meas_map']))
 
     return pass_manager.run(circuit, callback=transpile_config['callback'],
@@ -411,13 +401,14 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
-    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     durations = None
-    if scheduling_method[0]:
+    if scheduling_method is not None:
         from qiskit.transpiler.instruction_durations import InstructionDurations
         durations = InstructionDurations.from_backend(backend).update(instruction_durations)
         if not meas_map and backend:
             meas_map = backend.configuration().meas_map
+    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    durations = _parse_instruction_durations(durations, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -426,7 +417,7 @@ def _parse_transpile_args(circuits, backend,
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
                     layout_method, routing_method, translation_method, scheduling_method,
-                    seed_transpiler, optimization_level,
+                    durations, seed_transpiler, optimization_level,
                     output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
@@ -436,12 +427,12 @@ def _parse_transpile_args(circuits, backend,
                                                                    routing_method=args[5],
                                                                    translation_method=args[6],
                                                                    scheduling_method=args[7],
-                                                                   seed_transpiler=args[8]),
-                          'instruction_durations': durations,  # FIXME?
-                          'meas_map': meas_map,  # FIXME?
-                          'optimization_level': args[9],
-                          'output_name': args[10],
-                          'callback': args[11]}
+                                                                   instruction_durations=args[8],
+                                                                   seed_transpiler=args[9]),
+                          'meas_map': meas_map,  # To be removed when we're free from meas_map
+                          'optimization_level': args[10],
+                          'output_name': args[11],
+                          'callback': args[12]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -542,6 +533,12 @@ def _parse_scheduling_method(scheduling_method, num_circuits):
     if not isinstance(scheduling_method, list):
         scheduling_method = [scheduling_method] * num_circuits
     return scheduling_method
+
+
+def _parse_instruction_durations(instruction_durations, num_circuits):
+    if not isinstance(instruction_durations, list):
+        instruction_durations = [instruction_durations] * num_circuits
+    return instruction_durations
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):

@@ -90,6 +90,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     layout_method = pass_manager_config.layout_method or 'dense'
     routing_method = pass_manager_config.routing_method or 'stochastic'
     translation_method = pass_manager_config.translation_method or 'translator'
+    scheduling_method = pass_manager_config.scheduling_method
+    instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -178,6 +180,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _opt = [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=kak_gate),
             Optimize1qGates(basis_gates), CommutativeCancellation()]
 
+    # Schedule the circuit only when scheduling_method is supplied
+    if scheduling_method:
+        from qiskit.transpiler.passes import DelayInDt
+        _scheduling = [DelayInDt(instruction_durations.schedule_dt)]
+        if scheduling_method in {'alap', 'as_late_as_possible'}:
+            from qiskit.transpiler.passes import ALAPSchedule
+            _scheduling += [ALAPSchedule(instruction_durations)]
+        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
+            from qiskit.transpiler.passes import ASAPSchedule
+            _scheduling += [ASAPSchedule(instruction_durations)]
+        else:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
@@ -194,5 +209,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
+    if scheduling_method:
+        pm3.append(_scheduling)
 
     return pm3
