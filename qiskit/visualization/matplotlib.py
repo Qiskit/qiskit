@@ -27,6 +27,7 @@ try:
     from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
+    from matplotlib.figure import Figure
 
     HAS_MATPLOTLIB = True
 except ImportError:
@@ -162,7 +163,7 @@ class MatplotlibDrawer:
 
         if ax is None:
             self.return_fig = True
-            self.figure = plt.figure()
+            self.figure = Figure()
             self.figure.patch.set_facecolor(color=self._style.bg)
             self.ax = self.figure.add_subplot(111)
         else:
