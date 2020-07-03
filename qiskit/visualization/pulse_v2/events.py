@@ -40,7 +40,7 @@ The grouped instructions are returned as an iterator by the corresponding method
     for t0, frame_change, instructions in event.get_frame_changes():
         ...
 
-    for t0, misc in event.get_miscellaneous():
+    for t0, misc in event.get_misc_instructions():
         ...
     ```
 
@@ -150,8 +150,7 @@ class ChannelEvents:
         return ChannelEvents(waveforms, frames, miscellaneous, channel)
 
     def is_empty(self):
-        """Check if there is any nonzero waveforms in this channel.
-        """
+        """Check if there is any nonzero waveforms in this channel."""
         for waveform in self._waveforms.values():
             if isinstance(waveform, (pulse.instructions.Play, pulse.instructions.Acquire)):
                 return False
@@ -181,8 +180,7 @@ class ChannelEvents:
             yield t0, frame, inst
 
     def get_frame_changes(self) -> Iterator[Tuple[int, PhaseFreqTuple, List[pulse.Instruction]]]:
-        """Return frame change type instructions with total frame change amount.
-        """
+        """Return frame change type instructions with total frame change amount."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
         phase = self.init_phase
@@ -203,8 +201,7 @@ class ChannelEvents:
 
             yield t0, frame, insts
 
-    def get_miscellaneous(self) -> Iterator[Tuple[int, List[pulse.Instruction]]]:
-        """Return miscellaneous instructions.
-        """
+    def get_misc_instructions(self) -> Iterator[Tuple[int, List[pulse.Instruction]]]:
+        """Return miscellaneous instructions."""
         for t0, insts in self._miscellaneous:
             yield t0, insts
