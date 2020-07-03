@@ -172,15 +172,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_entry = std_eqlib.get_entry(param_gate)
         float_entry = std_eqlib.get_entry(float_gate)
 
-        if not param_gate.definition:
-            self.assertEqual(len(param_entry), 0)
-            self.assertEqual(len(float_entry), 0)
-            return
-
-        if gate_class is CXGate:
-            # CXGate currently has a definition in terms of CXGate.
-            self.assertEqual(len(param_entry), 0)
-            self.assertEqual(len(float_entry), 0)
+        if not param_gate.definition or not param_gate.definition.data:
             return
 
         self.assertEqual(len(param_entry), 1)

@@ -146,10 +146,9 @@ class TestControlledGate(QiskitTestCase):
         target = QuantumRegister(num_target)
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:] + target[:])
-        simulator = BasicAer.get_backend('unitary_simulator')
-        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        op_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
-        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_single_controlled_composite_gate(self):
@@ -167,10 +166,9 @@ class TestControlledGate(QiskitTestCase):
         target = QuantumRegister(num_target, 'target')
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:] + target[:])
-        simulator = BasicAer.get_backend('unitary_simulator')
-        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        op_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
-        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_multi_control_u3(self):
@@ -206,16 +204,11 @@ class TestControlledGate(QiskitTestCase):
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
 
-        job = execute([qcnu3, qu3, qcu3, qc_cu3], BasicAer.get_backend('unitary_simulator'),
-                      basis_gates=['u1', 'u2', 'u3', 'id', 'cx'])
-        result = job.result()
-
         # Circuit unitaries
-        mat_cnu3 = result.get_unitary(0)
-
-        mat_u3 = result.get_unitary(1)
-        mat_cu3 = result.get_unitary(2)
-        mat_c_cu3 = result.get_unitary(3)
+        mat_cnu3 = Operator(qcnu3).data
+        mat_u3 = Operator(qu3).data
+        mat_cu3 = Operator(qcu3).data
+        mat_c_cu3 = Operator(qc_cu3).data
 
         # Target Controlled-U3 unitary
         target_cnu3 = _compute_control_matrix(mat_u3, num_ctrl)
@@ -231,8 +224,8 @@ class TestControlledGate(QiskitTestCase):
         for itest in tests:
             info, target, decomp = itest[0], itest[1], itest[2]
             with self.subTest(i=info):
-                self.log.info(info)
-                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
+                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True,
+                                             atol=1e-8, rtol=1e-5))
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
@@ -541,14 +534,14 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg='control state = {}'.format(ctrl_state)):
                 self.assertTrue(matrix_equal(simulated, expected))
 
-    @data(0, 1, 2)
+    @data(1, 2)
     def test_mcx_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test the creating a MCX gate yields the explicit definition if we know it."""
         cls = MCXGate(num_ctrl_qubits).__class__
-        explicit = {0: XGate, 1: CXGate, 2: CCXGate}
+        explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @data(0, 3, 4, 5, 8)
+    @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):
         """Test the mcx gates."""
         backend = BasicAer.get_backend('statevector_simulator')
@@ -574,7 +567,6 @@ class TestControlledGate(QiskitTestCase):
                         i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
-
                 np.testing.assert_array_almost_equal(statevector.real, reference)
 
     @data(1, 2, 3, 4)
@@ -860,6 +852,16 @@ class TestControlledGate(QiskitTestCase):
             base_gate.control(num_ctrl_qubits, ctrl_state=2 ** num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
+
+    @data(-1, 0, 1.4, '1', 4, 10)
+    def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
+        """
+        Test improperly specified num_ctrl_qubits.
+        """
+        num_qubits = 4
+        with self.assertRaises(CircuitError):
+            ControlledGate(name='cgate', num_qubits=num_qubits,
+                           params=[], num_ctrl_qubits=num_ctrl_qubits)
 
     def test_open_controlled_equality(self):
         """

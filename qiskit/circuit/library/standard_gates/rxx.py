@@ -74,8 +74,25 @@ class RXXGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        circ = self.decompositions[0]
-        self.definition = circ.to_gate().definition
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .x import CXGate
+        from .u1 import U1Gate
+        from .h import HGate
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        theta = self.params[0]
+        rules = [
+            (HGate(), [q[0]], []),
+            (HGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (U1Gate(theta), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[1]], []),
+            (HGate(), [q[0]], []),
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""

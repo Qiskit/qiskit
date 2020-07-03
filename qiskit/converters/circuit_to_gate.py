@@ -20,7 +20,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
 
 
-def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
+def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
     """Build a ``Gate`` object from a ``QuantumCircuit``.
 
     The gate is anonymous (not tied to a named quantum register),
@@ -35,6 +35,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
            Gate.
         equivalence_library (EquivalenceLibrary): Optional equivalence library
            where the converted gate will be registered.
+        label (str): Optional gate label.
 
     Raises:
         QiskitError: if circuit is non-unitary or if
@@ -45,6 +46,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
         input circuit. Upon decomposition, this gate will
         yield the components comprising the original circuit.
     """
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
     if circuit.clbits:
         raise QiskitError('Circuit with classical bits cannot be converted '
                           'to gate.')
@@ -67,7 +70,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
 
     gate = Gate(name=circuit.name,
                 num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=sorted(parameter_dict.values(), key=lambda p: p.name))
+                params=sorted(parameter_dict.values(), key=lambda p: p.name),
+                label=label)
     gate.condition = None
 
     def find_bit_position(bit):
@@ -86,12 +90,12 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
     if equivalence_library is not None:
         equivalence_library.add_equivalence(gate, target)
 
+    rules = target.data
     phase = target.phase / len(target.qregs[0])
     if target.phase:
         target.u3(pi, phase, phase - pi, target.qregs[0])
         target.x(target.qregs[0])
 
-    definition = target.data
 
 
     if gate.num_qubits > 0:
@@ -100,11 +104,12 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None):
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    definition = list(map(
+    rules = list(map(
         lambda x: (x[0],
                    list(map(lambda y: q[find_bit_position(y)], x[1])),
                    []),
-        definition))
-    gate.definition = definition
-
+        rules))
+    qc = QuantumCircuit(q, name=gate.name)
+    qc.data = rules
+    gate.definition = qc
     return gate

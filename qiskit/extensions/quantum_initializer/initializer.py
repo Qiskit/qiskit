@@ -84,7 +84,7 @@ class Initialize(Instruction):
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
-        self.definition = initialize_circuit.data
+        self.definition = initialize_circuit
 
     def gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
@@ -238,7 +238,7 @@ class Initialize(Instruction):
         # second lower-level multiplex)
         multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):], False)
         if list_len > 1:
-            circuit.append(multiplex_2.to_instruction().mirror(), q[0:-1])
+            circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
             circuit.append(multiplex_2.to_instruction(), q[0:-1])
 
