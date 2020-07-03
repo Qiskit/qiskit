@@ -19,9 +19,9 @@ specified pulse channel. This channel-wise parsing of pulse program makes
 the arrangement of channels easier in the core drawer function.
 The `ChannelEvents` class is expected to be called by other programs (not by end-users).
 
-The `ChannelEvents` class instance is created with the class method ``parse_program``:
+The `ChannelEvents` class instance is created with the class method ``load_program``:
     ```python
-    event = ChannelEvents.parse_program(sched, DriveChannel(0))
+    event = ChannelEvents.load_program(sched, DriveChannel(0))
     ```
 
 The `ChannelEvents` is created for a specific pulse channel and loosely assorts pulse
@@ -90,9 +90,14 @@ PhaseFreqTuple = namedtuple('PhaseFreqTuple', 'phase freq')
 class ChannelEvents:
     """Channel event manager.
     """
-    _waveform_group = pulse.Play, pulse.Delay, pulse.Acquire
-    _frame_group = pulse.SetFrequency, pulse.ShiftFrequency, pulse.SetPhase, pulse.ShiftPhase
-    _misc_group = pulse.Snapshot
+    _waveform_group = tuple((pulse.instructions.Play,
+                             pulse.instructions.Delay,
+                             pulse.instructions.Acquire))
+    _frame_group = tuple((pulse.instructions.SetFrequency,
+                          pulse.instructions.ShiftFrequency,
+                          pulse.instructions.SetPhase,
+                          pulse.instructions.ShiftPhase))
+    _misc_group = tuple((pulse.instructions.Snapshot, ))
 
     def __init__(self,
                  waveforms: Dict[int, pulse.Instruction],
@@ -117,17 +122,17 @@ class ChannelEvents:
         self.init_frequency = 0
 
     @classmethod
-    def parse_program(cls,
-                      program: pulse.Schedule,
-                      channel: pulse.channels.Channel):
-        """Parse pulse program represented by ``Schedule``.
+    def load_program(cls,
+                     program: pulse.Schedule,
+                     channel: pulse.channels.Channel):
+        """Load a pulse program represented by ``Schedule``.
 
         Args:
             program: Target ``Schedule`` to visualize.
             channel: The channel managed by this instance.
 
         Returns:
-            ChannelEvents: The channel event manager for specified channel.
+            ChannelEvents: The channel event manager for the specified channel.
         """
         waveforms = dict()
         frames = defaultdict(list)
@@ -148,7 +153,7 @@ class ChannelEvents:
         """Check if there is any nonzero waveforms in this channel.
         """
         for waveform in self._waveforms.values():
-            if isinstance(waveform, (pulse.Play, pulse.Acquire)):
+            if isinstance(waveform, (pulse.instructions.Play, pulse.instructions.Acquire)):
                 return False
         return True
 
@@ -164,13 +169,13 @@ class ChannelEvents:
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
                 for frame_change in frame_changes:
-                    if isinstance(frame_change, pulse.SetFrequency):
+                    if isinstance(frame_change, pulse.instructions.SetFrequency):
                         frequency = frame_change.frequency
-                    elif isinstance(frame_change, pulse.ShiftFrequency):
+                    elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
                         frequency += frame_change.frequency
-                    elif isinstance(frame_change, pulse.SetPhase):
+                    elif isinstance(frame_change, pulse.instructions.SetPhase):
                         phase = frame_change.phase
-                    elif isinstance(frame_change, pulse.ShiftPhase):
+                    elif isinstance(frame_change, pulse.instructions.ShiftPhase):
                         phase += frame_change.phase
             frame = PhaseFreqTuple(phase, frequency)
 
@@ -187,13 +192,13 @@ class ChannelEvents:
             pre_phase = phase
             pre_frequency = frequency
             for inst in insts:
-                if isinstance(inst, pulse.SetFrequency):
+                if isinstance(inst, pulse.instructions.SetFrequency):
                     frequency = inst.frequency
-                elif isinstance(inst, pulse.ShiftFrequency):
+                elif isinstance(inst, pulse.instructions.ShiftFrequency):
                     frequency += inst.frequency
-                elif isinstance(inst, pulse.SetPhase):
+                elif isinstance(inst, pulse.instructions.SetPhase):
                     phase = inst.phase
-                elif isinstance(inst, pulse.ShiftPhase):
+                elif isinstance(inst, pulse.instructions.ShiftPhase):
                     phase += inst.phase
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
