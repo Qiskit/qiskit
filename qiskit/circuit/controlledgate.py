@@ -105,8 +105,6 @@ class ControlledGate(Gate):
         definition is conjugated with X without changing the internal
         `_definition`.
         """
-        # pylint: disable=cyclic-import
-        #from qiskit import QuantumCircuit
         if self._open_ctrl:
             closed_gate = self.copy()
             closed_gate.ctrl_state = None
