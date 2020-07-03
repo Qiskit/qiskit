@@ -296,9 +296,9 @@ _sel.add_equivalence(iSwapGate(), def_iswap)
 q = QuantumRegister(1, 'q')
 def_sx = QuantumCircuit(q)
 for inst, qargs, cargs in [
+        (RZGate(-pi / 2), [q[0]], []),
         (HGate(), [q[0]], []),
-        (U1Gate(pi / 2), [q[0]], []),
-        (HGate(), [q[0]], [])
+        (RZGate(-pi / 2), [q[0]], [])
 ]:
     def_sx.append(inst, qargs, cargs)
 _sel.add_equivalence(SXGate(), def_sx)

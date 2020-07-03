@@ -62,7 +62,7 @@ class SXGate(Gate):
 
     def _define(self):
         """
-        gate sx a { h a; u1(pi/2) a; h a ;}
+        gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
         """
         from .u1 import U1Gate
         from .h import HGate
@@ -78,9 +78,9 @@ class SXGate(Gate):
         self.definition = definition
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Y gate.
+        """Return a (multi-)controlled-SX gate.
 
-        One control returns a CY gate.
+        One control returns a CSX gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -97,10 +97,12 @@ class SXGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def to_matrix(self):
-        """Return a numpy.array for the SX gate."""
-        return numpy.array([[1 + 1j, 1 - 1j],
-                            [1 - 1j, 1 + 1j]], dtype=complex) / 2
+    # Differs by global phase of exp(-i pi/4) with correct RZ.
+    # If the RZ == U1, then the global phase difference is exp(i pi/4)
+    # def to_matrix(self):
+    #     """Return a numpy.array for the SX gate."""
+    #     return numpy.array([[1 + 1j, 1 - 1j],
+    #                         [1 - 1j, 1 + 1j]], dtype=complex) / 2
 
 
 class CSXGate(ControlledGate):
