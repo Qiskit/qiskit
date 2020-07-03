@@ -13,6 +13,10 @@
 # that they have been altered from the originals.
 
 """
+
+Channels
+********
+
 This module defines Pulse Channels. Channels include:
 
   - transmit channels, which should subclass ``PulseChannel``

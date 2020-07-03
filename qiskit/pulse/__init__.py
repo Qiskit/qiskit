@@ -35,11 +35,13 @@ system.
 
 .. _pulse-insts:
 
-Instructions (:mod:`~qiskit.pulse.instructions`)
+Instructions (:mod:`instructions`)
 ================================================
 
 .. autosummary::
    :toctree: ../stubs/
+
+   ~qiskit.pulse.instructions
 
    Acquire
    Delay
@@ -50,11 +52,14 @@ Instructions (:mod:`~qiskit.pulse.instructions`)
    ShiftPhase
    Snapshot
 
-Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
+Pulse Library (waveforms :mod:`pulse_lib`)
 ========================================================
 
 .. autosummary::
    :toctree: ../stubs/
+
+   pulse_lib
+   pulse_lib.discrete
 
    SamplePulse
    Constant
@@ -64,7 +69,7 @@ Pulse Library (waveforms :mod:`~qiskit.pulse.pulse_lib`)
 
 .. _pulse-channels:
 
-Channels (:mod:`~qiskit.pulse.channels`)
+Channels (:mod:`channels`)
 ========================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
@@ -76,6 +81,8 @@ Channels are characterized by their type and their index. See each channel type 
 
 .. autosummary::
    :toctree: ../stubs/
+
+   channels
 
    DriveChannel
    MeasureChannel
@@ -106,15 +113,15 @@ Configuration
 Schedule Transforms
 ===================
 
-These functions take :class:`~qiskit.pulse.Schedule` s as input and return modified
-:class:`~qiskit.pulse.Schedule` s.
+These functions take :class:`Schedule` s as input and return modified
+:class:`Schedule` s.
 
 .. autosummary::
    :toctree: ../stubs/
 
-   ~transforms.align_measures
-   ~transforms.add_implicit_acquires
-   ~transforms.pad
+   transforms.align_measures
+   transforms.add_implicit_acquires
+   transforms.pad
 
 Exceptions
 ==========
