@@ -17,3 +17,4 @@
 from .alap import ALAPSchedule
 from .asap import ASAPSchedule
 from .delayindt import DelayInDt
+from .remove_ops_on_idle_qubits import RemoveOpsOnIdleQubits
