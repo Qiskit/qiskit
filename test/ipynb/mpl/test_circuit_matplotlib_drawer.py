@@ -25,7 +25,7 @@ from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
                                     MCXGate, YGate, HGate, ZGate,
                                     C4XGate, C3XGate, MSGate, RZZGate)
 from qiskit.extensions import HamiltonianGate, UnitaryGate
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Parameter
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 
