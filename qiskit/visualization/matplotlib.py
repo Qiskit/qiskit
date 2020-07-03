@@ -38,8 +38,6 @@ from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
-# import matplotlib
-# matplotlib.use('ps') # for testing different backends
 
 # Default gate width and height
 WID = 0.65
