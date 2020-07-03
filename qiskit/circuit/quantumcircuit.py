@@ -940,7 +940,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=0.7, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -1004,9 +1004,10 @@ class QuantumCircuit:
                 only used when the ``output`` kwarg is set to use the ``mpl``
                 backend. It will be silently ignored with all other outputs.
             initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
+                Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
-            cregbundle (bool): Optional. If set True bundle classical registers.
-                Default: ``True``.
+            cregbundle (bool): Optional. If set True bundle classical registers. Not used by
+                the ``matplotlib`` output. Default: ``False``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or

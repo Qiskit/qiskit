@@ -65,7 +65,7 @@ def circuit_drawer(circuit,
                    fold=None,
                    ax=None,
                    initial_state=False,
-                   cregbundle=True):
+                   cregbundle=False):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -131,7 +131,7 @@ def circuit_drawer(circuit,
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default: ``False``.
         cregbundle (bool): Optional. If set True bundle classical registers.
-            Default: ``True``.
+            Default: ``False``.
 
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
