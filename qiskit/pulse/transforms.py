@@ -361,7 +361,7 @@ class NoInvalidParametricPulses(TransformationPass):
             for _, instruction in schedule.instructions:
                 if isinstance(instruction, instructions.Play):
                     pulse_ = instruction.pulse
-                    if isinstance(pulse, pulse_lib.ParametricPulse):
+                    if isinstance(pulse_, pulse_lib.ParametricPulse):
                         pulse_shape = converters.pulse_instruction.ParametricPulseShapes(
                             type(pulse_)).name
                         if pulse_shape not in self.parametric_pulses:
@@ -429,7 +429,7 @@ class DeDuplicateWaveformNames(TransformationPass):
                 if isinstance(instruction, instructions.Play):
                     pulse_ = instruction.pulse
 
-                    if isinstance(pulse, pulse_lib.SamplePulse):
+                    if isinstance(pulse_, pulse_lib.SamplePulse):
                         pulse_name = pulse_.name
 
                         # Add a pulse name if necessary
@@ -445,7 +445,7 @@ class DeDuplicateWaveformNames(TransformationPass):
                             new_name = pulse_name
                             idx = 1
                             while found_pulse:
-                                if pulse == found_pulse:
+                                if pulse_ == found_pulse:
                                     break
                                 # If different create deduplicated name.
                                 new_name = "{}_{}".format(pulse_name, idx)
@@ -599,8 +599,8 @@ class TruncateWaveformPrecision(TransformationPass):
         pulse_ = play.pulse
         if isinstance(pulse_, pulse_lib.SamplePulse):
             if pulse_ not in self._truncated_pulses:
-                pulse.samples = np.around(pulse.samples, decimals=self._decimals)
-                self._truncated_pulses.add(pulse)
+                pulse_.samples = np.around(pulse_.samples, decimals=self._decimals)
+                self._truncated_pulses.add(pulse_)
 
 
 class TruncatePhasePrecision(TransformationPass):
