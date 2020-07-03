@@ -14,8 +14,8 @@
 r"""
 Channel event manager for pulse schedules.
 
-This module provides `ChannelEvents` class that manages series of instruction in the
-specified pulse channel. This channel-wise parsing of pulse program makes
+This module provides a `ChannelEvents` class that manages a series of instructions for a
+pulse channel. Channel-wise filtering of the pulse program makes
 the arrangement of channels easier in the core drawer function.
 The `ChannelEvents` class is expected to be called by other programs (not by end-users).
 
@@ -27,7 +27,7 @@ The `ChannelEvents` class instance is created with the class method ``load_progr
 The `ChannelEvents` is created for a specific pulse channel and loosely assorts pulse
 instructions within the channel with different visualization purposes.
 
-A phase and frequency related instructions are loosely grouped as frame change.
+Phase and frequency related instructions are loosely grouped as frame changes.
 The instantaneous value of those operands are combined and provided as ``PhaseFreqTuple``.
 Instructions that have finite duration are grouped as waveforms.
 Other miscellaneous instructions such as snapshot are also grouped.
@@ -70,7 +70,7 @@ For example:
     sched2 = sched2.insert(0, SetPhase(3.14, DriveChannel(0))
     sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     ```
-In this example, ``sched1`` and ``sched2`` will create different frame.
+In this example, ``sched1`` and ``sched2`` will have different frames.
 On the drawer canvas, the total frame change amount of +3.14 should be shown for ``sched1``,
 while `sched2` is +1.57. Since the `SetPhase` and the `ShiftPhase` instruction behave
 differently, we cannot simply sum up the operand values in visualization output.
@@ -158,8 +158,7 @@ class ChannelEvents:
         return True
 
     def get_waveforms(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
-        """Return waveform type instructions with frame.
-        """
+        """Return waveform type instructions with frame."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
 
         # bind phase and frequency with instruction
