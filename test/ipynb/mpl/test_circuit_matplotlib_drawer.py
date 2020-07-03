@@ -212,8 +212,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='big_gates.png')
 
-    def test_ctrl_x(self):
-        """Test different control-x gates"""
+    def test_cnot(self):
+        """Test different cnot gates (ccnot, mcx, etc)"""
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
         circuit.x(0)
@@ -222,7 +222,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(XGate().control(3, ctrl_state='010'), [qr[2], qr[3], qr[0], qr[1]])
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state='101'), [qr[0], qr[1], qr[2], qr[4]])
 
-        self.circuit_drawer(circuit, filename='ctrl_x.png')
+        self.circuit_drawer(circuit, filename='cnot.png')
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
