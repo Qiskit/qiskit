@@ -193,6 +193,7 @@ def _gate_to_circuit(operation):
         qc.append(operation, qargs=qr, cargs=[])
     return qc
 
+
 def _gate_to_dag(operation):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
     if hasattr(operation, 'definition') and operation.definition:
@@ -202,6 +203,7 @@ def _gate_to_dag(operation):
         qc = QuantumCircuit(qr, name=operation.name)
         qc.append(operation, qr)
         return circuit_to_dag(qc)
+
 
 def _unroll_gate(operation, basis_gates):
     from qiskit.converters.dag_to_circuit import dag_to_circuit

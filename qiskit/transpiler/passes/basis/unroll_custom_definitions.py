@@ -14,7 +14,6 @@
 
 """Unrolls instructions with custom definitions."""
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate

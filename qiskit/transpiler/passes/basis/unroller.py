@@ -15,7 +15,6 @@
 """Unroll a circuit to a given basis."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import ControlledGate
 from qiskit.converters.circuit_to_dag import circuit_to_dag
