@@ -37,21 +37,21 @@ class TestChannelEvents(QiskitTestCase):
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
 
         # check waveform data
-        waveforms = [waveform for waveform in events.get_waveform()]
+        waveforms = [waveform for waveform in events.get_waveforms()]
         t0, frame, inst = waveforms[0]
         self.assertEqual(t0, 0)
         self.assertEqual(frame.phase, 3.14)
         self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, test_pulse)
+        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
         t0, frame, inst = waveforms[1]
         self.assertEqual(t0, 10)
         self.assertEqual(frame.phase, 1.57)
         self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, test_pulse)
+        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
         # check frame data
-        frames = [frame for frame in events.get_framechange()]
+        frames = [frame for frame in events.get_frame_changes()]
         t0, frame, insts = frames[0]
         self.assertEqual(t0, 0)
         self.assertEqual(frame.phase, 3.14)
@@ -88,7 +88,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
 
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
-        frames = [frame for frame in events.get_framechange()]
+        frames = [frame for frame in events.get_frame_changes()]
         _, frame, _ = frames[0]
         self.assertAlmostEqual(frame.phase, 3.14)
 
@@ -98,7 +98,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
 
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
-        frames = [frame for frame in events.get_framechange()]
+        frames = [frame for frame in events.get_frame_changes()]
         _, frame, _ = frames[0]
         self.assertAlmostEqual(frame.phase, 1.57)
 
@@ -110,7 +110,7 @@ class TestChannelEvents(QiskitTestCase):
 
         events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
         events.init_frequency = 3.0
-        frames = [frame for frame in events.get_framechange()]
+        frames = [frame for frame in events.get_frame_changes()]
 
         _, frame, _ = frames[0]
         self.assertAlmostEqual(frame.freq, 1.0)
@@ -118,14 +118,3 @@ class TestChannelEvents(QiskitTestCase):
         _, frame, _ = frames[1]
         self.assertAlmostEqual(frame.freq, 1.0)
 
-    def test_sample_pulse(self):
-        """Test parsing sample pulse."""
-        test_pulse = pulse.Gaussian(10, 0.1, 3).get_sample_pulse()
-
-        events = ChannelEvents.parse_program(test_pulse)
-
-        waveforms = [waveform for waveform in events.get_waveform()]
-        t0, _, inst = waveforms[0]
-
-        self.assertEqual(t0, 0)
-        self.assertEqual(inst, test_pulse)
