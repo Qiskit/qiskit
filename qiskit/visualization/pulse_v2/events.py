@@ -159,11 +159,12 @@ class ChannelEvents:
     def get_waveforms(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
         """Return waveform type instructions with frame."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
+        sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
 
         # bind phase and frequency with instruction
         phase = self.init_phase
         frequency = self.init_frequency
-        for t0, inst in self._waveforms.items():
+        for t0, inst in sorted_waveforms:
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
                 for frame_change in frame_changes:
