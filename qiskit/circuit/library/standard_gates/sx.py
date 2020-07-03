@@ -99,6 +99,7 @@ class SXGate(Gate):
 
     # Differs by global phase of exp(-i pi/4) with correct RZ.
     # If the RZ == U1, then the global phase difference is exp(i pi/4)
+    # TODO: Restore after allowing phase on circuits.
     # def to_matrix(self):
     #     """Return a numpy.array for the SX gate."""
     #     return numpy.array([[1 + 1j, 1 - 1j],

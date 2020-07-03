@@ -1033,6 +1033,8 @@ class TestControlledStandardGates(QiskitTestCase):
                     iden = Operator.from_label('I')
                     zgen = Operator.from_label('Z')
                     base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
+                elif gate.name == 'sx':  # account for global phase diff
+                    base_mat = Operator(gate).data * np.exp(0.25j * np.pi)
                 else:
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
