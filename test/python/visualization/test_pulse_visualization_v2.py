@@ -117,4 +117,3 @@ class TestChannelEvents(QiskitTestCase):
 
         _, frame, _ = frames[1]
         self.assertAlmostEqual(frame.freq, 1.0)
-
