@@ -18,6 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
+from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
 class UnrollCustomDefinitions(TransformationPass):
@@ -83,14 +84,7 @@ class UnrollCustomDefinitions(TransformationPass):
                                   "Instruction %s not found in equivalence library "
                                   "and no rule found to expand." %
                                   (str(self._basis_gates), node.op.name))
-            decomposition = DAGCircuit()
-            for qreg in node.op.definition.qregs:
-                decomposition.add_qreg(qreg)
-            for creg in node.op.definition.cregs:
-                decomposition.add_creg(creg)
-            for inst in rule:
-                decomposition.apply_operation_back(*inst)
-
+            decomposition = circuit_to_dag(node.op.definition)
             unrolled_dag = UnrollCustomDefinitions(self._equiv_lib,
                                                    self._basis_gates).run(
                                                        decomposition)

@@ -177,14 +177,19 @@ class Instruction:
         return self._definition
 
     @definition.setter
-    def definition(self, definition):
+    def definition(self, array):
         """Set gate representation"""
-        # pylint: disable=cyclic-import
-        from qiskit import QuantumCircuit
-        if not isinstance(definition, QuantumCircuit) and definition is not None:
-            raise CircuitError('Instruction "{}" definition must be QuantumCircuit. Got {}'.format(
-                self.name, type(definition)))
-        self._definition = definition
+        self._definition = array
+
+    # @definition.setter
+    # def definition(self, definition):
+    #     """Set gate representation"""
+    #     # pylint: disable=cyclic-import
+    #     from qiskit import QuantumCircuit
+    #     if not isinstance(definition, QuantumCircuit) and definition is not None:
+    #         raise CircuitError('Instruction "{}" definition must be QuantumCircuit. Got {}'.format(
+    #             self.name, type(definition)))
+    #     self._definition = definition
 
     @property
     def decompositions(self):
