@@ -184,7 +184,7 @@ def _gate_to_circuit(operation):
     qr = QuantumRegister(operation.num_qubits)
     qc = QuantumCircuit(qr, name=operation.name)
     if hasattr(operation, 'definition') and operation.definition:
-        for rule in operation.definition:
+        for rule in operation.definition.data:
             if rule[0].name in {'id', 'barrier', 'measure', 'snapshot'}:
                 raise CircuitError('Cannot make controlled gate with {} instruction'.format(
                     rule[0].name))
@@ -193,12 +193,20 @@ def _gate_to_circuit(operation):
         qc.append(operation, qargs=qr, cargs=[])
     return qc
 
+def _gate_to_dag(operation):
+    from qiskit.converters.circuit_to_dag import circuit_to_dag
+    if hasattr(operation, 'definition') and operation.definition:
+        return circuit_to_dag(operation.definition)
+    else:
+        qr = QuantumRegister(operation.num_qubits)
+        qc = QuantumCircuit(qr, name=operation.name)
+        qc.append(operation, qr)
+        return circuit_to_dag(qc)
 
 def _unroll_gate(operation, basis_gates):
-    from qiskit.converters.circuit_to_dag import circuit_to_dag
     from qiskit.converters.dag_to_circuit import dag_to_circuit
     from qiskit.transpiler.passes import Unroller
     unroller = Unroller(basis_gates)
-    dag = circuit_to_dag(_gate_to_circuit(operation))
+    dag = _gate_to_dag(operation)
     qc = dag_to_circuit(unroller.run(dag))
     return qc.to_gate()

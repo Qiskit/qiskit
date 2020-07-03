@@ -19,6 +19,7 @@ from typing import Type
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.transpiler.passes.utils.ordered_regs import _make_ordered_regs
 
 
 class Decompose(TransformationPass):
@@ -53,14 +54,10 @@ class Decompose(TransformationPass):
             if len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
                 dag.substitute_node(node, rule[0][0], inplace=True)
             else:
-                # hacky way to build a dag on the same register as the rule is defined
-                # TODO: need anonymous rules to address wires by index
                 decomposition = DAGCircuit()
-                qregs = {qb.register for inst in rule for qb in inst[1]}
-                cregs = {cb.register for inst in rule for cb in inst[2]}
-                for qreg in qregs:
+                for qreg in node.op.definition.qregs:
                     decomposition.add_qreg(qreg)
-                for creg in cregs:
+                for creg in node.op.definition.cregs:
                     decomposition.add_creg(creg)
                 for inst in rule:
                     decomposition.apply_operation_back(*inst)

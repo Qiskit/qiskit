@@ -226,6 +226,66 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(i=info):
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True,
                                              atol=1e-8, rtol=1e-5))
+   # def test_multi_control_u3_2(self):
+   #      """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
+   #      import qiskit.circuit.library.standard_gates.u3 as u3
+
+   #      num_ctrl = 3
+   #      # U3 gate params
+   #      alpha, beta, gamma = 0.2, 0.3, 0.4
+
+   #      # cnu3 gate
+   #      u3gate = u3.U3Gate(alpha, beta, gamma)
+   #      cnu3 = u3gate.control(num_ctrl)
+   #      width = cnu3.num_qubits
+   #      qr = QuantumRegister(width)
+   #      qcnu3 = QuantumCircuit(qr)
+   #      qcnu3.append(cnu3, qr, [])
+
+   #      # U3 gate
+   #      qu3 = QuantumCircuit(1)
+   #      qu3.u3(alpha, beta, gamma, 0)
+
+   #      # CU3 gate
+   #      qcu3 = QuantumCircuit(2)
+   #      qcu3.cu3(alpha, beta, gamma, 0, 1)
+
+   #      # c-cu3 gate
+   #      width = 3
+   #      qr = QuantumRegister(width)
+   #      qc_cu3 = QuantumCircuit(qr)
+   #      cu3gate = u3.CU3Gate(alpha, beta, gamma)
+
+   #      c_cu3 = cu3gate.control(1)
+   #      qc_cu3.append(c_cu3, qr, [])
+
+   #      job = execute([qcnu3, qu3, qcu3, qc_cu3], BasicAer.get_backend('unitary_simulator'),
+   #                    basis_gates=['u1', 'u2', 'u3', 'id', 'cx'])
+   #      result = job.result()
+
+   #      # Circuit unitaries
+   #      mat_cnu3 = result.get_unitary(0)
+
+   #      mat_u3 = result.get_unitary(1)
+   #      mat_cu3 = result.get_unitary(2)
+   #      mat_c_cu3 = result.get_unitary(3)
+
+   #      # Target Controlled-U3 unitary
+   #      target_cnu3 = _compute_control_matrix(mat_u3, num_ctrl)
+   #      target_cu3 = np.kron(mat_u3, np.diag([0, 1])) + np.kron(np.eye(2), np.diag([1, 0]))
+   #      target_c_cu3 = np.kron(mat_cu3, np.diag([0, 1])) + np.kron(np.eye(4), np.diag([1, 0]))
+
+   #      tests = [('check unitary of u3.control against tensored unitary of u3',
+   #                target_cu3, mat_cu3),
+   #               ('check unitary of cu3.control against tensored unitary of cu3',
+   #                target_c_cu3, mat_c_cu3),
+   #               ('check unitary of cnu3 against tensored unitary of u3',
+   #                target_cnu3, mat_cnu3)]
+   #      for itest in tests:
+   #          info, target, decomp = itest[0], itest[1], itest[2]
+   #          with self.subTest(i=info):
+   #              self.log.info(info)
+   #              self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""

@@ -52,7 +52,6 @@ class Unroller(TransformationPass):
         """
         if self.basis is None:
             return dag
-
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
@@ -66,7 +65,6 @@ class Unroller(TransformationPass):
                     pass
                 else:
                     continue
-
             # TODO: allow choosing other possible decompositions
             try:
                 rule = node.op.definition.data
@@ -95,20 +93,13 @@ class Unroller(TransformationPass):
                     raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
                                       "No rule to expand instruction %s." %
                                       (str(self.basis), node.op.name))
-
-                # hacky way to build a dag on the same register as the rule is defined
-                # TODO: need anonymous rules to address wires by index
                 decomposition = DAGCircuit()
-                qregs = {qb.register for inst in rule for qb in inst[1]}
-                cregs = {cb.register for inst in rule for cb in inst[2]}
-                for qreg in qregs:
+                for qreg in node.op.definition.qregs:
                     decomposition.add_qreg(qreg)
-                for creg in cregs:
+                for creg in node.op.definition.cregs:
                     decomposition.add_creg(creg)
                 for inst in rule:
                     decomposition.apply_operation_back(*inst)
-
                 unrolled_dag = self.run(decomposition)  # recursively unroll ops
                 dag.substitute_node_with_dag(node, unrolled_dag)
-
         return dag
