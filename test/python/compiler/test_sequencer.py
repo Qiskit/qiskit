@@ -17,7 +17,8 @@
 """Tests basic functionality of the sequence function"""
 
 from qiskit import QuantumCircuit
-from qiskit.compiler import sequence, transpile
+from qiskit.compiler import sequence, transpile, schedule
+from qiskit.pulse.transforms import pad
 from qiskit.test.mock import FakeParis
 
 from qiskit.test import QiskitTestCase
@@ -38,13 +39,15 @@ class TestSequence(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         sc = transpile(qc, self.backend, scheduling_method='alap', coupling_map=[[0, 1], [1, 2]])
-        sequence(sc, self.backend)
-        # TODO: Complete test!
+        actual = sequence(sc, self.backend)
+        expected = schedule(qc.decompose(), self.backend)
+        self.assertEqual(actual, pad(expected))
 
     def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
         qc = QuantumCircuit(2, name="bell_without_measurement")
         qc.h(0)
         qc.cx(0, 1)
         sc = transpile(qc, self.backend, scheduling_method='alap', coupling_map=[[0, 1], [1, 2]])
-        sequence(sc, self.backend)
-        # TODO: Complete test!
+        actual = sequence(sc, self.backend)
+        expected = schedule(qc.decompose(), self.backend)
+        self.assertEqual(actual, pad(expected))

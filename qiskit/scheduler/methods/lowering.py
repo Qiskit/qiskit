@@ -18,20 +18,18 @@ module handles the translation, but does not handle timing.
 from collections import namedtuple
 from typing import List
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.channels import AcquireChannel, DriveChannel, MeasureChannel
+from qiskit.pulse import instructions as pulse_inst
+from qiskit.pulse.channels import AcquireChannel, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse import instructions as pulse_inst
-from qiskit.transpiler.passes.scheduling.delayindt import delay_in_dt
-
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.utils import measure
-
+from qiskit.transpiler.passes.scheduling.delayindt import delay_in_dt
 
 CircuitPulseDef = namedtuple('CircuitPulseDef', [
     'schedule',  # The schedule which implements the quantum circuit command
@@ -90,7 +88,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
         elif isinstance(inst, Delay):
             sched = Schedule(name=inst.name)
             for qubit in inst_qubits:
-                for channel in [DriveChannel, AcquireChannel, MeasureChannel]:
+                for channel in [DriveChannel]:
                     sched += pulse_inst.Delay(duration=inst.duration, channel=channel(qubit))
             circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
 

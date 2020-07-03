@@ -52,7 +52,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               scheduling_method: Optional[str] = None,
               instruction_durations: Optional[List[Tuple[str, Optional[Union[List[int], int]],
                                                          int]]] = None,
-              meas_map: Optional[List[List[int]]] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,
@@ -139,8 +138,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
             Durations defined in ``backend.properties`` are used as default and
             they are overwritten with the instruction_durations.
-        meas_map: List of sets of qubits that must be measured together. If ``None``, defaults to
-                  the ``backend``\'s ``meas_map``
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -235,7 +232,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
-                                           scheduling_method, instruction_durations, meas_map,
+                                           scheduling_method, instruction_durations,
                                            seed_transpiler, optimization_level,
                                            callback, output_name)
 
@@ -362,10 +359,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         if 'delay' not in pass_manager_config.basis_gates:
             pass_manager_config.basis_gates.append('delay')
 
-        # TODO: Remove MeasureReschedule after we're free from meas_map
-        from qiskit.transpiler.passes.scheduling.measure_reschedule import MeasureReschedule
-        pass_manager.append(MeasureReschedule(meas_map=transpile_config['meas_map'],
-                                              durations=pass_manager_config.instruction_durations))
+        from qiskit.transpiler.passes.scheduling import RemoveOpsOnIdleQubits
+        pass_manager.append(RemoveOpsOnIdleQubits())
 
     return pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])
@@ -374,7 +369,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method, translation_method,
-                          scheduling_method, instruction_durations, meas_map,
+                          scheduling_method, instruction_durations,
                           seed_transpiler, optimization_level,
                           callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
@@ -406,8 +401,6 @@ def _parse_transpile_args(circuits, backend,
     if scheduling_method is not None:
         from qiskit.transpiler.instruction_durations import InstructionDurations
         durations = InstructionDurations.from_backend(backend).update(instruction_durations)
-        if not meas_map and backend:
-            meas_map = backend.configuration().meas_map
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     durations = _parse_instruction_durations(durations, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
@@ -430,7 +423,6 @@ def _parse_transpile_args(circuits, backend,
                                                                    scheduling_method=args[7],
                                                                    instruction_durations=args[8],
                                                                    seed_transpiler=args[9]),
-                          'meas_map': meas_map,  # To be removed when we're free from meas_map
                           'optimization_level': args[10],
                           'output_name': args[11],
                           'callback': args[12]}
