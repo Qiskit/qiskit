@@ -42,7 +42,7 @@ features:
     .. jupyter-execute::
 
         from qiskit import QuantumCircuit
-        from qiskit.library.standard_gates import YGate
+        from qiskit.circuit.library.standard_gates import YGate
         circuit = QuantumCircuit(2)
         circuit.append(YGate(label='A Y Gate').control(label='Y Control'), [0, 1])
         circuit.draw(output='mpl')
