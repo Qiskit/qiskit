@@ -125,6 +125,9 @@ class ChannelEvents:
         Args:
             program: Target ``Schedule`` to visualize.
             channel: The channel managed by this instance.
+
+        Returns:
+            ChannelEvents: The channel event manager for specified channel.
         """
         waveforms = dict()
         frames = defaultdict(list)
@@ -147,8 +150,7 @@ class ChannelEvents:
         for waveform in self._waveforms.values():
             if isinstance(waveform, (pulse.Play, pulse.Acquire)):
                 return False
-        else:
-            return True
+        return True
 
     def get_waveforms(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
         """Return waveform type instructions with frame.

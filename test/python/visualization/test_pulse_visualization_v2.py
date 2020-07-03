@@ -23,6 +23,7 @@ from qiskit.visualization.pulse_v2 import ChannelEvents
 
 class TestChannelEvents(QiskitTestCase):
     """Tests for ChannelEvents."""
+    # pylint: disable=unnecessary-comprehension
 
     def test_parse_program(self):
         """Test typical pulse program."""
