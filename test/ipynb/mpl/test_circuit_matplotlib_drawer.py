@@ -113,6 +113,21 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='conditional.png')
 
+    def test_plot_partial_barrier(self):
+        """Test plotting of partial barriers."""
+
+        # generate a circuit with barrier and other barrier like instructions in
+        q = QuantumRegister(2, 'q')
+        c = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(q, c)
+
+        # check for barriers
+        circuit.h(q[0])
+        circuit.barrier(0)
+        circuit.h(q[0])
+
+        self.circuit_drawer(circuit, filename='plot_partial_barrier.png', plot_barriers=True)
+
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
         If it is set to False, no blank columns are introduced"""
@@ -124,8 +139,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         # check for barriers
         circuit.h(q[0])
-        circuit.barrier(0)
-        circuit.h(q[0])
+        circuit.barrier()
 
         # check for other barrier like commands
         circuit.h(q[1])
