@@ -56,7 +56,7 @@ class SXGate(Gate):
 
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label='√X'):
         """Create new SX gate."""
         super().__init__('sx', 1, [], label=label)
 
@@ -64,14 +64,14 @@ class SXGate(Gate):
         """
         gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
         """
-        from .u1 import U1Gate
+        from .rz import RZGate
         from .h import HGate
         definition = []
         q = QuantumRegister(1, 'q')
         rule = [
+            (RZGate(-pi / 2), [q[0]], []),
             (HGate(), [q[0]], []),
-            (U1Gate(pi / 2), [q[0]], []),
-            (HGate(), [q[0]], [])
+            (RZGate(-pi / 2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
