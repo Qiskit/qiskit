@@ -33,7 +33,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(10, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
         sched = sched.insert(10, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
-        events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events = ChannelEvents.load_program(sched, pulse.DriveChannel(0))
 
         # check waveform data
         waveforms = list(events.get_waveforms())
@@ -70,13 +70,13 @@ class TestChannelEvents(QiskitTestCase):
         sched = pulse.Schedule()
         sched = sched.insert(0, pulse.ShiftPhase(1.57, pulse.DriveChannel(0)))
 
-        events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events = ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         self.assertTrue(events.is_empty())
 
         sched = pulse.Schedule()
         sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
-        events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events = ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         self.assertFalse(events.is_empty())
 
     def test_multiple_frames_at_the_same_time(self):
@@ -86,7 +86,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
         sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
 
-        events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events = ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(events.get_frame_changes())
         _, frame, _ = frames[0]
         self.assertAlmostEqual(frame.phase, 3.14)
@@ -96,7 +96,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
         sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
 
-        events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events = ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(events.get_frame_changes())
         _, frame, _ = frames[0]
         self.assertAlmostEqual(frame.phase, 1.57)
@@ -107,7 +107,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
         sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
-        events = ChannelEvents.parse_program(sched, pulse.DriveChannel(0))
+        events = ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         events.init_frequency = 3.0
         frames = list(events.get_frame_changes())
 
