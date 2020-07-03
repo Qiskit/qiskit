@@ -12,12 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-
-Channels
-********
-
-This module defines Pulse Channels. Channels include:
+"""This module defines Pulse Channels. Channels include:
 
   - transmit channels, which should subclass ``PulseChannel``
   - receive channels, such as ``AcquireChannel``
