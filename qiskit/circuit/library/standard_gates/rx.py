@@ -54,15 +54,16 @@ class RXGate(Gate):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (RGate(self.params[0], 0), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RX gate.
@@ -178,21 +179,22 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
           u3(theta/2,-pi/2,0) t;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(pi / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RX gate (i.e. with the negative rotation angle)."""
