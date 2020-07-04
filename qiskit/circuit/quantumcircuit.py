@@ -169,6 +169,7 @@ class QuantumCircuit:
         self._layout = None
 
         self.duration = None
+        self.instruction_durations = None
 
     @property
     def data(self):
@@ -700,6 +701,7 @@ class QuantumCircuit:
 
         # mark as normal circuit if a new instruction is added
         self.duration = None
+        self.instruction_durations = None
 
         return instruction
 

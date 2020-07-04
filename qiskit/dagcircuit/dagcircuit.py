@@ -115,6 +115,7 @@ class DAGCircuit:
         self._USE_RX = None
 
         self.duration = None
+        self.instruction_durations = None
 
     # Multigraph methods where retworkx API differs syntactically from networkx.
     def _add_multi_graph_node(self, node):
