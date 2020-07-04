@@ -30,6 +30,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.basis.ms_basis_decomposer import MSBasisDecomposer
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
@@ -50,8 +51,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               routing_method: Optional[str] = None,
               translation_method: Optional[str] = None,
               scheduling_method: Optional[str] = None,
-              instruction_durations: Optional[List[Tuple[str, Optional[Union[List[int], int]],
-                                                         int]]] = None,
+              instruction_durations: Optional[InstructionDurationsType] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,

@@ -21,8 +21,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .utils import DurationMapper
-
 
 class ASAPSchedule(TransformationPass):
     """ASAP Scheduling."""
@@ -34,7 +32,7 @@ class ASAPSchedule(TransformationPass):
             durations (InstructionDurations): Durations of instructions to be used in scheduling
         """
         super().__init__()
-        self.durations = DurationMapper(durations)
+        self.durations = durations
 
     def run(self, dag):
         """Run the ASAPSchedule pass on `dag`.
@@ -71,7 +69,7 @@ class ASAPSchedule(TransformationPass):
             pad_with_delays(node.qargs, until=start_time)
 
             new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
-            duration = self.durations.get(node)
+            duration = self.durations.get(node.op, node.qargs)
             new_node.op.duration = duration  # overwrite duration (tricky but necessary)
 
             stop_time = start_time + duration

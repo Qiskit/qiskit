@@ -14,16 +14,22 @@
 
 """Durations of instructions, one of transpiler configurations."""
 import warnings
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union, Iterable
 
+from qiskit.circuit import Barrier, Delay
+from qiskit.circuit import Instruction, Qubit
+from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
+
+InstructionDurationsType = List[Tuple[str, Optional[Iterable[int]], int]]
+"""List of tuples representing (instruction name, qubits indices, duration)."""
 
 
 class InstructionDurations:
     """Helper class to provide integer durations for safe scheduling."""
 
     def __init__(self,
-                 instruction_durations: Optional[List[Tuple[str, Optional[List[int]], int]]] = None,
+                 instruction_durations: Optional[InstructionDurationsType] = None,
                  schedule_dt=None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
@@ -32,13 +38,13 @@ class InstructionDurations:
             self.update(instruction_durations, schedule_dt)
 
     @classmethod
-    def from_backend(cls, backend):
+    def from_backend(cls, backend: BaseBackend):
         """Construct the instruction durations from the backend."""
         if backend is None:
             return InstructionDurations()
-        # TODO: backend.properties() should let us know all about instruction durations
+        # TODO: backend.properties() should tell us all about instruction durations
         if not backend.configuration().open_pulse:
-            raise TranspilerError("DurationMapper needs backend.configuration().dt")
+            raise TranspilerError("No backend.configuration().dt in the backend")
 
         dt = backend.configuration().dt  # pylint: disable=invalid-name
         instruction_durations = []
@@ -63,7 +69,7 @@ class InstructionDurations:
         return InstructionDurations(instruction_durations, dt)
 
     def update(self,
-               instruction_durations: Optional[List[Tuple[str, Optional[List[int]], int]]] = None,
+               instruction_durations: Optional[InstructionDurationsType] = None,
                dt=None):
         """Merge/extend self with instruction_durations."""
         if self.schedule_dt and dt and self.schedule_dt != dt:
@@ -86,13 +92,44 @@ class InstructionDurations:
 
         return self
 
-    def get(self, name, qubits):
-        """Get the duration of the instruction with the name and the qubits."""
-        if name in {'barrier', 'timestep'}:
-            return 0
+    def get(self,
+            inst_name: Union[str, Instruction],
+            qubits: Union[int, List[int], Qubit, List[Qubit]]) -> int:
+        """Get the duration [dt] of the instruction with the name and the qubits.
 
-        if isinstance(qubits, int):
+        Args:
+            inst_name: an instruction or its name to be queried.
+            qubits: qubits or its indices that the instruction acts on.
+
+        Returns:
+            int: The duration [dt] of the instruction on the qubits.
+
+        Raises:
+            TranspilerError: No duration is defined for the instruction.
+        """
+        if isinstance(inst_name, Barrier):
+            return 0
+        elif isinstance(inst_name, Delay):
+            return inst_name.duration
+
+        if isinstance(inst_name, Instruction):
+            inst_name = inst_name.name
+
+        if isinstance(qubits, (int, Qubit)):
             qubits = [qubits]
+
+        if isinstance(qubits, list):
+            qubits = [q.index for q in qubits]
+
+        try:
+            return self._get(inst_name, qubits)
+        except TranspilerError as err:
+            raise TranspilerError(err.message)
+
+    def _get(self, name: str, qubits: List[int]):
+        """Get the duration of the instruction with the name and the qubits."""
+        if name in {'barrier'}:
+            return 0
 
         key = (name, tuple(qubits))
         if key in self.duration_by_name_qubits:
