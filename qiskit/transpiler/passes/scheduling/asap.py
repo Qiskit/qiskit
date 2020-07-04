@@ -68,9 +68,8 @@ class ASAPSchedule(TransformationPass):
             start_time = max(qubit_time_available[q] for q in node.qargs)
             pad_with_delays(node.qargs, until=start_time)
 
-            new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+            new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
             duration = self.durations.get(node.op, node.qargs)
-            new_node.op.duration = duration  # overwrite duration (tricky but necessary)
 
             stop_time = start_time + duration
             # update time table
@@ -83,4 +82,5 @@ class ASAPSchedule(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.duration = circuit_duration
+        new_dag.instruction_durations = self.durations
         return new_dag

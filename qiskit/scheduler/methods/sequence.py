@@ -42,7 +42,7 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     Returns:
         A schedule corresponding to the input ``circuit``.
     """
-    # trace start times
+    # recall start times
     qubit_time_available = defaultdict(int)
     start_times = []
     measure_times = []
@@ -52,8 +52,9 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
             measure_times.append(start_time)
         else:
             start_times.append(start_time)
+        duration = scheduled_circuit.instruction_durations.get(inst, qubits)
         for q in qubits:
-            qubit_time_available[q] += inst.duration
+            qubit_time_available[q] += duration
 
     if measure_times:
         measure_time = measure_times[0]
