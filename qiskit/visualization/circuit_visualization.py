@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 def circuit_drawer(circuit,
-                   scale=0.7,
+                   scale=1.0,
                    filename=None,
                    style=None,
                    output=None,
