@@ -392,7 +392,6 @@ class TestCircuitOperations(QiskitTestCase):
             ref = QuantumCircuit(qr, cr)
             for _ in range(3):
                 ref.append(inst, ref.qubits, ref.clbits)
-
             rep = qc.repeat(3)
             self.assertEqual(rep, ref)
 
