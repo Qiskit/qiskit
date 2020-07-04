@@ -253,7 +253,7 @@ class TestFourierCheckingLibrary(QiskitTestCase):
         expected = np.linalg.multi_dot([h_tot, g_mat, h_tot, f_mat, h_tot])
         expected = Operator(expected)
 
-        self.assertEqual(expected, simulated)
+        self.assertTrue(expected.equiv(simulated))
 
     @data(
         ([1, -1, -1, -1], [1, 1, -1, -1]),
