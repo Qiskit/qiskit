@@ -49,8 +49,7 @@ def cnot_rxx_decompose(plus_ry=True, plus_rxx=True):
         sgn_rxx = 1
     else:
         sgn_rxx = -1
-
-    circuit = QuantumCircuit(2)
+    circuit = QuantumCircuit(2, phase=-sgn_ry * sgn_rxx  * np.pi / 4)
     circuit.append(RYGate(sgn_ry * np.pi / 2), [0])
     circuit.append(RXXGate(sgn_rxx * np.pi / 2), [0, 1])
     circuit.append(RXGate(-sgn_rxx * np.pi / 2), [0])

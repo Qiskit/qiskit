@@ -1730,7 +1730,7 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
         # bind circuit's phase
-        if isinstance(self.phase, ParameterExpression):
+        if isinstance(self.phase, ParameterExpression) and parameter in self.phase.parameters:
             self.phase = self.phase.bind({parameter: value})
 
     def _substitute_parameter(self, old_parameter, new_parameter_expr):

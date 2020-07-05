@@ -134,7 +134,8 @@ class UnitaryGate(Gate):
             QiskitError: Invalid ctrl_state.
             ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        from qiskit.circuit.library.standard_gates import U3Gate
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=ctrl_state)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
@@ -148,9 +149,9 @@ class UnitaryGate(Gate):
             raise ExtensionError('controlled unitary generation failed')
         phase = numpy.angle(diag[0])
         if phase:
-            qreg = cunitary._definition[0][1][0]
-            cunitary._definition.append((U3Gate(numpy.pi, phase, phase - numpy.pi), [qreg], []))
-            cunitary._definition.append((U3Gate(numpy.pi, 0, numpy.pi), [qreg], []))
+            qreg = cunitary.definition.qregs[0]
+            cunitary.definition.u3(numpy.pi, phase, phase - numpy.pi, qreg[0])
+            cunitary.definition.u3(numpy.pi, 0, numpy.pi, qreg[0])
         cunitary.base_gate = self.copy()
         cunitary.base_gate.label = self.label
         return cunitary

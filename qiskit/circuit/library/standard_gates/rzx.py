@@ -16,8 +16,6 @@
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from .h import HGate
-from .x import CXGate
 
 
 class RZXGate(Gate):
@@ -126,6 +124,9 @@ class RZXGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .h import HGate
+        from .x import CXGate
+        from .rz import RZGate
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
