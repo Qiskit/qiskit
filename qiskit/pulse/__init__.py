@@ -35,7 +35,7 @@ system.
 
 .. _pulse-insts:
 
-Instructions (:mod:`instructions`)
+Instructions (:mod:`qiskit.pulse.instructions`)
 ================================================
 
 .. autosummary::
@@ -52,7 +52,7 @@ Instructions (:mod:`instructions`)
    ShiftPhase
    Snapshot
 
-Pulse Library (waveforms :mod:`pulse_lib`)
+Pulse Library (waveforms :mod:`qiskit.pulse.pulse_lib`)
 ========================================================
 
 .. autosummary::
@@ -69,7 +69,7 @@ Pulse Library (waveforms :mod:`pulse_lib`)
 
 .. _pulse-channels:
 
-Channels (:mod:`channels`)
+Channels (:mod:`qiskit.pulse.channels`)
 ========================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
