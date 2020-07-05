@@ -17,7 +17,8 @@
 from typing import List, Optional, Union
 from qiskit.circuit.exceptions import CircuitError
 
-import qiskit.circuit.quantumcircuit as quantumcircuit
+# pylint: disable=cyclic-import
+from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from .quantumregister import QuantumRegister
 
@@ -29,7 +30,7 @@ class ControlledGate(Gate):
 
     def __init__(self, name: str, num_qubits: int, params: List,
                  label: Optional[str] = None, num_ctrl_qubits: Optional[int] = 1,
-                 definition: Optional['quantumcircuit.QuantumCircuit'] = None,
+                 definition: Optional['QuantumCircuit'] = None,
                  ctrl_state: Optional[Union[int, str]] = None):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
@@ -110,7 +111,7 @@ class ControlledGate(Gate):
             closed_gate.ctrl_state = None
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
             qreg = QuantumRegister(self.num_qubits, 'q')
-            qc_open_ctrl = quantumcircuit.QuantumCircuit(qreg)
+            qc_open_ctrl = QuantumCircuit(qreg)
             for qind, val in enumerate(bit_ctrl_state[::-1]):
                 if val == '0':
                     qc_open_ctrl.x(qind)
@@ -123,7 +124,7 @@ class ControlledGate(Gate):
             return super().definition
 
     @definition.setter
-    def definition(self, excited_def: 'quantumcircuit.QuantumCircuit'):
+    def definition(self, excited_def: 'QuantumCircuit'):
         """Set controlled gate definition with closed controls.
 
         Args:
