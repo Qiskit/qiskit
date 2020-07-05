@@ -64,8 +64,16 @@ class RZGate(Gate):
         """
         gate rz(phi) a { u1(phi) a; }
         """
-        circ = self.decompositions[0]
-        self.definition = circ.to_gate().definition
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .u1 import U1Gate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (U1Gate(self.params[0]), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RZ gate.
@@ -186,19 +194,20 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
           u1(-lambda/2) b; cx a,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZ gate (i.e. with the negative rotation angle)."""

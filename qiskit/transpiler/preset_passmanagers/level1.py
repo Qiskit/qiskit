@@ -21,6 +21,8 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
@@ -78,6 +80,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or 'dense'
     routing_method = pass_manager_config.routing_method or 'stochastic'
+    translation_method = pass_manager_config.translation_method or 'translator'
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
 
@@ -132,7 +135,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 6. Unroll to the basis
-    _unroll = Unroller(basis_gates)
+    if translation_method == 'unroller':
+        _unroll = [Unroller(basis_gates)]
+    elif translation_method == 'translator':
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        _unroll = [UnrollCustomDefinitions(sel, basis_gates),
+                   BasisTranslator(sel, basis_gates)]
+    else:
+        raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 7. Fix any bad CX directions
     _direction_check = [CheckCXDirection(coupling_map)]

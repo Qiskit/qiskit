@@ -74,8 +74,26 @@ class RYYGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        circ = self.decompositions[0]
-        self.definition = circ.to_gate().definition
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .x import CXGate
+        from .rx import RXGate
+        from .rz import RZGate
+
+        q = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        theta = self.params[0]
+        rules = [
+            (RXGate(np.pi / 2), [q[0]], []),
+            (RXGate(np.pi / 2), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (RZGate(theta), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (RXGate(-np.pi / 2), [q[0]], []),
+            (RXGate(-np.pi / 2), [q[1]], []),
+        ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""

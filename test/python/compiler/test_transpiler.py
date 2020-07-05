@@ -14,12 +14,14 @@
 
 """Tests basic functionality of the transpile function"""
 
-import math
 from math import pi
 import io
+import sys
+import math
+
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
-import sys
+
 from ddt import ddt, data
 
 from qiskit import BasicAer
@@ -703,6 +705,27 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
         self.assertEqual(qc, out)
+
+    @data(
+        ['cx', 'u3'],
+        ['cz', 'u3'],
+        ['cz', 'rx', 'rz'],
+        ['rxx', 'rx', 'ry'],
+        ['iswap', 'rx', 'rz'],
+    )
+    def test_block_collection_runs_for_non_cx_bases(self, basis_gates):
+        """Verify block collection is run when a single two qubit gate is in the basis."""
+        twoq_gate, *_ = basis_gates
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
+
+        self.assertLessEqual(out.count_ops()[twoq_gate], 2)
 
 
 class StreamHandlerRaiseException(StreamHandler):
