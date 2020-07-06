@@ -27,7 +27,8 @@ This module can easily be extended to describe more pulse shapes. The new class 
   - take some parameters (at least `duration`) and validate them, if necessary
   - implement a `get_sample_pulse` method which returns a corresponding SamplePulse in the
     case that it is assembled for a backend which does not support it. Ends are zeroed to avoid
-    steep jumps at pulse edges.
+    steep jumps at pulse edges. By default, the ends are defined such that
+    ``f(-1), f(duration+1) = 0``.
 
 The new pulse must then be registered by the assembler in
 `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
