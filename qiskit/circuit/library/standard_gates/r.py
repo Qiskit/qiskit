@@ -22,8 +22,28 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RGate(Gate):
-    """Rotation θ around the cos(φ)x + sin(φ)y axis."""
+    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
 
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+             ┌──────┐
+        q_0: ┤ R(ϴ) ├
+             └──────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        RY(\theta) = e^{-i \th Y} =
+            \begin{pmatrix}
+                \cos{\th} & -i e^{-i \phi} \sin{\th} \\
+                -i e^{i \phi} \sin{\th} & \cos{\th}
+            \end{pmatrix}
+    """
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
         super().__init__('r', 1, [theta, phi])
@@ -32,17 +52,18 @@ class RGate(Gate):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
         theta = self.params[0]
         phi = self.params[1]
-        rule = [
+        rules = [
             (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Invert this gate.
