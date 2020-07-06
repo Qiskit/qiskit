@@ -726,14 +726,14 @@ class TestPulseAssembler(QiskitTestCase):
         # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend)
-        self.assertEqual(round(qobj.config.rep_time, 3), rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delays[0]*1e6)
 
         # remove rep_delays from backend config and make sure things work
         # now no warning
         del self.backend_config.rep_delays
         qobj = assemble(self.schedule, self.backend)
-        self.assertEqual(round(qobj.config.rep_time, 3), rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
     def test_assemble_user_rep_time_delay(self):
@@ -746,7 +746,7 @@ class TestPulseAssembler(QiskitTestCase):
         # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, rep_time*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
         # now remove rep_delay and set enable dynamic rep rates
@@ -755,7 +755,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.backend_config.dynamic_reprate_enabled = True
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, rep_time*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
         # finally, only use rep_delay and verify that everything runs w/ no warning
@@ -765,7 +765,7 @@ class TestPulseAssembler(QiskitTestCase):
         del self.config['rep_time']
         self.config['rep_delay'] = rep_delay
         qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
 

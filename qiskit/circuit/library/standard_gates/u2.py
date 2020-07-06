@@ -64,13 +64,14 @@ class U2Gate(Gate):
         super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         r"""Return inverted U2 gate.
