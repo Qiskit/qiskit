@@ -349,7 +349,8 @@ class CircuitStateFn(StateFn):
                 # Check if Identity or empty instruction (need to check that type is exactly
                 # Instruction because some gates have lazy gate.definition population)
                 # pylint: disable=unidiomatic-typecheck
-                if isinstance(gate, IGate) or (type(gate) == Instruction and gate.definition == []):
+                if isinstance(gate, IGate) or (type(gate) == Instruction and
+                                               gate.definition.data == []):
                     del self.primitive.data[i]
         return self
 
