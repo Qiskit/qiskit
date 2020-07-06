@@ -16,7 +16,7 @@
 
 """Module for builtin discrete pulses.
 
-Note the sampling strategy use for all discrete pulses is `midpoint`.
+Note the sampling strategy use for all discrete pulses is ``midpoint``.
 """
 import warnings
 from typing import Optional
@@ -264,7 +264,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
              zero_ends: bool = True) -> SamplePulse:
     r"""Generates unnormalized gaussian :class:`~qiskit.pulse.SamplePulse`.
 
-    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the `midpoint` sampling strategy
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the ``midpoint`` sampling strategy
     to generate a discrete pulse sampled from the continuous function:
 
     .. math::
@@ -281,7 +281,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
 
     where :math:`y^*` is the value of the endpoint samples. This sets the endpoints
     to :math:`0` while preserving the amplitude at the center. If :math:`A=y^*`,
-    :math:`y` is set to :math:`1`.
+    :math:`y` is set to :math:`1`. By default, the endpoints are at ``x = -1, x = duration + 1``.
 
     Integrated area under the full curve is ``amp * np.sqrt(2*np.pi*sigma**2)``
 
@@ -290,10 +290,10 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
         amp: Pulse amplitude at ``duration/2``.
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
-        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
+        zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration if zero_ends else None
+    zeroed_width = duration + 1 if zero_ends else None
     rescale_amp = bool(zero_ends)
     return _sampled_gaussian_pulse(duration, amp, center, sigma,
                                    zeroed_width=zeroed_width, rescale_amp=rescale_amp,
@@ -333,7 +333,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
          zero_ends: bool = True) -> SamplePulse:
     r"""Generates unnormalized sech :class:`~qiskit.pulse.SamplePulse`.
 
-    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the `midpoint` sampling strategy
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the ``midpoint`` sampling strategy
     to generate a discrete pulse sampled from the continuous function:
 
     .. math::
@@ -350,17 +350,17 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
 
     where :math:`y^*` is the value of the endpoint samples. This sets the endpoints
     to :math:`0` while preserving the amplitude at the center. If :math:`A=y^*`,
-    :math:`y` is set to :math:`1`.
+    :math:`y` is set to :math:`1`. By default, the endpoints are at ``x = -1, x = duration + 1``.
 
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude at `duration/2`.
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
-        zero_ends: If True, make the first and last sample zero, but rescale to preserve amp.
+        zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration if zero_ends else None
+    zeroed_width = duration + 1 if zero_ends else None
     rescale_amp = bool(zero_ends)
     return _sampled_sech_pulse(duration, amp, center, sigma,
                                zeroed_width=zeroed_width, rescale_amp=rescale_amp,
@@ -401,7 +401,7 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
     r"""Generates gaussian square :class:`~qiskit.pulse.SamplePulse`.
 
     For :math:`d=` ``duration``, :math:`A=` ``amp``, :math:`\sigma=` ``sigma``,
-    and :math:`r=` ``risefall``, applies the `midpoint` sampling strategy to
+    and :math:`r=` ``risefall``, applies the ``midpoint`` sampling strategy to
     generate a discrete pulse sampled from the continuous function:
 
     .. math::
@@ -429,7 +429,8 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                should be specified as the functional form requires
                ``width = duration - 2 * risefall``.
         name: Name of pulse.
-        zero_ends: If ``True``, make the first and last sample zero, but rescale to preserve amp.
+        zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
+
     Raises:
         PulseError: If ``risefall`` and ``width`` arguments are inconsistent or not enough info.
     """
@@ -443,7 +444,7 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                              "inconsistent: 2 * risefall + width == {} != "
                              "duration == {}.".format(2 * risefall + width, duration))
     center = duration / 2
-    zeroed_width = duration if zero_ends else None
+    zeroed_width = duration + 1 if zero_ends else None
     return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
                                           zeroed_width=zeroed_width, name=name)
 
@@ -457,7 +458,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
     oscillator (SNO) [1].
 
     For :math:`A=` ``amp``, :math:`\sigma=` ``sigma``, and :math:`\beta=` ``beta``, applies the
-    `midpoint` sampling strategy to generate a discrete pulse sampled from the
+    ``midpoint`` sampling strategy to generate a discrete pulse sampled from the
     continuous function:
 
     .. math::
@@ -487,10 +488,10 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
               relative coupling strength between the first excited and second excited states
               and :math:`\Delta_2` is the detuning between the respective excited states.
         name: Name of pulse.
-        zero_ends: If ``True``, make the first and last sample zero, but rescale to preserve amp.
+        zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration if zero_ends else None
+    zeroed_width = duration + 1 if zero_ends else None
     rescale_amp = bool(zero_ends)
     return _sampled_drag_pulse(duration, amp, center, sigma, beta,
                                zeroed_width=zeroed_width, rescale_amp=rescale_amp,

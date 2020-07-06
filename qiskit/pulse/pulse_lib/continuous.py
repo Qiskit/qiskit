@@ -150,7 +150,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
                         ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
-    This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
 
     amp: Pulse amplitude at `center`.
     center: Center (mean) of pulse.
@@ -158,12 +158,12 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     zeroed_width: Subtract baseline from gaussian pulses to make sure
         $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
         large discontinuities at the start of a gaussian pulse. If unsupplied,
-        defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+        defaults to $2*center + 1$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*center + 1)=0$.
     rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*center
+        zeroed_width = 2*center + 1
 
     zero_offset = gaussian(np.array([zeroed_width/2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
@@ -236,7 +236,7 @@ def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
                     ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied sech pulse is zeroed at a specific width.
 
-    This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
 
     amp: Pulse amplitude at `center`.
     center: Center (mean) of pulse.
@@ -244,12 +244,12 @@ def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
     zeroed_width: Subtract baseline from sech pulses to make sure
         $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
         large discontinuities at the start of a sech pulse. If unsupplied,
-        defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+        defaults to $2*center + 1$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*center + 1)=0$.
     rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*center
+        zeroed_width = 2*center + 1
 
     zero_offset = sech(np.array([zeroed_width/2]), amp, 0, sigma)
     sech_samples -= zero_offset
