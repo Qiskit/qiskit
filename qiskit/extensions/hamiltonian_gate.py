@@ -107,7 +107,9 @@ class HamiltonianGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         q = QuantumRegister(self.num_qubits, 'q')
-        self.definition = [(UnitaryGate(self.to_matrix()), q[:], [])]
+        qc = QuantumCircuit(q, name=self.name)
+        qc.append(UnitaryGate(self.to_matrix()), qargs=q[:])
+        self.definition = qc
 
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""

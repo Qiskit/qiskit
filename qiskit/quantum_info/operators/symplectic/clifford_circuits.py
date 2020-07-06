@@ -84,7 +84,10 @@ def _append_circuit(clifford, circuit, qargs=None):
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
         raise QiskitError('Cannot apply Instruction: {}'.format(gate.name))
-    for instr, qregs, cregs in gate.definition:
+    if not isinstance(gate.definition, QuantumCircuit):
+        raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
+            gate.name, type(gate.definition)))
+    for instr, qregs, cregs in gate.definition.data:
         if cregs:
             raise QiskitError(
                 'Cannot apply Instruction with classical registers: {}'.format(
