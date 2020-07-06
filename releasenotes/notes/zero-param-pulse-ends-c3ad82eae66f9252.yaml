@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Zero ends of parametric pulses by default. The endpoints are defined such that for function
+    ``f(x)`` one has ``f(-1) = f(duration + 1) = 0``.
