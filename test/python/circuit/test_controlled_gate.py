@@ -913,6 +913,8 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
         base_mat = Operator(cgate.base_gate).data
+        if gate_class == CSXGate:
+            base_mat *= np.exp(0.25j * np.pi)  # SX has a global phase, must be accounted for in CSX
         target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
                                          ctrl_state=ctrl_state)
         try:
