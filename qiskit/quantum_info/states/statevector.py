@@ -617,8 +617,10 @@ class Statevector(QuantumState):
         # cannot compose this gate and raise an error.
         if obj.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-
-        for instr, qregs, cregs in obj.definition:
+        if not isinstance(obj.definition, QuantumCircuit):
+            raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
+                obj.name, type(obj.definition)))
+        for instr, qregs, cregs in obj.definition.data:
             if cregs:
                 raise QiskitError(
                     'Cannot apply instruction with classical registers: {}'.format(
