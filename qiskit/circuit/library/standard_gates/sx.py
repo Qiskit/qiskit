@@ -64,18 +64,18 @@ class SXGate(Gate):
         """
         gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
         """
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .rz import RZGate
         from .h import HGate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (RZGate(-pi / 2), [q[0]], []),
             (HGate(), [q[0]], []),
             (RZGate(-pi / 2), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SX gate.
@@ -178,18 +178,18 @@ class CSXGate(ControlledGate):
         """
         gate csx a,b { h b; cu1(pi/2) a,b; h b; }
         """
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .u1 import CU1Gate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (HGate(), [q[1]], []),
             (CU1Gate(pi/2), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def to_matrix(self):
         """Return a numpy.array for the CSX gate."""
