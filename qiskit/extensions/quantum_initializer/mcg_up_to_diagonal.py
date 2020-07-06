@@ -73,7 +73,7 @@ class MCGupDiag(Gate):
         q = QuantumRegister(self.num_qubits)
         mcg_up_diag_circuit = QuantumCircuit(q)
         mcg_up_diag_circuit.append(gate, q[:])
-        self.definition = mcg_up_diag_circuit.data
+        self.definition = mcg_up_diag_circuit
 
     # Returns the diagonal up to which the gate is implemented.
     def _get_diagonal(self):
