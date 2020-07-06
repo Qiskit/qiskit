@@ -59,6 +59,8 @@ def black_or_b(diff_image, image, reference, opacity=0.85):
     new.paste(shade, mask=mask)
     if image.size != new.size:
         image = image.resize(new.size)
+    if image.size != thresholded_diff.size:
+        thresholded_diff = thresholded_diff.resize(image.size)
     new.paste(image, mask=thresholded_diff)
     return new
 
@@ -139,7 +141,7 @@ class Results:
             ret += '<div><a href="mpl/mismatch.zip">' \
                    'Download %s mismatch results as a zip</a></div>' % len(self.mismatch)
 
-        if len(self.mismatch) >= 2:
+        if len(self.missing) >= 2:
             zipfiles(self.missing, 'mpl/missing.zip')
             ret += '<div><a href="mpl/missing.zip">' \
                    'Download %s missing results as a zip</a></div>' % len(self.missing)
@@ -174,5 +176,5 @@ if __name__ == '__main__':
     for file in os.listdir(os.path.join(SWD, 'mpl')):
         if file.endswith(".png") and not file.endswith(".diff.png"):
             result_files.append(file)
-    results = Results(result_files, 'mpl')
+    results = Results(sorted(result_files), 'mpl')
     results.diff_images()

@@ -575,7 +575,10 @@ class DensityMatrix(QuantumState):
         if other.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(
                 other.name))
-        for instr, qregs, cregs in other.definition:
+        if not isinstance(other.definition, QuantumCircuit):
+            raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
+                other.name, type(other.definition)))
+        for instr, qregs, cregs in other.definition.data:
             if cregs:
                 raise QiskitError(
                     'Cannot apply instruction with classical registers: {}'.
