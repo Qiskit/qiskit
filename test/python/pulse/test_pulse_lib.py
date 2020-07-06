@@ -92,23 +92,6 @@ class TestSamplePulse(QiskitTestCase):
 class TestParametricPulses(QiskitTestCase):
     """Tests for all subclasses of ParametricPulse."""
 
-    def _gauss_func(self, x, amp, sigma):
-        """Formulaic gaussian function."""
-        return
-
-    def _zero_ends_gaussian(self, times, amp, sigma, duration):
-        """Return a gaussian samples array w/ zeroed ends and amplitude rescaled. Also return
-        amplitude scale factor to modify potential additional terms (ie drag derivative term)."""
-        gauss = self._gauss_func(times, amp, sigma)
-
-        # zero ends and rescale the amp
-        zero_offset = self._gauss_func(duration/2, amp, sigma)
-        gauss -= zero_offset
-
-        gauss *= amp_scale_factor
-
-        return gauss, amp_scale_factor
-
     def test_construction(self):
         """Test that parametric pulses can be constructed without error."""
         Gaussian(duration=25, sigma=4, amp=0.5j)
