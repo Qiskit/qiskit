@@ -46,7 +46,7 @@ by two lines with different colors corresponding to the real and imaginary compo
 We may use two line-type IRs rather than defining a new IR that takes complex value,
 because many plotters don't support a function that visualize complex values.
 If we introduce such IR and write a custom wrapper function on top of a plotter API,
-it could be difficult to prevent bugs by the CI process due to lack of the unittest for it.
+it could be difficult to prevent bugs by the CI process due to lack of the unittest.
 """
 from abc import ABC, abstractmethod
 from typing import Dict, Any
