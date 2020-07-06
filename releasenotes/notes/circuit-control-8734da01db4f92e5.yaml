@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add a ``control`` method to the ``QuantumCircuit`` to return a controlled
+    version of the circuit, with both open and closed controls. 
+    This functionality has previously only been accessible via the ``Gate``
+    object. The underlying implementation of ``QuantumCircuit.control``
+    relies on ``Gate.control``.
