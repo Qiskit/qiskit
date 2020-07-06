@@ -64,6 +64,7 @@ class SXGate(Gate):
         """
         gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .rz import RZGate
         from .h import HGate
@@ -178,6 +179,7 @@ class CSXGate(ControlledGate):
         """
         gate csx a,b { h b; cu1(pi/2) a,b; h b; }
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .u1 import CU1Gate
