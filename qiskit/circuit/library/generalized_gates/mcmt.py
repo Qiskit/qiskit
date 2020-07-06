@@ -14,7 +14,7 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
-from typing import Union, Callable, List, Tuple
+from typing import Union, Callable, List, Tuple, Optional
 
 import warnings
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
@@ -52,7 +52,8 @@ class MCMT(QuantumCircuit):
 
     def __init__(self, gate: Union[Gate, Callable[[QuantumCircuit, Qubit, Qubit], Instruction]],
                  num_ctrl_qubits: int,
-                 num_target_qubits: int) -> None:
+                 num_target_qubits: int,
+                 label: Optional[str] = None) -> None:
         """Create a new multi-control multi-target gate.
 
         Args:
@@ -61,6 +62,8 @@ class MCMT(QuantumCircuit):
                 If it is a callable, it will be casted to a Gate.
             num_ctrl_qubits: The number of control qubits.
             num_target_qubits: The number of target qubits.
+            label: The name for the controlled circuit block. If None, set to `C-name` where
+                `name` is `gate.name`.
 
         Raises:
             AttributeError: If the gate cannot be casted to a controlled gate.
@@ -78,6 +81,11 @@ class MCMT(QuantumCircuit):
         # initialize the circuit object
         super().__init__(num_qubits, name='mcmt')
 
+        if label is None:
+            self.label = '{}-{}'.format(num_target_qubits, self.gate.name.capitalize())
+        else:
+            self.label = label
+
         # build the circuit
         self._build()
 
@@ -87,8 +95,7 @@ class MCMT(QuantumCircuit):
             # no broadcasting needed (makes for better circuit diagrams)
             broadcasted_gate = self.gate
         else:
-            name = '{}-{}'.format(self.num_target_qubits, self.gate.name.capitalize())
-            broadcasted = QuantumCircuit(self.num_target_qubits, name=name)
+            broadcasted = QuantumCircuit(self.num_target_qubits, name=self.label)
             for target in list(range(self.num_target_qubits)):
                 broadcasted.append(self.gate, [target], [])
             broadcasted_gate = broadcasted.to_gate()
@@ -139,11 +146,14 @@ class MCMT(QuantumCircuit):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return the controlled version of the MCMT circuit."""
-        return MCMT(self.gate,
-                    self.num_ctrl_qubits + num_ctrl_qubits,
-                    self.num_target_qubits)
+        if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
+            return MCMT(self.gate,
+                        self.num_ctrl_qubits + num_ctrl_qubits,
+                        self.num_target_qubits,
+                        label)
+        return super().control(num_ctrl_qubits, label, ctrl_state)
 
     def inverse(self):
         """Return the inverse MCMT circuit, which is itself."""
