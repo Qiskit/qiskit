@@ -42,7 +42,9 @@ class VGate(Gate):
     def _define(self):
         """V Gate definition."""
         q = QuantumRegister(1, 'q')
-        self.definition = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+        qc = QuantumCircuit(q)
+        qc.data = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+        self.definition = qc
 
 
 class WGate(Gate):
@@ -54,7 +56,9 @@ class WGate(Gate):
     def _define(self):
         """W Gate definition."""
         q = QuantumRegister(1, 'q')
-        self.definition = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+        qc = QuantumCircuit(q)
+        qc.data = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+        self.definition = qc
 
 
 def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):

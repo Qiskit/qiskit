@@ -34,7 +34,7 @@ class TGate(Gate):
 
         T = \begin{pmatrix}
                 1 & 0 \\
-                0 & 1+i
+                0 & e^{i\pi/4}
             \end{pmatrix}
 
     **Circuit symbol:**
@@ -56,15 +56,16 @@ class TGate(Gate):
         """
         gate t a { u1(pi/4) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(pi / 4), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse T gate (i.e. Tdg)."""
@@ -89,7 +90,7 @@ class TdgGate(Gate):
 
         Tdg = \begin{pmatrix}
                 1 & 0 \\
-                0 & 1-i
+                0 & e^{-i\pi/4}
             \end{pmatrix}
 
     **Circuit symbol:**
@@ -111,15 +112,16 @@ class TdgGate(Gate):
         """
         gate tdg a { u1(pi/4) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(-pi / 4), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse Tdg gate (i.e. T)."""

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Two new methods for layout and routing have been added
+    to the transpiler. They can be selected by
+    passing the `layout_method='sabre'` and `routing_method='sabre'`
+    to the :meth:`~qiskit.transpile()` function. The methods are based on
+    Li et al. Tackling the Qubit Mapping Problem for NISQ-Era Quantum Devices,
+    ASPLOS 2019.

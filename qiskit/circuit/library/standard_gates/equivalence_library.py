@@ -20,15 +20,14 @@
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
 
+from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
+
 from . import (
     HGate,
     CHGate,
     MSGate,
     RGate,
     RCCXGate,
-    RC3XGate,
-    C3XGate,
-    C4XGate,
     RXGate,
     CRXGate,
     RXXGate,
@@ -127,88 +126,6 @@ for inst, qargs, cargs in [
     def_rccx.append(inst, qargs, cargs)
 _sel.add_equivalence(RCCXGate(), def_rccx)
 
-# RC3XGate
-
-q = QuantumRegister(4, 'q')
-def_rc3x = QuantumCircuit(q)
-for inst, qargs, cargs in [
-        (HGate(), [q[3]], []),
-        (TGate(), [q[3]], []),
-        (CXGate(), [q[2], q[3]], []),
-        (TdgGate(), [q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[0], q[3]], []),
-        (TGate(), [q[3]], []),
-        (CXGate(), [q[1], q[3]], []),
-        (TdgGate(), [q[3]], []),
-        (CXGate(), [q[0], q[3]], []),
-        (TGate(), [q[3]], []),
-        (CXGate(), [q[1], q[3]], []),
-        (TdgGate(), [q[3]], []),
-        (HGate(), [q[3]], []),
-        (TGate(), [q[3]], []),
-        (CXGate(), [q[2], q[3]], []),
-        (TdgGate(), [q[3]], []),
-        (HGate(), [q[3]], []),
-]:
-    def_rc3x.append(inst, qargs, cargs)
-_sel.add_equivalence(RC3XGate(), def_rc3x)
-
-# C3XGate
-
-q = QuantumRegister(4, 'q')
-def_c3x = QuantumCircuit(q)
-for inst, qargs, cargs in [
-        (HGate(), [q[3]], []),
-        (CU1Gate(-pi/4), [q[0], q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[0], q[1]], []),
-        (HGate(), [q[3]], []),
-        (CU1Gate(pi/4), [q[1], q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[0], q[1]], []),
-        (HGate(), [q[3]], []),
-        (CU1Gate(-pi/4), [q[1], q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[1], q[2]], []),
-        (HGate(), [q[3]], []),
-        (CU1Gate(pi/4), [q[2], q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[0], q[2]], []),
-        (HGate(), [q[3]], []),
-        (CU1Gate(-pi/4), [q[2], q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[1], q[2]], []),
-        (HGate(), [q[3]], []),
-        (CU1Gate(pi/4), [q[2], q[3]], []),
-        (HGate(), [q[3]], []),
-        (CXGate(), [q[0], q[2]], []),
-        (HGate(), [q[3]], []),
-        (CU1Gate(-pi/4), [q[2], q[3]], []),
-        (HGate(), [q[3]], [])
-]:
-    def_c3x.append(inst, qargs, cargs)
-_sel.add_equivalence(C3XGate(), def_c3x)
-
-
-# C4XGate
-
-q = QuantumRegister(5, 'q')
-def_c4x = QuantumCircuit(q)
-for inst, qargs, cargs in [
-        (HGate(), [q[4]], []),
-        (CU1Gate(-pi / 2), [q[3], q[4]], []),
-        (HGate(), [q[4]], []),
-        (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-        (HGate(), [q[4]], []),
-        (CU1Gate(pi / 2), [q[3], q[4]], []),
-        (HGate(), [q[4]], []),
-        (C3XGate(), [q[0], q[1], q[2], q[3]], []),
-        (C3XGate(pi / 8), [q[0], q[1], q[2], q[4]], []),
-]:
-    def_c4x.append(inst, qargs, cargs)
-_sel.add_equivalence(C4XGate(), def_c4x)
-
 # RXGate
 
 q = QuantumRegister(1, 'q')
@@ -295,6 +212,14 @@ theta = Parameter('theta')
 def_rz = QuantumCircuit(q)
 def_rz.append(U1Gate(theta), [q[0]], [])
 _sel.add_equivalence(RZGate(theta), def_rz)
+
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+rz_to_rxry = QuantumCircuit(q)
+rz_to_rxry.append(RXGate(pi/2), [q[0]], [])
+rz_to_rxry.append(RYGate(-theta), [q[0]], [])
+rz_to_rxry.append(RXGate(-pi/2), [q[0]], [])
+_sel.add_equivalence(RZGate(theta), rz_to_rxry)
 
 # CRZGate
 
@@ -447,6 +372,18 @@ _sel.add_equivalence(U1Gate(theta), def_u1)
 
 # U3Gate
 
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+u3_qasm_def = QuantumCircuit(q)
+u3_qasm_def.rz(lam, 0)
+u3_qasm_def.rx(pi/2, 0)
+u3_qasm_def.rz(theta+pi, 0)
+u3_qasm_def.rx(pi/2, 0)
+u3_qasm_def.rz(phi+3*pi, 0)
+_sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
+
 # CU3Gate
 
 q = QuantumRegister(2, 'q')
@@ -473,6 +410,42 @@ def_x.append(U3Gate(pi, 0, pi), [q[0]], [])
 _sel.add_equivalence(XGate(), def_x)
 
 # CXGate
+
+for plus_ry in [False, True]:
+    for plus_rxx in [False, True]:
+        cx_to_rxx = cnot_rxx_decompose(plus_ry, plus_rxx)
+        _sel.add_equivalence(CXGate(), cx_to_rxx)
+
+q = QuantumRegister(2, 'q')
+cx_to_cz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[1]], []),
+        (CZGate(), [q[0], q[1]], []),
+        (HGate(), [q[1]], [])
+]:
+    cx_to_cz.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_cz)
+
+q = QuantumRegister(2, 'q')
+cx_to_iswap = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (HGate(), [q[0]], []),
+        (XGate(), [q[1]], []),
+        (HGate(), [q[1]], []),
+        (iSwapGate(), [q[0], q[1]], []),
+        (XGate(), [q[0]], []),
+        (XGate(), [q[1]], []),
+        (HGate(), [q[1]], []),
+        (iSwapGate(), [q[0], q[1]], []),
+        (HGate(), [q[0]], []),
+        (SGate(), [q[0]], []),
+        (SGate(), [q[1]], []),
+        (XGate(), [q[1]], []),
+        (HGate(), [q[1]], []),
+]:
+    cx_to_iswap.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_iswap)
+
 
 # CCXGate
 

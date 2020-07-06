@@ -80,15 +80,16 @@ class U1Gate(Gate):
         super().__init__('u1', 1, [theta], label=label)
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U3Gate(0, 0, self.params[0]), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-U1 gate.
@@ -118,8 +119,7 @@ class U1Gate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the U1 gate."""
-        lam = self.params[0]
-        lam = float(lam)
+        lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
@@ -184,19 +184,20 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
           u1(lambda/2) b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(self.params[0] / 2), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(self.params[0] / 2), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
@@ -219,6 +220,17 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
         return CU1Gate(-self.params[0])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CU1 gate."""
+    #    eith = numpy.exp(1j * self.params[0])
+    #    return numpy.array([[1, 0, 0,    0],
+    #                        [0, 1, 0,    0],
+    #                        [0, 0, 1,    0],
+    #                        [0, 0, 0, eith]],
+    #                       dtype=complex)
 
 
 class Cu1Gate(CU1Gate, metaclass=CU1Meta):
@@ -265,7 +277,10 @@ class MCU1Gate(ControlledGate):
         self.base_gate = U1Gate(lam)
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, 'q')
+        qc = QuantumCircuit(q, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
@@ -276,8 +291,8 @@ class MCU1Gate(ControlledGate):
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CU1Gate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-
-        self.definition = definition
+        qc.data = definition
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Controlled version of this gate.
