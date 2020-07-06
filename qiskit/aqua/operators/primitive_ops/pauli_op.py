@@ -231,10 +231,6 @@ class PauliOp(PrimitiveOp):
             from ..evolutions.evolved_op import EvolvedOp
             return EvolvedOp(self)
 
-    def __hash__(self) -> int:
-        # Need this to be able to easily construct AbelianGraphs
-        return hash(str(self))
-
     def commutes(self, other_op: OperatorBase) -> bool:
         """ Returns whether self commutes with other_op.
 
