@@ -14,8 +14,8 @@
 r"""
 Drawing object IRs for pulse drawer.
 
-Drawing IRs have two roles:
-- Allowing unittest for visualization module, because it is hard for image files to be tested.
+Drawing IRs play two important roles:
+- Allowing unittests of visualization module. Usually it is hard for image files to be tested.
 - Removing program parser from each plotter interface. We can easily add new plotter.
 
 IRs supported by this module is designed based on `matplotlob` since it is the primary plotter
@@ -190,8 +190,8 @@ class TextData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  bind: pulse.channels.Channel,
-                 x: np.ndarray,
-                 y: np.ndarray,
+                 x: float,
+                 y: float,
                  text: str,
                  meta: Dict[str, Any],
                  offset: float,
@@ -201,8 +201,8 @@ class TextData(ElementaryData):
         Args:
             data_type: String representation of this drawing object.
             bind: Pulse channel object bound to this drawing.
-            x: Series of horizontal coordinate that the object is drawn.
-            y: Series of vertical coordinate that the object is drawn.
+            x: A horizontal coordinate that the object is drawn.
+            y: A vertical coordinate that the object is drawn.
             text: String to show in the canvas.
             offset: Offset coordinate of vertical axis.
             visible: Set ``True`` to show the component on the canvas.
@@ -225,6 +225,6 @@ class TextData(ElementaryData):
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.bind,
-                         tuple(self.x),
-                         tuple(self.y),
+                         self.x,
+                         self.y,
                          self.text)))

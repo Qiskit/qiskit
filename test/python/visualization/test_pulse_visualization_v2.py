@@ -16,8 +16,11 @@
 
 """Tests for IR generation of pulse visualization."""
 
+import numpy as np
+
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
+from qiskit.visualization.pulse_v2 import drawing_objects
 from qiskit.visualization.pulse_v2.events import ChannelEvents
 
 
@@ -116,3 +119,112 @@ class TestChannelEvents(QiskitTestCase):
 
         _, frame, _ = frames[1]
         self.assertAlmostEqual(frame.freq, 1.0)
+
+
+class TestDrawingObjects(QiskitTestCase):
+    """Tests for DrawingObjects."""
+    def test_filled_area_data(self):
+        """Test FilledAreaData."""
+        data1 = drawing_objects.FilledAreaData(
+            data_type='waveform',
+            bind=pulse.DriveChannel(0),
+            x=np.array([0, 1, 2]),
+            y1=np.array([3, 4, 5]),
+            y2=np.array([0, 0, 0]),
+            meta={
+                'test_val': 0
+            },
+            offset=0,
+            visible=True,
+            styles={
+                'color': 'red'
+            }
+        )
+
+        data2 = drawing_objects.FilledAreaData(
+            data_type='waveform',
+            bind=pulse.DriveChannel(0),
+            x=np.array([0, 1, 2]),
+            y1=np.array([3, 4, 5]),
+            y2=np.array([0, 0, 0]),
+            meta={
+                'test_val': 1
+            },
+            offset=1,
+            visible=False,
+            styles={
+                'color': 'blue'
+            }
+        )
+
+        self.assertEqual(data1, data2)
+
+    def test_line_data(self):
+        """Test for LineData."""
+        data1 = drawing_objects.LineData(
+            data_type='baseline',
+            bind=pulse.DriveChannel(0),
+            x=np.array([0, 1, 2]),
+            y=np.array([0, 0, 0]),
+            meta={
+                'test_val': 0
+            },
+            offset=0,
+            visible=True,
+            styles={
+                'color': 'red'
+            }
+        )
+
+        data2 = drawing_objects.LineData(
+            data_type='baseline',
+            bind=pulse.DriveChannel(0),
+            x=np.array([0, 1, 2]),
+            y=np.array([0, 0, 0]),
+            meta={
+                'test_val': 1
+            },
+            offset=1,
+            visible=False,
+            styles={
+                'color': 'blue'
+            }
+        )
+
+        self.assertEqual(data1, data2)
+
+    def test_text_data(self):
+        """Test for TextData."""
+        data1 = drawing_objects.TextData(
+            data_type='pulse_label',
+            bind=pulse.DriveChannel(0),
+            x=0,
+            y=0,
+            text='my_text',
+            meta={
+                'test_val': 0
+            },
+            offset=0,
+            visible=True,
+            styles={
+                'color': 'red'
+            }
+        )
+
+        data2 = drawing_objects.TextData(
+            data_type='pulse_label',
+            bind=pulse.DriveChannel(0),
+            x=0,
+            y=0,
+            text='my_text',
+            meta={
+                'test_val': 1
+            },
+            offset=1,
+            visible=False,
+            styles={
+                'color': 'blue'
+            }
+        )
+
+        self.assertEqual(data1, data2)
