@@ -14,26 +14,39 @@
 r"""
 Drawing object IRs for pulse drawer.
 
-In this module, we support following IRs.
+Drawing IRs have two roles:
+- Allowing unittest for visualization module, because it is hard for image files to be tested.
+- Removing program parser from each plotter interface. We can easily add new plotter.
 
-- ``FilledAreaData``
-- ``LineData``
-- ``TextData``
+IRs supported by this module is designed based on `matplotlob` since it is the primary plotter
+of the pulse drawer. However IRs should be agnostic to the actual plotter.
 
-Those object is designed based upon `matplotlib` since it is the primary plotter of
-the pulse drawer. However those object should be backend plotter agnostic rather
-than designed specific to the `matplotlib`.
+When we think about the dynamic update of drawing objects, it will be efficient to
+just update properties of drawing objects rather than regenerating everything from scratch.
+Thus the core drawing function generates all possible drawings in the beginning and
+then updates the visibility and the coordinate of each item according to the end-user request.
+Drawing properties are designed based on this line of thinking.
 
-In interactive visualization, for example, we may use other plotter such as `bokeh`
-and drawing IRs should be able to be interpreted by all plotters supported by the pulse drawer.
+In the abstract class ``ElementaryData`` common properties to represent a drawing object are
+specified. In addition, it has the `data_key` property that returns an unique hash for
+the drawing for comparing objects. This property should be defined in each sub-class by
+considering important properties to identify that object, i.e. `visible` should not
+be a part of the key, because change on this property just set visibility of
+the same drawing.
 
-To satisfy this requirement, the drawing IRs should be simple and preferably represent
-a primitive shape that can be universally expressed by most of plotters.
+To support not only `matplotlib` but also multiple plotters, those drawing IRs should be
+universal and designed without strong dependency on modules in `matplotlib`.
+Thus, an IR should represent a primitive geometry that is supported by many plotters.
+It should be noted that there will be no unittest for an actual plotter interface, which takes
+drawing IRs and output image data, we should avoid adding a complicated data structure
+that has a context of the pulse program.
 
-For example, a pulse envelope is complex valued and may be represented by two lines
-with different colors corresponding to the real and imaginary component.
-However, this object should be represented with two ``FilledAreaData`` IRs
-rather than defining a dedicated IR. A complicated IR may not be handled by some plotters.
+For example, a pulse envelope is complex valued number array and may be represented
+by two lines with different colors corresponding to the real and imaginary component.
+We may use two line-type IRs rather than defining a new IR that takes complex value,
+because many plotter doesn't support a function that visualize complex values.
+If we introduce such IR and write a custom wrapper function on top of a plotter API,
+it could be difficult to prevent bugs by the CI process.
 """
 from abc import ABC, abstractmethod
 from typing import Dict, Any
@@ -72,7 +85,9 @@ class ElementaryData(ABC):
         pass
 
     def __repr__(self):
-        return "{}(data_key={})".format(self.__class__.__name__, self.data_key)
+        return "{}(type={}, key={})".format(self.__class__.__name__,
+                                            self.data_type,
+                                            self.data_key)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.data_key == other.data_key
