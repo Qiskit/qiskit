@@ -96,6 +96,8 @@
                                 "enum": [
                                     "pv",
                                     "fc",
+                                    "setp",
+                                    "shiftp",
                                     "setf",
                                     "shiftf",
                                     "acquire",
@@ -155,6 +157,42 @@
                         "ch"
                     ],
                     "title": "Frame change pulse"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "setp"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Set Phase"
+                },
+                {
+                    "properties": {
+                        "name": {
+                            "enum": [
+                                "shiftp"
+                            ]
+                        },
+                        "phase": {
+                            "type": "number"
+                        }
+                    },
+                    "required": [
+                        "phase",
+                        "t0",
+                        "ch"
+                    ],
+                    "title": "Shift Phase"
                 },
                 {
                     "properties": {
@@ -1086,7 +1124,13 @@
                         },
                         "rep_time": {
                             "minimum": 1,
+                            "description": "Execution time of program (microseconds).",
                             "type": "integer"
+                        },
+                        "rep_delay": {
+                            "minimum": 0,
+                            "description": "Delay between programs (microseconds).",
+                            "type": "number"
                         }
                     },
                     "required": [
