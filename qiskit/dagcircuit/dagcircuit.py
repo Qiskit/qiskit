@@ -97,8 +97,8 @@ class DAGCircuit:
         G = nx.MultiDiGraph()
         for node in self._multi_graph.nodes():
             G.add_node(node)
-        for node in rx.topological_sort(self._multi_graph):
-            for source, dest, edge in self._multi_graph.in_edges(node):
+        for node_id in rx.topological_sort(self._multi_graph):
+            for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
                 G.add_edge(self._id_to_node[source], self._id_to_node[dest],
                            **edge)
         return G
@@ -933,10 +933,10 @@ class DAGCircuit:
         in_edges = self._multi_graph.in_edges(node._node_id)
         out_edges = self._multi_graph.out_edges(node._node_id)
 
-        for src, _, data in in_edges:
-            self._multi_graph.add_edge(src, node_index, data)
-        for _, dest, data in out_edges:
-            self._multi_graph.add_edge(node_index, dest, data)
+        for src_id, _, data in in_edges:
+            self._multi_graph.add_edge(src_id, node_index, data)
+        for _, dest_id, data in out_edges:
+            self._multi_graph.add_edge(node_index, dest_id, data)
 
         self._multi_graph.remove_node(node._node_id)
 
