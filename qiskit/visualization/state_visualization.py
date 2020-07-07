@@ -39,6 +39,7 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.exceptions import VisualizationError
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+    from qiskit.util import deprecate_arguments
 
 
 if HAS_MATPLOTLIB:
@@ -58,6 +59,7 @@ if HAS_MATPLOTLIB:
             FancyArrowPatch.draw(self, renderer)
 
 
+@deprecate_arguments({'rho': 'state'})
 def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
@@ -224,6 +226,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     return None
 
 
+@deprecate_arguments({'rho': 'state'})
 def plot_bloch_multivector(state, title='', figsize=None):
     """Plot the Bloch sphere.
 
@@ -276,6 +279,7 @@ def plot_bloch_multivector(state, title='', figsize=None):
     return fig
 
 
+@deprecate_arguments({'rho': 'state'})
 def plot_state_city(state, title="", figsize=None, color=None,
                     alpha=1, ax_real=None, ax_imag=None):
     """Plot the cityscape of quantum state.
@@ -486,6 +490,7 @@ def plot_state_city(state, title="", figsize=None, color=None,
         return fig
 
 
+@deprecate_arguments({'rho': 'state'})
 def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None):
     """Plot the paulivec representation of a quantum state.
 
@@ -625,6 +630,7 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
+@deprecate_arguments({'rho': 'state'})
 def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                        show_state_phases=False, use_degrees=False):
     """Plot the qsphere representation of a quantum state.
