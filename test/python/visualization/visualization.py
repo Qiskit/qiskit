@@ -61,8 +61,8 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         similarity_ratio = black_pixels / total_pixels
         self.assertTrue(
             1 - similarity_ratio < diff_tolerance,
-            'The images are different by more than a {}%'
-            .format(diff_tolerance * 100))
+            'The images are different by {}%'.format((1 - similarity_ratio) * 100) +
+            ' which is more than the allowed {}%'.format(diff_tolerance * 100))
 
 
 def _get_black_pixels(image):
