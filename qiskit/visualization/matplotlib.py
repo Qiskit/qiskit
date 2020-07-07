@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 WID = 0.65
 HIG = 0.65
 
-DEFAULT_SCALE = 3.01
+BASE_SIZE = 3.01
 PORDER_GATE = 5
 PORDER_LINE = 3
 PORDER_REGLINE = 2
@@ -568,7 +568,7 @@ class MatplotlibDrawer:
         fig_w = _xr - _xl
         fig_h = _yt - _yb
         if self._style.figwidth < 0.0:
-            self._style.figwidth = fig_w * DEFAULT_SCALE * self._style.fs / 72 / WID
+            self._style.figwidth = fig_w * BASE_SIZE * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
 
         if filename:
