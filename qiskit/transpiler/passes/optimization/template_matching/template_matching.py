@@ -193,11 +193,11 @@ class TemplateMatching:
         """
 
         # Get the number of qubits/clbits for both circuit and template.
-        n_qubits_c = len(self.circuit_dag_dep.qubits())
-        n_clbits_c = len(self.circuit_dag_dep.clbits())
+        n_qubits_c = len(self.circuit_dag_dep.qubits)
+        n_clbits_c = len(self.circuit_dag_dep.clbits)
 
-        n_qubits_t = len(self.template_dag_dep.qubits())
-        n_clbits_t = len(self.template_dag_dep.clbits())
+        n_qubits_t = len(self.template_dag_dep.qubits)
+        n_clbits_t = len(self.template_dag_dep.clbits)
 
         # Loop over the indices of both template and circuit.
         for template_index in range(0, self.template_dag_dep.size()):

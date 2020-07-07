@@ -89,7 +89,7 @@ class TemplateOptimization(TransformationPass):
             if not comparison:
                 raise TranspilerError('A template is a Quantumciruit() that performs the identity.')
 
-            if template.num_qubits > len(circuit_dag_dep.qubits()):
+            if template.num_qubits > len(circuit_dag_dep.qubits):
                 continue
 
             template_dag_dep = circuit_to_dagdependency(template)
