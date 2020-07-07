@@ -99,7 +99,8 @@ class DAGCircuit:
             G.add_node(node)
         for node_id in rx.topological_sort(self._multi_graph):
             for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
-                G.add_edge(self._id_to_node[source], self._id_to_node[dest],
+                G.add_edge(self._id_to_node[source_id],
+                           self._id_to_node[dest_id],
                            **edge)
         return G
 
