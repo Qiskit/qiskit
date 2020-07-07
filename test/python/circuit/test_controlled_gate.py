@@ -146,10 +146,9 @@ class TestControlledGate(QiskitTestCase):
         target = QuantumRegister(num_target)
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:] + target[:])
-        simulator = BasicAer.get_backend('unitary_simulator')
-        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        op_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
-        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_single_controlled_composite_gate(self):
@@ -167,10 +166,9 @@ class TestControlledGate(QiskitTestCase):
         target = QuantumRegister(num_target, 'target')
         qc = QuantumCircuit(control, target)
         qc.append(cont_gate, control[:] + target[:])
-        simulator = BasicAer.get_backend('unitary_simulator')
-        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        op_mat = Operator(cgate).data
         cop_mat = _compute_control_matrix(op_mat, num_ctrl)
-        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_multi_control_u3(self):
@@ -206,16 +204,11 @@ class TestControlledGate(QiskitTestCase):
         c_cu3 = cu3gate.control(1)
         qc_cu3.append(c_cu3, qr, [])
 
-        job = execute([qcnu3, qu3, qcu3, qc_cu3], BasicAer.get_backend('unitary_simulator'),
-                      basis_gates=['u1', 'u2', 'u3', 'id', 'cx'])
-        result = job.result()
-
         # Circuit unitaries
-        mat_cnu3 = result.get_unitary(0)
-
-        mat_u3 = result.get_unitary(1)
-        mat_cu3 = result.get_unitary(2)
-        mat_c_cu3 = result.get_unitary(3)
+        mat_cnu3 = Operator(qcnu3).data
+        mat_u3 = Operator(qu3).data
+        mat_cu3 = Operator(qcu3).data
+        mat_c_cu3 = Operator(qc_cu3).data
 
         # Target Controlled-U3 unitary
         target_cnu3 = _compute_control_matrix(mat_u3, num_ctrl)
@@ -231,8 +224,8 @@ class TestControlledGate(QiskitTestCase):
         for itest in tests:
             info, target, decomp = itest[0], itest[1], itest[2]
             with self.subTest(i=info):
-                self.log.info(info)
-                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
+                self.assertTrue(matrix_equal(target, decomp, ignore_phase=True,
+                                             atol=1e-8, rtol=1e-5))
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
@@ -574,7 +567,6 @@ class TestControlledGate(QiskitTestCase):
                         i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
-
                 np.testing.assert_array_almost_equal(statevector.real, reference)
 
     @data(1, 2, 3, 4)
