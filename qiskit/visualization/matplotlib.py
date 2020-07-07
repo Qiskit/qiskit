@@ -114,7 +114,7 @@ class MatplotlibDrawer:
                               'To install, run "pip install matplotlib".')
 
         self._ast = None
-        self._scale = 1.0 if scale is None else scale
+        self._scale = DEFAULT_SCALE if scale is None else DEFAULT_SCALE * scale
         self._creg = []
         self._qreg = []
         self._registers(cregs, qregs)
