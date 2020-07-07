@@ -143,8 +143,6 @@ class RZXGate(Gate):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
         return RZXGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
     def to_matrix(self):
        """Return a numpy.array for the RZX gate."""
        import numpy

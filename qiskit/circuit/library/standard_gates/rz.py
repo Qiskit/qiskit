@@ -68,9 +68,10 @@ class RZGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        theta = self.params[0]
+        qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
         rules = [
-            (U1Gate(self.params[0]), [q[0]], [])
+            (U1Gate(theta), [q[0]], [])
         ]
         qc.data = rules
         self.definition = qc

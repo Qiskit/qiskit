@@ -177,8 +177,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         if not param_gate.definition or not param_gate.definition.data:
             return
 
-        self.assertEqual(len(param_entry), 1)
-        self.assertEqual(len(float_entry), 1)
+        self.assertGreaterEqual(len(param_entry), 1)
+        self.assertGreaterEqual(len(float_entry), 1)
 
         param_qc = QuantumCircuit(param_gate.num_qubits)
         float_qc = QuantumCircuit(float_gate.num_qubits)
@@ -186,10 +186,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_qc.append(param_gate, param_qc.qregs[0])
         float_qc.append(float_gate, float_qc.qregs[0])
 
-        if not param_entry[0].phase:
-            self.assertEqual(param_entry[0], param_qc.decompose())
-            self.assertEqual(float_entry[0], float_qc.decompose())
-        else:
-            # temporary hack until gate.definition returns circuit
-            self.assertEqual(param_entry[0].data[0], param_qc.decompose().data[0])
-            self.assertEqual(Operator(float_entry[0]), Operator(float_qc.decompose()))
+        self.assertTrue(any(equiv == param_qc.decompose()
+                            for equiv in param_entry))
+        self.assertTrue(any(equiv == float_qc.decompose()
+                            for equiv in float_entry))

@@ -1030,6 +1030,13 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
+                np.set_printoptions(linewidth=300, precision=2, suppress=True)
+                # print('')
+                # print(gate_class)
+                # print(f'num_ctrl_qubits = {num_ctrl_qubits}, ctrl_state = {bin(ctrl_state)}')
+                # print(Operator(cgate).data)
+                # print(target_mat)
+                #import ipdb; ipdb.set_trace()
                 self.assertEqual(Operator(cgate), Operator(target_mat))
 
 @ddt

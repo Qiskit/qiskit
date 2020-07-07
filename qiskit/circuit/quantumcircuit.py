@@ -1743,7 +1743,7 @@ class QuantumCircuit:
         entry = self._parameter_table.pop(old_parameter)
         for new_parameter in new_parameter_expr.parameters:
             self._parameter_table[new_parameter] = entry
-        if isinstance(self.phase, ParameterExpression):
+        if isinstance(self.phase, ParameterExpression) and old_parameter in self.phase.parameters:
             self.phase = self.phase.subs({old_parameter: new_parameter_expr})
 
     def _rebind_definition(self, instruction, parameter, value):

@@ -81,8 +81,8 @@ class RYYGate(Gate):
         from .rz import RZGate
 
         q = QuantumRegister(2, 'q')
-        qc = QuantumCircuit(q, name=self.name)
         theta = self.params[0]
+        qc = QuantumCircuit(q, name=self.name, phase=theta / 2)
         rules = [
             (RXGate(np.pi / 2), [q[0]], []),
             (RXGate(np.pi / 2), [q[1]], []),

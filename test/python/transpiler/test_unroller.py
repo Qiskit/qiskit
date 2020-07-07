@@ -252,6 +252,7 @@ class TestUnrollAllInstructions(QiskitTestCase):
         dag = circuit_to_dag(self.circuit)
         unrolled_dag = self.pass_.run(dag)
         ref_dag = circuit_to_dag(self.ref_circuit)
+        import ipdb;ipdb.set_trace()
         self.assertEqual(unrolled_dag, ref_dag)
 
     def test_unroll_crx(self):
@@ -406,8 +407,6 @@ class TestUnrollAllInstructions(QiskitTestCase):
         """test unroll rz"""
         self.circuit.rz(0.3, 2)
         self.ref_circuit.u3(0, 0, 0.3, 2)
-        self.ref_circuit.u3(pi, -0.3/2, -pi - 0.3/2, 2)
-        self.ref_circuit.u3(pi, 0, pi, 2)
         self.compare_dags()
 
     def test_unroll_rzz(self):
