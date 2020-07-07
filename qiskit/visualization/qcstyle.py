@@ -24,28 +24,27 @@ class DefaultStyle:
 
     def __init__(self):
         # Set colors
-        basis_color = '#FA74A6'
-        clifford_color = '#6FA4FF'
-        non_gate_color = '#000000'
-        other_color = '#BB8BFF'
-        pauli_color = '#05BAB6'
-        iden_color = '#05BAB6'
+        basis_color = '#FA74A6'     # Red
+        clifford_color = '#6FA4FF'  # Blue
+        non_gate_color = '#000000'  # Black
+        other_color = '#BB8BFF'     # Purple
+        pauli_color = '#05BAB6'     # Green
+        iden_color = '#05BAB6'      # Green
 
         self.name = 'iqx'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
-        self.cc = '#778899'
-        self.gc = '#ffffff'
+        self.cc = '#778899'         # Medium Gray
+        self.gc = other_color
         self.gt = '#000000'
-        self.bc = '#bdbdbd'
+        self.bc = '#bdbdbd'         # Dark Gray
         self.bg = '#ffffff'
         self.edge_color = None
         self.math_fs = 15
         self.fs = 13
         self.sfs = 8
-        self.colored_add_width = 0.2
         self.disptex = {
             'id': 'I',
             'u0': 'U_0',
@@ -60,11 +59,20 @@ class DefaultStyle:
             'sdg': 'S^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
+            'iswap': 'Iswap',
+            'dcx': 'Dcx',
+            'ms': 'MS',
+            'diagonal': 'Diagonal',
+            'unitary': 'Unitary',
             'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
-            'reset': '\\left|0\\right\\rangle'
+            'rxx': 'R_{xx}',
+            'ryy': 'R_{yy}',
+            'rzx': 'R_{zx}',
+            'reset': '\\left|0\\right\\rangle',
+            'initialize': '|psi>'
         }
         self.dispcol = {
             'u0': basis_color,
@@ -90,13 +98,16 @@ class DefaultStyle:
             'rx': other_color,
             'ry': other_color,
             'rz': other_color,
+            'rxx': other_color,
+            'ryy': other_color,
+            'rzx': other_color,
             'reset': non_gate_color,
             'target': '#ffffff',
             'multi': other_color,
-            'meas': non_gate_color
+            'meas': non_gate_color,
+            'measure': non_gate_color
         }
         self.latexmode = False
-        self.bundle = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
@@ -118,7 +129,6 @@ class DefaultStyle:
         self.disptex = dic.pop('displaytext', self.disptex)
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
@@ -145,7 +155,6 @@ class BWStyle:
         self.edge_color = '#000000'
         self.fs = 13
         self.math_fs = 15
-        self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
             'id': 'I',
@@ -161,43 +170,59 @@ class BWStyle:
             'sdg': 'S^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
+            'iswap': 'Iswap',
+            'dcx': 'Dcx',
+            'ms': 'MS',
+            'diagonal': 'Diagonal',
+            'unitary': 'Unitary',
             'r': 'R',
             'rx': 'R_x',
             'ry': 'R_y',
             'rz': 'R_z',
-            'reset': '\\left|0\\right\\rangle'
+            'rxx': 'R_{xx}',
+            'ryy': 'R_{yy}',
+            'rzx': 'R_{zx}',
+            'reset': '\\left|0\\right\\rangle',
+            'initialize': '|psi>'
         }
         self.dispcol = {
-            'id': '#ffffff',
             'u0': '#ffffff',
             'u1': '#ffffff',
             'u2': '#ffffff',
             'u3': '#ffffff',
+            'id': '#ffffff',
             'x': '#ffffff',
             'y': '#ffffff',
             'z': '#ffffff',
             'h': '#ffffff',
             'cx': '#000000',
+            'cy': '#ffffff',
+            'cz': '#000000',
+            'swap': '#000000',
             's': '#ffffff',
             'sdg': '#ffffff',
+            'dcx': '#ffffff',
+            'iswap': '#ffffff',
             't': '#ffffff',
             'tdg': '#ffffff',
             'r': '#ffffff',
             'rx': '#ffffff',
             'ry': '#ffffff',
             'rz': '#ffffff',
+            'rxx': '#ffffff',
+            'ryy': '#ffffff',
+            'rzx': '#ffffff',
             'reset': '#ffffff',
             'target': '#ffffff',
+            'multi': '#ffffff',
             'meas': '#ffffff',
-            'swap': '#000000',
-            'multi': '#000000'
+            'measure': '#ffffff'
         }
         self.latexmode = False
-        self.bundle = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
-        self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.margin = [2.0, 0.1, 0.1, 0.3]
         self.cline = 'doublet'
 
     def set_style(self, style_dic):
@@ -217,7 +242,6 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
         self.dpi = dic.pop('dpi', self.dpi)
