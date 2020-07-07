@@ -377,7 +377,7 @@ class TwoQubitBasisDecomposer():
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
 
-        return U0r, U0l
+        return np.around(U0r, 13), np.around(U0l, 13)
 
     def decomp1(self, target):
         """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
