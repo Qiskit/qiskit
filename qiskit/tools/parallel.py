@@ -102,7 +102,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         terra.parallel.update: One of the parallel task has finished.
         terra.parallel.finish: All the parallel tasks have finished.
     """
-    if not values:
+    if len(values) == 0:
         return []
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
