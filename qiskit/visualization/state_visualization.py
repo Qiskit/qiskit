@@ -40,6 +40,7 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
     from qiskit.util import deprecate_arguments
+    from qiskit.circuit.tools.pi_check import pi_check
 
 
 if HAS_MATPLOTLIB:
@@ -689,7 +690,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
     # get the eigenvectors and eigenvalues
-    we, stateall = linalg.eigh(rho.data)
+    eigvals, eigvecs = linalg.eigh(rho.data)
 
     if figsize is None:
         figsize = (7, 7)
@@ -739,15 +740,12 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     for idx in range(eigvals.shape[0]-1, -1, -1):
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
-            if IS_DM:
-                state = eigvecs[:, idx]
-                loc = np.absolute(state).argmax()
-                # remove the global phase from max element
-                angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
-                angleset = np.exp(-1j * angles)
-                state = angleset * state
-            else:
-                state = eigvecs
+            state = eigvecs[:, idx]
+            loc = np.absolute(state).argmax()
+            # remove the global phase from max element
+            angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
+            angleset = np.exp(-1j * angles)
+            state = angleset * state
 
             d = num
             for i in range(2 ** num):
