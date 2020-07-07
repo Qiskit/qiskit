@@ -364,16 +364,16 @@ class MatplotlibDrawer:
                          clip_on=True, zorder=PORDER_TEXT)
         if text:
             if subtext:
-                self.ax.text(xpos+.11, ypos + 0.4 * height, text, ha='center',
+                self.ax.text(xpos + .11, ypos + 0.4 * height, text, ha='center',
                              va='center', fontsize=self._style.fs,
                              color=gt, clip_on=True,
                              zorder=PORDER_TEXT)
-                self.ax.text(xpos+.11, ypos + 0.2 * height, subtext, ha='center',
+                self.ax.text(xpos + .11, ypos + 0.2 * height, subtext, ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos+.11, ypos + .5 * (qubit_span - 1), text,
+                self.ax.text(xpos + .11, ypos + .5 * (qubit_span - 1), text,
                              ha='center', va='center', fontsize=self._style.fs,
                              color=gt, clip_on=True,
                              zorder=PORDER_TEXT, wrap=True)
@@ -683,7 +683,7 @@ class MatplotlibDrawer:
             if this_creg['val'] > 1:
                 self.ax.plot([self.x_offset + 0.64, self.x_offset + 0.74], [y - .1, y + .1],
                              color=self._style.cc, zorder=PORDER_LINE)
-                self.ax.text(self.x_offset+0.54, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset + 0.54, y + .1, str(this_creg['val']), ha='left',
                              va='bottom', fontsize=0.8 * self._style.fs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
@@ -917,10 +917,10 @@ class MatplotlibDrawer:
                                             q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._ctrl_qubit(q_xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
                     if op.name != 'cu1':
-                        self._ctrl_qubit(q_xy[num_ctrl_qubits+1], fc=ec, ec=ec, tc=tc)
+                        self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     stext = self._style.disptex['u1'] if op.name == 'cu1' else 'zz'
                     self._sidetext(qreg_b, tc=tc,
-                                   text='${}$'.format(stext)+' '+'({})'.format(param))
+                                   text='${}$'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # swap gate
@@ -935,7 +935,7 @@ class MatplotlibDrawer:
                     self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
                     self._swap(q_xy[num_ctrl_qubits], color=lc)
-                    self._swap(q_xy[num_ctrl_qubits+1], color=lc)
+                    self._swap(q_xy[num_ctrl_qubits + 1], color=lc)
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # all other controlled gates
