@@ -250,30 +250,6 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, Acquire], List[AcquireIn
                                   'in measurement map: {1}'.format(measured_qubits, meas_set))
 
 
-def _bundle_channel_indices(
-        instructions: List[Acquire]
-) -> Tuple[List[int], List[int], List[int]]:
-    """From the list of AcquireInstructions, bundle the indices of the acquire channels,
-    memory slots, and register slots into a 3-tuple of lists.
-
-    Args:
-        instructions: A list of AcquireInstructions to be bundled.
-
-    Returns:
-        The qubit indices, the memory slot indices, and register slot indices from instructions.
-    """
-    qubits = []
-    mem_slots = []
-    reg_slots = []
-    for inst in instructions:
-        qubits.append(inst.channel.index)
-        if inst.mem_slot:
-            mem_slots.append(inst.mem_slot.index)
-        if inst.reg_slot:
-            reg_slots.append(inst.reg_slot.index)
-    return qubits, mem_slots, reg_slots
-
-
 def _assemble_config(lo_converter: LoConfigConverter,
                      experiment_config: Dict[str, Any],
                      run_config: RunConfig) -> PulseQobjConfig:
