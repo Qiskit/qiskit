@@ -118,7 +118,7 @@ class InstructionDurations:
         if isinstance(qubits, (int, Qubit)):
             qubits = [qubits]
 
-        if isinstance(qubits, list):
+        if isinstance(qubits[0], Qubit):
             qubits = [q.index for q in qubits]
 
         try:
