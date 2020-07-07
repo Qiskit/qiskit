@@ -69,8 +69,10 @@ class ElementaryData(ABC):
         Args:
             data_type: String representation of this drawing object.
             bind: Pulse channel object bound to this drawing.
+            meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.data_type = data_type
         self.bind = bind
@@ -114,8 +116,10 @@ class FilledAreaData(ElementaryData):
             x: Series of horizontal coordinate that the object is drawn.
             y1: Series of vertical coordinate of upper boundary of filling area.
             y2: Series of vertical coordinate of lower boundary of filling area.
+            meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
         self.y1 = y1
@@ -159,8 +163,10 @@ class LineData(ElementaryData):
             bind: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
             y: Series of vertical coordinate that the object is drawn.
+            meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
         self.y = y
@@ -204,8 +210,10 @@ class TextData(ElementaryData):
             x: A horizontal coordinate that the object is drawn.
             y: A vertical coordinate that the object is drawn.
             text: String to show in the canvas.
+            meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
         self.y = y
