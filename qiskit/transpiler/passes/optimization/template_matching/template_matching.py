@@ -244,7 +244,7 @@ class TemplateMatching:
                                             # Apply the backward match part of the algorithm.
                                             backward = BackwardMatch(forward.circuit_dag_dep,
                                                                      forward.template_dag_dep,
-                                                                     forward.match, node_id_c,
+                                                                     forward.match,
                                                                      node_id_c,
                                                                      node_id_t,
                                                                      list_qubit_circuit,

@@ -452,6 +452,7 @@ class BackwardMatch:
             carg1 = self._update_carg_indices(carg1)
 
             global_match = False
+            global_broken = []
 
             # Loop over the template candidates.
             for template_id in candidates_indices:
@@ -499,6 +500,11 @@ class BackwardMatch:
                                         circuit_matched_match[new_id] = []
                                         template_matched_match[succ_id] = []
                                         broken_matches_match.append(succ_id)
+
+                    if broken_matches_match:
+                        global_broken.append(True)
+                    else:
+                        global_broken.append(False)
 
                     new_matches_scenario_match = [elem for elem in matches_scenario_match
                                                   if elem[0] not in broken_matches_match]
@@ -572,7 +578,7 @@ class BackwardMatch:
 
                 # Third option: if blocking the succesors breaks a match, we consider
                 # also the possibility to block all predecessors (push the gate to the left).
-                if broken_matches:
+                if broken_matches and all(global_broken):
 
                     circuit_matched_block_p = circuit_matched.copy()
                     circuit_blocked_block_p = circuit_blocked.copy()
