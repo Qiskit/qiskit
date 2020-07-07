@@ -299,16 +299,16 @@ class TestHoareOptimizer(QiskitTestCase):
         """ The is_identity function determines whether a pair of gates
             forms the identity, when ignoring control qubits.
         """
-        seq = [DAGNode({'type': 'op', 'op': XGate().control()}),
-               DAGNode({'type': 'op', 'op': XGate().control(2)})]
+        seq = [DAGNode(type='op', op=XGate().control()),
+               DAGNode(type='op', op=XGate().control(2))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode({'type': 'op', 'op': RZGate(-pi/2).control()}),
-               DAGNode({'type': 'op', 'op': RZGate(pi/2).control(2)})]
+        seq = [DAGNode(type='op', op=RZGate(-pi/2).control()),
+               DAGNode(type='op', op=RZGate(pi/2).control(2))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode({'type': 'op', 'op': CSwapGate()}),
-               DAGNode({'type': 'op', 'op': SwapGate()})]
+        seq = [DAGNode(type='op', op=CSwapGate()),
+               DAGNode(type='op', op=SwapGate())]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
 
