@@ -937,7 +937,7 @@ class QuantumCircuit:
         else:
             return string_temp
 
-    def draw(self, output=None, scale=1.0, filename=None, style=None,
+    def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):

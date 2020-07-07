@@ -76,7 +76,7 @@ class QCircuitImage:
         self.ops = ops
 
         # image scaling
-        self.scale = scale * 0.7    # times default scaling
+        self.scale = 0.7 if scale is None else scale
 
         # Map of qregs to sizes
         self.qregs = {}
