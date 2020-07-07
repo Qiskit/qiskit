@@ -271,8 +271,15 @@ class TemplateSubstitution:
         dag_dep_opt = DAGDependency()
 
         dag_dep_opt.name = self.circuit_dag_dep.name
-        dag_dep_opt.cregs = self.circuit_dag_dep.cregs.copy()
-        dag_dep_opt.qregs = self.circuit_dag_dep.qregs.copy()
+
+        qregs = list(self.circuit_dag_dep.qregs.values())
+        cregs = list(self.circuit_dag_dep.cregs.values())
+
+        for register in qregs:
+            dag_dep_opt.add_qreg(register)
+
+        for register in cregs:
+            dag_dep_opt.add_creg(register)
 
         already_sub = []
 
@@ -304,12 +311,12 @@ class TemplateSubstitution:
 
                 # Then add the inverse of the template.
                 for index in template_inverse:
-                    all_qubits = self.circuit_dag_dep.qubits()
+                    all_qubits = self.circuit_dag_dep.qubits
                     qarg_t = self.template_dag_dep.get_node(index).qindices
                     qarg_c = [qubit[x] for x in qarg_t]
                     qargs = [all_qubits[x] for x in qarg_c]
 
-                    all_clbits = self.circuit_dag_dep.clbits()
+                    all_clbits = self.circuit_dag_dep.clbits
                     carg_t = self.template_dag_dep.get_node(index).cindices
 
                     if all_clbits and clbit:
