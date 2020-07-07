@@ -217,30 +217,121 @@ class InstructionToQobjConverter:
                 })
         return self._qobj_model(**command_dict)
 
-    def convert_single_acquires(self, shift, instruction,
-                                qubits=None, memory_slot=None, register_slot=None):
-        """Return converted `AcquireInstruction`, with options to override the qubits,
-        memory_slot, and register_slot fields. This is useful for grouping
-        AcquisitionInstructions which are operated on a single AcquireChannel and
-        a single MemorySlot.
+    def convert_bundled_acquires(
+            self,
+            shift,
+            instructions_,
+    ):
+        """Bundle a list of acquires instructions at the same time into a single
+        Qobj acquire instruction.
 
         Args:
             shift (int): Offset time.
-            instruction (AcquireInstruction): acquire instruction.
-            qubits (list(int)): A list of qubit indices to acquire.
-            memory_slot (list(int)): A list of memory slot indices to store results.
-            register_slot (list(int)): A list of register slot addresses to store results.
+            instructions_ (List[Acquire]): List of acquire instructions to bundle.
         Returns:
             dict: Dictionary of required parameters.
+        Raises:
+            PulseError: If ``instructions`` is empty.
         """
-        res = self.convert_acquire(shift, instruction)
-        if qubits:
-            res.qubits = qubits
-        if memory_slot:
-            res.memory_slot = memory_slot
-        if register_slot:
-            res.register_slot = register_slot
-        return res
+        meas_level = self._run_config.get('meas_level', 2)
+
+        t0 = None
+        duration = None
+        memory_slots = []
+        register_slots = []
+        qubits = []
+        discriminators = []
+        kernels = []
+
+        if not instructions_:
+            raise PulseError('"instructions" may not be empty.')
+
+        for instruction in instructions_:
+            qubits.append(instruction.channel.index)
+
+            instr_t0 = shift + instruction.start_time
+            if t0 is None:
+                t0 = instr_t0
+            elif t0 != instr_t0:
+                raise PulseError(
+                    'Bundled acquire instructions may not have different starting times'
+                )
+
+            instr_duration = instruction.duration
+            if duration is None:
+                duration = instr_duration
+            elif duration != instr_duration:
+                raise PulseError(
+                    'Bundled acquire instructions may not have different starting times'
+                )
+
+            if instruction.mem_slot:
+                memory_slots.append(instruction.mem_slot.index)
+
+            if meas_level == MeasLevel.CLASSIFIED:
+                # setup discriminators
+                if instruction.discriminator:
+                    discriminators.append(
+                        QobjMeasurementOption(
+                            name=instruction.discriminator.name,
+                            params=instruction.discriminator.params,
+                        ),
+                    )
+                # setup register_slots
+                if instruction.reg_slot:
+                    register_slots.append(instruction.reg_slot.index)
+
+            if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
+                # setup kernels
+                if instruction.kernel:
+                    kernels.append(
+                        QobjMeasurementOption(
+                            name=instruction.kernel.name,
+                            params=instruction.kernel.params,
+                        ),
+                    )
+        command_dict = {
+            'name': 'acquire',
+            't0': t0,
+            'duration': duration,
+            'qubits': qubits,
+        }
+        if memory_slots:
+            if len(memory_slots) == len(qubits):
+                command_dict['memory_slot'] = memory_slots
+        else:
+            raise PulseError(
+                'Number of memory slots must be equal to number of qubits.'
+                )
+        if register_slots:
+            if len(register_slots) == len(qubits):
+                command_dict['register_slot'] = register_slots
+            else:
+                raise PulseError(
+                    'Number of register slots must be equal to number of qubits.'
+                    )
+
+        if discriminators:
+            num_discriminators = len(discriminators)
+            if num_discriminators == len(qubits) or num_discriminators == 1:
+                command_dict['discriminators'] = discriminators
+            else:
+                raise PulseError(
+                    'A discriminator must be supplied for every acquisition or a single '
+                    'discriminator for all acquisitions.'
+                    )
+
+        if kernels:
+            num_kernels = len(kernels)
+            if num_kernels == len(qubits) or num_kernels == 1:
+                command_dict['kernels'] = kernels
+            else:
+                raise PulseError(
+                    'A kernel must be supplied for every acquisition or a single '
+                    'kernel for all acquisitions.'
+                    )
+
+        return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.FrameChangeInstruction)
     def convert_frame_change(self, shift, instruction):

@@ -184,6 +184,7 @@ def _assemble_instructions(
                                    name=instruction.name)
 
         if isinstance(instruction, PulseInstruction):  # deprecated
+            name = hashlib.sha256(instruction.command.samples).hexdigest()
             instruction = Play(SamplePulse(name=name, samples=instruction.command.samples),
                                instruction.channels[0], name=name)
 
@@ -212,11 +213,12 @@ def _assemble_instructions(
         if hasattr(run_config, 'meas_map'):
             _validate_meas_map(acquire_instruction_map, run_config.meas_map)
         for (time, _), instructions in acquire_instruction_map.items():
-            qubits, mem_slots, reg_slots = _bundle_channel_indices(instructions)
             qobj_instructions.append(
-                instruction_converter.convert_single_acquires(
-                    time, instructions[0],
-                    qubits=qubits, memory_slot=mem_slots, register_slot=reg_slots))
+                instruction_converter.convert_bundled_acquires(
+                    time,
+                    instructions
+                ),
+            )
 
     return qobj_instructions, max_memory_slot
 
@@ -249,7 +251,7 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, Acquire], List[AcquireIn
 
 
 def _bundle_channel_indices(
-        instructions: List[AcquireInstruction]
+        instructions: List[Acquire]
 ) -> Tuple[List[int], List[int], List[int]]:
     """From the list of AcquireInstructions, bundle the indices of the acquire channels,
     memory slots, and register slots into a 3-tuple of lists.
