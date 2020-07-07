@@ -1825,6 +1825,18 @@ class TestTextIdleWires(QiskitTestCase):
         circuit = QuantumCircuit()
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_text_barrier(self):
+        """idle_wires should ignore barrier
+        See https://github.com/Qiskit/qiskit-terra/issues/4391"""
+        expected = '\n'.join(["         ┌───┐ ░ ",
+                              "qr_1: |0>┤ H ├─░─",
+                              "         └───┘ ░ "])
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[1])
+        circuit.barrier(qr[1], qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
 
 class TestTextNonRational(QiskitTestCase):
     """ non-rational numbers are correctly represented """
@@ -1921,6 +1933,26 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         circuit.append(inst, qr2[:], cr2[:])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_all_2q_2c_cregbundle(self):
+        """ Test q0-q1-c0-c1 in q0-q1-c0-c1. Ignore cregbundle=True"""
+        expected = '\n'.join(["         ┌───────┐",
+                              "qr_0: |0>┤0      ├",
+                              "         │       │",
+                              "qr_1: |0>┤1      ├",
+                              "         │  name │",
+                              " cr_0: 0 ╡0      ╞",
+                              "         │       │",
+                              " cr_1: 0 ╡1      ╞",
+                              "         └───────┘"])
+
+        qr2 = QuantumRegister(2, 'qr')
+        cr2 = ClassicalRegister(2, 'cr')
+        inst = QuantumCircuit(qr2, cr2, name='name').to_instruction()
+        circuit = QuantumCircuit(qr2, cr2)
+        circuit.append(inst, qr2[:], cr2[:])
+        with self.assertWarns(RuntimeWarning):
+            self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
 
     def test_text_4q_2c(self):
         """ Test q1-q2-q3-q4-c1-c2 in q0-q1-q2-q3-q4-q5-c0-c1-c2-c3-c4-c5"""

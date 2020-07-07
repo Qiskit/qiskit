@@ -16,6 +16,7 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from warnings import warn
 from shutil import get_terminal_size
 import sys
 from numpy import ndarray
@@ -29,6 +30,12 @@ from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
+
+
+class TextDrawerCregBundle(VisualizationError):
+    """The parameter "cregbundle" was set to True in an imposible situation. For example, an
+    instruction needs to refer to individual classical wires'"""
+    pass
 
 
 class DrawElement():
@@ -581,7 +588,13 @@ class TextDrawing():
 
         noqubits = len(self.qregs)
 
-        layers = self.build_layers()
+        try:
+            layers = self.build_layers()
+        except TextDrawerCregBundle:
+            self.cregbundle = False
+            warn('The parameter "cregbundle" was disable, since an instruction needs to refer to '
+                 'individual classical wires', RuntimeWarning, 2)
+            layers = self.build_layers()
 
         layer_groups = [[]]
         rest_of_the_line = line_length
@@ -955,8 +968,8 @@ class TextDrawing():
                 return layer, current_cons, connection_label
 
             for qubit in instruction.qargs:
-                layer.set_qubit(qubit, Barrier())
-
+                if qubit in self.qregs:
+                    layer.set_qubit(qubit, Barrier())
         elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
@@ -1024,6 +1037,8 @@ class TextDrawing():
         elif instruction.qargs and instruction.cargs:
             # multiple gate, involving both qargs AND cargs
             label = TextDrawing.label_for_box(instruction)
+            if self.cregbundle and instruction.cargs:
+                raise TextDrawerCregBundle('TODO')
             layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
                                 conditional=conditional)
         else:

@@ -64,15 +64,16 @@ class RZGate(Gate):
         """
         gate rz(phi) a { u1(phi) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(self.params[0]), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RZ gate.
@@ -103,9 +104,10 @@ class RZGate(Gate):
     # cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
     #    """Return a numpy.array for the RZ gate."""
+    #    import numpy
     #    lam = float(self.params[0])
-    #    return np.array([[np.exp(-1j * lam / 2), 0],
-    #                     [0, np.exp(1j * lam / 2)]], dtype=complex)
+    #    return numpy.array([[numpy.exp(-1j * lam / 2), 0],
+    #                        [0, numpy.exp(1j * lam / 2)]], dtype=complex)
 
 
 class CRZMeta(type):
@@ -192,23 +194,35 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
           u1(-lambda/2) b; cx a,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CRZ gate."""
+    #    arg = 1j * self.params[0] / 2
+    #    return numpy.array([[1,               0, 0,              0],
+    #                        [0, numpy.exp(-arg), 0,              0],
+    #                        [0,               0, 1,              0],
+    #                        [0,               0, 0, numpy.exp(arg)]],
+    #                       dtype=complex)
 
 
 class CrzGate(CRZGate, metaclass=CRZMeta):

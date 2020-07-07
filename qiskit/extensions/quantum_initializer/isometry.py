@@ -104,7 +104,7 @@ class Isometry(Instruction):
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
-        self.definition = iso_circuit.data
+        self.definition = iso_circuit
 
     def _gates_to_uncompute(self):
         """

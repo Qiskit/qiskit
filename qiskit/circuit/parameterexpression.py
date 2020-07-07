@@ -45,6 +45,10 @@ class ParameterExpression():
         """Returns a set of the unbound Parameters in the expression."""
         return set(self._parameter_symbols.keys())
 
+    def conjugate(self):
+        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
+        return self
+
     def bind(self, parameter_values):
         """Binds the provided set of parameters to their corresponding values.
 
