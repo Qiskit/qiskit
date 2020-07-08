@@ -277,12 +277,6 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.ccx(0,1,2)
         qc.cx(3,4)
 
-        pass_manager= PassManager()
-        pass_manager.append(CollectMultiQBlocks(max_block_size=4))
-
-        pass_manager.run(qc)
-        self.assertTrue(len(pass_manager.property_set['block_list']) <= 2)
-
 
 if __name__ == '__main__':
     unittest.main()

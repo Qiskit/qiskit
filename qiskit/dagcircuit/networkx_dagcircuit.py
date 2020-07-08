@@ -100,7 +100,7 @@ class NetworkxDAGCircuit(DAGCircuit):
             slf, oth,
             node_match=lambda x, y: DAGNode.semantic_eq(x['node'], y['node']))
 
-    def topological_nodes(self):
+    def topological_nodes(self, key=None):
         """
         Yield nodes in topological order.
 
@@ -109,7 +109,11 @@ class NetworkxDAGCircuit(DAGCircuit):
         """
         def _key(x):
             return str(self._id_to_node[x].qargs)
-
+        if key is not None:
+            return (self._id_to_node[idx]
+                for idx in nx.lexicographical_topological_sort(
+                    self._multi_graph,
+                    key=key))
         return (self._id_to_node[idx]
                 for idx in nx.lexicographical_topological_sort(
                     self._multi_graph,

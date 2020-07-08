@@ -36,7 +36,11 @@ class CollectMultiQBlocks(AnalysisPass):
         self.max_block_size = max_block_size
 
     def find_set(self, index):
-        """ DSU function for finding root of set of items """
+        """ DSU function for finding root of set of items
+        If my parent is myself, I am the root. Otherwise we recursively
+        find the root for my parent. After that, we assign my parent to be
+        my root, saving recursion in the future.
+        """
 
         if index not in self.parent:
             self.parent[index] = index
@@ -49,7 +53,9 @@ class CollectMultiQBlocks(AnalysisPass):
 
     def union_set(self, set1, set2):
         """ DSU function for unioning two sets together
-        Merges smaller set into larger set
+        Find the roots of each set. Then assign one to have the other
+        as its parent, thus liking the sets.
+        Merges smaller set into larger set in order to have better runtime
         """
 
         set1 = self.find_set(set1)
@@ -59,10 +65,8 @@ class CollectMultiQBlocks(AnalysisPass):
         if len(self.gate_groups[set1]) < len(self.gate_groups[set2]):
             set1, set2 = set2, set1
         self.parent[set2] = set1
-        for gate in self.gate_groups[set2]:
-            self.gate_groups[set1].append(gate)
-        for bit in self.bit_groups[set2]:
-            self.bit_groups[set1].append(bit)
+        self.gate_groups[set1].extend(self.gate_groups[set2])
+        self.bit_groups[set1].extend(self.bit_groups[set2])
         self.gate_groups[set2].clear()
         self.bit_groups[set2].clear()
 
@@ -79,23 +83,31 @@ class CollectMultiQBlocks(AnalysisPass):
         a list of tuples of "op"a node labels.
         """
 
+        self.parent = {} #reset all variables on run
+        self.bit_groups = {}
+        self.gate_groups = {}
+
         block_list = []
 
         def collect_key(x):
-            # special key function for topological ordering
+            """ special key function for topological ordering
+            heuristic for this is to push all gates involving measurement
+            or barriers, etc. as far back as possible (because they force
+            blocks to end). After that, we process gates in order of lowest
+            number of qubits acted on to largest number of qubits acted on
+            because these have less chance of increasing the size of blocks
+            """
             if x.type != "op":
                 return "c"
             if isinstance(x.op, Gate):
                 if x.op.is_parameterized():
                     return "b"
-                print(x.op.name, "a" + chr(ord('a') + len(x.qargs)))
                 return "a" + chr(ord('a') + len(x.qargs))
             return "c"
 
-        op_nodes = dag.topological_op_nodes(key_func=collect_key)
+        op_nodes = dag.topological_op_nodes(key=collect_key)
 
         for nd in op_nodes:
-            print("processing:", nd.op.name)
             can_process = True
             makes_too_big = False
 
@@ -107,10 +119,7 @@ class CollectMultiQBlocks(AnalysisPass):
             if not isinstance(nd.op, Gate):
                 can_process = False
 
-            cur_qu = set(nd.qargs)
-            cur_qubits = set()
-            for v in cur_qu:
-                cur_qubits.add(v.index)
+            cur_qubits = {bit.index for bit in nd.qargs}
 
             if can_process:
                 # if the gate is valid, check if grouping up the bits
@@ -188,13 +197,6 @@ class CollectMultiQBlocks(AnalysisPass):
         for index in self.parent:
             if self.parent[index] == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])
-
-        print('HEEEEEEERE ')
-        for clist in block_list:
-            print('list', end=" ")
-            for val in clist:
-                print(val.name, end=" ")
-            print()
 
         self.property_set['block_list'] = block_list
 
