@@ -60,15 +60,16 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(type(qr1), QuantumRegister)
 
     def test_register_int_types(self):
-        """Test attempt to pass different types of integer as register size
+        """Test attempt to pass different types of integer as indices
+        of QuantumRegister and ClassicalRegister
         """
-        ints = [int(2), float(2), np.int(2), np.int32(2), np.int64(2)]
-        for size in ints:
-            with self.subTest(size=size):
-                qr = QuantumRegister(size)
-                cr = ClassicalRegister(size)
-                self.assertEqual(qr.size, 2)
-                self.assertEqual(cr.size, 2)
+        ints = [int(2), np.int(2), np.int32(2), np.int64(2)]
+        for index in ints:
+            with self.subTest(index=index):
+                qr = QuantumRegister(4)
+                cr = ClassicalRegister(4)
+                self.assertEqual(qr[index], qr[2])
+                self.assertEqual(cr[index], cr[2])
 
     def test_numpy_array_of_registers(self):
         """Test numpy array of Registers .
