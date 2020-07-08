@@ -55,7 +55,7 @@ If we introduce such IR and write a custom wrapper function on top of the existi
 it could be difficult to prevent bugs with the CI tools due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 import numpy as np
 
@@ -67,7 +67,7 @@ class ElementaryData(ABC):
     def __init__(self,
                  data_type: str,
                  channel: pulse.channels.Channel,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
                  styles: Dict[str, Any]):
@@ -111,7 +111,7 @@ class FilledAreaData(ElementaryData):
                  x: np.ndarray,
                  y1: np.ndarray,
                  y2: np.ndarray,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
                  styles: Dict[str, Any]):  # pylint: disable=invalid-name
@@ -159,7 +159,7 @@ class LineData(ElementaryData):
                  channel: pulse.channels.Channel,
                  x: np.ndarray,
                  y: np.ndarray,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
                  styles: Dict[str, Any]):  # pylint: disable=invalid-name
@@ -205,7 +205,7 @@ class TextData(ElementaryData):
                  x: float,
                  y: float,
                  text: str,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
                  styles: Dict[str, Any]):  # pylint: disable=invalid-name

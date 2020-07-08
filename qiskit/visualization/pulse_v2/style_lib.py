@@ -32,14 +32,19 @@ class QiskitPulseStyle:
                  color_ch_d: ComplexColors,
                  color_ch_u: ComplexColors,
                  color_ch_m: ComplexColors,
+                 color_ch_a: ComplexColors,
                  color_baseline: str,
                  color_background: str,
                  color_annotate: str,
-                 color_label_axis: str,
+                 color_axis_label: str,
+                 # alpha
+                 alpha_waveform: float,
+                 alpha_baseline: float,
                  # layer indices
                  z_order_waveform: int,
                  z_order_baseline: int,
                  z_order_annotate: int,
+                 z_order_axis_label: int,
                  # margins
                  margin_top: float,
                  margin_bottom: float,
@@ -47,51 +52,71 @@ class QiskitPulseStyle:
                  margin_right: float,
                  margin_between_channels: float,
                  # text sizes
-                 text_size_axis: float,
+                 text_size_axis_label: float,
                  text_size_annotate: float,
                  text_size_symbol: float,
+                 # line width
+                 line_width_waveform: float,
+                 line_width_baseline: float,
+                 # options
+                 option_phase_modulation: bool,
                  # generators
                  gen_waveform: List[Callable],
                  gen_baseline: List[Callable],
                  gen_pulse_label: List[Callable],
-                 gen_channel_info: List[Callable],
-                 gen_frame_info: List[Callable]):
+                 gen_channel_label: List[Callable],
+                 gen_frame_label: List[Callable]):
         """Create new stylesheet.
         """
-        # general setting
-        self.fig_size = fig_size
-        self.dpi = dpi
-
-        # colors
-        self.color_ch_d = color_ch_d
-        self.color_ch_u = color_ch_u
-        self.color_ch_m = color_ch_m
-
-        self.color_baseline = color_baseline
-        self.color_background = color_background
-        self.color_annotate = color_annotate
-        self.color_label_axis = color_label_axis
-
-        # layer
-        self.waveform_z_order = z_order_waveform
-        self.baseline_z_order = z_order_baseline
-        self.annotate_z_order = z_order_annotate
-
-        # margin
-        self.margin_top = margin_top
-        self.margin_bottom = margin_bottom
-        self.margin_left = margin_left
-        self.margin_right = margin_right
-        self.margin_between_channel = margin_between_channels
-
-        # text size
-        self.text_size_axis = text_size_axis
-        self.text_size_annotate = text_size_annotate
-        self.text_size_symbol = text_size_symbol
-
-        # object generators
-        self.gen_waveform = gen_waveform
-        self.gen_baseline = gen_baseline
-        self.gen_pulse_label = gen_pulse_label
-        self.gen_channel_info = gen_channel_info
-        self.gen_frame_info = gen_frame_info
+        self.formatter = dict(
+            general={
+                'fig_size': fig_size,
+                'dpi': dpi
+            },
+            color={
+                'ch_d': color_ch_d,
+                'ch_u': color_ch_u,
+                'ch_m': color_ch_m,
+                'ch_a': color_ch_a,
+                'baseline': color_baseline,
+                'background': color_background,
+                'annotate': color_annotate,
+                'axis_label': color_axis_label
+            },
+            alpha={
+                'waveform': alpha_waveform,
+                'baseline': alpha_baseline
+            },
+            layer={
+                'waveform': z_order_waveform,
+                'baseline': z_order_baseline,
+                'annotate': z_order_annotate,
+                'axis_label': z_order_axis_label,
+            },
+            margin={
+                'top': margin_top,
+                'bottom': margin_bottom,
+                'left': margin_left,
+                'right': margin_right,
+                'between_channel': margin_between_channels
+            },
+            text_size={
+                'axis_label': text_size_axis_label,
+                'annotate': text_size_annotate,
+                'symbol': text_size_symbol
+            },
+            line_width={
+                'waveform': line_width_waveform,
+                'baseline': line_width_baseline
+            },
+            option={
+                'phase_modulation': option_phase_modulation
+            }
+        )
+        self.generator = dict(
+            waveform=gen_waveform,
+            baseline=gen_baseline,
+            pulse_label=gen_pulse_label,
+            channel_label=gen_channel_label,
+            frame_label=gen_frame_label
+        )
