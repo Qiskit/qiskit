@@ -54,12 +54,17 @@ class DCXGate(Gate):
         """
         gate dcx a, b { cx a, b; cx a, b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         q = QuantumRegister(2, 'q')
-        self.definition = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], [])
         ]
+        qc.data = rules
+        self.definition = qc
 
     def to_matrix(self):
         """Return a numpy.array for the DCX gate."""

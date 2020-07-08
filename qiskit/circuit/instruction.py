@@ -178,7 +178,7 @@ class Instruction:
 
     @definition.setter
     def definition(self, array):
-        """Set matrix representation"""
+        """Set gate representation"""
         self._definition = array
 
     @property
@@ -246,9 +246,9 @@ class Instruction:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + '_reverse')
-        reverse_inst.definition = []
+        reverse_inst.definition.data = []
         for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.reverse_ops(), qargs, cargs))
+            reverse_inst._definition.data.append((inst.reverse_ops(), qargs, cargs))
         return reverse_inst
 
     def inverse(self):
@@ -270,9 +270,9 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+        inverse_gate._definition.data = []
+        for inst, qargs, cargs in reversed(self._definition.data):
+            inverse_gate._definition.data.append((inst.inverse(), qargs, cargs))
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -377,5 +377,14 @@ class Instruction:
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
 
-        instruction.definition = [(self, qargs[:], cargs[:])] * n
+        if instruction.definition is None:
+            # pylint: disable=cyclic-import
+            from qiskit import QuantumCircuit
+            qc = QuantumCircuit()
+            if qargs:
+                qc.add_register(qargs)
+            if cargs:
+                qc.add_register(cargs)
+            qc.data = [(self, qargs[:], cargs[:])] * n
+        instruction.definition = qc
         return instruction
