@@ -27,9 +27,6 @@ from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-
 from qiskit.util import deprecate_arguments
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -79,32 +76,33 @@ class SingleQubitUnitary(Gate):
         """Define the gate using the decomposition."""
 
         if self.mode == 'ZYZ':
-            rule, diag = self._zyz_rule()
+            circuit, diag = self._zyz_circuit()
         else:
             raise QiskitError('The decomposition mode is not known.')
 
         self._diag = diag
-        self.definition = rule
 
-    def _zyz_rule(self):
-        """Get the circuit rule for the ZYZ decomposition."""
+        self.definition = circuit
+
+    def _zyz_circuit(self):
+        """Get the circuit for the ZYZ decomposition."""
         q = QuantumRegister(self.num_qubits)
-        rule = []
+        qc = QuantumCircuit(q, name=self.name)
 
         diag = [1., 1.]
         alpha, beta, gamma, _ = self._zyz_dec()
 
         if abs(alpha) > _EPS:
-            rule += [(RZGate(alpha), [q[0]], [])]
+            qc.rz(alpha, q[0])
         if abs(beta) > _EPS:
-            rule += [(RYGate(beta), [q[0]], [])]
+            qc.ry(beta, q[0])
         if abs(gamma) > _EPS:
             if self.up_to_diagonal:
                 diag = [np.exp(-1j * gamma / 2.), np.exp(1j * gamma / 2.)]
             else:
-                rule += [(RZGate(gamma), [q[0]], [])]
+                qc.rz(gamma, q[0])
 
-        return rule, diag
+        return qc, diag
 
     def _zyz_dec(self):
         """Finds rotation angles (a,b,c,d) in the decomposition u=exp(id)*Rz(c).Ry(b).Rz(a).

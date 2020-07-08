@@ -54,15 +54,16 @@ class RYGate(Gate):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (RGate(self.params[0], pi / 2), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RY gate.
@@ -175,23 +176,37 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
           u3(-lambda/2,0,0) b; cx a,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U3Gate(self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CRY gate."""
+    #    half_theta = self.params[0] / 2
+    #    cos = numpy.cos(half_theta)
+    #    sin = numpy.sin(half_theta)
+    #    return numpy.array([[1,     0, 0,    0],
+    #                        [0,   cos, 0, -sin],
+    #                        [0,     0, 1,    0],
+    #                        [0,   sin, 0,  cos]],
+    #                       dtype=complex)
 
 
 class CryGate(CRYGate, metaclass=CRYMeta):

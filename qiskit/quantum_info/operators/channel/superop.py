@@ -378,12 +378,16 @@ class SuperOp(QuantumChannel):
 
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
+        from qiskit.circuit.barrier import Barrier
+
         chan = self._instruction_to_superop(obj)
         if chan is not None:
             # Perform the composition and inplace update the current state
             # of the operator
             op = self.compose(chan, qargs=qargs)
             self._data = op.data
+        elif isinstance(obj, Barrier):
+            return
         else:
             # If the instruction doesn't have a matrix defined we use its
             # circuit decomposition definition if it exists, otherwise we
@@ -391,7 +395,11 @@ class SuperOp(QuantumChannel):
             if obj.definition is None:
                 raise QiskitError('Cannot apply Instruction: {}'.format(
                     obj.name))
-            for instr, qregs, cregs in obj.definition:
+            if not isinstance(obj.definition, QuantumCircuit):
+                raise QiskitError('{0} instruction definition is {1}; '
+                                  'expected QuantumCircuit'.format(
+                                      obj.name, type(obj.definition)))
+            for instr, qregs, cregs in obj.definition.data:
                 if cregs:
                     raise QiskitError(
                         'Cannot apply instruction with classical registers: {}'

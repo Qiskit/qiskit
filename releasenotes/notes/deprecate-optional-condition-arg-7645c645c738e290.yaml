@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Use of optional ``condition`` argument in ``DAGNode``, ``apply_operation_back``, 
+    ``apply_operation_front`` has been deprecated in favour of ``control``
+    set in ``qiskit.circuit.Instruction``.

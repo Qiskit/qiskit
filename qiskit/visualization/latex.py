@@ -145,7 +145,7 @@ class QCircuitImage:
         Returns:
             string: for writing to a LaTeX file.
         """
-        self._initialize_latex_array(aliases)
+        self._initialize_latex_array()
         self._build_latex_array(aliases)
         header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
@@ -198,8 +198,7 @@ class QCircuitImage:
         output.close()
         return contents
 
-    def _initialize_latex_array(self, aliases=None):
-        del aliases  # unused
+    def _initialize_latex_array(self):
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
@@ -293,7 +292,7 @@ class QCircuitImage:
         columns = 2
 
         # add extra column if needed
-        if self.cregbundle and self.ops[0][0].name == "measure":
+        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
             columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
@@ -388,7 +387,7 @@ class QCircuitImage:
 
         column = 1
         # Leave a column to display number of classical registers if needed
-        if self.cregbundle and self.ops[0][0].name == "measure":
+        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
             column += 1
         for layer in self.ops:
             num_cols_used = 1
@@ -424,8 +423,9 @@ class QCircuitImage:
                         temp.sort(key=int)
                         bottom = temp[len(pos_array) - 1]
                         gap = pos_cond - bottom
-                        for i in range(self.cregs[if_reg]):
-                            if if_value[i] == '1':
+                        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                        for i in range(creg_rng):
+                            if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                 self._latex[pos_cond + i][column] = \
                                     "\\control \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
@@ -552,8 +552,9 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                             gap = pos_2 - pos_1
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_2 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -624,8 +625,9 @@ class QCircuitImage:
                             bottom = temp[1]
 
                             gap = pos_3 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_3 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -832,8 +834,9 @@ class QCircuitImage:
                             bottom = temp[2]
 
                             gap = pos_4 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_4 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
