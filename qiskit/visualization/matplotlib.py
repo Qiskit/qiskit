@@ -822,7 +822,7 @@ class MatplotlibDrawer:
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])):
-                    param = "${}$".format(self.param_parse(op.op.params))
+                    param = "{}".format(self.param_parse(op.op.params))
                 else:
                     param = ''
 
