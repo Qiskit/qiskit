@@ -1287,7 +1287,7 @@ def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
     """
 
     if not isinstance(pulse, pulse_lib.Pulse):
-        pulse = pulse_lib.SamplePulse(pulse)
+        pulse = pulse_lib.Waveform(pulse)
 
     append_instruction(instructions.Play(pulse, channel))
 

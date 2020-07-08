@@ -39,7 +39,7 @@ class Play(Instruction):
 
         Args:
             pulse: A pulse waveform description, such as
-                   :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
+                   :py:class:`~qiskit.pulse.pulse_lib.Waveform`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
 
