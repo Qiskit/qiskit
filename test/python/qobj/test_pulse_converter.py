@@ -21,12 +21,13 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
                          QobjMeasurementOption)
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
-from qiskit.pulse.commands import (Waveform, FrameChange, PersistentValue, Snapshot, Acquire,
+from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Gaussian, GaussianSquare, Constant, Drag)
 from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
                                        Delay)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
+from qiskit.pulse.pulse_lib import Waveform
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse import LoConfig, Kernel, Discriminator
 

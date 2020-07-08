@@ -236,6 +236,7 @@ from qiskit.pulse.pulse_lib import (
     GaussianSquare,
     ParametricPulse,
     Waveform,
+    SamplePulse,
 )
 from qiskit.pulse.pulse_lib.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule

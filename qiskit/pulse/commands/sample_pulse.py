@@ -18,7 +18,8 @@ import warnings
 from typing import Optional
 
 from ..channels import PulseChannel
-from ..pulse_lib import Waveform
+# pylint: disable=unused-import
+from ..pulse_lib import Waveform, SamplePulse
 from ..instructions import Instruction
 
 
