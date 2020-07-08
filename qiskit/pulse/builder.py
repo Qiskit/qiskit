@@ -91,14 +91,14 @@ In the example below we demonstrate some more features of the pulse builder:
     import math
 
     from qiskit import pulse, QuantumCircuit
-    from qiskit.pulse import pulse_lib
+    from qiskit.pulse import library
     from qiskit.test.mock import FakeOpenPulse2Q
 
     backend = FakeOpenPulse2Q()
 
     with pulse.build(backend) as pulse_prog:
         # Create a pulse.
-        gaussian_pulse = pulse_lib.gaussian(10, 1.0, 2)
+        gaussian_pulse = library.gaussian(10, 1.0, 2)
         # Get the qubit's corresponding drive channel from the backend.
         d0 = pulse.drive_channel(0)
         d1 = pulse.drive_channel(1)
@@ -225,7 +225,7 @@ from qiskit.pulse import (
     exceptions,
     instructions,
     macros,
-    pulse_lib,
+    library,
     transforms,
 )
 from qiskit.pulse.instructions import directives
@@ -1266,7 +1266,7 @@ def delay(duration: int,
     append_instruction(instructions.Delay(duration, channel))
 
 
-def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
+def play(pulse: Union[library.Pulse, np.ndarray],
          channel: chans.PulseChannel):
     """Play a ``pulse`` on a ``channel``.
 
@@ -1286,8 +1286,8 @@ def play(pulse: Union[pulse_lib.Pulse, np.ndarray],
         channel: Channel to play pulse on.
     """
 
-    if not isinstance(pulse, pulse_lib.Pulse):
-        pulse = pulse_lib.SamplePulse(pulse)
+    if not isinstance(pulse, library.Pulse):
+        pulse = library.SamplePulse(pulse)
 
     append_instruction(instructions.Play(pulse, channel))
 
