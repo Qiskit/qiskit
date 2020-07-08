@@ -69,15 +69,16 @@ class ZGate(Gate):
         super().__init__('z', 1, [], label=label)
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(pi), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-Z gate.
@@ -159,18 +160,19 @@ class CZGate(ControlledGate, metaclass=CZMeta):
         """
         gate cz a,b { h b; cx a,b; h b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverted CZ gate (itself)."""
