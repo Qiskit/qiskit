@@ -19,9 +19,10 @@ import copy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states import Statevector
+from qiskit.quantum_info.states import statevector
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
+from qiskit.result.counts import Counts
 from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
 
@@ -242,10 +243,16 @@ class Result:
                 header = None
 
             if 'counts' in self.data(key).keys():
-                dict_list.append(postprocess.format_counts(self.data(key)['counts'], header))
+                if header:
+                    counts_header = {
+                        k: v for k, v in header.items() if k in {
+                            'time_taken', 'creg_sizes', 'memory_slots'}}
+                else:
+                    counts_header = {}
+                dict_list.append(Counts(self.data(key)['counts'], **counts_header))
             elif 'statevector' in self.data(key).keys():
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
-                dict_list.append(Statevector(vec).probabilities_dict(decimals=15))
+                dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
                 raise QiskitError('No counts for experiment "{0}"'.format(key))
 

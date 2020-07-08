@@ -112,18 +112,18 @@ def control(operation: Union[Gate, ControlledGate],
             operation.base_gate.name == 'x'):
         qc.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
     elif operation.name == 'rx':
-        qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
+        qc.mcrx(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     elif operation.name == 'ry':
-        qc.mcry(operation.definition[0][0].params[0], q_control, q_target[0],
+        qc.mcry(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 q_ancillae, mode='noancilla', use_basis_gates=True)
     elif operation.name == 'rz':
-        qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
+        qc.mcrz(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
         bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
         # now we have a bunch of single qubit rotation gates and cx
-        for rule in bgate.definition:
+        for rule in bgate.definition.data:
             if rule[0].name == 'u3':
                 theta, phi, lamb = rule[0].params
                 if phi == -pi / 2 and lamb == pi / 2:
@@ -150,7 +150,6 @@ def control(operation: Union[Gate, ControlledGate],
             else:
                 raise CircuitError('gate contains non-controllable instructions')
 
-    instr = qc.to_instruction()
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
@@ -171,11 +170,11 @@ def control(operation: Union[Gate, ControlledGate],
         ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
     new_name = '{0}{1}'.format(ctrl_substr, base_name)
     cgate = controlledgate.ControlledGate(new_name,
-                                          instr.num_qubits,
+                                          qc.num_qubits,
                                           operation.params,
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
-                                          definition=instr.definition,
+                                          definition=qc,
                                           ctrl_state=new_ctrl_state)
     cgate.base_gate = base_gate
     return cgate
@@ -185,7 +184,7 @@ def _gate_to_circuit(operation):
     qr = QuantumRegister(operation.num_qubits)
     qc = QuantumCircuit(qr, name=operation.name)
     if hasattr(operation, 'definition') and operation.definition:
-        for rule in operation.definition:
+        for rule in operation.definition.data:
             if rule[0].name in {'id', 'barrier', 'measure', 'snapshot'}:
                 raise CircuitError('Cannot make controlled gate with {} instruction'.format(
                     rule[0].name))
@@ -195,11 +194,21 @@ def _gate_to_circuit(operation):
     return qc
 
 
-def _unroll_gate(operation, basis_gates):
+def _gate_to_dag(operation):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
+    if hasattr(operation, 'definition') and operation.definition:
+        return circuit_to_dag(operation.definition)
+    else:
+        qr = QuantumRegister(operation.num_qubits)
+        qc = QuantumCircuit(qr, name=operation.name)
+        qc.append(operation, qr)
+        return circuit_to_dag(qc)
+
+
+def _unroll_gate(operation, basis_gates):
     from qiskit.converters.dag_to_circuit import dag_to_circuit
     from qiskit.transpiler.passes import Unroller
     unroller = Unroller(basis_gates)
-    dag = circuit_to_dag(_gate_to_circuit(operation))
+    dag = _gate_to_dag(operation)
     qc = dag_to_circuit(unroller.run(dag))
     return qc.to_gate()

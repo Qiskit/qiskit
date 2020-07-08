@@ -14,42 +14,52 @@
 r"""
 Channel event manager for pulse schedules.
 
-This module provide `ChannelEvents` class that manages series of instruction in
-specified channel. This makes arrangement of pulse channels easier later in
-the core drawing function. The `ChannelEvents` class is expected to be called by
-other programs, not by end-users.
+This module provides a `ChannelEvents` class that manages a series of instructions for a
+pulse channel. Channel-wise filtering of the pulse program makes
+the arrangement of channels easier in the core drawer function.
+The `ChannelEvents` class is expected to be called by other programs (not by end-users).
 
-The `ChannelEvents` class instance is created with the class method ``parse_program``:
+The `ChannelEvents` class instance is created with the class method ``load_program``:
     ```python
-    event = ChannelEvents.parse_program(sched, DriveChannel(0))
+    event = ChannelEvents.load_program(sched, DriveChannel(0))
     ```
 
-The manager is created for a specific pulse channel and assorts pulse instructions within
-the channel with different visualization types.
-A phase and frequency related instruction are managed as frame change.
-Those information is combined as ``PhaseFreqTuple``.
+The `ChannelEvents` is created for a specific pulse channel and loosely assorts pulse
+instructions within the channel with different visualization purposes.
 
-The grouped instructions are returned as an iterator by corresponding method call:
+Phase and frequency related instructions are loosely grouped as frame changes.
+The instantaneous value of those operands are combined and provided as ``PhaseFreqTuple``.
+Instructions that have finite duration are grouped as waveforms.
+Other miscellaneous instructions such as snapshot are also grouped.
+
+The grouped instructions are returned as an iterator by the corresponding method call:
     ```python
-    for t0, frame, instruction in event.get_waveform():
+    for t0, frame, instruction in event.get_waveforms():
         ...
 
-    for t0, frame_change, instructions in event.get_framechange():
+    for t0, frame_change, instructions in event.get_frame_changes():
+        ...
+
+    for t0, instructions in event.get_misc_instructions():
         ...
     ```
 
-The classmethod ``get_waveform`` returns the frame at the time when instruction is issued.
-This is because a pulse envelope of ``SamplePulse`` may be modulated with a phase factor
-$exp(-i \omega t - \phi)$ with frequency $\omega$ and phase $\phi$ in the canvas of the plotter.
-Thus, it is better to tell users in which phase and frequency the pulse is modulated
-from a viewpoint of debugging.
+The class method ``get_waveforms`` returns the iterator of waveform type instructions with
+the ``PhaseFreqTuple`` (frame) at the time when instruction is issued.
+This is because a pulse envelope of ``SamplePulse`` may be modulated with a
+phase factor $exp(-i \omega t - \phi)$ with frequency $\omega$ and phase $\phi$ and
+appear on the canvas. Thus, it is better to tell users in which phase and frequency
+the pulse envelope is modulated from a viewpoint of program debugging.
 
-On the other hand, the classmethod ``get_framechange`` returns an amount of change of the frame
-at the time when instructions are issued. Because we have set and shift type instructions,
-the set type instruction will be converted into the corresponding shift amount for visualization.
+On the other hand, the class method ``get_frame_changes`` returns a ``PhaseFreqTuple`` that
+represents a total amount of change at that time because it is convenient to know
+the operand value itself when we debug a program.
 
-Because a frame change instruction is zero duration, multiple instructions can be issued
-at the same time and those instructions are order sensitive.
+Because frame change type instructions are usually zero duration, multiple instructions
+can be issued at the same time and those operand values should be appropriately
+combined. In Qiskit Pulse we have set and shift type instructions for the frame control,
+the set type instruction will be converted into the relevant shift amount for visualization.
+Note that these instructions are not interchangeable and the order should be kept.
 For example:
     ```python
     sched1 = Schedule()
@@ -60,20 +70,19 @@ For example:
     sched2 = sched2.insert(0, SetPhase(3.14, DriveChannel(0))
     sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     ```
-In above example, `sched1` and `sched2` will create different frame.
-The total frame change value of `sched1` should be +3.14, while `sched2` is +1.57.
-Since the `SetPhase` and the `ShiftPhase` instruction behave differently,
-we cannot simply sum up the phase values to show.
+In this example, ``sched1`` and ``sched2`` will have different frames.
+On the drawer canvas, the total frame change amount of +3.14 should be shown for ``sched1``,
+while `sched2` is +1.57. Since the `SetPhase` and the `ShiftPhase` instruction behave
+differently, we cannot simply sum up the operand values in visualization output.
 
-It should be noted that zero-time instructions issued at the same time will be overlapped on the
-canvas of the plotter. Thus it is convenient to plot an apparent frame change value rather
-than plotting each phase value bound to the instruction.
+It should be also noted that zero duration instructions issued at the same time will be
+overlapped on the canvas. Thus it is convenient to plot a total frame change amount rather
+than plotting each operand value bound to the instruction.
 """
 from collections import defaultdict, namedtuple
-from typing import Union, Optional, Dict, List, Iterator, Tuple
+from typing import Dict, List, Iterator, Tuple
 
 from qiskit import pulse
-from qiskit.visualization.exceptions import VisualizationError
 
 PhaseFreqTuple = namedtuple('PhaseFreqTuple', 'phase freq')
 
@@ -81,23 +90,31 @@ PhaseFreqTuple = namedtuple('PhaseFreqTuple', 'phase freq')
 class ChannelEvents:
     """Channel event manager.
     """
+    _waveform_group = tuple((pulse.instructions.Play,
+                             pulse.instructions.Delay,
+                             pulse.instructions.Acquire))
+    _frame_group = tuple((pulse.instructions.SetFrequency,
+                          pulse.instructions.ShiftFrequency,
+                          pulse.instructions.SetPhase,
+                          pulse.instructions.ShiftPhase))
+    _misc_group = tuple((pulse.instructions.Snapshot, ))
 
     def __init__(self,
                  waveforms: Dict[int, pulse.Instruction],
                  frames: Dict[int, List[pulse.Instruction]],
-                 snapshots: Dict[int, List[pulse.Instruction]],
+                 miscellaneous: Dict[int, List[pulse.Instruction]],
                  channel: pulse.channels.Channel):
         """Create new event manager.
 
         Args:
             waveforms: List of waveforms shown in this channel.
             frames: List of frame change type instructions shown in this channel.
-            snapshots: List of snapshot instruction shown in this channel.
+            miscellaneous: List of miscellaneous instructions shown in this channel.
             channel: Channel object associated with this manager.
         """
         self._waveforms = waveforms
         self._frames = frames
-        self._snapshots = snapshots
+        self._miscellaneous = miscellaneous
         self.channel = channel
 
         # initial frame
@@ -105,92 +122,66 @@ class ChannelEvents:
         self.init_frequency = 0
 
     @classmethod
-    def parse_program(cls,
-                      program: Union[pulse.Schedule, pulse.SamplePulse],
-                      channel: Optional[pulse.channels.Channel] = None):
-        """Parse pulse program represented by ``Schedule`` or ``SamplePulse``.
+    def load_program(cls,
+                     program: pulse.Schedule,
+                     channel: pulse.channels.Channel):
+        """Load a pulse program represented by ``Schedule``.
 
         Args:
-            program: Target program to visualize, either ``Schedule`` or ``SamplePulse``.
-            channel: Target channel of managed by this instance.
-                This information is necessary when program is ``Schedule``.
+            program: Target ``Schedule`` to visualize.
+            channel: The channel managed by this instance.
 
-        Raises:
-            VisualizationError: When ``Schedule`` is given and ``channel`` is empty.
-            VisualizationError: When invalid data is specified.
+        Returns:
+            ChannelEvents: The channel event manager for the specified channel.
         """
         waveforms = dict()
         frames = defaultdict(list)
-        snapshots = defaultdict(list)
+        miscellaneous = defaultdict(list)
 
-        if isinstance(program, pulse.Schedule):
-            # schedule
-            if channel is None:
-                raise VisualizationError('Pulse channel should be specified.')
+        # parse instructions
+        for t0, inst in program.filter(channels=[channel]).instructions:
+            if isinstance(inst, cls._waveform_group):
+                waveforms[t0] = inst
+            elif isinstance(inst, cls._frame_group):
+                frames[t0].append(inst)
+            elif isinstance(inst, cls._misc_group):
+                miscellaneous[t0].append(inst)
 
-            # parse instructions
-            for t0, inst in program.filter(channels=[channel]).instructions:
-                if isinstance(inst, pulse.Play):
-                    # play
-                    waveforms[t0] = inst.pulse
-                elif isinstance(inst, (pulse.Delay, pulse.Acquire)):
-                    # waveform type
-                    waveforms[t0] = inst
-                elif isinstance(inst, (pulse.SetFrequency, pulse.ShiftFrequency,
-                                       pulse.SetPhase, pulse.ShiftPhase)):
-                    # frame types
-                    frames[t0].append(inst)
-                elif isinstance(inst, pulse.Snapshot):
-                    # Snapshot type
-                    snapshots[t0].append(inst)
-
-        elif isinstance(program, pulse.SamplePulse):
-            # sample pulse
-            waveforms[0] = program
-        else:
-            VisualizationError('%s is not valid data type for this drawer.' % type(program))
-
-        return ChannelEvents(waveforms, frames, snapshots, channel)
+        return ChannelEvents(waveforms, frames, miscellaneous, channel)
 
     def is_empty(self):
-        """Check if there is any nonzero waveforms in this channel.
-
-        Note:
-            Frame and other auxiliary type instructions are ignored.
-        """
+        """Check if there is any nonzero waveforms in this channel."""
         for waveform in self._waveforms.values():
-            if isinstance(waveform, (pulse.SamplePulse, pulse.ParametricPulse, pulse.Acquire)):
+            if isinstance(waveform, (pulse.instructions.Play, pulse.instructions.Acquire)):
                 return False
-        else:
-            return True
+        return True
 
-    def get_waveform(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
-        """Return waveform type instructions with phase and frequency.
-        """
+    def get_waveforms(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
+        """Return waveform type instructions with frame."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
+        sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
 
         # bind phase and frequency with instruction
         phase = self.init_phase
         frequency = self.init_frequency
-        for t0, inst in self._waveforms.items():
+        for t0, inst in sorted_waveforms:
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
                 for frame_change in frame_changes:
-                    if isinstance(frame_change, pulse.SetFrequency):
+                    if isinstance(frame_change, pulse.instructions.SetFrequency):
                         frequency = frame_change.frequency
-                    elif isinstance(frame_change, pulse.ShiftFrequency):
+                    elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
                         frequency += frame_change.frequency
-                    elif isinstance(frame_change, pulse.SetPhase):
+                    elif isinstance(frame_change, pulse.instructions.SetPhase):
                         phase = frame_change.phase
-                    elif isinstance(frame_change, pulse.ShiftPhase):
+                    elif isinstance(frame_change, pulse.instructions.ShiftPhase):
                         phase += frame_change.phase
             frame = PhaseFreqTuple(phase, frequency)
 
             yield t0, frame, inst
 
-    def get_framechange(self) -> Iterator[Tuple[int, PhaseFreqTuple, List[pulse.Instruction]]]:
-        """Return frame change type instructions with total phase and total frequency.
-        """
+    def get_frame_changes(self) -> Iterator[Tuple[int, PhaseFreqTuple, List[pulse.Instruction]]]:
+        """Return frame change type instructions with total frame change amount."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
         phase = self.init_phase
@@ -199,20 +190,19 @@ class ChannelEvents:
             pre_phase = phase
             pre_frequency = frequency
             for inst in insts:
-                if isinstance(inst, pulse.SetFrequency):
+                if isinstance(inst, pulse.instructions.SetFrequency):
                     frequency = inst.frequency
-                elif isinstance(inst, pulse.ShiftFrequency):
+                elif isinstance(inst, pulse.instructions.ShiftFrequency):
                     frequency += inst.frequency
-                elif isinstance(inst, pulse.SetPhase):
+                elif isinstance(inst, pulse.instructions.SetPhase):
                     phase = inst.phase
-                elif isinstance(inst, pulse.ShiftPhase):
+                elif isinstance(inst, pulse.instructions.ShiftPhase):
                     phase += inst.phase
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
             yield t0, frame, insts
 
-    def get_snapshots(self) -> Iterator[Tuple[int, List[pulse.Instruction]]]:
-        """Return snapshot instructions.
-        """
-        for t0, insts in self._snapshots:
+    def get_misc_instructions(self) -> Iterator[Tuple[int, List[pulse.Instruction]]]:
+        """Return miscellaneous instructions."""
+        for t0, insts in self._miscellaneous:
             yield t0, insts

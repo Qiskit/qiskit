@@ -14,5 +14,3 @@
 """
 Pulse visualization module.
 """
-
-from qiskit.visualization.pulse_v2.events import ChannelEvents

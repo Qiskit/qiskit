@@ -46,6 +46,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         input circuit. Upon decomposition, this gate will
         yield the components comprising the original circuit.
     """
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
     if circuit.clbits:
         raise QiskitError('Circuit with classical bits cannot be converted '
                           'to gate.')
@@ -88,7 +90,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if equivalence_library is not None:
         equivalence_library.add_equivalence(gate, target)
 
-    definition = target.data
+    rules = target.data
 
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')
@@ -96,11 +98,12 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    definition = list(map(
+    rules = list(map(
         lambda x: (x[0],
                    list(map(lambda y: q[find_bit_position(y)], x[1])),
                    []),
-        definition))
-    gate.definition = definition
-
+        rules))
+    qc = QuantumCircuit(q, name=gate.name)
+    qc.data = rules
+    gate.definition = qc
     return gate
