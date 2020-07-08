@@ -15,38 +15,44 @@ r"""
 Drawing object IRs for pulse drawer.
 
 Drawing IRs play two important roles:
-- Allowing unittests of visualization module. Usually it is hard for image files to be tested.
-- Removing program parser from each plotter interface. We can easily add new plotter.
+    - Allowing unittests of visualization module. Usually it is hard for image files to be tested.
+    - Removing program parser from each plotter interface. We can easily add new plotter.
 
-IRs supported by this module is designed based on `matplotlob` since it is the primary plotter
+IRs supported by this module are designed based on `matplotlob` since it is the primary plotter
 of the pulse drawer. However IRs should be agnostic to the actual plotter.
 
+Design concept
+~~~~~~~~~~~~~~
 When we think about the dynamic update of drawing objects, it will be efficient to
 update only properties of drawings rather than regenerating all of them from scratch.
 Thus the core drawing function generates all possible drawings in the beginning and
-then updates the visibility and the coordinate of each item according to the end-user request.
-Drawing properties are designed based on this line of thinking.
+then updates the visibility and the offset coordinate of each item according to
+the end-user request. Drawing properties are designed based on this line of thinking.
 
+Data key
+~~~~~~~~
 In the abstract class ``ElementaryData`` common properties to represent a drawing object are
-specified. In addition, it has the `data_key` property that returns an unique hash for
+specified. In addition, IRs have the `data_key` property that returns an unique hash for
 the drawing for comparing objects. This property should be defined in each sub-class by
 considering necessary properties to identify that object, i.e. `visible` should not
 be a part of the key, because any changes on this property just set visibility of
 the same drawing object.
 
+Favorable IR
+~~~~~~~~~~~~
 To support not only `matplotlib` but also multiple plotters, those drawing IRs should be
 universal and designed without strong dependency on modules in `matplotlib`.
-An IR should represent a primitive geometry that can be supported by many plotters.
+This means IRs that represent primitive geometries are preferred.
 It should be noted that there will be no unittest for a plotter interface, which takes
-drawing IRs and output image data, we should avoid adding a complicated data structure
+drawing IRs and output an image data, we should avoid adding a complicated data structure
 that has a context of the pulse program.
 
 For example, a pulse envelope is complex valued number array and may be represented
-by two lines with different colors corresponding to the real and imaginary component.
-We may use two line-type IRs rather than defining a new IR that takes complex value,
-because many plotters don't support a function that visualize complex values.
-If we introduce such IR and write a custom wrapper function on top of a plotter API,
-it could be difficult to prevent bugs by the CI process due to lack of the unittest.
+by two lines with different colors associated with the real and the imaginary component.
+In this case, we can use two line-type IRs rather than defining a new IR that takes complex value.
+Because many plotters don't support an API that visualizes complex valued data array.
+If we introduce such IR and write a custom wrapper function on top of the existing plotter API,
+it could be difficult to prevent bugs with the CI tools due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
 from typing import Dict, Any
