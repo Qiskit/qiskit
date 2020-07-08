@@ -25,6 +25,7 @@ except ImportError:
     from Cython.Build import cythonize
 
 REQUIREMENTS = [
+    "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
     "networkx>=2.2;python_version>'3.5'",
     # Networkx 2.4 is the final version with python 3.5 support.
