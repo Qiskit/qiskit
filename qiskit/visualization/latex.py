@@ -292,7 +292,7 @@ class QCircuitImage:
         columns = 2
 
         # add extra column if needed
-        if self.cregbundle and self.ops[0][0].name == "measure":
+        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
             columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
@@ -387,7 +387,7 @@ class QCircuitImage:
 
         column = 1
         # Leave a column to display number of classical registers if needed
-        if self.cregbundle and self.ops[0][0].name == "measure":
+        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
             column += 1
         for layer in self.ops:
             num_cols_used = 1
@@ -423,8 +423,9 @@ class QCircuitImage:
                         temp.sort(key=int)
                         bottom = temp[len(pos_array) - 1]
                         gap = pos_cond - bottom
-                        for i in range(self.cregs[if_reg]):
-                            if if_value[i] == '1':
+                        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                        for i in range(creg_rng):
+                            if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                 self._latex[pos_cond + i][column] = \
                                     "\\control \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
@@ -551,8 +552,9 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                             gap = pos_2 - pos_1
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_2 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -623,8 +625,9 @@ class QCircuitImage:
                             bottom = temp[1]
 
                             gap = pos_3 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_3 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -831,8 +834,9 @@ class QCircuitImage:
                             bottom = temp[2]
 
                             gap = pos_4 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_4 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
