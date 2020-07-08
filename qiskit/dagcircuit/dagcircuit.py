@@ -674,8 +674,8 @@ class DAGCircuit:
 
         Returns:
             tuple(dict): tuple(predecessor_map, successor_map)
-                These map from wire (Register, int) to predecessor (successor)
-                nodes of n.
+                These map from wire (Register, int) to the node ids for the
+                predecessor (successor) nodes of the input node.
         """
 
         pred_map = {e[2]['wire']: e[0] for e in
