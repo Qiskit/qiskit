@@ -18,11 +18,32 @@ from unittest.mock import patch
 
 import numpy as np
 
-from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
-                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
-                          functional_pulse, ShiftFrequency, SetPhase)
-from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
-                                   SnapshotChannel, MeasureChannel)
+from qiskit.pulse import (
+    Play,
+    SamplePulse,
+    ShiftPhase,
+    Instruction,
+    SetFrequency,
+    Acquire,
+    pulse_lib,
+    Snapshot,
+    Delay,
+    Gaussian,
+    Drag,
+    GaussianSquare,
+    Constant,
+    functional_pulse,
+    ShiftFrequency,
+    SetPhase,
+)
+from qiskit.pulse.channels import (
+    MemorySlot,
+    RegisterSlot,
+    DriveChannel,
+    AcquireChannel,
+    SnapshotChannel,
+    MeasureChannel,
+)
 from qiskit.pulse.commands import PersistentValue, PulseInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _insertion_index
@@ -263,19 +284,19 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
-        """Test if a schedule keeps its _children after attached to another schedule."""
-        _children = (Acquire(10, self.config.acquire(0), MemorySlot(0)).shift(20) +
-                     Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        self.assertEqual(2, len(list(_children.instructions)))
+        """Test if a schedule keeps its children after attached to another schedule."""
+        children = (Acquire(10, self.config.acquire(0), MemorySlot(0)).shift(20) +
+                    Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        self.assertEqual(2, len(list(children.instructions)))
 
-        sched = Acquire(10, self.config.acquire(0), MemorySlot(0)).append(_children)
+        sched = Acquire(10, self.config.acquire(0), MemorySlot(0)).append(children)
         self.assertEqual(3, len(list(sched.instructions)))
 
-        # add 2 instructions to _children (2 instructions -> 4 instructions)
-        _children = _children.append(Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        _children = _children.insert(100, Acquire(10, self.config.acquire(0),
-                                                  MemorySlot(0)))
-        self.assertEqual(4, len(list(_children.instructions)))
+        # add 2 instructions to children (2 instructions -> 4 instructions)
+        children = children.append(Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        children = children.insert(
+            100, Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        self.assertEqual(4, len(list(children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
