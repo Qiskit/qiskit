@@ -34,10 +34,10 @@ class ParametricPulseShapes(Enum):
     The enum name is the transport layer name for pulse shapes, the
     value is its mapping to the OpenPulse Command in Qiskit.
     """
-    gaussian = pulse_lib.Gaussian
-    gaussian_square = pulse_lib.GaussianSquare
-    drag = pulse_lib.Drag
-    constant = pulse_lib.Constant
+    gaussian = library.Gaussian
+    gaussian_square = library.GaussianSquare
+    drag = library.Drag
+    constant = library.Constant
 
 
 class ConversionMethodBinder:
