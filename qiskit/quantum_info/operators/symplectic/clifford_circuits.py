@@ -18,6 +18,7 @@ Circuit simulation for the Clifford class.
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.barrier import Barrier
 
 
 def _append_circuit(clifford, circuit, qargs=None):
@@ -34,6 +35,9 @@ def _append_circuit(clifford, circuit, qargs=None):
     Raises:
         QiskitError: if input gate cannot be decomposed into Clifford gates.
     """
+    if isinstance(circuit, Barrier):
+        return clifford
+
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
 
