@@ -55,7 +55,7 @@ If we introduce such IR and write a custom wrapper function on top of the existi
 it could be difficult to prevent bugs with the CI tools due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 import numpy as np
 
@@ -67,7 +67,7 @@ class ElementaryData(ABC):
     def __init__(self,
                  data_type: str,
                  channel: pulse.channels.Channel,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
                  styles: Dict[str, Any]):
@@ -90,6 +90,7 @@ class ElementaryData(ABC):
     @property
     @abstractmethod
     def data_key(self):
+        """Return unique hash of this object."""
         pass
 
     def __repr__(self):
@@ -105,16 +106,17 @@ class FilledAreaData(ElementaryData):
     """Drawing IR to represent object appears as a filled area.
     This is the counterpart of `matplotlib.axes.Axes.fill_between`.
     """
+    # pylint: disable=invalid-name
     def __init__(self,
                  data_type: str,
                  channel: pulse.channels.Channel,
                  x: np.ndarray,
                  y1: np.ndarray,
                  y2: np.ndarray,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
-                 styles: Dict[str, Any]):  # pylint: disable=invalid-name
+                 styles: Dict[str, Any]):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
@@ -142,6 +144,7 @@ class FilledAreaData(ElementaryData):
 
     @property
     def data_key(self):
+        """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.channel,
@@ -154,15 +157,16 @@ class LineData(ElementaryData):
     """Drawing IR to represent object appears as a line.
     This is the counterpart of `matplotlib.pyploy.plot`.
     """
+    # pylint: disable=invalid-name
     def __init__(self,
                  data_type: str,
                  channel: pulse.channels.Channel,
                  x: np.ndarray,
                  y: np.ndarray,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
-                 styles: Dict[str, Any]):  # pylint: disable=invalid-name
+                 styles: Dict[str, Any]):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
@@ -188,6 +192,7 @@ class LineData(ElementaryData):
 
     @property
     def data_key(self):
+        """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.channel,
@@ -199,16 +204,17 @@ class TextData(ElementaryData):
     """Drawing IR to represent object appears as a text.
     This is the counterpart of `matplotlib.pyploy.text`.
     """
+    # pylint: disable=invalid-name
     def __init__(self,
                  data_type: str,
                  channel: pulse.channels.Channel,
                  x: float,
                  y: float,
                  text: str,
-                 meta: Dict[str, Any],
+                 meta: Union[Dict[str, Any], None],
                  offset: float,
                  visible: bool,
-                 styles: Dict[str, Any]):  # pylint: disable=invalid-name
+                 styles: Dict[str, Any]):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
@@ -236,6 +242,7 @@ class TextData(ElementaryData):
 
     @property
     def data_key(self):
+        """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.channel,
