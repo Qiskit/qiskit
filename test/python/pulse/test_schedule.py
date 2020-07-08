@@ -25,9 +25,9 @@ from qiskit.pulse import (
     Instruction,
     SetFrequency,
     Acquire,
-    pulse_lib,
     Snapshot,
     Delay,
+    library,
     Gaussian,
     Drag,
     GaussianSquare,
@@ -126,8 +126,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error."""
-        gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
+        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.7, sigma=3)
 
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
@@ -160,8 +160,8 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test that in place operations on schedule are still immutable
            and return equivalent schedules."""
-        gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
@@ -179,8 +179,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_immutability(self):
         """Test that operations are immutable."""
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Play(gp1, self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
@@ -192,8 +192,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched = sched + Play(gp1, self.config.drive(0))
@@ -319,7 +319,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
+        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
         with self.assertWarns(DeprecationWarning):
             pv0 = PersistentValue(0.1)
         snapshot = Snapshot('snapshot_label', 'state')

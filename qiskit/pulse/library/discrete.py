@@ -132,7 +132,7 @@ def sawtooth(duration: int, amp: complex, freq: float = None, period: float = No
         .. jupyter-execute::
 
             import matplotlib.pyplot as plt
-            from qiskit.pulse.pulse_lib import sawtooth
+            from qiskit.pulse.library import sawtooth
             import numpy as np
 
             duration = 100
@@ -181,7 +181,7 @@ def triangle(duration: int, amp: complex, freq: float = None, period: float = No
         .. jupyter-execute::
 
             import matplotlib.pyplot as plt
-            from qiskit.pulse.pulse_lib import triangle
+            from qiskit.pulse.library import triangle
             import numpy as np
 
             duration = 100

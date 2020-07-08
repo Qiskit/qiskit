@@ -13,8 +13,5 @@
 # that they have been altered from the originals.
 
 """Module for methods which sample continuous functions."""
-import warnings
 
-from qiskit.pulse.library.samplers.decorators import left, right, midpoint
-warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
-              DeprecationWarning, stacklevel=2)
+from .decorators import left, right, midpoint

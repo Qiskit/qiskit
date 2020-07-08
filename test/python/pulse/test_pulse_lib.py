@@ -17,14 +17,15 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.pulse_lib import (Waveform, Constant, ConstantPulse, Gaussian,
-                                    GaussianSquare, Drag, gaussian)
+from qiskit.pulse.library import (Waveform, Constant, ConstantPulse, Gaussian,
+                                  GaussianSquare, Drag, gaussian)
+
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
 
 
-class TestSamplePulse(QiskitTestCase):
-    """SamplePulse tests."""
+class TestWaveform(QiskitTestCase):
+    """Waveform tests."""
 
     def test_sample_pulse(self):
         """Test pulse initialization."""
@@ -259,7 +260,7 @@ class TestParametricPulses(QiskitTestCase):
 
 
 class TestFunctionalPulse(QiskitTestCase):
-    """SamplePulse tests."""
+    """Waveform tests."""
 
     def test_gaussian(self):
         """Test gaussian pulse.
