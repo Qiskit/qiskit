@@ -510,12 +510,16 @@ class Operator(BaseOperator):
 
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
+        from qiskit.circuit.barrier import Barrier
+
         mat = self._instruction_to_matrix(obj)
         if mat is not None:
             # Perform the composition and inplace update the current state
             # of the operator
             op = self.compose(mat, qargs=qargs)
             self._data = op.data
+        elif isinstance(obj, Barrier):
+            return
         else:
             # If the instruction doesn't have a matrix defined we use its
             # circuit decomposition definition if it exists, otherwise we
