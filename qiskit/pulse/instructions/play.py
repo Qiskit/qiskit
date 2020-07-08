@@ -19,7 +19,7 @@ from typing import Optional
 
 from ..channels import PulseChannel
 from ..exceptions import PulseError
-from ..pulse_lib.pulse import Pulse
+from ..library.pulse import Pulse
 from .instruction import Instruction
 
 
@@ -39,7 +39,7 @@ class Play(Instruction):
 
         Args:
             pulse: A pulse waveform description, such as
-                   :py:class:`~qiskit.pulse.pulse_lib.SamplePulse`.
+                   :py:class:`~qiskit.pulse.library.SamplePulse`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
 
@@ -47,7 +47,7 @@ class Play(Instruction):
             PulseError: If pulse is not a Pulse type.
         """
         if not isinstance(pulse, Pulse):
-            raise PulseError("The `pulse` argument to `Play` must be of type `pulse_lib.Pulse`.")
+            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
         self._pulse = pulse
         self._channel = channel
         if name is None:

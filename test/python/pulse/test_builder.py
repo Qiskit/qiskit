@@ -23,7 +23,7 @@ from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.pulse import pulse_lib, instructions
+from qiskit.pulse import library, instructions
 
 # pylint: disable=invalid-name
 
@@ -326,7 +326,7 @@ class TestInstructions(TestBuilder):
     def test_play_parametric_pulse(self):
         """Test play instruction with parametric pulse."""
         d0 = pulse.DriveChannel(0)
-        test_pulse = pulse_lib.Constant(10, 1.0)
+        test_pulse = library.Constant(10, 1.0)
 
         with pulse.build() as schedule:
             pulse.play(test_pulse, d0)
@@ -339,7 +339,7 @@ class TestInstructions(TestBuilder):
     def test_play_sample_pulse(self):
         """Test play instruction with sample pulse."""
         d0 = pulse.DriveChannel(0)
-        test_pulse = pulse_lib.SamplePulse([0.0, 0.0])
+        test_pulse = library.SamplePulse([0.0, 0.0])
 
         with pulse.build() as schedule:
             pulse.play(test_pulse, d0)
@@ -868,8 +868,8 @@ class TestBuilderComposition(TestBuilder):
                 pulse.delay(delay_dur, d0)
                 pulse.u2(0, pi/2, 1)
             with pulse.align_right():
-                pulse.play(pulse_lib.Constant(short_dur, 0.1), d1)
-                pulse.play(pulse_lib.Constant(long_dur, 0.1), d2)
+                pulse.play(library.Constant(short_dur, 0.1), d1)
+                pulse.play(library.Constant(long_dur, 0.1), d2)
                 pulse.u2(0, pi/2, 1)
             with pulse.align_left():
                 pulse.u2(0, pi/2, 0)
@@ -891,13 +891,13 @@ class TestBuilderComposition(TestBuilder):
         # align right
         align_right_reference = pulse.Schedule()
         align_right_reference += pulse.Play(
-            pulse_lib.Constant(long_dur, 0.1), d2)
+            library.Constant(long_dur, 0.1), d2)
         align_right_reference.insert(long_dur-single_u2_sched.duration,
                                      single_u2_sched,
                                      inplace=True)
         align_right_reference.insert(
             long_dur-single_u2_sched.duration-short_dur,
-            pulse.Play(pulse_lib.Constant(short_dur, 0.1), d1),
+            pulse.Play(library.Constant(short_dur, 0.1), d1),
             inplace=True)
 
         # align left

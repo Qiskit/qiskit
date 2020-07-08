@@ -19,7 +19,7 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-import qiskit.pulse.pulse_lib.continuous as continuous
+import qiskit.pulse.library.continuous as continuous
 
 
 class TestContinuousPulses(QiskitTestCase):
