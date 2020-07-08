@@ -31,10 +31,11 @@ This module can easily be extended to describe more pulse shapes. The new class 
 The new pulse must then be registered by the assembler in
 `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
 by following the existing pattern:
+
     class ParametricPulseShapes(Enum):
-        gaussian = commands.Gaussian
+        gaussian = pulse_lib.Gaussian
         ...
-        new_supported_pulse_name = commands.YourPulseCommandClass
+        new_supported_pulse_name = pulse_lib.YourPulseWaveformClass
 """
 import warnings
 from abc import abstractmethod

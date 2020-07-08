@@ -118,9 +118,9 @@ class TestParametricPulses(QiskitTestCase):
         times = np.array(range(25), dtype=np.complex_)
         times = times - (duration / 2) + 0.5
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        # command
-        command = Gaussian(duration=duration, sigma=sigma, amp=amp)
-        samples = command.get_sample_pulse().samples
+        # wf
+        wf = Gaussian(duration=duration, sigma=sigma, amp=amp)
+        samples = wf.get_sample_pulse().samples
         np.testing.assert_almost_equal(samples, gauss)
 
     def test_gauss_square_samples(self):
@@ -132,9 +132,9 @@ class TestParametricPulses(QiskitTestCase):
         times = np.array(range(25), dtype=np.complex_)
         times = times - (25 / 2) + 0.5
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        # command
-        command = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=100)
-        samples = command.get_sample_pulse().samples
+        # wf
+        wf = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=100)
+        samples = wf.get_sample_pulse().samples
         np.testing.assert_almost_equal(samples[50], amp)
         np.testing.assert_almost_equal(samples[100], amp)
         np.testing.assert_almost_equal(samples[:10], gauss[:10])
@@ -165,9 +165,9 @@ class TestParametricPulses(QiskitTestCase):
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
         gauss_deriv = -(times / sigma**2) * gauss
         drag = gauss + 1j * beta * gauss_deriv
-        # command
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = command.get_sample_pulse().samples
+        # wf
+        wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        samples = wf.get_sample_pulse().samples
         np.testing.assert_almost_equal(samples, drag)
 
     def test_drag_validation(self):
@@ -176,21 +176,21 @@ class TestParametricPulses(QiskitTestCase):
         sigma = 4
         amp = 0.5j
         beta = 1
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = command.get_sample_pulse().samples
+        wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        samples = wf.get_sample_pulse().samples
         self.assertTrue(max(np.abs(samples)) <= 1)
         beta = sigma ** 2
         with self.assertRaises(PulseError):
-            command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+            wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         # If sigma is high enough, side peaks fall out of range and norm restriction is met
         sigma = 100
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
 
     def test_drag_beta_validation(self):
         """Test drag beta parameter validation."""
         def check_drag(duration, sigma, amp, beta):
-            command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-            samples = command.get_sample_pulse().samples
+            wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+            samples = wf.get_sample_pulse().samples
             self.assertTrue(max(np.abs(samples)) <= 1)
         check_drag(duration=50, sigma=16, amp=1, beta=2)
         check_drag(duration=50, sigma=16, amp=1, beta=4)
@@ -271,16 +271,16 @@ class TestFunctionalPulse(QiskitTestCase):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_command = local_gaussian(duration=10, amp=1, t0=5, sig=1, name='test_pulse')
+        pulse_wf_inst = local_gaussian(duration=10, amp=1, t0=5, sig=1, name='test_pulse')
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
-        self.assertListEqual(list(pulse_command.samples), list(_y))
+        self.assertListEqual(list(pulse_wf_inst.samples), list(_y))
 
         # check name
-        self.assertEqual(pulse_command.name, 'test_pulse')
+        self.assertEqual(pulse_wf_inst.name, 'test_pulse')
 
         # check duration
-        self.assertEqual(pulse_command.duration, 10)
+        self.assertEqual(pulse_wf_inst.duration, 10)
 
     def test_variable_duration(self):
         """Test generation of sample pulse with variable duration.
@@ -294,8 +294,8 @@ class TestFunctionalPulse(QiskitTestCase):
         _durations = np.arange(10, 15, 1)
 
         for _duration in _durations:
-            pulse_command = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
-            self.assertEqual(len(pulse_command.samples), _duration)
+            pulse_wf_inst = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
+            self.assertEqual(len(pulse_wf_inst.samples), _duration)
 
 
 if __name__ == '__main__':

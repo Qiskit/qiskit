@@ -18,7 +18,6 @@ from typing import Callable, Union, List, Optional
 
 import numpy as np
 
-from ..channels import PulseChannel
 from ..exceptions import PulseError
 from .pulse import Pulse
 
@@ -31,7 +30,7 @@ class SamplePulse(Pulse):
     def __init__(self, samples: Union[np.ndarray, List[complex]],
                  name: Optional[str] = None,
                  epsilon: float = 1e-7):
-        """Create new sample pulse command.
+        """Create new sample pulse envelope.
 
         Args:
             samples: Complex array of the samples in the pulse envelope.
@@ -144,11 +143,3 @@ class SamplePulse(Pulse):
         np.set_printoptions(**opt)
         return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
                                  ", name='{}'".format(self.name) if self.name is not None else "")
-
-    def __call__(self, channel: PulseChannel):
-        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
-                      "instruction directly with a pulse and a channel. In this case, please "
-                      "use: `Play(SamplePulse(samples), {})`."
-                      "".format(self.__class__.__name__, channel),
-                      DeprecationWarning)
-        return super().__call__(channel)
