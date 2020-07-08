@@ -285,8 +285,6 @@ class MatplotlibDrawer:
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
-        # remove $'s since "${}$".format will add them back on the outside
-        param_parts = param_parts.replace('$', '')
         param_parts = param_parts.replace('-', u'\u02d7')
         return param_parts
 
@@ -309,16 +307,16 @@ class MatplotlibDrawer:
             gate_text = op.name
 
         if gate_text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[gate_text])
+            gate_text = "{}".format(self._style.disptex[gate_text])
         else:
-            gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
+            gate_text = "{}".format(gate_text[0].upper() + gate_text[1:])
 
         # mathtext .format removes spaces so add them back and it changes
         # hyphen to wide minus sign, so use unicode hyphen to prevent that
         gate_text = gate_text.replace(' ', '\\;')
         gate_text = gate_text.replace('-', u'\u02d7')
         if ctrl_text:
-            ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
+            ctrl_text = "{}".format(ctrl_text[0].upper() + ctrl_text[1:])
             ctrl_text = ctrl_text.replace(' ', '\\;')
             ctrl_text = ctrl_text.replace('-', u'\u02d7')
         return gate_text, ctrl_text
@@ -613,7 +611,7 @@ class MatplotlibDrawer:
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
-                label = '${name}$'.format(name=reg.register.name)
+                label = '{name}'.format(name=reg.register.name)
                 label = _fix_double_script(label) + initial_qbit
                 text_width = self._get_text_width(label, self._style.fs)
 
@@ -635,7 +633,7 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self.cregbundle:
-                    label = '${}$'.format(reg.register.name)
+                    label = '{}'.format(reg.register.name)
                     label = _fix_double_script(label) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
@@ -920,7 +918,7 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     stext = self._style.disptex['u1'] if op.name == 'cu1' else 'zz'
                     self._sidetext(qreg_b, tc=tc,
-                                   text='${}$'.format(stext) + ' ' + '({})'.format(param))
+                                   text='{}'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # swap gate
