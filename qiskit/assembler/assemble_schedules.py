@@ -20,7 +20,7 @@ import hashlib
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions, transforms, pulse_lib, commands
+from qiskit.pulse import instructions, transforms, library, commands
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
@@ -175,7 +175,7 @@ def _assemble_instructions(
                                             name=instruction.name)
 
         if (isinstance(instruction, instructions.Play) and
-                isinstance(instruction.pulse, pulse_lib.ParametricPulse)):
+                isinstance(instruction.pulse, library.ParametricPulse)):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
                 instruction = instructions.Play(instruction.pulse.get_sample_pulse(),
@@ -185,14 +185,14 @@ def _assemble_instructions(
         if isinstance(instruction, commands.PulseInstruction):  # deprecated
             name = instruction.command.name
             instruction = instructions.Play(
-                pulse_lib.SamplePulse(name=name, samples=instruction.command.samples),
+                library.SamplePulse(name=name, samples=instruction.command.samples),
                 instruction.channels[0], name=name)
 
         if (isinstance(instruction, instructions.Play) and
-                isinstance(instruction.pulse, pulse_lib.SamplePulse)):
+                isinstance(instruction.pulse, library.SamplePulse)):
             name = hashlib.sha256(instruction.pulse.samples).hexdigest()
             instruction = instructions.Play(
-                pulse_lib.SamplePulse(name=name, samples=instruction.pulse.samples),
+                library.SamplePulse(name=name, samples=instruction.pulse.samples),
                 channel=instruction.channel,
                 name=name)
             user_pulselib[name] = instruction.pulse.samples
