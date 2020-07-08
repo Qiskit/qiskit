@@ -26,6 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
+from qiskit.result.counts import Counts
 
 
 class QuantumState(ABC):
@@ -383,7 +384,7 @@ class QuantumState(ABC):
                                 subsystems (Default: None).
 
         Returns:
-            dict: sampled counts dictionary.
+            Counts: sampled counts dictionary.
 
         Additional Information:
 
@@ -400,7 +401,7 @@ class QuantumState(ABC):
 
         # Combine all samples into a counts dictionary
         inds, counts = np.unique(samples, return_counts=True)
-        return dict(zip(inds, counts))
+        return Counts(zip(inds, counts))
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
