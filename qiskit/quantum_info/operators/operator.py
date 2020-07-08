@@ -510,19 +510,28 @@ class Operator(BaseOperator):
 
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
+        from qiskit.circuit.barrier import Barrier
+
         mat = self._instruction_to_matrix(obj)
         if mat is not None:
             # Perform the composition and inplace update the current state
             # of the operator
             op = self.compose(mat, qargs=qargs)
             self._data = op.data
+        elif isinstance(obj, Barrier):
+            return
         else:
             # If the instruction doesn't have a matrix defined we use its
             # circuit decomposition definition if it exists, otherwise we
             # cannot compose this gate and raise an error.
             if obj.definition is None:
                 raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-            for instr, qregs, cregs in obj.definition:
+            if not isinstance(obj.definition, QuantumCircuit):
+                raise QiskitError('Instruction "{}" '
+                                  'definition is {} but expected QuantumCircuit.'.format(
+                                      obj.name, type(obj.definition)))
+            flat_instr = obj.definition.to_instruction()
+            for instr, qregs, cregs in flat_instr.definition.data:
                 if cregs:
                     raise QiskitError(
                         'Cannot apply instruction with classical registers: {}'.format(

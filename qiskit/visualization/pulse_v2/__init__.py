@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,9 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-"""A collection of useful quantum information functions"""
-
-from .qi import (qft, partial_trace, vectorize, devectorize, choi_to_pauli,
-                 chop, outer, entropy, shannon_entropy, concurrence,
-                 entanglement_of_formation, mutual_information, is_pos_def)
+"""
+Pulse visualization module.
+"""
