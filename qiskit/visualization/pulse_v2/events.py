@@ -40,7 +40,7 @@ The grouped instructions are returned as an iterator by the corresponding method
     for t0, frame_change, instructions in event.get_frame_changes():
         ...
 
-    for t0, misc in event.get_misc_instructions():
+    for t0, instructions in event.get_misc_instructions():
         ...
     ```
 
