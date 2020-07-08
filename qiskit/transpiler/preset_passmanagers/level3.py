@@ -166,7 +166,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [
         Collect2qBlocks(),
-        ConsolidateBlocks(),
+        ConsolidateBlocks(basis_gates=basis_gates),
         UnitarySynthesis(basis_gates),
         Optimize1qGates(basis_gates),
         CommutativeCancellation(),
