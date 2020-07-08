@@ -57,12 +57,16 @@ class TestLatexSourceGenerator(QiskitTestCase):
             if os.path.exists(filename):
                 os.remove(filename)
 
-    def test_wide_circuit(self):
-        """Test draw wide circuit."""
-        filename = self._get_resource_path('test_wide.tex')
-        qc = QuantumCircuit(100)
-        for gate in range(100):
-            qc.h(gate)
+    def test_4597(self):
+        """Test cregbundle and conditional gates.
+        See: https://github.com/Qiskit/qiskit-terra/pull/4597 """
+        filename = self._get_resource_path('test_4597.tex')
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3, 'c')
+        qc = QuantumCircuit(qr, cr)
+        qc.x(qr[2]).c_if(cr, 2)
+        qc.draw(output='latex_source', cregbundle=True)
+
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
