@@ -155,8 +155,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_truncate_acquisition(self):
         sched = Schedule(name='test_schedule')
-        acquire = Acquire(30)
-        sched = sched.insert(0, acquire(AcquireChannel(1),
+        sched = sched.insert(0, Acquire(30, AcquireChannel(1),
                                         MemorySlot(1),
                                         RegisterSlot(1)))
         # Check ValueError is not thrown
