@@ -16,7 +16,7 @@
 
 import numpy as np
 
-from qiskit.pulse import channels, configuration, instructions, pulse_lib
+from qiskit.pulse import channels, configuration, instructions, library
 from qiskit.test import QiskitTestCase
 
 
@@ -182,7 +182,7 @@ class TestPlay(QiskitTestCase):
     def test_play(self):
         """Test basic play instruction."""
         duration = 4
-        pulse = pulse_lib.SamplePulse([1.0] * duration, name='test')
+        pulse = library.SamplePulse([1.0] * duration, name='test')
         play = instructions.Play(pulse, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
