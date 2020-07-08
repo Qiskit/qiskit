@@ -127,7 +127,7 @@ class TestDrawingObjects(QiskitTestCase):
         """Test FilledAreaData."""
         data1 = drawing_objects.FilledAreaData(
             data_type='waveform',
-            bind=pulse.DriveChannel(0),
+            channel=pulse.DriveChannel(0),
             x=np.array([0, 1, 2]),
             y1=np.array([3, 4, 5]),
             y2=np.array([0, 0, 0]),
@@ -143,7 +143,7 @@ class TestDrawingObjects(QiskitTestCase):
 
         data2 = drawing_objects.FilledAreaData(
             data_type='waveform',
-            bind=pulse.DriveChannel(0),
+            channel=pulse.DriveChannel(0),
             x=np.array([0, 1, 2]),
             y1=np.array([3, 4, 5]),
             y2=np.array([0, 0, 0]),
@@ -163,7 +163,7 @@ class TestDrawingObjects(QiskitTestCase):
         """Test for LineData."""
         data1 = drawing_objects.LineData(
             data_type='baseline',
-            bind=pulse.DriveChannel(0),
+            channel=pulse.DriveChannel(0),
             x=np.array([0, 1, 2]),
             y=np.array([0, 0, 0]),
             meta={
@@ -178,7 +178,7 @@ class TestDrawingObjects(QiskitTestCase):
 
         data2 = drawing_objects.LineData(
             data_type='baseline',
-            bind=pulse.DriveChannel(0),
+            channel=pulse.DriveChannel(0),
             x=np.array([0, 1, 2]),
             y=np.array([0, 0, 0]),
             meta={
@@ -197,7 +197,7 @@ class TestDrawingObjects(QiskitTestCase):
         """Test for TextData."""
         data1 = drawing_objects.TextData(
             data_type='pulse_label',
-            bind=pulse.DriveChannel(0),
+            channel=pulse.DriveChannel(0),
             x=0,
             y=0,
             text='my_text',
@@ -213,7 +213,7 @@ class TestDrawingObjects(QiskitTestCase):
 
         data2 = drawing_objects.TextData(
             data_type='pulse_label',
-            bind=pulse.DriveChannel(0),
+            channel=pulse.DriveChannel(0),
             x=0,
             y=0,
             text='my_text',
