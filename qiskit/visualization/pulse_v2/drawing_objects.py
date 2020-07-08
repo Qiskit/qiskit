@@ -32,10 +32,10 @@ the end-user request. Drawing properties are designed based on this line of thin
 Data key
 ~~~~~~~~
 In the abstract class ``ElementaryData`` common properties to represent a drawing object are
-specified. In addition, IRs have the `data_key` property that returns an unique hash for
-the drawing for comparing objects. This property should be defined in each sub-class by
+specified. In addition, IRs have the `data_key` property that returns an unique hash of
+the object for comparison. This property should be defined in each sub-class by
 considering necessary properties to identify that object, i.e. `visible` should not
-be a part of the key, because any changes on this property just set visibility of
+be a part of the key, because any change on this property just sets the visibility of
 the same drawing object.
 
 Favorable IR
@@ -66,7 +66,7 @@ class ElementaryData(ABC):
     """Abstract class of visualization intermediate representation."""
     def __init__(self,
                  data_type: str,
-                 bind: pulse.channels.Channel,
+                 channel: pulse.channels.Channel,
                  meta: Dict[str, Any],
                  offset: float,
                  visible: bool,
@@ -74,14 +74,14 @@ class ElementaryData(ABC):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
-            bind: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing.
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.data_type = data_type
-        self.bind = bind
+        self.channel = channel
         self.meta = meta
         self.offset = offset
         self.visible = visible
@@ -107,7 +107,7 @@ class FilledAreaData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 bind: pulse.channels.Channel,
+                 channel: pulse.channels.Channel,
                  x: np.ndarray,
                  y1: np.ndarray,
                  y2: np.ndarray,
@@ -118,7 +118,7 @@ class FilledAreaData(ElementaryData):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
-            bind: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
             y1: Series of vertical coordinate of upper boundary of filling area.
             y2: Series of vertical coordinate of lower boundary of filling area.
@@ -133,7 +133,7 @@ class FilledAreaData(ElementaryData):
 
         super().__init__(
             data_type=data_type,
-            bind=bind,
+            channel=channel,
             meta=meta,
             offset=offset,
             visible=visible,
@@ -144,7 +144,7 @@ class FilledAreaData(ElementaryData):
     def data_key(self):
         return str(hash((self.__class__.__name__,
                          self.data_type,
-                         self.bind,
+                         self.channel,
                          tuple(self.x),
                          tuple(self.y1),
                          tuple(self.y2))))
@@ -156,7 +156,7 @@ class LineData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 bind: pulse.channels.Channel,
+                 channel: pulse.channels.Channel,
                  x: np.ndarray,
                  y: np.ndarray,
                  meta: Dict[str, Any],
@@ -166,7 +166,7 @@ class LineData(ElementaryData):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
-            bind: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
             y: Series of vertical coordinate that the object is drawn.
             meta: Meta data dictionary of the object.
@@ -179,7 +179,7 @@ class LineData(ElementaryData):
 
         super().__init__(
             data_type=data_type,
-            bind=bind,
+            channel=channel,
             meta=meta,
             offset=offset,
             visible=visible,
@@ -190,7 +190,7 @@ class LineData(ElementaryData):
     def data_key(self):
         return str(hash((self.__class__.__name__,
                          self.data_type,
-                         self.bind,
+                         self.channel,
                          tuple(self.x),
                          tuple(self.y))))
 
@@ -201,7 +201,7 @@ class TextData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 bind: pulse.channels.Channel,
+                 channel: pulse.channels.Channel,
                  x: float,
                  y: float,
                  text: str,
@@ -212,7 +212,7 @@ class TextData(ElementaryData):
         """Create new visualization IR.
         Args:
             data_type: String representation of this drawing object.
-            bind: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing.
             x: A horizontal coordinate that the object is drawn.
             y: A vertical coordinate that the object is drawn.
             text: String to show in the canvas.
@@ -227,7 +227,7 @@ class TextData(ElementaryData):
 
         super().__init__(
             data_type=data_type,
-            bind=bind,
+            channel=channel,
             meta=meta,
             offset=offset,
             visible=visible,
@@ -238,7 +238,7 @@ class TextData(ElementaryData):
     def data_key(self):
         return str(hash((self.__class__.__name__,
                          self.data_type,
-                         self.bind,
+                         self.channel,
                          self.x,
                          self.y,
                          self.text)))
