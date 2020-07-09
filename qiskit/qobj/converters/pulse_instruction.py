@@ -292,19 +292,10 @@ class InstructionToQobjConverter:
             'qubits': qubits,
         }
         if memory_slots:
-            if len(memory_slots) == len(qubits):
-                command_dict['memory_slot'] = memory_slots
-        else:
-            raise QiskitError(
-                'Number of memory slots must be equal to number of qubits.'
-                )
+            command_dict['memory_slot'] = memory_slots
+
         if register_slots:
-            if len(register_slots) == len(qubits):
-                command_dict['register_slot'] = register_slots
-            else:
-                raise QiskitError(
-                    'Number of register slots must be equal to number of qubits.'
-                    )
+            command_dict['register_slot'] = register_slots
 
         if discriminators:
             num_discriminators = len(discriminators)
