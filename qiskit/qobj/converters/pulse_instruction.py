@@ -233,34 +233,28 @@ class InstructionToQobjConverter:
         Raises:
             PulseError: If ``instructions`` is empty.
         """
+        if not instructions_:
+            raise PulseError('"instructions" may not be empty.')
+
         meas_level = self._run_config.get('meas_level', 2)
 
-        t0 = None
-        duration = None
+        t0 = instructions_[0].start_time
+        duration = instructions_[0].duration
         memory_slots = []
         register_slots = []
         qubits = []
         discriminators = []
         kernels = []
 
-        if not instructions_:
-            raise PulseError('"instructions" may not be empty.')
-
         for instruction in instructions_:
             qubits.append(instruction.channel.index)
 
-            instr_t0 = shift + instruction.start_time
-            if t0 is None:
-                t0 = instr_t0
-            elif t0 != instr_t0:
+            if instruction.start_time != t0:
                 raise PulseError(
                     'Bundled acquire instructions may not have different starting times'
                 )
 
-            instr_duration = instruction.duration
-            if duration is None:
-                duration = instr_duration
-            elif duration != instr_duration:
+            if instruction.duration != duration:
                 raise PulseError(
                     'Bundled acquire instructions may not have different starting times'
                 )
@@ -292,7 +286,7 @@ class InstructionToQobjConverter:
                     )
         command_dict = {
             'name': 'acquire',
-            't0': t0,
+            't0': t0 + shift,
             'duration': duration,
             'qubits': qubits,
         }
