@@ -18,4 +18,4 @@
 Pulse decorators.
 """
 
-from qiskit.pulse.pulse_lib.samplers.decorators import functional_pulse
+from qiskit.pulse.library.samplers.decorators import functional_pulse

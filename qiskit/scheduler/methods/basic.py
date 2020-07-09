@@ -12,7 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The most straightforward scheduling methods: scheduling **as early** or **as late** as possible.
+"""
+The most straightforward scheduling methods: scheduling **as early** or **as late** as possible.
 """
 from collections import defaultdict
 from typing import List

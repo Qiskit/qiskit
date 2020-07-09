@@ -84,7 +84,7 @@ class Initialize(Instruction):
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
-        self.definition = initialize_circuit.data
+        self.definition = initialize_circuit
 
     def gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.

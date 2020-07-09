@@ -25,8 +25,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers import BaseBackend
+from qiskit.scheduler import ScheduleConfig
+from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
-from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
 LOG = logging.getLogger(__name__)
 

@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 import qiskit.pulse.commands as commands
-import qiskit.pulse.pulse_lib.samplers as samplers
+import qiskit.pulse.library.samplers as samplers
 
 
 def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:
