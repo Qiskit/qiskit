@@ -25,7 +25,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class LookaheadSwap(TransformationPass):
