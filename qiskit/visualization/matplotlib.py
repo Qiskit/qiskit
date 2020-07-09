@@ -311,14 +311,8 @@ class MatplotlibDrawer:
         else:
             gate_text = "{}".format(gate_text[0].upper() + gate_text[1:])
 
-        # mathtext .format removes spaces so add them back and it changes
-        # hyphen to wide minus sign, so use unicode hyphen to prevent that
-        gate_text = gate_text.replace(' ', '\\;')
-        gate_text = gate_text.replace('-', u'\u02d7')
         if ctrl_text:
             ctrl_text = "{}".format(ctrl_text[0].upper() + ctrl_text[1:])
-            ctrl_text = ctrl_text.replace(' ', '\\;')
-            ctrl_text = ctrl_text.replace('-', u'\u02d7')
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
