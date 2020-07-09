@@ -125,14 +125,19 @@ class RZXGate(Gate):
         """
         gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(2, 'q')
-        self.definition = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (RZGate(self.params[0]), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
