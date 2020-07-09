@@ -27,6 +27,7 @@ from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, Shift
                                        Delay)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
+from qiskit.pulse.pulse_lib import Waveform
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse import LoConfig, Kernel, Discriminator
 
@@ -37,7 +38,8 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_deprecated_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = SamplePulse(np.arange(0, 0.01), name='linear')
+        with self.assertWarns(DeprecationWarning):
+            command = SamplePulse(np.arange(0, 0.01), name='linear')
         with self.assertWarns(DeprecationWarning):
             instruction = command(DriveChannel(0))
 
@@ -52,7 +54,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_drive_instruction(self):
         """Test converted qobj from Play."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(SamplePulse(np.arange(0, 0.01), name='linear'), DriveChannel(0))
+        instruction = Play(Waveform(np.arange(0, 0.01), name='linear'), DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
             name='linear',
             ch='d0',
@@ -281,7 +283,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
-        self.linear = SamplePulse(np.arange(0, 0.01), name='linear')
+        self.linear = Waveform(np.arange(0, 0.01), name='linear')
         self.pulse_library = [PulseLibraryItem(name=self.linear.name,
                                                samples=self.linear.samples.tolist())]
 
