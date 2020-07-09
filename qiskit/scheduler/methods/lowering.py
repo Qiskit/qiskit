@@ -26,9 +26,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import instructions as pulse_inst
 from qiskit.pulse.channels import AcquireChannel, DriveChannel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.macros import measure
 from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.utils import measure
 from qiskit.transpiler.passes.scheduling.delayindt import delay_in_dt
 
 CircuitPulseDef = namedtuple('CircuitPulseDef', [

@@ -79,18 +79,6 @@ class Channel(metaclass=ABCMeta):
         """
         return type(self) is type(other) and self._index == other._index
 
-    def __lt__(self, other: 'Channel') -> bool:
-        """Return True iff self < other, specifically, iff self have smaller index or
-        the same index and smaller prefix.
-
-        Args:
-            other: The channel to compare to this channel.
-
-        Returns:
-            True iff self is less than other.
-        """
-        return (self._index, self.__class__.prefix) < (other._index, other.__class__.prefix)
-
     def __hash__(self):
         if self._hash is None:
             self._hash = hash((type(self), self._index))
