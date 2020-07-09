@@ -20,7 +20,7 @@ matplotlib pulse visualization.
 import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse, ScheduleComponent
+from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform, ScheduleComponent
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
@@ -33,7 +33,7 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 
-def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
+def pulse_drawer(data: Union[Waveform, ScheduleComponent],
                  dt: int = 1,
                  style: Union[PulseStyle, SchedStyle] = None,
                  filename: str = None,
@@ -154,7 +154,7 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
 
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    if isinstance(data, SamplePulse):
+    if isinstance(data, (SamplePulse, Waveform)):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
