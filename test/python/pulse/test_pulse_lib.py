@@ -17,8 +17,9 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.pulse_lib import (SamplePulse, Constant, ConstantPulse, Gaussian,
-                                    GaussianSquare, Drag, gaussian)
+from qiskit.pulse.library import (SamplePulse, Constant, ConstantPulse, Gaussian,
+                                  GaussianSquare, Drag, gaussian)
+
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
 
