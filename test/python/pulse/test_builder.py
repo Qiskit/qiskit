@@ -339,7 +339,7 @@ class TestInstructions(TestBuilder):
     def test_play_sample_pulse(self):
         """Test play instruction with sample pulse."""
         d0 = pulse.DriveChannel(0)
-        test_pulse = library.SamplePulse([0.0, 0.0])
+        test_pulse = library.Waveform([0.0, 0.0])
 
         with pulse.build() as schedule:
             pulse.play(test_pulse, d0)
@@ -358,7 +358,7 @@ class TestInstructions(TestBuilder):
             pulse.play(test_array, d0)
 
         reference = pulse.Schedule()
-        test_pulse = pulse.SamplePulse(test_array)
+        test_pulse = pulse.Waveform(test_array)
         reference += instructions.Play(test_pulse, d0)
 
         self.assertEqual(schedule, reference)
