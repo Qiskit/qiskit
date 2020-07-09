@@ -23,10 +23,10 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.barrier import Barrier
-from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import AcquireChannel
-from qiskit.scheduler.utils import measure
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.macros import measure
+from qiskit.pulse.schedule import Schedule
 
 from qiskit.scheduler.config import ScheduleConfig
 

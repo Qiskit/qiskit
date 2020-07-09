@@ -27,10 +27,10 @@ from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
-from qiskit.pulse.pulse_lib import gaussian
+from qiskit.pulse.library import gaussian
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.scheduler import measure
+from qiskit.pulse.macros import measure
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
 from qiskit.validation.jsonschema import SchemaValidationError
