@@ -75,7 +75,6 @@ def measure(qubits: List[int],
                 "Please provide another name using the 'measure_name' keyword "
                 "argument. For assistance, the instructions which are defined are: "
                 "{}".format(measure_name, inst_map.instructions))
-
         for time, inst in default_sched.instructions:
             if qubit_mem_slots and isinstance(
                     inst, (instructions.Acquire, commands.AcquireInstruction)):
