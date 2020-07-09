@@ -20,7 +20,7 @@ import warnings
 from enum import Enum
 
 from qiskit.pulse import commands, channels, instructions, pulse_lib
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -70,7 +70,7 @@ class ConversionMethodBinder:
         try:
             return self._bound_instructions[bound]
         except KeyError:
-            raise PulseError('Bound method for %s is not found.' % bound)
+            raise QiskitError('Bound method for %s is not found.' % bound)
 
 
 class InstructionToQobjConverter:
@@ -231,10 +231,10 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         Raises:
-            PulseError: If ``instructions`` is empty.
+            QiskitError: If ``instructions`` is empty.
         """
         if not instructions_:
-            raise PulseError('"instructions" may not be empty.')
+            raise QiskitError('"instructions" may not be empty.')
 
         meas_level = self._run_config.get('meas_level', 2)
 
@@ -250,12 +250,12 @@ class InstructionToQobjConverter:
             qubits.append(instruction.channel.index)
 
             if instruction.start_time != t0:
-                raise PulseError(
+                raise QiskitError(
                     'Bundled acquire instructions may not have different starting times'
                 )
 
             if instruction.duration != duration:
-                raise PulseError(
+                raise QiskitError(
                     'Bundled acquire instructions may not have different starting times'
                 )
 
@@ -294,14 +294,14 @@ class InstructionToQobjConverter:
             if len(memory_slots) == len(qubits):
                 command_dict['memory_slot'] = memory_slots
         else:
-            raise PulseError(
+            raise QiskitError(
                 'Number of memory slots must be equal to number of qubits.'
                 )
         if register_slots:
             if len(register_slots) == len(qubits):
                 command_dict['register_slot'] = register_slots
             else:
-                raise PulseError(
+                raise QiskitError(
                     'Number of register slots must be equal to number of qubits.'
                     )
 
@@ -310,7 +310,7 @@ class InstructionToQobjConverter:
             if num_discriminators == len(qubits) or num_discriminators == 1:
                 command_dict['discriminators'] = discriminators
             else:
-                raise PulseError(
+                raise QiskitError(
                     'A discriminator must be supplied for every acquisition or a single '
                     'discriminator for all acquisitions.'
                     )
@@ -320,7 +320,7 @@ class InstructionToQobjConverter:
             if num_kernels == len(qubits) or num_kernels == 1:
                 command_dict['kernels'] = kernels
             else:
-                raise PulseError(
+                raise QiskitError(
                     'A kernel must be supplied for every acquisition or a single '
                     'kernel for all acquisitions.'
                     )
@@ -555,7 +555,7 @@ class QobjToInstructionConverter:
             (Channel, int): Matched channel
 
         Raises:
-            PulseError: Is raised if valid channel is not matched
+            QiskitError: Is raised if valid channel is not matched
         """
         match = self.chan_regex.match(channel)
         if match:
@@ -568,7 +568,7 @@ class QobjToInstructionConverter:
             elif prefix == channels.ControlChannel.prefix:
                 return channels.ControlChannel(index)
 
-        raise PulseError('Channel %s is not valid' % channel)
+        raise QiskitError('Channel %s is not valid' % channel)
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
