@@ -23,6 +23,7 @@ from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock.utils import ConfigurableBackend
 from qiskit.pulse import library, instructions
 
 # pylint: disable=invalid-name
@@ -691,6 +692,15 @@ class TestMacros(TestBuilder):
 
         self.assertEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
         reference = macros.measure_all(self.backend)
+
+        self.assertEqual(schedule, reference)
+
+        backend_100q = ConfigurableBackend('100q', 100)
+        with pulse.build(backend_100q) as schedule:
+            regs = pulse.measure_all()
+
+        reference = backend_100q.defaults().instruction_schedule_map.\
+            get('measure', list(range(100)))
 
         self.assertEqual(schedule, reference)
 

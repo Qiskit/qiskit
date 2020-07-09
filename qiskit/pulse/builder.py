@@ -1702,7 +1702,7 @@ def measure(qubit: int,
         qubits=[qubit],
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={register: register})
+        qubit_mem_slots={register.index: register.index})
     call_schedule(measure_sched)
 
     return register
@@ -1741,7 +1741,7 @@ def measure_all() -> List[chans.MemorySlot]:
         qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={register: register for register in registers})
+        qubit_mem_slots={qubit: qubit for qubit in qubits})
     call_schedule(measure_sched)
 
     return registers
