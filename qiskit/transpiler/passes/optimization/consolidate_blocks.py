@@ -129,14 +129,9 @@ class ConsolidateBlocks(TransformationPass):
                 if self.force_consolidate or unitary.num_qubits > 2 or \
                         self.decomposer.num_basis_gates(unitary) < basis_count:
 
-                    if len(block_qargs) <= 2:
-                        new_dag.apply_operation_back(
-                            self.decomposer(unitary).to_gate(),
-                            sorted(block_qargs, key=lambda x: block_index_map[x]))
-                    else:
-                        new_dag.apply_operation_back(
-                            UnitaryGate(unitary),
-                            sorted(block_qargs, key=lambda x: block_index_map[x]))
+                    new_dag.apply_operation_back(
+                        UnitaryGate(unitary),
+                        sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
                         new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
