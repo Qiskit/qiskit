@@ -507,6 +507,8 @@ class DAGCircuit:
             condition (tuple or None): (ClassicalRegister,int)
         Returns:
             tuple(ClassicalRegister,int): new condition
+        Raises:
+            DAGCircuitError: if condition register not in wire_map
         """
         if condition is None:
             new_condition = None
@@ -515,11 +517,14 @@ class DAGCircuit:
             # composed cregs based on the wire_map
             cond_val = condition[1]
             new_cond_val = 0
+            new_creg = None
             for bit in wire_map:
                 if isinstance(bit, Clbit):
                     new_creg = wire_map[bit].register
                     if 2**(bit.index) & cond_val:
                         new_cond_val += 2**(wire_map[bit].index)
+            if new_creg is None:
+                raise DAGCircuitError("Condition registers not found in wire_map.")
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
@@ -585,19 +590,30 @@ class DAGCircuit:
                           "Use qubits and clbits args to specify a list of "
                           "self edges to compose onto.", DeprecationWarning,
                           stacklevel=2)
+
+        # number of qubits and clbits must match number in circuit or None
+        identity_qubit_map = dict(zip(other.qubits, self.qubits))
+        identity_clbit_map = dict(zip(other.clbits, self.clbits))
         if qubits is None:
-            qubits = []
+            qubit_map = identity_qubit_map
+        elif len(qubits) != len(other.qubits):
+            raise DAGCircuitError("Number of items in qubits parameter does not"
+                                  " match number of qubits in the circuit.")
+        else:
+            qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
+                         for i, q in enumerate(qubits)}
         if clbits is None:
-            clbits = []
-        qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
-                     for i, q in enumerate(qubits)}
-        clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
-                     for i, c in enumerate(clbits)}
+            clbit_map = identity_clbit_map
+        elif len(clbits) != len(other.clbits):
+            raise DAGCircuitError("Number of items in clbits parameter does not"
+                                  " match number of clbits in the circuit.")
+        else:
+            clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
+                         for i, c in enumerate(clbits)}
         edge_map = edge_map or {**qubit_map, **clbit_map} or None
+
         # if no edge_map, try to do a 1-1 mapping in order
         if edge_map is None:
-            identity_qubit_map = dict(zip(other.qubits, self.qubits))
-            identity_clbit_map = dict(zip(other.clbits, self.clbits))
             edge_map = {**identity_qubit_map, **identity_clbit_map}
 
         # Check the edge_map for duplicate values
