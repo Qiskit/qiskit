@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Support for ``rep_delay`` flag added when assembling/executing a ``qobj``. ``rep_delay``
+    denotes the time between program executions. It must be chosen from a list of ``rep_delays``
+    from the backend, accessed as ``backend.configuration().rep_delays``.
+
+    ``rep_delay`` only works on backends which allow for dynamic repetition time. This setting is
+    found from ``backend.configuration().dynamic_reprate_enabled``. If false, ``rep_time`` will be
+    used rather than ``rep_delay``. ``rep_time`` only allows users to specify the duration of a
+    program, rather than the delay between programs.
+  - |
+    ``qobj`` schema has been updated to include ``rep_delay``.

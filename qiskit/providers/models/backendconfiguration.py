@@ -295,6 +295,7 @@ class QasmBackendConfiguration(SimpleNamespace):
             kwargs['meas_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
                                        (min_range, max_range) in kwargs['meas_lo_range']]
 
+        # convert rep_times from μs to sec
         if 'rep_times' in kwargs.keys():
             kwargs['rep_times'] = [_rt * 1e-6 for _rt in kwargs['rep_times']]
 
@@ -393,6 +394,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  rep_times: List[float],
                  meas_kernels: List[str],
                  discriminators: List[str],
+                 rep_delays: List[float] = None,
+                 dynamic_reprate_enabled: bool = False,
                  hamiltonian: Dict[str, str] = None,
                  channel_bandwidth=None,
                  acquisition_latency=None,
@@ -434,9 +437,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             meas_lo_range: Measurement lo ranges for each qubit with form (min, max) in GHz.
             dt: Qubit drive channel timestep in nanoseconds.
             dtm: Measurement drive channel timestep in nanoseconds.
-            rep_times: Supported repetition times for device in microseconds.
+            rep_times: Supported repetition times (program execution time) for backend in μs.
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
+            rep_delays: Supported repetition delays (delay between programs) for backend in μs.
+                Optional, but will be specified when ``dynamic_reprate_enabled=True``.
+            dynamic_reprate_enabled: whether delay between programs can be set dynamically
+                (ie via ``rep_delay``). Defaults to False.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
             channel_bandwidth (list): Bandwidth of all channels
                 (qubit, measurement, and U)
@@ -477,7 +484,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
-        self.rep_times = [_rt * 1e-6 for _rt in rep_times]
+        self.dynamic_reprate_enabled = dynamic_reprate_enabled
+
+        self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
+        # if ``rep_delays`` not specified, leave as None
+        self.rep_delays = None
+        if rep_delays:
+            self.rep_delays = [_rd * 1e-6 for _rd in rep_delays]  # convert to sec
         self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
 
@@ -556,6 +569,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             'dt': self.dt,
             'dtm': self.dtm,
         })
+        if hasattr(self, 'rep_delays'):
+            out_dict['rep_delays'] = self.rep_delays
+        if hasattr(self, 'dynamic_reprate_enabled'):
+            out_dict['dynamic_reprate_enabled'] = self.dynamic_reprate_enabled
         if hasattr(self, 'channel_bandwidth'):
             out_dict['channel_bandwidth'] = self.channel_bandwidth
         if hasattr(self, 'meas_map'):

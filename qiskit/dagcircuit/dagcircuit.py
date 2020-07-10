@@ -102,7 +102,8 @@ class DAGCircuit:
             """
             def __call__(self):
                 warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
-                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning)
+                              'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
+                              stacklevel=2)
                 return self
         self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.

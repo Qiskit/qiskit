@@ -234,7 +234,7 @@ class PulseQobjConfig(QobjDictField):
 
     def __init__(self, meas_level, meas_return, pulse_library,
                  qubit_lo_freq, meas_lo_freq, memory_slot_size=None,
-                 rep_time=None, shots=None, max_credits=None,
+                 rep_time=None, rep_delay=None, shots=None, max_credits=None,
                  seed_simulator=None, memory_slots=None, **kwargs):
         """Instantiate a PulseQobjConfig object.
 
@@ -249,7 +249,12 @@ class PulseQobjConfig(QobjDictField):
                 measurement driver LO's in GHz.
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
-            rep_time (int): Repetition time of the experiment in μs
+            rep_time (float): Time per program execution in sec. Must be from the list provided
+                by the backend (``backend.configuration().rep_times``).
+            rep_delay (float): Delay between programs in sec. Only supported on certain
+                backends (``backend.configuration().dynamic_reprate_enabled``).
+                If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the
+                list provided by the backend (``backend.configuration().rep_delays``).
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
@@ -265,7 +270,9 @@ class PulseQobjConfig(QobjDictField):
         if memory_slot_size is not None:
             self.memory_slot_size = memory_slot_size
         if rep_time is not None:
-            self.rep_time = rep_time or []
+            self.rep_time = rep_time
+        if rep_delay is not None:
+            self.rep_delay = rep_delay
         if shots is not None:
             self.shots = int(shots)
 

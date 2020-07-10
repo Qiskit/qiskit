@@ -21,6 +21,7 @@ import warnings
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
+from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
@@ -291,7 +292,10 @@ class QuantumCircuit:
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
         if reps > 0:
-            inst = self.to_instruction()
+            try:  # try to append as gate if possible to not disallow to_gate
+                inst = self.to_gate()
+            except QiskitError:
+                inst = self.to_instruction()
             for _ in range(reps):
                 repeated_circ.append(inst, self.qubits, self.clbits)
 

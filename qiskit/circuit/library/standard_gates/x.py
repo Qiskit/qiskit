@@ -758,10 +758,10 @@ class MCXGate(ControlledGate):
             return gate
         return super().__new__(cls)
 
-    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None, _name='mcx'):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
-        super().__init__('mcx', num_ctrl_qubits + 1 + num_ancilla_qubits, [],
+        super().__init__(_name, num_ctrl_qubits + 1 + num_ancilla_qubits, [],
                          num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         self.base_gate = XGate()
 
@@ -819,6 +819,9 @@ class MCXGrayCode(MCXGate):
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
 
+    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_gray')
+
     def _define(self):
         """Define the MCX gate using the Gray code."""
         from .u1 import MCU1Gate
@@ -837,6 +840,9 @@ class MCXRecursive(MCXGate):
     four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
     for these we have a concrete implementation that do not require ancillas.
     """
+
+    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_recursive')
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='recursion'):
@@ -889,7 +895,7 @@ class MCXVChain(MCXGate):
         return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def __init__(self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_vchain')
         self._dirty_ancillas = dirty_ancillas
 
     @staticmethod
