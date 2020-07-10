@@ -126,8 +126,13 @@ class TestGateSqrt(QiskitTestCase):
         iden = Operator.from_label('I')
         xgen = Operator.from_label('X')
         zgen = Operator.from_label('Z')
-        rzgate = lambda theta: np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen
-        rxgate = lambda theta: np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * xgen
+
+        def rzgate(theta):
+            return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen
+
+        def rxgate(theta):
+            return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * xgen
+
         rxrz = rxgate(thetax) * rzgate(thetaz)
 
         self.assertEqual(result.label, 'my_gate^0.5')

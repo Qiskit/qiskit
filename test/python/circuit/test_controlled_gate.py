@@ -1048,6 +1048,7 @@ class TestControlledStandardGates(QiskitTestCase):
                                                      ctrl_state=ctrl_state)
                 self.assertEqual(Operator(cgate), Operator(target_mat))
 
+
 @ddt
 class TestDeprecatedGates(QiskitTestCase):
     """Test controlled of deprecated gates."""

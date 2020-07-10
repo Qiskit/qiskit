@@ -405,7 +405,6 @@ class TestUnrollAllInstructions(QiskitTestCase):
         self.ref_circuit.u3(0, 0, -pi/2, 1)
         self.compare_dags()
 
-
     def test_unroll_swap(self):
         """test unroll swap"""
         self.circuit.swap(1, 2)

@@ -545,6 +545,7 @@ class TestCircuitOperations(QiskitTestCase):
         expected.phase = -0.5
         self.assertEqual(qc.inverse(), expected)
 
+
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
 
