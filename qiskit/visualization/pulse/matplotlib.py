@@ -880,6 +880,16 @@ class ScheduleDrawer:
         ax.set_xticklabels([self.style.axis_formatter % label for label in tick_labels * dt],
                            fontsize=self.style.axis_font_size)
         ax.set_ylim(y_lb, y_ub)
+
+
+        # We want to use a dictionary that gives us the shifted coordinate 
+        # to start the axes and with an upper and lower bound (y_ub and y_lb).
+        # Use ax.set_yticks(np.linspace(y_lb, y_ub, 5)) (5 steps is an example).
+        # Then create labels to actually label it with the amplitude spacing
+        # ax.set_yticklabels(np.linspace(amp_min, amp_max, 5)) where we get 
+        # amp_min and amp_max from self._draw_channels() from a returned dictionary
+
+        ax.set_yticks
         ax.set_yticklabels([])
 
         if tb is not None:
