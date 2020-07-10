@@ -16,17 +16,22 @@ Generator function of drawing IRs.
 """
 
 import numpy as np
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 from qiskit import pulse
 from typing import Callable, Union, Dict, Tuple, Any, List
 from qiskit.visualization.pulse_v2.events import PhaseFreqTuple
 from qiskit.visualization.pulse_v2 import drawing_objects
 from qiskit.visualization.pulse_v2 import style_lib
+from qiskit.visualization.pulse_v2 import pulse_style
 
 from qiskit import pulse
 
 from qiskit.visualization.exceptions import VisualizationError
+
+
+InstructionTuple = namedtuple('InstructionTuple', 't0 dt frame inst')
+ChannelTuple = namedtuple('ChannelTuple', 'channel scaling')
 
 
 def _parse_waveform(
@@ -85,35 +90,41 @@ def _parse_waveform(
     return xdata, ydata, meta
 
 
+def _channel_color(channel: pulse.channels.Channel) -> str:
+    """Get channel visualization color."""
+    if isinstance(channel, pulse.DriveChannel):
+        color_str = pulse_style.formatter['color']['ch_d']
+    elif isinstance(channel, pulse.ControlChannel):
+        color_str = formatter['color']['ch_u']
+    elif isinstance(channel, pulse.MeasureChannel):
+        color_str = formatter['color']['ch_m']
+    elif isinstance(channel, pulse.AcquireChannel):
+        color_str = formatter['color']['ch_a']
+    else:
+        raise VisualizationError('Channel type %s is not supported.' % type(channel))
+
+    return color_str
+
+
 def gen_filled_waveform_stepwise(
-        t0: int,
-        frame: PhaseFreqTuple,
-        inst: Union[pulse.instructions.Play,
-                    pulse.instructions.Delay,
-                    pulse.instructions.Acquire],
+        inst_data: InstructionTuple,
         **formatter
 ) -> List[drawing_objects.FilledAreaData]:
     """Generate filled area object of pulse envelope."""
-    xdata, ydata, meta = _parse_waveform(t0, frame, inst)
+    xdata, ydata, meta = _parse_waveform(inst_data.t0,
+                                         inst_data.frame,
+                                         inst_data.inst)
 
     if formatter['option']['phase_modulation']:
-        ydata *= np.exp(1j * frame.phase)
+        ydata *= np.exp(1j * inst_data.frame.phase)
 
     ydata = np.repeat(ydata, 2)
     re_y = np.real(ydata)
     im_y = np.imag(ydata)
     time = np.concatenate((xdata[0], np.repeat(xdata[1, -1], 2), xdata[-1]))
 
-    if isinstance(inst.channel, pulse.DriveChannel):
-        color = formatter['color']['ch_d']
-    elif isinstance(inst.channel, pulse.ControlChannel):
-        color = formatter['color']['ch_u']
-    elif isinstance(inst.channel, pulse.MeasureChannel):
-        color = formatter['color']['ch_m']
-    elif isinstance(inst.channel, pulse.AcquireChannel):
-        color = formatter['color']['ch_a']
-    else:
-        raise VisualizationError('Channel type %s is not supported.' % type(inst.channel))
+    channel = inst_data.inst.channel
+
 
     style = {
         'alpha': formatter['alpha']['waveform'],
@@ -131,7 +142,7 @@ def gen_filled_waveform_stepwise(
         re_meta['data'] = 'real'
         real = drawing_objects.FilledAreaData(
             data_type='WaveForm',
-            channel=inst.channel,
+            channel=channel,
             x=time,
             y1=re_y,
             y2=np.zeros_like(time),
@@ -150,7 +161,7 @@ def gen_filled_waveform_stepwise(
         im_meta['data'] = 'imaginary'
         imag = drawing_objects.FilledAreaData(
             data_type='WaveForm',
-            channel=inst.channel,
+            channel=channel,
             x=time,
             y1=im_y,
             y2=np.zeros_like(time),

@@ -21,7 +21,23 @@ from collections import namedtuple
 ComplexColors = namedtuple('ComplexColors', 'real imaginary')
 
 
-class QiskitPulseStyle:
+class QiskitPulseStyle(dict):
+    """Stylesheet for pulse drawer.
+    """
+    def __init__(self):
+        pass
+
+    def __getitem__(self, item):
+        pass
+
+
+
+
+
+
+
+
+class _QiskitPulseStyle:
     """Stylesheet for pulse drawer.
     """
     def __init__(self,
