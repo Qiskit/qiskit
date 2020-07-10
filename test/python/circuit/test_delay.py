@@ -54,7 +54,7 @@ class TestDelayClass(QiskitTestCase):
         self.assertEqual(qc, expected)
 
     def test_to_matrix_return_identity_matrix(self):
-        actual = Delay(1, 100).to_matrix()
+        actual = Delay(100).to_matrix()
         expected = np.array([[1, 0],
                              [0, 1]], dtype=complex)
         self.assertTrue(np.array_equal(actual, expected))

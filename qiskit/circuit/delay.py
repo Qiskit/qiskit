@@ -13,11 +13,12 @@
 # that they have been altered from the originals.
 
 """
-Delay instruction.
+Delay instruction (for circuit module).
 """
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 class Delay(Instruction):
@@ -25,6 +26,15 @@ class Delay(Instruction):
 
     def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
+        if isinstance(duration, float):
+            if unit == 'dt':
+                raise CircuitError('Duration in dt must be an integer.')
+        elif not isinstance(duration, (int, ParameterExpression)):
+            raise CircuitError('Invalid duration type.')
+
+        if unit not in {'dt', 's', 'ms', 'us', 'µs', 'ns', 'ps'}:
+            raise CircuitError('Unknown unit is specified.')
+
         super().__init__("delay", 1, 0, params=[duration])
         self.unit = unit
 

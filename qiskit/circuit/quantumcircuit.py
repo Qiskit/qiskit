@@ -1803,9 +1803,8 @@ class QuantumCircuit:
         from .delay import Delay
         qubits = []
         if qarg is None:  # -> apply delays to all qubits
-            for qreg in self.qregs:
-                for j in range(qreg.size):
-                    qubits.append(qreg[j])
+            for q in self.qubits:
+                qubits.append(q)
         else:
             if isinstance(qarg, QuantumRegister):
                 qubits.extend([qarg[j] for j in range(qarg.size)])
@@ -1818,20 +1817,11 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        if isinstance(duration, float):
-            if unit == 'dt':
-                raise CircuitError('Duration in dt must be an integer.')
-        elif not isinstance(duration, (int, ParameterExpression)):
-                raise CircuitError('Invalid duration type.')
-
-        if unit not in {'dt', 's', 'ms', 'us', 'µs', 'ns', 'ps'}:
-            raise CircuitError('Unknown unit is specified.')
-
         instructions = InstructionSet()
         for q in qubits:
-            added = self.append(Delay(duration, unit), [q])
-            for inst in added:
-                instructions.add(inst, [q], [])
+            inst = (Delay(duration, unit), [q], [])
+            self.append(*inst)
+            instructions.add(*inst)
         return instructions
 
     @deprecate_arguments({'q': 'qubit'})
