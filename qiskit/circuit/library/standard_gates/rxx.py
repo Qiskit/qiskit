@@ -76,14 +76,11 @@ class RXXGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from math import pi
         from .x import CXGate
-        from .u1 import U1Gate
         from .h import HGate
         from .rz import RZGate
         theta = self.params[0]
         q = QuantumRegister(2, 'q')
-        #qc = QuantumCircuit(q, name=self.name, phase=-theta/2)
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[0]], []),

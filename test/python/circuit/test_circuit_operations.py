@@ -19,9 +19,10 @@ from ddt import ddt, data
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library.standard_gates import SGate
 
 
 @ddt
@@ -394,6 +395,50 @@ class TestCircuitOperations(QiskitTestCase):
                 ref.append(inst, ref.qubits, ref.clbits)
             rep = qc.repeat(3)
             self.assertEqual(rep, ref)
+
+    def test_control(self):
+        """Test controlling the circuit."""
+        qc = QuantumCircuit(2, name='my_qc')
+        qc.cry(0.2, 0, 1)
+
+        c_qc = qc.control()
+        with self.subTest('return type is circuit'):
+            self.assertIsInstance(c_qc, QuantumCircuit)
+
+        with self.subTest('test name'):
+            self.assertEqual(c_qc.name, 'c_my_qc')
+
+        with self.subTest('repeated control'):
+            cc_qc = c_qc.control()
+            self.assertEqual(cc_qc.num_qubits, c_qc.num_qubits + 1)
+
+        with self.subTest('controlled circuit has same parameter'):
+            param = Parameter('p')
+            qc.rx(param, 0)
+            c_qc = qc.control()
+            self.assertEqual(qc.parameters, c_qc.parameters)
+
+        with self.subTest('non-unitary operation raises'):
+            qc.reset(0)
+            with self.assertRaises(CircuitError):
+                _ = qc.control()
+
+    def test_control_implementation(self):
+        """Run a test case for controlling the circuit, which should use ``Gate.control``."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cry(0.2, 0, 1)
+        qc.t(0)
+        qc.append(SGate().control(4), [0, 1, 3, 4, 2])
+        qc.iswap(3, 2)
+
+        c_qc = qc.control(3, ctrl_state='110')
+
+        cgate = qc.to_gate().control(3, ctrl_state='110')
+        ref = QuantumCircuit(*c_qc.qregs)
+        ref.append(cgate, ref.qubits)
+
+        self.assertEqual(ref, c_qc)
 
     @data('gate', 'instruction')
     def test_repeat_appended_type(self, subtype):

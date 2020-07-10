@@ -1424,17 +1424,7 @@ class TestStandardMethods(QiskitTestCase):
                 continue
             if not hasattr(gate, 'definition') or not gate.definition:
                 continue
-            print(gate.name)
-            try:
-                definition_unitary = Operator(gate.definition).data
-            except Exception as err:
-                pass
-                #import ipdb; ipdb.set_trace()
-            if gate.name == 'rxx':
-                print(definition_unitary)
-                print(gate_matrix)
-            import numpy as np
-            np.set_printoptions(linewidth=300, precision=4, suppress=True)
+            definition_unitary = Operator(gate.definition).data
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
             self.assertTrue(is_unitary_matrix(gate_matrix))
 

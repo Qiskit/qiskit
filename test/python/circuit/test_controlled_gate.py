@@ -1026,8 +1026,7 @@ class TestControlledStandardGates(QiskitTestCase):
 
         gate = gate_class(*args)
         
-        #for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
-        for ctrl_state in {ctrl_state_ones}:
+        for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
             with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
                                                              ctrl_state)):
                 if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
@@ -1048,28 +1047,6 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
-                # np.set_printoptions(linewidth=300, precision=2, suppress=True)
-                # from qiskit.circuit.library.standard_gates import RXXGate
-                # from qiskit.converters import circuit_to_instruction, circuit_to_gate
-                # rxx = RXXGate(theta)
-                # crxx = RXXGate(theta).control(num_ctrl_qubits)
-                # print('')
-                # print(gate_class)
-                # print(f'num_ctrl_qubits = {num_ctrl_qubits}, ctrl_state = {bin(ctrl_state)}')
-                # print(base_mat)
-                # print('')                
-                # print(Operator(cgate).data)
-                # print('')                
-                # print(target_mat)
-                # print('')                                
-                # print(Operator(crxx).data)
-
-                # qc = QuantumCircuit(2)
-                # qc.append(gate, [0,1])
-                # # simulator = BasicAer.get_backend('unitary_simulator')
-                # # simulated_mat = execute(qc, simulator).result().get_unitary()
-                #print(simulated_mat)
-                #import ipdb; ipdb.set_trace()
                 self.assertEqual(Operator(cgate), Operator(target_mat))
 
 @ddt

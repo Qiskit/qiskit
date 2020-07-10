@@ -101,8 +101,6 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    # TODO: this is the correct matrix however the control mechanism
-    # cannot distinguish U1 and RZ yet.
     def to_matrix(self):
         """Return a numpy.array for the RZ gate."""
         import numpy as np

@@ -16,6 +16,7 @@
 
 import numpy as np
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RYYGate(Gate):
@@ -75,15 +76,14 @@ class RYYGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         from .rx import RXGate
         from .rz import RZGate
 
         q = QuantumRegister(2, 'q')
         theta = self.params[0]
-        #qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
-        qc = QuantumCircuit(q, name=self.name, phase=0)        
+        qc = QuantumCircuit(q, name=self.name)
         rules = [
             (RXGate(np.pi / 2), [q[0]], []),
             (RXGate(np.pi / 2), [q[1]], []),
@@ -100,14 +100,11 @@ class RYYGate(Gate):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
-    # TODO: this is the correct matrix and is equal to the definition above,
-    # however the control mechanism cannot distinguish U1 and RZ yet.
     def to_matrix(self):
         """Return a numpy.array for the RYY gate."""
         theta = self.params[0]
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)
-        #return np.exp(0.5j * theta) * np.array([
         return np.array([
             [cos, 0, 0, isin],
             [0, cos, -isin, 0],

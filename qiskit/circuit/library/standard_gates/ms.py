@@ -41,8 +41,7 @@ class MSGate(Gate):
         from .rxx import RXXGate
         theta = self.params[0]        
         q = QuantumRegister(self.num_qubits, 'q')
-        import numpy as np
-        qc = QuantumCircuit(q, name=self.name, phase=0)
+        qc = QuantumCircuit(q, name=self.name)
         rules = []
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):

@@ -200,8 +200,6 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
         """Return inverse RX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
     def to_matrix(self):
        """Return a numpy.array for the CRX gate."""
        half_theta = self.params[0] / 2

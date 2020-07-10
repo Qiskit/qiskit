@@ -209,7 +209,7 @@ _sel.add_equivalence(CRYGate(theta), def_cry)
 
 q = QuantumRegister(2, 'q')
 theta = Parameter('theta')
-def_ryy = QuantumCircuit(q, phase=0)
+def_ryy = QuantumCircuit(q)
 for inst, qargs, cargs in [
         (RXGate(pi / 2), [q[0]], []),
         (RXGate(pi / 2), [q[1]], []),
