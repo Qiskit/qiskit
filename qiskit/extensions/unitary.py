@@ -139,6 +139,7 @@ class UnitaryGate(Gate):
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
                                   definition=iso.definition, ctrl_state=ctrl_state,
                                   base_gate=self.copy())
+        return cunitary
 
     def qasm(self):
         """ The qasm for a custom unitary gate
