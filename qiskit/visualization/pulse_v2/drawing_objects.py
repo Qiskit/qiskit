@@ -38,8 +38,6 @@ considering necessary properties to identify that object, i.e. `visible` should 
 be a part of the key, because any change on this property just sets the visibility of
 the same drawing object.
 
-Favorable IR
-~~~~~~~~~~~~
 To support not only `matplotlib` but also multiple plotters, those drawing IRs should be
 universal and designed without strong dependency on modules in `matplotlib`.
 This means IRs that represent primitive geometries are preferred.
