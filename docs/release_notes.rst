@@ -2711,18 +2711,6 @@ New Features
   representations that for simple schedules should be valid Python
   expressions.
 
-  for example:
-
-  .. jupyter-execute::
-
-      from qiskit import pulse
-
-      sched = pulse.Schedule(name='test')
-      sched += pulse.SamplePulse(
-          [0., 0,], name='test_pulse')(pulse.DriveChannel(0))
-      sched += pulse.FrameChange(1.0)(pulse.DriveChannel(0))
-      print(sched)
-
 - The :class:`qiskit.circuit.QuantumCircuit` methods
   :meth:`qiskit.circuit.QuantumCircuit.measure_active`,
   :meth:`qiskit.circuit.QuantumCircuit.measure_all`, and
