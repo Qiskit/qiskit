@@ -248,8 +248,7 @@ def execute(experiments, backend,
                                     initial_layout=initial_layout,
                                     backend=backend)
         experiments = pass_manager.run(experiments)
-    else:
-        if 'delay' not in backend.configuration().basis_gates and any_delay_in(experiments):
+    elif 'delay' not in backend.configuration().basis_gates and any_delay_in(experiments):
             if schedule_circuit and backend.configuration().open_pulse:
                 pass  # no problem in this case exceptionally
             else:
