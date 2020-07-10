@@ -1821,8 +1821,7 @@ class QuantumCircuit:
         if isinstance(duration, float):
             if unit == 'dt':
                 raise CircuitError('Duration in dt must be an integer.')
-        else:
-            if not isinstance(duration, (int, ParameterExpression)):
+        elif not isinstance(duration, (int, ParameterExpression)):
                 raise CircuitError('Invalid duration type.')
 
         if unit not in {'dt', 's', 'ms', 'us', 'µs', 'ns', 'ps'}:
