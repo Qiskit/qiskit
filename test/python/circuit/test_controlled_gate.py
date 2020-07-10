@@ -983,8 +983,6 @@ class TestSingleControlledRotationGates(QiskitTestCase):
                 dag = circuit_to_dag(cqc)
                 unroller = Unroller(['u3', 'cx'])
                 uqc = dag_to_circuit(unroller.run(dag))
-                # self.log.info('%s gate count: %d', cgate.name, uqc.size())
-                # self.log.info('\n%s', str(uqc))
                 # these limits could be changed
                 if gate.name == 'ry':
                     self.assertTrue(uqc.size() <= 32)
@@ -1005,7 +1003,6 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
         unroller = Unroller(['u3', 'cx'])
         uqc = dag_to_circuit(unroller.run(dag))
-        # self.log.info('%s gate count: %d', uqc.name, uqc.size())
         self.assertTrue(uqc.size() <= 93)  # this limit could be changed
 
 
