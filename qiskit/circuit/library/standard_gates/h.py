@@ -57,15 +57,16 @@ class HGate(Gate):
         """
         gate h a { u2(0,pi) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u2 import U2Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U2Gate(0, pi), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-H gate.
@@ -117,12 +118,11 @@ class CHGate(ControlledGate):
 
         CH\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
-            \frac{1}{\sqrt{2}}
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 1 \\
+                0 & \frac{1}{\sqrt{2}} & 0 & \frac{1}{\sqrt{2}} \\
                 0 & 0 & 1 & 0 \\
-                0 & 1 & 0 & -1
+                0 & \frac{1}{\sqrt{2}} & 0 & -\frac{1}{\sqrt{2}}
             \end{pmatrix}
 
     .. note::
@@ -150,7 +150,6 @@ class CHGate(ControlledGate):
                     0 & 0 & 1 & 1 \\
                     0 & 0 & 1 & -1
                 \end{pmatrix}
-
     """
     # Define class constants. This saves future allocation time.
     _sqrt2o2 = 1 / numpy.sqrt(2)
@@ -183,10 +182,12 @@ class CHGate(ControlledGate):
             sdg b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (SGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (TGate(), [q[1]], []),
@@ -195,9 +196,8 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverted CH gate (itself)."""

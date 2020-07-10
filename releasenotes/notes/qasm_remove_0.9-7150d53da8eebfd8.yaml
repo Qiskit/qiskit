@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    In 0.9, ``Qasm.get_tokens`` and ``QasmParser.get_tokens`` were deprecated.
+    These methods are being removed.

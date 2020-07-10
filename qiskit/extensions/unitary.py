@@ -23,7 +23,6 @@ from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -107,14 +106,17 @@ class UnitaryGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
+            qc = QuantumCircuit(q, name=self.name)
             theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
-            self.definition = [(U3Gate(theta, phi, lam), [q[0]], [])]
+            qc.u3(theta, phi, lam, q[0])
+            self.definition = qc
         elif self.num_qubits == 2:
-            self.definition = two_qubit_cnot_decompose(self.to_matrix()).data
+            self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
             q = QuantumRegister(self.num_qubits, "q")
-            self.definition = [(isometry.Isometry(self.to_matrix(), 0, 0),
-                                q[:], [])]
+            qc = QuantumCircuit(q, name=self.name)
+            qc.append(isometry.Isometry(self.to_matrix(), 0, 0), qargs=q[:])
+            self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         r"""Return controlled version of gate
@@ -166,7 +168,7 @@ class UnitaryGate(Gate):
         current_reg = 0
 
         gates_def = ""
-        for gate in self.definition:
+        for gate in self.definition.data:
 
             # add regs from this gate to the overall set of params
             for reg in gate[1] + gate[2]:

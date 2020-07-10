@@ -19,9 +19,10 @@ from ddt import ddt, data
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit.circuit import Gate, Instruction
+from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library.standard_gates import SGate
 
 
 @ddt
@@ -353,8 +354,8 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
-    def test_mirror(self):
-        """Test mirror method reverses but does not invert."""
+    def test_reverse(self):
+        """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.s(1)
@@ -371,7 +372,7 @@ class TestCircuitOperations(QiskitTestCase):
         expected.s(1)
         expected.h(0)
 
-        self.assertEqual(qc.mirror(), expected)
+        self.assertEqual(qc.reverse_ops(), expected)
 
     def test_repeat(self):
         """Test repeating the circuit works."""
@@ -392,9 +393,52 @@ class TestCircuitOperations(QiskitTestCase):
             ref = QuantumCircuit(qr, cr)
             for _ in range(3):
                 ref.append(inst, ref.qubits, ref.clbits)
-
             rep = qc.repeat(3)
             self.assertEqual(rep, ref)
+
+    def test_control(self):
+        """Test controlling the circuit."""
+        qc = QuantumCircuit(2, name='my_qc')
+        qc.cry(0.2, 0, 1)
+
+        c_qc = qc.control()
+        with self.subTest('return type is circuit'):
+            self.assertIsInstance(c_qc, QuantumCircuit)
+
+        with self.subTest('test name'):
+            self.assertEqual(c_qc.name, 'c_my_qc')
+
+        with self.subTest('repeated control'):
+            cc_qc = c_qc.control()
+            self.assertEqual(cc_qc.num_qubits, c_qc.num_qubits + 1)
+
+        with self.subTest('controlled circuit has same parameter'):
+            param = Parameter('p')
+            qc.rx(param, 0)
+            c_qc = qc.control()
+            self.assertEqual(qc.parameters, c_qc.parameters)
+
+        with self.subTest('non-unitary operation raises'):
+            qc.reset(0)
+            with self.assertRaises(CircuitError):
+                _ = qc.control()
+
+    def test_control_implementation(self):
+        """Run a test case for controlling the circuit, which should use ``Gate.control``."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cry(0.2, 0, 1)
+        qc.t(0)
+        qc.append(SGate().control(4), [0, 1, 3, 4, 2])
+        qc.iswap(3, 2)
+
+        c_qc = qc.control(3, ctrl_state='110')
+
+        cgate = qc.to_gate().control(3, ctrl_state='110')
+        ref = QuantumCircuit(*c_qc.qregs)
+        ref.append(cgate, ref.qubits)
+
+        self.assertEqual(ref, c_qc)
 
     @data('gate', 'instruction')
     def test_repeat_appended_type(self, subtype):
@@ -415,6 +459,76 @@ class TestCircuitOperations(QiskitTestCase):
             self.assertTrue(all(isinstance(op[0], Gate) for op in rep.data))
         else:
             self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
+
+    def test_reverse_bits(self):
+        """Test reversing order of bits."""
+        qc = QuantumCircuit(3, 2)
+        qc.h(0)
+        qc.s(1)
+        qc.cx(0, 1)
+        qc.measure(0, 1)
+        qc.x(0)
+        qc.y(1)
+
+        expected = QuantumCircuit(3, 2)
+        expected.h(2)
+        expected.s(1)
+        expected.cx(2, 1)
+        expected.measure(2, 0)
+        expected.x(2)
+        expected.y(1)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_boxed(self):
+        """Test reversing order of bits in a hierarchiecal circuit."""
+        wide_cx = QuantumCircuit(3)
+        wide_cx.cx(0, 1)
+        wide_cx.cx(1, 2)
+
+        wide_cxg = wide_cx.to_gate()
+        cx_box = QuantumCircuit(3)
+        cx_box.append(wide_cxg, [0, 1, 2])
+
+        expected = QuantumCircuit(3)
+        expected.cx(2, 1)
+        expected.cx(1, 0)
+
+        self.assertEqual(cx_box.reverse_bits().decompose(), expected)
+        self.assertEqual(cx_box.decompose().reverse_bits(), expected)
+
+        # box one more layer to be safe.
+        cx_box_g = cx_box.to_gate()
+        cx_box_box = QuantumCircuit(4)
+        cx_box_box.append(cx_box_g, [0, 1, 2])
+        cx_box_box.cx(0, 3)
+
+        expected2 = QuantumCircuit(4)
+        expected2.cx(3, 2)
+        expected2.cx(2, 1)
+        expected2.cx(3, 0)
+
+        self.assertEqual(cx_box_box.reverse_bits().decompose().decompose(), expected2)
+
+    def test_reverse_bits_with_registers(self):
+        """Test reversing order of bits when registers are present."""
+        qr1 = QuantumRegister(3, 'a')
+        qr2 = QuantumRegister(2, 'b')
+        qc = QuantumCircuit(qr1, qr2)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
+        qc.cx(qr2[0], qr2[1])
+
+        expected = QuantumCircuit(qr2, qr1)
+        expected.h(qr1[2])
+        expected.cx(qr1[2], qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[1])
+        expected.cx(qr2[1], qr2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
 
 
 class TestCircuitBuilding(QiskitTestCase):

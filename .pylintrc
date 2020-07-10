@@ -116,7 +116,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 # pi = the PI constant
 # op = operation iterator
 # b = basis iterator
-good-names=i,j,k,d,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
+good-names=a,b,i,j,k,d,n,m,ex,v,w,x,y,z,Run,_,logger,q,c,r,qr,cr,qc,nd,pi,op,b,ar,br,
     __unittest,iSwapGate
 
 # Bad variable names which should always be refused, separated by a comma
@@ -176,10 +176,10 @@ argument-rgx=[a-z_][a-z0-9_]{2,30}|ax|dt$
 argument-name-hint=[a-z_][a-z0-9_]{2,30}$
 
 # Regular expression matching correct variable names
-variable-rgx=[a-z_][a-z0-9_]{2,30}$
+variable-rgx=[a-z_][a-z0-9_]{1,30}$
 
 # Naming hint for variable names
-variable-name-hint=[a-z_][a-z0-9_]{2,30}$
+variable-name-hint=[a-z_][a-z0-9_]{1,30}$
 
 # Regular expression matching correct class attribute names
 class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$

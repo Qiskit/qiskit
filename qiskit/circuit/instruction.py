@@ -32,6 +32,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
+import warnings
 import copy
 from itertools import zip_longest
 
@@ -177,7 +178,7 @@ class Instruction:
 
     @definition.setter
     def definition(self, array):
-        """Set matrix representation"""
+        """Set gate representation"""
         self._definition = array
 
     @property
@@ -221,21 +222,33 @@ class Instruction:
         return instruction
 
     def mirror(self):
-        """For a composite instruction, reverse the order of sub-gates.
+        """DEPRECATED: use instruction.reverse_ops().
 
-        This is done by recursively mirroring all sub-instructions.
+        Return:
+            qiskit.circuit.Instruction: a new instruction with sub-instructions
+                reversed.
+        """
+        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse_ops()'
+                      'to reverse the order of gates.', DeprecationWarning)
+        return self.reverse_ops()
+
+    def reverse_ops(self):
+        """For a composite instruction, reverse the order of sub-instructions.
+
+        This is done by recursively reversing all sub-instructions.
         It does not invert any gate.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh gate with sub-gates reversed
+            qiskit.circuit.Instruction: a new instruction with
+                sub-instructions reversed.
         """
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name + '_mirror')
-        reverse_inst.definition = []
+        reverse_inst = self.copy(name=self.name + '_reverse')
+        reverse_inst.definition.data = []
         for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
+            reverse_inst._definition.data.append((inst.reverse_ops(), qargs, cargs))
         return reverse_inst
 
     def inverse(self):
@@ -257,9 +270,9 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+        inverse_gate._definition.data = []
+        for inst, qargs, cargs in reversed(self._definition.data):
+            inverse_gate._definition.data.append((inst.inverse(), qargs, cargs))
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -364,5 +377,14 @@ class Instruction:
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
 
-        instruction.definition = [(self, qargs[:], cargs[:])] * n
+        if instruction.definition is None:
+            # pylint: disable=cyclic-import
+            from qiskit import QuantumCircuit
+            qc = QuantumCircuit()
+            if qargs:
+                qc.add_register(qargs)
+            if cargs:
+                qc.add_register(cargs)
+            qc.data = [(self, qargs[:], cargs[:])] * n
+        instruction.definition = qc
         return instruction

@@ -27,14 +27,13 @@ import warnings
 
 from abc import ABC
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 
 from ..channels import Channel
 from ..exceptions import PulseError
 from ..interfaces import ScheduleComponent
 from ..schedule import Schedule
-from .. import commands  # pylint: disable=unused-import
 
 # pylint: disable=missing-return-doc
 
@@ -46,20 +45,22 @@ class Instruction(ScheduleComponent, ABC):
 
     def __init__(self,
                  operands: Tuple,
-                 duration: Union['commands.Command', int],
+                 duration,
                  channels: Tuple[Channel],
                  name: Optional[str] = None):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
-            duration: Length of time taken by the instruction in terms of dt.
-                      Deprecated: the first argument used to be the Command.
+            duration (Union['commands.Command', int]): Length of time taken by the instruction in
+                terms of dt. **Deprecated: the first argument used to be the Command.**
             channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
 
         Raises:
             PulseError: If duration is negative.
+            PulseError: If the input ``channels`` are not all of
+                type :class:`Channel`.
         """
         self._command = None
         if isinstance(duration, (float, np.float)):
@@ -77,6 +78,12 @@ class Instruction(ScheduleComponent, ABC):
             raise PulseError("{} duration of {} is invalid: must be nonnegative."
                              "".format(self.__class__.__name__, duration))
         self._duration = duration
+
+        for channel in channels:
+            if not isinstance(channel, Channel):
+                raise PulseError(
+                    "Expected a channel, got {} instead.".format(channel))
+
         self._channels = channels
         self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
@@ -89,9 +96,12 @@ class Instruction(ScheduleComponent, ABC):
         return self._name
 
     @property
-    def command(self) -> 'commands.Command':
+    def command(self):
         """The associated command. Commands are deprecated, so this method will be deprecated
         shortly.
+
+        Returns:
+            Command: The deprecated command if available.
         """
         return self._command
 
@@ -239,8 +249,8 @@ class Instruction(ScheduleComponent, ABC):
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = 1, channels_to_plot: Optional[List[Channel]] = None,
-             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
+             scale: float = 1, plot_all: bool = False,
+             plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
              scaling: float = None,
@@ -253,7 +263,6 @@ class Instruction(ScheduleComponent, ABC):
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scale: Relative visual scaling of waveform amplitudes
-            channels_to_plot: Deprecated, see `channels`
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
             interactive: When set true show the circuit in a new window
@@ -274,11 +283,6 @@ class Instruction(ScheduleComponent, ABC):
             scale = scaling
 
         from qiskit import visualization
-
-        if channels_to_plot:
-            warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                          DeprecationWarning, 3)
-            channels = channels_to_plot
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
