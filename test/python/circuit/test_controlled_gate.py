@@ -852,7 +852,6 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
 
-<<<<<<< HEAD
     def test_base_gate_params_reference(self):
         """
         Test all gates in standard extensions which are of type ControlledGate and have a base gate
@@ -886,7 +885,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(qc.parameters, {ptest})
         self.assertEqual(bound1.parameters, {subs1[ptest]})
         self.assertEqual(bound2.parameters, {subs2[ptest]})
-=======
+
     @data(-1, 0, 1.4, '1', 4, 10)
     def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
         """
@@ -947,7 +946,6 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         except CircuitError as cerr:
             self.skipTest(cerr)
         self.assertTrue(np.allclose(actual, target))
->>>>>>> master
 
 
 @ddt
