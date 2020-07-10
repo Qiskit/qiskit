@@ -226,8 +226,8 @@ _sel.add_equivalence(RYYGate(theta), def_ryy)
 
 q = QuantumRegister(1, 'q')
 theta = Parameter('theta')
-def_rz = QuantumCircuit(q)
-def_rz.append(U1Gate(theta), [q[0]], [], phase=-theta / 2)
+def_rz = QuantumCircuit(q, phase=-theta / 2)
+def_rz.append(U1Gate(theta), [q[0]], [])
 _sel.add_equivalence(RZGate(theta), def_rz)
 
 q = QuantumRegister(1, 'q')

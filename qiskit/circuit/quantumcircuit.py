@@ -668,7 +668,7 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None, phase=0):
+    def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
@@ -676,7 +676,6 @@ class QuantumCircuit:
             instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
-            phase (float): The global phase in radians of instruction.
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
@@ -702,7 +701,6 @@ class QuantumCircuit:
         instructions = InstructionSet()
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
-        self.phase += phase
         return instructions
 
     def _append(self, instruction, qargs, cargs):
