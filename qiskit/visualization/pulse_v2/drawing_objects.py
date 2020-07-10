@@ -11,67 +11,70 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-r"""
-Drawing object IRs for pulse drawer.
 
-Drawing IRs play two important roles:
+# pylint: disable=invalid-name
+
+r"""
+Drawing objects for pulse drawer.
+
+Drawing objects play two important roles:
     - Allowing unittests of visualization module. Usually it is hard for image files to be tested.
     - Removing program parser from each plotter interface. We can easily add new plotter.
 
-IRs supported by this module are designed based on `matplotlob` since it is the primary plotter
-of the pulse drawer. However IRs should be agnostic to the actual plotter.
+This module is based on the structure of matplotlib as it is the primary plotter
+of the pulse drawer. However this interface is agnostic to the actual plotter.
 
 Design concept
 ~~~~~~~~~~~~~~
-When we think about the dynamic update of drawing objects, it will be efficient to
-update only properties of drawings rather than regenerating all of them from scratch.
+When we think about dynamically updating drawing objects, it will be most efficient to
+update only the changed properties of drawings rather than regenerating entirely from scratch.
 Thus the core drawing function generates all possible drawings in the beginning and
 then updates the visibility and the offset coordinate of each item according to
-the end-user request. Drawing properties are designed based on this line of thinking.
+the end-user request.
 
 Data key
 ~~~~~~~~
 In the abstract class ``ElementaryData`` common properties to represent a drawing object are
-specified. In addition, IRs have the `data_key` property that returns an unique hash of
-the object for comparison. This property should be defined in each sub-class by
+specified. In addition, drawing objects have the `data_key` property that returns an
+unique hash of the object for comparison. This property should be defined in each sub-class by
 considering necessary properties to identify that object, i.e. `visible` should not
 be a part of the key, because any change on this property just sets the visibility of
 the same drawing object.
 
-Favorable IR
-~~~~~~~~~~~~
-To support not only `matplotlib` but also multiple plotters, those drawing IRs should be
+To support not only `matplotlib` but also multiple plotters, those drawing objectss should be
 universal and designed without strong dependency on modules in `matplotlib`.
-This means IRs that represent primitive geometries are preferred.
+This means drawing objects that represent primitive geometries are preferred.
 It should be noted that there will be no unittest for a plotter interface, which takes
-drawing IRs and output an image data, we should avoid adding a complicated data structure
+drawing objects and output an image data, we should avoid adding a complicated data structure
 that has a context of the pulse program.
 
 For example, a pulse envelope is complex valued number array and may be represented
 by two lines with different colors associated with the real and the imaginary component.
-In this case, we can use two line-type IRs rather than defining a new IR that takes complex value.
-Because many plotters don't support an API that visualizes complex valued data array.
-If we introduce such IR and write a custom wrapper function on top of the existing plotter API,
-it could be difficult to prevent bugs with the CI tools due to lack of the effective unittest.
+In this case, we can use two line-type objects rather than defining a new drwaing object
+that takes complex value. Because many plotters don't support an API that visualizes
+complex valued data array. If we introduce such drawing object and write a custom wrapper function
+on top of the existing plotter API, it could be difficult to prevent bugs with the CI tools
+due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Union
+from typing import Dict, Any, Optional
 
 import numpy as np
 
-from qiskit import pulse
+from qiskit.pulse import channels
 
 
 class ElementaryData(ABC):
-    """Abstract class of visualization intermediate representation."""
+    """Base class of the pulse visualization interface."""
     def __init__(self,
                  data_type: str,
-                 channel: pulse.channels.Channel,
-                 meta: Union[Dict[str, Any], None],
+                 channel: channels.Channel,
+                 meta: Optional[Dict[str, Any]],
                  offset: float,
                  visible: bool,
-                 styles: Dict[str, Any]):
-        """Create new visualization IR.
+                 styles: Optional[Dict[str, Any]]):
+        """Create new drawing object.
+
         Args:
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
@@ -90,6 +93,7 @@ class ElementaryData(ABC):
     @property
     @abstractmethod
     def data_key(self):
+        """Return unique hash of this object."""
         pass
 
     def __repr__(self):
@@ -102,20 +106,22 @@ class ElementaryData(ABC):
 
 
 class FilledAreaData(ElementaryData):
-    """Drawing IR to represent object appears as a filled area.
+    """Drawing object to represent object appears as a filled area.
+
     This is the counterpart of `matplotlib.axes.Axes.fill_between`.
     """
     def __init__(self,
                  data_type: str,
-                 channel: pulse.channels.Channel,
+                 channel: channels.Channel,
                  x: np.ndarray,
                  y1: np.ndarray,
                  y2: np.ndarray,
-                 meta: Union[Dict[str, Any], None],
-                 offset: float,
-                 visible: bool,
-                 styles: Dict[str, Any]):  # pylint: disable=invalid-name
-        """Create new visualization IR.
+                 meta: Optional[Dict[str, Any]] = None,
+                 offset: float = 0,
+                 visible: bool = True,
+                 styles: Optional[Dict[str, Any]] = None):
+        """Create new drawing object of filled area.
+
         Args:
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
@@ -131,17 +137,16 @@ class FilledAreaData(ElementaryData):
         self.y1 = y1
         self.y2 = y2
 
-        super().__init__(
-            data_type=data_type,
-            channel=channel,
-            meta=meta,
-            offset=offset,
-            visible=visible,
-            styles=styles
-        )
+        super().__init__(data_type=data_type,
+                         channel=channel,
+                         meta=meta,
+                         offset=offset,
+                         visible=visible,
+                         styles=styles)
 
     @property
     def data_key(self):
+        """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.channel,
@@ -151,19 +156,21 @@ class FilledAreaData(ElementaryData):
 
 
 class LineData(ElementaryData):
-    """Drawing IR to represent object appears as a line.
+    """Drawing object to represent object appears as a line.
+
     This is the counterpart of `matplotlib.pyploy.plot`.
     """
     def __init__(self,
                  data_type: str,
-                 channel: pulse.channels.Channel,
+                 channel: channels.Channel,
                  x: np.ndarray,
                  y: np.ndarray,
-                 meta: Union[Dict[str, Any], None],
-                 offset: float,
-                 visible: bool,
-                 styles: Dict[str, Any]):  # pylint: disable=invalid-name
-        """Create new visualization IR.
+                 meta: Optional[Dict[str, Any]] = None,
+                 offset: float = 0,
+                 visible: bool = True,
+                 styles: Optional[Dict[str, Any]] = None):
+        """Create new drawing object of line data.
+
         Args:
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
@@ -177,17 +184,16 @@ class LineData(ElementaryData):
         self.x = x
         self.y = y
 
-        super().__init__(
-            data_type=data_type,
-            channel=channel,
-            meta=meta,
-            offset=offset,
-            visible=visible,
-            styles=styles
-        )
+        super().__init__(data_type=data_type,
+                         channel=channel,
+                         meta=meta,
+                         offset=offset,
+                         visible=visible,
+                         styles=styles)
 
     @property
     def data_key(self):
+        """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.channel,
@@ -196,20 +202,22 @@ class LineData(ElementaryData):
 
 
 class TextData(ElementaryData):
-    """Drawing IR to represent object appears as a text.
+    """Drawing object to represent object appears as a text.
+
     This is the counterpart of `matplotlib.pyploy.text`.
     """
     def __init__(self,
                  data_type: str,
-                 channel: pulse.channels.Channel,
+                 channel: channels.Channel,
                  x: float,
                  y: float,
                  text: str,
-                 meta: Union[Dict[str, Any], None],
-                 offset: float,
-                 visible: bool,
-                 styles: Dict[str, Any]):  # pylint: disable=invalid-name
-        """Create new visualization IR.
+                 meta: Optional[Dict[str, Any]] = None,
+                 offset: float = 0,
+                 visible: bool = True,
+                 styles: Optional[Dict[str, Any]] = None):
+        """Create new drawing object of text data.
+
         Args:
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
@@ -225,17 +233,16 @@ class TextData(ElementaryData):
         self.y = y
         self.text = text
 
-        super().__init__(
-            data_type=data_type,
-            channel=channel,
-            meta=meta,
-            offset=offset,
-            visible=visible,
-            styles=styles
-        )
+        super().__init__(data_type=data_type,
+                         channel=channel,
+                         meta=meta,
+                         offset=offset,
+                         visible=visible,
+                         styles=styles)
 
     @property
     def data_key(self):
+        """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.channel,
