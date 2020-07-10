@@ -213,21 +213,21 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
         return CRZGate(-self.params[0])
 
     def to_matrix(self):
-      """Return a numpy.array for the CRZ gate."""
-      import numpy
-      arg = 1j * self.params[0] / 2
-      if self.ctrl_state:
-          return numpy.array([[1,               0, 0,              0],
-                              [0, numpy.exp(-arg), 0,              0],
-                              [0,               0, 1,              0],
-                              [0,               0, 0, numpy.exp(arg)]],
-                             dtype=complex)
-      else:
-          return numpy.array([[numpy.exp(-arg), 0,              0, 0],
-                              [              0, 1,              0, 0],
-                              [              0, 0, numpy.exp(arg), 0],
-                              [              0, 0,              0, 1]],
-                             dtype=complex)
+        """Return a numpy.array for the CRZ gate."""
+        import numpy
+        arg = 1j * self.params[0] / 2
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, numpy.exp(-arg), 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, numpy.exp(arg)]],
+                               dtype=complex)
+        else:
+            return numpy.array([[numpy.exp(-arg), 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, numpy.exp(arg), 0],
+                                [0, 0, 0, 1]],
+                               dtype=complex)
 
 
 class CrzGate(CRZGate, metaclass=CRZMeta):

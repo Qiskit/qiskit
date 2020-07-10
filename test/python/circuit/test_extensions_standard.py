@@ -1396,7 +1396,6 @@ class TestStandardMethods(QiskitTestCase):
 
         params = [0.1 * i for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
             sig = signature(gate_class)
             if gate_class == MSGate:

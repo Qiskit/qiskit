@@ -18,7 +18,7 @@
 import numpy as np
 from ddt import ddt, data
 
-from qiskit import QuantumCircuit, QiskitError
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
@@ -139,7 +139,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                 n_params = len(_get_free_params(gate_class))
                 params = [0.1 * i for i in range(1, n_params+1)]
                 if gate_class.__name__ == 'RXXGate':
-                    params=[np.pi/2]
+                    params = [np.pi/2]
                 params = [-np.pi/2 * i for i in range(1, n_params+1)]
                 if gate_class.__name__ in ['MSGate']:
                     params[0] = 2

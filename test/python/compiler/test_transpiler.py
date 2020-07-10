@@ -14,7 +14,6 @@
 
 """Tests basic functionality of the transpile function"""
 
-from math import pi
 import io
 import sys
 import math

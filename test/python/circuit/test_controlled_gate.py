@@ -23,7 +23,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate, Parameter
+from qiskit.circuit import ControlledGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -1025,7 +1025,7 @@ class TestControlledStandardGates(QiskitTestCase):
             args = [5]
 
         gate = gate_class(*args)
-        
+
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
             with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
                                                              ctrl_state)):
@@ -1034,10 +1034,9 @@ class TestControlledStandardGates(QiskitTestCase):
                     continue
                 try:
                     cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
-                except (AttributeError, QiskitError) as err:
+                except (AttributeError, QiskitError):
                     # 'object has no attribute "control"'
                     # skipping Id and Barrier
-                    print(err)
                     continue
                 if gate.name == 'rz':
                     iden = Operator.from_label('I')

@@ -196,22 +196,22 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
         return CRYGate(-self.params[0])
 
     def to_matrix(self):
-       """Return a numpy.array for the CRY gate."""
-       half_theta = self.params[0] / 2
-       cos = numpy.cos(half_theta)
-       sin = numpy.sin(half_theta)
-       if self.ctrl_state:
-           return numpy.array([[1, 0, 0, 0],
-                               [0, cos, 0, -sin],
-                               [0, 0, 1, 0],
-                               [0, sin, 0, cos]],
-                              dtype=complex)
-       else:
-           return numpy.array([[cos, 0, -sin, 0],
-                               [0, 1, 0, 0],
-                               [sin, 0, cos, 0],
-                               [0, 0, 0, 1]],
-                              dtype=complex)
+        """Return a numpy.array for the CRY gate."""
+        half_theta = self.params[0] / 2
+        cos = numpy.cos(half_theta)
+        sin = numpy.sin(half_theta)
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, cos, 0, -sin],
+                                [0, 0, 1, 0],
+                                [0, sin, 0, cos]],
+                               dtype=complex)
+        else:
+            return numpy.array([[cos, 0, -sin, 0],
+                                [0, 1, 0, 0],
+                                [sin, 0, cos, 0],
+                                [0, 0, 0, 1]],
+                               dtype=complex)
 
 
 class CryGate(CRYGate, metaclass=CRYMeta):

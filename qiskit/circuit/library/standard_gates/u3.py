@@ -212,24 +212,26 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def to_matrix(self):
-       """Return a numpy.array for the CRY gate."""
-       theta, phi, lam = self.params
-       theta, phi, lam = float(theta), float(phi), float(lam)
-       cos = numpy.cos(theta / 2)
-       sin = numpy.sin(theta / 2)
-       if self.ctrl_state:
-           return numpy.array([[1,0, 0, 0],
-                               [0, cos, 0, -numpy.exp(1j * lam) * sin],
-                               [0, 0, 1, 0],
-                               [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
-                              dtype=complex)
-       else:
-           return numpy.array([[cos, 0, -numpy.exp(1j * lam) * sin, 0],
-                               [0, 1, 0, 0],
-                               [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
-                               [0, 0, 0, 1]],
-                              dtype=complex)
-           
+        """Return a numpy.array for the CRY gate."""
+        theta, phi, lam = self.params
+        theta, phi, lam = float(theta), float(phi), float(lam)
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
+        if self.ctrl_state:
+            return numpy.array(
+                [[1, 0, 0, 0],
+                 [0, cos, 0, -numpy.exp(1j * lam) * sin],
+                 [0, 0, 1, 0],
+                 [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
+                dtype=complex)
+        else:
+            return numpy.array(
+                [[cos, 0, -numpy.exp(1j * lam) * sin, 0],
+                 [0, 1, 0, 0],
+                 [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
+                 [0, 0, 0, 1]],
+                dtype=complex)
+
 
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):
     """The deprecated CU3Gate class."""

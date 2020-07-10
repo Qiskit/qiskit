@@ -109,10 +109,10 @@ class RZZGate(Gate):
         return RZZGate(-self.params[0])
 
     def to_matrix(self):
-       """Return a numpy.array for the RZZ gate."""
-       import numpy
-       itheta2 = 1j * float(self.params[0]) / 2
-       return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
-                        [0, numpy.exp(itheta2), 0, 0],
-                        [0, 0, numpy.exp(itheta2), 0],
-                        [0, 0, 0, numpy.exp(-itheta2)]], dtype=complex)
+        """Return a numpy.array for the RZZ gate."""
+        import numpy
+        itheta2 = 1j * float(self.params[0]) / 2
+        return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
+                            [0, numpy.exp(itheta2), 0, 0],
+                            [0, 0, numpy.exp(itheta2), 0],
+                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=complex)
