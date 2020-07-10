@@ -21,6 +21,7 @@ import itertools
 import json
 import logging
 from warnings import warn
+
 import numpy as np
 
 try:
@@ -34,7 +35,6 @@ except ImportError:
 
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Delay
-from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
