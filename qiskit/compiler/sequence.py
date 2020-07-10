@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-TODO: TO be filled.
+Mapping a scheduled ``QuantumCircuit`` to a pulse ``Schedule``.
 """
 from typing import List, Optional, Union
 
