@@ -14,6 +14,7 @@
 """Utility module to open an issue on the repository when CIs fail."""
 
 import os
+
 from github import Github
 
 
@@ -46,6 +47,8 @@ class CIFailureReporter:
                 build logs.
             job_name (str): name of the failed ci job.
         """
+        if branch != 'master' and not branch.startswith('stable/'):
+            return None
         key_label = self._key_label(branch, job_name)
         issue_number = self._get_report_issue_number(key_label)
         if issue_number:
@@ -60,7 +63,7 @@ class CIFailureReporter:
             return 'benchmarks failing'
         elif branch_name == 'master':
             return 'master failing'
-        elif branch_name == 'stable':
+        elif branch_name.startswith('stable/'):
             return 'stable failing'
         else:
             return ''

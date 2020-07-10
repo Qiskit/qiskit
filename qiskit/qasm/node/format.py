@@ -15,6 +15,7 @@
 """Node for an OPENQASM file identifier/version statement."""
 
 import re
+import warnings
 
 from .node import Node
 
@@ -34,7 +35,9 @@ class Format(Node):
         """Return the version."""
         return "%s.%s" % (self.majorversion, self.minorversion)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding format string."""
-        del prec  # prec ignored
+        if prec is not None:
+            warnings.warn('Parameter \'Format.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return "%s %s;" % (self.language, self.version())

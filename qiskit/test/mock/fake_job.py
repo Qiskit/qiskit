@@ -27,16 +27,15 @@ class FakeJob(BaseJob):
     """Fake simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, backend, job_id, fn, qobj):
+    def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
         self._backend = backend
         self._job_id = job_id
-        self._qobj = qobj
         self._future = None
         self._future_callback = fn
 
     def submit(self):
-        self._future = self._executor.submit(self._future_callback, self._qobj)
+        self._future = self._executor.submit(self._future_callback)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ

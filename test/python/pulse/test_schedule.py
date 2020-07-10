@@ -18,11 +18,32 @@ from unittest.mock import patch
 
 import numpy as np
 
-from qiskit.pulse import (Play, SamplePulse, ShiftPhase, Instruction, SetFrequency, Acquire,
-                          pulse_lib, Snapshot, Delay, Gaussian, Drag, GaussianSquare, Constant,
-                          functional_pulse, ShiftFrequency)
-from qiskit.pulse.channels import (MemorySlot, RegisterSlot, DriveChannel, AcquireChannel,
-                                   SnapshotChannel, MeasureChannel)
+from qiskit.pulse import (
+    Play,
+    Waveform,
+    ShiftPhase,
+    Instruction,
+    SetFrequency,
+    Acquire,
+    Snapshot,
+    Delay,
+    library,
+    Gaussian,
+    Drag,
+    GaussianSquare,
+    Constant,
+    functional_pulse,
+    ShiftFrequency,
+    SetPhase,
+)
+from qiskit.pulse.channels import (
+    MemorySlot,
+    RegisterSlot,
+    DriveChannel,
+    AcquireChannel,
+    SnapshotChannel,
+    MeasureChannel,
+)
 from qiskit.pulse.commands import PersistentValue, PulseInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _insertion_index
@@ -105,8 +126,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error."""
-        gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
+        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.7, sigma=3)
 
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
@@ -139,8 +160,8 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test that in place operations on schedule are still immutable
            and return equivalent schedules."""
-        gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
@@ -158,8 +179,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_immutability(self):
         """Test that operations are immutable."""
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Play(gp1, self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
@@ -171,8 +192,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched = sched + Play(gp1, self.config.drive(0))
@@ -263,19 +284,19 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
-        """Test if a schedule keeps its _children after attached to another schedule."""
-        _children = (Acquire(10, self.config.acquire(0), MemorySlot(0)).shift(20) +
-                     Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        self.assertEqual(2, len(list(_children.instructions)))
+        """Test if a schedule keeps its children after attached to another schedule."""
+        children = (Acquire(10, self.config.acquire(0), MemorySlot(0)).shift(20) +
+                    Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        self.assertEqual(2, len(list(children.instructions)))
 
-        sched = Acquire(10, self.config.acquire(0), MemorySlot(0)).append(_children)
+        sched = Acquire(10, self.config.acquire(0), MemorySlot(0)).append(children)
         self.assertEqual(3, len(list(sched.instructions)))
 
-        # add 2 instructions to _children (2 instructions -> 4 instructions)
-        _children = _children.append(Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        _children = _children.insert(100, Acquire(10, self.config.acquire(0),
-                                                  MemorySlot(0)))
-        self.assertEqual(4, len(list(_children.instructions)))
+        # add 2 instructions to children (2 instructions -> 4 instructions)
+        children = children.append(Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        children = children.insert(
+            100, Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        self.assertEqual(4, len(list(children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
@@ -298,7 +319,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
+        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
         with self.assertWarns(DeprecationWarning):
             pv0 = PersistentValue(0.1)
         snapshot = Snapshot('snapshot_label', 'state')
@@ -333,7 +354,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         def my_test_par_sched_one(x, y, z):
             with self.assertWarns(DeprecationWarning):
                 result = PulseInstruction(
-                    SamplePulse(np.array([x, y, z]), name='sample'),
+                    Waveform(np.array([x, y, z]), name='sample'),
                     self.config.drive(0)
                 )
             return 0, result
@@ -341,7 +362,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         def my_test_par_sched_two(x, y, z):
             with self.assertWarns(DeprecationWarning):
                 result = PulseInstruction(
-                    SamplePulse(np.array([x, y, z]), name='sample'),
+                    Waveform(np.array([x, y, z]), name='sample'),
                     self.config.drive(0)
                 )
             return 5, result
@@ -518,7 +539,7 @@ class TestDelay(BaseTestSchedule):
     def test_delay_drive_channel(self):
         """Test Delay on DriveChannel"""
         drive_ch = self.config.drive(0)
-        pulse = SamplePulse(np.full(10, 0.1))
+        pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, drive_ch) + Play(pulse, drive_ch)
         self.assertIsInstance(sched, Schedule)
@@ -535,7 +556,7 @@ class TestDelay(BaseTestSchedule):
         """Test Delay on MeasureChannel"""
 
         measure_ch = self.config.measure(0)
-        pulse = SamplePulse(np.full(10, 0.1))
+        pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, measure_ch) + Play(pulse, measure_ch)
         self.assertIsInstance(sched, Schedule)
@@ -547,7 +568,7 @@ class TestDelay(BaseTestSchedule):
         """Test Delay on ControlChannel"""
 
         control_ch = self.config.control([0, 1])[0]
-        pulse = SamplePulse(np.full(10, 0.1))
+        pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, control_ch) + Play(pulse, control_ch)
         self.assertIsInstance(sched, Schedule)
@@ -631,6 +652,7 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0)))
         sched = sched.insert(50, ShiftFrequency(4.0e6, self.config.drive(0)))
+        sched = sched.insert(55, SetPhase(3.14, self.config.drive(0)))
         for i in range(2):
             sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
@@ -652,13 +674,19 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in no_pulse_and_fc.instructions:
             self.assertFalse(isinstance(inst, (Play, ShiftPhase)))
         self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 4)
+        self.assertEqual(len(no_pulse_and_fc.instructions), 5)
 
         # test on ShiftPhase
         only_fc, no_fc = \
             self._filter_and_test_consistency(sched, instruction_types={ShiftPhase})
         self.assertEqual(len(only_fc.instructions), 1)
-        self.assertEqual(len(no_fc.instructions), 7)
+        self.assertEqual(len(no_fc.instructions), 8)
+
+        # test on SetPhase
+        only_setp, no_setp = \
+            self._filter_and_test_consistency(sched, instruction_types={SetPhase})
+        self.assertEqual(len(only_setp.instructions), 1)
+        self.assertEqual(len(no_setp.instructions), 8)
 
         # test on SetFrequency
         only_setf, no_setf = self._filter_and_test_consistency(
@@ -666,7 +694,7 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in only_setf.instructions:
             self.assertTrue(isinstance(inst, SetFrequency))
         self.assertEqual(len(only_setf.instructions), 1)
-        self.assertEqual(len(no_setf.instructions), 7)
+        self.assertEqual(len(no_setf.instructions), 8)
 
         # test on ShiftFrequency
         only_shiftf, no_shiftf = \
@@ -675,7 +703,7 @@ class TestScheduleFilter(BaseTestSchedule):
         for _, inst in only_shiftf.instructions:
             self.assertTrue(isinstance(inst, ShiftFrequency))
         self.assertEqual(len(only_shiftf.instructions), 1)
-        self.assertEqual(len(no_shiftf.instructions), 7)
+        self.assertEqual(len(no_shiftf.instructions), 8)
 
     def test_filter_intervals(self):
         """Test filtering on intervals."""
@@ -874,8 +902,8 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_single_channel_out_of_order(self):
         """Test that schedule with single channel equal when out of order."""
         instructions = [(0, ShiftPhase(0, DriveChannel(0))),
-                        (15, Play(SamplePulse(np.ones(10)), DriveChannel(0))),
-                        (5, Play(SamplePulse(np.ones(10)), DriveChannel(0)))]
+                        (15, Play(Waveform(np.ones(10)), DriveChannel(0))),
+                        (5, Play(Waveform(np.ones(10)), DriveChannel(0)))]
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 

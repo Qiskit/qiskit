@@ -15,14 +15,14 @@
 """Controlled unitary gate."""
 
 import copy
-from typing import Tuple, List, Optional, Union
+from typing import List, Optional, Union
 
 from qiskit.circuit.exceptions import CircuitError
 
+# pylint: disable=cyclic-import
+from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from .quantumregister import QuantumRegister
-from .quantumregister import Qubit
-from .classicalregister import Clbit
 from ._utils import _ctrl_state_to_int
 
 # pylint: disable=missing-return-doc
@@ -33,7 +33,7 @@ class ControlledGate(Gate):
 
     def __init__(self, name: str, num_qubits: int, params: List,
                  label: Optional[str] = None, num_ctrl_qubits: Optional[int] = 1,
-                 definition: Optional[List[Tuple[Gate, List[Qubit], List[Clbit]]]] = None,
+                 definition: Optional['QuantumCircuit'] = None,
                  ctrl_state: Optional[Union[int, str]] = None,
                  base_gate: Optional[Gate] = None):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
@@ -91,10 +91,8 @@ class ControlledGate(Gate):
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
         super().__init__(name, num_qubits, params, label=label)
-        if num_ctrl_qubits < num_qubits:
-            self.num_ctrl_qubits = num_ctrl_qubits
-        else:
-            raise CircuitError('number of control qubits must be less than the number of qubits')
+        self._num_ctrl_qubits = 1
+        self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
@@ -109,26 +107,52 @@ class ControlledGate(Gate):
         if self._open_ctrl:
             closed_gate = self.copy()
             closed_gate.ctrl_state = None
-            # pylint: disable=cyclic-import
-            from qiskit.circuit.library.standard_gates import XGate
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
-            qreg = QuantumRegister(self.num_qubits)
-            definition = [(closed_gate, qreg, [])]
-            open_rules = []
+            qreg = QuantumRegister(self.num_qubits, 'q')
+            qc_open_ctrl = QuantumCircuit(qreg)
             for qind, val in enumerate(bit_ctrl_state[::-1]):
                 if val == '0':
-                    open_rules.append([XGate(), [qreg[qind]], []])
-            if open_rules:
-                return open_rules + definition + open_rules
-            else:
-                return self._definition
+                    qc_open_ctrl.x(qind)
+            qc_open_ctrl.append(closed_gate, qargs=qreg[:])
+            for qind, val in enumerate(bit_ctrl_state[::-1]):
+                if val == '0':
+                    qc_open_ctrl.x(qind)
+            return qc_open_ctrl
         else:
             return super().definition
 
     @definition.setter
-    def definition(self, excited_def: List):
-        """Set controlled gate definition with closed controls."""
+    def definition(self, excited_def: 'QuantumCircuit'):
+        """Set controlled gate definition with closed controls.
+
+        Args:
+            excited_def: The circuit with all closed controls."""
         super(Gate, self.__class__).definition.fset(self, excited_def)
+
+    @property
+    def num_ctrl_qubits(self):
+        """Get number of control qubits.
+
+        Returns:
+            int: The number of control qubits for the gate.
+        """
+        return self._num_ctrl_qubits
+
+    @num_ctrl_qubits.setter
+    def num_ctrl_qubits(self, num_ctrl_qubits):
+        """Set the number of control qubits.
+
+        Args:
+            num_ctrl_qubits (int): The number of control qubits in [1, num_qubits-1].
+
+        Raises:
+            CircuitError: num_ctrl_qubits is not an integer in [1, num_qubits - 1].
+        """
+        if (num_ctrl_qubits == int(num_ctrl_qubits) and
+                1 <= num_ctrl_qubits < self.num_qubits):
+            self._num_ctrl_qubits = num_ctrl_qubits
+        else:
+            raise CircuitError('The number of control qubits must be in [1, num_qubits-1]')
 
     @property
     def ctrl_state(self) -> int:
