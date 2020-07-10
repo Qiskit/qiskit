@@ -491,8 +491,8 @@ class Operator(BaseOperator):
         op = Operator(np.eye(2 ** instruction.num_qubits))
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
-            if instruction.phase:
-                op *= ScalarOp(op.dim[0], np.exp(1j * float(instruction.phase)))
+            # if instruction.phase:
+            #     op *= ScalarOp(op.dim[0], np.exp(1j * float(instruction.phase)))
             instruction = instruction.to_instruction()
         op._append_instruction(instruction)
         return op

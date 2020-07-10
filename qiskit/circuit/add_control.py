@@ -121,8 +121,6 @@ def control(operation: Union[Gate, ControlledGate],
         qc.mcrz(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
-        # if operation.name == 'rzx':
-        #     import ipdb; ipdb.set_trace()
         bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
         # now we have a bunch of single qubit rotation gates and cx
         for rule in bgate.definition.data:
@@ -150,7 +148,8 @@ def control(operation: Union[Gate, ControlledGate],
                 qc.mct(q_control[:] + [q_target[rule[1][0].index]], q_target[rule[1][1].index],
                        q_ancillae)
             else:
-                raise CircuitError('gate contains non-controllable instructions')
+                raise CircuitError('gate contains non-controllable instructions: {}'.format(
+                    rule[0].name))
 
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
@@ -198,7 +197,16 @@ def _gate_to_circuit(operation):
 
 def _gate_to_dag(operation):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
+    from math import pi    
     if hasattr(operation, 'definition') and operation.definition:
+        phase = 0
+        if operation.definition.phase:
+            phase = operation.definition.phase
+            operation.definition.phase = 0
+        qubit = operation.definition.qregs[0][0]
+        if phase:
+            operation.definition.u3(pi, phase, phase - pi, qubit)
+            operation.definition.x(qubit)
         return circuit_to_dag(operation.definition)
     else:
         qr = QuantumRegister(operation.num_qubits)

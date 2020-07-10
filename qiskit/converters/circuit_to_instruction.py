@@ -14,6 +14,7 @@
 
 """Helper function for converting a circuit to an instruction."""
 
+from math import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -124,6 +125,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     qc = QuantumCircuit(*regs, name=instruction.name)
     qc.data = definition
+    if circuit.phase:
+        qc.u3(pi, circuit.phase, circuit.phase - pi, qc.qregs[0][0])
+        qc.x(qc.qregs[0][0])
+        
     instruction.definition = qc
 
     return instruction

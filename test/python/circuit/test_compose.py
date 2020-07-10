@@ -451,6 +451,15 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(circ, expected)
 
+    def test_compose_global_phase(self):
+        """Composing with global phase."""
+        circ1 = QuantumCircuit(1, phase=1)
+        circ1.rz(0.5, 0)
+        circ2 = QuantumCircuit(1, phase=2)
+        circ3 = QuantumCircuit(1, phase=3)
+        circ4 = circ1.compose(circ2).compose(circ3)
+        self.assertEqual(circ4.phase, circ1.phase + circ2.phase + circ3.phase)
+        
 
 if __name__ == '__main__':
     unittest.main()

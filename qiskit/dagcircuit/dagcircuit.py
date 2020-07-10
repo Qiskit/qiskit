@@ -632,6 +632,7 @@ class DAGCircuit:
             dag = self
         else:
             dag = copy.deepcopy(self)
+        dag.phase += other.phase
 
         for nd in other.topological_nodes():
             if nd.type == "in":

@@ -94,7 +94,6 @@ class RetworkxDAGCircuit(DAGCircuit):
         # TODO this works but is a horrible way to do this
         slf = copy.deepcopy(self._multi_graph)
         oth = copy.deepcopy(other._multi_graph)
-
         return rx.is_isomorphic_node_match(
             slf, oth,
             DAGNode.semantic_eq)

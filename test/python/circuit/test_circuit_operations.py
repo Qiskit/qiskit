@@ -485,6 +485,20 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_bits(), expected)
 
+    def test_inverse(self):
+        """Test inverse circuit."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr, phase=0.5)
+        qc.h(0)
+        qc.barrier(qr)
+        qc.t(1)
+
+        expected = QuantumCircuit(qr)
+        expected.tdg(1)
+        expected.barrier(qr)
+        expected.h(0)
+        expected.phase = -0.5
+        self.assertEqual(qc.inverse(), expected)
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""

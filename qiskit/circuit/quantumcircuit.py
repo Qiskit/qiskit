@@ -212,6 +212,9 @@ class QuantumCircuit:
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
+        # eq is used as equiv (e.g. equivalence_library
+        # return (circuit_to_dag(self) == circuit_to_dag(other) and
+        #        self.phase == other.phase)
 
     @classmethod
     def _increment_instances(cls):
@@ -428,6 +431,7 @@ class QuantumCircuit:
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for instruction_context in itertools.chain(self.data, rhs.data):
             circuit._append(*instruction_context)
+        circuit.phase = self.phase + rhs.phase
         return circuit
 
     def extend(self, rhs):
@@ -467,6 +471,7 @@ class QuantumCircuit:
         # Add new gates
         for instruction_context in data:
             self._append(*instruction_context)
+        self.phase += rhs.phase
         return self
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
@@ -1576,7 +1581,7 @@ class QuantumCircuit:
         """Set the phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): radians
         """
         if isinstance(angle, ParameterExpression):
             self._phase = angle

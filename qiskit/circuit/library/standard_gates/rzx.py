@@ -127,12 +127,13 @@ class RZXGate(Gate):
         from .h import HGate
         from .x import CXGate
         from .rz import RZGate
+        theta = self.params[0]
         q = QuantumRegister(2, 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
         rules = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (RZGate(self.params[0]), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]

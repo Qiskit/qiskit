@@ -91,13 +91,14 @@ class RZZGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
         from .x import CXGate
+        from .rz import RZGate
         q = QuantumRegister(2, 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        theta = self.params[0]
+        qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
         rules = [
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
         qc.data = rules

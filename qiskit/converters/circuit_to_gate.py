@@ -93,10 +93,9 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     rules = target.data
     phase = target.phase / len(target.qregs[0])
     if target.phase:
+        #target.u3(pi, target.phase, target.phase - pi, target.qregs[0])
         target.u3(pi, phase, phase - pi, target.qregs[0])
         target.x(target.qregs[0])
-
-
 
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')

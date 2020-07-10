@@ -226,7 +226,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                                [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
                               dtype=complex)
        else:
-           return numpy.array([[cos, 0, -numpy.exp(1j * lam / 2) * sin, 0],
+           return numpy.array([[cos, 0, -numpy.exp(1j * lam) * sin, 0],
                                [0, 1, 0, 0],
                                [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
                                [0, 0, 0, 1]],
