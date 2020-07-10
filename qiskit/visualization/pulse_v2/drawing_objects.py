@@ -61,7 +61,7 @@ from qiskit import pulse
 
 
 class ElementaryData(ABC):
-    """Abstract class of visualization intermediate representation."""
+    """Base class of the pulse visualization interface."""
     def __init__(self,
                  data_type: str,
                  channel: pulse.channels.Channel,
