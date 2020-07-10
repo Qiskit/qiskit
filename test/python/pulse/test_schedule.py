@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.pulse import (
     Play,
-    SamplePulse,
+    Waveform,
     ShiftPhase,
     Instruction,
     SetFrequency,
@@ -354,7 +354,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         def my_test_par_sched_one(x, y, z):
             with self.assertWarns(DeprecationWarning):
                 result = PulseInstruction(
-                    SamplePulse(np.array([x, y, z]), name='sample'),
+                    Waveform(np.array([x, y, z]), name='sample'),
                     self.config.drive(0)
                 )
             return 0, result
@@ -362,7 +362,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         def my_test_par_sched_two(x, y, z):
             with self.assertWarns(DeprecationWarning):
                 result = PulseInstruction(
-                    SamplePulse(np.array([x, y, z]), name='sample'),
+                    Waveform(np.array([x, y, z]), name='sample'),
                     self.config.drive(0)
                 )
             return 5, result
@@ -539,7 +539,7 @@ class TestDelay(BaseTestSchedule):
     def test_delay_drive_channel(self):
         """Test Delay on DriveChannel"""
         drive_ch = self.config.drive(0)
-        pulse = SamplePulse(np.full(10, 0.1))
+        pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, drive_ch) + Play(pulse, drive_ch)
         self.assertIsInstance(sched, Schedule)
@@ -556,7 +556,7 @@ class TestDelay(BaseTestSchedule):
         """Test Delay on MeasureChannel"""
 
         measure_ch = self.config.measure(0)
-        pulse = SamplePulse(np.full(10, 0.1))
+        pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, measure_ch) + Play(pulse, measure_ch)
         self.assertIsInstance(sched, Schedule)
@@ -568,7 +568,7 @@ class TestDelay(BaseTestSchedule):
         """Test Delay on ControlChannel"""
 
         control_ch = self.config.control([0, 1])[0]
-        pulse = SamplePulse(np.full(10, 0.1))
+        pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
         sched = Delay(self.delay_time, control_ch) + Play(pulse, control_ch)
         self.assertIsInstance(sched, Schedule)
@@ -902,8 +902,8 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_single_channel_out_of_order(self):
         """Test that schedule with single channel equal when out of order."""
         instructions = [(0, ShiftPhase(0, DriveChannel(0))),
-                        (15, Play(SamplePulse(np.ones(10)), DriveChannel(0))),
-                        (5, Play(SamplePulse(np.ones(10)), DriveChannel(0)))]
+                        (15, Play(Waveform(np.ones(10)), DriveChannel(0))),
+                        (5, Play(Waveform(np.ones(10)), DriveChannel(0)))]
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 
