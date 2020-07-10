@@ -84,7 +84,7 @@ class RXXGate(Gate):
         theta = self.params[0]
         q = QuantumRegister(2, 'q')
         #qc = QuantumCircuit(q, name=self.name, phase=-theta/2)
-        qc = QuantumCircuit(q, name=self.name, phase=0)
+        qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[0]], []),
             (HGate(), [q[1]], []),

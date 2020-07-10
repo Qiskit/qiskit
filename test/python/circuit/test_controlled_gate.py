@@ -23,7 +23,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -891,12 +891,17 @@ class TestControlledGate(QiskitTestCase):
         """
         Test controlling CX with global phase
         """
-        theta = Parameter('θ')
+        theta = pi/2
         circ = QuantumCircuit(2, phase=theta)
         circ.cx(0, 1)
-        gccx = QuantumCircuit(3)
-        gccx.append(circ)
-        import ipdb; ipdb.set_trace()
+        cx = circ.to_gate()
+        self.assertNotEqual(Operator(CXGate()), Operator(cx))
+
+        ccx = cx.control(1)
+        base_mat = Operator(cx).data
+        target = _compute_control_matrix(base_mat, 1)
+
+        self.assertEqual(Operator(ccx), Operator(target))
 
 
 @ddt
@@ -922,11 +927,6 @@ class TestOpenControlledToMatrix(QiskitTestCase):
             actual = cgate.to_matrix()
         except CircuitError as cerr:
             self.skipTest(cerr)
-        # np.set_printoptions(linewidth=300, precision=3, suppress=True)
-        # print('\n', cgate.name)
-        # print(actual)
-        # print(target)
-        # import ipdb; ipdb.set_trace()
         self.assertTrue(np.allclose(actual, target))
 
 
@@ -1025,6 +1025,7 @@ class TestControlledStandardGates(QiskitTestCase):
             args = [5]
 
         gate = gate_class(*args)
+        
         #for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
         for ctrl_state in {ctrl_state_ones}:
             with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
@@ -1034,9 +1035,10 @@ class TestControlledStandardGates(QiskitTestCase):
                     continue
                 try:
                     cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
-                except (AttributeError, QiskitError):
+                except (AttributeError, QiskitError) as err:
                     # 'object has no attribute "control"'
                     # skipping Id and Barrier
+                    print(err)
                     continue
                 if gate.name == 'rz':
                     iden = Operator.from_label('I')
@@ -1046,27 +1048,28 @@ class TestControlledStandardGates(QiskitTestCase):
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
-                np.set_printoptions(linewidth=300, precision=2, suppress=True)
-                from qiskit.circuit.library.standard_gates import RXXGate
-                rxx = RXXGate(theta)
-                crxx = RXXGate(theta).control(num_ctrl_qubits)
-                print('')
-                print(gate_class)
-                print(f'num_ctrl_qubits = {num_ctrl_qubits}, ctrl_state = {bin(ctrl_state)}')
-                print(base_mat)
-                print('')                
-                print(Operator(cgate).data)
-                print('')                
-                print(target_mat)
-                print('')                                
-                print(Operator(crxx).data)
+                # np.set_printoptions(linewidth=300, precision=2, suppress=True)
+                # from qiskit.circuit.library.standard_gates import RXXGate
+                # from qiskit.converters import circuit_to_instruction, circuit_to_gate
+                # rxx = RXXGate(theta)
+                # crxx = RXXGate(theta).control(num_ctrl_qubits)
+                # print('')
+                # print(gate_class)
+                # print(f'num_ctrl_qubits = {num_ctrl_qubits}, ctrl_state = {bin(ctrl_state)}')
+                # print(base_mat)
+                # print('')                
+                # print(Operator(cgate).data)
+                # print('')                
+                # print(target_mat)
+                # print('')                                
+                # print(Operator(crxx).data)
 
                 # qc = QuantumCircuit(2)
                 # qc.append(gate, [0,1])
                 # # simulator = BasicAer.get_backend('unitary_simulator')
                 # # simulated_mat = execute(qc, simulator).result().get_unitary()
                 #print(simulated_mat)
-                import ipdb; ipdb.set_trace()
+                #import ipdb; ipdb.set_trace()
                 self.assertEqual(Operator(cgate), Operator(target_mat))
 
 @ddt

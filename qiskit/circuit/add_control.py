@@ -101,6 +101,11 @@ def control(operation: Union[Gate, ControlledGate],
     import qiskit.circuit.controlledgate as controlledgate
     # pylint: disable=unused-import
     import qiskit.circuit.library.standard_gates.multi_control_rotation_gates
+    # if operation.name == 'rxx':
+    #     from qiskit.quantum_info import Operator
+    #     import numpy as np
+    #     np.set_printoptions(linewidth=300, precision=2, suppress=True)
+    #     import ipdb; ipdb.set_trace()
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
@@ -147,6 +152,9 @@ def control(operation: Union[Gate, ControlledGate],
             elif rule[0].name == 'cx':
                 qc.mct(q_control[:] + [q_target[rule[1][0].index]], q_target[rule[1][1].index],
                        q_ancillae)
+            elif rule[0].name == 'x':
+                # hack to catch unrolling with global phase
+                qc.mct(q_control, q_target[rule[1][0].index])
             else:
                 raise CircuitError('gate contains non-controllable instructions: {}'.format(
                     rule[0].name))
@@ -199,14 +207,14 @@ def _gate_to_dag(operation):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
     from math import pi    
     if hasattr(operation, 'definition') and operation.definition:
-        phase = 0
-        if operation.definition.phase:
-            phase = operation.definition.phase
-            operation.definition.phase = 0
-        qubit = operation.definition.qregs[0][0]
-        if phase:
-            operation.definition.u3(pi, phase, phase - pi, qubit)
-            operation.definition.x(qubit)
+        # phase = 0
+        # if operation.definition.phase:
+        #     phase = operation.definition.phase
+        #     operation.definition.phase = 0
+        # qubit = operation.definition.qregs[0][0]
+        # if phase:
+        #     operation.definition.u3(pi, phase, phase - pi, qubit)
+        #     operation.definition.x(qubit)
         return circuit_to_dag(operation.definition)
     else:
         qr = QuantumRegister(operation.num_qubits)
@@ -214,11 +222,17 @@ def _gate_to_dag(operation):
         qc.append(operation, qr)
         return circuit_to_dag(qc)
 
+    # qr = QuantumRegister(operation.num_qubits)
+    # qc = QuantumCircuit(qr, name=operation.name)
+    # qc.append(operation, qr)
+    # return circuit_to_dag(qc)
+
 
 def _unroll_gate(operation, basis_gates):
     from qiskit.converters.dag_to_circuit import dag_to_circuit
     from qiskit.transpiler.passes import Unroller
     unroller = Unroller(basis_gates)
     dag = _gate_to_dag(operation)
+    dag2 = unroller.run(dag)
     qc = dag_to_circuit(unroller.run(dag))
     return qc.to_gate()

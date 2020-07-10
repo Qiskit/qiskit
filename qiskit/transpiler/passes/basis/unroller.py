@@ -77,6 +77,8 @@ class Unroller(TransformationPass):
             # different that the width of the node.
             while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
                 if rule[0][0].name in self.basis:
+                    if node.op.definition and node.op.definition.phase:
+                        dag.phase += node.op.definition.phase
                     dag.substitute_node(node, rule[0][0], inplace=True)
                     break
                 try:
@@ -95,5 +97,10 @@ class Unroller(TransformationPass):
                                       (str(self.basis), node.op.name))
                 decomposition = circuit_to_dag(node.op.definition)
                 unrolled_dag = self.run(decomposition)  # recursively unroll ops
+                if node.op.definition and node.op.definition.phase:
+                    dag.phase += node.op.definition.phase
+                if unrolled_dag.phase:
+                    dag.phase += unrolled_dag.phase
+                    unrolled_dag.phase = 0
                 dag.substitute_node_with_dag(node, unrolled_dag)
         return dag

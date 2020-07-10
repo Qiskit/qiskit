@@ -82,7 +82,8 @@ class RYYGate(Gate):
 
         q = QuantumRegister(2, 'q')
         theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
+        #qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
+        qc = QuantumCircuit(q, name=self.name, phase=0)        
         rules = [
             (RXGate(np.pi / 2), [q[0]], []),
             (RXGate(np.pi / 2), [q[1]], []),
