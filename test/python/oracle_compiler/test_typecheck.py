@@ -15,7 +15,8 @@
 """Tests oracle compiler type checker."""
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.oracle_compiler import compile_oracle, OracleCompilerTypeError
+from qiskit.transpiler.oracle_compiler import OracleCompilerTypeError
+from qiskit.transpiler.oracle_compiler.compile_oracle import compile_oracle
 from . import examples, bad_examples
 
 

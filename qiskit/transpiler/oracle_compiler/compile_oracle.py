@@ -31,7 +31,7 @@ def compile_oracle(func):
     that can be synthesised into a ``QuantumCircuit``.
 
     Args:
-        func (callable): A callable (with type hints) to compile into a logic network.
+        func (callable): A callable (with type hints) to compile into an Oracle.
 
     Returns:
         Oracle: An object that can synthesis into a QuantumCircuit (via ``synth()`` method).

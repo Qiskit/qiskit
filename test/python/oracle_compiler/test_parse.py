@@ -13,7 +13,8 @@
 # that they have been altered from the originals.
 """Tests the oracle parser."""
 
-from qiskit.transpiler.oracle_compiler import compile_oracle, OracleParseError
+from qiskit.transpiler.oracle_compiler import OracleParseError
+from qiskit.transpiler.oracle_compiler.compile_oracle import compile_oracle
 from qiskit.test import QiskitTestCase
 from . import bad_examples as examples
 

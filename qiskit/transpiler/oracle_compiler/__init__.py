@@ -34,15 +34,15 @@ QuantumCircuit:
 
    .. jupyter-execute::
 
-      from qiskit.transpiler.oracle_compiler import compile_oracle
+      from qiskit.transpiler.oracle_compiler import oracle
       from qiskit.transpiler.oracle_compiler.types import Bit
 
+      @oracle
       def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
           return (not a and b and not c and d)
 
-      network = compile_oracle(grover_oracle)
-      quantum_circuit = network.synth()
-      print(quantum_circuit)
+      quantum_circuit = grover_oracle.synth()
+      quantum_circuit.draw()
 
 Supplementary Information
 =========================
@@ -74,8 +74,15 @@ Supplementary Information
 Oracle compiler API
 ===================
 
-Logic Network
--------------
+oracle
+------
+
+Alias for ``qiskit.transpiler.oracle_compiler.compile_oracle.compile_oracle``.
+It can be used as a decorator.
+
+
+Oracle
+------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -95,4 +102,4 @@ Exceptions
 """
 from .oracle import Oracle
 from .exceptions import OracleParseError, OracleCompilerError, OracleCompilerTypeError
-from .compile_oracle import compile_oracle
+from .compile_oracle import compile_oracle as oracle
