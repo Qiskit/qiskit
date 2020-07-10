@@ -137,22 +137,22 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         """Test that the equivalent circuits from the equivalency_library
         have equal matrix representations"""
 
-                n_params = len(_get_free_params(gate_class))
-                params = [0.1 * i for i in range(1, n_params+1)]
-                if gate_class.__name__ == 'RXXGate':
-                    params = [np.pi/2]
-                params = [-np.pi/2 * i for i in range(1, n_params+1)]
-                if gate_class.__name__ in ['MSGate']:
-                    params[0] = 2
-                elif gate_class in ['MCU1Gate']:
-                    params[1] = 2
-                gate = gate_class(*params)
-                equiv_lib_list = std_eqlib.get_entry(gate)
-                for ieq, equivalency in enumerate(equiv_lib_list):
-                    with self.subTest(msg=gate.name + '_' + str(ieq)):
-                        op1 = Operator(gate)
-                        op2 = Operator(equivalency)
-                        self.assertEqual(op1, op2)
+        n_params = len(_get_free_params(gate_class))
+        params = [0.1 * i for i in range(1, n_params+1)]
+        if gate_class.__name__ == 'RXXGate':
+            params = [np.pi/2]
+        params = [-np.pi/2 * i for i in range(1, n_params+1)]
+        if gate_class.__name__ in ['MSGate']:
+            params[0] = 2
+        elif gate_class in ['MCU1Gate']:
+            params[1] = 2
+        gate = gate_class(*params)
+        equiv_lib_list = std_eqlib.get_entry(gate)
+        for ieq, equivalency in enumerate(equiv_lib_list):
+            with self.subTest(msg=gate.name + '_' + str(ieq)):
+                op1 = Operator(gate)
+                op2 = Operator(equivalency)
+                self.assertEqual(op1, op2)
 
 
 @ddt
