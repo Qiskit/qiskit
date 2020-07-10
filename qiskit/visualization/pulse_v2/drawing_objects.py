@@ -23,7 +23,7 @@ of the pulse drawer. However this interface is agnostic to the actual plotter.
 
 Design concept
 ~~~~~~~~~~~~~~
-When we think about the dynamic update of drawing objects, it will be efficient to
+When we think about dynamically updating drawing objects, it will be most efficient to
 update only properties of drawings rather than regenerating all of them from scratch.
 Thus the core drawing function generates all possible drawings in the beginning and
 then updates the visibility and the offset coordinate of each item according to
