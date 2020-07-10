@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
-Drawing object IRs for pulse drawer.
+Drawing objects for pulse drawer.
 
 Drawing IRs play two important roles:
     - Allowing unittests of visualization module. Usually it is hard for image files to be tested.
