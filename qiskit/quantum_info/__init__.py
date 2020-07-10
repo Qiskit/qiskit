@@ -46,7 +46,6 @@ States
 
 Channels
 ========
-
 .. autosummary::
    :toctree: ../stubs/
 
@@ -135,7 +134,6 @@ from .states import Statevector, DensityMatrix
 from .states import (partial_trace, state_fidelity, purity, entropy,
                      concurrence, entanglement_of_formation,
                      mutual_information, shannon_entropy)
-from .states.states import basis_state, projector
 
 from .random import (random_quantum_channel, random_unitary,
                      random_clifford, random_pauli_table,

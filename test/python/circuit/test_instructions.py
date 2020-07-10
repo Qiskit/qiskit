@@ -195,6 +195,7 @@ class TestInstructions(QiskitTestCase):
         circ.u3(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
         inst_reverse = circ.to_instruction()
+
         self.assertEqual(inst.reverse_ops().definition, inst_reverse.definition)
 
     def test_reverse_opaque(self):

@@ -34,7 +34,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
 from qiskit.pulse.commands import FrameChangeInstruction
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
+from qiskit.pulse import (Waveform, SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
                           Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
@@ -139,7 +139,7 @@ class EventsOutputChannels:
         return self._trim(self._snapshots)
 
     @property
-    def labels(self) -> Dict[int, Union[SamplePulse, Acquire]]:
+    def labels(self) -> Dict[int, Union[Waveform, Acquire]]:
         """Get labels."""
         if self._labels is None:
             self._build_waveform()
@@ -244,7 +244,7 @@ class EventsOutputChannels:
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
                     command = command.get_sample_pulse()
-                if isinstance(command, SamplePulse):
+                if isinstance(command, (Waveform, SamplePulse)):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
                     self._labels[time] = (tf, command)
@@ -287,14 +287,14 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse: SamplePulse,
+    def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
              scale: float = 1, scaling: float = None):
         """Draw figure.
 
         Args:
-            pulse: SamplePulse to draw.
+            pulse: Waveform to draw.
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
@@ -633,7 +633,7 @@ class ScheduleDrawer:
         return color
 
     @staticmethod
-    def _prev_label_at_time(prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
+    def _prev_label_at_time(prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                             time: int) -> bool:
         """Check overlap of pulses with pervious channels.
 
@@ -651,8 +651,8 @@ class ScheduleDrawer:
         return False
 
     def _draw_labels(self, ax,
-                     labels: Dict[int, Union[SamplePulse, Acquire]],
-                     prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
+                     labels: Dict[int, Union[Waveform, Acquire]],
+                     prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                      y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
