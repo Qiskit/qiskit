@@ -19,7 +19,7 @@ Drawing IRs play two important roles:
     - Removing program parser from each plotter interface. We can easily add new plotter.
 
 This module is based on the structure of matplotlib as it is the primary plotter
-of the pulse drawer. However IRs should be agnostic to the actual plotter.
+of the pulse drawer. However this interface is agnostic to the actual plotter.
 
 Design concept
 ~~~~~~~~~~~~~~
