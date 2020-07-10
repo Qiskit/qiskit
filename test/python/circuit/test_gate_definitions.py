@@ -132,11 +132,11 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             if aclass.__name__ not in exclude:
                 cls._gate_classes.append(aclass)
 
+    @data(self._gate_classes)
     def test_equivalence_phase(self):
         """Test that the equivalent circuits from the equivalency_library
         have equal matrix representations"""
-        for gate_class in self._gate_classes:
-            with self.subTest(i=gate_class):
+
                 n_params = len(_get_free_params(gate_class))
                 params = [0.1 * i for i in range(1, n_params+1)]
                 if gate_class.__name__ == 'RXXGate':
