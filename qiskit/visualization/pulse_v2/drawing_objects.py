@@ -27,7 +27,7 @@ When we think about dynamically updating drawing objects, it will be most effici
 update only the changed properties of drawings rather than regenerating entirely from scratch.
 Thus the core drawing function generates all possible drawings in the beginning and
 then updates the visibility and the offset coordinate of each item according to
-the end-user request. Drawing properties are designed based on this line of thinking.
+the end-user request.
 
 Data key
 ~~~~~~~~
