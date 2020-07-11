@@ -122,7 +122,7 @@ def control(operation: Union[Gate, ControlledGate],
                 use_basis_gates=True)
     else:
         if num_ctrl_qubits == 1:
-            basis_gates = ['x', 'z', 'u1', 'u3', 'cx']
+            basis_gates = ['x', 'z', 'y', 'u1', 'u3', 'cx']
         else:
             basis_gates = ['x', 'u1', 'u3', 'cx']
 
@@ -156,6 +156,8 @@ def control(operation: Union[Gate, ControlledGate],
                 qc.mcx(q_control, q_target[rule[1][0].index], q_ancillae)
             elif rule[0].name == 'z':
                 qc.cz(q_control, q_target[rule[1][0].index])
+            elif rule[0].name == 'y':
+                qc.cy(q_control, q_target[rule[1][0].index])
             else:
                 raise CircuitError('gate contains non-controllable instructions')
 
