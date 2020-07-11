@@ -29,8 +29,8 @@ def add_control(operation: Union[Gate, ControlledGate],
     library, it will be returned (e.g. XGate.control() = CnotGate().
 
     For more generic gates, this method implements the controlled
-    version by first decomposing into the ['u1', 'u3', 'cx'] basis, then
-    controlling each gate in the decomposition.
+    version by first decomposing into the ['x', 'z', 'u1', 'u3', 'cx'] basis,
+    then controlling each gate in the decomposition.
 
     Open controls are implemented by conjugating the control line with
     X gates. Adds num_ctrl_qubits controls to operation.
@@ -121,7 +121,12 @@ def control(operation: Union[Gate, ControlledGate],
         qc.mcrz(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
-        bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
+        if num_ctrl_qubits == 1:
+            basis_gates = ['x', 'z', 'u1', 'u3', 'cx']
+        else:
+            basis_gates = ['x', 'u1', 'u3', 'cx']
+
+        bgate = _unroll_gate(operation, basis_gates)
         # now we have a bunch of single qubit rotation gates and cx
         for rule in bgate.definition.data:
             if rule[0].name == 'u3':
@@ -147,6 +152,10 @@ def control(operation: Union[Gate, ControlledGate],
             elif rule[0].name == 'cx':
                 qc.mct(q_control[:] + [q_target[rule[1][0].index]], q_target[rule[1][1].index],
                        q_ancillae)
+            elif rule[0].name == 'x':
+                qc.mcx(q_control, q_target[rule[1][0].index], q_ancillae)
+            elif rule[0].name == 'z':
+                qc.cz(q_control, q_target[rule[1][0].index])
             else:
                 raise CircuitError('gate contains non-controllable instructions')
 
