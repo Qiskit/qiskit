@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    A bug was fixed for when a generic gate is converted to a controlled
+    version. Previusly it was unrolled using u1,u3,cx gates before generating
+    the controlled version for each of these gates. This caused simple operations
+    to be decomposed to multiple controlled x,y,z rotations. Currently gates is
+    unrolled using x,z,u1,u3,cx gates allowing for more robust decomposion
+    
