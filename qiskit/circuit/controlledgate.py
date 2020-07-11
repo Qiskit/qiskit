@@ -109,25 +109,19 @@ class ControlledGate(Gate):
         if self._open_ctrl:
             closed_gate = self.copy()
             closed_gate.ctrl_state = None
-            open_rules, qreg = self._get_open_rules()
-            definition = [(closed_gate, qreg, [])]
-            if open_rules:
-                return open_rules + definition + open_rules
-            else:
-                return self._definition
+            bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
+            qreg = QuantumRegister(self.num_qubits, 'q')
+            qc_open_ctrl = QuantumCircuit(qreg)
+            for qind, val in enumerate(bit_ctrl_state[::-1]):
+                if val == '0':
+                    qc_open_ctrl.x(qind)
+            qc_open_ctrl.append(closed_gate, qargs=qreg[:])
+            for qind, val in enumerate(bit_ctrl_state[::-1]):
+                if val == '0':
+                    qc_open_ctrl.x(qind)
+            return qc_open_ctrl
         else:
             return super().definition
-
-    def _get_open_rules(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.standard_gates import XGate
-        bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
-        qreg = QuantumRegister(self.num_qubits)
-        open_rules = []
-        for qind, val in enumerate(bit_ctrl_state[::-1]):
-            if val == '0':
-                open_rules.append([XGate(), [qreg[qind]], []])
-        return open_rules, qreg
 
     @definition.setter
     def definition(self, excited_def: 'QuantumCircuit'):
