@@ -22,6 +22,7 @@ except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
+from qiskit.exceptions import QiskitError
 from .oracle_visitor import OracleVisitor
 from .utils import tweedledum2qiskit
 
@@ -38,7 +39,10 @@ class Oracle(Gate):
 
         Raises:
             ImportError: If tweedledum is not installed.
+            QiskitError: If source is not a string.
         """
+        if not isinstance(source, str):
+            raise QiskitError('Oracle needs a source code as a string.')
         if not HAS_TWEEDLEDUM:
             raise ImportError("To use the oracle compiler, tweedledum "
                               "must be installed. To install tweedledum run "
