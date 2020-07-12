@@ -376,6 +376,7 @@ class TwoQubitBasisDecomposer():
 
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
+
         return U0r, U0l
 
     def decomp1(self, target):
