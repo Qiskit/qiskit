@@ -57,35 +57,41 @@ on top of the existing plotter API, it could be difficult to prevent bugs with t
 due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 
 import numpy as np
 
 from qiskit.pulse import channels
+from qiskit.visualization.exceptions import VisualizationError
 
 
 class ElementaryData(ABC):
     """Base class of the pulse visualization interface."""
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
+                 channel: Optional[channels.Channel],
                  meta: Optional[Dict[str, Any]],
                  offset: float,
+                 scale: float,
                  visible: bool,
                  styles: Optional[Dict[str, Any]]):
         """Create new drawing object.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing. If `None` is specified,
+                the vertical coordinate of this object is not adjusted with
+                channel arrangement.
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
+            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.data_type = data_type
         self.channel = channel
         self.meta = meta
+        self.scale = scale
         self.offset = offset
         self.visible = visible
         self.styles = styles
@@ -112,24 +118,28 @@ class FilledAreaData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
+                 channel: Optional[channels.Channel],
                  x: np.ndarray,
                  y1: np.ndarray,
                  y2: np.ndarray,
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
+                 scale: float = 1,
                  visible: bool = True,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing. If `None` is specified,
+                the vertical coordinate of this object is not adjusted with
+                channel arrangement.
             x: Series of horizontal coordinate that the object is drawn.
             y1: Series of vertical coordinate of upper boundary of filling area.
             y2: Series of vertical coordinate of lower boundary of filling area.
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
+            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
@@ -141,6 +151,7 @@ class FilledAreaData(ElementaryData):
                          channel=channel,
                          meta=meta,
                          offset=offset,
+                         scale=scale,
                          visible=visible,
                          styles=styles)
 
@@ -162,25 +173,37 @@ class LineData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
-                 x: np.ndarray,
-                 y: np.ndarray,
+                 channel: Optional[channels.Channel],
+                 x: Optional[Union[np.ndarray, float]],
+                 y: Optional[Union[np.ndarray, float]],
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
+                 scale: float = 1,
                  visible: bool = True,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing. If `None` is specified,
+                the vertical coordinate of this object is not adjusted with
+                channel arrangement.
             x: Series of horizontal coordinate that the object is drawn.
+                If `x` is `None`, a horizontal line is drawn at `y`.
             y: Series of vertical coordinate that the object is drawn.
+                If `y` is `None`, a vertical line is drawn at `x`.
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
+            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
+
+        Raises:
+            VisualizationError: When both `x` and `y` are None.
         """
+        if x is None and y is None:
+            raise VisualizationError('`x` and `y` cannot be None simultaneously.')
+
         self.x = x
         self.y = y
 
@@ -188,6 +211,7 @@ class LineData(ElementaryData):
                          channel=channel,
                          meta=meta,
                          offset=offset,
+                         scale=scale,
                          visible=visible,
                          styles=styles)
 
@@ -208,35 +232,43 @@ class TextData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
+                 channel: Optional[channels.Channel],
                  x: float,
                  y: float,
                  text: str,
+                 latex: Optional[str] = None,
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
+                 scale: float = 1,
                  visible: bool = True,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of text data.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channel: Pulse channel object bound to this drawing. If `None` is specified,
+                the vertical coordinate of this object is not adjusted with
+                channel arrangement.
             x: A horizontal coordinate that the object is drawn.
             y: A vertical coordinate that the object is drawn.
             text: String to show in the canvas.
+            latex: Latex representation of the text (if backend supports latex drawing).
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
+            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
         self.y = y
         self.text = text
+        self.latex = latex or ''
 
         super().__init__(data_type=data_type,
                          channel=channel,
                          meta=meta,
                          offset=offset,
+                         scale=scale,
                          visible=visible,
                          styles=styles)
 
@@ -248,4 +280,5 @@ class TextData(ElementaryData):
                          self.channel,
                          self.x,
                          self.y,
-                         self.text)))
+                         self.text,
+                         self.latex)))

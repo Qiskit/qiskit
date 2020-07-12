@@ -132,6 +132,7 @@ class TestDrawingObjects(QiskitTestCase):
                                                y2=np.array([0, 0, 0]),
                                                meta={'test_val': 0},
                                                offset=0,
+                                               scale=1,
                                                visible=True,
                                                styles={'color': 'red'})
 
@@ -142,6 +143,7 @@ class TestDrawingObjects(QiskitTestCase):
                                                y2=np.array([0, 0, 0]),
                                                meta={'test_val': 1},
                                                offset=1,
+                                               scale=2,
                                                visible=False,
                                                styles={'color': 'blue'})
 
@@ -155,6 +157,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          y=np.array([0, 0, 0]),
                                          meta={'test_val': 0},
                                          offset=0,
+                                         scale=1,
                                          visible=True,
                                          styles={'color': 'red'})
 
@@ -164,6 +167,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          y=np.array([0, 0, 0]),
                                          meta={'test_val': 1},
                                          offset=1,
+                                         scale=2,
                                          visible=False,
                                          styles={'color': 'blue'})
 
@@ -178,6 +182,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          text='my_text',
                                          meta={'test_val': 0},
                                          offset=0,
+                                         scale=1,
                                          visible=True,
                                          styles={'color': 'red'})
 
@@ -188,6 +193,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          text='my_text',
                                          meta={'test_val': 1},
                                          offset=1,
+                                         scale=2,
                                          visible=False,
                                          styles={'color': 'blue'})
 

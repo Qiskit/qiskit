@@ -15,7 +15,17 @@
 Pulse visualization module.
 """
 
-from qiskit.visualization.pulse_v2.style_lib import QiskitPulseStyle
+from collections import namedtuple
+from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle, hard_corded_default_style
+from qiskit.visualization.pulse_v2 import generators
+
+# custom data types
+InstructionTuple = namedtuple('InstructionTuple', 't0 dt frame inst')
+NonPulseTuple = namedtuple('NonPulseTuple', 't0 dt inst')
+ChannelTuple = namedtuple('ChannelTuple', 'channel scaling t0 t1')
+ComplexColors = namedtuple('ComplexColors', 'real imaginary')
 
 
+# create default stylesheet
 pulse_style = QiskitPulseStyle()
+pulse_style.style = hard_corded_default_style

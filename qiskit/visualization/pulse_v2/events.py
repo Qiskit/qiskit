@@ -98,7 +98,8 @@ class ChannelEvents:
                           pulse.instructions.ShiftFrequency,
                           pulse.instructions.SetPhase,
                           pulse.instructions.ShiftPhase))
-    _misc_group = tuple((pulse.instructions.Snapshot, ))
+    _misc_group = tuple((pulse.instructions.Snapshot,
+                         pulse.instructions.RelativeBarrier))
 
     def __init__(self,
                  waveforms: Dict[int, pulse.Instruction],
