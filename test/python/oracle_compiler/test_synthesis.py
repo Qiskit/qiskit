@@ -25,12 +25,12 @@ from . import examples
 
 
 class TestSynthesis(QiskitTestCase):
-    """Tests LogicNetwork.synth method."""
+    """Tests Oracle.synth method."""
 
     def test_grover_oracle(self):
         """Synthesis of grover_oracle example"""
-        network = compile_oracle(examples.grover_oracle)
-        quantum_circuit = network.synth()
+        oracle = compile_oracle(examples.grover_oracle)
+        quantum_circuit = oracle.synth()
 
         expected = QuantumCircuit(5)
         expected.append(XGate().control(4, ctrl_state='0101'), [0, 1, 2, 3, 4])
@@ -40,8 +40,8 @@ class TestSynthesis(QiskitTestCase):
 
     def test_grover_oracle_arg_regs(self):
         """Synthesis of grover_oracle example with arg_regs"""
-        network = compile_oracle(examples.grover_oracle)
-        quantum_circuit = network.synth(arg_regs=True)
+        oracle = compile_oracle(examples.grover_oracle)
+        quantum_circuit = oracle.synth(arg_regs=True)
 
         qr_a = QuantumRegister(1, 'a')
         qr_b = QuantumRegister(1, 'b')

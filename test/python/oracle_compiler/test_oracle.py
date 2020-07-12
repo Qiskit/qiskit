@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Tests oracle as a gate."""
+
+from qiskit.test import QiskitTestCase
+
+from qiskit.transpiler.oracle_compiler.compile_oracle import compile_oracle
+
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library.standard_gates import XGate
+
+from . import examples
+
+
+class TestOracleDecomposition(QiskitTestCase):
+    """Tests Oracle.decomposition."""
+
+    def test_grover_oracle(self):
+        """ grover_oracle.decomposition"""
+        oracle = compile_oracle(examples.grover_oracle)
+        quantum_circuit = QuantumCircuit(5)
+        quantum_circuit.append(oracle, [2, 1, 0, 3, 4])
+
+        expected = QuantumCircuit(5)
+        expected.append(XGate().control(4, ctrl_state='0101'), [2, 1, 0, 3, 4])
+
+        self.assertEqual(quantum_circuit.decompose(), expected)

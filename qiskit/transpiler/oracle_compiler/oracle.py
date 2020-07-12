@@ -21,11 +21,12 @@ try:
 except Exception:  # pylint: disable=broad-except
     HAS_TWEEDLEDUM = False
 from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.gate import Gate
 from .oracle_visitor import OracleVisitor
 from .utils import tweedledum2qiskit
 
 
-class Oracle:
+class Oracle(Gate):
     """An oracle object represents an oracle function and its logic network."""
 
     def __init__(self, source):
@@ -48,7 +49,7 @@ class Oracle:
         self.scopes = _oracle_visitor.scopes
         self.args = _oracle_visitor.args
         self.name = _oracle_visitor.name
-        super().__init__()
+        super().__init__(self.name, num_qubits=sum([qreg.size for qreg in self.qregs]), params=[])
 
     @property
     def types(self):
@@ -77,11 +78,18 @@ class Oracle:
             QuantumCircuit: A circuit implementing the logic network.
         """
         if arg_regs:
-            qregs = [QuantumRegister(1, name=arg) for arg in self.args
-                     if self.types[0][arg] == 'Bit']
-            qregs.reverse()
-            if self.types[0]['return'] == 'Bit':
-                qregs.append(QuantumRegister(1, name='return'))
+            qregs = self.qregs
         else:
             qregs = None
         return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)
+
+    def _define(self):
+        self.definition = self.synth()
+
+    @property
+    def qregs(self):
+        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Bit']
+        qregs.reverse()
+        if self.types[0]['return'] == 'Bit':
+            qregs.append(QuantumRegister(1, name='return'))
+        return qregs
