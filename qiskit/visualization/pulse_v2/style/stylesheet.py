@@ -37,7 +37,6 @@ General setting (any):
 - `formatter.general.fig_size`: Tuple represents the figure size.
 - `formatter.general.dpi`: An integer represents the image resolution.
 
-
 Color (str, html color code):
 - `formatter.color.fill_waveform_d`: `ComplexColors` instance represents
     the color of waveform in drive channels.
@@ -117,7 +116,6 @@ Unicode symbol (str)
 Latex symbol (str)
 - `formatter.latex_symbol.frame_change`: Latex expression of frame change.
 - `formatter.latex_symbol.snapshot`: Latex expression of snapshot.
-
 
 Generator
 ~~~~~~~~~
