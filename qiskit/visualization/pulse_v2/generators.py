@@ -267,7 +267,7 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
             else:
                 op_name = r'\overline{\rm CR}'
             # IQX name def is not standard. Echo CR is annotated with pi/4 rather than pi/2
-            angle_val = match_result['angle']
+            angle_val = match_dict['angle']
             frac = Fraction(int(int(angle_val)/2), 180)
             if frac.numerator == 1:
                 angle = r'\frac{{\pi}}{{{}}}'.format(frac.denominator)
@@ -276,7 +276,7 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
         else:
             # single qubit pulse
             op_name = r'{{\rm {}}}'.format(match_dict['op'])
-            angle_val = match_result['angle']
+            angle_val = match_dict['angle']
             if angle_val is None:
                 angle = r'\pi'
             else:
