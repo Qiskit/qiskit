@@ -62,8 +62,13 @@ class PhaseEstimation(QuantumCircuit):
             num_evaluation_qubits: The number of evaluation qubits.
             unitary: The unitary operation :math:`U` which will be repeated and controlled.
             iqft: A inverse Quantum Fourier Transform, per default
-                :class:`~qiskit.circuit.library.QFT` is used.
+                :class:`~qiskit.circuit.library.QFT` is used. Note that the QFT should not include
+                the usual swaps!
             name: The name of the circuit.
+
+        .. note::
+
+            The inverse QFT should not include a swap of the qubit order.
 
         Reference Circuit:
             .. jupyter-execute::
@@ -82,7 +87,7 @@ class PhaseEstimation(QuantumCircuit):
         super().__init__(qr_eval, qr_state, name=name)
 
         if iqft is None:
-            iqft = QFT(num_evaluation_qubits, inverse=True)
+            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False)
 
         self.h(qr_eval)  # hadamards on evaluation qubits
 
