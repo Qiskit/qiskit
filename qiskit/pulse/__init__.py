@@ -66,16 +66,16 @@ Instructions (:mod:`qiskit.pulse.instructions`)
    ShiftPhase
    Snapshot
 
-Pulse Library (waveforms :mod:`qiskit.pulse.pulse_lib`)
-========================================================
+Pulse Library (waveforms :mod:`qiskit.pulse.library`)
+=====================================================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   pulse_lib
-   pulse_lib.discrete
+   library
+   library.discrete
 
-   SamplePulse
+   Waveform
    Constant
    Drag
    Gaussian
@@ -146,6 +146,7 @@ Exceptions
    PulseError
 
 """
+
 
 # Builder imports.
 from qiskit.pulse.builder import (
@@ -228,14 +229,15 @@ from qiskit.pulse.instructions import (
     Snapshot,
 )
 from qiskit.pulse.interfaces import ScheduleComponent
-from qiskit.pulse.pulse_lib import (
+from qiskit.pulse.library import (
     Constant,
     ConstantPulse,
     Drag,
     Gaussian,
     GaussianSquare,
     ParametricPulse,
+    Waveform,
     SamplePulse,
 )
-from qiskit.pulse.pulse_lib.samplers.decorators import functional_pulse
+from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule
