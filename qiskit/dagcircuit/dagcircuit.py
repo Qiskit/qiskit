@@ -1340,7 +1340,7 @@ class DAGCircuit:
                    current_node = self._multi_graph.find_adjacent_node_by_edge(
                         current_node._node_id, lambda x: wire == x['wire'])
                    more_nodes = True
-                except retworkx.NoSuitableNeighbors:
+                except rx.NoSuitableNeighbors:
                     pass
 
     def count_ops(self):
