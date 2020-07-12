@@ -29,7 +29,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit
+from .quantumregister import QuantumRegister, Qubit, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -575,6 +575,13 @@ class QuantumCircuit:
         Returns a list of classical bits in the order that the registers were added.
         """
         return [cbit for creg in self.cregs for cbit in creg]
+
+    @property
+    def ancillas(self):
+        """
+        Returns a list of quantum bits in the order that the registers were added.
+        """
+        return [qbit for qreg in self.qregs for qbit in qreg if isinstance(qbit, AncillaQubit)]
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
@@ -1280,6 +1287,11 @@ class QuantumCircuit:
         for reg in self.qregs:
             qubits += reg.size
         return qubits
+
+    @property
+    def num_ancillas(self):
+        """Return the number of ancilla qubits."""
+        return len(self.ancillas)
 
     @property
     def n_qubits(self):
