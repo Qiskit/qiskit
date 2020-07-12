@@ -84,10 +84,12 @@ class Oracle(Gate):
         return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)
 
     def _define(self):
+        """The definition of the oracle is its synthesis"""
         self.definition = self.synth()
 
     @property
     def qregs(self):
+        """The list of qregs used by the oracle"""
         qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Bit']
         qregs.reverse()
         if self.types[0]['return'] == 'Bit':
