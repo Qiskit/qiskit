@@ -783,7 +783,7 @@ class ScheduleDrawer:
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
              channel_scales: Dict[Channel, float] = None,
-             plot_all: bool = True, table: bool = True,
+             plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
              scaling: float = None, channels: List[Channel] = None,
              show_framechange_channels: bool = True):

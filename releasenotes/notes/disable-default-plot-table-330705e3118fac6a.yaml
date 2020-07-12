@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Schedule plotting with :py:meth:`qiskit.pulse.Schedule.draw` will no
+    longer display the event table by default. This may be reenabled with
+    ``Schedule.draw(table=True)``.
