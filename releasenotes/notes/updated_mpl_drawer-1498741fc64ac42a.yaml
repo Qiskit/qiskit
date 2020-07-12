@@ -1,0 +1,114 @@
+---
+features:
+  - |
+    A new kwarg, ``cregbundle`` has been added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the
+    cregs will be bundled into a single line in circuit visualizations for the
+    ``text`` and ``mpl`` drawers. The default value is ``True``.
+    Addresses issue `#4290 <https://github.com/Qiskit/qiskit-terra/issues/4290>`_.
+    
+    For example:
+    
+    .. jupyter-execute::
+    
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='mpl', cregbundle=True)
+  - |
+    A new kwarg, ``initial_state`` has been added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`. When set to ``True`` the
+    initial state will now be included in circuit visualizations for all drawers.
+    Addresses issue `#4293 <https://github.com/Qiskit/qiskit-terra/issues/4293>`_.
+    
+    For example:
+    
+    .. jupyter-execute::
+    
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.measure_all()
+        circuit.draw(output='mpl', initial_state=True)
+  - |
+    Labels will now be displayed when using the 'mpl' drawer. There are 2
+    types of labels - gate labels and control labels. Gate labels will
+    replace the gate name in the display. Control labels will display
+    above or below the controls for a gate.
+    Fixes issues #3766, #4580
+    Addresses issues `#3766 <https://github.com/Qiskit/qiskit-terra/issues/3766>`_
+    and `#4580 <https://github.com/Qiskit/qiskit-terra/issues/4580>`_.
+
+    For example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library.standard_gates import YGate
+        circuit = QuantumCircuit(2)
+        circuit.append(YGate(label='A Y Gate').control(label='Y Control'), [0, 1])
+        circuit.draw(output='mpl')
+deprecations:
+  - |
+    The style dictionary key ``cregbundle`` has been deprecated and will be
+    removed in a future release. This has been replaced by the
+    kwarg ``cregbundle`` added to the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw`.
+    The default value is ``True``. 
+fixes:
+  - |
+    On some occasions long gate and register names would overflow, or leave
+    excessive empty space around them. This has been fixed by using correct
+    text widths for a proportional font. Fixes issues
+    `#4611 <https://github.com/Qiskit/qiskit-terra/issues/4611>`_,
+    `#4605 <https://github.com/Qiskit/qiskit-terra/issues/4605>`_,
+    `#4545 <https://github.com/Qiskit/qiskit-terra/issues/4545>`_,
+    `#4497 <https://github.com/Qiskit/qiskit-terra/issues/4497>`_,
+    `#4449 <https://github.com/Qiskit/qiskit-terra/issues/4449>`_,
+    and `#3641 <https://github.com/Qiskit/qiskit-terra/issues/3641>`_.
+  - |
+    When using the style dictionary key 'showindex', the index numbers at
+    the top of the column did not line up properly. This has been fixed.
+  - |
+    The drawer now consistently captializes gate names.
+  - |
+    When using cregbunde=True and measuring onto a second fold, the measure
+    arrow would overwrite the creg count. The count was moved to the left
+    to prevent this. Fixes issue
+    `#4148 <https://github.com/Qiskit/qiskit-terra/issues/4148>`_.
+  - |
+    The controlled swap and controlled rzz gates now display with their
+    appropriate symbols instead of in a box.
+  - |
+    Controlled gates created using the to_gate() method were not properly
+    spacing and could overflow onto other gates. This has been fixed.
+  - |
+    Controlled X gates with more than 2 controls now display the same
+    target-cross instead of an X in a box.
+  - |
+    Gates with arrays as parameters, such as Hamiltonian, no longer display
+    with excessive space around them. Fixes issue
+    `#4352 <https://github.com/Qiskit/qiskit-terra/issues/4352>`_.
+  - |
+    Gates created using the Gate() method now display the proper background
+    color for the gate. Fixes issue
+    `#4496 <https://github.com/Qiskit/qiskit-terra/issues/4496>`_.
+  - |
+    An 'Attribute Error' that occurred when using isometry or initialize
+    has been fixed. Fixes issue
+    `#4439 <https://github.com/Qiskit/qiskit-terra/issues/4439>`_.
+  - |
+    Some open-controlled gates did not properly display the open conntrols.
+    They now do. Fixes issue
+    `#4248 <https://github.com/Qiskit/qiskit-terra/issues/4248>`_.
+  - |
+    The style dictionary key 'backgroundcolor' now properly displays the color.
+  - |
+    Setting the fold parameter to the draw() method to -1 will now properly
+    display the circuit with no folding. Fixes issue 
+    `#4506 <https://github.com/Qiskit/qiskit-terra/issues/4506>`_.

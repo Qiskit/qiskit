@@ -388,6 +388,36 @@ class QuantumCircuit:
 
         return repeated_circ
 
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Control this circuit on ``num_ctrl_qubits`` qubits.
+
+        Args:
+            num_ctrl_qubits (int): The number of control qubits.
+            label (str): An optional label to give the controlled operation for visualization.
+            ctrl_state (str or int): The control state in decimal or as a bitstring
+                (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
+
+        Returns:
+            QuantumCircuit: The controlled version of this circuit.
+
+        Raises:
+            CircuitError: If the circuit contains a non-unitary operation and cannot be controlled.
+        """
+        try:
+            gate = self.to_gate()
+        except QiskitError:
+            raise CircuitError('The circuit contains non-unitary operations and cannot be '
+                               'controlled. Note that no qiskit.circuit.Instruction objects may '
+                               'be in the circuit for this operation.')
+
+        controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
+        control_qreg = QuantumRegister(num_ctrl_qubits)
+        controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
+                                         name='c_{}'.format(self.name))
+        controlled_circ.append(controlled_gate, controlled_circ.qubits)
+
+        return controlled_circ
+
     def combine(self, rhs):
         """DEPRECATED - Append rhs to self if self contains compatible registers.
 
@@ -950,7 +980,7 @@ class QuantumCircuit:
         else:
             return string_temp
 
-    def draw(self, output=None, scale=0.7, filename=None, style=None,
+    def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
              with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
