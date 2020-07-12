@@ -29,7 +29,7 @@ def add_control(operation: Union[Gate, ControlledGate],
     library, it will be returned (e.g. XGate.control() = CnotGate().
 
     For more generic gates, this method implements the controlled
-    version by first decomposing into the ['x', 'z', 'u1', 'u3', 'cx'] basis,
+    version by first decomposing into the ['x', 'z', 'y' 'u1', 'u3', 'cx'] basis,
     then controlling each gate in the decomposition.
 
     Open controls are implemented by conjugating the control line with
