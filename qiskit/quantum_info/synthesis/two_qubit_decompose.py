@@ -376,7 +376,6 @@ class TwoQubitBasisDecomposer():
 
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
-
         return U0r, U0l
 
     def decomp1(self, target):
@@ -464,7 +463,7 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_angles = [_DECOMPOSER1Q.angles(x) for x in decomposition]
+        decomposition_angles = [_DECOMPOSER1Q.angles(np.around(x, 13)) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
