@@ -69,7 +69,7 @@ class ElementaryData(ABC):
     """Base class of the pulse visualization interface."""
     def __init__(self,
                  data_type: str,
-                 channel: Optional[channels.Channel],
+                 channel: channels.Channel,
                  meta: Optional[Dict[str, Any]],
                  offset: float,
                  scale: float,
@@ -79,9 +79,7 @@ class ElementaryData(ABC):
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing. If `None` is specified,
-                the vertical coordinate of this object is not adjusted with
-                channel arrangement.
+            channel: Pulse channel object bound to this drawing.
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             scale: Vertical scaling factor of this object.
@@ -118,7 +116,7 @@ class FilledAreaData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: Optional[channels.Channel],
+                 channel: channels.Channel,
                  x: np.ndarray,
                  y1: np.ndarray,
                  y2: np.ndarray,
@@ -131,9 +129,7 @@ class FilledAreaData(ElementaryData):
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing. If `None` is specified,
-                the vertical coordinate of this object is not adjusted with
-                channel arrangement.
+            channel: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
             y1: Series of vertical coordinate of upper boundary of filling area.
             y2: Series of vertical coordinate of lower boundary of filling area.
@@ -173,7 +169,7 @@ class LineData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: Optional[channels.Channel],
+                 channel: channels.Channel,
                  x: Optional[Union[np.ndarray, float]],
                  y: Optional[Union[np.ndarray, float]],
                  meta: Optional[Dict[str, Any]] = None,
@@ -185,9 +181,7 @@ class LineData(ElementaryData):
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing. If `None` is specified,
-                the vertical coordinate of this object is not adjusted with
-                channel arrangement.
+            channel: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
                 If `x` is `None`, a horizontal line is drawn at `y`.
             y: Series of vertical coordinate that the object is drawn.
@@ -232,7 +226,7 @@ class TextData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: Optional[channels.Channel],
+                 channel: channels.Channel,
                  x: float,
                  y: float,
                  text: str,
@@ -246,9 +240,7 @@ class TextData(ElementaryData):
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing. If `None` is specified,
-                the vertical coordinate of this object is not adjusted with
-                channel arrangement.
+            channel: Pulse channel object bound to this drawing.
             x: A horizontal coordinate that the object is drawn.
             y: A vertical coordinate that the object is drawn.
             text: String to show in the canvas.
