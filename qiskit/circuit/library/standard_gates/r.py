@@ -52,17 +52,18 @@ class RGate(Gate):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
         theta = self.params[0]
         phi = self.params[1]
-        rule = [
+        rules = [
             (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Invert this gate.

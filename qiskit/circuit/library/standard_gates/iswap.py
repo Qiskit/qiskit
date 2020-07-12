@@ -92,11 +92,14 @@ class iSwapGate(Gate):
             h q[1];
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .s import SGate
         from .x import CXGate
         q = QuantumRegister(2, 'q')
-        self.definition = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (SGate(), [q[0]], []),
             (SGate(), [q[1]], []),
             (HGate(), [q[0]], []),
@@ -104,6 +107,8 @@ class iSwapGate(Gate):
             (CXGate(), [q[1], q[0]], []),
             (HGate(), [q[1]], [])
         ]
+        qc.data = rules
+        self.definition = qc
 
     def to_matrix(self):
         """Return a numpy.array for the iSWAP gate."""
