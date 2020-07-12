@@ -158,7 +158,7 @@ class QiskitPulseStyle:
         for key, val in flat_dict.items():
             current_style[_replace_deprecated_key(key)] = val
 
-        self._style.update(flat_dict)
+        self._style.update(current_style)
 
 
 def _flatten_dict(nested_dict: Dict[str, Any],
