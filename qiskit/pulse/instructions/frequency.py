@@ -60,3 +60,34 @@ class SetFrequency(Instruction):
         scheduled on.
         """
         return self._channel
+
+
+class ShiftFrequency(Instruction):
+    """Shift the channel frequency away from the current frequency."""
+
+    def __init__(self,
+                 frequency: float,
+                 channel: PulseChannel,
+                 name: Optional[str] = None):
+        """Creates a new shift frequency instruction.
+
+        Args:
+            frequency: Frequency shift of the channel in Hz.
+            channel: The channel this instruction operates on.
+            name: Name of this set channel frequency command.
+        """
+        self._frequency = float(frequency)
+        self._channel = channel
+        super().__init__((frequency, channel), 0, (channel,), name=name)
+
+    @property
+    def frequency(self) -> float:
+        """Frequency shift from the set frequency."""
+        return self._frequency
+
+    @property
+    def channel(self) -> PulseChannel:
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        scheduled on.
+        """
+        return self._channel

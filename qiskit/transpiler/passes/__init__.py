@@ -29,6 +29,7 @@ Layout Selection (Placement)
    TrivialLayout
    DenseLayout
    NoiseAdaptiveLayout
+   SabreLayout
    CSPLayout
    ApplyLayout
    Layout2qDistance
@@ -44,6 +45,7 @@ Routing
    BasicSwap
    LookaheadSwap
    StochasticSwap
+   SabreSwap
 
 Basis Change
 ============
@@ -54,6 +56,8 @@ Basis Change
    Unroller
    Unroll3qOrMore
    Decompose
+   UnrollCustomDefinitions
+   BasisTranslator
 
 Optimizations
 =============
@@ -106,6 +110,7 @@ from .layout import SetLayout
 from .layout import TrivialLayout
 from .layout import DenseLayout
 from .layout import NoiseAdaptiveLayout
+from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
@@ -117,11 +122,14 @@ from .routing import BasicSwap
 from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
+from .routing import SabreSwap
 
 # basis change
 from .basis import Decompose
 from .basis import Unroller
+from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
+from .basis import BasisTranslator
 
 # optimization
 from .optimization import Optimize1qGates

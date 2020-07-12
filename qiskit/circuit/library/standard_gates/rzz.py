@@ -89,18 +89,19 @@ class RZZGate(Gate):
         """
         gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(self.params[0]), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
@@ -110,8 +111,9 @@ class RZZGate(Gate):
     # however the control mechanism cannot distinguish U1 and RZ yet.
     # def to_matrix(self):
     #    """Return a numpy.array for the RZZ gate."""
+    #    import numpy
     #    theta = float(self.params[0])
-    #    return np.array([[np.exp(-1j*theta/2), 0, 0, 0],
-    #                     [0, np.exp(1j*theta/2), 0, 0],
-    #                     [0, 0, np.exp(1j*theta/2), 0],
-    #                     [0, 0, 0, np.exp(-1j*theta/2)]], dtype=complex)
+    #    return numpy.array([[numpy.exp(-1j*theta/2), 0, 0, 0],
+    #                     [0, numpy.exp(1j*theta/2), 0, 0],
+    #                     [0, 0, numpy.exp(1j*theta/2), 0],
+    #                     [0, 0, 0, numpy.exp(-1j*theta/2)]], dtype=complex)

@@ -18,7 +18,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 
 
 class SwapGate(Gate):
@@ -61,17 +60,18 @@ class SwapGate(Gate):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SWAP gate.
@@ -187,6 +187,23 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
+    _matrix0 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1]], dtype=complex)
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""
@@ -202,17 +219,18 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
           cx c,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate, CCXGate
-        definition = []
         q = QuantumRegister(3, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[2], q[1]], []),
             (CCXGate(), [q[0], q[1], q[2]], []),
             (CXGate(), [q[2], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
@@ -220,9 +238,10 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        if self.ctrl_state:
+            return self._matrix1
+        else:
+            return self._matrix0
 
 
 class FredkinGate(CSwapGate, metaclass=CSwapMeta):

@@ -72,6 +72,15 @@ class TestBasicSchedule(QiskitTestCase):
             self.assertEqual(actual[1].command, expected[1].command)
             self.assertEqual(actual[1].channels, expected[1].channels)
 
+    def test_empty_circuit_schedule(self):
+        """Test empty circuit being scheduled."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        sched = schedule(qc, self.backend, method='alap')
+        expected = Schedule()
+        self.assertEqual(sched.instructions, expected.instructions)
+
     def test_alap_aligns_end(self):
         """Test that ALAP always acts as though there is a final global barrier."""
         q = QuantumRegister(2)

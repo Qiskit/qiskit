@@ -29,6 +29,7 @@ Standard Gates
    C3XGate
    C4XGate
    CCXGate
+   DCXGate
    CHGate
    CRXGate
    CRYGate
@@ -57,7 +58,7 @@ Standard Gates
    SdgGate
    SwapGate
    iSwapGate
-   DCXGate
+   TGate
    TdgGate
    U1Gate
    U2Gate

@@ -54,15 +54,16 @@ class RXGate(Gate):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (RGate(self.params[0], 0), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RX gate.
@@ -178,25 +179,39 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
           u3(theta/2,-pi/2,0) t;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(pi / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0])
+
+    # TODO: this is the correct definition but has a global phase with respect
+    # to the decomposition above. Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #    """Return a numpy.array for the CRX gate."""
+    #    half_theta = self.params[0] / 2
+    #    cos = numpy.cos(half_theta)
+    #    isin = 1j * numpy.sin(half_theta)
+    #    return numpy.array([[1,     0, 0,     0],
+    #                        [0,   cos, 0, -isin],
+    #                        [0,     0, 1,     0],
+    #                        [0, -isin, 0,   cos]],
+    #                       dtype=complex)
 
 
 class CrxGate(CRXGate, metaclass=CRXMeta):

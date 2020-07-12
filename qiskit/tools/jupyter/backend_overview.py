@@ -22,7 +22,7 @@ from IPython.core.magic import line_magic, Magics, magics_class  # pylint: disab
 from IPython.core import magic_arguments                         # pylint: disable=import-error
 import matplotlib.pyplot as plt                                  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
-from qiskit.tools.monitor.backend_overview import get_unique_backends
+from qiskit.tools.monitor.overview import get_unique_backends
 from qiskit.visualization.gate_map import plot_gate_map
 
 
@@ -39,10 +39,9 @@ class BackendOverview(Magics):
         default=60,
         help='Interval for status check.'
     )
-    def qiskit_backend_overview(self, line='', cell=None):
+    def qiskit_backend_overview(self, line=''):
         """A Jupyter magic function to monitor backends.
         """
-        del cell  # Unused
         args = magic_arguments.parse_argstring(
             self.qiskit_backend_overview, line)
 

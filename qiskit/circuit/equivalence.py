@@ -14,10 +14,25 @@
 
 """Gate equivalence library."""
 
+import io
 from collections import namedtuple
+
+import networkx as nx
 
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
+
+try:
+    import pydot  # pylint: disable=unused-import
+    HAS_PYDOT = True
+except ImportError:
+    HAS_PYDOT = False
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
 
 Key = namedtuple('Key', ['name',
                          'num_qubits'])
@@ -143,20 +158,80 @@ class EquivalenceLibrary():
 
         query_params = gate.params
 
-        if key in self._map:
-            entry = self._map[key]
-            search_base, equivs = entry
+        return [_rebind_equiv(equiv, query_params)
+                for equiv in self._get_equivalences(key)]
 
-            rtn = [_rebind_equiv(equiv, query_params) for equiv in equivs]
+    def draw(self, filename=None):
+        """Draws the equivalence relations available in the library.
 
-            if search_base and self._base is not None:
-                return rtn + self._base.get_entry(gate)
-            return rtn
+        Args:
+            filename (str): An optional path to write the output image to
+                if specified this method will return None.
 
-        if self._base is None:
-            return []
+        Returns:
+            PIL.Image: Drawn equivalence library.
 
-        return self._base.get_entry(gate)
+        Raises:
+            ImportError: when pydot or pillow are not installed.
+        """
+        if not HAS_PYDOT:
+            raise ImportError('EquivalenceLibrary.draw requires pydot. '
+                              "You can use 'pip install pydot' to install")
+        if not HAS_PIL and not filename:
+            raise ImportError('EquivalenceLibrary.draw requires pillow. '
+                              "You can use 'pip install pillow' to install")
+
+        dot = nx.drawing.nx_pydot.to_pydot(self._build_basis_graph())
+        if filename:
+            extension = filename.split('.')[-1]
+            dot.write(filename, format=extension)
+            return None
+        png = dot.create_png(prog='dot')
+        return Image.open(io.BytesIO(png))
+
+    def _build_basis_graph(self):
+        graph = nx.MultiDiGraph()
+
+        for key in self._get_all_keys():
+            name, num_qubits = key
+            equivalences = self._get_equivalences(key)
+
+            basis = frozenset(['{}/{}'.format(name, num_qubits)])
+            for params, decomp in equivalences:
+                decomp_basis = frozenset('{}/{}'.format(name, num_qubits)
+                                         for name, num_qubits in
+                                         set((inst.name, inst.num_qubits)
+                                             for inst, _, __ in decomp.data))
+
+                graph.add_node(basis, label=str(set(basis)))
+                graph.add_node(decomp_basis, label=str(set(decomp_basis)))
+
+                label = "%s\n%s" % (
+                    str(params), str(decomp) if num_qubits <= 5 else '...')
+                graph.add_edge(basis,
+                               decomp_basis,
+                               label=label,
+                               fontname='Courier',
+                               fontsize=8)
+
+        return graph
+
+    def _get_all_keys(self):
+        base_keys = self._base._get_all_keys() if self._base is not None else set()
+
+        self_keys = set(self._map.keys())
+
+        return self_keys | {base_key
+                            for base_key in base_keys
+                            if base_key not in self._map
+                            or self._map[base_key].search_base}
+
+    def _get_equivalences(self, key):
+        search_base, equivalences = self._map.get(key, (True, []))
+
+        if search_base and self._base is not None:
+            return equivalences + self._base._get_equivalences(key)
+        return equivalences
 
 
 def _raise_if_param_mismatch(gate_params, circuit_parameters):

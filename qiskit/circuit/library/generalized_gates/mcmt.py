@@ -14,7 +14,7 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
-from typing import Union, Callable, List, Tuple
+from typing import Union, Callable, List, Tuple, Optional
 
 import warnings
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
@@ -28,6 +28,21 @@ from ..standard_gates import (
 class MCMT(QuantumCircuit):
     """The multi-controlled multi-target gate, for an arbitrary singly controlled target gate.
 
+    For example, the H gate controlled on 3 qubits and acting on 2 target qubit is represented as:
+
+    .. parsed-literal::
+
+        ───■────
+           │
+        ───■────
+           │
+        ───■────
+        ┌──┴───┐
+        ┤0     ├
+        │  2-H │
+        ┤1     ├
+        └──────┘
+
     This default implementations requires no ancilla qubits, by broadcasting the target gate
     to the number of target qubits and using Qiskit's generic control routine to control the
     broadcasted target on the control qubits. If ancilla qubits are available, a more efficient
@@ -37,7 +52,8 @@ class MCMT(QuantumCircuit):
 
     def __init__(self, gate: Union[Gate, Callable[[QuantumCircuit, Qubit, Qubit], Instruction]],
                  num_ctrl_qubits: int,
-                 num_target_qubits: int) -> None:
+                 num_target_qubits: int,
+                 label: Optional[str] = None) -> None:
         """Create a new multi-control multi-target gate.
 
         Args:
@@ -46,6 +62,8 @@ class MCMT(QuantumCircuit):
                 If it is a callable, it will be casted to a Gate.
             num_ctrl_qubits: The number of control qubits.
             num_target_qubits: The number of target qubits.
+            label: The name for the controlled circuit block. If None, set to `C-name` where
+                `name` is `gate.name`.
 
         Raises:
             AttributeError: If the gate cannot be casted to a controlled gate.
@@ -63,6 +81,11 @@ class MCMT(QuantumCircuit):
         # initialize the circuit object
         super().__init__(num_qubits, name='mcmt')
 
+        if label is None:
+            self.label = '{}-{}'.format(num_target_qubits, self.gate.name.capitalize())
+        else:
+            self.label = label
+
         # build the circuit
         self._build()
 
@@ -72,7 +95,7 @@ class MCMT(QuantumCircuit):
             # no broadcasting needed (makes for better circuit diagrams)
             broadcasted_gate = self.gate
         else:
-            broadcasted = QuantumCircuit(self.num_target_qubits)
+            broadcasted = QuantumCircuit(self.num_target_qubits, name=self.label)
             for target in list(range(self.num_target_qubits)):
                 broadcasted.append(self.gate, [target], [])
             broadcasted_gate = broadcasted.to_gate()
@@ -123,11 +146,14 @@ class MCMT(QuantumCircuit):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return the controlled version of the MCMT circuit."""
-        return MCMT(self.gate,
-                    self.num_ctrl_qubits + num_ctrl_qubits,
-                    self.num_target_qubits)
+        if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
+            return MCMT(self.gate,
+                        self.num_ctrl_qubits + num_ctrl_qubits,
+                        self.num_target_qubits,
+                        label)
+        return super().control(num_ctrl_qubits, label, ctrl_state)
 
     def inverse(self):
         """Return the inverse MCMT circuit, which is itself."""
@@ -135,7 +161,41 @@ class MCMT(QuantumCircuit):
 
 
 class MCMTVChain(MCMT):
-    """The MCMT implementation using the CCX V-chain."""
+    """The MCMT implementation using the CCX V-chain.
+
+    This implementation requires ancillas but is decomposed into a much shallower circuit
+    than the default implementation in :class:`~qiskit.circuit.library.MCMT`.
+
+    **Expanded Circuit:**
+
+    .. jupyter-execute::
+        :hide-code:
+
+        from qiskit.circuit.library import MCMTVChain, ZGate
+        import qiskit.tools.jupyter
+        circuit = MCMTVChain(ZGate(), 2, 2)
+        %circuit_library_info circuit.decompose()
+
+    **Examples:**
+
+        >>> from qiskit.circuit.library import HGate
+        >>> MCMTVChain(HGate(), 3, 2).draw()
+
+        q_0: ──■────────────────────────■──
+               │                        │
+        q_1: ──■────────────────────────■──
+               │                        │
+        q_2: ──┼────■──────────────■────┼──
+               │    │  ┌───┐       │    │
+        q_3: ──┼────┼──┤ H ├───────┼────┼──
+               │    │  └─┬─┘┌───┐  │    │
+        q_4: ──┼────┼────┼──┤ H ├──┼────┼──
+             ┌─┴─┐  │    │  └─┬─┘  │  ┌─┴─┐
+        q_5: ┤ X ├──■────┼────┼────■──┤ X ├
+             └───┘┌─┴─┐  │    │  ┌─┴─┐└───┘
+        q_6: ─────┤ X ├──■────■──┤ X ├─────
+                  └───┘          └───┘
+    """
 
     def _build(self):
         """Define the MCMT gate."""
@@ -203,7 +263,7 @@ class MCMTVChain(MCMT):
                       'q_controls': 'control_qubits',
                       'q_ancillae': 'ancilla_qubits',
                       'q_targets': 'target_qubits'})
-def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='no-ancilla',
+def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='noancilla',
          *, single_control_gate_fun=None, q_controls=None, q_ancillae=None, q_targets=None):
     """Apply a multi-control, multi-target using a generic gate.
 
@@ -216,6 +276,15 @@ def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='n
                   'You should create the qiskit.circuit.library.MCMT or MCMTVChain circuits and '
                   'add then to your circuit using append, extend, or compose.',
                   DeprecationWarning, stacklevel=3)
+
+    deprecated_modes = {'no-ancilla': 'noancilla',
+                        'basic': 'v-chain'}
+
+    if mode in deprecated_modes.keys():
+        warnings.warn('The mode supplied mode for ``QuantumCircuit.mcmt`` is deprecated, use '
+                      '{} instead of {}.'.format(deprecated_modes[mode], mode))
+        mode = deprecated_modes[mode]
+
     # for backward compatibility; the previous signature was
     # `def mcmt(self, q_controls, q_ancillae, single_control_gate_fun, q_targets, mode="basic")`
     if callable(target_qubits):
@@ -231,7 +300,7 @@ def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='n
     if isinstance(target_qubits, (int, Qubit)):
         target_qubits = [target_qubits]
 
-    if mode == 'no-ancilla':
+    if mode == 'noancilla':
         mcmt_gate = MCMT(gate, len(control_qubits), len(target_qubits))
         return self.append(mcmt_gate, control_qubits[:] + target_qubits[:], [])
 
@@ -248,7 +317,7 @@ def mcmt(self, gate, control_qubits, target_qubits, ancilla_qubits=None, mode='n
                            control_qubits[:] + target_qubits[:] + ancilla_qubits[:num_ancillas],
                            [])
 
-    raise QiskitError('Invalid mode specified.')
+    raise QiskitError('Invalid mode specified: {}'.format(mode))
 
 
 QuantumCircuit.mcmt = mcmt

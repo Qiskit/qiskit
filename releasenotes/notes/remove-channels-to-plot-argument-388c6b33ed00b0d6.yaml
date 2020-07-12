@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Removed ``channels_to_plot`` argument from :meth:`~qiskit.pulse.Schedule.draw`,
+    :meth:`~qiskit.pulse.Instruction.draw`, :meth:`~qiskit.visualization.pulse.matplotlib.ScheduleDrawer.draw`,
+    :func:`~qiskit.visualization.pulse_drawer` which had been deprecated and replaced with ``channels`` in
+    Terra release 0.11.0.

@@ -30,7 +30,7 @@ class IntegerComparator(BlueprintCircuit):
 
     Operator compares basis states :math:`|i\rangle_n` against a classically given integer
     :math:`L` of fixed value and flips a target qubit if :math:`i \geq L`
-    (or :math:`<` depending on parameters):
+    (or :math:`<` depending on the parameter ``geq``):
 
     .. math::
 

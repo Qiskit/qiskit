@@ -14,9 +14,8 @@
 
 """Acquire. Deprecated path."""
 import warnings
-import itertools
 
-from typing import Optional, Union, List
+from typing import Optional
 
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
 from ..exceptions import PulseError
@@ -32,10 +31,8 @@ class AcquireInstruction(Instruction):
 
     def __init__(self,
                  command: Acquire,
-                 acquire: Union[AcquireChannel, List[AcquireChannel]],
-                 mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
-                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                 acquire: AcquireChannel,
+                 mem_slot: Optional[MemorySlot] = None,
                  reg_slot: Optional[RegisterSlot] = None,
                  name: Optional[str] = None):
 
@@ -45,74 +42,57 @@ class AcquireInstruction(Instruction):
                       "AcquireChannel(0), MemorySlot(0)).",
                       DeprecationWarning)
 
-        if isinstance(acquire, list) or isinstance(mem_slot, list) or reg_slots:
-            warnings.warn('The AcquireInstruction on multiple qubits, multiple '
-                          'memory slots and multiple reg slots is deprecated. The '
-                          'parameter "mem_slots" has been replaced by "mem_slot" and '
-                          '"reg_slots" has been replaced by "reg_slot"', DeprecationWarning, 3)
-
-        if not isinstance(acquire, list):
-            acquire = [acquire]
-
-        if mem_slot and not isinstance(mem_slot, list):
-            mem_slot = [mem_slot]
-        elif mem_slots:
-            mem_slot = mem_slots
-
-        if reg_slot:
-            reg_slot = [reg_slot]
-        elif reg_slots and not isinstance(reg_slots, list):
-            reg_slot = [reg_slots]
-        else:
-            reg_slot = reg_slots
+        if isinstance(acquire, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
+            raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
+                             "classical memory destination for the measurement result.")
 
         if not (mem_slot or reg_slot):
             raise PulseError('Neither memoryslots or registers were supplied')
 
-        if mem_slot and len(acquire) != len(mem_slot):
-            raise PulseError("The number of mem_slots must be equals to the number of acquires")
+        all_channels = [chan for chan in [acquire, mem_slot, reg_slot] if chan is not None]
+        super().__init__((), command, all_channels, name=name)
 
-        if reg_slot:
-            if len(acquire) != len(reg_slot):
-                raise PulseError("The number of reg_slots must be equals "
-                                 "to the number of acquires")
-        else:
-            reg_slot = []
-
-        all_channels = [group for group in [acquire, mem_slot, reg_slot] if group is not None]
-        flattened_channels = tuple(itertools.chain.from_iterable(all_channels))
-        super().__init__((), command, flattened_channels, name=name)
-
-        self._acquires = acquire
-        self._mem_slots = mem_slot
-        self._reg_slots = reg_slot
+        self._acquire = acquire
+        self._mem_slot = mem_slot
+        self._reg_slot = reg_slot
 
     @property
     def acquire(self):
         """Acquire channel to be acquired on."""
-        return self._acquires[0] if self._acquires else None
+        return self._acquire
+
+    @property
+    def channel(self):
+        """Acquire channel to be acquired on."""
+        return self._acquire
 
     @property
     def mem_slot(self):
         """MemorySlot."""
-        return self._mem_slots[0] if self._mem_slots else None
+        return self._mem_slot
 
     @property
     def reg_slot(self):
         """RegisterSlot."""
-        return self._reg_slots[0] if self._reg_slots else None
+        return self._reg_slot
 
     @property
     def acquires(self):
         """Acquire channels to be acquired on."""
-        return self._acquires
+        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
+                      DeprecationWarning)
+        return [self._acquire]
 
     @property
     def mem_slots(self):
         """MemorySlots."""
-        return self._mem_slots
+        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
+                      DeprecationWarning)
+        return [self._mem_slot]
 
     @property
     def reg_slots(self):
         """RegisterSlots."""
-        return self._reg_slots
+        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
+                      DeprecationWarning)
+        return [self._reg_slot]

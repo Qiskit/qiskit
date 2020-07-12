@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed the SI unit conversion for :py:class:`qiskit.pulse.SetFrequency`. The
+    ``SetFrequency`` instruction should be in Hz on the frontend and has to be
+    converted to GHz when ``SetFrequency`` is converted to ``PulseQobjInstruction``.

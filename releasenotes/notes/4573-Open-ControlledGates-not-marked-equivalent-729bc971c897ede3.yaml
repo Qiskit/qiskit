@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    ``ControlledGate`` instances with a set ``ctrl_state`` were in some cases
+    not being evaluated as equal, even if the compared gates were equivalent.
+    This has been resolved.
