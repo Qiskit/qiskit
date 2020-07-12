@@ -249,7 +249,7 @@ class PulseQobjConfig(QobjDictField):
                 measurement driver LO's in GHz.
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
-            rep_time (float): Time per program execution in sec. Must be from the list provided
+            rep_time (int): Time per program execution in sec. Must be from the list provided
                 by the backend (``backend.configuration().rep_times``).
             rep_delay (float): Delay between programs in sec. Only supported on certain
                 backends (``backend.configuration().dynamic_reprate_enabled``).

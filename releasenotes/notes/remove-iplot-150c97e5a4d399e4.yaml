@@ -1,0 +1,24 @@
+---
+upgrade:
+  - |
+    The interactive plotting functions from :mod:`qiskit.visualizations`,
+    ``iplot_bloch_multivector``, ``iplot_state_city``, ``iplot_state_qsphere``,
+    ``iplot_state_hinton``, ``iplot_histogram``, ``iplot_state_paulivec`` now
+    are just deprecated aliases for the matplotlib based equivalents and are
+    no longer interactive. The hosted static JS code that these functions
+    relied on has been removed and they no longer could work. A normal
+    deprecation wasn't possible because the site they depended on no longer
+    exists.
+deprecations:
+  - |
+    The interactive plotting functions from :mod:`qiskit.visualizations`,
+    ``iplot_bloch_multivector``, ``iplot_state_city``, ``iplot_state_qsphere``,
+    ``iplot_state_hinton``, ``iplot_histogram``, ``iplot_state_paulivec`` have
+    been deprecated and will be removed in a future release. The matplotlib
+    based equivalent functions from :mod:`qiskit.visualizations`,
+    :func:`~qiskit.visualization.plot_bloch_multivector`,
+    :func:`~qiskit.visualization.plot_state_city`,
+    :func:`~qiskit.visualization.plot_state_qsphere`,
+    :func:`~qiskit.visualization.plot_state_hinton`,
+    :func:`~qiskit.visualization.plot_state_histogram`, and
+    :func:`~qiskit.visualization.plot_state_paulivec` should be used instead.

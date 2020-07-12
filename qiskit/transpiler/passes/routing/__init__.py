@@ -18,3 +18,4 @@ from .basic_swap import BasicSwap
 from .layout_transformation import LayoutTransformation
 from .lookahead_swap import LookaheadSwap
 from .stochastic_swap import StochasticSwap
+from .sabre_swap import SabreSwap

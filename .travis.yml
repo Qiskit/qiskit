@@ -53,18 +53,6 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    - name: Python 3.6 Tests (Networkx)
-      python: 3.6
-      install:
-        # Install step for jobs that require compilation and qa.
-        - pip install -U -r requirements.txt -c constraints.txt
-        - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
-        - pip install -c constraints.txt -e .
-        - pip install "qiskit-ibmq-provider" -c constraints.txt
-        - pip install "retworkx>=0.3.0"
-      env:
-        - USE_RETWORKX="N"
-
     # Randomized testing
     - name: Randomized tests
       cache:

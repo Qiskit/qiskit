@@ -33,19 +33,6 @@ Counts and State Visualizations
    plot_state_paulivec
    plot_state_qsphere
 
-Interactive Visualizations
-==========================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   iplot_histogram
-   iplot_bloch_multivector
-   iplot_state_city
-   iplot_state_hinton
-   iplot_state_paulivec
-   iplot_state_qsphere
-
 Device Visualizations
 =====================
 
