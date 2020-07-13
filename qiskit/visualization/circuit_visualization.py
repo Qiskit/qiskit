@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 def circuit_drawer(circuit,
-                   scale=0.7,
+                   scale=None,
                    filename=None,
                    style=None,
                    output=None,
@@ -605,7 +605,7 @@ def _generate_latex_source(circuit, filename=None,
 
 
 def _matplotlib_circuit_drawer(circuit,
-                               scale=0.7,
+                               scale=None,
                                filename=None,
                                style=None,
                                plot_barriers=True,
