@@ -16,6 +16,7 @@
 """
 
 from itertools import groupby
+from functools import reduce
 
 import numpy as np
 
@@ -91,22 +92,14 @@ class Collapse1qChains(TransformationPass):
         for chain in chains:
             if len(chain) == 1 and self.ignore_solo:
                 continue
-            left_parameters = (0, 0, 0)  # theta, phi, lambda
-            for gate in reversed(chain):
-                right_parameters = decomposer(gate.op.to_matrix()).data[0][0].params
-                left_parameters = _compose_u3(left_parameters[0],
-                                              left_parameters[1],
-                                              left_parameters[2],
-                                              right_parameters[0],
-                                              right_parameters[1],
-                                              right_parameters[2])
+            matrix_chain = [gate.op.to_matrix() for gate in reversed(chain)]
+            u3_gate = decomposer(reduce(np.dot, matrix_chain)).data[0][0]
             for node in chain[1:]:
                 dag.remove_op_node(node)
-            new_op = U3Gate(*left_parameters)
-            if np.allclose(new_op.params, [0., 0., 0.], atol=DEFAULT_ATOL):
+            if np.allclose(u3_gate.params, [0., 0., 0.], atol=DEFAULT_ATOL):
                 dag.remove_op_node(chain[0])
             else:
-                dag.substitute_node(chain[0], new_op, inplace=True)
+                dag.substitute_node(chain[0], u3_gate, inplace=True)
 
         return dag
 

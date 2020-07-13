@@ -186,6 +186,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         CommutativeCancellation(),
     ]
 
+    if basis_gates is not None:
+        _opt += [Collapse1qChains(), SimplifyU3()]
+    elif 'u3' in basis_gates:
+        _opt += [Collapse1qChains()]
+
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
         _scheduling = [TimeUnitAnalysis(instruction_durations)]
@@ -195,11 +200,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
-
-    if basis_gates is not None:
-        _opt += [Collapse1qChains(), SimplifyU3()]
-    elif 'u3' in basis_gates:
-        _opt += [Collapse1qChains()]
 
     # Build pass manager
     pm3 = PassManager()
