@@ -1,0 +1,20 @@
+---
+
+fixes:
+  - |
+    The matplotlib (mpl) drawer was not properly scaling when the kwarg
+    ``scale`` was set in the QuantumCircuit.draw method. Fonts and linewidths
+    did not scale with the rest of the image. All elements of the circuit
+    scale properly now.
+
+    Fixes issue `#4179 <https://github.com/Qiskit/qiskit-terra/issues/4179>`_.
+
+    For example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.draw(output='mpl', scale=0.5)

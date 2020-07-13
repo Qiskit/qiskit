@@ -19,7 +19,7 @@ If a backend supports parametric pulses, it will have the attribute
 `backend.configuration().parametric_pulses`, which is a list of supported pulse shapes, such as
 `['gaussian', 'gaussian_square', 'drag']`. A Pulse Schedule, using parametric pulses, which is
 assembled for a backend which supports those pulses, will result in a Qobj which is dramatically
-smaller than one which uses SamplePulses.
+smaller than one which uses Waveforms.
 
 This module can easily be extended to describe more pulse shapes. The new class should:
   - have a descriptive name
@@ -47,7 +47,7 @@ import numpy as np
 from . import continuous
 from .discrete import gaussian, gaussian_square, drag, constant
 from .pulse import Pulse
-from .sample_pulse import SamplePulse
+from .waveform import Waveform
 from ..exceptions import PulseError
 
 
@@ -66,8 +66,8 @@ class ParametricPulse(Pulse):
         self.validate_parameters()
 
     @abstractmethod
-    def get_sample_pulse(self) -> SamplePulse:
-        """Return a SamplePulse with samples filled according to the formula that the pulse
+    def get_sample_pulse(self) -> Waveform:
+        """Return a Waveform with samples filled according to the formula that the pulse
         represents and the parameter values it contains.
         """
         raise NotImplementedError
@@ -157,7 +157,7 @@ class Gaussian(ParametricPulse):
         """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
-    def get_sample_pulse(self) -> SamplePulse:
+    def get_sample_pulse(self) -> Waveform:
         return gaussian(duration=self.duration, amp=self.amp,
                         sigma=self.sigma, zero_ends=True)
 
@@ -234,7 +234,7 @@ class GaussianSquare(ParametricPulse):
         """The width of the square portion of the pulse."""
         return self._width
 
-    def get_sample_pulse(self) -> SamplePulse:
+    def get_sample_pulse(self) -> Waveform:
         return gaussian_square(duration=self.duration, amp=self.amp,
                                width=self.width, sigma=self.sigma,
                                zero_ends=True)
@@ -329,7 +329,7 @@ class Drag(ParametricPulse):
         """The weighing factor for the Gaussian derivative component of the waveform."""
         return self._beta
 
-    def get_sample_pulse(self) -> SamplePulse:
+    def get_sample_pulse(self) -> Waveform:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
                     beta=self.beta, zero_ends=True)
 
@@ -403,7 +403,7 @@ class Constant(ParametricPulse):
         """The constant value amplitude."""
         return self._amp
 
-    def get_sample_pulse(self) -> SamplePulse:
+    def get_sample_pulse(self) -> Waveform:
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
