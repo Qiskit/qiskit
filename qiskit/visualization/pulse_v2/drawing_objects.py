@@ -34,13 +34,25 @@ the end-user request.
 
 Data key
 ~~~~~~~~
-In the abstract class ``ElementaryData`` common properties to represent a drawing object are
+In the abstract class ``ElementaryData`` common attributes to represent a drawing object are
 specified. In addition, drawing objects have the `data_key` property that returns an
-unique hash of the object for comparison. This property should be defined in each sub-class by
-considering necessary properties to identify that object, i.e. `visible` should not
-be a part of the key, because any change on this property just sets the visibility of
-the same drawing object.
+unique hash of the object for comparison.
+This property should be defined in each-subclass by considering necessary data set to
+identify that object while keeping sufficient flexibility for object to be updated.
+Thus, this is basically the combination of data type, channel and coordinate.
+See py:mod:`qiskit.visualization.pulse_v2.data_ypes` for the detail of data type.
+If a data key cannot distinguish two independent objects, you need to add new data type.
 
+The data key may be used in the plotter interface to identify the object instance
+which may be dynamically updated. For example, we may use a `TextData` instance
+to draw a scaling factor of certain channel. If we interactively change the scaling factor,
+the plotter interface should be able to find the old object instance and
+update the text field with new scaling factor. This example illustrates
+the reason that the data key should be insensitive to the text value.
+
+
+Drawing objects
+~~~~~~~~~~~~~~~
 To support not only `matplotlib` but also multiple plotters, those drawing objectss should be
 universal and designed without strong dependency on modules in `matplotlib`.
 This means drawing objects that represent primitive geometries are preferred.
@@ -67,6 +79,8 @@ from qiskit.visualization.exceptions import VisualizationError
 
 class ElementaryData(ABC):
     """Base class of the pulse visualization interface."""
+    __hash__ = None
+
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
@@ -88,11 +102,11 @@ class ElementaryData(ABC):
         """
         self.data_type = data_type
         self.channel = channel
-        self.meta = meta
+        self.meta = meta or dict()
         self.scale = scale
         self.offset = offset
         self.visible = visible
-        self.styles = styles
+        self.styles = styles or dict()
 
     @property
     @abstractmethod
@@ -123,7 +137,7 @@ class FilledAreaData(ElementaryData):
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
-                 visible: bool = True,
+                 visible: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
 
@@ -175,7 +189,7 @@ class LineData(ElementaryData):
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
-                 visible: bool = True,
+                 visible: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
 
@@ -198,8 +212,8 @@ class LineData(ElementaryData):
         if x is None and y is None:
             raise VisualizationError('`x` and `y` cannot be None simultaneously.')
 
-        self.x = x
-        self.y = y
+        self.x = x if x is not None else np.zeros(0)
+        self.y = y if y is not None else np.zeros(0)
 
         super().__init__(data_type=data_type,
                          channel=channel,
@@ -234,7 +248,7 @@ class TextData(ElementaryData):
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
-                 visible: bool = True,
+                 visible: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of text data.
 
@@ -271,6 +285,4 @@ class TextData(ElementaryData):
                          self.data_type,
                          self.channel,
                          self.x,
-                         self.y,
-                         self.text,
-                         self.latex)))
+                         self.y)))

@@ -80,7 +80,10 @@ from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
 
 from qiskit import pulse
-from qiskit.visualization.pulse_v2.data_types import PhaseFreqTuple
+from qiskit.visualization.pulse_v2.data_types import PhaseFreqTuple, InstructionTuple
+from qiskit.visualization.pulse_v2 import PULSE_STYLE
+
+import numpy as np
 
 
 class ChannelEvents:
@@ -110,8 +113,11 @@ class ChannelEvents:
         self.channel = channel
 
         # initial frame
-        self.init_phase = 0
-        self.init_frequency = 0
+        self._init_phase = 0
+        self._init_frequency = 0
+
+        # time resolution
+        self._dt = 0
 
     @classmethod
     def load_program(cls,
@@ -145,48 +151,114 @@ class ChannelEvents:
                 return False
         return True
 
-    def get_waveforms(self) -> Iterator[Tuple[int, PhaseFreqTuple, pulse.Instruction]]:
+    def config(self,
+               dt: int,
+               init_frequency: float,
+               init_phase: float):
+        """Setup system status.
+
+        Args:
+            dt: Time resolution in sec.
+            init_frequency: Modulation frequency in Hz.
+            init_phase: Initial phase in rad.
+        """
+        self._dt = dt
+        self._init_frequency = init_frequency
+        self._init_phase = init_phase
+
+    def get_min_max(self,
+                    trange: Tuple[int, int]) -> Tuple[float, float]:
+        """Get minimum and maximum waveform value in this channel.
+
+        Args:
+            trange: Time range to find min and max.
+        """
+
+        if isinstance(self.channel, pulse.AcquireChannel):
+            # the min and max value of acquire channel is trivial
+            return 0, 1
+
+        sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
+        sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
+
+        # bind phase and frequency with instruction
+        phase = self._init_phase
+        min_val = 0
+        max_val = 0
+        for t0, inst in sorted_waveforms:
+            while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
+                _, frame_changes = sorted_frame_changes.pop()
+                phase, _ = self._calculate_current_frame(frame_changes, phase, 0)
+            if t0 not in range(*trange):
+                # ignore waveform if it is not in the requested time range
+                continue
+            # get sample value
+            if isinstance(inst, pulse.instructions.Play):
+                pulse_data = inst.pulse
+                if isinstance(pulse_data, pulse.ParametricPulse):
+                    pulse_data = pulse_data.get_sample_pulse()
+                samples = np.array(pulse_data.samples, dtype=np.complex)
+                # apply phase modulation
+                if PULSE_STYLE.style['formatter.control.apply_phase_modulation']:
+                    samples *= np.exp(1j * phase)
+                max_val = max(*samples.real, *samples.imag, max_val)
+                min_val = min(*samples.real, *samples.imag, min_val)
+
+        return min_val, max_val
+
+    def get_waveforms(self) -> Iterator[InstructionTuple]:
         """Return waveform type instructions with frame."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
         sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
 
         # bind phase and frequency with instruction
-        phase = self.init_phase
-        frequency = self.init_frequency
+        phase = self._init_phase
+        frequency = self._init_frequency
         for t0, inst in sorted_waveforms:
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
-                for frame_change in frame_changes:
-                    if isinstance(frame_change, pulse.instructions.SetFrequency):
-                        frequency = frame_change.frequency
-                    elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
-                        frequency += frame_change.frequency
-                    elif isinstance(frame_change, pulse.instructions.SetPhase):
-                        phase = frame_change.phase
-                    elif isinstance(frame_change, pulse.instructions.ShiftPhase):
-                        phase += frame_change.phase
+                phase, frequency = self._calculate_current_frame(frame_changes, phase, frequency)
             frame = PhaseFreqTuple(phase, frequency)
 
-            yield t0, frame, inst
+            yield InstructionTuple(t0, self._dt, frame, inst)
 
-    def get_frame_changes(self) -> Iterator[Tuple[int, PhaseFreqTuple, List[pulse.Instruction]]]:
+    def get_frame_changes(self) -> Iterator[InstructionTuple]:
         """Return frame change type instructions with total frame change amount."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
-        phase = self.init_phase
-        frequency = self.init_frequency
-        for t0, insts in sorted_frame_changes:
+        phase = self._init_phase
+        frequency = self._init_frequency
+        for t0, frame_changes in sorted_frame_changes:
             pre_phase = phase
             pre_frequency = frequency
-            for inst in insts:
-                if isinstance(inst, pulse.instructions.SetFrequency):
-                    frequency = inst.frequency
-                elif isinstance(inst, pulse.instructions.ShiftFrequency):
-                    frequency += inst.frequency
-                elif isinstance(inst, pulse.instructions.SetPhase):
-                    phase = inst.phase
-                elif isinstance(inst, pulse.instructions.ShiftPhase):
-                    phase += inst.phase
+            phase, frequency = self._calculate_current_frame(frame_changes, phase, frequency)
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
-            yield t0, frame, insts
+            yield InstructionTuple(t0, self._dt, frame, frame_changes)
+
+    @staticmethod
+    def _calculate_current_frame(frame_changes: List[pulse.instructions.Instruction],
+                                 phase: float,
+                                 frequency: float) -> Tuple[float, float]:
+        """Calculate current frame from previous frame.
+
+        Args:
+            frame_changes: List of frame change instructions at certain time.
+            phase: Phase of previous frame.
+            frequency: Frequency of previous frame.
+
+        Returns:
+            Phase and frequency of new frame.
+        """
+
+        for frame_change in frame_changes:
+            if isinstance(frame_change, pulse.instructions.SetFrequency):
+                frequency = frame_change.frequency
+            elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
+                frequency += frame_change.frequency
+            elif isinstance(frame_change, pulse.instructions.SetPhase):
+                phase = frame_change.phase
+            elif isinstance(frame_change, pulse.instructions.ShiftPhase):
+                phase += frame_change.phase
+
+        return phase, frequency

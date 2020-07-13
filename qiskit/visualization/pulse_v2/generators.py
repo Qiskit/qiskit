@@ -192,7 +192,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
         re_style['color'] = color.real
         re_meta = meta.copy()
         re_meta['data'] = 'real'
-        real = drawing_objects.FilledAreaData(data_type='Waveform',
+        real = drawing_objects.FilledAreaData(data_type=data_types.DrawingWaveform.REAL,
                                               channel=channel,
                                               x=time,
                                               y1=re_y,
@@ -207,7 +207,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
         im_style['color'] = color.imaginary
         im_meta = meta.copy()
         im_meta['data'] = 'imaginary'
-        imag = drawing_objects.FilledAreaData(data_type='Waveform',
+        imag = drawing_objects.FilledAreaData(data_type=data_types.DrawingWaveform.IMAG,
                                               channel=channel,
                                               x=time,
                                               y1=im_y,
@@ -293,7 +293,7 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
             systematic_name = 'Measure'
         latex_name = None
 
-    text = drawing_objects.TextData(data_type='Waveform',
+    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.PULSE_NAME,
                                     channel=inst_data.inst.channel,
                                     x=inst_data.t0 + 0.5 * inst_data.inst.duration,
                                     y=PULSE_STYLE.style['formatter.label_offset.pulse_name'],
@@ -325,7 +325,7 @@ def gen_baseline(channel_data: data_types.ChannelTuple) \
              'linestyle': PULSE_STYLE.style['formatter.line_style.baseline'],
              'color': PULSE_STYLE.style['formatter.color.baseline']}
 
-    baseline = drawing_objects.LineData(data_type='BaseLine',
+    baseline = drawing_objects.LineData(data_type=data_types.DrawingLine.BASELINE,
                                         channel=channel_data.channel,
                                         x=None,
                                         y=0,
@@ -354,7 +354,7 @@ def gen_latex_channel_name(channel_data: data_types.ChannelTuple) \
     latex_name = r'{}_{}'.format(channel_data.channel.prefix.upper(),
                                  channel_data.channel.index)
 
-    text = drawing_objects.TextData(data_type='ChannelInfo',
+    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.CH_NAME,
                                     channel=channel_data.channel,
                                     x=0,
                                     y=0,
@@ -388,7 +388,7 @@ def gen_scaling_info(channel_data: data_types.ChannelTuple) \
              'ha': 'right'}
     value = r'x{:.1f}'.format(channel_data.scaling)
 
-    text = drawing_objects.TextData(data_type='ChannelInfo',
+    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.CH_SCALE,
                                     channel=channel_data.channel,
                                     x=0,
                                     y=PULSE_STYLE.style['formatter.label_offset.scale_factor'],
@@ -449,7 +449,7 @@ def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
     # Phase Shift is defined as negative value
     sign = '' if frame_data.frame.phase <= 0 else '-'
 
-    text = drawing_objects.TextData(data_type='FrameInfo',
+    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
                                     y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
@@ -488,7 +488,7 @@ def gen_latex_frequency_mhz_value(frame_data: data_types.InstructionTuple) \
     text_df = u'\u0394' + 'f={:.2f} MHz'.format(frame_data.frame.freq/1e6)
     latex_df = r'\Delta f = {:.2f} ~{{\rm MHz}}'.format(frame_data.frame.freq/1e6)
 
-    text = drawing_objects.TextData(data_type='FrameInfo',
+    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
                                     y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
@@ -526,7 +526,7 @@ def gen_raw_frame_operand_values(frame_data: data_types.InstructionTuple) \
 
     frame_info = '({:.2f}, {:.1e})'.format(frame_data.frame.phase, frame_data.frame.freq)
 
-    text = drawing_objects.TextData(data_type='FrameInfo',
+    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
                                     y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
@@ -574,7 +574,7 @@ def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
     uni_symbol = PULSE_STYLE.style['formatter.unicode_symbol.frame_change']
     latex = PULSE_STYLE.style['formatter.latex_symbol.frame_change']
 
-    text = drawing_objects.TextData(data_type='Symbol',
+    text = drawing_objects.TextData(data_type=data_types.DrawingSymbol.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
                                     y=0,
@@ -630,7 +630,7 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
     uni_symbol = PULSE_STYLE.style['formatter.unicode_symbol.snapshot']
     latex = PULSE_STYLE.style['formatter.latex_symbol.snapshot']
 
-    symbol_text = drawing_objects.TextData(data_type='Symbol',
+    symbol_text = drawing_objects.TextData(data_type=data_types.DrawingSymbol.SNAPSHOT,
                                            channel=misc_data.inst.channel,
                                            x=misc_data.t0,
                                            y=0,
@@ -639,7 +639,7 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
                                            meta=meta,
                                            styles=symbol_style)
 
-    label_text = drawing_objects.TextData(data_type='Symbol',
+    label_text = drawing_objects.TextData(data_type=data_types.DrawingLabel.SNAPSHOT,
                                           channel=misc_data.inst.channel,
                                           x=misc_data.t0,
                                           y=PULSE_STYLE.style['formatter.label_offset.snapshot'],
@@ -673,7 +673,7 @@ def gen_barrier(misc_data: data_types.NonPulseTuple) \
 
     lines = []
     for chan in misc_data.inst.channels:
-        line = drawing_objects.LineData(data_type='Barrier',
+        line = drawing_objects.LineData(data_type=data_types.DrawingLine.BARRIER,
                                         channel=chan,
                                         x=misc_data.t0,
                                         y=None,
@@ -681,3 +681,4 @@ def gen_barrier(misc_data: data_types.NonPulseTuple) \
         lines.append(line)
 
     return lines
+
