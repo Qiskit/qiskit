@@ -293,7 +293,7 @@ def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = No
         zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration + 1 if zero_ends else None
+    zeroed_width = duration + 2 if zero_ends else None
     rescale_amp = bool(zero_ends)
     return _sampled_gaussian_pulse(duration, amp, center, sigma,
                                    zeroed_width=zeroed_width, rescale_amp=rescale_amp,
@@ -360,7 +360,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None,
         zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration + 1 if zero_ends else None
+    zeroed_width = duration + 2 if zero_ends else None
     rescale_amp = bool(zero_ends)
     return _sampled_sech_pulse(duration, amp, center, sigma,
                                zeroed_width=zeroed_width, rescale_amp=rescale_amp,
@@ -444,7 +444,7 @@ def gaussian_square(duration: int, amp: complex, sigma: float,
                              "inconsistent: 2 * risefall + width == {} != "
                              "duration == {}.".format(2 * risefall + width, duration))
     center = duration / 2
-    zeroed_width = duration + 1 if zero_ends else None
+    zeroed_width = duration + 2 if zero_ends else None
     return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
                                           zeroed_width=zeroed_width, name=name)
 
@@ -491,7 +491,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float,
         zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
     center = duration/2
-    zeroed_width = duration + 1 if zero_ends else None
+    zeroed_width = duration + 2 if zero_ends else None
     rescale_amp = bool(zero_ends)
     return _sampled_drag_pulse(duration, amp, center, sigma, beta,
                                zeroed_width=zeroed_width, rescale_amp=rescale_amp,

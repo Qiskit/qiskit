@@ -158,14 +158,15 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     zeroed_width: Subtract baseline from gaussian pulses to make sure
         $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
         large discontinuities at the start of a gaussian pulse. If unsupplied,
-        defaults to $2*center + 1$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*center + 1)=0$.
+        defaults to $2*(center + 1)$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*(center + 1))=0$.
     rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*center + 1
+        zeroed_width = 2*(center + 1)
 
-    zero_offset = gaussian(np.array([zeroed_width/2]), amp, 0, sigma)
+    # compute the offset using ``zeroed_width-1`` (``zeroed_width`` includes both endpoints)
+    zero_offset = gaussian(np.array([(zeroed_width-1)/2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
@@ -214,17 +215,24 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 
 def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
+                   zeroed_width: Optional[float] = None, rescale_amp: bool = False,
                    ret_gaussian: bool = False) -> np.ndarray:
-    """Continuous unnormalized gaussian derivative pulse.
+    r"""Continuous unnormalized gaussian derivative pulse.
 
     Args:
         times: Times to output pulse for.
         amp: Pulse amplitude at `center`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
+        zeroed_width: Subtract baseline of gaussian pulse to make sure
+            $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+            large discontinuities at the start of a gaussian pulse.
+        rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
+            be rescaled so that $\Omega_g(center)=amp$.
         ret_gaussian: Return gaussian with which derivative was taken with.
     """
-    gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, ret_x=True)
+    gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, zeroed_width=zeroed_width,
+                        rescale_amp=rescale_amp, ret_x=True)
     gauss_deriv = -x / sigma * gauss
     if ret_gaussian:
         return gauss_deriv, gauss
@@ -244,14 +252,15 @@ def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
     zeroed_width: Subtract baseline from sech pulses to make sure
         $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
         large discontinuities at the start of a sech pulse. If unsupplied,
-        defaults to $2*center + 1$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*center + 1)=0$.
+        defaults to $2*(center + 1)$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*(center + 1))=0$.
     rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*center + 1
+        zeroed_width = 2*(center + 1)
 
-    zero_offset = sech(np.array([zeroed_width/2]), amp, 0, sigma)
+    # compute the offset using ``zeroed_width-1`` (``zeroed_width`` includes both endpoints)
+    zero_offset = sech(np.array([(zeroed_width-1)/2]), amp, 0, sigma)
     sech_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
@@ -375,12 +384,7 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
 
     """
     gauss_deriv, gauss = gaussian_deriv(times, amp=amp, center=center, sigma=sigma,
+                                        zeroed_width=zeroed_width, rescale_amp=rescale_amp,
                                         ret_gaussian=True)
-    if zeroed_width is not None:
-        gauss, scale_factor = _fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
-                                                  zeroed_width=zeroed_width,
-                                                  rescale_amp=rescale_amp,
-                                                  ret_scale_factor=True)
-        gauss_deriv *= scale_factor
 
     return gauss + 1j*beta*gauss_deriv
