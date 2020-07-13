@@ -13,10 +13,10 @@
 # that they have been altered from the originals.
 
 """=============================================
-Oracle compiler (:mod:`qiskit.transpiler.oracle_.compile_oracle`)
+Oracle compiler (:mod:`qiskit.circuit.oracle.compile_oracle`)
 =============================================
 
-.. currentmodule:: qiskit.transpiler.oracle_.compile_oracle
+.. currentmodule:: qiskit.circuit.oracle.compile_oracle
 
 .. autofunction:: execute
 """

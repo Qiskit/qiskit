@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Testing utilities for oracle_ compiler."""
+"""Testing utilities for oracle compiler."""
 
 from inspect import getfullargspec, isfunction
 from . import examples
 
 
 def get_truthtable_from_function(function):
-    """Runs an oracle_ function (on python) and generates a truthtable from it."""
+    """Runs an oracle function (on python) and generates a truthtable from it."""
     amount_bit_input = len(getfullargspec(function).args)
     result = ""
     for decimal in range(2 ** amount_bit_input):

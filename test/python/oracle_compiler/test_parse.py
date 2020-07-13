@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Tests the oracle_ parser."""
+"""Tests the oracle parser."""
 
 from qiskit.circuit.oracle import OracleParseError
 from qiskit.circuit.oracle.compile_oracle import compile_oracle
@@ -20,7 +20,7 @@ from . import bad_examples as examples
 
 
 class TestParseFail(QiskitTestCase):
-    """Tests bad_examples with the oracle_ parser."""
+    """Tests bad_examples with the oracle parser."""
 
     def assertExceptionMessage(self, context, message):
         """Asserts the message of an exception context"""

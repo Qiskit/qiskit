@@ -14,7 +14,7 @@
 
 # pylint: disable=invalid-name, missing-function-docstring, undefined-variable
 
-"""These are bad examples and raise errors in in the oracle_ compiler"""
+"""These are bad examples and raise errors in in the oracle compiler"""
 
 from qiskit.circuit.oracle.types import Int1, Int2
 

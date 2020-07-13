@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests oracle_ as a gate."""
+"""Tests oracle as a gate."""
 
 from qiskit.test import QiskitTestCase
 

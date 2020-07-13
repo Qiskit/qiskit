@@ -28,7 +28,7 @@ from qiskit.transpiler.oracle_synthesis.utils import tweedledum2qiskit
 
 
 class Oracle(Gate):
-    """An oracle_ object represents an oracle_ function and its logic network."""
+    """An oracle object represents an oracle function and its logic network."""
 
     def __init__(self, source):
         """Creates a ``Oracle`` from Python source code in ``source``. The code should be
@@ -44,7 +44,7 @@ class Oracle(Gate):
         if not isinstance(source, str):
             raise QiskitError('Oracle needs a source code as a string.')
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the oracle_ compiler, tweedledum "
+            raise ImportError("To use the oracle compiler, tweedledum "
                               "must be installed. To install tweedledum run "
                               '"pip install tweedledum".')
         _oracle_visitor = OracleVisitor()
@@ -88,12 +88,12 @@ class Oracle(Gate):
         return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)
 
     def _define(self):
-        """The definition of the oracle_ is its synthesis"""
+        """The definition of the oracle is its synthesis"""
         self.definition = self.synth()
 
     @property
     def qregs(self):
-        """The list of qregs used by the oracle_"""
+        """The list of qregs used by the oracle"""
         qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
         qregs.reverse()
         if self.types[0]['return'] == 'Int1':

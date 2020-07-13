@@ -23,10 +23,10 @@ class OracleCompilerError(QiskitError):
 
 
 class OracleParseError(OracleCompilerError):
-    """Oracle compiler parse error. The oracle_ function fails at parsing time."""
+    """Oracle compiler parse error. The oracle function fails at parsing time."""
     pass
 
 
 class OracleCompilerTypeError(OracleCompilerError):
-    """Oracle compiler type error. The oracle_ function fails at type checking time."""
+    """Oracle compiler type error. The oracle function fails at type checking time."""
     pass
