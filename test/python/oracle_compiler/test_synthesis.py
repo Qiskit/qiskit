@@ -12,11 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests oracle compiler synthesis."""
+"""Tests oracle_ compiler synthesis."""
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.transpiler.oracle_compiler.compile_oracle import compile_oracle
+from qiskit.circuit.oracle.compile_oracle import compile_oracle
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate

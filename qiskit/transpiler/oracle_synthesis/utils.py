@@ -17,7 +17,7 @@
 from qiskit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, \
     XGate, HGate, U3Gate
-from .exceptions import OracleCompilerError
+from qiskit.circuit.oracle.exceptions import OracleCompilerError
 
 
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):

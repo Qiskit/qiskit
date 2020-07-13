@@ -13,10 +13,10 @@
 # that they have been altered from the originals.
 """
 =====================================
-Oracle compiler (:mod:`qiskit.transpiler.oracle_compiler`)
+Oracle compiler (:mod:`qiskit.circuit.oracle`)
 =====================================
 
-.. currentmodule:: qiskit.transpiler.oracle_compiler
+.. currentmodule:: qiskit.circuit.oracle
 
 Overview
 ========
@@ -34,8 +34,8 @@ QuantumCircuit:
 
    .. jupyter-execute::
 
-      from qiskit.transpiler.oracle_compiler import oracle
-      from qiskit.transpiler.oracle_compiler.types import Int1
+      from qiskit.circuit.oracle import oracle
+      from qiskit.circuit.oracle.types import Int1
 
       @oracle
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
@@ -65,7 +65,7 @@ Supplementary Information
       **Oracle data types**
 
    At the moment, the only type supported by the oracle compilers is
-   ``qiskit.transpiler.oracle_compiler.types.Int1``. The oracle function
+   ``qiskit.circuit.oracle.types.Int1``. The oracle function
    to parse *must* include type hints (just ``Int1`` for now).
 
    The type ``Int1`` means the oracle will only operate at bit level.
@@ -77,7 +77,7 @@ Oracle compiler API
 oracle
 ------
 
-Alias for ``qiskit.transpiler.oracle_compiler.compile_oracle.compile_oracle``.
+Alias for ``qiskit.circuit.oracle.compile_oracle.compile_oracle``.
 It can be used as a decorator.
 
 

@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-This module is used internally by ``qiskit.transpiler.oracle_compiler.Oracle``.
+This module is used internally by ``qiskit.transpiler.oracle_.Oracle``.
 """
 
 import ast
@@ -39,7 +39,7 @@ class OracleVisitor(ast.NodeVisitor):
 
     def __init__(self):
         if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the oracle compiler, tweedledum "
+            raise ImportError("To use the oracle_ compiler, tweedledum "
                               "must be installed. To install tweedledum run "
                               '"pip install tweedledum".')
         self.scopes = []

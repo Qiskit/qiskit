@@ -14,9 +14,9 @@
 
 # pylint: disable=invalid-name, missing-function-docstring
 
-"""These examples should be handle by the oracle compiler"""
+"""These examples should be handle by the oracle_ compiler"""
 
-from qiskit.transpiler.oracle_compiler.types import Int1
+from qiskit.circuit.oracle.types import Int1
 
 
 def identity(a: Int1) -> Int1:

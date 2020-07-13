@@ -12,16 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests oracle compiler type checker."""
+"""Tests oracle_ compiler type checker."""
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.oracle_compiler import OracleCompilerTypeError
-from qiskit.transpiler.oracle_compiler.compile_oracle import compile_oracle
+from qiskit.circuit.oracle import OracleCompilerTypeError
+from qiskit.circuit.oracle.compile_oracle import compile_oracle
 from . import examples, bad_examples
 
 
 class TestTypeCheck(QiskitTestCase):
-    """Tests oracle compiler type checker (good examples)."""
+    """Tests oracle_ compiler type checker (good examples)."""
 
     def test_id(self):
         """Tests examples.identity type checking"""
@@ -65,7 +65,7 @@ class TestTypeCheck(QiskitTestCase):
 
 
 class TestTypeCheckFail(QiskitTestCase):
-    """Tests oracle compiler type checker (bad examples)."""
+    """Tests oracle_ compiler type checker (bad examples)."""
 
     def assertExceptionMessage(self, context, message):
         """Asserts the message of an exception context"""

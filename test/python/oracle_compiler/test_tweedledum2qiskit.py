@@ -16,13 +16,13 @@
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.transpiler.oracle_compiler.utils import tweedledum2qiskit
+from qiskit.transpiler.oracle_synthesis.utils import tweedledum2qiskit
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
 
 class TestTweedledum2Qiskit(QiskitTestCase):
-    """Tests qiskit.transpiler.oracle_compiler.utils.tweedledum2qiskit static method."""
+    """Tests qiskit.transpiler.oracle_.utils.tweedledum2qiskit static method."""
     def test_x(self):
         """Single uncontrolled X"""
         tweedledum_circuit = {'num_qubits': 1, 'gates': [{'gate': 'X', 'qubits': [0]}]}
