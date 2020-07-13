@@ -55,8 +55,8 @@ class Diagonal(QuantumCircuit):
 
     Diagonal gates are useful as representations of Boolean functions,
     as they can map from {0,1}^2**n to {0,1}^2**n space. For example a phase
-    oracle_ can be seen as a diagonal gate with {+1, -1} on the diagonals. Such
-    an oracle_ will induce a +1 or -1 phase on the amplitude of any corresponding
+    oracle can be seen as a diagonal gate with {+1, -1} on the diagonals. Such
+    an oracle will induce a +1 or -1 phase on the amplitude of any corresponding
     basis state.
 
     Diagonal gates appear in many classically hard oracular problems such as
