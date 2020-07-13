@@ -74,6 +74,7 @@ class PhaseEstimation(QuantumCircuit):
             .. jupyter-execute::
                 :hide-code:
 
+                from qiskit.circuit import QuantumCircuit
                 from qiskit.circuit.library import PhaseEstimation
                 import qiskit.tools.jupyter
                 unitary = QuantumCircuit(2)
