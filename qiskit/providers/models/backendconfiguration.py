@@ -396,7 +396,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  discriminators: List[str],
                  rep_delays: List[float] = None,
                  dynamic_reprate_enabled: bool = False,
-                 hamiltonian: Dict[str, str] = None,
+                 hamiltonian: Dict[str, Any] = None,
                  channel_bandwidth=None,
                  acquisition_latency=None,
                  conditional_latency=None,

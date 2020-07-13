@@ -50,12 +50,14 @@ class Delay(Instruction):
             channel: The channel that will have the delay.
             name: Name of the delay for display purposes.
         """
+        self._channel = channel
         if channel is None:
             warnings.warn("Usage of Delay without specifying a channel is deprecated. For "
                           "example, Delay(5)(DriveChannel(0)) should be replaced by "
                           "Delay(5, DriveChannel(0)).", DeprecationWarning)
-        self._channel = channel
-        super().__init__((duration, channel), duration, (channel,), name=name)
+            super().__init__((duration, channel), duration, tuple(), name=name)
+        else:
+            super().__init__((duration, channel), duration, (channel,), name=name)
 
     @property
     def channel(self) -> Channel:
