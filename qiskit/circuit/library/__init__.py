@@ -60,6 +60,7 @@ Standard Gates
    SwapGate
    iSwapGate
    SXGate
+   SXdgGate
    TGate
    TdgGate
    U1Gate

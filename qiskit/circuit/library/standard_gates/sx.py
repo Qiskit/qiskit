@@ -30,7 +30,7 @@ class SXGate(Gate):
 
         \sqrt{X} = \frac{1}{2} \begin{pmatrix}
                 1 + i & 1 - i \\
-                i - i & 1 + i
+                1 - i & 1 + i
             \end{pmatrix}
 
     **Circuit symbol:**
@@ -105,6 +105,63 @@ class SXGate(Gate):
     #     """Return a numpy.array for the SX gate."""
     #     return numpy.array([[1 + 1j, 1 - 1j],
     #                         [1 - 1j, 1 + 1j]], dtype=complex) / 2
+
+
+class SXdgGate(Gate):
+    r"""The inverse single-qubit Sqrt(X) gate.
+
+    .. math::
+
+        \sqrt{X}^{\dagger} = \frac{1}{2} \begin{pmatrix}
+                1 - i & 1 + i \\
+                1 + i & 1 - i
+            \end{pmatrix}
+
+
+    .. note::
+
+        A global phase difference exists between the definitions of
+        :math:`RX(-\pi/2)` and :math:`\sqrt{X}^{\dagger}`.
+
+        .. math::
+
+            RX(-\pi/2) = \frac{1}{\sqrt{2}} \begin{pmatrix}
+                        1 & i \\
+                        i & 1
+                      \end{pmatrix}
+                    = e^{-i pi/4} \sqrt{X}^{\dagger}
+
+    """
+
+    def __init__(self, label='√X_dg'):
+        """Create new SXdg gate."""
+        super().__init__('sxdg', 1, [], label=label)
+
+    def _define(self):
+        """
+        gate sxdg a { rz(pi/2) a; h a; rz(pi/2); }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .rz import RZGate
+        from .h import HGate
+        q = QuantumRegister(1, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (RZGate(pi / 2), [q[0]], []),
+            (HGate(), [q[0]], []),
+            (RZGate(pi / 2), [q[0]], [])
+        ]
+        qc.data = rules
+        self.definition = qc
+
+    # Differs by global phase of exp(-i pi/4) with correct RZ.
+    # If the RZ == U1, then the global phase difference is exp(i pi/4)
+    # TODO: Restore after allowing phase on circuits.
+    # def to_matrix(self):
+    #     """Return a numpy.array for the SX gate."""
+    #     return numpy.array([[1 - 1j, 1 + 1j],
+    #                         [1 + 1j, 1 - 1j]], dtype=complex) / 2
 
 
 class CSXGate(ControlledGate):

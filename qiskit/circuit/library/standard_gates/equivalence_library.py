@@ -410,6 +410,18 @@ u3_qasm_def.rx(pi/2, 0)
 u3_qasm_def.rz(phi+3*pi, 0)
 _sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
 
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+u3_qasm_def = QuantumCircuit(q)
+u3_qasm_def.rz(lam, 0)
+u3_qasm_def.sxdg(0)
+u3_qasm_def.rz(theta+pi, 0)
+u3_qasm_def.sxdg(0)
+u3_qasm_def.rz(phi+3*pi, 0)
+_sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
+
 # CU3Gate
 
 q = QuantumRegister(2, 'q')

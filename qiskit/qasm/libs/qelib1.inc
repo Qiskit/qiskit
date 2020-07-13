@@ -47,6 +47,8 @@ gate rz(phi) a { u1(phi) a; }
 
 // sqrt(X)
 gate sx a { rz(-pi/2) a; h a; rz(-pi/2) a; }
+// inverse sqrt(X)
+gate sxdg a { rz(pi/2) a; h a; rz(pi/2) a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y

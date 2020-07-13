@@ -1913,6 +1913,11 @@ class QuantumCircuit:
         from .library.standard_gates.sx import SXGate
         return self.append(SXGate(), [qubit], [])
 
+    def sxdg(self, qubit):
+        """Apply :class:`~qiskit.circuit.library.SXdgGate`."""
+        from .library.standard_gates.sx import SXdgGate
+        return self.append(SXdgGate(), [qubit], [])
+
     def csx(self, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CSXGate`."""
         from .library.standard_gates.sx import CSXGate
