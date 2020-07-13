@@ -118,7 +118,7 @@ class Initialize(Instruction):
 
             if np.linalg.norm(thetas) != 0:
                 ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
-                circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i:self.num_qubits])
 
         return circuit
 
