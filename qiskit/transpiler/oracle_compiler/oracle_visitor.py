@@ -91,37 +91,37 @@ class OracleVisitor(ast.NodeVisitor):
         binop = getattr(self._network, bitop)
 
         left_type, left_signal = values[0]
-        if left_type != 'Bit':
+        if left_type != 'Int1':
             raise OracleParseError("binop type error")
 
         for right_type, right_signal in values[1:]:
-            if right_type != 'Bit':
+            if right_type != 'Int1':
                 raise OracleParseError("binop type error")
             left_signal = binop(left_signal, right_signal)
 
-        return 'Bit', left_signal
+        return 'Int1', left_signal
 
     def visit_BoolOp(self, node):
         """Handles ``and`` and ``or``.
-        node.left=Bit and node.right=Bit return Bit """
+        node.left=Int1 and node.right=Int1 return Int1 """
         return self.bit_binop(node.op, [self.visit(value) for value in node.values])
 
     def visit_BinOp(self, node):
         """Handles ``&``, ``^``, and ``|``.
-        node.left=Bit and node.right=Bit return Bit """
+        node.left=Int1 and node.right=Int1 return Int1 """
         return self.bit_binop(node.op, [self.visit(node.left), self.visit(node.right)])
 
     def visit_UnaryOp(self, node):
-        """Handles ``~``. Cannot operate on Bits. """
+        """Handles ``~``. Cannot operate on Int1s. """
         operand_type, operand_signal = self.visit(node.operand)
-        if operand_type != 'Bit':
+        if operand_type != 'Int1':
             raise OracleCompilerTypeError(
-                "UntaryOp.op %s only support operation on Bits for now" % node.op)
+                "UntaryOp.op %s only support operation on Int1s for now" % node.op)
         bitop = OracleVisitor.bitops.get(type(node.op))
         if not bitop:
             raise OracleCompilerTypeError(
-                "UntaryOp.op %s does not operate with Bit type " % node.op)
-        return 'Bit', getattr(self._network, bitop)(operand_signal)
+                "UntaryOp.op %s does not operate with Int1 type " % node.op)
+        return 'Int1', getattr(self._network, bitop)(operand_signal)
 
     def visit_Name(self, node):
         """Reduce variable names. """

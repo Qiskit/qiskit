@@ -16,47 +16,47 @@
 
 """These examples should be handle by the oracle compiler"""
 
-from qiskit.transpiler.oracle_compiler.types import Bit
+from qiskit.transpiler.oracle_compiler.types import Int1
 
 
-def identity(a: Bit) -> Bit:
+def identity(a: Int1) -> Int1:
     return a
 
 
-def bit_and(a: Bit, b: Bit) -> Bit:
+def bit_and(a: Int1, b: Int1) -> Int1:
     return a & b
 
 
-def bit_or(a: Bit, b: Bit) -> Bit:
+def bit_or(a: Int1, b: Int1) -> Int1:
     return a | b
 
 
-def bool_or(a: Bit, b: Bit) -> Bit:
+def bool_or(a: Int1, b: Int1) -> Int1:
     return a or b
 
 
-def bool_not(a: Bit) -> Bit:
+def bool_not(a: Int1) -> Int1:
     return not a
 
 
-def and_and(a: Bit, b: Bit, c: Bit) -> Bit:
+def and_and(a: Int1, b: Int1, c: Int1) -> Int1:
     return a and b and c
 
 
-def multiple_binop(a: Bit, b: Bit) -> Bit:
+def multiple_binop(a: Int1, b: Int1) -> Int1:
     return (a or b) | (b & a) and (a & b)
 
 
-def id_assing(a: Bit) -> Bit:
+def id_assing(a: Int1) -> Int1:
     b = a
     return b
 
 
-def example1(a: Bit, b: Bit) -> Bit:
+def example1(a: Int1, b: Int1) -> Int1:
     c = a & b
     d = b | a
     return c ^ a | d
 
 
-def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
+def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
     return not a and b and not c and d

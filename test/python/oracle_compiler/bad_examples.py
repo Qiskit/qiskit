@@ -16,25 +16,25 @@
 
 """These are bad examples and raise errors in in the oracle compiler"""
 
-from qiskit.transpiler.oracle_compiler.types import Bit, int2
+from qiskit.transpiler.oracle_compiler.types import Int1, Int2
 
 
-def id_no_type_arg(a) -> Bit:
+def id_no_type_arg(a) -> Int1:
     return a
 
 
-def id_no_type_return(a: Bit):
+def id_no_type_return(a: Int1):
     return a
 
 
-def id_bad_return(a: Bit) -> int2:
+def id_bad_return(a: Int1) -> Int2:
     return a
 
 
-def out_of_scope(a: Bit) -> Bit:
+def out_of_scope(a: Int1) -> Int1:
     return a & c
 
 
-def bit_not(a: Bit) -> Bit:
+def bit_not(a: Int1) -> Int1:
     # Bitwise not does not operate on booleans (aka, bits), but int
     return ~a

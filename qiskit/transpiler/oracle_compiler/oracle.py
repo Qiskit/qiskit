@@ -94,8 +94,8 @@ class Oracle(Gate):
     @property
     def qregs(self):
         """The list of qregs used by the oracle"""
-        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Bit']
+        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
         qregs.reverse()
-        if self.types[0]['return'] == 'Bit':
+        if self.types[0]['return'] == 'Int1':
             qregs.append(QuantumRegister(1, name='return'))
         return qregs

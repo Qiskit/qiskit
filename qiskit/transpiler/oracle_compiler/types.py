@@ -16,5 +16,5 @@
 
 from typing import NewType
 
-Bit = NewType('Bit', bool)
-int2 = NewType('int2', int)  # pylint: disable=invalid-name
+Int1 = NewType('Int1', bool)
+Int2 = NewType('Int2', int)  # pylint: disable=invalid-name
