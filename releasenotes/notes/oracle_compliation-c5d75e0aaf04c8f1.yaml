@@ -1,14 +1,14 @@
 ---
 features:
   - |
-    This first version of an oracle compiler allows to "compile" typed python functions (operating only on "Bit"s) into quantum circuits.
+    This first version of an oracle compiler allows to "compile" typed python functions (operating only on bits (Int1) ) into quantum circuits.
 
     .. jupyter-execute:
 
       from qiskit.transpiler.oracle_compiler import compile_oracle
-      from qiskit.transpiler.oracle_compiler.types import Bit
+      from qiskit.transpiler.oracle_compiler.types import Int1
 
-      def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
+      def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
           return (not a and b and not c and d)
 
       network = compile_oracle(grover_oracle)

@@ -35,10 +35,10 @@ QuantumCircuit:
    .. jupyter-execute::
 
       from qiskit.transpiler.oracle_compiler import oracle
-      from qiskit.transpiler.oracle_compiler.types import Bit
+      from qiskit.transpiler.oracle_compiler.types import Int1
 
       @oracle
-      def grover_oracle(a: Bit, b: Bit, c: Bit, d: Bit) -> Bit:
+      def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
           return (not a and b and not c and d)
 
       quantum_circuit = grover_oracle.synth()
@@ -65,10 +65,10 @@ Supplementary Information
       **Oracle data types**
 
    At the moment, the only type supported by the oracle compilers is
-   ``qiskit.transpiler.oracle_compiler.types.Bit``. The oracle function
-   to parse *must* include type hints (just ``Bit`` for now).
+   ``qiskit.transpiler.oracle_compiler.types.Int1``. The oracle function
+   to parse *must* include type hints (just ``Int1`` for now).
 
-   The type ``Bit`` means the oracle will only operate at bit level.
+   The type ``Int1`` means the oracle will only operate at bit level.
 
 
 Oracle compiler API
