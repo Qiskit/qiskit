@@ -586,10 +586,7 @@ class Statevector(QuantumState):
     @staticmethod
     def _evolve_operator(statevec, oper, qargs=None):
         """Evolve a qudit statevector"""
-        if statevec.num_qubits and oper.num_qubits:
-            is_qubit = True
-        else:
-            is_qubit = False
+        is_qubit = bool(statevec.num_qubits and oper.num_qubits)
 
         if qargs is None:
             # Full system evolution
