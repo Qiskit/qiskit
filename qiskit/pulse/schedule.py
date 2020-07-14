@@ -540,7 +540,7 @@ class Schedule(ScheduleComponent):
             for interval in schedule._timeslots[channel]:
                 if channel_timeslots:
                     interval = (interval[0] + time, interval[1] + time)
-                    index = _find_interval(channel_timeslots, interval)
+                    index = _find_interval_index(channel_timeslots, interval)
                     if channel_timeslots[index] == interval:
                         channel_timeslots.pop(index)
                         continue
@@ -859,7 +859,9 @@ class ParameterizedSchedule:
         return self.bind_parameters(*args, **kwargs)
 
 
-def _find_interval(intervals: List[Interval], interval: Interval, index: int = 0) -> int:
+def _find_possible_interval_index(intervals: List[Interval],
+                                  interval: Interval,
+                                  index: int = 0) -> int:
     """Using binary search on start times, find an interval.
     Args:
         intervals: A sorted list of non-overlapping Intervals.
@@ -875,9 +877,31 @@ def _find_interval(intervals: List[Interval], interval: Interval, index: int = 0
     mid_idx = len(intervals) // 2
     mid = intervals[mid_idx]
     if interval[1] <= mid[0] and (interval != mid):
-        return _find_interval(intervals[:mid_idx], interval, index=index)
+        return _find_possible_interval_index(intervals[:mid_idx], interval, index=index)
     else:
-        return _find_interval(intervals[mid_idx:], interval, index=index + mid_idx)
+        return _find_possible_interval_index(intervals[mid_idx:], interval, index=index + mid_idx)
+
+
+def _find_interval_index(intervals: List[Interval], interval: Interval) -> int:
+    """Find the index of an interval.
+
+    Args:
+        intervals: A sorted list of non-overlapping Intervals.
+        interval: The interval for which the index into intervals will be found.
+
+    Returns:
+        The index of the interval.
+
+    Raises:
+        PulseError: If the interval does not exist.
+    """
+    index = _find_possible_interval_index(intervals, interval)
+    found_interval = intervals[index]
+    if found_interval != interval:
+        raise PulseError('The interval: {} does not exist in intervals: {}'.format(
+            interval, intervals
+        ))
+    return index
 
 
 def _insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
@@ -892,7 +916,7 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
-    index = _find_interval(intervals, new_interval)
+    index = _find_possible_interval_index(intervals, new_interval)
     if index < len(intervals):
         if _overlaps(intervals[index], new_interval):
             raise PulseError("New interval overlaps with existing.")
