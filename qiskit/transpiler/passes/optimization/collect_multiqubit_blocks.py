@@ -19,13 +19,16 @@ from qiskit.circuit import Gate
 
 
 class CollectMultiQBlocks(AnalysisPass):
-    """Collect sequences of uninterrupted gates acting on 2 qubits.
+    """Collect sequences of uninterrupted gates acting on groups of qubits.
+    max_block_size specifies the maximum number of qubits that can be acted upon
+    by any single group of gates
 
     Traverse the DAG and find blocks of gates that act consecutively on
     groups of qubits. Write the blocks to propert_set as a list of blocks
     of the form:
         [[g0, g1, g2], [g4, g5]]
-
+    Blocks are reported in a valid topological order. Some gates may not be present
+    in any block (e.g. if the number of operands is greater than max_block_size)
     """
 
     def __init__(self, max_block_size=2):
@@ -33,7 +36,7 @@ class CollectMultiQBlocks(AnalysisPass):
         self.parent = {} # parent array for the union
         self.bit_groups = {} # current groups of bits stored at top of trees
         self.gate_groups = {} # current gate lists for the groups
-        self.max_block_size = max_block_size
+        self.max_block_size = max_block_size # maximum block size
 
     def find_set(self, index):
         """ DSU function for finding root of set of items
@@ -90,20 +93,24 @@ class CollectMultiQBlocks(AnalysisPass):
         block_list = []
 
         def collect_key(x):
-            """ special key function for topological ordering
-            heuristic for this is to push all gates involving measurement
+            """ special key function for topological ordering.
+            Heuristic for this is to push all gates involving measurement
             or barriers, etc. as far back as possible (because they force
             blocks to end). After that, we process gates in order of lowest
             number of qubits acted on to largest number of qubits acted on
             because these have less chance of increasing the size of blocks
+            The key also processes all the non operation notes first so that
+            input nodes do not mess with the top sort of op nodes
             """
+            if x.type == "in":
+                return "a"
             if x.type != "op":
-                return "c"
+                return "d"
             if isinstance(x.op, Gate):
-                if x.op.is_parameterized():
-                    return "b"
-                return "a" + chr(ord('a') + len(x.qargs))
-            return "c"
+                if x.op.is_parameterized() or x.op.condition is not None:
+                    return "c"
+                return "b" + chr(ord('a') + len(x.qargs))
+            return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
 
@@ -171,7 +178,9 @@ class CollectMultiQBlocks(AnalysisPass):
                 for item in slist:
                     # remove groups until the size created would be acceptable
                     # start with blocking out the group that would decrease
-                    # the new size the most
+                    # the new size the most. This heuristic for which blocks we
+                    # create does not necessarily give the optimal blocking. Other
+                    # heuristics may be worth considering
                     if savings_need > 0:
                         savings_need = savings_need - item[0]
                         if len(self.gate_groups[item[1]]) >= 1:
@@ -193,7 +202,7 @@ class CollectMultiQBlocks(AnalysisPass):
                         self.union_set(prev, bit)
                     prev = bit
                 self.gate_groups[self.find_set(prev)].append(nd)
-        # need to add in all groups that exist at the end!!!!
+        # need to turn all groups that still exist into their own blocks
         for index in self.parent:
             if self.parent[index] == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])

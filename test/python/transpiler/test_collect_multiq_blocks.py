@@ -21,7 +21,7 @@ import unittest
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import CollectMultiQBlocks
+from qiskit.transpiler.passes import AlternateCollect
 from qiskit.test import QiskitTestCase
 
 
@@ -51,7 +51,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
 
-        pass_ = CollectMultiQBlocks()
+        pass_ = AlternateCollect()
         pass_.run(dag)
         self.assertTrue(pass_.property_set['block_list'], [block_1, block_2])
 
@@ -83,7 +83,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(1, 0)
 
         dag = circuit_to_dag(qc)
-        pass_ = CollectMultiQBlocks()
+        pass_ = AlternateCollect()
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
@@ -130,7 +130,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc = QuantumCircuit.from_qasm_str(qasmstr)
 
         pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks())
+        pass_manager.append(AlternateCollect())
 
         pass_manager.run(qc)
 
@@ -161,6 +161,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         """
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
 
+        print("BEGIN MERGE CONDITION ")
+
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(2, 'cr')
 
@@ -173,7 +175,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(0, 1).c_if(cr, 1)
 
         pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks())
+        pass_manager.append(AlternateCollect())
 
         pass_manager.run(qc)
         for block in pass_manager.property_set['block_list']:
@@ -181,22 +183,22 @@ class TestCollect2qBlocks(QiskitTestCase):
 
     def test_do_not_go_across_barrier(self):
         """Validate that blocks are not collected across barriers
-                   ░      
+                   ░
         q_0: ──■───░───■──
              ┌─┴─┐ ░ ┌─┴─┐
         q_1: ┤ X ├─░─┤ X ├
              └───┘ ░ └───┘
         q_2: ──────░──────
-                   ░  
+                   ░
         """
         qr = QuantumRegister(3, 'qr')
         qc = QuantumCircuit(qr)
-        qc.cx(0,1)
+        qc.cx(0, 1)
         qc.barrier()
-        qc.cx(0,1)
+        qc.cx(0, 1)
 
         pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks())
+        pass_manager.append(AlternateCollect())
 
         pass_manager.run(qc)
         for block in pass_manager.property_set['block_list']:
@@ -206,24 +208,26 @@ class TestCollect2qBlocks(QiskitTestCase):
         """ Test that blocks are created optimally in at least the two quibit case.
         Here, if the topological ordering of nodes is wrong then we might create
         an extra block
-        qr_0: ────────────■────■───────
-                   ┌───┐┌─┴─┐┌─┴─┐┌───┐
+              ┌───┐
+        qr_0: ┤ X ├───────■────■───────
+              └───┘┌───┐┌─┴─┐┌─┴─┐┌───┐
         qr_1: ──■──┤ H ├┤ X ├┤ X ├┤ H ├
               ┌─┴─┐├───┤└───┘└───┘└───┘
         qr_2: ┤ X ├┤ X ├───────────────
-              └───┘└───┘ 
+              └───┘└───┘
         """
         qr = QuantumRegister(3, 'qr')
         qc = QuantumCircuit(qr)
-        qc.cx(1,2)
+        qc.x(0)
+        qc.cx(1, 2)
         qc.h(1)
-        qc.cx(0,1)
-        qc.cx(0,1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
         qc.h(1)
         qc.x(2)
 
         pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks())
+        pass_manager.append(AlternateCollect())
 
         pass_manager.run(qc)
         self.assertTrue(len(pass_manager.property_set['block_list']) == 2)
@@ -232,7 +236,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         """ Test that doing a measurement on one qubit will not prevent
         gates from being added to the block that do not act on the qubit
         that was measured
-                       ┌─┐    
+                       ┌─┐
         q_0: ──■───────┤M├──────────
              ┌─┴─┐     └╥┘     ┌───┐
         q_1: ┤ X ├──■───╫───■──┤ X ├
@@ -249,33 +253,39 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.x(1)
         qc.h(2)
 
-        pass_manager= PassManager()
-        pass_manager.append(CollectMultiQBlocks(max_block_size=3))
+        pass_manager = PassManager()
+        pass_manager.append(AlternateCollect(max_block_size=3))
 
         pass_manager.run(qc)
         self.assertTrue(len(pass_manager.property_set['block_list']) == 1)
 
     def test_larger_blocks(self):
-        """ Test that a max block size of 4 is still being processed 
-        reasonably. 
+        """ Test that a max block size of 4 is still being processed
+        reasonably. Currently, this test just makes sure that the circuit can be run.
+        This is because the current multiqubit block collector is not optimal for this case
         q_0: ──■──────────────■───────
-             ┌─┴─┐            │       
+             ┌─┴─┐            │
         q_1: ┤ X ├──■─────────■───────
-             └───┘┌─┴─┐     ┌─┴─┐     
+             └───┘┌─┴─┐     ┌─┴─┐
         q_2: ─────┤ X ├──■──┤ X ├─────
-                  └───┘┌─┴─┐└───┘     
+                  └───┘┌─┴─┐└───┘
         q_3: ──────────┤ X ├──■────■──
                        └───┘┌─┴─┐┌─┴─┐
         q_4: ───────────────┤ X ├┤ X ├
                             └───┘└───┘
         """
         qc = QuantumCircuit(5)
-        qc.cx(0,1)
-        qc.cx(1,2)
-        qc.cx(2,3)
-        qc.cx(3,4)
-        qc.ccx(0,1,2)
-        qc.cx(3,4)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.ccx(0, 1, 2)
+        qc.cx(3, 4)
+
+        pass_manager = PassManager()
+        pass_manager.append(AlternateCollect(max_block_size=4))
+
+        pass_manager.run(qc)
 
 
 if __name__ == '__main__':
