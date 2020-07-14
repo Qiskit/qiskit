@@ -32,6 +32,13 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
+try:
+    from pylatexenc.latex2text import LatexNodes2Text
+
+    HAS_PYLATEX = True
+except ImportError:
+    HAS_PYLATEX = False
+
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
@@ -112,6 +119,10 @@ class MatplotlibDrawer:
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
                               'To install, run "pip install matplotlib".')
+
+        if not HAS_PYLATEX:
+            raise ImportError('The class MatplotlibDrawer needs pylatexenc. '
+                              'to install, run "pip install pylatexenc".')
 
         self._ast = None
         self._scale = 1.0 if scale is None else scale
@@ -198,9 +209,6 @@ class MatplotlibDrawer:
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
-        self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
-                             '\\dagger', '\\rangle')
-        self._latex_chars1 = ('\\mapsto', '\\pi', '\\;')
         self._char_list = {' ': (0.0958, 0.0583), '!': (0.1208, 0.0729), '"': (0.1396, 0.0875),
                            '#': (0.2521, 0.1562), '$': (0.1917, 0.1167), '%': (0.2854, 0.1771),
                            '&': (0.2333, 0.1458), "'": (0.0833, 0.0521), '(': (0.1167, 0.0729),
@@ -257,10 +265,7 @@ class MatplotlibDrawer:
         else:
             # if not using a get_renderer method, first remove
             # any latex chars before getting width
-            for t in self._latex_chars1:
-                text = text.replace(t, 'r')
-            for t in self._latex_chars:
-                text = text.replace(t, '')
+            text = LatexNodes2Text().latex_to_text(text)
 
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
