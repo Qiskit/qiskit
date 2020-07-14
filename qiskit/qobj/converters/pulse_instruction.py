@@ -251,7 +251,9 @@ class InstructionToQobjConverter:
 
             if instruction.start_time != t0:
                 raise QiskitError(
-                    'Bundled acquire instructions may not have different starting times'
+                    'The supplied acquire instructions have different starting times. '
+                    'Something has gone wrong calling this code. Please report this '
+                    'issue.'
                 )
 
             if instruction.duration != duration:
