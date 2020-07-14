@@ -90,6 +90,22 @@ nbsphinx_thumbnails = {
     '_static/optimization/5_ADMM.png',
 }
 
+nbsphinx_prolog = """
+{% set docname = env.doc2path(env.docname, base=None) %}
+
+.. only:: html
+    
+    .. role:: raw-html(raw)
+        :format: html
+    
+    .. note::
+        This page was generated from `{{ docname }}`__.
+
+
+    __ https://github.com/Qiskit/qiskit-tutorials/blob/master/{{ docname }}
+
+"""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['theme/']
 
