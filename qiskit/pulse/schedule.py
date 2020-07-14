@@ -859,14 +859,12 @@ class ParameterizedSchedule:
         return self.bind_parameters(*args, **kwargs)
 
 
-def _find_interval(intervals: List[Interval], new_interval: Interval, index: int = 0) -> int:
+def _find_interval(intervals: List[Interval], interval: Interval, index: int = 0) -> int:
     """Using binary search on start times, find an interval.
-
     Args:
         intervals: A sorted list of non-overlapping Intervals.
-        new_interval: The interval for which the index into intervals will be found.
+        interval: The interval for which the index into intervals will be found.
         index: A running tally of the index, for recursion. The user should not pass a value.
-
     Returns:
         The index into intervals that new_interval would be inserted to maintain
         a sorted list of intervals.
@@ -875,24 +873,22 @@ def _find_interval(intervals: List[Interval], new_interval: Interval, index: int
         return index
 
     mid_idx = len(intervals) // 2
-    if new_interval[1] <= intervals[mid_idx][0]:
-        return _find_interval(intervals[:mid_idx], new_interval, index=index)
+    mid = intervals[mid_idx]
+    if interval[1] <= mid[0] and (interval != mid):
+        return _find_interval(intervals[:mid_idx], interval, index=index)
     else:
-        return _find_interval(intervals[mid_idx:], new_interval, index=index + mid_idx)
+        return _find_interval(intervals[mid_idx:], interval, index=index + mid_idx)
 
 
 def _insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
     """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
-
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         new_interval: The interval for which the index into intervals will be found.
-
     Returns:
         The index into intervals that new_interval should be inserted to maintain a sorted list
         of intervals.
-
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
