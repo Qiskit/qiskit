@@ -455,6 +455,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn('swap', resulting_basis)
 
+
 @ddt
 class TestOptimizationWithCondition(QiskitTestCase):
     """Test optimization levels with condition in the circuit"""
