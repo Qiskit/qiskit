@@ -47,10 +47,10 @@ class DefaultStyle:
         self.sfs = 8
         self.disptex = {
             'id': 'I',
-            'u0': 'U_0',
-            'u1': 'U_1',
-            'u2': 'U_2',
-            'u3': 'U_3',
+            'u0': '$\\mathrm{U}_0$',
+            'u1': '$\\mathrm{U}_1$',
+            'u2': '$\\mathrm{U}_2$',
+            'u3': '$\\mathrm{U}_3$',
             'x': 'X',
             'y': 'Y',
             'z': 'Z',
@@ -158,10 +158,10 @@ class BWStyle:
         self.sfs = 8
         self.disptex = {
             'id': 'I',
-            'u0': 'U_0',
-            'u1': 'U_1',
-            'u2': 'U_2',
-            'u3': 'U_3',
+            'u0': '$\\mathrm{U}_0$',
+            'u1': '$\\mathrm{U}_1$',
+            'u2': '$\\mathrm{U}_2$',
+            'u3': '$\\mathrm{U}_3$',
             'x': 'X',
             'y': 'Y',
             'z': 'Z',
