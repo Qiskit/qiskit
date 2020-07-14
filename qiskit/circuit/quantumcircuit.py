@@ -287,6 +287,9 @@ class QuantumCircuit:
 
         for inst, qargs, cargs in reversed(self.data):
             reverse_circ._append(inst.reverse_ops(), qargs, cargs)
+
+        reverse_circ.duration = self.duration
+        reverse_circ.instruction_durations = self.instruction_durations
         return reverse_circ
 
     def reverse_bits(self):

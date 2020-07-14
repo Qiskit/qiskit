@@ -595,7 +595,6 @@ class DAGCircuit:
         qc = dag_to_circuit(self)
         reversed_qc = qc.reverse_ops()
         reversed_dag = circuit_to_dag(reversed_qc)
-        reversed_dag.duration = self.duration
         return reversed_dag
 
     def idle_wires(self, ignore=None):
