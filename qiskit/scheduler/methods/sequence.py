@@ -67,9 +67,7 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
         start_times.append(measure_time)
 
     circ_pulse_defs = lower_gates(scheduled_circuit, schedule_config)
-    assert len(start_times) == len(circ_pulse_defs)
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
     sched = Schedule(*timed_schedules, name=scheduled_circuit.name)
-    assert sched.duration == scheduled_circuit.duration
     return pad(sched)
