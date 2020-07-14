@@ -61,7 +61,7 @@ class PhaseEstimation(QuantumCircuit):
         Args:
             num_evaluation_qubits: The number of evaluation qubits.
             unitary: The unitary operation :math:`U` which will be repeated and controlled.
-            iqft: A inverse Quantum Fourier Transform, per default
+            iqft: A inverse Quantum Fourier Transform, per default the inverse of
                 :class:`~qiskit.circuit.library.QFT` is used. Note that the QFT should not include
                 the usual swaps!
             name: The name of the circuit.
