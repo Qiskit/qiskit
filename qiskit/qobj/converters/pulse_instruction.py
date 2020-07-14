@@ -269,8 +269,8 @@ class InstructionToQobjConverter:
                 # setup discriminators
                 if instruction.discriminator:
                     discriminators.append(QobjMeasurementOption(
-                            name=instruction.discriminator.name,
-                            params=instruction.discriminator.params))
+                        name=instruction.discriminator.name,
+                        params=instruction.discriminator.params))
                 # setup register_slots
                 if instruction.reg_slot:
                     register_slots.append(instruction.reg_slot.index)
@@ -279,8 +279,8 @@ class InstructionToQobjConverter:
                 # setup kernels
                 if instruction.kernel:
                     kernels.append(QobjMeasurementOption(
-                            name=instruction.kernel.name,
-                            params=instruction.kernel.params))
+                        name=instruction.kernel.name,
+                        params=instruction.kernel.params))
         command_dict = {
             'name': 'acquire',
             't0': t0 + shift,
