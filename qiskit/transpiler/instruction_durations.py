@@ -21,7 +21,8 @@ from qiskit.circuit import Instruction, Qubit
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
 
-InstructionDurationsType = List[Tuple[str, Optional[Iterable[int]], int]]
+InstructionDurationsType = Union[List[Tuple[str, Optional[Iterable[int]], int]],
+                                 'InstructionDurations']
 """List of tuples representing (instruction name, qubits indices, duration)."""
 
 
@@ -78,17 +79,21 @@ class InstructionDurations:
         self.schedule_dt = dt or self.schedule_dt
 
         if instruction_durations:
-            for name, qubits, duration in instruction_durations:
-                if not isinstance(duration, int):
-                    raise TranspilerError("duration value must be integer.")
+            if isinstance(instruction_durations, InstructionDurations):
+                self.duration_by_name.update(instruction_durations.duration_by_name)
+                self.duration_by_name_qubits.update(instruction_durations.duration_by_name_qubits)
+            else:
+                for name, qubits, duration in instruction_durations:
+                    if not isinstance(duration, int):
+                        raise TranspilerError("duration value must be integer.")
 
-                if isinstance(qubits, int):
-                    qubits = [qubits]
+                    if isinstance(qubits, int):
+                        qubits = [qubits]
 
-                if qubits is None:
-                    self.duration_by_name[name] = duration
-                else:
-                    self.duration_by_name_qubits[(name, tuple(qubits))] = duration
+                    if qubits is None:
+                        self.duration_by_name[name] = duration
+                    else:
+                        self.duration_by_name_qubits[(name, tuple(qubits))] = duration
 
         return self
 
