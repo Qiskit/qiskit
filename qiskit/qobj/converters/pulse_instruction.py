@@ -268,12 +268,9 @@ class InstructionToQobjConverter:
             if meas_level == MeasLevel.CLASSIFIED:
                 # setup discriminators
                 if instruction.discriminator:
-                    discriminators.append(
-                        QobjMeasurementOption(
+                    discriminators.append(QobjMeasurementOption(
                             name=instruction.discriminator.name,
-                            params=instruction.discriminator.params,
-                        ),
-                    )
+                            params=instruction.discriminator.params))
                 # setup register_slots
                 if instruction.reg_slot:
                     register_slots.append(instruction.reg_slot.index)
@@ -281,12 +278,9 @@ class InstructionToQobjConverter:
             if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
                 # setup kernels
                 if instruction.kernel:
-                    kernels.append(
-                        QobjMeasurementOption(
+                    kernels.append(QobjMeasurementOption(
                             name=instruction.kernel.name,
-                            params=instruction.kernel.params,
-                        ),
-                    )
+                            params=instruction.kernel.params))
         command_dict = {
             'name': 'acquire',
             't0': t0 + shift,
