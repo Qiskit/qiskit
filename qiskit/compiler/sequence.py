@@ -18,10 +18,11 @@ Mapping a scheduled ``QuantumCircuit`` to a pulse ``Schedule``.
 from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.providers import BaseBackend
 from qiskit.pulse import InstructionScheduleMap, Schedule
-
-from qiskit.compiler.schedule import schedule
+from qiskit.scheduler import ScheduleConfig
+from qiskit.scheduler.methods import sequence as _sequence
 
 
 def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -32,7 +33,7 @@ def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Schedule a scheduled circuit to a pulse ``Schedule``, using the backend.
 
     Args:
-        scheduled_circuits: The scheduled quantum circuit or circuits to translate
+        scheduled_circuits: Scheduled circuit(s) to be translated
         backend: A backend instance, which contains hardware-specific data required for scheduling
         inst_map: Mapping of circuit operations to pulse schedules. If ``None``, defaults to the
                   ``backend``\'s ``instruction_schedule_map``
@@ -41,6 +42,21 @@ def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     Returns:
         A pulse ``Schedule`` that implements the input circuit
+
+    Raises:
+        QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
-    return schedule(scheduled_circuits, backend=backend, inst_map=inst_map,
-                    meas_map=meas_map, method='sequence', dt=1)
+    if inst_map is None:
+        if backend is None:
+            raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
+                              "scheduling passes.")
+        inst_map = backend.defaults().instruction_schedule_map
+    if meas_map is None:
+        if backend is None:
+            raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
+        meas_map = backend.configuration().meas_map
+
+    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=1)
+    circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
+    schedules = [_sequence(circuit, schedule_config) for circuit in circuits]
+    return schedules[0] if len(schedules) == 1 else schedules
