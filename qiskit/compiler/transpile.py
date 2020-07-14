@@ -20,6 +20,7 @@ from typing import List, Union, Dict, Callable, Any, Optional, Tuple
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import Gate
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.dagcircuit import DAGCircuit
@@ -29,7 +30,8 @@ from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.converters import isinstanceint, isinstancelist
+from qiskit.transpiler.passes import ApplyLayout
+from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.transpiler.passes.basis.ms_basis_decomposer import MSBasisDecomposer
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
@@ -201,17 +203,20 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', 1)
 
+    faulty_qubits_map = _create_faulty_qubits_map(backend)
+
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
                                            seed_transpiler, optimization_level,
-                                           callback, output_name)
+                                           callback, output_name, faulty_qubits_map)
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
     # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)))
+    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args)),
+                            task_args=(faulty_qubits_map, backend))
 
     if len(circuits) == 1:
         end_time = time()
@@ -256,7 +261,8 @@ def _log_transpile_time(start_time, end_time):
     LOG.info(log_msg)
 
 
-def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
+def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict],
+                       faulty_qubits_map: [None, Dict], backend) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit_config_tuple (tuple):
@@ -264,10 +270,14 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             transpile_config (dict): configuration dictating how to transpile. The
                 dictionary has the following format:
                 {'optimization_level': int,
-                 'pass_manager': PassManager,
                  'output_name': string,
                  'callback': callable,
                  'pass_manager_config': PassManagerConfig}
+        faulty_qubits_map (dict or None): Only used when backends report faulty qubits/gates. It
+                   is a map from working qubit in the backend to dumnmy qubits that are consecutive
+                   and connected.
+        backend (BaseBackend or None): The backend with remap the circuit if it has faulty
+                                       qubits/gates.
     Returns:
         The transpiled circuit
     Raises:
@@ -308,15 +318,73 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     if ms_basis_swap is not None:
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
-    return pass_manager.run(circuit, callback=transpile_config['callback'],
-                            output_name=transpile_config['output_name'])
+    result = pass_manager.run(circuit, callback=transpile_config['callback'],
+                              output_name=transpile_config['output_name'])
+
+    if faulty_qubits_map:
+        return _remap_circuit_faulty_backend(result, backend, faulty_qubits_map)
+
+    return result
+
+
+def _remap_circuit_faulty_backend(circuit, backend, faulty_qubits_map):
+    faulty_qubits = backend.properties().faulty_qubits() if backend.properties() else []
+    disconnected_qubits = {k for k, v in faulty_qubits_map.items()
+                           if v is None}.difference(faulty_qubits)
+    faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
+    if faulty_qubits:
+        faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
+    else:
+        faulty_qreg = []
+    if disconnected_qubits:
+        disconnected_qreg = circuit._create_qreg(len(disconnected_qubits), 'disconnected')
+    else:
+        disconnected_qreg = []
+
+    new_layout = Layout()
+    faulty_qubit = 0
+    disconnected_qubit = 0
+
+    for real_qubit in range(backend.configuration().n_qubits):
+        if faulty_qubits_map[real_qubit] is not None:
+            new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
+        else:
+            if real_qubit in faulty_qubits:
+                new_layout[real_qubit] = faulty_qreg[faulty_qubit]
+                faulty_qubit += 1
+            else:
+                new_layout[real_qubit] = disconnected_qreg[disconnected_qubit]
+                disconnected_qubit += 1
+    physical_layout_dict = {}
+    for qubit in circuit.qubits:
+        physical_layout_dict[qubit] = faulty_qubits_map_reverse[qubit.index]
+    for qubit in faulty_qreg[:] + disconnected_qreg[:]:
+        physical_layout_dict[qubit] = new_layout[qubit]
+    dag_circuit = circuit_to_dag(circuit)
+    apply_layout_pass = ApplyLayout()
+    apply_layout_pass.property_set['layout'] = Layout(physical_layout_dict)
+    circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit))
+    circuit._layout = new_layout
+    return circuit
+
+
+def _remap_layout_faulty_backend(layout, faulty_qubits_map):
+    if layout is None:
+        return layout
+    new_layout = Layout()
+    for virtual, physical in layout.get_virtual_bits().items():
+        if faulty_qubits_map[physical] is None:
+            raise TranspilerError("The initial_layout parameter refers to faulty"
+                                  " or disconnected qubits")
+        new_layout[virtual] = faulty_qubits_map[physical]
+    return new_layout
 
 
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method, translation_method,
                           seed_transpiler, optimization_level,
-                          callback, output_name) -> List[Dict]:
+                          callback, output_name, faulty_qubits_map) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -336,9 +404,10 @@ def _parse_transpile_args(circuits, backend,
     num_circuits = len(circuits)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
-    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
-    backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
-    initial_layout = _parse_initial_layout(initial_layout, circuits)
+    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits, faulty_qubits_map)
+    backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits,
+                                                   faulty_qubits_map)
+    initial_layout = _parse_initial_layout(initial_layout, circuits, faulty_qubits_map)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
@@ -368,6 +437,37 @@ def _parse_transpile_args(circuits, backend,
     return list_transpile_args
 
 
+def _create_faulty_qubits_map(backend):
+    """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
+       from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
+    faulty_qubits_map = None
+    if backend is not None:
+        if backend.properties():
+            faulty_qubits = backend.properties().faulty_qubits()
+            faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
+        else:
+            faulty_qubits = []
+            faulty_edges = []
+
+        if faulty_qubits or faulty_edges:
+            faulty_qubits_map = {}
+            configuration = backend.configuration()
+            full_coupling_map = configuration.coupling_map
+            functional_cm_list = [edge for edge in full_coupling_map
+                                  if (set(edge).isdisjoint(faulty_qubits) and
+                                      edge not in faulty_edges)]
+
+            connected_working_qubits = CouplingMap(functional_cm_list).largest_connected_component()
+            dummy_qubit_counter = 0
+            for qubit in range(configuration.n_qubits):
+                if qubit in connected_working_qubits:
+                    faulty_qubits_map[qubit] = dummy_qubit_counter
+                    dummy_qubit_counter += 1
+                else:
+                    faulty_qubits_map[qubit] = None
+    return faulty_qubits_map
+
+
 def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
@@ -381,13 +481,19 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     return basis_gates
 
 
-def _parse_coupling_map(coupling_map, backend, num_circuits):
+def _parse_coupling_map(coupling_map, backend, num_circuits, faulty_map):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         if getattr(backend, 'configuration', None):
             configuration = backend.configuration()
             if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
-                coupling_map = CouplingMap(configuration.coupling_map)
+                if faulty_map:
+                    coupling_map = CouplingMap()
+                    for qubit1, qubit2 in configuration.coupling_map:
+                        if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
+                            coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                else:
+                    coupling_map = CouplingMap(configuration.coupling_map)
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
@@ -401,17 +507,40 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     return coupling_map
 
 
-def _parse_backend_properties(backend_properties, backend, num_circuits):
+def _parse_backend_properties(backend_properties, backend, num_circuits, faulty_qubits_map):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
         if getattr(backend, 'properties', None):
             backend_properties = backend.properties()
+            if backend_properties and \
+                    (backend_properties.faulty_qubits() or backend_properties.faulty_gates()):
+                faulty_qubits = sorted(backend_properties.faulty_qubits(), reverse=True)
+                faulty_edges = [gates.qubits for gates in backend_properties.faulty_gates()]
+                # remove faulty qubits in backend_properties.qubits
+                for faulty_qubit in faulty_qubits:
+                    del backend_properties.qubits[faulty_qubit]
+
+                gates = []
+                for gate in backend_properties.gates:
+                    # remove gates using faulty edges or with faulty qubits (and remap the
+                    # gates in terms of faulty_qubits_map)
+                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
+                            gate.qubits in faulty_edges:
+                        continue
+                    gate_dict = gate.to_dict()
+                    replacement_gate = Gate.from_dict(gate_dict)
+                    gate_dict['qubits'] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
+                    args = '_'.join([str(qubit) for qubit in gate_dict['qubits']])
+                    gate_dict['name'] = "%s%s" % (gate_dict['gate'], args)
+                    gates.append(replacement_gate)
+
+                backend_properties.gates = gates
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties
 
 
-def _parse_initial_layout(initial_layout, circuits):
+def _parse_initial_layout(initial_layout, circuits, faulty_qubits_map):
     # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
     # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
     def _layout_from_raw(initial_layout, circuit):
@@ -436,8 +565,13 @@ def _parse_initial_layout(initial_layout, circuits):
     else:
         # even if one layout, but multiple circuits, the layout needs to be adapted for each
         initial_layout = [_layout_from_raw(initial_layout, circ) for circ in circuits]
+
     if not isinstance(initial_layout, list):
         initial_layout = [initial_layout] * len(circuits)
+
+    if faulty_qubits_map:
+        initial_layout = [_remap_layout_faulty_backend(i, faulty_qubits_map) for i in
+                          initial_layout]
     return initial_layout
 
 
