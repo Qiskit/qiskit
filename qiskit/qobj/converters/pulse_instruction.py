@@ -258,7 +258,7 @@ class InstructionToQobjConverter:
 
             if instruction.duration != duration:
                 raise QiskitError(
-                    'Bundled acquire instructions beginning at the same time must have '
+                    'Acquire instructions beginning at the same time must have '
                     'same duration.'
                 )
 
