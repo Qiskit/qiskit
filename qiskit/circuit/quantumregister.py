@@ -54,3 +54,17 @@ class QuantumRegister(Register):
     def qasm(self):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)
+
+
+class AncillaQubit(Qubit):
+    """A qubit used as ancillary qubit."""
+    pass
+
+
+class AncillaRegister(QuantumRegister):
+    """Implement an ancilla register."""
+    # Counter for the number of instances in this class.
+    instances_counter = itertools.count()
+    # Prefix to use for auto naming.
+    prefix = 'a'
+    bit_type = AncillaQubit

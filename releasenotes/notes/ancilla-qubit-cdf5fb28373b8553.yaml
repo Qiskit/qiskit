@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add the concept of ancilla qubits, which wrap the qubit type but allow 
+    to mark certain qubits as ancillas. This allows to re-use these work qubits 
+    in larger circuits and algorithms or during transpilation. 
+    The types are called ``AncillaRegister`` and ``AncillaQubit``.
