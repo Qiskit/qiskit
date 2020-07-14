@@ -378,12 +378,16 @@ class SuperOp(QuantumChannel):
 
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
+        from qiskit.circuit.barrier import Barrier
+
         chan = self._instruction_to_superop(obj)
         if chan is not None:
             # Perform the composition and inplace update the current state
             # of the operator
             op = self.compose(chan, qargs=qargs)
             self._data = op.data
+        elif isinstance(obj, Barrier):
+            return
         else:
             # If the instruction doesn't have a matrix defined we use its
             # circuit decomposition definition if it exists, otherwise we

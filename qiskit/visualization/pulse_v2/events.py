@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 r"""
 Channel event manager for pulse schedules.
 
@@ -46,7 +47,7 @@ The grouped instructions are returned as an iterator by the corresponding method
 
 The class method ``get_waveforms`` returns the iterator of waveform type instructions with
 the ``PhaseFreqTuple`` (frame) at the time when instruction is issued.
-This is because a pulse envelope of ``SamplePulse`` may be modulated with a
+This is because a pulse envelope of ``Waveform`` may be modulated with a
 phase factor $exp(-i \omega t - \phi)$ with frequency $\omega$ and phase $\phi$ and
 appear on the canvas. Thus, it is better to tell users in which phase and frequency
 the pulse envelope is modulated from a viewpoint of program debugging.
