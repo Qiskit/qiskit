@@ -23,8 +23,8 @@ except Exception:  # pylint: disable=broad-except
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.exceptions import QiskitError
-from .oracle_visitor import OracleVisitor
 from qiskit.transpiler.oracle_synthesis.utils import tweedledum2qiskit
+from .oracle_visitor import OracleVisitor
 
 
 class Oracle(Gate):
