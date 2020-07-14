@@ -42,6 +42,7 @@ from . import (
     CSwapGate,
     iSwapGate,
     SXGate,
+    SXdgGate,
     CSXGate,
     DCXGate,
     TGate,
@@ -222,6 +223,13 @@ rz_to_rxry.append(RXGate(pi/2), [q[0]], [])
 rz_to_rxry.append(RYGate(-theta), [q[0]], [])
 rz_to_rxry.append(RXGate(-pi/2), [q[0]], [])
 _sel.add_equivalence(RZGate(theta), rz_to_rxry)
+
+q = QuantumRegister(1, 'q')
+rz_to_sxry = QuantumCircuit(q)
+rz_to_sxry.append(SXGate(), [q[0]], [])
+rz_to_sxry.append(RYGate(-theta), [q[0]], [])
+rz_to_sxry.append(SXdgGate(), [q[0]], [])
+_sel.add_equivalence(RZGate(theta), rz_to_sxry)
 
 # CRZGate
 
@@ -416,9 +424,9 @@ phi = Parameter('phi')
 lam = Parameter('lam')
 u3_qasm_def = QuantumCircuit(q)
 u3_qasm_def.rz(lam, 0)
-u3_qasm_def.sxdg(0)
+u3_qasm_def.sx(0)
 u3_qasm_def.rz(theta+pi, 0)
-u3_qasm_def.sxdg(0)
+u3_qasm_def.sx(0)
 u3_qasm_def.rz(phi+3*pi, 0)
 _sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
 
