@@ -78,7 +78,7 @@ class QuantumCircuit:
 
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
-        phase (float): The global phase of the circuit.
+        phase (float): The global phase of the circuit in radians.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
