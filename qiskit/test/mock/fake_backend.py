@@ -89,6 +89,12 @@ class FakeBackend(BaseBackend):
                         "name": "readout_error",
                         "unit": "",
                         "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "operational",
+                        "unit": "",
+                        "value": 1
                     }
                 ] for _ in range(len(unique_qubits))
             ],
