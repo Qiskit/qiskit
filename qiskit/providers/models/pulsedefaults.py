@@ -138,9 +138,6 @@ class Command:
             out_dict['qubits'] = self.qubits
         if hasattr(self, 'sequence'):
             out_dict['sequence'] = [x.to_dict() for x in self.sequence]
-        for key, value in self.__dict__.items():
-            if key not in ['name', 'qubits', 'sequence']:
-                out_dict[key] = value
         out_dict.update(self._data)
         return out_dict
 

@@ -265,11 +265,6 @@ class BackendProperties:
             out_dict['qubits'].append(qubit_props)
         out_dict['gates'] = [x.to_dict() for x in self.gates]
         out_dict['general'] = [x.to_dict() for x in self.general]
-        for key, value in self.__dict__.items():
-            if key not in ['backend_name', 'backend_version',
-                           'last_update_date', 'qubits', 'general', 'gates',
-                           '_gates', '_qubits']:
-                out_dict[key] = value
         out_dict.update(self._data)
         return out_dict
 
