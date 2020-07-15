@@ -44,6 +44,7 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MCPhaseGate
    Measure
    MSGate
    PhaseGate
