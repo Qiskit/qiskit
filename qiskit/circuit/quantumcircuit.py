@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 import copy
-import itertools
 import sys
 import warnings
 import multiprocessing as mp
