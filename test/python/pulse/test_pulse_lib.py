@@ -115,9 +115,12 @@ class TestParametricPulses(QiskitTestCase):
         sigma = 4
         amp = 0.5j
 
-        # formulaic (using zeroed ends at -1, duration + 1)
+        # formulaic (with fixed zeroed endpoints at ``t=-1, duration+1``)
         times = -1.0 + np.array(range(duration+2), dtype=np.complex_)
-        times = times - (duration / 2) + 0.5
+        times -= duration/2
+        times[1:duration+1] += 0.5
+        times[duration+1] += 1  # fix duration+1 endpoint
+
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
         zero_offset = gauss[0]
         gauss -= zero_offset
@@ -127,7 +130,7 @@ class TestParametricPulses(QiskitTestCase):
         # verify zero offset and rescaling
         self.assertEqual(gauss[0], 0.0)
         self.assertEqual(gauss[duration+1], 0.0)
-        self.assertEqual(gauss[duration//2+1], amp)
+        self.assertAlmostEqual(gauss[(duration+2)//2], amp, delta=1e-7)
 
         # command
         command = Gaussian(duration=duration, sigma=sigma, amp=amp)
@@ -141,10 +144,13 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5j
         width = 100
 
-        # formulaic gaussian component (using zeroed ends at -1, duration + 1)
+        # formulaic gaussian component (with fixed zeroed endpoints at ``t=-1, duration+1``)
         gauss_duration = duration - width
         times = -1.0 + np.array(range(gauss_duration+2), dtype=np.complex_)
-        times = times - (gauss_duration / 2) + 0.5
+        times -= gauss_duration/2
+        times[1:gauss_duration+1] += 0.5
+        times[gauss_duration+1] += 1  # fix duration+1 endpoint
+
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
         zero_offset = gauss[0]
         gauss -= zero_offset
@@ -154,7 +160,7 @@ class TestParametricPulses(QiskitTestCase):
         # verify zero offset and rescaling for gaussian component
         self.assertEqual(gauss[0], 0.0)
         self.assertEqual(gauss[gauss_duration+1], 0.0)
-        self.assertEqual(gauss[gauss_duration//2+1], amp)
+        self.assertAlmostEqual(gauss[gauss_duration//2+1], amp, delta=1e-7)
 
         # compute gaussian square as combination of gaussians and constant pulse
         gauss_square = np.concatenate((gauss[1:gauss_duration//2+1],
@@ -187,11 +193,13 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5j
         beta = 1
 
-        # formulaic (using zeroed ends at -1, duration + 1)
+        # formulaic (with fixed zeroed endpoints at ``t=-1, duration+1``)
         times = -1.0 + np.array(range(duration+2), dtype=np.complex_)
-        times = times - (duration / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
+        times -= duration/2
+        times[1:duration+1] += 0.5
+        times[duration+1] += 1  # fix duration+1 endpoint
 
+        gauss = amp * np.exp(-(times / sigma)**2 / 2)
         zero_offset = gauss[0]
         amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1
         gauss -= zero_offset
@@ -203,7 +211,7 @@ class TestParametricPulses(QiskitTestCase):
         # verify zero offset and rescaling
         self.assertEqual(drag[0], 0.0)
         self.assertEqual(drag[duration+1], 0.0)
-        self.assertEqual(drag[duration//2+1], amp)
+        self.assertAlmostEqual(drag[duration//2+1], amp, delta=1e-7)
 
         # command
         command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)

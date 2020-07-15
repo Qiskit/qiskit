@@ -165,8 +165,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     if zeroed_width is None:
         zeroed_width = 2*(center + 1)
 
-    # compute the offset using ``zeroed_width-1`` (``zeroed_width`` includes both endpoints)
-    zero_offset = gaussian(np.array([(zeroed_width-1)/2]), amp, 0, sigma)
+    zero_offset = gaussian(np.array([zeroed_width/2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
@@ -259,8 +258,7 @@ def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
     if zeroed_width is None:
         zeroed_width = 2*(center + 1)
 
-    # compute the offset using ``zeroed_width-1`` (``zeroed_width`` includes both endpoints)
-    zero_offset = sech(np.array([(zeroed_width-1)/2]), amp, 0, sigma)
+    zero_offset = sech(np.array([zeroed_width/2]), amp, 0, sigma)
     sech_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
