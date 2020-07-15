@@ -34,19 +34,6 @@ time dynamics of the measured output.
 This is sufficient to allow the quantum physicist to explore and correct for
 noise in a quantum system.
 
-
-.. _pulse-builder:
-
-
-(BETA) Pulse Builder (:mod:`~qiskit.pulse.builder`)
-===================================================
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    ~builder
-
-
 .. _pulse-insts:
 
 Instructions (:mod:`qiskit.pulse.instructions`)
@@ -115,6 +102,131 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
 
    Schedule
    Instruction
+
+.. _pulse-builder:
+
+
+Pulse Builder (:mod:`~qiskit.pulse.builder`)
+===================================================
+
+The pulse builder interface provides an imperative API for writing complicated
+pulse programs with less difficulty then the :class:`~qiskit.pulse.Schedule`
+API. It contextually constructs a pulse schedule and then emits the schedule for
+execution. For example to play a series of pulses on channels is as simple as::
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+
+    dc = pulse.DriveChannel
+    d0, d1, d2, d3, d4 = dc(0), dc(1), dc(2), dc(3), dc(4)
+
+    with pulse.build() as pulse_prog:
+        pulse.play([1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1], d0)
+        pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d1)
+        pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0], d2)
+        pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d3)
+        pulse.play([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0], d4)
+
+    pulse_prog.draw(style=style)
+
+
+In the future the pulse builder will be coupled to the
+:class:`~qiskit.circuit.QuantumCircuit` with an equivalent circuit builder
+interface.
+
+.. warning::
+    The pulse builder interface is still in active development. It may have
+    breaking API changes without deprecation warnings in future releases until
+    otherwise indicated.
+
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~qiskit.pulse.builder.build
+
+Channels
+--------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~qiskit.pulse.builder.acquire_channel
+    ~qiskit.pulse.builder.control_channels
+    ~qiskit.pulse.builder.drive_channel
+    ~qiskit.pulse.builder.measure_channel
+
+Instructions
+------------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~qiskit.pulse.builder.acquire
+    ~qiskit.pulse.builder.barrier
+    ~qiskit.pulse.builder.call
+    ~qiskit.pulse.builder.delay
+    ~qiskit.pulse.builder.play
+    ~qiskit.pulse.builder.set_frequency
+    ~qiskit.pulse.builder.set_phase
+    ~qiskit.pulse.builder.shift_frequency
+    ~qiskit.pulse.builder.shift_phase
+    ~qiskit.pulse.builder.snapshot
+
+Contexts
+--------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~qiskit.pulse.builder.align_left
+    ~qiskit.pulse.builder.align_right
+    ~qiskit.pulse.builder.align_sequential
+    ~qiskit.pulse.builder.circuit_scheduler_settings
+    ~qiskit.pulse.builder.frequency_offset
+    ~qiskit.pulse.builder.inline
+    ~qiskit.pulse.builder.pad
+    ~qiskit.pulse.builder.phase_offset
+    ~qiskit.pulse.builder.transpiler_settings
+
+Macros
+------
+
+    ~qiskit.pulse.builder.measure
+    ~qiskit.pulse.builder.measure_all
+    ~qiskit.pulse.builder.delay_qubits
+
+Circuit Instructions
+--------------------
+
+..warning::
+    These will be removed in future versions with the release of a circuit
+    builder interface in which it will be possible to calibrate a gate in
+    terms of pulses and use that gate in a circuit.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~qiskit.pulse.builder.cx
+    ~qiskit.pulse.builder.u1
+    ~qiskit.pulse.builder.u2
+    ~qiskit.pulse.builder.u3
+    ~qiskit.pulse.builder.x
+
+Utilities
+---------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    ~qiskit.pulse.builder.active_backend
+    ~qiskit.pulse.builder.active_transpiler_settings
+    ~qiskit.pulse.builder.active_circuit_scheduler_settings
+    ~qiskit.pulse.builder.num_qubits
+    ~qiskit.pulse.builder.qubit_channels
+    ~qiskit.pulse.builder.samples_to_seconds
+    ~qiskit.pulse.builder.seconds_to_samples
 
 Configuration
 =============
