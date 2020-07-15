@@ -117,7 +117,6 @@ class Gate:
         except KeyError:
             raise AttributeError('Attribute %s is not defined' % name)
 
-
     @classmethod
     def from_dict(cls, data):
         """Create a new Gate object from a dictionary.

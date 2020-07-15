@@ -18,8 +18,6 @@
 import copy
 from typing import Any, Dict, List
 
-import numpy as np
-
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
