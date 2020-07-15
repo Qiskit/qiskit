@@ -2036,7 +2036,7 @@ class QuantumCircuit:
     def cnot(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
              ctl=None, tgt=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
-        self.cx(control_qubit, target_qubit, ctl=ctl, tgt=tgt)
+        self.cx(control_qubit, target_qubit)
 
     def dcx(self, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.DCXGate`."""
