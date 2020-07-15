@@ -101,3 +101,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
         with self.assertRaises(BackendPropertyError):
             self.properties._apply_prefix(71.9500421005539, 'ws')
+
+    def test_operational(self):
+        """Test operation status of a given qubit."""
+        self.assertTrue(self.properties.is_qubit_operational(0))
