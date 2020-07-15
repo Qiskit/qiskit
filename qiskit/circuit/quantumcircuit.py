@@ -1838,6 +1838,17 @@ class QuantumCircuit:
         from .library.standard_gates.ms import MSGate
         return self.append(MSGate(len(qubits), theta), qubits)
 
+    def phase(self, theta, qubit):
+        """Apply :class:`~qiskit.circuit.library.PhaseGate`."""
+        from .library.standard_gates.phase import PhaseGate
+        return self.append(PhaseGate(theta), [qubit], [])
+
+    def cphase(self, theta, control_qubit, target_qubit, label=None, ctrl_state=None):
+        """Apply :class:`~qiskit.circuit.library.CPhaseGate`."""
+        from .library.standard_gates.phase import CPhaseGate
+        return self.append(CPhaseGate(theta, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
     @deprecate_arguments({'q': 'qubit'})
     def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.RGate`."""
@@ -1973,6 +1984,17 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.TdgGate`."""
         from .library.standard_gates.t import TdgGate
         return self.append(TdgGate(), [qubit], [])
+
+    def u(self, theta, phi, lam, qubit):
+        """Apply :class:`~qiskit.circuit.library.UGate`."""
+        from .library.standard_gates.u import UGate
+        return self.append(UGate(theta, phi, lam), [qubit], [])
+
+    def cu(self, theta, phi, lam, control_qubit, target_qubit, label=None, ctrl_state=None):
+        """Apply :class:`~qiskit.circuit.library.CUGate`."""
+        from .library.standard_gates.u import CUGate
+        return self.append(CUGate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
     def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
