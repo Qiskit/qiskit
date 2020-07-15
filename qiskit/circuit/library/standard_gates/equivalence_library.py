@@ -217,18 +217,10 @@ def_rz.append(U1Gate(theta), [q[0]], [])
 _sel.add_equivalence(RZGate(theta), def_rz)
 
 q = QuantumRegister(1, 'q')
-theta = Parameter('theta')
-rz_to_rxry = QuantumCircuit(q)
-rz_to_rxry.append(RXGate(pi/2), [q[0]], [])
-rz_to_rxry.append(RYGate(-theta), [q[0]], [])
-rz_to_rxry.append(RXGate(-pi/2), [q[0]], [])
-_sel.add_equivalence(RZGate(theta), rz_to_rxry)
-
-q = QuantumRegister(1, 'q')
 rz_to_sxry = QuantumCircuit(q)
-rz_to_sxry.append(SXGate(), [q[0]], [])
-rz_to_sxry.append(RYGate(-theta), [q[0]], [])
-rz_to_sxry.append(SXdgGate(), [q[0]], [])
+rz_to_sxry.sx(0)
+rz_to_sxry.ry(-theta, 0)
+rz_to_sxry.sxdg(0)
 _sel.add_equivalence(RZGate(theta), rz_to_sxry)
 
 # CRZGate
@@ -310,6 +302,28 @@ for inst, qargs, cargs in [
 ]:
     def_sx.append(inst, qargs, cargs)
 _sel.add_equivalence(SXGate(), def_sx)
+
+q = QuantumRegister(1, 'q')
+sx_to_rx = QuantumCircuit(q)
+sx_to_rx.rx(pi / 2, 0)
+_sel.add_equivalence(SXGate(), sx_to_rx)
+
+# SXdgGate
+
+q = QuantumRegister(1, 'q')
+def_sxdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+        (RZGate(pi / 2), [q[0]], []),
+        (HGate(), [q[0]], []),
+        (RZGate(pi / 2), [q[0]], [])
+]:
+    def_sxdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SXdgGate(), def_sxdg)
+
+q = QuantumRegister(1, 'q')
+sxdg_to_rx = QuantumCircuit(q)
+sxdg_to_rx.rx(-pi / 2, 0)
+_sel.add_equivalence(SXdgGate(), sxdg_to_rx)
 
 # CSXGate
 
@@ -405,18 +419,6 @@ def_u1.append(U3Gate(0, 0, theta), [q[0]], [])
 _sel.add_equivalence(U1Gate(theta), def_u1)
 
 # U3Gate
-
-q = QuantumRegister(1, 'q')
-theta = Parameter('theta')
-phi = Parameter('phi')
-lam = Parameter('lam')
-u3_qasm_def = QuantumCircuit(q)
-u3_qasm_def.rz(lam, 0)
-u3_qasm_def.rx(pi/2, 0)
-u3_qasm_def.rz(theta+pi, 0)
-u3_qasm_def.rx(pi/2, 0)
-u3_qasm_def.rz(phi+3*pi, 0)
-_sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
 
 q = QuantumRegister(1, 'q')
 theta = Parameter('theta')
