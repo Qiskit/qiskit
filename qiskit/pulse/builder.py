@@ -24,6 +24,12 @@ context with :func:`build`, after which we can begin adding program
 statements. For example, below we write a simple program that :func:`play`\s
 a pulse:
 
+from qiskit.visualization import SchedStyle
+
+style = SchedStyle(figsize=(20, 10))
+
+plt.rcParams['figure.figsize'] = [15, 15]
+
 .. jupyter-execute::
 
     from qiskit import execute, pulse
@@ -516,7 +522,7 @@ def build(backend=None,
           default_transpiler_settings: Optional[Dict[str, Any]] = None,
           default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
           ) -> ContextManager[Schedule]:
-    """A context manager for launching the imperative pulse builder DSL.
+    """Create a context manager for launching the imperative pulse builder DSL.
 
     To enter a building context and starting building a pulse program:
 
