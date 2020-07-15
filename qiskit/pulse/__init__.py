@@ -315,6 +315,8 @@ Circuit Gates
 -------------
 Use these circuit level gates within your pulse program.
 
+It is also possible to call a circuit with :func:`qiskit.pulse.builder.call`.
+
 ..warning::
     These will be removed in future versions with the release of a circuit
     builder interface in which it will be possible to calibrate a gate in
