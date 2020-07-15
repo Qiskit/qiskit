@@ -3,7 +3,7 @@ upgrade:
   - |
     The `qiskit.pulse.commands` module containing `Commands` was deprecated in
     Terra release 0.13.0 and have now been removed. You will have to upgrade
-    your Pulse code if you were still using commands. For example:
+    your Pulse code if you were still using commands. For example::
 
         # old
         Command(args)(channel)
@@ -11,6 +11,7 @@ upgrade:
         # new
         Instruction(args, channel)
 
+    ::
 
         Acquire(duration)(AcquireChannel(0)) -> Acquire(duration, AcquireChannel(0))
         Delay(duration)(channel) -> Delay(duration, channel)
