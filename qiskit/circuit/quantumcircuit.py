@@ -29,7 +29,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit
+from .quantumregister import QuantumRegister, Qubit, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -588,6 +588,13 @@ class QuantumCircuit:
         """
         return [cbit for creg in self.cregs for cbit in creg]
 
+    @property
+    def ancillas(self):
+        """
+        Returns a list of quantum bits in the order that the registers were added.
+        """
+        return [qbit for qreg in self.qregs for qbit in qreg if isinstance(qbit, AncillaQubit)]
+
     def __add__(self, rhs):
         """Overload + to compose two circuits and return resulting circuit."""
         return self.compose(rhs, inplace=False)
@@ -983,7 +990,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -1050,7 +1057,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Not used by
-                the ``matplotlib`` output. Default: ``False``.
+                the ``matplotlib`` output. Default: ``True``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -1295,6 +1302,11 @@ class QuantumCircuit:
         return qubits
 
     @property
+    def num_ancillas(self):
+        """Return the number of ancilla qubits."""
+        return len(self.ancillas)
+
+    @property
     def n_qubits(self):
         """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
         warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
@@ -1472,6 +1484,18 @@ class QuantumCircuit:
         else:
             new_creg = ClassicalRegister(length, name)
         return new_creg
+
+    def _create_qreg(self, length, name):
+        """ Creates a qreg, checking if QuantumRegister with same name exists
+        """
+        if name in [qreg.name for qreg in self.qregs]:
+            save_prefix = QuantumRegister.prefix
+            QuantumRegister.prefix = name
+            new_qreg = QuantumRegister(length)
+            QuantumRegister.prefix = save_prefix
+        else:
+            new_qreg = QuantumRegister(length, name)
+        return new_qreg
 
     def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
