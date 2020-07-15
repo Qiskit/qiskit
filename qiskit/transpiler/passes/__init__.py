@@ -89,6 +89,14 @@ Circuit Analysis
    NumTensorFactors
    DAGLongestPath
 
+Synthesis
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitarySynthesis
+
 Additional Passes
 =================
 
@@ -153,6 +161,9 @@ from .analysis import CountOps
 from .analysis import CountOpsLongestPath
 from .analysis import NumTensorFactors
 from .analysis import DAGLongestPath
+
+# synthesis
+from .synthesis import UnitarySynthesis
 
 # additional utility passes
 from .utils import CheckMap
