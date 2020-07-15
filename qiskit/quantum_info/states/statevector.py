@@ -16,6 +16,7 @@
 Statevector quantum state class.
 """
 
+import copy
 import re
 import warnings
 from numbers import Number
@@ -67,7 +68,7 @@ class Statevector(QuantumState):
                 dims = data._dims
         elif isinstance(data, Operator):
             # We allow conversion of column-vector operators to Statevectors
-            input_dim, output_dim = data.dim
+            input_dim, _ = data.dim
             if input_dim != 1:
                 raise QiskitError("Input Operator is not a column-vector.")
             self._data = np.ravel(data.data)
@@ -220,37 +221,27 @@ class Statevector(QuantumState):
         if qargs is None:
             qargs = getattr(other, 'qargs', None)
 
+        # Get return vector
+        ret = copy.copy(self)
+
         # Evolution by a circuit or instruction
-        if isinstance(other, (QuantumCircuit, Instruction)):
-            return self._evolve_instruction(other, qargs=qargs)
+        if isinstance(other, QuantumCircuit):
+            other = other.to_instruction()
+        if isinstance(other, Instruction):
+            if self.num_qubits is None:
+                raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
+            return self._evolve_instruction(ret, other, qargs=qargs)
+
         # Evolution by an Operator
         if not isinstance(other, Operator):
             other = Operator(other)
-        if qargs is None:
-            # Evolution on full statevector
-            if self._dim != other._input_dim:
-                raise QiskitError(
-                    "Operator input dimension is not equal to statevector dimension."
-                )
-            return Statevector(np.dot(other.data, self.data), dims=other.output_dims())
-        # Otherwise we are applying an operator only to subsystems
-        # Check dimensions of subsystems match the operator
+
+        # check dimension
         if self.dims(qargs) != other.input_dims():
             raise QiskitError(
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
-        # Reshape statevector and operator
-        tensor = np.reshape(self.data, self._shape)
-        mat = np.reshape(other.data, other._shape)
-        # Construct list of tensor indices of statevector to be contracted
-        num_indices = len(self.dims())
-        indices = [num_indices - 1 - qubit for qubit in qargs]
-        tensor = Operator._einsum_matmul(tensor, mat, indices)
-        new_dims = list(self.dims())
-        for i, qubit in enumerate(qargs):
-            new_dims[qubit] = other._output_dims[i]
-        # Replace evolved dimensions
-        return Statevector(np.reshape(tensor, np.product(new_dims)), dims=new_dims)
+        return Statevector._evolve_operator(ret, other, qargs=qargs)
 
     def equiv(self, other, rtol=None, atol=None):
         """Return True if statevectors are equivalent up to global phase.
@@ -523,8 +514,7 @@ class Statevector(QuantumState):
         init = np.zeros(2 ** instruction.num_qubits, dtype=complex)
         init[0] = 1.0
         vec = Statevector(init, dims=instruction.num_qubits * (2,))
-        vec._append_instruction(instruction)
-        return vec
+        return Statevector._evolve_instruction(vec, instruction)
 
     def to_dict(self, decimals=None):
         r"""Convert the statevector to dictionary form.
@@ -593,7 +583,61 @@ class Statevector(QuantumState):
         """Return the tensor shape of the matrix operator"""
         return tuple(reversed(self.dims()))
 
-    def _append_instruction(self, obj, qargs=None):
+    @staticmethod
+    def _evolve_operator(statevec, oper, qargs=None):
+        """Evolve a qudit statevector"""
+        is_qubit = bool(statevec.num_qubits and oper.num_qubits)
+
+        if qargs is None:
+            # Full system evolution
+            statevec._data = np.dot(oper._data, statevec._data)
+            if not is_qubit:
+                statevec._set_dims(oper._output_dims)
+            return statevec
+
+        # Calculate contraction dimensions
+        if is_qubit:
+            # Qubit contraction
+            new_dim = statevec._dim
+            num_qargs = statevec.num_qubits
+        else:
+            # Qudit contraction
+            new_dims = list(statevec._dims)
+            for i, qubit in enumerate(qargs):
+                new_dims[qubit] = oper._output_dims[i]
+            new_dim = np.product(new_dims)
+            num_qargs = len(new_dims)
+
+        # Get transpose axes
+        indices = [num_qargs - 1 - i for i in reversed(qargs)]
+        axes = indices + [i for i in range(num_qargs) if i not in indices]
+        axes_inv = np.argsort(axes).tolist()
+
+        # Calculate contraction dimensions
+        if is_qubit:
+            pre_tensor_shape = num_qargs * (2,)
+            post_tensor_shape = pre_tensor_shape
+            contract_shape = (1 << oper.num_qubits, 1 << (num_qargs - oper.num_qubits))
+        else:
+            contract_dim = np.product(oper._input_dims)
+            pre_tensor_shape = statevec._shape
+            contract_shape = (contract_dim, statevec._dim // contract_dim)
+            post_tensor_shape = list(reversed(oper._output_dims)) + [
+                pre_tensor_shape[i] for i in range(num_qargs) if i not in indices]
+
+        # reshape input for contraction
+        statevec._data = np.reshape(np.transpose(
+            np.reshape(statevec.data, pre_tensor_shape), axes), contract_shape)
+        statevec._data = np.reshape(np.dot(oper.data, statevec._data), post_tensor_shape)
+        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv), new_dim)
+
+        # Update dimension
+        if not is_qubit:
+            statevec._set_dims(new_dims)
+        return statevec
+
+    @staticmethod
+    def _evolve_instruction(statevec, obj, qargs=None):
         """Update the current Statevector by applying an instruction."""
         from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier
@@ -602,15 +646,14 @@ class Statevector(QuantumState):
         if mat is not None:
             # Perform the composition and inplace update the current state
             # of the operator
-            self._data = self.evolve(mat, qargs=qargs).data
-            return
+            return Statevector._evolve_operator(statevec, Operator(mat), qargs=qargs)
 
         # Special instruction types
         if isinstance(obj, Reset):
-            self._data = self.reset(qargs)._data
-            return
+            statevec._data = statevec.reset(qargs)._data
+            return statevec
         if isinstance(obj, Barrier):
-            return
+            return statevec
 
         # If the instruction doesn't have a matrix defined we use its
         # circuit decomposition definition if it exists, otherwise we
@@ -630,12 +673,5 @@ class Statevector(QuantumState):
                 new_qargs = [tup.index for tup in qregs]
             else:
                 new_qargs = [qargs[tup.index] for tup in qregs]
-            self._append_instruction(instr, qargs=new_qargs)
-
-    def _evolve_instruction(self, obj, qargs=None):
-        """Return a new statevector by applying an instruction."""
-        if isinstance(obj, QuantumCircuit):
-            obj = obj.to_instruction()
-        vec = Statevector(self.data, dims=self.dims())
-        vec._append_instruction(obj, qargs=qargs)
-        return vec
+            Statevector._evolve_instruction(statevec, instr, qargs=new_qargs)
+        return statevec
