@@ -93,6 +93,6 @@ class PhaseEstimation(QuantumCircuit):
         self.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            self.append(unitary.repeat(2**j).control(), [j] + qr_state[:])
+            self.append(unitary.power(2**j).control(), [j] + qr_state[:])
 
         self.append(iqft, qr_eval[:])  # final QFT
