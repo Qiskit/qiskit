@@ -191,8 +191,7 @@ class CPhaseGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            from .u1 import MCU1Gate
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
+            gate = MCPhaseGate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
@@ -211,3 +210,77 @@ class CPhaseGate(ControlledGate):
     #                        [0, 0, 1,    0],
     #                        [0, 0, 0, eith]],
     #                       dtype=complex)
+
+
+class MCPhaseGate(ControlledGate):
+    r"""Multi-controlled-Phase gate.
+
+    This is a diagonal and symmetric gate that induces a
+    phase on the state of the target qubit, depending on the state of the control qubits.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+            q_0: ───■────
+                    │
+                    .
+                    │
+        q_(n-1): ───■────
+                 ┌──┴───┐
+            q_n: ┤ P(λ) ├
+                 └──────┘
+
+    .. seealso::
+
+        :class:`~qiskit.circuit.library.standard_gates.CPhaseGate`:
+        The singly-controlled-version of this gate.
+    """
+
+    def __init__(self, lam, num_ctrl_qubits, label=None):
+        """Create new MCPhase gate."""
+        super().__init__('mcphase', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
+                         label=label)
+        self.base_gate = PhaseGate(lam)
+
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        q = QuantumRegister(self.num_qubits, 'q')
+        qc = QuantumCircuit(q, name=self.name)
+
+        if self.num_ctrl_qubits == 0:
+            qc.phase(self.params[0], 0)
+        if self.num_ctrl_qubits == 1:
+            qc.cphase(self.params[0], 0, 1)
+        else:
+            from .u3 import _gray_code_chain
+            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
+            bottom_gate = PhaseGate(scaled_lam)
+            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
+            qc.data = definition
+        self.definition = qc
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        """Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if ctrl_state is None:
+            gate = MCPhaseGate(self.params[0],
+                               num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                               label=label)
+            gate.base_gate.label = self.label
+            return gate
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+
+    def inverse(self):
+        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
+        return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)
