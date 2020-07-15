@@ -18,7 +18,6 @@ Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules and unitary synthesis.
 """
 
-import math
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
@@ -51,6 +50,7 @@ from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
 
@@ -164,19 +164,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    # Choose the first available 2q gate to use in the KAK decomposition.
-    from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate
-    kak_gate_names = {
-        'iswap': iSwapGate(), 'cx': CXGate(), 'cz': CZGate(), 'rxx': RXXGate(math.pi / 2)
-    }
-
-    kak_gate = None
-    kak_gates = set(basis_gates or []).intersection(kak_gate_names.keys())
-    if kak_gates:
-        kak_gate = kak_gate_names[kak_gates.pop()]
-
-    _opt = [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=kak_gate),
-            Optimize1qGates(basis_gates), CommutativeCancellation()]
+    _opt = [
+        Collect2qBlocks(),
+        ConsolidateBlocks(basis_gates=basis_gates),
+        UnitarySynthesis(basis_gates),
+        Optimize1qGates(basis_gates),
+        CommutativeCancellation(),
+    ]
 
     # Build pass manager
     pm3 = PassManager()
