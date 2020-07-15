@@ -19,7 +19,7 @@
 import os
 import unittest
 
-from qiskit.pulse import pulse_lib
+from qiskit.pulse import library
 from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import FrameChange
@@ -47,7 +47,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
     def sample_pulse(self):
         """Generate a sample pulse."""
-        return pulse_lib.gaussian(20, 0.8, 1.0, name='test')
+        return library.gaussian(20, 0.8, 1.0, name='test')
 
     def sample_instruction(self):
         """Generate a sample instruction."""
@@ -56,15 +56,15 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     def sample_schedule(self):
         """Generate a sample schedule that includes the most common elements of
            pulse schedules."""
-        gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
-        gp1 = pulse_lib.gaussian(duration=20, amp=-1.0, sigma=2.0)
-        gs0 = pulse_lib.gaussian_square(duration=20, amp=-1.0, sigma=2.0, risefall=3)
+        gp0 = library.gaussian(duration=20, amp=1.0, sigma=1.0)
+        gp1 = library.gaussian(duration=20, amp=-1.0, sigma=2.0)
+        gs0 = library.gaussian_square(duration=20, amp=-1.0, sigma=2.0, risefall=3)
 
         acquire = Acquire(10)
         delay = Delay(100)
         sched = Schedule(name='test_schedule')
         sched = sched.append(gp0(DriveChannel(0)))
-        sched = sched.insert(0, pulse_lib.Constant(duration=60, amp=0.2 + 0.4j)(
+        sched = sched.insert(0, library.Constant(duration=60, amp=0.2 + 0.4j)(
             ControlChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
         sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
@@ -89,7 +89,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         """Test that parametric instructions/schedules can be drawn."""
         filename = self._get_resource_path('current_parametric_matplotlib_ref.png')
         schedule = Schedule(name='test_parametric')
-        schedule += pulse_lib.Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
+        schedule += library.Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.parametric_matplotlib_reference)
         os.remove(filename)
@@ -102,7 +102,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         """
         filename = self._get_resource_path('current_play_matplotlib_ref.png')
         schedule = Schedule(name='test_parametric')
-        schedule += Play(pulse_lib.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
+        schedule += Play(library.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.parametric_matplotlib_reference)
         os.remove(filename)
@@ -170,7 +170,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_drawer_show_framechange(self):
         filename = self._get_resource_path('current_show_framechange_ref.png')
-        gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
+        gp0 = library.gaussian(duration=20, amp=1.0, sigma=1.0)
         sched = Schedule(name='test_schedule')
         sched = sched.append(gp0(DriveChannel(0)))
         sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))

@@ -23,11 +23,10 @@ from ..exceptions import PulseError
 from .pulse import Pulse
 
 
-class SamplePulse(Pulse):
+class Waveform(Pulse):
     """A pulse specified completely by complex-valued samples; each sample is played for the
     duration of the backend cycle-time, dt.
     """
-
     def __init__(self, samples: Union[np.ndarray, List[complex]],
                  name: Optional[str] = None,
                  epsilon: float = 1e-7):
@@ -41,6 +40,7 @@ class SamplePulse(Pulse):
                 it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised.
         """
+
         samples = np.asarray(samples, dtype=np.complex_)
         self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
@@ -148,7 +148,7 @@ class SamplePulse(Pulse):
     def __call__(self, channel: PulseChannel):
         warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
                       "instruction directly with a pulse and a channel. In this case, please "
-                      "use: `Play(SamplePulse(samples), {})`."
+                      "use: `Play(Waveform(samples), {})`."
                       "".format(self.__class__.__name__, channel),
                       DeprecationWarning)
         return super().__call__(channel)
