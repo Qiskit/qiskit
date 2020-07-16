@@ -220,6 +220,7 @@ class PulseQobjInstruction:
             discriminators_obj = [
                 QobjMeasurementOption.from_dict(x) for x in discriminators]
             data['discriminators'] = discriminators_obj
+
         return cls(name, t0, **data)
 
     def __eq__(self, other):
