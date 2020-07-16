@@ -136,7 +136,7 @@ class QCircuitImage:
             self.wire_type[bit] = bit.register in self.cregs.keys()
         self.cregbundle = cregbundle
 
-    def latex(self, aliases=None):
+    def latex(self):
         """Return LaTeX string representation of circuit.
 
         This method uses the LaTeX Qconfig package to create a graphical
@@ -146,7 +146,7 @@ class QCircuitImage:
             string: for writing to a LaTeX file.
         """
         self._initialize_latex_array()
-        self._build_latex_array(aliases)
+        self._build_latex_array()
         header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
@@ -366,24 +366,12 @@ class QCircuitImage:
             return generate_latex_label(str(param))
         return pi_check(param, output='latex')
 
-    def _build_latex_array(self, aliases=None):
+    def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit.
-
-        If aliases is not None, aliases contains a dict mapping
-        the current qubits in the circuit to new qubit names.
-        We will deduce the register names and sizes from aliases.
         """
 
+        qregdata = self.qregs
         # Rename qregs if necessary
-        if aliases:
-            qregdata = {}
-            for q in aliases.values():
-                if q[0] not in qregdata:
-                    qregdata[q[0]] = q[1] + 1
-                elif qregdata[q[0]] < q[1] + 1:
-                    qregdata[q[0]] = q[1] + 1
-        else:
-            qregdata = self.qregs
 
         column = 1
         # Leave a column to display number of classical registers if needed
@@ -496,8 +484,7 @@ class QCircuitImage:
                                      'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
-                    if aliases is not None:
-                        qarglist = map(lambda x: aliases[x], qarglist)
+
                     if len(qarglist) == 1:
                         pos_1 = self.img_regs[qarglist[0]]
 
@@ -936,11 +923,6 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    if aliases:
-                        newq = aliases[(qname, qindex)]
-                        qname = newq[0]
-                        qindex = newq[1]
-
                     pos_1 = self.img_regs[op.qargs[0]]
                     if self.cregbundle:
                         pos_2 = self.img_regs[self.clbit_list[0]]
@@ -973,8 +955,6 @@ class QCircuitImage:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
                         indexes.sort()
-                        if aliases is not None:
-                            qarglist = map(lambda x: aliases[x], qarglist)
 
                         first = last = indexes[0]
                         for index in indexes[1:]:
