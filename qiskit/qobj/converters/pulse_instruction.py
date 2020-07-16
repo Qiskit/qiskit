@@ -712,12 +712,7 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        parameters = instruction.parameters
-        amp = parameters.get('amp')
-        if amp is not None and isinstance(amp, list):
-            parameters['amp'] = amp[0]+amp[1]*1j
-
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**parameters)
+        pulse = ParametricPulseShapes[instruction.pulse_shape].value(**instruction.parameters)
         return instructions.Play(pulse, channel) << t0
 
     @bind_name('snapshot')
