@@ -405,7 +405,7 @@ class QasmQobj:
         self.experiments = experiments or []
         self.qobj_id = qobj_id
         self.type = 'QASM'
-        self.schema_version = '1.1.0'
+        self.schema_version = '1.2.0'
 
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
