@@ -530,6 +530,15 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_bits(), expected)
 
+    def test_cnot_alias(self):
+        """Test that the cnot method alias adds a cx gate."""
+        qc = QuantumCircuit(2)
+        qc.cnot(0, 1)
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+        self.assertEqual(qc, expected)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
