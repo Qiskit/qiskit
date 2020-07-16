@@ -470,3 +470,52 @@ class TestOptimizationWithCondition(QiskitTestCase):
         backend = FakeJohannesburg()
         circ = transpile(qc, backend, optimization_level=level)
         self.assertIsInstance(circ, QuantumCircuit)
+
+    def test_input_dag_copy(self):
+        """Test substitute_node_with_dag input_dag copy on condition"""
+        qasm_str = """OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q5110[6];
+        qreg q5111[1];
+        qreg q5153[7];
+        creg c332[1];
+        creg c333[3];
+        creg c334[3];
+        creg c335[4];
+        creg c336[4];
+        creg c337[5];
+        cy q5111[0],q5110[5];
+        cy q5110[3],q5110[1];
+        measure q5110[2] -> c334[1];
+        ry(25.53311) q5110[1];
+        cu3(5*3.14/4,17.671459,25.52544) q5111[0],q5110[0];
+        swap q5110[4],q5110[1];
+        ch q5110[2],q5110[1];
+        ccx q5111[0],q5110[3],q5110[1];
+        u2(-17.679129,-15*3.14/2) q5110[4];
+        crz(-19.642624) q5110[4],q5110[3];
+        h q5110[5];
+        measure q5110[2] -> c335[2];
+        z q5110[4];
+        u3(25.52544,-7.8616515,-23.584985) q5110[2];
+        if(c332==1) cswap q5110[5],q5110[1],q5110[0];
+        rzz(13.744468) q5110[5],q5110[1];
+        y q5110[3];
+        cswap q5110[3],q5110[2],q5110[1];
+        u3(3.9346607,-15*3.14/4,-53.14) q5110[3];
+        u2(11.880681,17.671459) q5111[0];
+        cz q5110[4],q5110[2];
+        u3(13.744468,15.707993,17.671459) q5110[2];
+        if(c336==0) cz q5110[3],q5153[1];
+        u3(1.9635254,9.817477,-23.561945) q5153[5];
+        cu3(-0.0076699039,-13.752138,-19.642624) q5153[1],q5110[2];
+        if(c337==1) t q5153[1];
+        rzz(-25.525471) q5153[2],q5110[0];
+        reset q5153[3];
+        u3(-3.9346607,-15*3.14/4,-21.598479) q5153[6];
+        cu3(5*3.14/2,11.781002,15*3.14/2) q5153[4],q5153[3];
+        """
+        qc = QuantumCircuit.from_qasm_str(qasm_str)
+        backend = FakeJohannesburg()
+        circ = transpile(qc, backend, optimization_level=3)
+        self.assertIsInstance(circ, QuantumCircuit)
