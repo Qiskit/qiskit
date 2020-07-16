@@ -167,7 +167,7 @@ execution. For example to play a series of pulses on channels is as simple as:
         pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d3)
         pulse.play([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0], d4)
 
-    style = SchedStyle(figsize=(5, 2.5))
+    style = SchedStyle(figsize=(3, 2), title_font_size=10, axis_font_size=8)
     pulse_prog.draw(style=style)
 
 
@@ -236,7 +236,7 @@ Pulse instructions are available within the builder interface. Here's an example
         pulse.call(temp_sched)
         pulse.acquire(30, a0, pulse.MemorySlot(0))
 
-    style = SchedStyle(figsize=(5, 2.5))
+    style = SchedStyle(figsize=(3, 2), title_font_size=10, axis_font_size=8)
     drive_sched.draw(style=style)
 
 
@@ -276,7 +276,7 @@ be used to align all pulses as late as possible in a pulse program.
             # this pulse will start at t=80
             pulse.play(pulse.Constant(20, 1.0), d1)
 
-    style = SchedStyle(figsize=(5, 2.5))
+    style = SchedStyle(figsize=(3, 2), title_font_size=10, axis_font_size=8)
     pulse_prog.draw(style=style)
 
 .. autosummary::
