@@ -53,6 +53,7 @@ Instructions (:mod:`qiskit.pulse.instructions`)
    ShiftPhase
    Snapshot
 
+
 Pulse Library (waveforms :mod:`qiskit.pulse.library`)
 =====================================================
 
@@ -92,6 +93,7 @@ Channels are characterized by their type and their index. See each channel type 
    RegisterSlot
    MemorySlot
 
+
 Schedules
 =========
 
@@ -103,8 +105,6 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
    Schedule
    Instruction
 
-.. _pulse-builder:
-
 
 Configuration
 =============
@@ -113,6 +113,7 @@ Configuration
    :toctree: ../stubs/
 
    InstructionScheduleMap
+
 
 Schedule Transforms
 ===================
@@ -127,6 +128,7 @@ These functions take :class:`Schedule` s as input and return modified
    transforms.add_implicit_acquires
    transforms.pad
 
+
 Exceptions
 ==========
 
@@ -135,8 +137,14 @@ Exceptions
 
    PulseError
 
+
 Pulse Builder (:mod:`~qiskit.pulse.builder`)
 ===================================================
+
+.. warning::
+    The pulse builder interface is still in active development. It may have
+    breaking API changes without deprecation warnings in future releases until
+    otherwise indicated.
 
 The pulse builder provides an imperative API for writing pulse programs
 with less difficulty than the :class:`~qiskit.pulse.Schedule` API.
@@ -152,14 +160,14 @@ execution. For example to play a series of pulses on channels is as simple as:
     dc = pulse.DriveChannel
     d0, d1, d2, d3, d4 = dc(0), dc(1), dc(2), dc(3), dc(4)
 
-    with pulse.build(name='Pulse Programming in') as pulse_prog:
+    with pulse.build(name='pulse_programming_in') as pulse_prog:
         pulse.play([1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1], d0)
         pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d1)
         pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0], d2)
         pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d3)
         pulse.play([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0], d4)
 
-    style = SchedStyle(figsize=(8, 4))
+    style = SchedStyle(figsize=(5, 2.5))
     pulse_prog.draw(style=style)
 
 
@@ -167,16 +175,11 @@ In the future the pulse builder will be coupled to the
 :class:`~qiskit.circuit.QuantumCircuit` with an equivalent circuit builder
 interface.
 
-.. warning::
-    The pulse builder interface is still in active development. It may have
-    breaking API changes without deprecation warnings in future releases until
-    otherwise indicated.
-
-
 .. autosummary::
     :toctree: ../stubs/
 
     ~qiskit.pulse.builder.build
+
 
 Channels
 --------
@@ -201,6 +204,7 @@ Methods to return the correct channels for the respective qubit indices.
     ~qiskit.pulse.builder.control_channels
     ~qiskit.pulse.builder.drive_channel
     ~qiskit.pulse.builder.measure_channel
+
 
 Instructions
 ------------
@@ -232,7 +236,7 @@ Pulse instructions available within the builder interface.
         pulse.call(temp_sched)
         pulse.acquire(30, a0, pulse.MemorySlot(0))
 
-    style = SchedStyle(figsize=(8, 4))
+    style = SchedStyle(figsize=(5, 2.5))
     drive_sched.draw(style=style)
 
 
@@ -249,6 +253,7 @@ Pulse instructions available within the builder interface.
     ~qiskit.pulse.builder.shift_frequency
     ~qiskit.pulse.builder.shift_phase
     ~qiskit.pulse.builder.snapshot
+
 
 Contexts
 --------
@@ -271,9 +276,8 @@ be used to align all pulses as late as possible in a pulse program.
             # this pulse will start at t=80
             pulse.play(pulse.Constant(20, 1.0), d1)
 
-    style = SchedStyle(figsize=(8, 4))
+    style = SchedStyle(figsize=(5, 2.5))
     pulse_prog.draw(style=style)
-
 
 .. autosummary::
     :toctree: ../stubs/
@@ -287,6 +291,7 @@ be used to align all pulses as late as possible in a pulse program.
     ~qiskit.pulse.builder.pad
     ~qiskit.pulse.builder.phase_offset
     ~qiskit.pulse.builder.transpiler_settings
+
 
 Macros
 ------
@@ -310,6 +315,7 @@ program.
     ~qiskit.pulse.builder.measure
     ~qiskit.pulse.builder.measure_all
     ~qiskit.pulse.builder.delay_qubits
+
 
 Circuit Gates
 -------------
@@ -342,6 +348,7 @@ It is also possible to call a circuit with :func:`qiskit.pulse.builder.call`.
     ~qiskit.pulse.builder.u2
     ~qiskit.pulse.builder.u3
     ~qiskit.pulse.builder.x
+
 
 Utilities
 ---------
