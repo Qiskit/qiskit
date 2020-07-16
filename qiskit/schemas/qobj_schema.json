@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "definitions": {
         "bfunc": {
             "properties": {
@@ -86,6 +86,22 @@
                 "register_copy"
             ],
             "type": "object"
+        },
+        "discriminator": {
+            "description": "JSON representation of a discriminator object",
+            "type": "object",
+            "properties": {
+                "name": { "type": "string" },
+                "params": { "type": "object" }
+            }
+        },
+        "kernel": {
+            "description": "JSON representation of a kernel object",
+            "type": "object",
+            "properties": {
+                "name": { "type": "string" },
+                "params": { "type": "object" }
+            }
         },
         "openpulse_instructions": {
             "oneOf": [
@@ -271,13 +287,19 @@
                 {
                     "properties": {
                         "discriminators": {
-                            "type": "array"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/discriminator"
+                            }
                         },
                         "duration": {
                             "type": "number"
                         },
                         "kernels": {
-                            "type": "array"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/kernel"
+                            }
                         },
                         "memory_slot": {
                             "items": {
@@ -1026,6 +1048,22 @@
                             "description": "Number of repetitions of each experiment",
                             "minimum": 1,
                             "type": "integer"
+                        },
+                        "kernels": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^q[0-9]+$": {
+                                    "$ref": "#/definitions/kernel"
+                                }
+                            }
+                        },
+                        "discriminators": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^q[0-9]+$": {
+                                    "$ref": "#/definitions/discriminator"
+                                }
+                            }
                         }
                     },
                     "title": "Qobj-level configuration",
