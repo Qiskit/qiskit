@@ -302,6 +302,19 @@ class QuantumState(ABC):
         pass
 
     @abstractmethod
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (BaseOperator): an operator to evaluate expval.
+            qargs (None or list): subsystems to apply the operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        pass
+
+    @abstractmethod
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
 
