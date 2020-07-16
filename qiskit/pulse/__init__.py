@@ -208,7 +208,7 @@ Methods to return the correct channels for the respective qubit indices.
 
 Instructions
 ------------
-Pulse instructions available within the builder interface.
+Pulse instructions are available within the builder interface. Here's an example:
 
 .. jupyter-execute::
 
@@ -295,7 +295,7 @@ be used to align all pulses as late as possible in a pulse program.
 
 Macros
 ------
-Macros to help you add more complex functionality to your pulse
+Macros help you add more complex functionality to your pulse
 program.
 
 .. jupyter-execute::
@@ -319,11 +319,10 @@ program.
 
 Circuit Gates
 -------------
-Use these circuit level gates within your pulse program.
+To use circuit level gates within your pulse program call a circuit
+with :func:`qiskit.pulse.builder.call`.
 
-It is also possible to call a circuit with :func:`qiskit.pulse.builder.call`.
-
-..warning::
+.. warning::
     These will be removed in future versions with the release of a circuit
     builder interface in which it will be possible to calibrate a gate in
     terms of pulses and use that gate in a circuit.
@@ -352,8 +351,8 @@ It is also possible to call a circuit with :func:`qiskit.pulse.builder.call`.
 
 Utilities
 ---------
-Use these utility functions to gather attributes about the backend and modify
-how your program is built.
+The utility functions can be used to gather attributes about the backend and modify
+how the program is built.
 
 .. jupyter-execute::
 
