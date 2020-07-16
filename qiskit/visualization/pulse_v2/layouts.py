@@ -38,9 +38,10 @@ The user-defined arrangement process can be assigned to the layout of the styles
 The user can set the custom stylesheet to the drawer interface.
 """
 
-from qiskit import pulse
-from typing import List
 from collections import defaultdict
+from typing import List
+
+from qiskit import pulse
 
 
 # channel layout
@@ -177,12 +178,3 @@ def channel_index_sort_grouped_control(channels: List[pulse.channels.Channel]) \
     ordered_channels.extend(u_chans)
 
     return ordered_channels
-
-
-
-
-
-
-
-
-

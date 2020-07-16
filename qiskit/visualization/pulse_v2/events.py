@@ -79,11 +79,11 @@ than plotting each operand value bound to the instruction.
 from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
 
-from qiskit import pulse
-from qiskit.visualization.pulse_v2.data_types import PhaseFreqTuple, InstructionTuple
-from qiskit.visualization.pulse_v2 import PULSE_STYLE
-
 import numpy as np
+
+from qiskit import pulse
+from qiskit.visualization.pulse_v2 import PULSE_STYLE
+from qiskit.visualization.pulse_v2.data_types import PhaseFreqTuple, InstructionTuple
 
 
 class ChannelEvents:
