@@ -66,7 +66,8 @@
       "control": 1.0,
       "measure": 1.0,
       "acquire": 1.0,
-      "max_factor": 10
+      "min_height": -0.1,
+      "max_height": 0.1
     },
     "control": {
       "apply_phase_modulation": true,
@@ -92,6 +93,7 @@
     "barrier": "None"
   },
   "layout": {
-    "channel": "None"
+    "channel": "None",
+    "time_axis": "None"
   }
 }

@@ -152,7 +152,7 @@ class ChannelEvents:
         return True
 
     def config(self,
-               dt: int,
+               dt: float,
                init_frequency: float,
                init_phase: float):
         """Setup system status.

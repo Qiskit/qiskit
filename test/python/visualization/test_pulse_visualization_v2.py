@@ -22,8 +22,11 @@ from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import (drawing_objects,
                                            events,
+                                           core,
                                            generators,
-                                           data_types)
+                                           layouts,
+                                           data_types,
+                                           PULSE_STYLE)
 from qiskit.visualization.pulse_v2.style import stylesheet
 
 
@@ -43,31 +46,31 @@ class TestChannelEvents(QiskitTestCase):
 
         # check waveform data
         waveforms = list(ch_events.get_waveforms())
-        t0, frame, inst = waveforms[0]
-        self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 3.14)
-        self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        inst_data0 = waveforms[0]
+        self.assertEqual(inst_data0.t0, 0)
+        self.assertEqual(inst_data0.frame.phase, 3.14)
+        self.assertEqual(inst_data0.frame.freq, 0)
+        self.assertEqual(inst_data0.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
-        t0, frame, inst = waveforms[1]
-        self.assertEqual(t0, 10)
-        self.assertEqual(frame.phase, 1.57)
-        self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        inst_data1 = waveforms[1]
+        self.assertEqual(inst_data1.t0, 10)
+        self.assertEqual(inst_data1.frame.phase, 1.57)
+        self.assertEqual(inst_data1.frame.freq, 0)
+        self.assertEqual(inst_data1.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
         # check frame data
         frames = list(ch_events.get_frame_changes())
-        t0, frame, insts = frames[0]
-        self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 3.14)
-        self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
+        inst_data0 = frames[0]
+        self.assertEqual(inst_data0.t0, 0)
+        self.assertEqual(inst_data0.frame.phase, 3.14)
+        self.assertEqual(inst_data0.frame.freq, 0)
+        self.assertListEqual(inst_data0.inst, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
 
-        t0, frame, insts = frames[1]
-        self.assertEqual(t0, 10)
-        self.assertEqual(frame.phase, -1.57)
-        self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
+        inst_data1 = frames[1]
+        self.assertEqual(inst_data1.t0, 10)
+        self.assertEqual(inst_data1.frame.phase, -1.57)
+        self.assertEqual(inst_data1.frame.freq, 0)
+        self.assertListEqual(inst_data1.inst, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
 
     def test_empty(self):
         """Test is_empty check."""
@@ -94,8 +97,8 @@ class TestChannelEvents(QiskitTestCase):
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(ch_events.get_frame_changes())
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.phase, 3.14)
+        inst_data0 = frames[0]
+        self.assertAlmostEqual(inst_data0.frame.phase, 3.14)
 
         # set phase followed by shift phase
         sched = pulse.Schedule()
@@ -104,8 +107,8 @@ class TestChannelEvents(QiskitTestCase):
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(ch_events.get_frame_changes())
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.phase, 1.57)
+        inst_data0 = frames[0]
+        self.assertAlmostEqual(inst_data0.frame.phase, 1.57)
 
     def test_frequency(self):
         """Test parse frequency."""
@@ -114,14 +117,30 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        ch_events.init_frequency = 3.0
+        ch_events.config(dt=0.1, init_frequency=3.0, init_phase=0)
         frames = list(ch_events.get_frame_changes())
 
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.freq, 1.0)
+        inst_data0 = frames[0]
+        self.assertAlmostEqual(inst_data0.frame.freq, 1.0)
 
-        _, frame, _ = frames[1]
-        self.assertAlmostEqual(frame.freq, 1.0)
+        inst_data1 = frames[1]
+        self.assertAlmostEqual(inst_data1.frame.freq, 1.0)
+
+    def test_min_max(self):
+        """Test get min max value of channel."""
+        test_pulse = pulse.Gaussian(10, 0.1, 3)
+
+        sched = pulse.Schedule()
+        sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+
+        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
+
+        min_v, max_v = ch_events.get_min_max((0, sched.duration))
+
+        samples = test_pulse.get_sample_pulse().samples
+
+        self.assertAlmostEqual(min_v, min(*samples.real, *samples.imag))
+        self.assertAlmostEqual(max_v, max(*samples.real, *samples.imag))
 
 
 class TestDrawingObjects(QiskitTestCase):
@@ -173,6 +192,50 @@ class TestDrawingObjects(QiskitTestCase):
                                          scale=2,
                                          visible=False,
                                          styles={'color': 'blue'})
+
+        self.assertEqual(data1, data2)
+
+    def test_vertical_line_data(self):
+        """Test for VerticalLineData."""
+        data1 = drawing_objects.VerticalLineData(data_type='test_vline',
+                                                 channel=pulse.DriveChannel(0),
+                                                 x0=0,
+                                                 meta={'test_val': 0},
+                                                 offset=0,
+                                                 scale=1,
+                                                 visible=True,
+                                                 styles={'color': 'red'})
+
+        data2 = drawing_objects.VerticalLineData(data_type='test_vline',
+                                                 channel=pulse.DriveChannel(0),
+                                                 x0=0,
+                                                 meta={'test_val': 1},
+                                                 offset=1,
+                                                 scale=2,
+                                                 visible=False,
+                                                 styles={'color': 'blue'})
+
+        self.assertEqual(data1, data2)
+
+    def test_horizontal_line_data(self):
+        """Test for HorizontalLineData."""
+        data1 = drawing_objects.HorizontalLineData(data_type='test_hline',
+                                                   channel=pulse.DriveChannel(0),
+                                                   y0=0,
+                                                   meta={'test_val': 0},
+                                                   offset=0,
+                                                   scale=1,
+                                                   visible=True,
+                                                   styles={'color': 'red'})
+
+        data2 = drawing_objects.HorizontalLineData(data_type='test_hline',
+                                                   channel=pulse.DriveChannel(0),
+                                                   y0=0,
+                                                   meta={'test_val': 1},
+                                                   offset=1,
+                                                   scale=2,
+                                                   visible=False,
+                                                   styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
 
@@ -411,12 +474,11 @@ class TestGenerators(QiskitTestCase):
         obj = generators.gen_baseline(channel_info)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.LineData)
+        self.assertEqual(type(obj), drawing_objects.HorizontalLineData)
 
         # data check
         self.assertEqual(obj.channel, pulse.DriveChannel(0))
-        self.assertEqual(obj.x, None)
-        self.assertEqual(obj.y, 0)
+        self.assertEqual(obj.y0, 0)
 
         # style check
         ref_style = {'alpha': self.style['formatter.alpha.baseline'],
@@ -623,14 +685,13 @@ class TestGenerators(QiskitTestCase):
         self.assertEqual(len(lines), 2)
 
         # type check
-        self.assertEqual(type(lines[0]), drawing_objects.LineData)
-        self.assertEqual(type(lines[1]), drawing_objects.LineData)
+        self.assertEqual(type(lines[0]), drawing_objects.VerticalLineData)
+        self.assertEqual(type(lines[1]), drawing_objects.VerticalLineData)
 
         # data check
         self.assertEqual(lines[0].channel, pulse.channels.DriveChannel(0))
         self.assertEqual(lines[1].channel, pulse.channels.ControlChannel(0))
-        self.assertEqual(lines[0].x, 5)
-        self.assertEqual(lines[0].y, None)
+        self.assertEqual(lines[0].x0, 5)
 
         # style check
         ref_style = {'alpha': self.style['formatter.alpha.barrier'],
@@ -639,3 +700,131 @@ class TestGenerators(QiskitTestCase):
                      'linestyle': self.style['formatter.line_style.barrier'],
                      'color': self.style['formatter.color.barrier']}
         self.assertDictEqual(lines[0].styles, ref_style)
+
+
+class TestDrawDataContainer(QiskitTestCase):
+    """Tests for draw data container."""
+
+    def setUp(self) -> None:
+        # draw only waveform, fc symbol, channel name, scaling, baseline, snapshot and barrier
+        default_style = stylesheet.init_style_from_file()
+        callbacks_for_test = {
+            'generator': {
+                'waveform': [generators.gen_filled_waveform_stepwise],
+                'frame': [generators.gen_frame_symbol],
+                'channel': [generators.gen_latex_channel_name,
+                            generators.gen_scaling_info,
+                            generators.gen_baseline],
+                'snapshot': [generators.gen_snapshot_symbol],
+                'barrier': [generators.gen_barrier]
+            },
+            'layout': {
+                'channel': layouts.channel_index_sort_grouped_control
+            }}
+        default_style.style = callbacks_for_test
+        PULSE_STYLE.style = default_style.style
+
+        gaussian = pulse.Gaussian(40, 0.3, 10)
+        square = pulse.Constant(100, 0.2)
+
+        self.sched = pulse.Schedule()
+        self.sched = self.sched.insert(0, pulse.Play(pulse=gaussian,
+                                                     channel=pulse.DriveChannel(0)))
+        self.sched = self.sched.insert(0, pulse.ShiftPhase(phase=np.pi/2,
+                                                           channel=pulse.DriveChannel(0)))
+        self.sched = self.sched.insert(50, pulse.Play(pulse=square,
+                                                      channel=pulse.MeasureChannel(0)))
+        self.sched = self.sched.insert(50, pulse.Acquire(duration=100,
+                                                         channel=pulse.AcquireChannel(0),
+                                                         mem_slot=pulse.MemorySlot(0)))
+
+    def test_loading_backend(self):
+        """Test loading backend."""
+        from qiskit.test.mock import FakeAthens
+
+        config = FakeAthens().configuration()
+        defaults = FakeAthens().defaults()
+
+        ddc = core.DrawDataContainer(backend=FakeAthens())
+
+        # check dt
+        self.assertEqual(ddc.dt, config.dt)
+
+        # check drive los
+        self.assertEqual(ddc.d_los[0], defaults.qubit_freq_est[0])
+
+        # check measure los
+        self.assertEqual(ddc.m_los[0], defaults.meas_freq_est[0])
+
+        # check control los
+        self.assertEqual(ddc.c_los[0], defaults.qubit_freq_est[1])
+
+    def test_simple_sched_loading(self):
+        """Test data generation with simple schedule."""
+
+        ddc = core.DrawDataContainer()
+        ddc.load_program(self.sched)
+
+        # 4 waveform shapes (re, im of gaussian, re of square, re of acquire)
+        # 3 channel names
+        # 1 fc symbol
+        # 3 baselines
+        self.assertEqual(len(ddc.drawings), 11)
+
+    def test_simple_sched_reloading(self):
+        """Test reloading of the same schedule."""
+        ddc = core.DrawDataContainer()
+        ddc.load_program(self.sched)
+
+        # the same data should be overwritten
+        list_drawing1 = ddc.drawings.copy()
+        list_drawing2 = ddc.drawings.copy()
+
+        self.assertListEqual(list_drawing1, list_drawing2)
+
+    def test_update_channels(self):
+        """Test update channels."""
+        ddc = core.DrawDataContainer()
+        ddc.load_program(self.sched)
+
+        ddc.update_channel_property()
+
+        # 2 scale factors are added for d channel and m channel
+        self.assertEqual(len(ddc.drawings), 13)
+
+        d_scale = 1 / 0.3
+        m_scale = 1 / 0.2
+        a_scale = 1
+
+        # check if auto scale factor is correct
+        for drawing in ddc.drawings:
+            if drawing.channel == pulse.DriveChannel(0):
+                self.assertAlmostEqual(drawing.scale, d_scale, places=1)
+            elif drawing.channel == pulse.MeasureChannel(0):
+                self.assertAlmostEqual(drawing.scale, m_scale, places=1)
+            elif drawing.channel == pulse.AcquireChannel(0):
+                self.assertAlmostEqual(drawing.scale, a_scale, places=1)
+
+    def test_update_channels_only_drive_channel(self):
+        """Test update channels."""
+        ddc = core.DrawDataContainer()
+        ddc.load_program(self.sched)
+
+        # update
+        ddc.update_channel_property(visible_channels=[pulse.DriveChannel(0)])
+
+        # 1 scale factor is added for d channel
+        self.assertEqual(len(ddc.drawings), 12)
+
+        # check if visible is updated
+        for drawing in ddc.drawings:
+            if drawing.channel == pulse.DriveChannel(0):
+                self.assertTrue(drawing.visible)
+            else:
+                self.assertFalse(drawing.visible)
+
+
+
+
+
+

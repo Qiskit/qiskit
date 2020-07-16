@@ -308,7 +308,7 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
 
 
 def gen_baseline(channel_data: data_types.ChannelTuple) \
-        -> List[drawing_objects.LineData]:
+        -> List[drawing_objects.HorizontalLineData]:
     r"""Generate baseline associated with the channel.
 
     The `baseline` style is applied.
@@ -317,7 +317,7 @@ def gen_baseline(channel_data: data_types.ChannelTuple) \
         channel_data: Channel data to draw.
 
     Returns:
-        List of `LineData` drawing objects.
+        List of `HorizontalLineData` drawing objects.
     """
     style = {'alpha': PULSE_STYLE.style['formatter.alpha.baseline'],
              'zorder': PULSE_STYLE.style['formatter.layer.baseline'],
@@ -325,11 +325,10 @@ def gen_baseline(channel_data: data_types.ChannelTuple) \
              'linestyle': PULSE_STYLE.style['formatter.line_style.baseline'],
              'color': PULSE_STYLE.style['formatter.color.baseline']}
 
-    baseline = drawing_objects.LineData(data_type=data_types.DrawingLine.BASELINE,
-                                        channel=channel_data.channel,
-                                        x=None,
-                                        y=0,
-                                        styles=style)
+    baseline = drawing_objects.HorizontalLineData(data_type=data_types.DrawingLine.BASELINE,
+                                                  channel=channel_data.channel,
+                                                  y0=0,
+                                                  styles=style)
 
     return [baseline]
 
@@ -650,7 +649,7 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
 
 
 def gen_barrier(misc_data: data_types.NonPulseTuple) \
-        -> List[Union[drawing_objects.LineData, drawing_objects.TextData]]:
+        -> List[drawing_objects.VerticalLineData]:
     r"""Generate a barrier from provided relative barrier instruction..
 
     The `barrier` style is applied.
@@ -659,7 +658,7 @@ def gen_barrier(misc_data: data_types.NonPulseTuple) \
         misc_data: Snapshot instruction data to draw.
 
     Returns:
-        List of `TextData` drawing objects.
+        List of `VerticalLineData` drawing objects.
     """
 
     if not isinstance(misc_data.inst, pulse.instructions.RelativeBarrier):
@@ -673,11 +672,10 @@ def gen_barrier(misc_data: data_types.NonPulseTuple) \
 
     lines = []
     for chan in misc_data.inst.channels:
-        line = drawing_objects.LineData(data_type=data_types.DrawingLine.BARRIER,
-                                        channel=chan,
-                                        x=misc_data.t0,
-                                        y=None,
-                                        styles=style)
+        line = drawing_objects.VerticalLineData(data_type=data_types.DrawingLine.BARRIER,
+                                                channel=chan,
+                                                x0=misc_data.t0,
+                                                styles=style)
         lines.append(line)
 
     return lines

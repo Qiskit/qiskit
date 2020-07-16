@@ -69,12 +69,11 @@ on top of the existing plotter API, it could be difficult to prevent bugs with t
 due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 
 import numpy as np
 
 from qiskit.pulse import channels
-from qiskit.visualization.exceptions import VisualizationError
 
 
 class ElementaryData(ABC):
@@ -137,7 +136,7 @@ class FilledAreaData(ElementaryData):
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
-                 visible: bool = False,
+                 visible: bool = True,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
 
@@ -184,12 +183,12 @@ class LineData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
-                 x: Optional[Union[np.ndarray, float]],
-                 y: Optional[Union[np.ndarray, float]],
+                 x: np.ndarray,
+                 y: np.ndarray,
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
-                 visible: bool = False,
+                 visible: bool = True,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
 
@@ -197,23 +196,15 @@ class LineData(ElementaryData):
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
-                If `x` is `None`, a horizontal line is drawn at `y`.
             y: Series of vertical coordinate that the object is drawn.
-                If `y` is `None`, a vertical line is drawn at `x`.
             meta: Meta data dictionary of the object.
             offset: Offset coordinate of vertical axis.
             scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
-
-        Raises:
-            VisualizationError: When both `x` and `y` are None.
         """
-        if x is None and y is None:
-            raise VisualizationError('`x` and `y` cannot be None simultaneously.')
-
-        self.x = x if x is not None else np.zeros(0)
-        self.y = y if y is not None else np.zeros(0)
+        self.x = np.array(x, dtype=float)
+        self.y = np.array(y, dtype=float)
 
         super().__init__(data_type=data_type,
                          channel=channel,
@@ -233,6 +224,102 @@ class LineData(ElementaryData):
                          tuple(self.y))))
 
 
+class HorizontalLineData(ElementaryData):
+    """Drawing object to represent object appears as a horizontal line.
+
+    This is the counterpart of `matplotlib.pyploy.axhline`.
+    """
+    def __init__(self,
+                 data_type: str,
+                 channel: channels.Channel,
+                 y0: float,
+                 meta: Optional[Dict[str, Any]] = None,
+                 offset: float = 0,
+                 scale: float = 1,
+                 visible: bool = True,
+                 styles: Optional[Dict[str, Any]] = None):
+        """Create new drawing object of horizontal line data.
+
+        Args:
+            data_type: String representation of this drawing object.
+            channel: Pulse channel object bound to this drawing.
+            y0: A vertical coordinate that the object is drawn.
+            meta: Meta data dictionary of the object.
+            offset: Offset coordinate of vertical axis.
+            scale: Vertical scaling factor of this object.
+            visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
+
+        Raises:
+            VisualizationError: When both `x` and `y` are None.
+        """
+        self.y0 = y0
+
+        super().__init__(data_type=data_type,
+                         channel=channel,
+                         meta=meta,
+                         offset=offset,
+                         scale=scale,
+                         visible=visible,
+                         styles=styles)
+
+    @property
+    def data_key(self):
+        """Return unique hash of this object."""
+        return str(hash((self.__class__.__name__,
+                         self.data_type,
+                         self.channel,
+                         self.y0)))
+
+
+class VerticalLineData(ElementaryData):
+    """Drawing object to represent object appears as a vertical line.
+
+    This is the counterpart of `matplotlib.pyploy.axvline`.
+    """
+    def __init__(self,
+                 data_type: str,
+                 channel: channels.Channel,
+                 x0: float,
+                 meta: Optional[Dict[str, Any]] = None,
+                 offset: float = 0,
+                 scale: float = 1,
+                 visible: bool = True,
+                 styles: Optional[Dict[str, Any]] = None):
+        """Create new drawing object of vertical line data.
+
+        Args:
+            data_type: String representation of this drawing object.
+            channel: Pulse channel object bound to this drawing.
+            x0: A horizontal coordinate that the object is drawn.
+            meta: Meta data dictionary of the object.
+            offset: Offset coordinate of vertical axis.
+            scale: Vertical scaling factor of this object.
+            visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
+
+        Raises:
+            VisualizationError: When both `x` and `y` are None.
+        """
+        self.x0 = x0
+
+        super().__init__(data_type=data_type,
+                         channel=channel,
+                         meta=meta,
+                         offset=offset,
+                         scale=scale,
+                         visible=visible,
+                         styles=styles)
+
+    @property
+    def data_key(self):
+        """Return unique hash of this object."""
+        return str(hash((self.__class__.__name__,
+                         self.data_type,
+                         self.channel,
+                         self.x0)))
+
+
 class TextData(ElementaryData):
     """Drawing object to represent object appears as a text.
 
@@ -248,7 +335,7 @@ class TextData(ElementaryData):
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
-                 visible: bool = False,
+                 visible: bool = True,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of text data.
 

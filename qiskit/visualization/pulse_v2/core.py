@@ -49,6 +49,12 @@ class DrawDataContainer:
         self.drawings = []
         self.chan_event_table = dict()
 
+        # boundary box
+        self.bbox_top = 0
+        self.bbox_bottom = 0
+        self.bbox_left = 0
+        self.bbox_right = 0
+
         # load default settings
         if backend is not None:
             self._load_iqx_backend(backend)
@@ -114,6 +120,9 @@ class DrawDataContainer:
                 self.chan_event_table[chan] = chan_event
                 self.channels.add(chan)
 
+        # update time range
+        self.set_time_range(0, program.duration)
+
         # generate drawing objects
         for chan, chan_event in self.chan_event_table.items():
             # create drawing objects for waveform
@@ -146,31 +155,60 @@ class DrawDataContainer:
                 for drawing in gen(inst_data):
                     self._replace_drawing(drawing)
 
+    def set_time_range(self,
+                       t_start: Union[int, float],
+                       t_end: Union[int, float]):
+
+        # convert into nearest cycle time
+        if isinstance(t_start, float):
+            if self.dt is not None:
+                t_start = int(t_start / self.dt)
+            else:
+                raise VisualizationError('Floating valued start time %f seems to be in ',
+                                         'units of sec but dt is not specified.' % t_start)
+        # convert into nearest cycle time
+        if isinstance(t_end, float):
+            if self.dt is not None:
+                t_end = int(t_end / self.dt)
+            else:
+                raise VisualizationError('Floating valued end time %f seems to be in ',
+                                         'units of sec but dt is not specified.' % t_end)
+
+        duration = t_end - t_start
+
+        self.bbox_left = t_start - int(duration * PULSE_STYLE.style['formatter.margin.left'])
+        self.bbox_right = t_end + int(duration * PULSE_STYLE.style['formatter.margin.right'])
+
     def update_channel_property(self,
-                                visible_channels: List[pulse.channels.Channel],
-                                channel_scales: Dict[pulse.channels.Channel, float],
-                                time_range: Tuple[int, int]):
+                                visible_channels: Optional[List[pulse.channels.Channel]] = None,
+                                scales: Optional[Dict[pulse.channels.Channel, float]] = None):
+        scales = scales or dict()
 
         # arrange channels to show
         ordered_channels = self._ordered_channels(visible_channels)
 
-        # reset visible property
-        for drawing in self.drawings:
-            drawing.visible = False
+        # new properties
+        chan_visible = {chan: False for chan in self.channels}
+        chan_offset = {chan: 0.0 for chan in self.channels}
+        chan_scale = {chan: 1.0 for chan in self.channels}
 
         # update channel property
+        time_range = (self.bbox_left, self.bbox_right)
         y0 = - PULSE_STYLE.style['formatter.margin.top']
         y0_interval = PULSE_STYLE.style['formatter.margin.between_channel']
         for chan in ordered_channels:
+
             min_v, max_v = self.chan_event_table[chan].get_min_max(time_range)
+            min_v = min(PULSE_STYLE.style['formatter.channel_scaling.min_height'], min_v)
+            max_v = max(PULSE_STYLE.style['formatter.channel_scaling.max_height'], max_v)
 
             # calculate scaling
-            if chan in channel_scales:
+            if chan in scales:
                 # channel is specified by user
-                scale = channel_scales[chan]
-            elif type(chan) in channel_scales:
+                scale = scales[chan]
+            elif type(chan) in scales:
                 # channel type is specified by user
-                scale = channel_scales[type(chan)]
+                scale = scales[type(chan)]
             elif PULSE_STYLE.style['formatter.control.auto_channel_scaling']:
                 # auto scaling is enabled
                 max_abs_val = max(abs(max_v), abs(min_v))
@@ -188,28 +226,33 @@ class DrawDataContainer:
                 else:
                     scale = 1.0
 
-            # apply upper boundary
-            scale = min(scale, PULSE_STYLE.style['formatter.channel_scaling.max_factor'])
-
             # calculate offset coordinate
             offset = y0 - scale * max_v
 
+            # update properties
+            chan_visible[chan] = True
+            chan_offset[chan] = offset
+            chan_scale[chan] = scale
+
+            y0 -= scale * min_v + y0_interval
+
+        # update drawing objects
+        for chan in self.channels:
             # update channel info to replace scaling factor
-            chan_info = data_types.ChannelTuple(chan, scale)
+            chan_info = data_types.ChannelTuple(chan, chan_scale.get(chan, 1.0))
             for gen in PULSE_STYLE.style['generator.channel']:
                 for drawing in gen(chan_info):
                     self._replace_drawing(drawing)
 
-            # update drawings belonging to this channel
+            # update existing drawings
             for drawing in self.drawings:
                 if drawing.channel == chan:
-                    drawing.visible = True
-                    drawing.offset = offset
-                    drawing.scale = scale
+                    drawing.visible = chan_visible.get(chan, False)
+                    drawing.offset = chan_offset.get(chan, 0.0)
+                    drawing.scale = chan_scale.get(chan, 1.0)
 
-            y0 -= scale * min_v + y0_interval
-
-        y0 -= PULSE_STYLE.style['formatter.margin.bottom'] - y0_interval
+        # update boundary box
+        self.bbox_bottom = y0 - (PULSE_STYLE.style['formatter.margin.bottom'] - y0_interval)
 
     def _ordered_channels(self,
                           visible_channels: Optional[List[pulse.channels.Channel]] = None):
