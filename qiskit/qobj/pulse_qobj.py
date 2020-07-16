@@ -512,7 +512,7 @@ class PulseQobj:
         self.header = header or QobjHeader()
         self.experiments = experiments
         self.type = 'PULSE'
-        self.schema_version = '1.1.0'
+        self.schema_version = '1.2.0'
 
     def _validate_json_schema(self, out_dict):
         class PulseQobjEncoder(json.JSONEncoder):
