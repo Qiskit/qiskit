@@ -194,9 +194,9 @@ class PulseDefaults:
         """
         self._data = {}
         self.buffer = buffer
-        self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
+        self.qubit_freq_est = qubit_freq_est
         """Qubit frequencies in Hertz."""
-        self.meas_freq_est = [freq * 1e9 for freq in meas_freq_est]
+        self.meas_freq_est = meas_freq_est
         """Measurement frequencies in Hertz."""
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
@@ -245,6 +245,9 @@ class PulseDefaults:
                            'instruction_schedule_map']:
                 out_dict[key] = value
         out_dict.update(self._data)
+
+        out_dict['qubit_freq_est'] = [freq * 1e-9 for freq in self.qubit_freq_est]
+        out_dict['meas_freq_est'] = [freq * 1e-9 for freq in self.meas_freq_est]
         return out_dict
 
     @classmethod
@@ -270,6 +273,14 @@ class PulseDefaults:
         if 'discriminator' in in_data:
             in_data['discriminator'] = Discriminator.from_dict(
                 in_data.pop('discriminator'))
+
+        qubit_freq_est = in_data.get('qubit_freq_est')
+        if qubit_freq_est:
+            in_data['qubit_freq_est'] = [freq * 1e9 for freq in qubit_freq_est]
+
+        meas_freq_est = in_data.get('meas_freq_est')
+        if meas_freq_est:
+            in_data['meas_freq_est'] = [freq * 1e9 for freq in meas_freq_est]
         return cls(**in_data)
 
     def __str__(self):
