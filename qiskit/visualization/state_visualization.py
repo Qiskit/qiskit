@@ -788,7 +788,7 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
                     alfa = 1.0 - yvalue
 
                 if prob > 0 and show_state_labels:
-                    rprime = 1.3
+                    rprime = 1.35
                     angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
                     xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
                     yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
