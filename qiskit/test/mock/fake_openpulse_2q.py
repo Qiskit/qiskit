@@ -48,15 +48,15 @@ class FakeOpenPulse2Q(FakeBackend):
                 [UchannelLO(q=0, scale=1. + 0.j)],
                 [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
             ],
-            qubit_lo_range=[[4.5e9, 5.5e9], [4.5e9, 5.5e9]],
-            meas_lo_range=[[6.0e9, 7.0e9], [6.0e9, 7.0e9]],
-            dt=1.3333e-9,
-            dtm=10.5e-9,
-            rep_times=[100e-6, 250e-6, 500e-6, 1000e-6],
+            qubit_lo_range=[[4.5, 5.5], [4.5, 5.5]],
+            meas_lo_range=[[6.0, 7.0], [6.0, 7.0]],
+            dt=1.3333,
+            dtm=10.5,
+            rep_times=[100, 250, 500, 1000],
             meas_map=[[0, 1]],
             channel_bandwidth=[
-                [-0.2e9, 0.4e9], [-0.3e9, 0.3e9], [-0.3e9, 0.3e9],
-                [-0.02e9, 0.02e9], [-0.02e9, 0.02e9], [-0.02e9, 0.02e9]
+                [-0.2, 0.4], [-0.3, 0.3], [-0.3, 0.3],
+                [-0.02, 0.02], [-0.02, 0.02], [-0.02, 0.02]
             ],
             meas_kernels=['kernel1'],
             discriminators=['max_1Q_fidelity'],

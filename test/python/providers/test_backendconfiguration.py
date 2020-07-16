@@ -34,7 +34,7 @@ class TestBackendConfiguration(QiskitTestCase):
     def test_simple_config(self):
         """Test the most basic getters."""
         self.assertEqual(self.config.dt, 1.3333 * 1.e-9)
-        self.assertAlmostEqual(self.config.dtm, 10.5 * 1.e-9)
+        self.assertEqual(self.config.dtm, 10.5 * 1.e-9)
         self.assertEqual(self.config.basis_gates, ['u1', 'u2', 'u3', 'cx', 'id'])
 
     def test_sample_rate(self):
