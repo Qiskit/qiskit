@@ -27,10 +27,10 @@ from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
-from qiskit.pulse.pulse_lib import gaussian
+from qiskit.pulse.library import gaussian
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.scheduler import measure
+from qiskit.pulse.macros import measure
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
 from qiskit.validation.jsonschema import SchemaValidationError
@@ -349,7 +349,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
-        test_pulse = pulse.SamplePulse(
+        test_pulse = pulse.Waveform(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
             name='pulse0'
         )
@@ -381,13 +381,13 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()
-        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test0'),
+        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
         schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
-        schedule += pulse.Play(pulse.SamplePulse([0.5]*16, name='test0'),
+        schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
         qobj = assemble(schedule,
@@ -590,12 +590,14 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
-        name_conflict_pulse = pulse.SamplePulse(
+        name_conflict_pulse = pulse.Waveform(
             samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
             name='pulse0'
         )
+
         self.schedule = self.schedule.insert(1, Play(name_conflict_pulse,
                                                      self.backend_config.drive(1)))
+
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -685,7 +687,7 @@ class TestPulseAssembler(QiskitTestCase):
             0.5j)
 
     def test_assemble_parametric_unsupported(self):
-        """Test that parametric pulses are translated to SamplePulses if they're not supported
+        """Test that parametric pulses are translated to Waveform if they're not supported
         by the backend during assemble time.
         """
         sched = pulse.Schedule(name='test_parametric_to_sample_pulse')
@@ -726,14 +728,14 @@ class TestPulseAssembler(QiskitTestCase):
         # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend)
-        self.assertEqual(round(qobj.config.rep_time, 3), rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delays[0]*1e6)
 
         # remove rep_delays from backend config and make sure things work
         # now no warning
         del self.backend_config.rep_delays
         qobj = assemble(self.schedule, self.backend)
-        self.assertEqual(round(qobj.config.rep_time, 3), rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
     def test_assemble_user_rep_time_delay(self):
@@ -746,7 +748,7 @@ class TestPulseAssembler(QiskitTestCase):
         # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates not enabled
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, rep_time*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
         # now remove rep_delay and set enable dynamic rep rates
@@ -755,7 +757,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.backend_config.dynamic_reprate_enabled = True
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, rep_time*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
         # finally, only use rep_delay and verify that everything runs w/ no warning
@@ -765,7 +767,7 @@ class TestPulseAssembler(QiskitTestCase):
         del self.config['rep_time']
         self.config['rep_delay'] = rep_delay
         qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, rep_times[0]*1e6)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
 

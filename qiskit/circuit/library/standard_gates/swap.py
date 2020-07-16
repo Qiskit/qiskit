@@ -60,17 +60,18 @@ class SwapGate(Gate):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SWAP gate.
@@ -218,17 +219,18 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
           cx c,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate, CCXGate
-        definition = []
         q = QuantumRegister(3, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[2], q[1]], []),
             (CCXGate(), [q[0], q[1], q[2]], []),
             (CXGate(), [q[2], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc.data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse CSwap gate (itself)."""

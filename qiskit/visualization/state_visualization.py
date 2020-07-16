@@ -22,7 +22,8 @@ Visualization functions for quantum states.
 from functools import reduce
 import colorsys
 import numpy as np
-from scipy import linalg
+import scipy.linalg as la
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from qiskit.circuit.tools.pi_check import pi_check
 from .matplotlib import HAS_MATPLOTLIB
@@ -639,8 +640,8 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
     the phase.
 
     Args:
-        rho (ndarray): State vector or density matrix representation.
-            of quantum state.
+        rho (ndarray): State vector or density matrix representation of
+            quantum state.
         figsize (tuple): Figure size in inches.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
@@ -659,6 +660,8 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
     Raises:
         ImportError: Requires matplotlib.
 
+        QiskitError: Input statevector does not have valid dimensions.
+
     Example:
         .. jupyter-execute::
 
@@ -666,14 +669,14 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
            from qiskit.visualization import plot_state_qsphere
            %matplotlib inline
 
-           qc = QuantumCircuit(2, 2)
+           qc = QuantumCircuit(2)
+           qc.x(0)
            qc.h(0)
            qc.cx(0, 1)
-           qc.measure([0, 1], [0, 1])
 
            backend = BasicAer.get_backend('statevector_simulator')
            job = execute(qc, backend).result()
-           plot_state_qsphere(job.get_statevector(qc))
+           plot_state_qsphere(job.get_statevector(qc), show_state_phases=True)
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
@@ -683,13 +686,25 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
     except ImportError:
         raise ImportError('Must have seaborn installed to use '
                           'plot_state_qsphere. To install, run "pip install seaborn".')
-    rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 7)
-    num = int(np.log2(len(rho)))
 
-    # get the eigenvectors and eigenvalues
-    we, stateall = linalg.eigh(rho)
+    IS_DM = False
+    # Input is a DM
+    if len(rho.shape) == 2:
+        rho = _validate_input_state(rho)
+        IS_DM = True
+    else:
+        if np.log2(rho.shape[0]) % 1:
+            raise QiskitError('Incorrect statevector dimensions.')
+    num = int(np.log2(rho.shape[0]))
+
+    # Do eigendecomposition if input is DM
+    if IS_DM:
+        eigvals, eigvecs = la.eigh(rho)
+    else:
+        eigvals = np.array([1])
+        eigvecs = rho
 
     if ax is None:
         return_fig = True
@@ -707,57 +722,47 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
 
-    for _ in range(2 ** num):
-        # start with the max
-        probmix = we.max()
-        prob_location = we.argmax()
-        if probmix > 0.001:
+    # start the plotting
+    # Plot semi-transparent sphere
+    u = np.linspace(0, 2 * np.pi, 25)
+    v = np.linspace(0, np.pi, 25)
+    x = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    z = np.outer(np.ones(np.size(u)), np.cos(v))
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
+                    alpha=0.05, linewidth=0)
+
+    # Get rid of the panes
+    ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+
+    # Get rid of the spines
+    ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+
+    # Get rid of the ticks
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+
+    # traversing the eigvals/vecs backward as sorted low->high
+    for idx in range(eigvals.shape[0]-1, -1, -1):
+        if eigvals[idx] > 0.001:
             # get the max eigenvalue
-            state = stateall[:, prob_location]
-            loc = np.absolute(state).argmax()
-
-            # get the element location closes to lowest bin representation.
-            for j in range(2 ** num):
-                test = np.absolute(np.absolute(state[j]) -
-                                   np.absolute(state[loc]))
-                if test < 0.001:
-                    loc = j
-                    break
-
-            # remove the global phase
-            angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
-            angleset = np.exp(-1j * angles)
-            state = angleset * state
-            state.flatten()
-
-            # start the plotting
-            # Plot semi-transparent sphere
-            u = np.linspace(0, 2 * np.pi, 25)
-            v = np.linspace(0, np.pi, 25)
-            x = np.outer(np.cos(u), np.sin(v))
-            y = np.outer(np.sin(u), np.sin(v))
-            z = np.outer(np.ones(np.size(u)), np.cos(v))
-            ax.plot_surface(x, y, z, rstride=1, cstride=1, color='k',
-                            alpha=0.05, linewidth=0)
-
-            # Get rid of the panes
-            ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
-            # Get rid of the spines
-            ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-            ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-
-            # Get rid of the ticks
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_zticks([])
+            if IS_DM:
+                state = eigvecs[:, idx]
+                loc = np.absolute(state).argmax()
+                # remove the global phase from max element
+                angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
+                angleset = np.exp(-1j * angles)
+                state = angleset * state
+            else:
+                state = eigvecs
 
             d = num
             for i in range(2 ** num):
-
                 # get x,y,z points
                 element = bin(i)[2:].zfill(num)
                 weight = element.count("1")
@@ -822,11 +827,10 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
             ax.plot([0], [0], [0], markerfacecolor=(.5, .5, .5),
                     markeredgecolor=(.5, .5, .5), marker='o', markersize=3,
                     alpha=1)
-            we[prob_location] = 0
         else:
             break
 
-    n = 32
+    n = 64
     theta = np.ones(n)
 
     ax2 = fig.add_subplot(gs[2:, 2:])

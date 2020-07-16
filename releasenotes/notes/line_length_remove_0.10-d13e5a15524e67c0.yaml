@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    In 0.10 the parameter ``line_length`` in the method ``QuantumCircuit.draw`` was deprecated.
+    This parameter is being removed.
