@@ -50,7 +50,6 @@ version = ''
 release = '0.19.6'
 
 # -- General configuration ---------------------------------------------------
-
 # If your documentation needs a minimal Sphinx version, state it here.
 #
 # needs_sphinx = '1.0'
