@@ -276,7 +276,7 @@ class EventsOutputChannels:
         return events_in_time_range
 
 
-class SamplePulseDrawer:
+class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
     def __init__(self, style: PulseStyle):
