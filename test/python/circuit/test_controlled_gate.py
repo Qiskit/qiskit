@@ -805,7 +805,6 @@ class TestControlledGate(QiskitTestCase):
         # create controlled composite gate
         cqreg = QuantumRegister(3)
         qc = QuantumCircuit(cqreg)
-        
         qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
         dag = circuit_to_dag(qc)
         unroller = Unroller(['x', 'u1', 'cbell'])
