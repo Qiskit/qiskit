@@ -15,18 +15,47 @@
 r"""
 Core module of the pulse drawer.
 
+This module provides `DrawDataContainer` which is a collection of drawing objects
+with additional information such as the modulation frequency and the time resolution.
+However, this instance also performs the simple data processing such as channel arrangement
+and auto scaling of channels before passing the drawing objects to the plotters.
+
+This class is initialized with backend instance which plays the schedule,
+then the schedule is loaded and channel information is updated:
+
+    ```python
+    ddc = DrawDataContainer(backend)
+    ddc.load_program(sched)
+    ddc.update_channel_property()
+    ```
+
+If the `DrawDataContainer` is initialized without arguments, the output shows
+the time axis in units of system cycle time `dt`, and the frequencies are initialized to zero.
+
+This module is expected to be called by the pulse drawer interface,
+so user don't need to know the behavior of this instance.
+
+The `DrawDataContainer` takes the schedule and convert it into drawing objects, then each plotter
+interface takes the drawing objects from the container to call the plotter's API.
+The generated drawing objects can be accessed from
+
+    ```python
+    ddc.drawings
+    ```
+
+This module can be commonly used among different plotters.
 """
 
-from typing import Union, Optional, Dict, List, Tuple
+from typing import Union, Optional, Dict, List
 
 from qiskit import pulse
-from qiskit.visualization.pulse_v2 import events, data_types, drawing_objects, PULSE_STYLE
-from qiskit.visualization.exceptions import VisualizationError
 from qiskit.providers import BaseBackend
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.pulse_v2 import events, data_types, drawing_objects, PULSE_STYLE
 
 
 class DrawDataContainer:
-    """aaa"""
+    """Data container for drawing objects."""
 
     _draw_channels = tuple((pulse.DriveChannel,
                             pulse.ControlChannel,
@@ -39,7 +68,23 @@ class DrawDataContainer:
                  control_los: Optional[Dict[int, float]] = None,
                  measure_los: Optional[Dict[int, float]] = None,
                  backend: Optional[BaseBackend] = None):
-        """aaa"""
+        """Create new data container with backend system information.
+
+        Args:
+            dt: Time resolution of this system in units of sec. If this is provided along
+                with the `backend`, the extracted property is overwritten by this input.
+            drive_los: Dictionary of local oscillator (modulation) frequencies
+                of drive channels. If this is provided along with the `backend`,
+                the extracted property is overwritten by this input.
+            control_los: Dictionary of local oscillator (modulation) frequencies
+                of control channels. If this is provided along with the `backend`,
+                the extracted property is overwritten by this input.
+            measure_los: Dictionary of local oscillator (modulation) frequencies
+                of measure channels. If this is provided along with the `backend`,
+                the extracted property is overwritten by this input.
+            backend: Backend object to play the schedule. If this is provided,
+                the time resolution and frequencies are automatically extracted.
+        """
 
         self.dt = None
         self.d_los = dict()
@@ -74,6 +119,17 @@ class DrawDataContainer:
 
     def _load_iqx_backend(self,
                           backend: BaseBackend):
+        """A helper function to extract system property from IQX backend instance.
+
+        Notes:
+            The modulation frequencies of control channels should be defined in terms of
+            the modulation frequencies of drive channels. This is the syntax of
+            IQX backends. If the backend is provided by a third party provider,
+            this function may crash or may return wrong frequency values.
+
+        Args:
+            backend: Backend object to play the schedule.
+        """
         configuration = backend.configuration()
         defaults = backend.defaults()
 
@@ -90,6 +146,11 @@ class DrawDataContainer:
             self.c_los[ind] = temp_val.real
 
     def load_program(self, program: Union[pulse.Waveform, pulse.Schedule]):
+        """Load a program to draw.
+
+        Args:
+            program: `Waveform` or `Schedule` to draw.
+        """
         if isinstance(program, pulse.Schedule):
             self._schedule_loader(program)
         elif isinstance(program, pulse.Waveform):
@@ -99,11 +160,25 @@ class DrawDataContainer:
 
     @staticmethod
     def _waveform_loader(program: pulse.Waveform):
-        """aaa"""
-        return 0
+        """Load Waveform instance.
+
+        This function is sub-routine of py:method:`load_program`.
+
+        Args:
+            program: `Waveform` to draw.
+        """
+        # TODO: implement this
+
+        pass
 
     def _schedule_loader(self, program: pulse.Schedule):
-        """aaa"""
+        """Load Schedule instance.
+
+        This function is sub-routine of py:method:`load_program`.
+
+        Args:
+            program: `Schedule` to draw.
+        """
         # load program by channel
         for chan in program.channels:
             if isinstance(chan, self._draw_channels):
@@ -158,7 +233,14 @@ class DrawDataContainer:
     def set_time_range(self,
                        t_start: Union[int, float],
                        t_end: Union[int, float]):
+        """Set time range to draw.
 
+        The update to time range is applied after py:method`update_channel_property` is called.
+
+        Args:
+            t_start: Left boundary of drawing in units of cycle time or real time.
+            t_end: Right boundary of drawing in units of cycle time or real time.
+        """
         # convert into nearest cycle time
         if isinstance(t_start, float):
             if self.dt is not None:
@@ -182,6 +264,19 @@ class DrawDataContainer:
     def update_channel_property(self,
                                 visible_channels: Optional[List[pulse.channels.Channel]] = None,
                                 scales: Optional[Dict[pulse.channels.Channel, float]] = None):
+        """Update channel properties.
+
+        This function updates channels to show and the scaling factor of each channel.
+        Drawing objects generated by `generator.channel` is regenerated and replaced
+        according to the input channel preferences.
+        The `visible`, `scale` and `offset` attribute of each drawing object is also updated.
+
+        This function enables a plotter to dynamically update appearance of output image.
+
+        Args:
+            visible_channels: List of channels to show.
+            scales: Dictionary of scaling factor of channels.
+        """
         scales = scales or dict()
 
         # arrange channels to show
@@ -197,10 +292,7 @@ class DrawDataContainer:
         y0 = - PULSE_STYLE.style['formatter.margin.top']
         y0_interval = PULSE_STYLE.style['formatter.margin.between_channel']
         for chan in ordered_channels:
-
             min_v, max_v = self.chan_event_table[chan].get_min_max(time_range)
-            min_v = min(PULSE_STYLE.style['formatter.channel_scaling.min_height'], min_v)
-            max_v = max(PULSE_STYLE.style['formatter.channel_scaling.max_height'], max_v)
 
             # calculate scaling
             if chan in scales:
@@ -212,7 +304,10 @@ class DrawDataContainer:
             elif PULSE_STYLE.style['formatter.control.auto_channel_scaling']:
                 # auto scaling is enabled
                 max_abs_val = max(abs(max_v), abs(min_v))
-                scale = 1 / max_abs_val
+                if max_abs_val < 1e-6:
+                    scale = 1.0
+                else:
+                    scale = 1 / max_abs_val
             else:
                 # not specified by user, no auto scale, then apply default scaling
                 if isinstance(chan, pulse.DriveChannel):
@@ -226,15 +321,19 @@ class DrawDataContainer:
                 else:
                     scale = 1.0
 
+            # keep minimum space
+            _min_v = min(PULSE_STYLE.style['formatter.channel_scaling.min_height'], scale * min_v)
+            _max_v = max(PULSE_STYLE.style['formatter.channel_scaling.max_height'], scale * max_v)
+
             # calculate offset coordinate
-            offset = y0 - scale * max_v
+            offset = y0 - _max_v
 
             # update properties
             chan_visible[chan] = True
             chan_offset[chan] = offset
             chan_scale[chan] = scale
 
-            y0 -= scale * min_v + y0_interval
+            y0 = offset - (abs(_min_v) + y0_interval)
 
         # update drawing objects
         for chan in self.channels:
@@ -256,6 +355,13 @@ class DrawDataContainer:
 
     def _ordered_channels(self,
                           visible_channels: Optional[List[pulse.channels.Channel]] = None):
+        """A helper function to create a list of channels to show.
+
+        Args:
+            visible_channels: List of channels to show.
+                If not provided, the default channel list is created from the
+                stylesheet preference.
+        """
 
         if visible_channels is None:
             channels = []
@@ -279,7 +385,15 @@ class DrawDataContainer:
 
     def _replace_drawing(self,
                          drawing: drawing_objects.ElementaryData):
+        """A helper function to add drawing object.
 
+        If the given drawing object exists in the data container,
+        this function just replaces the existing object with the given object
+        instead of adding it to the list.
+
+        Args:
+            drawing: Drawing object to add to the container.
+        """
         if drawing in self.drawings:
             ind = self.drawings.index(drawing)
             self.drawings[ind] = drawing

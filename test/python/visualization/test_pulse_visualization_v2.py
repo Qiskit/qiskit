@@ -702,6 +702,73 @@ class TestGenerators(QiskitTestCase):
         self.assertDictEqual(lines[0].styles, ref_style)
 
 
+class TestLayout(QiskitTestCase):
+    """Tests for layout generation functions."""
+
+    def setUp(self) -> None:
+        self.channels = [pulse.DriveChannel(0),
+                         pulse.DriveChannel(1),
+                         pulse.DriveChannel(2),
+                         pulse.MeasureChannel(1),
+                         pulse.MeasureChannel(2),
+                         pulse.AcquireChannel(1),
+                         pulse.AcquireChannel(2),
+                         pulse.ControlChannel(0),
+                         pulse.ControlChannel(2),
+                         pulse.ControlChannel(5)]
+
+    def test_channel_type_grouped_sort(self):
+        """Test channel_type_grouped_sort."""
+        channels = layouts.channel_type_grouped_sort(self.channels)
+
+        ref_channels = [pulse.DriveChannel(0),
+                        pulse.DriveChannel(1),
+                        pulse.DriveChannel(2),
+                        pulse.ControlChannel(0),
+                        pulse.ControlChannel(2),
+                        pulse.ControlChannel(5),
+                        pulse.MeasureChannel(1),
+                        pulse.MeasureChannel(2),
+                        pulse.AcquireChannel(1),
+                        pulse.AcquireChannel(2)]
+
+        self.assertListEqual(channels, ref_channels)
+
+    def test_channel_index_sort(self):
+        """Test channel_index_sort."""
+        channels = layouts.channel_index_sort(self.channels)
+
+        ref_channels = [pulse.DriveChannel(0),
+                        pulse.ControlChannel(0),
+                        pulse.DriveChannel(1),
+                        pulse.MeasureChannel(1),
+                        pulse.AcquireChannel(1),
+                        pulse.DriveChannel(2),
+                        pulse.ControlChannel(2),
+                        pulse.MeasureChannel(2),
+                        pulse.AcquireChannel(2),
+                        pulse.ControlChannel(5)]
+
+        self.assertListEqual(channels, ref_channels)
+
+    def test_channel_index_sort_grouped_control(self):
+        """Test channel_index_sort_grouped_control."""
+        channels = layouts.channel_index_sort_grouped_control(self.channels)
+
+        ref_channels = [pulse.DriveChannel(0),
+                        pulse.DriveChannel(1),
+                        pulse.MeasureChannel(1),
+                        pulse.AcquireChannel(1),
+                        pulse.DriveChannel(2),
+                        pulse.MeasureChannel(2),
+                        pulse.AcquireChannel(2),
+                        pulse.ControlChannel(0),
+                        pulse.ControlChannel(2),
+                        pulse.ControlChannel(5)]
+
+        self.assertListEqual(channels, ref_channels)
+
+
 class TestDrawDataContainer(QiskitTestCase):
     """Tests for draw data container."""
 
@@ -796,17 +863,28 @@ class TestDrawDataContainer(QiskitTestCase):
         m_scale = 1 / 0.2
         a_scale = 1
 
+        top_margin = PULSE_STYLE.style['formatter.margin.top']
+        interval = PULSE_STYLE.style['formatter.margin.between_channel']
+        min_h = np.abs(PULSE_STYLE.style['formatter.channel_scaling.min_height'])
+
+        d_offset = - (top_margin + 1)
+        m_offset = - (top_margin + 1 + min_h + interval + 1)
+        a_offset = - (top_margin + 1 + min_h + interval + 1 + min_h + interval + 1)
+
         # check if auto scale factor is correct
         for drawing in ddc.drawings:
             if drawing.channel == pulse.DriveChannel(0):
                 self.assertAlmostEqual(drawing.scale, d_scale, places=1)
+                self.assertAlmostEqual(drawing.offset, d_offset, places=1)
             elif drawing.channel == pulse.MeasureChannel(0):
                 self.assertAlmostEqual(drawing.scale, m_scale, places=1)
+                self.assertAlmostEqual(drawing.offset, m_offset, places=1)
             elif drawing.channel == pulse.AcquireChannel(0):
                 self.assertAlmostEqual(drawing.scale, a_scale, places=1)
+                self.assertAlmostEqual(drawing.offset, a_offset, places=1)
 
     def test_update_channels_only_drive_channel(self):
-        """Test update channels."""
+        """Test update channels with filtered channels."""
         ddc = core.DrawDataContainer()
         ddc.load_program(self.sched)
 
@@ -823,8 +901,26 @@ class TestDrawDataContainer(QiskitTestCase):
             else:
                 self.assertFalse(drawing.visible)
 
+    def test_snapshot(self):
+        """Test snapshot instructions."""
+        ddc = core.DrawDataContainer()
 
+        sched = pulse.Schedule()
+        sched = sched.insert(0, pulse.Snapshot(label='test'))
 
+        ddc.load_program(sched)
 
+        # only snapshot symbol and label text
+        self.assertEqual(len(ddc.drawings), 2)
 
+    def test_relative_barrier(self):
+        """Test relative barrier instructions."""
+        ddc = core.DrawDataContainer()
 
+        sched = pulse.Schedule()
+        sched = sched.insert(0, pulse.instructions.RelativeBarrier(pulse.DriveChannel(0)))
+
+        ddc.load_program(sched)
+
+        # barrier line, baseline, channel name
+        self.assertEqual(len(ddc.drawings), 3)

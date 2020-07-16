@@ -93,7 +93,6 @@
     "barrier": "None"
   },
   "layout": {
-    "channel": "None",
-    "time_axis": "None"
+    "channel": "None"
   }
 }

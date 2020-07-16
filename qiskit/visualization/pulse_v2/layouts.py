@@ -15,7 +15,27 @@
 r"""
 A collection of functions that decide layout of figure.
 
+Currently this module provides functions to arrange the order of channels.
 
+An end-user can write arbitrary functions with the following function signature:
+
+    ```python
+    def my_channel_layout(channels: List[Channel]) -> List[Channel]:
+        ordered_channels = []
+        # arrange order of channels
+
+        return ordered_channels
+    ```
+
+The user-defined arrangement process can be assigned to the layout of the stylesheet:
+
+    ```python
+    my_custom_style = {
+        'layout': {'channel': my_channel_layout}
+    }
+    ```
+
+The user can set the custom stylesheet to the drawer interface.
 """
 
 from qiskit import pulse
@@ -28,7 +48,13 @@ from collections import defaultdict
 
 def channel_type_grouped_sort(channels: List[pulse.channels.Channel]) \
         -> List[pulse.channels.Channel]:
-    """
+    """Group channels into each type and arrange them in ascending order.
+
+    For example:
+        [D0, D2, C0, C2, M0, M2, A0, A2] -> [D0, D2, C0, C2, M0, M2, A0, A2]
+
+    Args:
+        channels: Channels to show.
     """
     chan_type_dict = defaultdict(list)
 
@@ -58,7 +84,13 @@ def channel_type_grouped_sort(channels: List[pulse.channels.Channel]) \
 
 def channel_index_sort(channels: List[pulse.channels.Channel]) \
         -> List[pulse.channels.Channel]:
-    """
+    """Arrange channels in ascending order.
+
+    For example:
+        [D0, D2, C0, C2, M0, M2, A0, A2] -> [D0, C0, M0, A0, D2, C2, M2, A2]
+
+    Args:
+        channels: Channels to show.
     """
     chan_type_dict = defaultdict(list)
     inds = set()
@@ -100,7 +132,14 @@ def channel_index_sort(channels: List[pulse.channels.Channel]) \
 
 def channel_index_sort_grouped_control(channels: List[pulse.channels.Channel]) \
         -> List[pulse.channels.Channel]:
-    """
+    """Arrange channels in ascending order, but control channels are grouped and
+    added to the end of the list.
+
+    For example:
+        [D0, D2, C0, C2, M0, M2, A0, A2] -> [D0, M0, A0, D2, M2, A2, C0, C2]
+
+    Args:
+        channels: Channels to show.
     """
     chan_type_dict = defaultdict(list)
     inds = set()
