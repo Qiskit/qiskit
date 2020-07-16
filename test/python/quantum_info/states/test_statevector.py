@@ -845,6 +845,18 @@ class TestStatevector(QiskitTestCase):
             value = Statevector.from_int(8, (3, 3))
             self.assertEqual(target, value)
 
+    def test_expval(self):
+        """Test expectation_value method"""
+
+        psi = Statevector([1, 0, 0, 1]) / np.sqrt(2)
+        for label, target in [
+                ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
+                ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Operator.from_label(label)
+                expval = psi.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
+
 
 if __name__ == '__main__':
     unittest.main()
