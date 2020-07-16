@@ -16,7 +16,6 @@
 
 import copy
 import datetime
-from types import SimpleNamespace
 from typing import Any, Iterable, Tuple, Union
 import dateutil.parser
 
@@ -85,7 +84,7 @@ class Nduv:
                                          self.value)
 
 
-class Gate(SimpleNamespace):
+class Gate:
     """Class representing a gate's properties
 
           Attributes:
@@ -93,6 +92,8 @@ class Gate(SimpleNamespace):
           gate: gate.
           parameters: parameters.
     """
+
+    _data = {}
 
     def __init__(self, qubits, gate, parameters, **kwargs):
         """Initialize a new Gate object
@@ -104,10 +105,17 @@ class Gate(SimpleNamespace):
                 name-date-unit-value for the gate
             kwargs: Optional additional fields
         """
+        self._data = {}
         self.qubits = qubits
         self.gate = gate
         self.parameters = parameters
-        self.__dict__.update(kwargs)
+        self._data.update(kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     @classmethod
     def from_dict(cls, data):
@@ -138,6 +146,7 @@ class Gate(SimpleNamespace):
         out_dict['qubits'] = self.qubits
         out_dict['gate'] = self.gate
         out_dict['parameters'] = [x.to_dict() for x in self.parameters]
+        out_dict.update(self._data)
         return out_dict
 
     def __eq__(self, other):
@@ -146,23 +155,16 @@ class Gate(SimpleNamespace):
                 return True
         return False
 
-    def __getstate__(self):
-        return self.to_dict()
 
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        return (self.__class__, (self.qubits, self.gate, self.parameters))
-
-
-class BackendProperties(SimpleNamespace):
+class BackendProperties:
     """Class representing backend properties
 
     This holds backend properties measured by the provider. All properties
     which are provided optionally. These properties may describe qubits, gates,
     or other general propeties of the backend.
     """
+
+    _data = {}
 
     def __init__(self, backend_name, backend_version, last_update_date, qubits,
                  gates, general, **kwargs):
@@ -181,6 +183,7 @@ class BackendProperties(SimpleNamespace):
                             objects
             kwargs: optional additional fields
         """
+        self._data = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
         if isinstance(last_update_date, str):
@@ -207,18 +210,13 @@ class BackendProperties(SimpleNamespace):
                 value = self._apply_prefix(param.value, param.unit)
                 formatted_props[param.name] = (value, param.date)
             self._gates[gate.gate][tuple(gate.qubits)] = formatted_props
-        self.__dict__.update(kwargs)
+        self._data.update(kwargs)
 
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        return (self.__class__, (self.backend_name, self.backend_version,
-                                 self.last_update_date, self.qubits,
-                                 self.gates, self.general))
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     @classmethod
     def from_dict(cls, data):
@@ -267,11 +265,7 @@ class BackendProperties(SimpleNamespace):
             out_dict['qubits'].append(qubit_props)
         out_dict['gates'] = [x.to_dict() for x in self.gates]
         out_dict['general'] = [x.to_dict() for x in self.general]
-        for key, value in self.__dict__.items():
-            if key not in ['backend_name', 'backend_version',
-                           'last_update_date', 'qubits', 'general', 'gates',
-                           '_gates', '_qubits']:
-                out_dict[key] = value
+        out_dict.update(self._data)
         return out_dict
 
     def __eq__(self, other):

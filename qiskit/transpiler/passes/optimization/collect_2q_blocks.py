@@ -16,6 +16,7 @@
 
 from collections import defaultdict
 
+from qiskit.circuit import Gate
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -41,8 +42,8 @@ class Collect2qBlocks(AnalysisPass):
         The blocks contain "op" nodes in topological sort order
         such that all gates in a block act on the same pair of
         qubits and are adjacent in the circuit. the blocks are built
-        by examining predecessors and successors of "cx" gates in
-        the circuit. u1, u2, u3, cx, id gates will be included.
+        by examining predecessors and successors of 2q gates in
+        the circuit.
 
         After the execution, ``property_set['block_list']`` is set to
         a list of tuples of "op" node labels.
@@ -50,18 +51,17 @@ class Collect2qBlocks(AnalysisPass):
         # Initiate the commutation set
         self.property_set['commutation_set'] = defaultdict(list)
 
-        good_1q_names = ["u1", "u2", "u3", "id", "rx", "ry", "rz"]
-        good_2q_names = ["cx", "rxx", "cz", "iswap"]
-        good_names = good_1q_names + good_2q_names
         block_list = []
         nodes = list(dag.topological_nodes())
         nodes_seen = dict(zip(nodes, [False] * len(nodes)))
         for nd in dag.topological_op_nodes():
 
             group = []
-            # Explore predecessors and successors of cx gates
-            if (
-                    nd.name in good_2q_names
+            # Explore predecessors and successors of 2q gates
+            if (  # pylint: disable=too-many-boolean-expressions
+                    nd.type == 'op'
+                    and isinstance(nd.op, Gate)
+                    and len(nd.qargs) == 2
                     and not nodes_seen[nd]
                     and nd.condition is None
                     and not nd.op.is_parameterized()
@@ -76,12 +76,14 @@ class Collect2qBlocks(AnalysisPass):
                     if len(pred) == 1 and not nodes_seen[pred[0]]:
                         pnd = pred[0]
                         if (
-                                pnd.name in good_names
+                                pnd.type == 'op'
+                                and isinstance(pnd.op, Gate)
+                                and len(pnd.qargs) <= 2
                                 and pnd.condition is None
                                 and not pnd.op.is_parameterized()
                         ):
-                            if (pnd.name in good_2q_names and set(pnd.qargs) == these_qubits) \
-                               or pnd.name not in good_2q_names:
+                            if (len(pnd.qargs) == 2 and set(pnd.qargs) == these_qubits) \
+                               or len(pnd.qargs) == 1:
                                 group.append(pnd)
                                 nodes_seen[pnd] = True
                                 pred_next.extend(dag.quantum_predecessors(pnd))
@@ -93,23 +95,25 @@ class Collect2qBlocks(AnalysisPass):
                         elif pred[1] in dag.predecessors(pred[0]):
                             sorted_pred = [pred[0]]   # was [pred[0], pred[1]]
                         else:
-                            # We need to avoid accidentally adding a cx on these_qubits
+                            # We need to avoid accidentally adding a 2q gate on these_qubits
                             # since these must have a dependency through the other predecessor
                             # in this case
-                            if pred[0].name in good_2q_names and set(pred[0].qargs) == these_qubits:
+                            if len(pred[0].qargs) == 2 and set(pred[0].qargs) == these_qubits:
                                 sorted_pred = [pred[1]]
-                            elif (pred[1].name in good_2q_names
+                            elif (len(pred[1].qargs) == 1
                                   and set(pred[1].qargs) == these_qubits):
                                 sorted_pred = [pred[0]]
                             else:
                                 sorted_pred = pred
-                        if len(sorted_pred) == 2 and sorted_pred[0].name in good_2q_names and \
-                           sorted_pred[1].name in good_2q_names:
-                            break  # stop immediately if we hit a pair of cx
+                        if len(sorted_pred) == 2 and len(sorted_pred[0].qargs) == 2 and \
+                           len(sorted_pred[1].qargs) == 2:
+                            break  # stop immediately if we hit a pair of 2q gates
                         # Examine each predecessor
                         for pnd in sorted_pred:
                             if (
-                                    pnd.name not in good_names
+                                    pnd.type != 'op'
+                                    or not isinstance(pnd.op, Gate)
+                                    or len(pnd.qargs) > 2
                                     or pnd.condition is not None
                                     or pnd.op.is_parameterized()
                             ):
@@ -119,12 +123,12 @@ class Collect2qBlocks(AnalysisPass):
                                                     set(pnd.qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
-                            if pnd.name not in good_2q_names and not pnd.op.is_parameterized():
+                            if len(pnd.qargs) == 1 and not pnd.op.is_parameterized():
                                 if not nodes_seen[pnd]:
                                     group.append(pnd)
                                     nodes_seen[pnd] = True
                                     pred_next.extend(dag.quantum_predecessors(pnd))
-                            # If cx, check qubits
+                            # If 2q, check qubits
                             else:
                                 pred_qubits = set(pnd.qargs)
                                 if (
@@ -146,13 +150,13 @@ class Collect2qBlocks(AnalysisPass):
                     pred = list(set(pred_next))
                     if not pred:
                         explore = False
-                # Reverse the predecessor list and append the "cx" node
+                # Reverse the predecessor list and append the 2q node
                 group.reverse()
                 group.append(nd)
                 nodes_seen[nd] = True
                 # Reset these_qubits
                 these_qubits = set(nd.qargs)
-                # Explore successors of the "cx" node
+                # Explore successors of the 2q node
                 succ = list(dag.quantum_successors(nd))
                 explore = True
                 while explore:
@@ -161,12 +165,14 @@ class Collect2qBlocks(AnalysisPass):
                     if len(succ) == 1 and not nodes_seen[succ[0]]:
                         snd = succ[0]
                         if (
-                                snd.name in good_names
+                                snd.type == 'op'
+                                and isinstance(snd.op, Gate)
+                                and len(snd.qargs) <= 2
                                 and snd.condition is None
                                 and not snd.op.is_parameterized()
                         ):
-                            if (snd.name in good_2q_names and set(snd.qargs) == these_qubits) or \
-                                    snd.name not in good_2q_names:
+                            if (len(snd.qargs) == 2 and set(snd.qargs) == these_qubits) or \
+                                    len(snd.qargs) == 1:
                                 group.append(snd)
                                 nodes_seen[snd] = True
                                 succ_next.extend(dag.quantum_successors(snd))
@@ -178,25 +184,27 @@ class Collect2qBlocks(AnalysisPass):
                         elif succ[1] in dag.successors(succ[0]):
                             sorted_succ = [succ[0]]  # was [succ[0], succ[1]]
                         else:
-                            # We need to avoid accidentally adding a cx on these_qubits
+                            # We need to avoid accidentally adding a 2q gate on these_qubits
                             # since these must have a dependency through the other successor
                             # in this case
-                            if (succ[0].name in good_2q_names
+                            if (len(succ[0].qargs) == 2
                                     and set(succ[0].qargs) == these_qubits):
                                 sorted_succ = [succ[1]]
-                            elif (succ[1].name in good_2q_names
+                            elif (len(succ[1].qargs) == 2
                                   and set(succ[1].qargs) == these_qubits):
                                 sorted_succ = [succ[0]]
                             else:
                                 sorted_succ = succ
                         if len(sorted_succ) == 2 and \
-                           sorted_succ[0].name in good_2q_names and \
-                           sorted_succ[1].name in good_2q_names:
-                            break  # stop immediately if we hit a pair of cx
+                           len(sorted_succ[0].qargs) == 2 and \
+                           len(sorted_succ[1].qargs) == 2:
+                            break  # stop immediately if we hit a pair of 2q gates
                         # Examine each successor
                         for snd in sorted_succ:
                             if (
-                                    snd.name not in good_names
+                                    snd.type != 'op'
+                                    or not isinstance(snd.op, Gate)
+                                    or len(snd.qargs) > 2
                                     or snd.condition is not None
                                     or snd.op.is_parameterized()
                             ):
@@ -209,13 +217,13 @@ class Collect2qBlocks(AnalysisPass):
                             # If a successor is a single qubit gate, add it
                             # NB as we have eliminated all gates with names not in
                             # good_names, this check guarantees they are single qubit
-                            if snd.name not in good_2q_names and not snd.op.is_parameterized():
+                            if len(snd.qargs) == 1 and not snd.op.is_parameterized():
                                 if not nodes_seen[snd]:
                                     group.append(snd)
                                     nodes_seen[snd] = True
                                     succ_next.extend(dag.quantum_successors(snd))
                             else:
-                                # If cx, check qubits
+                                # If 2q, check qubits
                                 succ_qubits = set(snd.qargs)
                                 if (
                                         succ_qubits == these_qubits
