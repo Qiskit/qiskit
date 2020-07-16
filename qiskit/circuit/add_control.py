@@ -121,12 +121,9 @@ def control(operation: Union[Gate, ControlledGate],
         qc.mcrz(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
-        if num_ctrl_qubits == 1:
-            basis_gates = ['x', 'z', 'y', 'u1', 'u3', 'cx']
-        else:
-            basis_gates = ['x', 'u1', 'u3', 'cx']
+        basis_gates2 = ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'ccx', 'u1', 'u3', 'cx']
+        bgate = _unroll_gate(operation, basis_gates2)
 
-        bgate = _unroll_gate(operation, basis_gates)
         # now we have a bunch of single qubit rotation gates and cx
         for rule in bgate.definition.data:
             if rule[0].name == 'u3':
@@ -149,15 +146,48 @@ def control(operation: Union[Gate, ControlledGate],
                             use_basis_gates=True)
             elif rule[0].name == 'u1':
                 qc.mcu1(rule[0].params[0], q_control, q_target[rule[1][0].index])
-            elif rule[0].name == 'cx':
-                qc.mct(q_control[:] + [q_target[rule[1][0].index]], q_target[rule[1][1].index],
+            elif rule[0].name == 'cx' or rule[0].name == 'ccx':
+                nun_additional_controls = rule[0].name.count('c')
+                additional_control_bits = [bit.index for bit in rule[1][:-1]]
+                qc.mct(q_control[:] + q_target[additional_control_bits], q_target[rule[1][-1].index],
                        q_ancillae)
             elif rule[0].name == 'x':
-                qc.mcx(q_control, q_target[rule[1][0].index], q_ancillae)
+                qc.mct(q_control[:], q_target[rule[1][0].index], q_ancillae)
             elif rule[0].name == 'z':
-                qc.cz(q_control, q_target[rule[1][0].index])
+                from qiskit.circuit.library.standard_gates import ZGate
+                mcz = ZGate().control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
+                qc.append(mcz,qubits)
             elif rule[0].name == 'y':
-                qc.cy(q_control, q_target[rule[1][0].index])
+                from qiskit.circuit.library.standard_gates import YGate
+                mcy = YGate().control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
+                qc.append(mcy,qubits)
+            elif rule[0].name == 'h':
+                from qiskit.circuit.library.standard_gates import HGate
+                mch = HGate().control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
+                qc.append(mch,qubits)
+            elif rule[0].name == 'rx':
+                from qiskit.circuit.library.standard_gates import RXGate
+                mcrx = RXGate(rule[0].params[0]).control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
+                qc.append(mcrx,qubits)
+            elif rule[0].name == 'ry':
+                from qiskit.circuit.library.standard_gates import RYGate
+                mcry = RYGate(rule[0].params[0]).control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
+                qc.append(mcry,qubits)
+            elif rule[0].name == 'rz':
+                from qiskit.circuit.library.standard_gates import RZGate
+                mcrz = RZGate(rule[0].params[0]).control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
+                qc.append(mcrz,qubits)
+            elif rule[0].name == 'swap':
+                from qiskit.circuit.library.standard_gates import SwapGate
+                mcswap = SwapGate().control(num_ctrl_qubits)
+                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index] + [num_ctrl_qubits + rule[1][1].index]
+                qc.append(mcswap,qubits)
             else:
                 raise CircuitError('gate contains non-controllable instructions')
 
