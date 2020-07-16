@@ -17,8 +17,8 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.library import (Waveform, Constant, ConstantPulse, Gaussian,
-                                  GaussianSquare, Drag, gaussian)
+from qiskit.pulse.library import (Waveform, Constant, ConstantPulse, Gaussian, GaussianSquare, Drag,
+                                  gaussian, gaussian_square, drag as pl_drag)
 
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
@@ -100,77 +100,23 @@ class TestParametricPulses(QiskitTestCase):
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
-    def test_sampled_pulse(self):
-        """Test that we can convert to a sampled pulse."""
+    def test_gaussian_pulse(self):
+        """Test that Gaussian sample pulse matches the pulse library."""
         gauss = Gaussian(duration=25, sigma=4, amp=0.5j)
         sample_pulse = gauss.get_sample_pulse()
         self.assertIsInstance(sample_pulse, Waveform)
-        pulse_lib_gaus = gaussian(duration=25, sigma=4,
-                                  amp=0.5j, zero_ends=True).samples
-        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gaus)
+        pulse_lib_gauss = gaussian(duration=25, sigma=4,
+                                   amp=0.5j, zero_ends=True).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss)
 
-    def test_gauss_samples(self):
-        """Test that the gaussian samples match the formula."""
-        duration = 25
-        sigma = 4
-        amp = 0.5j
-
-        # formulaic (with fixed zeroed endpoints at ``t=-1, duration+1``)
-        times = -1.0 + np.array(range(duration+2), dtype=np.complex_)
-        times -= duration/2
-        times[1:duration+1] += 0.5
-        times[duration+1] += 1  # fix duration+1 endpoint
-
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        zero_offset = gauss[0]
-        gauss -= zero_offset
-        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1
-        gauss *= amp_scale_factor
-
-        # verify zero offset and rescaling
-        self.assertEqual(gauss[0], 0.0)
-        self.assertEqual(gauss[duration+1], 0.0)
-        self.assertAlmostEqual(gauss[(duration+2)//2], amp, delta=1e-7)
-
-        # command
-        command = Gaussian(duration=duration, sigma=sigma, amp=amp)
-        samples = command.get_sample_pulse().samples
-        np.testing.assert_almost_equal(gauss[1:duration+1], samples)
-
-    def test_gauss_square_samples(self):
-        """Test that the gaussian square samples match the formula."""
-        duration = 125
-        sigma = 4
-        amp = 0.5j
-        width = 100
-
-        # formulaic gaussian component (with fixed zeroed endpoints at ``t=-1, duration+1``)
-        gauss_duration = duration - width
-        times = -1.0 + np.array(range(gauss_duration+2), dtype=np.complex_)
-        times -= gauss_duration/2
-        times[1:gauss_duration+1] += 0.5
-        times[gauss_duration+1] += 1  # fix duration+1 endpoint
-
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        zero_offset = gauss[0]
-        gauss -= zero_offset
-        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1
-        gauss *= amp_scale_factor
-
-        # verify zero offset and rescaling for gaussian component
-        self.assertEqual(gauss[0], 0.0)
-        self.assertEqual(gauss[gauss_duration+1], 0.0)
-        self.assertAlmostEqual(gauss[gauss_duration//2+1], amp, delta=1e-7)
-
-        # compute gaussian square as combination of gaussians and constant pulse
-        gauss_square = np.concatenate((gauss[1:gauss_duration//2+1],
-                                       amp*np.ones(width),
-                                       gauss[gauss_duration//2+1:gauss_duration+1]))
-        # command
-        command = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=width)
-        samples = command.get_sample_pulse().samples
-
-        np.testing.assert_almost_equal(gauss_square, samples)
+    def test_gaussian_square_pulse(self):
+        """Test that GaussianSquare sample pulse matches the pulse library."""
+        gauss_sq = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        sample_pulse = gauss_sq.get_sample_pulse()
+        self.assertIsInstance(sample_pulse, Waveform)
+        pulse_lib_gauss_sq = gaussian_square(duration=125, sigma=4, amp=0.5j, width=100,
+                                             zero_ends=True).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss_sq)
 
     def test_gauss_square_extremes(self):
         """Test that the gaussian square pulse can build a gaussian."""
@@ -186,38 +132,13 @@ class TestParametricPulses(QiskitTestCase):
         np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples[2:-2],
                                        const.get_sample_pulse().samples[2:-2])
 
-    def test_drag_samples(self):
-        """Test that the drag samples match the formula."""
-        duration = 25
-        sigma = 4
-        amp = 0.5j
-        beta = 1
-
-        # formulaic (with fixed zeroed endpoints at ``t=-1, duration+1``)
-        times = -1.0 + np.array(range(duration+2), dtype=np.complex_)
-        times -= duration/2
-        times[1:duration+1] += 0.5
-        times[duration+1] += 1  # fix duration+1 endpoint
-
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        zero_offset = gauss[0]
-        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1
-        gauss -= zero_offset
-
-        gauss_deriv = -(times / sigma**2) * gauss
-        drag = gauss + 1j * beta * gauss_deriv
-        drag *= amp_scale_factor
-
-        # verify zero offset and rescaling
-        self.assertEqual(drag[0], 0.0)
-        self.assertEqual(drag[duration+1], 0.0)
-        self.assertAlmostEqual(drag[duration//2+1], amp, delta=1e-7)
-
-        # command
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = command.get_sample_pulse().samples
-
-        np.testing.assert_almost_equal(drag[1:duration+1], samples)
+    def test_drag_pulse(self):
+        """Test that the Drag sample pulse matches the pulse library."""
+        drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)
+        sample_pulse = drag.get_sample_pulse()
+        self.assertIsInstance(sample_pulse, Waveform)
+        pulse_lib_drag = pl_drag(duration=25, sigma=4, amp=0.5j, beta=1, zero_ends=True).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_drag)
 
     def test_drag_validation(self):
         """Test drag parameter validation, specifically the beta validation."""

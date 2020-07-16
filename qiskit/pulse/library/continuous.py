@@ -214,8 +214,8 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 
 def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
-                   zeroed_width: Optional[float] = None, rescale_amp: bool = False,
-                   ret_gaussian: bool = False) -> np.ndarray:
+                   ret_gaussian: bool = False, zeroed_width: Optional[float] = None,
+                   rescale_amp: bool = False) -> np.ndarray:
     r"""Continuous unnormalized gaussian derivative pulse.
 
     Args:
@@ -223,12 +223,12 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         amp: Pulse amplitude at `center`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
-        zeroed_width: Subtract baseline of gaussian pulse to make sure
+        ret_gaussian: Return gaussian with which derivative was taken with.
+        zeroed_width: Subtract baseline of pulse to make sure
             $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
-            large discontinuities at the start of a gaussian pulse.
+            large discontinuities at the start of a pulse.
         rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
             be rescaled so that $\Omega_g(center)=amp$.
-        ret_gaussian: Return gaussian with which derivative was taken with.
     """
     gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, zeroed_width=zeroed_width,
                         rescale_amp=rescale_amp, ret_x=True)
@@ -374,15 +374,15 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
             excited states and $\Delta_2$ is the detuning between the respective excited states.
-        zeroed_width: Subtract baseline of gaussian pulse to make sure
+        zeroed_width: Subtract baseline of drag pulse to make sure
             $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
-            large discontinuities at the start of a gaussian pulse.
+            large discontinuities at the start of a drag pulse.
         rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
             be rescaled so that $\Omega_g(center)=amp$.
 
     """
     gauss_deriv, gauss = gaussian_deriv(times, amp=amp, center=center, sigma=sigma,
-                                        zeroed_width=zeroed_width, rescale_amp=rescale_amp,
-                                        ret_gaussian=True)
+                                        ret_gaussian=True, zeroed_width=zeroed_width,
+                                        rescale_amp=rescale_amp)
 
     return gauss + 1j*beta*gauss_deriv
