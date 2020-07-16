@@ -327,10 +327,6 @@ class CouplingMap:
                     cmap.add_edge(node, right)
         return cmap
 
-    def largest_connected_component(self):
-        """Return a set of qubits in the largest connected component."""
-        return max(nx.strongly_connected_components(self.graph), key=len)
-
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
