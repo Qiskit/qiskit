@@ -75,7 +75,7 @@ Pulse Library (waveforms :mod:`qiskit.pulse.library`)
    library
    library.discrete
 
-   SamplePulse
+   Waveform
    Constant
    Drag
    Gaussian
@@ -236,6 +236,7 @@ from qiskit.pulse.library import (
     Gaussian,
     GaussianSquare,
     ParametricPulse,
+    Waveform,
     SamplePulse,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse

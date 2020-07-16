@@ -18,7 +18,6 @@ import copy
 import logging
 import warnings
 from time import time
-
 from typing import Union, List, Dict, Optional
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
