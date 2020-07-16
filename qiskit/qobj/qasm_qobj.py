@@ -368,7 +368,34 @@ class QasmQobjExperimentHeader(QobjDictField):
 
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single QASM experiment in the qobj."""
-    pass
+
+    def __init__(self, calibrations=None, **kwargs):
+        """
+        Args:
+            calibrations (QasmQobjCalibrations): Information required for
+                                                 Pulse gates.
+            kwargs: Additional free form key value fields to add to the
+                configuration.
+        """
+        if calibrations:
+            self.calibrations = calibrations
+
+        if kwargs:
+            self.__dict__.update(kwargs)
+
+
+class QasmQobjCalibrations(QobjDictField):
+    """"""
+
+    def __init__(self, gates, pulse_library):
+        """
+        Args:
+            gates (list): A list of dictionaries which specify a gate by name, qubits,
+                          and params, and contains the Pulse instructions to implement it.
+            pulse_library (list): List of :class:`PulseLibraryItem`.
+        """
+        self.gates = gates
+        self.pulse_library = pulse_library
 
 
 class QobjHeader(QobjDictField):
@@ -405,7 +432,7 @@ class QasmQobj:
         self.experiments = experiments or []
         self.qobj_id = qobj_id
         self.type = 'QASM'
-        self.schema_version = '1.2.0'
+        self.schema_version = '1.3.0'
 
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]

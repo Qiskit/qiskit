@@ -847,6 +847,41 @@
             },
             "type": "array"
         },
+        "calibration_entry": {
+            "description": "The instruction description of each calibrated gate.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Gate name",
+                    "type": "string"
+                },
+                "qubits": {
+                    "items": {
+                        "minimum": 0,
+                        "type": "integer"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "params": {
+                    "description": "Gate parameters",
+                    "type": "array"
+                },
+                "instructions": {
+                    "description": "Pulse instructions implementing the given gate.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/qobjinstructions"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "qubits",
+                "params",
+                "instructions"
+            ]
+        },
         "qobjexp": {
             "description": "Quantum experiment",
             "properties": {
@@ -866,6 +901,22 @@
                         "init_qubits": {
                             "description": "Whether to initialize the qubits in the ground state before each shot.",
                             "type": "boolean"
+                        },
+                        "calibrations": {
+                            "description": "User-specified pulse-level calibrations for operations utilized in this experiment.",
+                            "type": "object",
+                            "properties": {
+                                "gates": {
+                                    "$ref": "#/definitions/calibration_entry"
+                                },
+                                "pulse_library": {
+                                    "description": "Pulses for gate calibrations.",
+                                        "items": {
+                                            "$ref": "#/definitions/pulse_library"
+                                        },
+                                    "type": "array"
+                                }
+                            }
                         }
                     },
                     "title": "Experiment level configuration",
