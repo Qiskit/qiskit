@@ -56,6 +56,9 @@ def channel_type_grouped_sort(channels: List[pulse.channels.Channel]) \
 
     Args:
         channels: Channels to show.
+
+    Returns:
+        Arranged channels.
     """
     chan_type_dict = defaultdict(list)
 
@@ -92,6 +95,9 @@ def channel_index_sort(channels: List[pulse.channels.Channel]) \
 
     Args:
         channels: Channels to show.
+
+    Returns:
+        Arranged channels.
     """
     chan_type_dict = defaultdict(list)
     inds = set()
@@ -131,7 +137,7 @@ def channel_index_sort(channels: List[pulse.channels.Channel]) \
     return ordered_channels
 
 
-def channel_index_sort_grouped_control(channels: List[pulse.channels.Channel]) \
+def channel_index_sort_wo_control(channels: List[pulse.channels.Channel]) \
         -> List[pulse.channels.Channel]:
     """Arrange channels in ascending order, but control channels are grouped and
     added to the end of the list.
@@ -141,6 +147,9 @@ def channel_index_sort_grouped_control(channels: List[pulse.channels.Channel]) \
 
     Args:
         channels: Channels to show.
+
+    Returns:
+        Arranged channels.
     """
     chan_type_dict = defaultdict(list)
     inds = set()

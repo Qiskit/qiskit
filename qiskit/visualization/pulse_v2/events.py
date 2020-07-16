@@ -172,6 +172,9 @@ class ChannelEvents:
 
         Args:
             trange: Time range to find min and max.
+
+        Returns:
+            Minimum and maximum waveform value within the specified time range.
         """
 
         if isinstance(self.channel, pulse.AcquireChannel):

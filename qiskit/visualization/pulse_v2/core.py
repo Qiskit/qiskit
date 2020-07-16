@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 r"""
 Core module of the pulse drawer.
 
@@ -30,10 +32,9 @@ then the schedule is loaded and channel information is updated:
     ```
 
 If the `DrawDataContainer` is initialized without arguments, the output shows
-the time axis in units of system cycle time `dt`, and the frequencies are initialized to zero.
+the time axis in units of system cycle time `dt` and the frequencies are initialized to zero.
 
-This module is expected to be called by the pulse drawer interface,
-so user don't need to know the behavior of this instance.
+This module is expected to be used by the pulse drawer interface and not exposed to users.
 
 The `DrawDataContainer` takes the schedule and convert it into drawing objects, then each plotter
 interface takes the drawing objects from the container to call the plotter's API.
@@ -135,8 +136,8 @@ class DrawDataContainer:
 
         self.dt = configuration.dt
 
-        self.d_los = {ind: val for ind, val in enumerate(defaults.qubit_freq_est)}
-        self.m_los = {ind: val for ind, val in enumerate(defaults.meas_freq_est)}
+        self.d_los = dict(enumerate(defaults.qubit_freq_est))
+        self.m_los = dict(enumerate(defaults.meas_freq_est))
         self.c_los = dict()
 
         for ind, u_lo_mappers in enumerate(configuration.u_channel_lo):
@@ -150,6 +151,9 @@ class DrawDataContainer:
 
         Args:
             program: `Waveform` or `Schedule` to draw.
+
+        Raises:
+            VisualizationError: When input program is invalid data format.
         """
         if isinstance(program, pulse.Schedule):
             self._schedule_loader(program)
@@ -240,20 +244,23 @@ class DrawDataContainer:
         Args:
             t_start: Left boundary of drawing in units of cycle time or real time.
             t_end: Right boundary of drawing in units of cycle time or real time.
+
+        Raises:
+            VisualizationError: When times are given in float without specifying dt.
         """
         # convert into nearest cycle time
         if isinstance(t_start, float):
             if self.dt is not None:
                 t_start = int(t_start / self.dt)
             else:
-                raise VisualizationError('Floating valued start time %f seems to be in ',
+                raise VisualizationError('Floating valued start time %f seems to be in '
                                          'units of sec but dt is not specified.' % t_start)
         # convert into nearest cycle time
         if isinstance(t_end, float):
             if self.dt is not None:
                 t_end = int(t_end / self.dt)
             else:
-                raise VisualizationError('Floating valued end time %f seems to be in ',
+                raise VisualizationError('Floating valued end time %f seems to be in '
                                          'units of sec but dt is not specified.' % t_end)
 
         duration = t_end - t_start
@@ -296,11 +303,8 @@ class DrawDataContainer:
 
             # calculate scaling
             if chan in scales:
-                # channel is specified by user
+                # channel scale factor is specified by user
                 scale = scales[chan]
-            elif type(chan) in scales:
-                # channel type is specified by user
-                scale = scales[type(chan)]
             elif PULSE_STYLE.style['formatter.control.auto_channel_scaling']:
                 # auto scaling is enabled
                 max_abs_val = max(abs(max_v), abs(min_v))
@@ -354,13 +358,17 @@ class DrawDataContainer:
         self.bbox_bottom = y0 - (PULSE_STYLE.style['formatter.margin.bottom'] - y0_interval)
 
     def _ordered_channels(self,
-                          visible_channels: Optional[List[pulse.channels.Channel]] = None):
+                          visible_channels: Optional[List[pulse.channels.Channel]] = None) \
+            -> List[pulse.channels.Channel]:
         """A helper function to create a list of channels to show.
 
         Args:
             visible_channels: List of channels to show.
                 If not provided, the default channel list is created from the
                 stylesheet preference.
+
+        Returns:
+            List of ordered channels to show.
         """
 
         if visible_channels is None:

@@ -753,7 +753,7 @@ class TestLayout(QiskitTestCase):
 
     def test_channel_index_sort_grouped_control(self):
         """Test channel_index_sort_grouped_control."""
-        channels = layouts.channel_index_sort_grouped_control(self.channels)
+        channels = layouts.channel_index_sort_wo_control(self.channels)
 
         ref_channels = [pulse.DriveChannel(0),
                         pulse.DriveChannel(1),
@@ -786,7 +786,7 @@ class TestDrawDataContainer(QiskitTestCase):
                 'barrier': [generators.gen_barrier]
             },
             'layout': {
-                'channel': layouts.channel_index_sort_grouped_control
+                'channel': layouts.channel_index_sort_wo_control
             }}
         default_style.style = callbacks_for_test
         PULSE_STYLE.style = default_style.style

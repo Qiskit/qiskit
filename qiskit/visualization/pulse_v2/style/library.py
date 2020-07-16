@@ -67,7 +67,7 @@ class IqxStandard(dict):
                 'barrier': [generators.gen_barrier]
             },
             'layout': {
-                'channel': layouts.channel_index_sort_grouped_control
+                'channel': layouts.channel_index_sort_wo_control
             }
         }
         self.update(style)
@@ -108,7 +108,7 @@ class IqxPublication(dict):
                 'barrier': []
             },
             'layout': {
-                'channel': layouts.channel_index_sort_grouped_control
+                'channel': layouts.channel_index_sort_wo_control
             }
         }
 
@@ -152,7 +152,7 @@ class IqxDebugging(dict):
                 'barrier': [generators.gen_barrier]
             },
             'layout': {
-                'channel': layouts.channel_index_sort_grouped_control
+                'channel': layouts.channel_index_sort_wo_control
             }
         }
 

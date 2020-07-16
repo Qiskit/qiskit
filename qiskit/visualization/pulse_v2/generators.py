@@ -679,4 +679,3 @@ def gen_barrier(misc_data: data_types.NonPulseTuple) \
         lines.append(line)
 
     return lines
-
