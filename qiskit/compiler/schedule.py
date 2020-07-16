@@ -65,6 +65,8 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         if backend is None:
             raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
                               "scheduling passes.")
+        if backend.defaults() is None:
+            raise QiskitError("The backend does not support pulse.")
         inst_map = backend.defaults().instruction_schedule_map
     if meas_map is None:
         if backend is None:
