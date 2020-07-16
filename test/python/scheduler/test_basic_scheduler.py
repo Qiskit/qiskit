@@ -37,7 +37,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(qr)
         backend = FakeBackend(None)
         backend.defaults = backend.configuration
-        self.assertRaises(QiskitError, lambda:schedule(qc, backend))
+        self.assertRaises(QiskitError, lambda: schedule(qc, backend))
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""
