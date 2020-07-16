@@ -396,6 +396,41 @@ class TestCircuitOperations(QiskitTestCase):
             rep = qc.repeat(3)
             self.assertEqual(rep, ref)
 
+    def test_power(self):
+        """Test taking the circuit to a power works."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rx(0.2, 1)
+
+        gate = qc.to_gate()
+
+        with self.subTest('power(int >= 0) equals repeat'):
+            self.assertEqual(qc.power(4), qc.repeat(4))
+
+        with self.subTest('explicit matrix power'):
+            self.assertEqual(qc.power(4, matrix_power=True).data[0][0],
+                             gate.power(4))
+
+        with self.subTest('float power'):
+            self.assertEqual(qc.power(1.23).data[0][0], gate.power(1.23))
+
+        with self.subTest('negative power'):
+            self.assertEqual(qc.power(-2).data[0][0], gate.power(-2))
+
+    def test_power_parameterized_circuit(self):
+        """Test taking a parameterized circuit to a power."""
+        theta = Parameter('th')
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rx(theta, 1)
+
+        with self.subTest('power(int >= 0) equals repeat'):
+            self.assertEqual(qc.power(4), qc.repeat(4))
+
+        with self.subTest('cannot to matrix power if parameterized'):
+            with self.assertRaises(CircuitError):
+                _ = qc.power(0.5)
+
     def test_control(self):
         """Test controlling the circuit."""
         qc = QuantumCircuit(2, name='my_qc')

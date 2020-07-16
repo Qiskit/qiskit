@@ -18,6 +18,7 @@ import copy
 import itertools
 import sys
 import warnings
+import numbers
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
@@ -387,6 +388,45 @@ class QuantumCircuit:
                 repeated_circ.append(inst, self.qubits, self.clbits)
 
         return repeated_circ
+
+    def power(self, power, matrix_power=False):
+        """Raise this circuit to the power of ``power``.
+
+        If ``power`` is a positive integer and ``matrix_power`` is ``False``, this implementation
+        defaults to calling ``repeat``. Otherwise, if the circuit is unitary, the matrix is
+        computed to calculate the matrix power.
+
+        Args:
+            power (int): The power to raise this circuit to.
+            matrix_power (bool): If True, the circuit is converted to a matrix and then the
+                matrix power is computed. If False, and ``power`` is a positive integer,
+                the implementation defaults to ``repeat``.
+
+        Raises:
+            CircuitError: If the circuit needs to be converted to a gate but it is not unitary.
+
+        Returns:
+            QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
+        """
+        if power >= 0 and isinstance(power, numbers.Integral) and not matrix_power:
+            return self.repeat(power)
+
+        # attempt conversion to gate
+        if len(self.parameters) > 0:
+            raise CircuitError('Cannot raise a parameterized circuit to a non-positive power '
+                               'or matrix-power, please bind the free parameters: '
+                               '{}'.format(self.parameters))
+
+        try:
+            gate = self.to_gate()
+        except QiskitError:
+            raise CircuitError('The circuit contains non-unitary operations and cannot be '
+                               'controlled. Note that no qiskit.circuit.Instruction objects may '
+                               'be in the circuit for this operation.')
+
+        power_circuit = QuantumCircuit(*self.qregs, *self.cregs)
+        power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
+        return power_circuit
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Control this circuit on ``num_ctrl_qubits`` qubits.
