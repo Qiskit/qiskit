@@ -160,12 +160,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
 
-    _opt = [RemoveResetInZeroState(),
-            Collect2qBlocks(), ConsolidateBlocks(),
-            Unroller(basis_gates),  # unroll unitaries
-            Optimize1qGates(), CommutativeCancellation(),
-            RemoveDiagonalGatesBeforeMeasure(), OptimizeSwapBeforeMeasure()]
-
     _reset = [RemoveResetInZeroState()]
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
