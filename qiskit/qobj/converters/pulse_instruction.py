@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels, instructions, library
+from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
