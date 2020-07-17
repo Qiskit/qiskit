@@ -171,6 +171,87 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = Operator(qc).data
         self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
+    def test_control_circuit_containing_single_gate(self):
+        """Test a controlled composite gate decomposition is compact."""
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+
+        controlled = QuantumCircuit(2)
+        controlled.compose(circuit.control(), inplace=True)
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+
+        self.assertEqual(controlled.decompose(), expected)
+
+    def test_control_circuit_containing_single_controlled_gate(self):
+        """Test a controlled composite gate maps registers correclty."""
+        circuit = QuantumCircuit(2)
+        circuit.cx(1, 0)
+
+        controlled = QuantumCircuit(3)
+        controlled.compose(circuit.control(), inplace=True)
+
+        expected = QuantumCircuit(3)
+        expected.ccx(0, 2, 1)
+
+        self.assertEqual(controlled.decompose(), expected)
+
+    def test_control_circuit_with_multiple_gate(self):
+        """Test controlled composite gate decomposition is compact for gates with known controls."""
+        # create controlled composite gate
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.z(2)
+        circuit.h(0)
+        circuit.rx(1.22, 0)
+        circuit.ry(2.22, 1)
+        circuit.rz(3.22, 2)
+        circuit.swap(0, 1)
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)  # tests qargs are always mapped correclty
+        circuit.ccx(1, 2, 0)
+
+        controlled = QuantumCircuit(4)
+        controlled.compose(circuit.control(), inplace=True)
+
+        expected = QuantumCircuit(4)
+        expected.cx(0, 1)
+        expected.ch(0, 1)
+        expected.crx(1.22, 0, 1)
+        expected.cy(0, 2)
+        expected.cry(2.22, 0, 2)
+        expected.cswap(0, 1, 2)
+        expected.ccx(0, 1, 2)
+        expected.ccx(0, 2, 1)
+        expected.cz(0, 3)
+        expected.crz(3.22, 0, 3)
+        expected.mct([0, 2, 3], 1)
+
+        self.assertEqual(controlled.decompose(), expected)
+
+    def test_multi_control_circuit(self):
+        """Test a multi controlled composite gate decomposition is compact."""
+        num_ctrl = 3
+        # create controlled composite gate
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.ry(2.22, 1)
+        circuit.swap(0, 1)
+        circuit.cx(1, 0)
+
+        controlled = QuantumCircuit(5)
+        controlled.compose(circuit.control(num_ctrl), inplace=True)
+
+        expected = QuantumCircuit(5)
+        expected.mct([0, 1, 2], 3)
+        expected.append(RYGate(2.22).control(num_ctrl), [0, 1, 2, 4])
+        expected.append(SwapGate().control(num_ctrl), [0, 1, 2, 3, 4])
+        expected.mct([0, 1, 2, 4], 3)
+
+        self.assertEqual(controlled.decompose(), expected)
+
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
         import qiskit.circuit.library.standard_gates.u3 as u3
