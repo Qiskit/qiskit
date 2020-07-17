@@ -15,7 +15,7 @@
 """Meta tests for mappers.
 
 The test checks the output of the swapper to a ground truth DAG (one for each
-test/swapper) saved in as a QASM (in `test/python/qasm/`). If they need
+test/swapper) saved in as a QASM (in `qiskit/tests/python/qasm/`). If they need
 to be regenerated, the DAG candidate is compiled and run in a simulator and
 the count is checked before being saved. This happens with (in the root
 directory):

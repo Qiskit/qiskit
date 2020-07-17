@@ -221,21 +221,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy37 -- -n test.python.test_examples
+tox -epy37 -- -n qiskit.tests.python.test_examples
 ```
 or to run the same module by path:
 
 ```
-tox -epy37 -- -n test/python/test_examples.py
+tox -epy37 -- -n qiskit/tests/python/test_examples.py
 ```
 to run a class:
 
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples
+tox -epy37 -- -n qiskit.tests.python.test_examples.TestPythonExamples
 ```
 to run a method:
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy37 -- -n qiskit.tests.python.test_examples.TestPythonExamples.test_all_examples
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -270,14 +270,14 @@ the directory to `out`, just run this command:
 Linux and Mac:
 
 ``` {.bash}
-$ LOG_LEVEL=INFO python -m unittest test/python/circuit/test_circuit_operations.py
+$ LOG_LEVEL=INFO python -m unittest qiskit/tests/python/circuit/test_circuit_operations.py
 ```
 
 Windows:
 
 ``` {.bash}
 C:\..\> set LOG_LEVEL="INFO"
-C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
+C:\..\> python -m unittest qiskit/tests/python/circuit/test_circuit_operations.py
 ```
 
 ##### Test Skip Options

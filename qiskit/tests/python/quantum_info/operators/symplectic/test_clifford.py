@@ -16,7 +16,8 @@
 """Tests for Clifford class."""
 
 import unittest
-from test import combine
+from qiskit.tests import combine
+
 from ddt import ddt
 
 import numpy as np

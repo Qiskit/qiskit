@@ -13,7 +13,8 @@
 # that they have been altered from the originals.
 
 """Tests preset pass manager API"""
-from test import combine
+from qiskit.tests import combine
+
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister

@@ -24,7 +24,7 @@ class TestClifford(unittest.TestCase):
     """Test random_clifford"""
 
     def assertValidClifford(self, value, num_qubits):
-        """Assertion from test/python/quantum_info/operators/test_random.py:
+        """Assertion from qiskit/tests/python/quantum_info/operators/test_random.py:
         TestRandomClifford:test_valid"""
         self.assertIsInstance(value, Clifford)
         self.assertEqual(value.num_qubits, num_qubits)

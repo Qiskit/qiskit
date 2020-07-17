@@ -28,14 +28,14 @@ class Path(Enum):
 
     # Main SDK path:    qiskit/
     SDK = qiskit_path[0]
-    # test.python path: qiskit/test/python/
-    TEST = os.path.normpath(os.path.join(SDK, '..', 'test', 'python'))
+    # qiskit.tests.python path: qiskit/test/python/
+    TESTS = os.path.normpath(os.path.join(SDK, 'tests', 'python'))
     # Examples path:    examples/
     EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
     # Sample QASMs path: qiskit/test/python/qasm
-    QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
+    QASMS = os.path.normpath(os.path.join(TESTS, 'qasm'))
 
 
 def setup_test_logging(logger, log_level, filename):

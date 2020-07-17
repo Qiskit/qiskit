@@ -17,7 +17,8 @@
 import pickle
 from operator import add, sub, mul, truediv
 
-from test import combine
+from qiskit.tests import combine
+
 import numpy
 
 from ddt import ddt, data

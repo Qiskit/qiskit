@@ -15,7 +15,8 @@
 """A test for circuit tools"""
 import unittest
 
-from test import combine
+from qiskit.tests import combine
+
 from ddt import ddt
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.tools.pi_check import pi_check
