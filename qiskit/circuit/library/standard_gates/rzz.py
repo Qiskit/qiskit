@@ -100,7 +100,7 @@ class RZZGate(Gate):
             (U1Gate(self.params[0]), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

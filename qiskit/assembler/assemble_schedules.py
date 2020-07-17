@@ -20,7 +20,7 @@ import hashlib
 from qiskit import qobj, pulse
 from qiskit.assembler.run_config import RunConfig
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import instructions, transforms, library, commands
+from qiskit.pulse import instructions, transforms, library
 from qiskit.qobj import utils as qobj_utils, converters
 from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 
@@ -144,7 +144,7 @@ def _assemble_instructions(
         schedule: pulse.Schedule,
         instruction_converter: converters.InstructionToQobjConverter,
         run_config: RunConfig,
-        user_pulselib: Dict[str, commands.Command]
+        user_pulselib: Dict[str, List[complex]]
 ) -> Tuple[List[qobj.PulseQobjInstruction], int]:
     """Assembles the instructions in a schedule into a list of PulseQobjInstructions and returns
     related metadata that will be assembled into the Qobj configuration. Lookup table for
@@ -161,18 +161,13 @@ def _assemble_instructions(
 
     Returns:
         A list of converted instructions, the user pulse library dictionary (from pulse name to
-        pulse command), and the maximum number of readout memory slots used by this Schedule.
+        pulse samples), and the maximum number of readout memory slots used by this Schedule.
     """
     max_memory_slot = 0
     qobj_instructions = []
 
     acquire_instruction_map = defaultdict(list)
     for time, instruction in schedule.instructions:
-
-        if isinstance(instruction, commands.ParametricInstruction):  # deprecated
-            instruction = instructions.Play(instruction.command,
-                                            instruction.channels[0],
-                                            name=instruction.name)
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.ParametricPulse)):
@@ -181,12 +176,6 @@ def _assemble_instructions(
                 instruction = instructions.Play(instruction.pulse.get_sample_pulse(),
                                                 instruction.channel,
                                                 name=instruction.name)
-
-        if isinstance(instruction, commands.PulseInstruction):  # deprecated
-            name = instruction.command.name
-            instruction = instructions.Play(
-                library.Waveform(name=name, samples=instruction.command.samples),
-                instruction.channels[0], name=name)
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.Waveform)):
@@ -197,17 +186,15 @@ def _assemble_instructions(
                 name=name)
             user_pulselib[name] = instruction.pulse.samples
 
-        if isinstance(instruction, (commands.AcquireInstruction, instructions.Acquire)):
+        if isinstance(instruction, instructions.Acquire):
             if instruction.mem_slot:
                 max_memory_slot = max(max_memory_slot, instruction.mem_slot.index)
             # Acquires have a single AcquireChannel per inst, but we have to bundle them
             # together into the Qobj as one instruction with many channels
-            acquire_instruction_map[(time, instruction.command)].append(instruction)
+            acquire_instruction_map[(time, instruction.duration)].append(instruction)
             continue
 
-        if isinstance(instruction, (commands.DelayInstruction,
-                                    instructions.Delay,
-                                    instructions.Directive)):
+        if isinstance(instruction, (instructions.Delay, instructions.Directive)):
             # delay instructions are ignored as timing is explicit within qobj
             continue
 
@@ -227,13 +214,13 @@ def _assemble_instructions(
 
 
 def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
-                                             List[commands.AcquireInstruction]],
+                                             List[instructions.Acquire]],
                        meas_map: List[List[int]]) -> None:
     """Validate all qubits tied in ``meas_map`` are to be acquired.
 
     Args:
-        instruction_map: A dictionary grouping AcquireInstructions according to their start time
-                         and the command features (notably, their duration).
+        instruction_map: A dictionary grouping Acquire instructions according to their start time
+                         and duration.
         meas_map: List of groups of qubits that must be acquired together.
 
     Raises:
@@ -255,13 +242,13 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
 
 
 def _bundle_channel_indices(
-        instrs: List[commands.AcquireInstruction]
+        instrs: List[instructions.Acquire]
 ) -> Tuple[List[int], List[int], List[int]]:
     """From the list of AcquireInstructions, bundle the indices of the acquire channels,
     memory slots, and register slots into a 3-tuple of lists.
 
     Args:
-        instrs: A list of AcquireInstructions to be bundled.
+        instrs: A list of Acquire instructions to be bundled.
 
     Returns:
         The qubit indices, the memory slot indices, and register slot indices from instructions.

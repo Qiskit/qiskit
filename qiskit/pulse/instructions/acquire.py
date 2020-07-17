@@ -44,7 +44,7 @@ class Acquire(Instruction):
 
     def __init__(self,
                  duration: int,
-                 channel: Optional[AcquireChannel] = None,
+                 channel: AcquireChannel,
                  mem_slot: Optional[MemorySlot] = None,
                  reg_slot: Optional[RegisterSlot] = None,
                  kernel: Optional[Kernel] = None,
@@ -71,7 +71,7 @@ class Acquire(Instruction):
             raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
                              "classical memory destination for the measurement result.")
 
-        if channel and not (mem_slot or reg_slot):
+        if not (mem_slot or reg_slot):
             raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
 
         self._channel = channel
@@ -80,10 +80,6 @@ class Acquire(Instruction):
         self._kernel = kernel
         self._discriminator = discriminator
 
-        if channel is None:
-            warnings.warn("Usage of Acquire without specifying a channel is deprecated. For "
-                          "example, Acquire(1200)(AcquireChannel(0)) should be replaced by "
-                          "Acquire(1200, AcquireChannel(0)).", DeprecationWarning)
         all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
         super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
                          duration, all_channels, name=name)
@@ -149,45 +145,8 @@ class Acquire(Instruction):
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
-            ', ' + str(self.channel) if self.channel else '',
+            ', ' + str(self.channel),
             ', ' + str(self.mem_slot) if self.mem_slot else '',
             ', ' + str(self.reg_slot) if self.reg_slot else '',
             ', ' + str(self.kernel) if self.kernel else '',
             ', ' + str(self.discriminator) if self.discriminator else '')
-
-    def __call__(self,
-                 channel: AcquireChannel,
-                 mem_slot: Optional[MemorySlot] = None,
-                 reg_slot: Optional[RegisterSlot] = None,
-                 kernel: Optional[Kernel] = None,
-                 discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None) -> 'Acquire':
-        """Return new ``Acquire`` that is fully instantiated with its channels.
-
-        Args:
-            channel: The channel that will acquire data.
-            mem_slot: The classical memory slot in which to store the classified readout result.
-            reg_slot: The fast-access register slot in which to store the classified readout
-                      result for fast feedback.
-            kernel: A ``Kernel`` for integrating raw data.
-            discriminator: A ``Discriminator`` for discriminating kerneled IQ data into 0/1
-                           results.
-            name: Name of the instruction for display purposes.
-
-        Return:
-            Complete and ready to schedule ``Acquire``.
-
-        Raises:
-            PulseError: If ``channel`` has already been set.
-        """
-        warnings.warn("Calling Acquire with a channel is deprecated. Instantiate the acquire with "
-                      "a channel instead.", DeprecationWarning)
-        if self._channel is not None:
-            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
-        return Acquire(self.duration,
-                       channel=channel,
-                       mem_slot=mem_slot,
-                       reg_slot=reg_slot,
-                       kernel=kernel,
-                       discriminator=discriminator,
-                       name=name if name is not None else self.name)
