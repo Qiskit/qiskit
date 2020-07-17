@@ -20,6 +20,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import random_unitary
 
+
 class TestCircuitQasm(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
 
