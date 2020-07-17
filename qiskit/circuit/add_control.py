@@ -147,7 +147,6 @@ def control(operation: Union[Gate, ControlledGate],
             elif rule[0].name == 'u1':
                 qc.mcu1(rule[0].params[0], q_control, q_target[rule[1][0].index])
             elif rule[0].name == 'cx' or rule[0].name == 'ccx':
-                nun_additional_controls = rule[0].name.count('c')
                 additional_control_bits = [bit.index for bit in rule[1][:-1]]
                 qc.mct(q_control[:] + q_target[additional_control_bits],
                        q_target[rule[1][-1].index],
