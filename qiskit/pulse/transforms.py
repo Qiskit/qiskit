@@ -21,7 +21,7 @@ from typing import List, Optional, Iterable
 
 import numpy as np
 
-from qiskit.pulse import channels as chans, commands, exceptions, instructions, interfaces
+from qiskit.pulse import channels as chans, exceptions, instructions, interfaces
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
@@ -65,8 +65,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
         for schedule in schedules:
             last_acquire = 0
             acquire_times = [time for time, inst in schedule.instructions
-                             if isinstance(inst, (instructions.Acquire,
-                                                  commands.AcquireInstruction))]
+                             if isinstance(inst, instructions.Acquire)]
             if acquire_times:
                 last_acquire = max(acquire_times)
             align_time = max(align_time, last_acquire)
@@ -107,7 +106,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                                                 "{0} after acquire on "
                                                 "same channel.".format(chan.index))
 
-            if isinstance(inst, (instructions.Acquire, commands.AcquireInstruction)):
+            if isinstance(inst, instructions.Acquire):
                 if time > align_time:
                     warnings.warn("You provided an align_time which is scheduling an acquire "
                                   "sooner than it was scheduled for in the original Schedule.")
@@ -138,13 +137,13 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
         meas_map: List of lists of qubits that are measured together.
 
     Returns:
-        A ``Schedule`` with the additional acquisition commands.
+        A ``Schedule`` with the additional acquisition instructions.
     """
     new_schedule = Schedule(name=schedule.name)
     acquire_map = dict()
 
     for time, inst in schedule.instructions:
-        if isinstance(inst, (instructions.Acquire, commands.AcquireInstruction)):
+        if isinstance(inst, instructions.Acquire):
             if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")
