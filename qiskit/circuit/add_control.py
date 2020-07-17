@@ -149,45 +149,46 @@ def control(operation: Union[Gate, ControlledGate],
             elif rule[0].name == 'cx' or rule[0].name == 'ccx':
                 nun_additional_controls = rule[0].name.count('c')
                 additional_control_bits = [bit.index for bit in rule[1][:-1]]
-                qc.mct(q_control[:] + q_target[additional_control_bits], q_target[rule[1][-1].index],
+                qc.mct(q_control[:] + q_target[additional_control_bits],
+                       q_target[rule[1][-1].index],
                        q_ancillae)
             elif rule[0].name == 'x':
                 qc.mct(q_control[:], q_target[rule[1][0].index], q_ancillae)
             elif rule[0].name == 'z':
                 from qiskit.circuit.library.standard_gates import ZGate
                 mcz = ZGate().control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
-                qc.append(mcz,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mcz, qargs)
             elif rule[0].name == 'y':
                 from qiskit.circuit.library.standard_gates import YGate
                 mcy = YGate().control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
-                qc.append(mcy,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mcy, qargs)
             elif rule[0].name == 'h':
                 from qiskit.circuit.library.standard_gates import HGate
                 mch = HGate().control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
-                qc.append(mch,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mch, qargs)
             elif rule[0].name == 'rx':
                 from qiskit.circuit.library.standard_gates import RXGate
                 mcrx = RXGate(rule[0].params[0]).control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
-                qc.append(mcrx,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mcrx, qargs)
             elif rule[0].name == 'ry':
                 from qiskit.circuit.library.standard_gates import RYGate
                 mcry = RYGate(rule[0].params[0]).control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
-                qc.append(mcry,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mcry, qargs)
             elif rule[0].name == 'rz':
                 from qiskit.circuit.library.standard_gates import RZGate
                 mcrz = RZGate(rule[0].params[0]).control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index]
-                qc.append(mcrz,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mcrz, qargs)
             elif rule[0].name == 'swap':
                 from qiskit.circuit.library.standard_gates import SwapGate
                 mcswap = SwapGate().control(num_ctrl_qubits)
-                qubits = list(range(0,num_ctrl_qubits)) + [num_ctrl_qubits + rule[1][0].index] + [num_ctrl_qubits + rule[1][1].index]
-                qc.append(mcswap,qubits)
+                qargs = [q_control] + q_target[[bit.index for bit in rule[1]]]
+                qc.append(mcswap, qargs)
             else:
                 raise CircuitError('gate contains non-controllable instructions')
 
