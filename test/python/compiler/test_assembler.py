@@ -629,8 +629,7 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
         orig_schedule = self.schedule
-        with self.assertWarns(DeprecationWarning):
-            delay_schedule = orig_schedule + pulse.Delay(10)(self.backend_config.drive(0))
+        delay_schedule = orig_schedule + pulse.Delay(10, self.backend_config.drive(0))
 
         orig_qobj = assemble(orig_schedule, self.backend)
         validate_qobj_against_schema(orig_qobj)
@@ -776,8 +775,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def setUp(self):
         self.schedule = pulse.Schedule(name='fake_experiment')
-        with self.assertWarns(DeprecationWarning):
-            self.schedule += pulse.FrameChange(0.)(pulse.DriveChannel(0))
 
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
@@ -925,9 +922,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
             new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
 
         deprecated_style_schedule = Schedule()
-        with self.assertWarns(DeprecationWarning):
-            for i in range(5):
-                deprecated_style_schedule += Acquire(1200)(AcquireChannel(i), MemorySlot(i))
+        for i in range(5):
+            deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
         n_qobj = assemble(new_style_schedule, backend)
