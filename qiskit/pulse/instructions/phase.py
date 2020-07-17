@@ -17,13 +17,9 @@ This includes ``SetPhase`` instructions which lock the modulation to a particula
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
 """
-
-import warnings
-
 from typing import Optional
 
 from ..channels import PulseChannel
-from ..exceptions import PulseError
 from .instruction import Instruction
 
 
@@ -45,7 +41,7 @@ class ShiftPhase(Instruction):
     """
 
     def __init__(self, phase: complex,
-                 channel: Optional[PulseChannel] = None,
+                 channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
         by ``phase`` [radians].
@@ -55,10 +51,6 @@ class ShiftPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        if channel is None:
-            warnings.warn("Usage of ShiftPhase without specifying a channel is deprecated. For "
-                          "example, ShiftPhase(3.14)(DriveChannel(0)) should be replaced by "
-                          "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
         self._phase = phase
         self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
@@ -74,25 +66,6 @@ class ShiftPhase(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __call__(self, channel: PulseChannel) -> 'ShiftPhase':
-        """Return a new ShiftPhase instruction supporting the deprecated syntax of FrameChange.
-
-        Args:
-            channel: The channel this instruction operates on.
-
-        Raises:
-            PulseError: If channel was already added.
-
-        Returns:
-            New ShiftPhase with both phase (from ``self`) and the ``channel`` provided.
-        """
-        if self._channel is not None:
-            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
-        warnings.warn("Usage of ShiftPhase without specifying a channel is deprecated. For "
-                      "example, ShiftPhase(3.14)(DriveChannel(0)) should be replaced by "
-                      "ShiftPhase(3.14, DriveChannel(0)).", DeprecationWarning)
-        return ShiftPhase(self.phase, channel)
 
 
 class SetPhase(Instruction):
