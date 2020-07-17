@@ -90,7 +90,7 @@ class ControlledGate(Gate):
         self.base_gate = None
         if definition:
             self.definition = definition
-            if len(definition.data) == 1:
+            if len(definition) == 1:
                 base_gate = definition.data[0][0]
                 if isinstance(base_gate, ControlledGate):
                     self.base_gate = base_gate.base_gate
