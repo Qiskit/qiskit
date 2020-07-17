@@ -55,7 +55,6 @@ class TestPresetPassManager(QiskitTestCase):
         """Test final layout after preset level3 passmanager does not include diagonal gates
         See: https://github.com/Qiskit/qiskit-terra/issues/3239
         """
-        from qiskit.converters import circuit_to_dag
         qc = QuantumCircuit(5, 5)
         qc.h(0)
         qc.cx(range(3), range(1, 4))
