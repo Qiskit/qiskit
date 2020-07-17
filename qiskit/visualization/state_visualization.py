@@ -23,8 +23,10 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
-from qiskit.quantum_info.states import DensityMatrix
 from .matplotlib import HAS_MATPLOTLIB
+
+from qiskit.quantum_info.states import DensityMatrix
+from qiskit.util import deprecate_arguments
 
 if HAS_MATPLOTLIB:
     from matplotlib import get_backend
@@ -39,7 +41,6 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.exceptions import VisualizationError
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
-    from qiskit.util import deprecate_arguments
     from qiskit.circuit.tools.pi_check import pi_check
 
 
