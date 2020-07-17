@@ -21,7 +21,7 @@ from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
+from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeJohannesburg,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
 from qiskit.converters import circuit_to_dag
 
@@ -454,3 +454,19 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn('swap', resulting_basis)
+
+
+@ddt
+class TestOptimizationWithCondition(QiskitTestCase):
+    """Test optimization levels with condition in the circuit"""
+
+    @data(0, 1, 2, 3)
+    def test_optimization_condition(self, level):
+        """Test optimization levels with condition in the circuit"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(0, 1).c_if(cr, 1)
+        backend = FakeJohannesburg()
+        circ = transpile(qc, backend, optimization_level=level)
+        self.assertIsInstance(circ, QuantumCircuit)

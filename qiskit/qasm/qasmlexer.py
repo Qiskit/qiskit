@@ -128,10 +128,8 @@ class QasmLexer:
         r'\"([^\\\"]|\\.)*\"'
         return t
 
-    def t_INCLUDE(self, t):
+    def t_INCLUDE(self, _):
         'include'
-        del t  # unused
-        #
         # Now eat up the next two tokens which must be
         # 1 - the name of the include file, and
         # 2 - a terminating semicolon
@@ -142,7 +140,6 @@ class QasmLexer:
         # When we hit eof (the t_eof) rule, we pop.
         next_token = self.lexer.token()
         lineno = next_token.lineno
-        # print('NEXT', next, "next.value", next.value, type(next))
         if isinstance(next_token.value, str):
             incfile = next_token.value.strip('"')
         else:
@@ -166,7 +163,7 @@ class QasmLexer:
         r'OPENQASM\s+(\d+)\.(\d+)'
         return t
 
-    def t_COMMENT(self, t):
+    def t_COMMENT(self, _):
         r'//.*'
         pass
 
@@ -191,8 +188,7 @@ class QasmLexer:
         self.lineno += len(t.value)
         t.lexer.lineno = self.lineno
 
-    def t_eof(self, t):
-        del t  # unused
+    def t_eof(self, _):
         if self.stack:
             self.pop()
             return self.lexer.token()
@@ -201,6 +197,5 @@ class QasmLexer:
     t_ignore = ' \t\r'
 
     def t_error(self, t):
-        print("Unable to match any token rule, got -->%s<--" % t.value[0])
-        print("Check your OPENQASM source and any include statements.")
-        # t.lexer.skip(1)
+        raise QasmError("Unable to match any token rule, got -->%s<-- "
+                        "Check your OPENQASM source and any include statements." % t.value[0])

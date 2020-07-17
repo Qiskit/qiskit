@@ -8,7 +8,6 @@ pycodestyle
 pydot
 astroid==2.3.3
 pylint==2.4.4
-pylintfileheader>=0.0.2
 stestr>=2.0.0
 PyGithub
 wheel
