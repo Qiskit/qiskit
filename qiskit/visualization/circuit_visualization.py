@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 def circuit_drawer(circuit,
-                   scale=0.7,
+                   scale=None,
                    filename=None,
                    style=None,
                    output=None,
@@ -65,7 +65,7 @@ def circuit_drawer(circuit,
                    fold=None,
                    ax=None,
                    initial_state=False,
-                   cregbundle=False):
+                   cregbundle=True):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -131,7 +131,7 @@ def circuit_drawer(circuit,
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default: ``False``.
         cregbundle (bool): Optional. If set True bundle classical registers.
-            Default: ``False``.
+            Default: ``True``.
 
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -605,7 +605,7 @@ def _generate_latex_source(circuit, filename=None,
 
 
 def _matplotlib_circuit_drawer(circuit,
-                               scale=0.7,
+                               scale=None,
                                filename=None,
                                style=None,
                                plot_barriers=True,

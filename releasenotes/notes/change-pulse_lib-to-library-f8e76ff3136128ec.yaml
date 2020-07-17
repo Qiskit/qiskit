@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The ``qiskit.pulse.pulse_lib`` has been renamed ``qiskit.pulse.library``.
+deprecations:
+  - |
+    The ``qiskit.pulse.pulse_lib`` has been deprecated and renamed to
+    :py:mod:`qiskit.pulse.library`.

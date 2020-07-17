@@ -15,8 +15,6 @@
 """A simulator instruction to capture output within a simulation. The types of snapshot
 instructions available are determined by the simulator being used.
 """
-import warnings
-
 from typing import Optional
 
 from ..channels import SnapshotChannel
@@ -59,8 +57,3 @@ class Snapshot(Instruction):
         scheduled on; trivially, a ``SnapshotChannel``.
         """
         return self._channel
-
-    def __call__(self):
-        """Deprecated."""
-        warnings.warn("Snapshot call method is deprecated.", DeprecationWarning)
-        return self

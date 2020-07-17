@@ -28,10 +28,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
-from qiskit.pulse.pulse_lib import gaussian
+from qiskit.pulse.library import gaussian
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.scheduler import measure
+from qiskit.pulse.macros import measure
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
 from qiskit.validation.jsonschema import SchemaValidationError
@@ -350,7 +350,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
-        test_pulse = pulse.SamplePulse(
+        test_pulse = pulse.Waveform(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
             name='pulse0'
         )
@@ -382,13 +382,13 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()
-        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test0'),
+        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
         schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
-        schedule += pulse.Play(pulse.SamplePulse([0.5]*16, name='test0'),
+        schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
         qobj = assemble(schedule,
@@ -591,12 +591,14 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
-        name_conflict_pulse = pulse.SamplePulse(
+        name_conflict_pulse = pulse.Waveform(
             samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
             name='pulse0'
         )
+
         self.schedule = self.schedule.insert(1, Play(name_conflict_pulse,
                                                      self.backend_config.drive(1)))
+
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -628,8 +630,7 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_with_delay(self):
         """Test that delay instruction is ignored in assembly."""
         orig_schedule = self.schedule
-        with self.assertWarns(DeprecationWarning):
-            delay_schedule = orig_schedule + pulse.Delay(10)(self.backend_config.drive(0))
+        delay_schedule = orig_schedule + pulse.Delay(10, self.backend_config.drive(0))
 
         orig_qobj = assemble(orig_schedule, self.backend)
         validate_qobj_against_schema(orig_qobj)
@@ -686,7 +687,7 @@ class TestPulseAssembler(QiskitTestCase):
             0.5j)
 
     def test_assemble_parametric_unsupported(self):
-        """Test that parametric pulses are translated to SamplePulses if they're not supported
+        """Test that parametric pulses are translated to Waveform if they're not supported
         by the backend during assemble time.
         """
         sched = pulse.Schedule(name='test_parametric_to_sample_pulse')
@@ -907,8 +908,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def setUp(self):
         self.schedule = pulse.Schedule(name='fake_experiment')
-        with self.assertWarns(DeprecationWarning):
-            self.schedule += pulse.FrameChange(0.)(pulse.DriveChannel(0))
 
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
@@ -1056,9 +1055,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
             new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
 
         deprecated_style_schedule = Schedule()
-        with self.assertWarns(DeprecationWarning):
-            for i in range(5):
-                deprecated_style_schedule += Acquire(1200)(AcquireChannel(i), MemorySlot(i))
+        for i in range(5):
+            deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
         n_qobj = assemble(new_style_schedule, backend)

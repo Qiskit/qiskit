@@ -19,7 +19,7 @@ import warnings
 
 from enum import Enum
 
-from qiskit.pulse import commands, channels, instructions, pulse_lib
+from qiskit.pulse import commands, channels, instructions, library
 from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
@@ -29,15 +29,15 @@ from qiskit.qobj.utils import MeasLevel
 
 
 class ParametricPulseShapes(Enum):
-    """Map the assembled pulse names to the pulse module commands.
+    """Map the assembled pulse names to the pulse module waveforms.
 
     The enum name is the transport layer name for pulse shapes, the
     value is its mapping to the OpenPulse Command in Qiskit.
     """
-    gaussian = commands.Gaussian
-    gaussian_square = commands.GaussianSquare
-    drag = commands.Drag
-    constant = commands.Constant
+    gaussian = library.Gaussian
+    gaussian_square = library.GaussianSquare
+    drag = library.Drag
+    constant = library.Constant
 
 
 class ConversionMethodBinder:
@@ -118,55 +118,6 @@ class InstructionToQobjConverter:
 
         method = self.bind_instruction.get_bound_method(type(instruction))
         return method(self, shift, instruction)
-
-    @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire_deprecated(self, shift, instruction):
-        """Return converted `AcquireInstruction`.
-
-        Args:
-            shift(int): Offset time.
-            instruction (AcquireInstruction): acquire instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        meas_level = self._run_config.get('meas_level', 2)
-        mem_slot = []
-        if instruction.mem_slot:
-            mem_slot = [instruction.mem_slot.index]
-
-        command_dict = {
-            'name': 'acquire',
-            't0': shift + instruction.start_time,
-            'duration': instruction.duration,
-            'qubits': [instruction.acquire.index],
-            'memory_slot': mem_slot
-        }
-        if meas_level == MeasLevel.CLASSIFIED:
-            # setup discriminators
-            if instruction.command.discriminator:
-                command_dict.update({
-                    'discriminators': [
-                        QobjMeasurementOption(
-                            name=instruction.command.discriminator.name,
-                            params=instruction.command.discriminator.params)
-                    ]
-                })
-            # setup register_slots
-            if instruction.reg_slot:
-                command_dict.update({
-                    'register_slot': [instruction.reg_slot.index]
-                })
-        if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
-            # setup kernels
-            if instruction.command.kernel:
-                command_dict.update({
-                    'kernels': [
-                        QobjMeasurementOption(
-                            name=instruction.command.kernel.name,
-                            params=instruction.command.kernel.params)
-                    ]
-                })
-        return self._qobj_model(**command_dict)
 
     @bind_instruction(instructions.Acquire)
     def convert_acquire(self, shift, instruction):
@@ -315,24 +266,6 @@ class InstructionToQobjConverter:
 
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.FrameChangeInstruction)
-    def convert_frame_change(self, shift, instruction):
-        """Return converted `FrameChangeInstruction`.
-
-        Args:
-            shift(int): Offset time.
-            instruction (FrameChangeInstruction): frame change instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            'name': 'fc',
-            't0': shift + instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'phase': instruction.command.phase
-        }
-        return self._qobj_model(**command_dict)
-
     @bind_instruction(instructions.SetFrequency)
     def convert_set_frequency(self, shift, instruction):
         """ Return converted `SetFrequencyInstruction`.
@@ -407,62 +340,6 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.PersistentValueInstruction)
-    def convert_persistent_value(self, shift, instruction):
-        """Return converted `PersistentValueInstruction`.
-
-        Args:
-            shift(int): Offset time.
-            instruction (PersistentValueInstruction): persistent value instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        warnings.warn("The PersistentValue command is deprecated. Use qiskit.pulse.Constant "
-                      "instead.", DeprecationWarning)
-        command_dict = {
-            'name': 'pv',
-            't0': shift + instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'val': instruction.command.value
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(commands.PulseInstruction)
-    def convert_drive(self, shift, instruction):
-        """Return converted `PulseInstruction`.
-
-        Args:
-            shift(int): Offset time.
-            instruction (PulseInstruction): drive instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            'name': instruction.command.name,
-            't0': shift + instruction.start_time,
-            'ch': instruction.channels[0].name
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(commands.ParametricInstruction)
-    def convert_parametric(self, shift, instruction):
-        """Return the converted `ParametricInstruction`.
-
-        Args:
-            shift (int): Offset time.
-            instruction (ParametricInstruction): An instance of a ParametricInstruction subclass.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            'name': 'parametric_pulse',
-            'pulse_shape': ParametricPulseShapes(type(instruction.command)).name,
-            't0': shift + instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'parameters': instruction.command.parameters
-        }
-        return self._qobj_model(**command_dict)
-
     @bind_instruction(instructions.Play)
     def convert_play(self, shift, instruction):
         """Return the converted `Play`.
@@ -473,7 +350,7 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        if isinstance(instruction.pulse, pulse_lib.ParametricPulse):
+        if isinstance(instruction.pulse, library.ParametricPulse):
             command_dict = {
                 'name': 'parametric_pulse',
                 'pulse_shape': ParametricPulseShapes(type(instruction.pulse)).name,
@@ -727,31 +604,6 @@ class QobjToInstructionConverter:
         duration = instruction.duration
         return instructions.Delay(duration, channel) << t0
 
-    @bind_name('pv')
-    def convert_persistent_value(self, instruction):
-        """Return converted `PersistentValueInstruction`.
-
-        Args:
-            instruction (PulseQobjInstruction): persistent value qobj
-        Returns:
-            Schedule: Converted and scheduled Instruction
-        """
-        t0 = instruction.t0
-        channel = self.get_channel(instruction.ch)
-        val = instruction.val
-
-        # This is parameterized
-        if isinstance(val, str):
-            val_expr = parse_string_expr(val, partial_binding=False)
-
-            def gen_pv_sched(*args, **kwargs):
-                val = complex(val_expr(*args, **kwargs))
-                return commands.PersistentValue(val)(channel) << t0
-
-            return ParameterizedSchedule(gen_pv_sched, parameters=val_expr.params)
-
-        return commands.PersistentValue(val)(channel) << t0
-
     def bind_pulse(self, pulse):
         """Bind the supplied pulse to a converter method by pulse name.
 
@@ -759,7 +611,7 @@ class QobjToInstructionConverter:
             pulse (PulseLibraryItem): Pulse to bind
         """
         # pylint: disable=unused-variable
-        pulse = pulse_lib.SamplePulse(pulse.samples, pulse.name)
+        pulse = library.Waveform(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
