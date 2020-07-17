@@ -23,10 +23,9 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
-from .matplotlib import HAS_MATPLOTLIB
-
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.util import deprecate_arguments
+from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
     from matplotlib import get_backend
