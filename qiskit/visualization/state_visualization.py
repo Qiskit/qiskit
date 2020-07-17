@@ -14,6 +14,7 @@
 
 # pylint: disable=invalid-name,ungrouped-imports,import-error
 # pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
 Visualization functions for quantum states.
@@ -61,7 +62,7 @@ if HAS_MATPLOTLIB:
 
 
 @deprecate_arguments({'rho': 'state'})
-def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None):
+def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None, *, rho=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
@@ -230,7 +231,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
 
 
 @deprecate_arguments({'rho': 'state'})
-def plot_bloch_multivector(state, title='', figsize=None):
+def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -284,7 +285,7 @@ def plot_bloch_multivector(state, title='', figsize=None):
 
 @deprecate_arguments({'rho': 'state'})
 def plot_state_city(state, title="", figsize=None, color=None,
-                    alpha=1, ax_real=None, ax_imag=None):
+                    alpha=1, ax_real=None, ax_imag=None, *, rho=None):
     """Plot the cityscape of quantum state.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
@@ -494,7 +495,7 @@ def plot_state_city(state, title="", figsize=None, color=None,
 
 
 @deprecate_arguments({'rho': 'state'})
-def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None):
+def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -635,7 +636,7 @@ def phase_to_rgb(complex_number):
 
 @deprecate_arguments({'rho': 'state'})
 def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
-                       show_state_phases=False, use_degrees=False):
+                       show_state_phases=False, use_degrees=False, *, rho=None):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
