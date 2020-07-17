@@ -31,6 +31,7 @@ from qiskit.exceptions import QiskitError
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit import AncillaRegister
 from qiskit.circuit import QuantumCircuit
 
 # user config

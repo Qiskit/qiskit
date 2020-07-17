@@ -349,7 +349,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
-        test_pulse = pulse.SamplePulse(
+        test_pulse = pulse.Waveform(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
             name='pulse0'
         )
@@ -381,13 +381,13 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_sample_pulse(self):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()
-        schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test0'),
+        schedule += pulse.Play(pulse.Waveform([0.1]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
         schedule += pulse.Play(pulse.SamplePulse([0.1]*16, name='test1'),
                                pulse.DriveChannel(0),
                                name='test2')
-        schedule += pulse.Play(pulse.SamplePulse([0.5]*16, name='test0'),
+        schedule += pulse.Play(pulse.Waveform([0.5]*16, name='test0'),
                                pulse.DriveChannel(0),
                                name='test1')
         qobj = assemble(schedule,
@@ -590,12 +590,14 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
-        name_conflict_pulse = pulse.SamplePulse(
+        name_conflict_pulse = pulse.Waveform(
             samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
             name='pulse0'
         )
+
         self.schedule = self.schedule.insert(1, Play(name_conflict_pulse,
                                                      self.backend_config.drive(1)))
+
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,
@@ -685,7 +687,7 @@ class TestPulseAssembler(QiskitTestCase):
             0.5j)
 
     def test_assemble_parametric_unsupported(self):
-        """Test that parametric pulses are translated to SamplePulses if they're not supported
+        """Test that parametric pulses are translated to Waveform if they're not supported
         by the backend during assemble time.
         """
         sched = pulse.Schedule(name='test_parametric_to_sample_pulse')
