@@ -789,25 +789,27 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
+        in_dag = input_dag
         condition = node.condition
         # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:
-            input_dag.add_creg(condition[0])
+            in_dag = copy.deepcopy(input_dag)
+            in_dag.add_creg(condition[0])
             to_replay = []
-            for sorted_node in input_dag.topological_nodes():
+            for sorted_node in in_dag.topological_nodes():
                 if sorted_node.type == "op":
                     sorted_node.op.condition = condition
                     to_replay.append(sorted_node)
-            for input_node in input_dag.op_nodes():
-                input_dag.remove_op_node(input_node)
+            for input_node in in_dag.op_nodes():
+                in_dag.remove_op_node(input_node)
             for replay_node in to_replay:
-                input_dag.apply_operation_back(replay_node.op, replay_node.qargs,
-                                               replay_node.cargs)
+                in_dag.apply_operation_back(replay_node.op, replay_node.qargs,
+                                            replay_node.cargs)
 
         if wires is None:
-            wires = input_dag.wires
+            wires = in_dag.wires
 
         self._check_wires_list(wires, node)
 
@@ -815,13 +817,13 @@ class DAGCircuit:
         # and determine what registers need to be added to self
         proxy_map = {w: QuantumRegister(1, 'proxy') for w in wires}
         add_qregs = self._check_edgemap_registers(proxy_map,
-                                                  input_dag.qregs,
+                                                  in_dag.qregs,
                                                   {}, False)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
         add_cregs = self._check_edgemap_registers(proxy_map,
-                                                  input_dag.cregs,
+                                                  in_dag.cregs,
                                                   {}, False)
         for creg in add_cregs:
             self.add_creg(creg)
@@ -840,7 +842,7 @@ class DAGCircuit:
         self._check_wiremap_validity(wire_map, wires, self.input_map)
         pred_map, succ_map = self._make_pred_succ_maps(node)
         full_pred_map, full_succ_map = self._full_pred_succ_maps(pred_map, succ_map,
-                                                                 input_dag, wire_map)
+                                                                 in_dag, wire_map)
 
         if condition_bit_list:
             # If we are replacing a conditional node, map input dag through
@@ -848,7 +850,7 @@ class DAGCircuit:
             # bits.
             condition_bits = set(condition_bit_list)
 
-            for op_node in input_dag.op_nodes():
+            for op_node in in_dag.op_nodes():
                 mapped_cargs = {wire_map[carg] for carg in op_node.cargs}
 
                 if condition_bits & mapped_cargs:
@@ -859,7 +861,7 @@ class DAGCircuit:
         self._multi_graph.remove_node(node._node_id)
 
         # Iterate over nodes of input_circuit
-        for sorted_node in input_dag.topological_op_nodes():
+        for sorted_node in in_dag.topological_op_nodes():
             # Insert a new node
             condition = self._map_condition(wire_map, sorted_node.condition)
             m_qargs = list(map(lambda x: wire_map.get(x, x),
