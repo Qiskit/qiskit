@@ -23,6 +23,7 @@ from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -108,7 +109,7 @@ class UnitaryGate(Gate):
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
             theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
-            qc.u3(theta, phi, lam, q[0])
+            qc._append(U3Gate(theta, phi, lam), [q[0]], [])
             self.definition = qc
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
