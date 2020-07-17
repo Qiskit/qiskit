@@ -243,7 +243,7 @@ class EventsOutputChannels:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
-                    command = command.get_sample_pulse()
+                    command = command.get_waveform()
                 if isinstance(command, (Waveform, SamplePulse)):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
