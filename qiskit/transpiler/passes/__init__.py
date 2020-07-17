@@ -169,6 +169,9 @@ from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import DelayInDt
 
+# dynamical decoupling
+from .dynamical_decoupling import XY4Pass
+
 # additional utility passes
 from .utils import CheckMap
 from .utils import CheckCXDirection

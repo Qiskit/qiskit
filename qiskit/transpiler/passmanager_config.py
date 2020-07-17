@@ -28,6 +28,7 @@ class PassManagerConfig:
                  translation_method=None,
                  scheduling_method=None,
                  instruction_durations=None,
+                 dynamical_decoupling=None,
                  backend_properties=None,
                  seed_transpiler=None):
         """Initialize a PassManagerConfig object
@@ -47,6 +48,8 @@ class PassManagerConfig:
             scheduling_method (str): the pass to use for scheduling instructions.
             instruction_durations (InstructionDurations): Dictionary of duration
                 (in dt) for each instruction.
+            dynamical_decoupling (str): the pass to use to implement a dynamical
+                decoupling sequences where possible.
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
@@ -61,5 +64,6 @@ class PassManagerConfig:
         self.translation_method = translation_method
         self.scheduling_method = scheduling_method
         self.instruction_durations = instruction_durations
+        self.dynamical_decoupling = dynamical_decoupling
         self.backend_properties = backend_properties
         self.seed_transpiler = seed_transpiler
