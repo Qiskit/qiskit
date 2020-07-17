@@ -143,7 +143,9 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
 
         ax1.set_xticks(np.arange(0, lx+0.5, 1))
         ax1.set_yticks(np.arange(0, ly+0.5, 1))
+        row_names.append('')
         ax1.set_yticklabels(row_names, fontsize=14)
+        column_names.append('')
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
         ax1.autoscale_view()
         ax1.invert_yaxis()
