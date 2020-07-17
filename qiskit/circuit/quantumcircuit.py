@@ -385,7 +385,7 @@ class QuantumCircuit:
             except QiskitError:
                 inst = self.to_instruction()
             for _ in range(reps):
-                repeated_circ.append(inst, self.qubits, self.clbits)
+                repeated_circ._append(inst, self.qubits, self.clbits)
 
         return repeated_circ
 
