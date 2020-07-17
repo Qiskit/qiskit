@@ -63,7 +63,7 @@ class DCXGate(Gate):
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def to_matrix(self):
