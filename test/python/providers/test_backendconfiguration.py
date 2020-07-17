@@ -15,6 +15,8 @@
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
 import collections
+import copy
+
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 
@@ -113,3 +115,11 @@ class TestBackendConfiguration(QiskitTestCase):
     def _test_lists_equal(self, actual, expected):
         """Test if 2 lists are equal. It returns ``True`` is lists are equal."""
         return collections.Counter(actual) == collections.Counter(expected)
+
+    def test_deepcopy(self):
+        """Ensure that a deepcopy succeeds and results in an identical object."""
+        copy_config = copy.deepcopy(self.config)
+        print(copy_config.to_dict())
+        print("Original:")
+        print(self.config.to_dict())
+        self.assertEqual(copy_config, self.config)

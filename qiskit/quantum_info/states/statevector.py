@@ -268,6 +268,20 @@ class Statevector(QuantumState):
         return matrix_equal(self.data, other.data, ignore_phase=True,
                             rtol=rtol, atol=atol)
 
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (Operator): an operator to evaluate expval of.
+            qargs (None or list): subsystems to apply operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        val = self.evolve(oper, qargs=qargs)
+        conj = self.conjugate()
+        return np.dot(conj.data, val.data)
+
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
 
@@ -663,7 +677,7 @@ class Statevector(QuantumState):
         if not isinstance(obj.definition, QuantumCircuit):
             raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
                 obj.name, type(obj.definition)))
-        for instr, qregs, cregs in obj.definition.data:
+        for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
                     'Cannot apply instruction with classical registers: {}'.format(
