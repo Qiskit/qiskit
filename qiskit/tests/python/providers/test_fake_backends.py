@@ -17,7 +17,8 @@
 
 import operator
 
-from test import combine
+from qiskit.tests import combine
+
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit

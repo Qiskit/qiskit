@@ -56,9 +56,9 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
-test/python/*.log
-test/python/*.pdf
-test/python/*.prof
+qiskit/tests/python/*.log
+qiskit/tests/python/*.pdf
+qiskit/tests/python/*.prof
 .stestr/
 
 # Translations
@@ -116,7 +116,7 @@ token.json
 
 tutorial/rst/_build/*
 
-test/python/test_qasm_python_simulator.pdf
+qiskit/tests/python/test_qasm_python_simulator.pdf
 
 doc/_build/*
 
@@ -124,9 +124,9 @@ doc/**/_autodoc
 
 qiskit/bin/*
 
-test/python/test_save.json
+qiskit/tests/python/test_save.json
 
-test/python/*.tex
+qiskit/tests/python/*.tex
 
 out/*
 
@@ -144,6 +144,6 @@ qiskit/transpiler/passes/**/cython/**/*.cpp
 docs/stubs/*
 
 # Notebook testing images
-test/ipynb/mpl/*.png
-test/ipynb/mpl/*.zip
-test/ipynb/mpl/result_test.json
+qiskit/tests/ipynb/mpl/*.png
+qiskit/tests/ipynb/mpl/*.zip
+qiskit/tests/ipynb/mpl/result_test.json

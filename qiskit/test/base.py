@@ -54,7 +54,7 @@ class QiskitTestCase(unittest.TestCase):
         BasicAer._backends = BasicAer._verify_backends()
 
     @staticmethod
-    def _get_resource_path(filename, path=Path.TEST):
+    def _get_resource_path(filename, path=Path.TESTS):
         """Get the absolute path to a resource.
 
         Args:
