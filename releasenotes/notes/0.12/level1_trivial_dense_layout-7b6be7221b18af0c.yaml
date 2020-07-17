@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    In the preset pass manager for optimization level 1,
+    :func:`qiskit.transpiler.preset_passmanagers.level_1_pass_manager` if
+    :class:`qiskit.transpiler.passes.TrivialLayout` layout pass is not a
+    perfect match for a particular circuit, then
+    :class:`qiskit.transpiler.passes.DenseLayout` layout pass is used
+    instead.

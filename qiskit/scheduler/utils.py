@@ -14,23 +14,15 @@
 
 """Scheduling utility functions."""
 
-from typing import Dict, List
+# pylint: disable=invalid-name
+from qiskit.util import deprecate_function
+from qiskit.pulse import macros, utils
 
+format_meas_map = deprecate_function(
+    '"format_meas_map" has been moved to "qiskit.pulse.utils"')(utils.format_meas_map)
 
-def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
-    """
-    Return a mapping from qubit label to measurement group given the nested list meas_map returned
-    by a backend configuration. (Qubits can not always be measured independently.) Sorts the
-    measurement group for consistency.
+measure = deprecate_function(
+    '"measure" has been moved to "qiskit.pulse.macros"')(macros.measure)
 
-    Args:
-        meas_map: Groups of qubits that get measured together, for example: [[0, 1], [2, 3, 4]]
-    Returns:
-        Measure map in map format
-    """
-    qubit_mapping = {}
-    for sublist in meas_map:
-        sublist.sort()
-        for q in sublist:
-            qubit_mapping[q] = sublist
-    return qubit_mapping
+measure_all = deprecate_function(
+    '"measure_all" has been moved to "qiskit.pulse.macros"')(macros.measure_all)

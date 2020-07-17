@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    ``CmdDef`` has been deprecated since Terra 0.11.0 and has been removed.
+    Please continue to use :py:class:`~qiskit.pulse.InstructionScheduleMap`
+    instead.
+  - |
+    The methods ``cmds`` and ``cmd_qubits`` in
+    :py:class:`~qiskit.pulse.InstructionScheduleMap` have been deprecated
+    since Terra 0.11.0 and have been removed. Please use ``instructions``
+    and ``qubits_with_instruction`` instead.
+  - |
+    PulseDefaults have reported ``qubit_freq_est`` and ``meas_freq_est`` in
+    Hz rather than GHz since Terra release 0.11.0. A warning which notified
+    of this change has been removed.

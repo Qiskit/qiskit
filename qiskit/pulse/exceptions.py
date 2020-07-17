@@ -12,9 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exception for errors raised by pulse module.
-"""
+"""Exception for errors raised by the pulse module."""
 from qiskit.exceptions import QiskitError
 
 
@@ -29,3 +27,11 @@ class PulseError(QiskitError):
     def __str__(self):
         """Return the message."""
         return repr(self.message)
+
+
+class BackendNotSet(PulseError):
+    """Raised if the builder context does not have a backend."""
+
+
+class NoActiveBuilder(PulseError):
+    """Raised if no builder context is active."""

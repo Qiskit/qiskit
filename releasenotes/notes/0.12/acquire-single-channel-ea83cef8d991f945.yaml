@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    :class:`qiskit.pulse.Acquire` can now be applied to a single qubit.
+    This makes pulse programming more consistent and easier to reason
+    about, as now all operations in now apply to a single channel.
+    For example::
+
+      acquire = Acquire(duration=10)
+      schedule = Schedule()
+      schedule.insert(60, acquire(AcquireChannel(0), MemorySlot(0), RegisterSlot(0)))
+      schedule.insert(60, acquire(AcquireChannel(1), MemorySlot(1), RegisterSlot(1)))
+
+deprecations:
+  - |
+    Running :class:`qiskit.pulse.Acquire` on multiple qubits has been
+    deprecated and will be removed in a future release. Additionally, the
+    :class:`qiskit.pulse.AcquireInstruction` parameters ``mem_slots`` and
+    ``reg_slots`` have been deprecated. Instead ``reg_slot`` and ``mem_slot``
+    should be used instead.

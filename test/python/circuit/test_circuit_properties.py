@@ -17,14 +17,47 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
+import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.exceptions import CircuitError
 # pylint: disable=unused-import
 from qiskit.extensions.simulator import snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
     """QuantumCircuit properties tests."""
+
+    def test_qarg_numpy_int(self):
+        """Test castable to integer args for QuantumCircuit.
+        """
+        n = np.int64(12)
+        qc1 = QuantumCircuit(n)
+        self.assertEqual(qc1.num_qubits, 12)
+        self.assertEqual(type(qc1), QuantumCircuit)
+
+    def test_carg_numpy_int(self):
+        """Test castable to integer cargs for QuantumCircuit.
+        """
+        n = np.int64(12)
+        c1 = ClassicalRegister(n)
+        qc1 = QuantumCircuit(c1)
+        c_regs = qc1.cregs
+        self.assertEqual(c_regs[0], c1)
+        self.assertEqual(type(qc1), QuantumCircuit)
+
+    def test_carg_numpy_int_2(self):
+        """Test castable to integer cargs for QuantumCircuit.
+        """
+        qc1 = QuantumCircuit(12, np.int64(12))
+        c_regs = qc1.cregs
+        self.assertEqual(c_regs[0], ClassicalRegister(12, 'c'))
+        self.assertEqual(type(qc1), QuantumCircuit)
+
+    def test_qarg_numpy_int_exception(self):
+        """Test attempt to pass non-castable arg to QuantumCircuit.
+        """
+        self.assertRaises(CircuitError, QuantumCircuit, 'string')
 
     def test_circuit_depth_empty(self):
         """Test depth of empty circuity
@@ -369,7 +402,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):
-        """Tet circuit count ops
+        """Test circuit count ops.
         """
         q = QuantumRegister(6, 'q')
         qc = QuantumCircuit(q)
@@ -382,6 +415,22 @@ class TestCircuitProperties(QiskitTestCase):
         expected = dict([('h', 6), ('z', 3), ('y', 2), ('x', 1)])
 
         self.assertIsInstance(result, dict)
+        self.assertEqual(expected, result)
+
+    def test_circuit_nonlocal_gates(self):
+        """Test num_nonlocal_gates.
+        """
+        q = QuantumRegister(6, 'q')
+        c = ClassicalRegister(2, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q)
+        qc.x(q[1])
+        qc.cry(0.1, q[2], q[4])
+        qc.z(q[3:])
+        qc.cswap(q[1], q[2], q[3])
+        qc.iswap(q[0], q[4]).c_if(c, 2)
+        result = qc.num_nonlocal_gates()
+        expected = 3
         self.assertEqual(expected, result)
 
     def test_circuit_connected_components_empty(self):
@@ -409,7 +458,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_multi_reg2(self):
-        """Test tensor factors works over multi registers #2
+        """Test tensor factors works over multi registers #2.
         """
         q1 = QuantumRegister(3, 'q1')
         q2 = QuantumRegister(2, 'q2')
@@ -420,7 +469,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_disconnected(self):
-        """Test tensor factors works with 2q subspaces
+        """Test tensor factors works with 2q subspaces.
         """
         q1 = QuantumRegister(5, 'q1')
         q2 = QuantumRegister(5, 'q2')
@@ -468,7 +517,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_unitary_factors1(self):
-        """Test unitary factors empty circuit
+        """Test unitary factors empty circuit.
         """
         size = 4
         q = QuantumRegister(size, 'q')
@@ -486,7 +535,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_unitary_factors(), 4)
 
     def test_circuit_unitary_factors3(self):
-        """Test unitary factors measurements and conditionals
+        """Test unitary factors measurements and conditionals.
         """
         size = 4
         q = QuantumRegister(size, 'q')
@@ -509,7 +558,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_unitary_factors(), 2)
 
     def test_circuit_unitary_factors4(self):
-        """Test unitary factors measurements go to same cbit
+        """Test unitary factors measurements go to same cbit.
         """
         size = 5
         q = QuantumRegister(size, 'q')
@@ -525,35 +574,35 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[0])
         self.assertEqual(qc.num_unitary_factors(), 5)
 
-    def test_n_qubits_qubitless_circuit(self):
-        """Check output in absence of qubits
+    def test_num_qubits_qubitless_circuit(self):
+        """Check output in absence of qubits.
         """
         c_reg = ClassicalRegister(3)
         circ = QuantumCircuit(c_reg)
-        self.assertEqual(circ.n_qubits, 0)
+        self.assertEqual(circ.num_qubits, 0)
 
-    def test_n_qubits_qubitfull_circuit(self):
+    def test_num_qubits_qubitfull_circuit(self):
         """Check output in presence of qubits
         """
         q_reg = QuantumRegister(4)
         c_reg = ClassicalRegister(3)
         circ = QuantumCircuit(q_reg, c_reg)
-        self.assertEqual(circ.n_qubits, 4)
+        self.assertEqual(circ.num_qubits, 4)
 
-    def test_n_qubits_registerless_circuit(self):
-        """Check output for circuits with direct argument for qubits
+    def test_num_qubits_registerless_circuit(self):
+        """Check output for circuits with direct argument for qubits.
         """
         circ = QuantumCircuit(5)
-        self.assertEqual(circ.n_qubits, 5)
+        self.assertEqual(circ.num_qubits, 5)
 
-    def test_n_qubits_multiple_register_circuit(self):
-        """Check output for circuits with multiple quantum registers
+    def test_num_qubits_multiple_register_circuit(self):
+        """Check output for circuits with multiple quantum registers.
         """
         q_reg1 = QuantumRegister(5)
         q_reg2 = QuantumRegister(6)
         q_reg3 = QuantumRegister(7)
         circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
-        self.assertEqual(circ.n_qubits, 18)
+        self.assertEqual(circ.num_qubits, 18)
 
 
 if __name__ == '__main__':

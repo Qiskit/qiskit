@@ -1,0 +1,32 @@
+---
+fixes:
+  - |
+    Explanation and examples have been added to documentation for the
+    :class:`qiskit.circuit.QuantumCircuit` methods for adding gates:
+    :meth:`qiskit.circuit.QuantumCircuit.ccx`,
+    :meth:`qiskit.circuit.QuantumCircuit.ch`,
+    :meth:`qiskit.circuit.QuantumCircuit.crz`,
+    :meth:`qiskit.circuit.QuantumCircuit.cswap`,
+    :meth:`qiskit.circuit.QuantumCircuit.cu1`,
+    :meth:`qiskit.circuit.QuantumCircuit.cu3`,
+    :meth:`qiskit.circuit.QuantumCircuit.cx`,
+    :meth:`qiskit.circuit.QuantumCircuit.cy`,
+    :meth:`qiskit.circuit.QuantumCircuit.cz`,
+    :meth:`qiskit.circuit.QuantumCircuit.h`,
+    :meth:`qiskit.circuit.QuantumCircuit.iden`,
+    :meth:`qiskit.circuit.QuantumCircuit.rx`,
+    :meth:`qiskit.circuit.QuantumCircuit.ry`,
+    :meth:`qiskit.circuit.QuantumCircuit.rz`,
+    :meth:`qiskit.circuit.QuantumCircuit.s`,
+    :meth:`qiskit.circuit.QuantumCircuit.sdg`,
+    :meth:`qiskit.circuit.QuantumCircuit.swap`,
+    :meth:`qiskit.circuit.QuantumCircuit.t`,
+    :meth:`qiskit.circuit.QuantumCircuit.tdg`,
+    :meth:`qiskit.circuit.QuantumCircuit.u1`,
+    :meth:`qiskit.circuit.QuantumCircuit.u2`,
+    :meth:`qiskit.circuit.QuantumCircuit.u3`,
+    :meth:`qiskit.circuit.QuantumCircuit.x`,
+    :meth:`qiskit.circuit.QuantumCircuit.y`,
+    :meth:`qiskit.circuit.QuantumCircuit.z`. Fixes
+    `issue #3400 <https://github.com/Qiskit/qiskit-terra/issues/3400>`_
+

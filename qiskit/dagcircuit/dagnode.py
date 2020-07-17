@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=redefined-builtin
+
 """Object to represent the information at a node in the DAGCircuit."""
 
 import warnings
@@ -26,68 +28,83 @@ class DAGNode:
     be supplied to functions that take a node.
     """
 
-    def __init__(self, data_dict, nid=-1):
-        """Create a node """
-        self._node_id = nid
-        self.data_dict = data_dict
+    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition', '_wire',
+                 'sort_key', '_node_id']
 
-    @property
-    def type(self):
-        """Returns a str that is the type of the node, else None"""
-        return self.data_dict.get('type')
+    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
+                 condition=None, wire=None, nid=-1):
+        """Create a node """
+        if isinstance(type, dict):
+            warnings.warn("Using data_dict as a a parameter to create a "
+                          "DAGNode object is deprecated. Instead pass each "
+                          "field in the dictionary as a kwarg",
+                          DeprecationWarning, stacklevel=2)
+            data_dict = type
+            self.type = data_dict.get('type')
+            self._op = data_dict.get('op')
+            self.name = data_dict.get('name')
+            self._qargs = data_dict.get('qargs')
+            self.cargs = data_dict.get('cargs')
+            if data_dict.get('condition'):
+                warnings.warn("Use of condition arg is deprecated, set condition in instruction",
+                              DeprecationWarning)
+            if self._op:
+                self._op.condition = (data_dict.get('condition') if self._op.condition is None
+                                      else self._op.condition)
+            self.condition = self._op.condition if self._op is not None else None
+            self._wire = data_dict.get('wire')
+        else:
+            self.type = type
+            self._op = op
+            self.name = name
+            self._qargs = qargs if qargs is not None else []
+            self.cargs = cargs if cargs is not None else []
+            if condition:
+                warnings.warn("Use of condition arg is deprecated, set condition in instruction.",
+                              DeprecationWarning)
+            if self._op:
+                self._op.condition = condition if self._op.condition is None else self._op.condition
+            self.condition = self._op.condition if self._op is not None else None
+            self._wire = wire
+        self._node_id = nid
+        self.sort_key = str(self._qargs)
 
     @property
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
-        if 'type' not in self.data_dict or self.data_dict['type'] != 'op':
+        if not self.type or self.type != 'op':
             raise QiskitError("The node %s is not an op node" % (str(self)))
-        return self.data_dict.get('op')
+        return self._op
 
-    @property
-    def name(self):
-        """Returns a str that is the name of the node, else None"""
-        return self.data_dict.get('name')
-
-    @name.setter
-    def name(self, new_name):
-        """Sets the name of the node to be the given value"""
-        self.data_dict['name'] = new_name
+    @op.setter
+    def op(self, data):
+        self._op = data
 
     @property
     def qargs(self):
         """
         Returns list of Qubit, else an empty list.
         """
-        return self.data_dict.get('qargs', [])
+        return self._qargs
 
     @qargs.setter
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
-        self.data_dict['qargs'] = new_qargs
-
-    @property
-    def cargs(self):
-        """
-        Returns list of Clbit, else an empty list.
-        """
-        return self.data_dict.get('cargs', [])
-
-    @property
-    def condition(self):
-        """
-        Returns a tuple (ClassicalRegister, int) where the int is the
-        value of the condition, else None.
-        """
-        return self.data_dict.get('condition')
+        self._qargs = new_qargs
+        self.sort_key = str(new_qargs)
 
     @property
     def wire(self):
         """
         Returns the Bit object, else None.
         """
-        if self.data_dict['type'] not in ['in', 'out']:
+        if self.type not in ['in', 'out']:
             raise QiskitError('The node %s is not an input/output node' % str(self))
-        return self.data_dict.get('wire')
+        return self._wire
+
+    @wire.setter
+    def wire(self, data):
+        self._wire = data
 
     def __lt__(self, other):
         return self._node_id < other._node_id
@@ -106,11 +123,6 @@ class DAGNode:
         # needs to be unique as it is what pydot uses to distinguish nodes
         return str(id(self))
 
-    def pop(self, val):
-        """Remove the provided value from the dictionary."""
-        warnings.warn('DAGNode.pop has been deprecated.', DeprecationWarning)
-        del self.data_dict[val]
-
     @staticmethod
     def semantic_eq(node1, node2):
         """
@@ -125,5 +137,14 @@ class DAGNode:
         """
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == node1.name == node2.name:
-            return set(node1.qargs) == set(node2.qargs)
-        return node1.data_dict == node2.data_dict
+            return set(node1._qargs) == set(node2._qargs)
+        result = False
+        if node1.type == node2.type:
+            if node1._op == node2._op:
+                if node1.name == node2.name:
+                    if node1._qargs == node2._qargs:
+                        if node1.cargs == node2.cargs:
+                            if node1.condition == node2.condition:
+                                if node1._wire == node2._wire:
+                                    result = True
+        return result

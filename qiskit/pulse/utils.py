@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,32 +12,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pulse utilities.
-"""
-import warnings
-# pylint: disable=unused-argument
+"""Module for common pulse programming utilies."""
+from typing import List, Dict
 
 
-def align_measures(schedules, cmd_def, cal_gate, max_calibration_duration=None, align_time=None):
+def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
     """
-    This function has been moved!
-    """
-    warnings.warn("The function `align_measures` has been moved to qiskit.pulse.reschedule. "
-                  "It cannot be invoked from `utils` anymore (this call returns None).")
+    Return a mapping from qubit label to measurement group given the nested list meas_map returned
+    by a backend configuration. (Qubits can not always be measured independently.) Sorts the
+    measurement group for consistency.
 
-
-def add_implicit_acquires(schedule, meas_map):
+    Args:
+        meas_map: Groups of qubits that get measured together, for example: [[0, 1], [2, 3, 4]]
+    Returns:
+        Measure map in map format
     """
-    This function has been moved!
-    """
-    warnings.warn("The function `add_implicit_acquires` has been moved to qiskit.pulse.reschedule."
-                  " It cannot be invoked from `utils` anymore (this call returns None).")
-
-
-def pad(schedule, channels=None, until=None):
-    """
-    This function has been moved!
-    """
-    warnings.warn("The function `pad` has been moved to qiskit.pulse.reschedule. It cannot be "
-                  "invoked from `utils` anymore (this call returns None).")
+    qubit_mapping = {}
+    for sublist in meas_map:
+        sublist.sort()
+        for q in sublist:
+            qubit_mapping[q] = sublist
+    return qubit_mapping

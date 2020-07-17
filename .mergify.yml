@@ -9,3 +9,10 @@ pull_request_rules:
       merge:
         method: squash
         strict: true
+  - name: backport
+    conditions:
+      - label=stable backport potential
+    actions:
+      backport:
+        branches:
+          - stable/0.14

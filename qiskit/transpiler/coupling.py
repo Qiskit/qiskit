@@ -36,15 +36,16 @@ class CouplingMap:
     to permitted CNOT gates
     """
 
-    def __init__(self, couplinglist=None):
+    def __init__(self, couplinglist=None, description=None):
         """
         Create coupling graph. By default, the generated coupling has no nodes.
 
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+            description (str): A string to describe the coupling map.
         """
-
+        self.description = description
         # the coupling map graph
         self.graph = nx.DiGraph()
         # a dict of dicts from node pairs to distances
@@ -69,7 +70,7 @@ class CouplingMap:
         Returns:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
-        return [edge for edge in self.graph.edges()]
+        return list(self.graph.edges())
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -119,7 +120,7 @@ class CouplingMap:
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         if self._qubit_list is None:
-            self._qubit_list = sorted([pqubit for pqubit in self.graph.nodes])
+            self._qubit_list = sorted(self.graph.nodes)
         return self._qubit_list
 
     def is_connected(self):
@@ -132,6 +133,14 @@ class CouplingMap:
             return nx.is_weakly_connected(self.graph)
         except nx.exception.NetworkXException:
             return False
+
+    def neighbors(self, physical_qubit):
+        """Return the nearest neighbors of a physical qubit.
+
+        Directionality matters, i.e. a neighbor must be reachable
+        by going one hop in the direction of an edge.
+        """
+        return self.graph.neighbors(physical_qubit)
 
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
@@ -200,6 +209,17 @@ class CouplingMap:
             self._is_symmetric = self._check_symmetry()
         return self._is_symmetric
 
+    def make_symmetric(self):
+        """
+        Convert uni-directional edges into bi-directional.
+        """
+        edges = self.get_edges()
+        for src, dest in edges:
+            if (dest, src) not in edges:
+                self.add_edge(dest, src)
+        self._dist_matrix = None  # invalidate
+        self._is_symmetric = None  # invalidate
+
     def _check_symmetry(self):
         """
         Calculates symmetry
@@ -252,7 +272,7 @@ class CouplingMap:
     @classmethod
     def from_full(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls()
+        cmap = cls(description='full')
         for i in range(num_qubits):
             for j in range(i):
                 cmap.add_edge(j, i)
@@ -263,7 +283,7 @@ class CouplingMap:
     @classmethod
     def from_line(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls()
+        cmap = cls(description='line')
         for i in range(num_qubits-1):
             cmap.add_edge(i, i+1)
             if bidirectional:
@@ -273,7 +293,7 @@ class CouplingMap:
     @classmethod
     def from_ring(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls()
+        cmap = cls(description='ring')
         for i in range(num_qubits):
             if i == num_qubits - 1:
                 k = 0
@@ -287,7 +307,7 @@ class CouplingMap:
     @classmethod
     def from_grid(cls, num_rows, num_columns, bidirectional=True):
         """Return qubits connected on a grid of num_rows x num_columns."""
-        cmap = cls()
+        cmap = cls(description='grid')
         for i in range(num_rows):
             for j in range(num_columns):
                 node = i * num_columns + j
@@ -319,8 +339,10 @@ class CouplingMap:
     def draw(self):
         """Draws the coupling map.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_,
+        which in turn needs `Graphviz <https://www.graphviz.org/>`_ to be
+        installed. Additionally, `pillow <https://python-pillow.org/>`_ will
+        need to be installed.
 
         Returns:
             PIL.Image: Drawn coupling map.

@@ -17,6 +17,7 @@
 import unittest
 
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
@@ -24,6 +25,7 @@ from qiskit.compiler.assemble import assemble
 from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.test import QiskitTestCase
+import qiskit.quantum_info as qi
 
 
 class TestAssembler(QiskitTestCase):
@@ -114,6 +116,26 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual(run_config_out.memory_slots, 0)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
+        self.assertEqual({}, header)
+
+    def test_disassemble_isometry(self):
+        """Test disassembling a circuit with an isometry.
+        """
+        q = QuantumRegister(2, name='q')
+        circ = QuantumCircuit(q, name='circ')
+        circ.iso(qi.random_unitary(4).data, circ.qubits, [])
+        qobj = assemble(circ)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 0)
+        self.assertEqual(len(circuits), 1)
+        # params array
+        assert_allclose(circuits[0]._data[0][0].params[0], circ._data[0][0].params[0])
+        # all other data
+        self.assertEqual(circuits[0]._data[0][0].params[1:], circ._data[0][0].params[1:])
+        self.assertEqual(circuits[0]._data[0][1:], circ._data[0][1:])
+        self.assertEqual(circuits[0]._data[1:], circ._data[1:])
         self.assertEqual({}, header)
 
     def test_opaque_instruction(self):

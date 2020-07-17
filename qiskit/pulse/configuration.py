@@ -21,6 +21,50 @@ from .channels import PulseChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
 
 
+class Kernel:
+    """Settings for this Kernel, which is responsible for integrating time series (raw) data
+    into IQ points.
+    """
+
+    def __init__(self, name: Optional[str] = None, **params):
+        """Create new kernel.
+
+        Args:
+            name: Name of kernel to be used
+            params: Any settings for kerneling.
+        """
+        self.name = name
+        self.params = params
+
+    def __repr__(self):
+        return "{}({}{})".format(self.__class__.__name__,
+                                 "'" + self.name + "', " or "",
+                                 ', '.join("{}={}".format(str(k), str(v))
+                                           for k, v in self.params.items()))
+
+
+class Discriminator:
+    """Setting for this Discriminator, which is responsible for classifying kerneled IQ points
+    into 0/1 state results.
+    """
+
+    def __init__(self, name: Optional[str] = None, **params):
+        """Create new discriminator.
+
+        Args:
+            name: Name of discriminator to be used
+            params: Any settings for discrimination.
+        """
+        self.name = name
+        self.params = params
+
+    def __repr__(self):
+        return "{}({}{})".format(self.__class__.__name__,
+                                 "'" + self.name + "', " or "",
+                                 ', '.join("{}={}".format(str(k), str(v))
+                                           for k, v in self.params.items()))
+
+
 class LoRange:
     """Range of LO frequency."""
 

@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The module within ``pulse`` responsible for schedule->schedule transformations
+    has been renamed from ``reschedule.py`` to ``transforms.py``. The previous import
+    path has been deprecated. To upgrade your code::
+
+        from qiskit.pulse.rescheduler import <X>
+
+    should be replaced by::
+
+        from qiskit.pulse.transforms import <X>

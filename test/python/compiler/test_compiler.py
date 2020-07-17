@@ -204,9 +204,7 @@ class TestCompiler(QiskitTestCase):
         qrtrue = assemble(transpile(qc, backend, seed_transpiler=8),
                           seed_simulator=42)
         rtrue = backend.run(qrtrue).result()
-        qrfalse = assemble(transpile(qc, backend, seed_transpiler=8,
-                                     pass_manager=PassManager()),
-                           seed_simulator=42)
+        qrfalse = assemble(PassManager().run(qc), seed_simulator=42)
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 

@@ -1,0 +1,12 @@
+upgrade:
+  - |
+    The value of the ``rep_time`` parameter for Pulse backend's configuration
+    object are now in units of seconds, not microseconds. The first time a
+    ``PulseBackendConfiguration`` object is initialized it will raise a single
+    warning to the user to indicate this.
+  - |
+    The ``rep_time`` argument for :func:`qiskit.compiler.assemble` now takes
+    in a value in units of seconds, not microseconds. This was done to make
+    the units with everything else in pulse. If you were passing in a value for
+    ``rep_time`` ensure that you update the value to account for this change.
+

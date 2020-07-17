@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Add support for :class:`~qiskit.circuit.Reset` instructions to
+    :meth:`qiskit.quantum_info.Statevector.from_instruction`. Note that this
+    involves RNG sampling in choosing the projection to the zero state in the
+    case where the qubit is in a superposition state. The seed for sampling
+    can be set using the :meth:`~qiskit.quantum_info.Statevector.seed` method.
+fixes:
+  - |
+    Fixes issue where initializing or evolving :class:`qiskit.quantum_info.Statevector`
+    and  :class:`qiskit.quantum_info.DensityMatrix` classes by circuits by
+    circuit containing :class:`~qiskit.circuit.Barrier` instructions would raise
+    an exception.

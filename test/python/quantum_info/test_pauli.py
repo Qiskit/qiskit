@@ -30,7 +30,7 @@ class TestPauliAPI(QiskitTestCase):
     def check(self, result):
         """checks for result to be a Pauli 'IY' """
         self.assertIsInstance(result, Pauli)
-        self.assertEqual(result.numberofqubits, 2)
+        self.assertEqual(result.num_qubits, 2)
         self.assertEqual(result.to_label(), 'IY')
 
     def test_ndarray_bool(self):
@@ -161,7 +161,7 @@ class TestPauli(QiskitTestCase):
         length = 4
         q = Pauli.random(length, seed=42)
         self.log.info(q)
-        self.assertEqual(q.numberofqubits, length)
+        self.assertEqual(q.num_qubits, length)
         self.assertEqual(len(q.z), length)
         self.assertEqual(len(q.x), length)
         self.assertEqual(len(q.to_label()), length)
@@ -385,7 +385,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(sgn, 1j)
 
         self.log.info("sign product reverse:")
-        p3, sgn = Pauli.sgn_prod(p2, p1)
+        p3, sgn = Pauli.sgn_prod(p2, p1)  # pylint: disable=arguments-out-of-order
         self.log.info("p2: %s", p2.to_label())
         self.log.info("p1: %s", p1.to_label())
         self.log.info("p3: %s", p3.to_label())
