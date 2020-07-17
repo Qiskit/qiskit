@@ -123,7 +123,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
                                   'multiple classical registers to instruction')
 
     qc = QuantumCircuit(*regs, name=instruction.name)
-    qc.data = definition
+    qc._data = definition
     instruction.definition = qc
 
     return instruction
