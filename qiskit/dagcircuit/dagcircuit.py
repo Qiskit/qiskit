@@ -1357,21 +1357,12 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            # find the adjacent node that takes the wire being looked at as input
-            # TODO(mtreinish): Add function in retworkx that does this nested api
-            for node_index in self._multi_graph.adj(current_node._node_id):
-                node = self._multi_graph.get_node_data(node_index)
-                if self._multi_graph.has_edge(current_node._node_id,
-                                              node_index):
-                    edge_data = self._multi_graph.get_all_edge_data(
-                        current_node._node_id, node_index)
-                else:
-                    edge_data = self._multi_graph.get_all_edge_data(
-                        node_index, current_node._node_id)
-                if any(wire == edge['wire'] for edge in edge_data):
-                    current_node = node
-                    more_nodes = True
-                    break
+            try:
+                current_node = self._multi_graph.find_adjacent_node_by_edge(
+                    current_node._node_id, lambda x: wire == x['wire'])
+                more_nodes = True
+            except rx.NoSuitableNeighbors:
+                pass
 
     def count_ops(self):
         """Count the occurrences of operation names.
