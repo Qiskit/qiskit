@@ -48,6 +48,7 @@ Qiskit consists of four foundational elements:
   Quantum System Error Analysis <tutorials/noise/index.rst>
   Optimization <tutorials/optimization/index.rst>
   Finance <tutorials/finance/index.rst>
+  Chemistry <tutorials/chemistry/index.rst>
 
 .. toctree::
   :maxdepth: 1
