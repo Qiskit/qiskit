@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    It is now possible to disassemble a pulse Qobj. For example:
+
+    .. code-block::
+
+      from qiskit import pulse
+      from qiskit.assembler.disassemble import disassemble
+      from qiskit.compiler.assemble import assemble
+      from qiskit.test.mock import FakeOpenPulse2Q
+
+      backend = FakeOpenPulse2Q()
+
+      d0 = pulse.DriveChannel(0)
+      d1 = pulse.DriveChannel(1)
+      with pulse.build(backend) as sched:
+          with pulse.align_right():
+              pulse.play(pulse.library.Constant(10, 1.0), d0)
+              pulse.set_phase(1.0, d0)
+              pulse.shift_phase(3.11, d0)
+              pulse.set_frequency(1e9, d0)
+              pulse.shift_frequency(1e7, d0)
+              pulse.delay(20, d0)
+              pulse.delay(10, d1)
+              pulse.play(pulse.library.Constant(8, 0.1), d1)
+              pulse.measure_all()
+
+      qobj = assemble(sched, backend=backend, shots=2000)
+      scheds, _, _ = disassemble(qobj)
+
+      scheds[0].draw()
