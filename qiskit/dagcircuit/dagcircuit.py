@@ -1357,12 +1357,12 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-                try:
-                   current_node = self._multi_graph.find_adjacent_node_by_edge(
-                        current_node._node_id, lambda x: wire == x['wire'])
-                   more_nodes = True
-                except rx.NoSuitableNeighbors:
-                    pass
+            try:
+                current_node = self._multi_graph.find_adjacent_node_by_edge(
+                    current_node._node_id, lambda x: wire == x['wire'])
+                more_nodes = True
+            except rx.NoSuitableNeighbors:
+                pass
 
     def count_ops(self):
         """Count the occurrences of operation names.
