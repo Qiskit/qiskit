@@ -30,7 +30,7 @@ and returns a new function:
     def f(duration: int, *args, **kwargs) -> Waveform:
         ...
 
-Samplers are used to build up pulse commands from continuous pulse functions.
+Samplers are used to build up pulse waveforms from continuous pulse functions.
 
 In Python the creation of a dynamic function that wraps another function will cause
 the underlying signature and documentation of the underlying function to be overwritten.
@@ -85,7 +85,7 @@ linear below:
 Which after decoration may be called with a duration rather than an array of times
     ```python
     duration = 10
-    pulse_command = linear(10, 0.1, 0.1)
+    pulse_envelope = linear(10, 0.1, 0.1)
     ```
 If one calls help on `linear` they will find
     ```
