@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from qiskit import *
+from qiskit import QuantumCircuit
 
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation
@@ -22,18 +22,18 @@ circuit = QuantumCircuit(5)
 circuit.cx(0, 1)
 circuit.cx(2, 1)
 circuit.cx(4, 3)
-circuit.cx(2, 3) 
+circuit.cx(2, 3)
 circuit.z(0)
 circuit.z(4)
 circuit.cx(0, 1)
 circuit.cx(2, 1)
 circuit.cx(4, 3)
-circuit.cx(2, 3) 
-circuit.cx(3, 2) 
+circuit.cx(2, 3)
+circuit.cx(3, 2)
 
 print(circuit)
 
 pm = PassManager()
 pm.append([CommutationAnalysis(), CommutativeCancellation()])
-new_circuit=pm.run(circuit)
+new_circuit = pm.run(circuit)
 print(new_circuit)

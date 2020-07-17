@@ -19,13 +19,13 @@ from copy import deepcopy
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class LookaheadSwap(TransformationPass):
@@ -93,7 +93,7 @@ class LookaheadSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Lookahead swap runs on physical circuits only')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
+        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']

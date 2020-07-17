@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    ``ConstantPulse`` has been deprecated.
-    Please use :py:class:`~qiskit.pulse.Constant` instead.

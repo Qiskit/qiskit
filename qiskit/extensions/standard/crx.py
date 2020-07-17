@@ -16,8 +16,9 @@
 Controlled-rx gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.rx import CrxGate, crx
+from qiskit.circuit.library.standard_gates.rx import CrxGate
 
-warnings.warn('This module is deprecated. The CrxGate can now be found in rx.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['CrxGate']

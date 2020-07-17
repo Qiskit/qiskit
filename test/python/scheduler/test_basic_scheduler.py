@@ -52,8 +52,7 @@ class TestBasicSchedule(QiskitTestCase):
             (78, self.inst_map.get('measure', [0, 1])))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
 
     def test_alap_with_barriers(self):
         """Test that ALAP respects barriers on new qubits."""
@@ -69,8 +68,16 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.inst_map.get('u2', [1], 0, 0)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
+
+    def test_empty_circuit_schedule(self):
+        """Test empty circuit being scheduled."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        sched = schedule(qc, self.backend, method='alap')
+        expected = Schedule()
+        self.assertEqual(sched.instructions, expected.instructions)
 
     def test_alap_aligns_end(self):
         """Test that ALAP always acts as though there is a final global barrier."""
@@ -85,8 +92,7 @@ class TestBasicSchedule(QiskitTestCase):
             (26, self.inst_map.get('u3', [0], 0, 0, 0)))
         for actual, expected in zip(sched.instructions, expected_sched.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
         self.assertEqual(sched.ch_duration(DriveChannel(0)),
                          expected_sched.ch_duration(DriveChannel(1)))
 
@@ -112,8 +118,7 @@ class TestBasicSchedule(QiskitTestCase):
             (78, self.inst_map.get('measure', [0, 1])))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
 
     def test_alap_resource_respecting(self):
         """Test that the ALAP pass properly respects busy resources when backwards scheduling.
@@ -146,8 +151,7 @@ class TestBasicSchedule(QiskitTestCase):
         sched2 = schedule(qc, self.backend, method="as_late_as_possible")
         for asap, alap in zip(sched1.instructions, sched2.instructions):
             self.assertEqual(asap[0], alap[0])
-            self.assertEqual(asap[1].command, alap[1].command)
-            self.assertEqual(asap[1].channels, alap[1].channels)
+            self.assertEqual(asap[1], alap[1])
         insts = sched1.instructions
         self.assertEqual(insts[0][0], 0)
         self.assertEqual(insts[1][0], 10)
@@ -202,8 +206,7 @@ class TestBasicSchedule(QiskitTestCase):
             (74, inst_map.get('u3', [0], 3.14, 1.57)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
 
     def test_schedule_multi(self):
         """Test scheduling multiple circuits at once."""
@@ -217,8 +220,7 @@ class TestBasicSchedule(QiskitTestCase):
         expected_insts = schedule(qc0, self.backend).instructions
         for actual, expected in zip(schedules[0].instructions, expected_insts):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
 
     def test_circuit_name_kept(self):
         """Test that the new schedule gets its name from the circuit."""
@@ -258,8 +260,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.inst_map.get('u2', [1], 0, 0)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
 
     def test_barriers_in_middle(self):
         """As a follow on to `test_can_add_gates_into_free_space`, similar issues
@@ -283,8 +284,7 @@ class TestBasicSchedule(QiskitTestCase):
             (28, self.inst_map.get('u2', [1], 0, 0)))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
-            self.assertEqual(actual[1].command, expected[1].command)
-            self.assertEqual(actual[1].channels, expected[1].channels)
+            self.assertEqual(actual[1], expected[1])
 
     def test_parametric_input(self):
         """Test that scheduling works with parametric pulses as input."""

@@ -25,7 +25,7 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate, CHGate, CXGate
+from qiskit.circuit.library import HGate, CHGate, CXGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -47,10 +47,10 @@ class OperatorTestCase(QiskitTestCase):
     def rand_rho(cls, n):
         """Return random density matrix"""
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-        logger.debug("rand_rho RandomState seeded with seed=%s", seed)
-        rng = np.random.RandomState(seed)
+        logger.debug("rand_rho default_rng seeded with seed=%s", seed)
+        rng = np.random.default_rng(seed)
 
-        psi = rng.rand(n) + 1j * rng.rand(n)
+        psi = rng.random(n) + 1j * rng.random(n)
         rho = np.outer(psi, psi.conj())
         rho /= np.trace(rho)
         return rho
@@ -59,14 +59,14 @@ class OperatorTestCase(QiskitTestCase):
     def rand_matrix(cls, rows, cols=None, real=False):
         """Return a random matrix."""
         seed = np.random.randint(0, np.iinfo(np.int32).max)
-        logger.debug("rand_matrix RandomState seeded with seed=%s", seed)
-        rng = np.random.RandomState(seed)
+        logger.debug("rand_matrix default_rng seeded with seed=%s", seed)
+        rng = np.random.default_rng(seed)
 
         if cols is None:
             cols = rows
         if real:
-            return rng.rand(rows, cols)
-        return rng.rand(rows, cols) + 1j * rng.rand(rows, cols)
+            return rng.random(size=(rows, cols))
+        return rng.random(size=(rows, cols)) + 1j * rng.random(size=(rows, cols))
 
     def simple_circuit_no_measure(self):
         """Return a unitary circuit and the corresponding unitary array."""

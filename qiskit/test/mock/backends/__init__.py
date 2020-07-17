@@ -37,3 +37,8 @@ from .boeblingen import FakeBoeblingen
 from .cambridge import FakeCambridge
 from .paris import FakeParis
 from .rochester import FakeRochester
+from .athens import FakeAthens
+from .rome import FakeRome
+from .bogota import FakeBogota
+from .montreal import FakeMontreal
+from .toronto import FakeToronto

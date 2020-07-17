@@ -20,7 +20,7 @@ try:
                                 Name, Number, Text)
     from pygments.style import Style
 except ImportError:
-    raise ImportError("To use 'qiskit.qasm.pygments' pygments must be "
+    raise ImportError("To use 'qiskit.qasm.pygments' pygments>2.4 must be "
                       'installed. To install run "pip install pygments".')
 
 

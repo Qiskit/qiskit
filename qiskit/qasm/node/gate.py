@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM gate definition."""
+import warnings
 
 from .node import Node
 
@@ -55,11 +56,14 @@ class Gate(Node):
         """Return the number of qubit arguments."""
         return self.bitlist.size()
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
+        if prec is not None:
+            warnings.warn('Parameter \'Gate.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         string = "gate " + self.name
         if self.arguments is not None:
-            string += "(" + self.arguments.qasm(prec) + ")"
-        string += " " + self.bitlist.qasm(prec) + "\n"
-        string += "{\n" + self.body.qasm(prec) + "}"
+            string += "(" + self.arguments.qasm() + ")"
+        string += " " + self.bitlist.qasm() + "\n"
+        string += "{\n" + self.body.qasm() + "}"
         return string

@@ -22,8 +22,9 @@ a single-qubit rotation R_z(a_i) is applied to the target qubit.
 """
 import math
 
-from qiskit import QuantumRegister, QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, UCPauliRotMeta
 
 

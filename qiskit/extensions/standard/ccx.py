@@ -17,8 +17,9 @@ Controlled-Controlled-X (or Toffoli) Gate.
 """
 
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.x import ToffoliGate, ccx
+from qiskit.circuit.library.standard_gates.x import ToffoliGate
 
-warnings.warn('This module is deprecated. The ToffoliGate can now be found in x.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['ToffoliGate']

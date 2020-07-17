@@ -16,8 +16,9 @@
 Identity gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.i import IdGate, iden
+from qiskit.circuit.library.standard_gates.i import IdGate
 
-warnings.warn('This module is deprecated. The IdGate can now be found in i.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['IdGate']

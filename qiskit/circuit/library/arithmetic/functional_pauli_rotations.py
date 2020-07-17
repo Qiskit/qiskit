@@ -16,13 +16,13 @@
 
 """Base class for functional Pauli rotations."""
 
-from typing import Optional, List, Tuple
+from typing import Optional
 
 from abc import ABC, abstractmethod
-from qiskit.circuit import QuantumCircuit, Qubit, Clbit, Instruction
+from ..blueprintcircuit import BlueprintCircuit
 
 
-class FunctionalPauliRotations(QuantumCircuit, ABC):
+class FunctionalPauliRotations(BlueprintCircuit, ABC):
     """Base class for functional Pauli rotations."""
 
     def __init__(self,
@@ -99,10 +99,6 @@ class FunctionalPauliRotations(QuantumCircuit, ABC):
 
             self._reset_registers(num_state_qubits)
 
-    def _invalidate(self) -> None:
-        """Invalidate the current build of the circuit."""
-        self._data = None
-
     @abstractmethod
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
         """Reset the registers according to the new number of state qubits.
@@ -120,24 +116,3 @@ class FunctionalPauliRotations(QuantumCircuit, ABC):
             The minimal number of ancillas required.
         """
         return 0
-
-    @abstractmethod
-    def _configuration_is_valid(self, raise_on_failure: bool = True) -> bool:
-        raise NotImplementedError
-
-    @abstractmethod
-    def _build(self):
-        # if data is populated we already built the circuit
-        if self._data:
-            return
-
-        # check if the current configuration is valid and re-initiate the circuit data
-        _ = self._configuration_is_valid()
-        self._data = []
-
-    @property
-    def data(self) -> List[Tuple[Instruction, List[Qubit], List[Clbit]]]:
-        """Get the circuit definition."""
-        if self._data is None:
-            self._build()
-        return super().data

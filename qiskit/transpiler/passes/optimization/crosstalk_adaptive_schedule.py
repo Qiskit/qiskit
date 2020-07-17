@@ -40,9 +40,9 @@ except ImportError:
     HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import U1Gate, U2Gate, U3Gate, CXGate
+from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
-from qiskit.extensions.standard.barrier import Barrier
+from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.exceptions import TranspilerError
 
 NUM_PREC = 10
@@ -52,6 +52,7 @@ ONEQ_XTALK_THRESH = 2
 
 class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
+
     def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None):
         """CrosstalkAdaptiveSchedule initializer.
 

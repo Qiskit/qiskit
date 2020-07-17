@@ -22,8 +22,8 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.standard import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
-                                        RGate)
+from qiskit.circuit.library.standard_gates import (U3Gate, U1Gate, RXGate, RYGate, RZGate,
+                                                   RGate)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
@@ -58,16 +58,17 @@ class OneQubitEulerDecomposer:
           - :math:`e^{i\gamma} R_X(\phi).R_Y(\theta).R_X(\lambda)`
         * - 'U3'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma}{2}\right)\right)} U_3(\theta,\phi,\lambda)`
+          - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
         * - 'U1X'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i \gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
+          - :math:`e^{i\gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
             :math:`U_1(\theta+\pi).R_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
         * - 'RR'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
     """
+
     def __init__(self, basis='U3'):
         """Initialize decomposer
 

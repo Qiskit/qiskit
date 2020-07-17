@@ -16,16 +16,17 @@
 
 import unittest
 from numpy import pi
+from qiskit.transpiler.passes.optimization.hoare_opt import HAS_Z3
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.standard import XGate, RZGate, CSwapGate, SwapGate
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGNode
 from qiskit.quantum_info import Statevector
 
 
+@unittest.skipUnless(HAS_Z3, 'z3-solver needs to be installed to run these tests')
 class TestHoareOptimizer(QiskitTestCase):
     """Test the HoareOptimizer pass"""
 
@@ -298,23 +299,17 @@ class TestHoareOptimizer(QiskitTestCase):
         """ The is_identity function determines whether a pair of gates
             forms the identity, when ignoring control qubits.
         """
-        seq = [DAGNode({'type': 'op', 'op': XGate().control()}),
-               DAGNode({'type': 'op', 'op': XGate().control(2)})]
+        seq = [DAGNode(type='op', op=XGate().control()),
+               DAGNode(type='op', op=XGate().control(2))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode({'type': 'op', 'op': RZGate(-pi/2).control()}),
-               DAGNode({'type': 'op', 'op': RZGate(pi/2).control(2)})]
+        seq = [DAGNode(type='op', op=RZGate(-pi/2).control()),
+               DAGNode(type='op', op=RZGate(pi/2).control(2))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode({'type': 'op', 'op': CSwapGate()}),
-               DAGNode({'type': 'op', 'op': SwapGate()})]
+        seq = [DAGNode(type='op', op=CSwapGate()),
+               DAGNode(type='op', op=SwapGate())]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
-
-        seq = [DAGNode({'type': 'op', 'op': UnitaryGate([[1, 0],
-                                                         [0, 1j]]).control()}),
-               DAGNode({'type': 'op', 'op': UnitaryGate([[1, 0],
-                                                         [0, -1j]])})]
-        # self.assertTrue(HoareOptimizer()._is_identity(seq))
 
 
 if __name__ == '__main__':

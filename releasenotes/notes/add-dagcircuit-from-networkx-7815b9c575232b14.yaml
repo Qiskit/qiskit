@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    A new method for constructing :class:`qiskit.dagcircuit.DAGCircuit` objects
+    has been added, :meth:`~qiskit.dagcircuit.DAGCircuit.from_networkx`. This
+    method takes in a networkx ``MultiDiGraph`` object (in the format returned
+    by :meth:`~qiskit.dagcircuit.DAGCircuit.to_networkx`) and will return a
+    new :class:`~qiskit.dagcircuit.DAGCircuit` object. The intent behind this
+    function is to enable transpiler pass authors to leverage networkx's
+    `graph algorithm library
+    <https://networkx.github.io/documentation/stable/reference/algorithms/index.html>`__
+    if a function is missing from the
+    `retworkx API <https://retworkx.readthedocs.io/en/latest/api.html>`_.
+    Although, hopefully in such casses an issue will be opened with
+    `retworkx issue tracker <https://github.com/Qiskit/retworkx/issues>`__ (or
+    even better a pull request submitted).

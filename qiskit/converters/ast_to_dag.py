@@ -21,41 +21,41 @@ from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate, QuantumCircuit
 from qiskit.qasm.node.real import Real
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
-from qiskit.extensions.standard.barrier import Barrier
-from qiskit.extensions.standard.x import CCXGate
-from qiskit.extensions.standard.swap import CSwapGate
-from qiskit.extensions.standard.x import CXGate
-from qiskit.extensions.standard.y import CYGate
-from qiskit.extensions.standard.z import CZGate
-from qiskit.extensions.standard.swap import SwapGate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.i import IGate
-from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SdgGate
-from qiskit.extensions.standard.t import TGate
-from qiskit.extensions.standard.t import TdgGate
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.u2 import U2Gate
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.x import XGate
-from qiskit.extensions.standard.y import YGate
-from qiskit.extensions.standard.z import ZGate
-from qiskit.extensions.standard.rx import RXGate
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rz import RZGate
-from qiskit.extensions.standard.rxx import RXXGate
-from qiskit.extensions.standard.rzz import RZZGate
-from qiskit.extensions.standard.u1 import CU1Gate
-from qiskit.extensions.standard.u3 import CU3Gate
-from qiskit.extensions.standard.h import CHGate
-from qiskit.extensions.standard.rx import CRXGate
-from qiskit.extensions.standard.ry import CRYGate
-from qiskit.extensions.standard.rz import CRZGate
+from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.library.standard_gates.x import CCXGate
+from qiskit.circuit.library.standard_gates.swap import CSwapGate
+from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.library.standard_gates.y import CYGate
+from qiskit.circuit.library.standard_gates.z import CZGate
+from qiskit.circuit.library.standard_gates.swap import SwapGate
+from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.i import IGate
+from qiskit.circuit.library.standard_gates.s import SGate
+from qiskit.circuit.library.standard_gates.s import SdgGate
+from qiskit.circuit.library.standard_gates.t import TGate
+from qiskit.circuit.library.standard_gates.t import TdgGate
+from qiskit.circuit.library.standard_gates.u1 import U1Gate
+from qiskit.circuit.library.standard_gates.u2 import U2Gate
+from qiskit.circuit.library.standard_gates.u3 import U3Gate
+from qiskit.circuit.library.standard_gates.x import XGate
+from qiskit.circuit.library.standard_gates.y import YGate
+from qiskit.circuit.library.standard_gates.z import ZGate
+from qiskit.circuit.library.standard_gates.rx import RXGate
+from qiskit.circuit.library.standard_gates.ry import RYGate
+from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.library.standard_gates.rxx import RXXGate
+from qiskit.circuit.library.standard_gates.rzz import RZZGate
+from qiskit.circuit.library.standard_gates.u1 import CU1Gate
+from qiskit.circuit.library.standard_gates.u3 import CU3Gate
+from qiskit.circuit.library.standard_gates.h import CHGate
+from qiskit.circuit.library.standard_gates.rx import CRXGate
+from qiskit.circuit.library.standard_gates.ry import CRYGate
+from qiskit.circuit.library.standard_gates.rz import CRZGate
 
 
 def ast_to_dag(ast):
@@ -240,12 +240,14 @@ class AstInterpreter:
                               "line=%s" % node.line, "file=%s" % node.file)
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
+            cx_gate = CXGate()
+            cx_gate.condition = self.condition
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(CXGate(), [id0[idx], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [])
             elif len(id0) > 1:
-                self.dag.apply_operation_back(CXGate(), [id0[idx], id1[0]], [], self.condition)
+                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[0]], [])
             else:
-                self.dag.apply_operation_back(CXGate(), [id0[0], id1[idx]], [], self.condition)
+                self.dag.apply_operation_back(cx_gate, [id0[0], id1[idx]], [])
 
     def _process_measure(self, node):
         """Process a measurement node."""
@@ -255,7 +257,9 @@ class AstInterpreter:
             raise QiskitError("internal error: reg size mismatch",
                               "line=%s" % node.line, "file=%s" % node.file)
         for idx, idy in zip(id0, id1):
-            self.dag.apply_operation_back(Measure(), [idx], [idy], self.condition)
+            meas_gate = Measure()
+            meas_gate.condition = self.condition
+            self.dag.apply_operation_back(meas_gate, [idx], [idy])
 
     def _process_if(self, node):
         """Process an if node."""
@@ -315,7 +319,9 @@ class AstInterpreter:
             args = self._process_node(node.children[0])
             qid = self._process_bit_id(node.children[1])
             for element in qid:
-                self.dag.apply_operation_back(U3Gate(*args, element), self.condition)
+                u3_gate = U3Gate(*args, element)
+                u3_gate.condition = self.condition
+                self.dag.apply_operation_back(u3_gate)
 
         elif node.type == "cnot":
             self._process_cnot(node)
@@ -346,7 +352,9 @@ class AstInterpreter:
         elif node.type == "reset":
             id0 = self._process_bit_id(node.children[0])
             for i, _ in enumerate(id0):
-                self.dag.apply_operation_back(Reset(), [id0[i]], [], self.condition)
+                reset = Reset()
+                reset.condition = self.condition
+                self.dag.apply_operation_back(reset, [id0[i]], [])
 
         elif node.type == "if":
             self._process_if(node)
@@ -363,9 +371,9 @@ class AstInterpreter:
                               "file=%s" % node.file)
         return None
 
-    def _gate_definition_to_qiskit_definition(self, node, params):
-        """From a gate definition in qasm, to a gate.definition format."""
-        definition = []
+    def _gate_rules_to_qiskit_circuit(self, node, params):
+        """From a gate definition in qasm, to a QuantumCircuit format."""
+        rules = []
         qreg = QuantumRegister(node['n_bits'])
         bit_args = {node['bits'][i]: q for i, q in enumerate(qreg)}
         exp_args = {node['args'][i]: Real(q) for i, q in enumerate(params)}
@@ -380,8 +388,10 @@ class AstInterpreter:
                     for param in param_list.children:
                         eparams.append(param.sym(nested_scope=[exp_args]))
             op = self._create_op(child_op.name, params=eparams)
-            definition.append((op, qparams, []))
-        return definition
+            rules.append((op, qparams, []))
+        circ = QuantumCircuit(qreg)
+        circ._data = rules
+        return circ
 
     def _create_dag_op(self, name, params, qargs):
         """
@@ -396,7 +406,8 @@ class AstInterpreter:
             QiskitError: if encountering a non-basis opaque gate
         """
         op = self._create_op(name, params)
-        self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
+        op.condition = self.condition
+        self.dag.apply_operation_back(op, qargs, [])
 
     def _create_op(self, name, params):
         if name in self.standard_extension:
@@ -411,8 +422,8 @@ class AstInterpreter:
                                  num_qubits=self.gates[name]['n_bits'],
                                  num_clbits=0,
                                  params=params)
-                op.definition = self._gate_definition_to_qiskit_definition(self.gates[name],
-                                                                           params=params)
+                op.definition = self._gate_rules_to_qiskit_circuit(self.gates[name],
+                                                                   params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
         return op

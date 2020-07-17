@@ -28,11 +28,11 @@
 
 """Utility functions shared between permutation functionality."""
 
-from typing import List, TypeVar, Iterable, MutableMapping, Optional
+from typing import List, TypeVar, Iterable, MutableMapping
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 
 from .types import Swap, PermutationCircuit
 

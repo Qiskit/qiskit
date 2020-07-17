@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The :class:`qiskit.circuit.Instruction` method
+    :meth:`qiskit.circuit.Instruction.is_parameterized` method had previously
+    returned ``True`` for any ``Instruction`` instance which had a
+    :class:`qiskit.circuit.Parameter` in any element of its ``params`` array,
+    even if that ``Parameter`` had been fully bound. This has been corrected so
+    that ``.is_parameterized`` will return ``False`` when the instruction is
+    fully bound.

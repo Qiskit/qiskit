@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The ``circuit_to_gate`` and ``circuit_to_instruction`` converters had
+    previously automatically included the generated gate or instruction in the
+    active ``SessionEquivalenceLibrary``. These converters now accept an
+    optional ``equivalence_library`` keyword argument to specify if and where
+    the converted instances should be registered. The default behavior is not
+    to register the converted instance.

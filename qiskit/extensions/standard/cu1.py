@@ -12,12 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Controlled-u1 gate.
-"""
+"""The standard gates moved to qiskit/circuit/library."""
+
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.u1 import Cu1Gate, cu1
+from qiskit.circuit.library.standard_gates.u1 import Cu1Gate
 
 warnings.warn('This module is deprecated. The Cu1Gate can now be found in u1.py',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['Cu1Gate']

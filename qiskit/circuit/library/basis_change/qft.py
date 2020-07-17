@@ -17,12 +17,14 @@
 from typing import Optional
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
+
+from ..blueprintcircuit import BlueprintCircuit
 
 # pylint: disable=no-member
 
 
-class QFT(QuantumCircuit):
+class QFT(BlueprintCircuit):
     r"""Quantum Fourier Transform Circuit.
 
     The Quantum Fourier Transform (QFT) on :math:`n` qubits is the operation
@@ -81,6 +83,7 @@ class QFT(QuantumCircuit):
                  num_qubits: Optional[int] = None,
                  approximation_degree: int = 0,
                  do_swaps: bool = True,
+                 inverse: bool = False,
                  insert_barriers: bool = False,
                  name: str = 'qft') -> None:
         """Construct a new QFT circuit.
@@ -89,6 +92,7 @@ class QFT(QuantumCircuit):
             num_qubits: The number of qubits on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).
             do_swaps: Whether to include the final swaps in the QFT.
+            inverse: If True, the inverse Fourier transform is constructed.
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
@@ -96,18 +100,9 @@ class QFT(QuantumCircuit):
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
+        self._inverse = inverse
         self._data = None
         self.num_qubits = num_qubits
-
-    def qasm(self, formatted=False, filename=None):
-        if self._data is None:
-            self._build()
-        return super().qasm(formatted, filename)
-
-    def append(self, instruction, qargs=None, cargs=None):
-        if self._data is None:
-            self._build()
-        return super().append(instruction, qargs, cargs)
 
     @property
     def num_qubits(self) -> int:
@@ -135,7 +130,7 @@ class QFT(QuantumCircuit):
             self._invalidate()
 
             if num_qubits:
-                self.qregs = [QuantumRegister(num_qubits)]
+                self.qregs = [QuantumRegister(num_qubits, name='q')]
             else:
                 self.qregs = []
 
@@ -205,21 +200,59 @@ class QFT(QuantumCircuit):
             self._invalidate()
             self._do_swaps = do_swaps
 
+    def is_inverse(self) -> bool:
+        """Whether the inverse Fourier transform is implemented.
+
+        Returns:
+            True, if the inverse Fourier transform is implemented, False otherwise.
+        """
+        return self._inverse
+
     def _invalidate(self) -> None:
         """Invalidate the current build of the circuit."""
         self._data = None
+
+    def inverse(self) -> 'QFT':
+        """Invert this circuit.
+
+        Returns:
+            The inverted circuit.
+        """
+
+        if self.name in ('qft', 'iqft'):
+            name = 'qft' if self._inverse else 'iqft'
+        else:
+            name = self.name + '_dg'
+
+        inverted = self.copy(name=name)
+        inverted._data = []
+
+        from qiskit.circuit.parametertable import ParameterTable
+        inverted._parameter_table = ParameterTable()
+
+        for inst, qargs, cargs in reversed(self._data):
+            inverted._append(inst.inverse(), qargs, cargs)
+
+        inverted._inverse = not self._inverse
+        return inverted
 
     def _swap_qubits(self):
         num_qubits = self.num_qubits
         for i in range(num_qubits // 2):
             self.swap(i, num_qubits - i - 1)
 
+    def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        valid = True
+        if self.num_qubits is None:
+            valid = False
+            if raise_on_failure:
+                raise AttributeError('The number of qubits has not been set.')
+
+        return valid
+
     def _build(self) -> None:
         """Construct the circuit representing the desired state vector."""
-        if self._data:
-            return
-
-        self._data = []
+        super()._build()
 
         for j in range(self.num_qubits):
             self.h(j)
@@ -234,8 +267,5 @@ class QFT(QuantumCircuit):
         if self._do_swaps:
             self._swap_qubits()
 
-    @property
-    def data(self):
-        if self._data is None:
-            self._build()
-        return super().data
+        if self._inverse:
+            self._data = super().inverse()

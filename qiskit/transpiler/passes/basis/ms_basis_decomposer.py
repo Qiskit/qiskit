@@ -18,7 +18,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 
 from qiskit.converters import circuit_to_dag
-from qiskit.extensions.standard import U3Gate, CXGate
+from qiskit.circuit.library.standard_gates import U3Gate, CXGate
 
 from qiskit.transpiler.passes import Unroller
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer

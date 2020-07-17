@@ -1,7 +1,0 @@
----
-features:
-  - |
-    ``Diagonal`` circuits are added to the circuit library. These circuits
-    implement diagonal quantum operators (consisting of non-zero elements
-    only on the diagonal). They are more efficiently simulated by the Aer
-    simulator than dense diagonals.

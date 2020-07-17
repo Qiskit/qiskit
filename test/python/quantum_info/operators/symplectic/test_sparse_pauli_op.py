@@ -182,7 +182,7 @@ class TestSparsePauliOpIteration(QiskitTestCase):
 class TestSparsePauliOpMethods(QiskitTestCase):
     """Tests for SparsePauliOp operator methods."""
 
-    RNG = np.random.RandomState(1994)
+    RNG = np.random.default_rng(1994)
 
     def random_spp_op(self, num_qubits, num_terms):
         """Generate a pseudo-random SparsePauliOp"""

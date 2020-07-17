@@ -22,9 +22,8 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-import qiskit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
-from qiskit.test import (Path, QiskitTestCase, online_test, slow_test)
+from qiskit.test import (Path, QiskitTestCase, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.
@@ -33,14 +32,12 @@ TIMEOUT = 1000
 JUPYTER_KERNEL = 'python3'
 
 
-@unittest.skipUnless(hasattr(qiskit, 'IBMQ'),
-                     'qiskit-ibmq-provider is required for these tests')
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
     def setUp(self):
         self.execution_path = os.path.join(Path.SDK.value, '..')
 
-    def _execute_notebook(self, filename, qe_token=None, qe_url=None):
+    def _execute_notebook(self, filename):
         # Create the preprocessor.
         execute_preprocessor = ExecutePreprocessor(timeout=TIMEOUT,
                                                    kernel_name=JUPYTER_KERNEL)
@@ -49,16 +46,26 @@ class TestJupyter(QiskitTestCase):
         with open(filename) as file_:
             notebook = nbformat.read(file_, as_version=4)
 
-        if qe_token and qe_url:
-            top_str = "from qiskit import IBMQ\n"
-            top_str += "IBMQ.enable_account('{token}', '{url}')".format(token=qe_token,
-                                                                        url=qe_url)
-            top = nbformat.notebooknode.NotebookNode({'cell_type': 'code',
-                                                      'execution_count': 0,
-                                                      'metadata': {},
-                                                      'outputs': [],
-                                                      'source': top_str})
-            notebook.cells = [top] + notebook.cells
+        top_str = """
+        import qiskit
+        import sys
+        from unittest.mock import create_autospec, MagicMock
+        from qiskit.test.mock import FakeProviderFactory
+        from qiskit.providers import basicaer
+        fake_prov = FakeProviderFactory()
+        qiskit.IBMQ = fake_prov
+        ibmq_mock = create_autospec(basicaer)
+        ibmq_mock.IBMQJobApiError = MagicMock()
+        sys.modules['qiskit.providers.ibmq'] = ibmq_mock
+        sys.modules['qiskit.providers.ibmq.job'] = ibmq_mock
+        sys.modules['qiskit.providers.ibmq.job.exceptions'] = ibmq_mock
+        """
+        top = nbformat.notebooknode.NotebookNode({'cell_type': 'code',
+                                                  'execution_count': 0,
+                                                  'metadata': {},
+                                                  'outputs': [],
+                                                  'source': top_str})
+        notebook.cells = [top] + notebook.cells
 
         # Run the notebook into the folder containing the `qiskit/` module.
         execute_preprocessor.preprocess(
@@ -73,14 +80,11 @@ class TestJupyter(QiskitTestCase):
             'notebooks/test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @online_test
     @slow_test
-    def test_backend_tools(self, qe_token, qe_url):
+    def test_backend_tools(self):
         """Test Jupyter backend tools."""
         self._execute_notebook(self._get_resource_path(
-            'notebooks/test_backend_tools.ipynb'),
-                               qe_token=qe_token,
-                               qe_url=qe_url)
+            'notebooks/test_backend_tools.ipynb'))
 
 
 if __name__ == '__main__':

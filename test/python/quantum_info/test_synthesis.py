@@ -15,16 +15,19 @@
 """Tests for quantum synthesis methods."""
 
 import unittest
+from itertools import product
 
 import numpy as np
 import scipy.linalg as la
+
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import (HGate, IGate, SdgGate, SGate, U3Gate,
-                                        XGate, YGate, ZGate, CXGate)
+from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate,
+                                    XGate, YGate, ZGate, CXGate, CZGate,
+                                    iSwapGate, RXXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
-from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
@@ -437,8 +440,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
     def test_exact_two_qubit_cnot_decompose_paulis(self):
         """Verify exact CNOT decomposition for Paulis
         """
-        pauli_xz = Pauli(label='XZ')
-        unitary = Operator(pauli_xz)
+        unitary = Operator.from_label('XZ')
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     def test_exact_supercontrolled_decompose_random(self, nsamples=10):
@@ -569,6 +571,39 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/pull/3652"""
         unitary = random_unitary(4, seed=289)
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
+
+    def test_euler_basis_selection(self):
+        """Verify decomposition uses euler_basis for 1q gates."""
+
+        euler_bases = [
+            ('U3', ['u3']),
+            ('U1X', ['u1', 'rx']),
+            ('RR', ['r']),
+            ('ZYZ', ['rz', 'ry']),
+            ('ZXZ', ['rz', 'rx']),
+            ('XYX', ['rx', 'ry']),
+        ]
+
+        kak_gates = [
+            (CXGate(), 'cx'),
+            (CZGate(), 'cz'),
+            (iSwapGate(), 'iswap'),
+            (RXXGate(np.pi/2), 'rxx'),
+        ]
+
+        for basis in product(euler_bases, kak_gates):
+            (euler_basis, oneq_gates), (kak_gate, kak_gate_name) = basis
+
+            with self.subTest(euler_basis=euler_basis, kak_gate=kak_gate):
+                decomposer = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
+                unitary = random_unitary(4)
+                self.check_exact_decomposition(unitary.data, decomposer)
+
+                decomposition_basis = set(decomposer(unitary).count_ops())
+                requested_basis = set(oneq_gates + [kak_gate_name])
+                self.assertTrue(
+                    decomposition_basis.issubset(requested_basis))
+
 
 # FIXME: need to write tests for the approximate decompositions
 

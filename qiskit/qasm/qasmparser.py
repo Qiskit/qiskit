@@ -17,7 +17,6 @@
 import os
 import shutil
 import tempfile
-import warnings
 
 import numpy as np
 import ply.yacc as yacc
@@ -317,7 +316,7 @@ class QasmParser:
         """
         program[0] = node.Format(program[1])
 
-    def p_format_0(self, program):
+    def p_format_0(self, _):
         """
            format : FORMAT error
         """
@@ -550,11 +549,10 @@ class QasmParser:
         self.pop_scope()
         self.update_symtab(program[0])
 
-    def p_gate_scope(self, program):
+    def p_gate_scope(self, _):
         """
            gate_scope :
         """
-        del program  # unused
         self.push_scope()
 
     # ----------------------------------------
@@ -688,7 +686,7 @@ class QasmParser:
         raise QasmError("Invalid U inside gate definition. "
                         + "Missing bit id or ';'")
 
-    def p_gate_op_0e2(self, program):
+    def p_gate_op_0e2(self, _):
         """
         gate_op : U '(' exp_list error
         """
@@ -731,7 +729,7 @@ class QasmParser:
         self.verify_bit_list(program[2])
         self.verify_distinct([program[2]])
 
-    def p_gate_op_2e(self, program):
+    def p_gate_op_2e(self, _):
         """
         gate_op : id  id_list error
         """
@@ -756,14 +754,14 @@ class QasmParser:
         self.verify_exp_list(program[3])
         self.verify_distinct([program[5]])
 
-    def p_gate_op_4e0(self, program):
+    def p_gate_op_4e0(self, _):
         """
         gate_op : id '(' ')'  error
         """
         raise QasmError("Invalid bit list inside gate definition or"
                         + " missing ';'")
 
-    def p_gate_op_4e1(self, program):
+    def p_gate_op_4e1(self, _):
         """
         gate_op : id '('   error
         """
@@ -778,7 +776,7 @@ class QasmParser:
         self.verify_bit_list(program[2])
         self.verify_distinct([program[2]])
 
-    def p_gate_op_5e(self, program):
+    def p_gate_op_5e(self, _):
         """
         gate_op : BARRIER error
         """
@@ -822,7 +820,7 @@ class QasmParser:
         self.pop_scope()
         self.update_symtab(program[0])
 
-    def p_opaque_1e(self, program):
+    def p_opaque_1e(self, _):
         """
            opaque : OPAQUE id gate_scope '(' error
         """
@@ -1015,7 +1013,7 @@ class QasmParser:
         program[0] = program[1]
         program[0].add_child(program[3])
 
-    def p_ignore(self, program):
+    def p_ignore(self, _):
         """
            ignore : STRING
         """
@@ -1045,21 +1043,6 @@ class QasmParser:
             last_cr = 0
         column = (token.lexpos - last_cr) + 1
         return column
-
-    def get_tokens(self):
-        """Deprecated. Use read_tokens()."""
-        warnings.warn('The method get_tokens() is being replaced by read_tokens()',
-                      DeprecationWarning, 2)
-        try:
-            while True:
-                token = self.lexer.token()
-
-                if not token:
-                    break
-
-                yield token
-        except QasmError as e:
-            print('Exception tokenizing qasm file:', e.msg)
 
     def read_tokens(self):
         """finds and reads the tokens."""

@@ -25,6 +25,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator, AbstractTolerancesMeta
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.result.counts import Counts
 
 
 class QuantumState(metaclass=AbstractTolerancesMeta):
@@ -40,7 +41,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         self._num_qubits = None  # number of qubit subsystems if N-qubit state
         self._set_dims(dims)
         # RNG for measure functions
-        self._rng = np.random.RandomState()
+        self._rng_generator = None
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.dims() == other.dims()
@@ -87,6 +88,12 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
                       DeprecationWarning)
         cls.rtol = value
 
+    @property
+    def _rng(self):
+        if self._rng_generator is None:
+            return np.random
+        return self._rng_generator
+
     def _reshape(self, dims=None):
         """Reshape dimensions of the state.
 
@@ -119,7 +126,12 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
 
     def seed(self, value=None):
         """Set the seed for the quantum state RNG."""
-        self._rng.seed(value)
+        if value is None:
+            self._rng_generator = None
+        elif isinstance(value, np.random.Generator):
+            self._rng_generator = value
+        else:
+            self._rng_generator = np.random.default_rng(value)
 
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):
@@ -283,6 +295,19 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         pass
 
     @abstractmethod
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (BaseOperator): an operator to evaluate expval.
+            qargs (None or list): subsystems to apply the operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        pass
+
+    @abstractmethod
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
 
@@ -353,8 +378,6 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         # Generate list of possible outcome string labels
         labels = self._index_to_ket_array(
             np.arange(len(probs)), self.dims(qargs), string_labels=True)
-
-        # Sample outcomes
         return self._rng.choice(labels, p=probs, size=shots)
 
     def sample_counts(self, shots, qargs=None):
@@ -367,7 +390,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
                                 subsystems (Default: None).
 
         Returns:
-            dict: sampled counts dictionary.
+            Counts: sampled counts dictionary.
 
         Additional Information:
 
@@ -384,7 +407,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
 
         # Combine all samples into a counts dictionary
         inds, counts = np.unique(samples, return_counts=True)
-        return dict(zip(inds, counts))
+        return Counts(zip(inds, counts))
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.

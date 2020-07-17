@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    Update the pulse drawer to show plot title. The title is automatically generated from
-    the pulse instance or pulse schedule instance ``name`` property.
-    The fontsize is controllable with the pulse drawer style seet.

@@ -31,7 +31,7 @@ def dag_to_circuit(dag):
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
-            from qiskit.extensions.standard import CHGate, U2Gate, CXGate
+            from qiskit.circuit.library.standard_gates import CHGate, U2Gate, CXGate
             from qiskit.converters import dag_to_circuit
             %matplotlib inline
 

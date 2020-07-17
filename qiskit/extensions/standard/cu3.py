@@ -16,8 +16,9 @@
 Controlled-u3 gate.
 """
 import warnings
-# pylint: disable=unused-import
-from qiskit.extensions.standard.u3 import Cu3Gate, cu3
+from qiskit.circuit.library.standard_gates.u3 import Cu3Gate
 
-warnings.warn('This module is deprecated. The Cu3Gate can now be found in u3.py',
+warnings.warn('This module is deprecated.',
               category=DeprecationWarning, stacklevel=2)
+
+__all__ = ['Cu3Gate']

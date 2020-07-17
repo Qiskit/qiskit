@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Users can request whether the backend inserts any initialization sequences
+    at the start of each shot via ``assemble`` or ``execute``. By passing
+    ``init_qubits = False``, qubits will be uninitialized at the start of each
+    experiment and between shots.
+
+    The default behavior is ``init_qubits = True``, which replicates the
+    previously implict behavior: all qubits are assumed to be in the ground
+    state at the start of each shot. 

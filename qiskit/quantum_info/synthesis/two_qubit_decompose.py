@@ -33,15 +33,14 @@ import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.extensions.standard.x import CXGate
+from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
 _CUTOFF_PRECISION = 1e-12
-_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
 def euler_angles_1q(unitary_matrix):
@@ -59,7 +58,7 @@ def euler_angles_1q(unitary_matrix):
     Raises:
         QiskitError: if unitary_matrix not 2x2, or failure
     """
-    warnings.warn("euler_angles_q1` is deprecated. "
+    warnings.warn("euler_angles_1q` is deprecated. "
                   "Use `synthesis.OneQubitEulerDecomposer().angles instead.",
                   DeprecationWarning)
     if unitary_matrix.shape != (2, 2):
@@ -143,6 +142,7 @@ class TwoQubitWeylDecomposition:
     where U ∈ U(4), (K1l|K1r|K2l|K2r) ∈ SU(2), and we stay in the "Weyl Chamber"
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
+
     def __init__(self, unitary_matrix):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
@@ -167,8 +167,8 @@ class TwoQubitWeylDecomposition:
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
         for i in range(100):  # FIXME: this randomized algorithm is horrendous
-            state = np.random.RandomState(i)
-            M2real = state.randn()*M2.real + state.randn()*M2.imag
+            state = np.random.default_rng(i)
+            M2real = state.normal()*M2.real + state.normal()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
@@ -278,11 +278,23 @@ def rz_array(theta):
 class TwoQubitBasisDecomposer():
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.
+
+    Args:
+        gate (Gate): Two-qubit gate to be used in the KAK decomposition.
+        basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
+        euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
+            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U3', 'U1X', 'RR']. Default 'U3'.
     """
-    def __init__(self, gate, basis_fidelity=1.0):
+
+    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
-        basis = self.basis = TwoQubitWeylDecomposition(gate.to_matrix())
+
+        basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
+        if euler_basis is not None:
+            self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
+        else:
+            self._decomposer1q = OneQubitEulerDecomposer('U3')
 
         # FIXME: find good tolerances
         self.is_supercontrolled = np.isclose(basis.a, np.pi/4) and np.isclose(basis.c, 0.)
@@ -373,7 +385,7 @@ class TwoQubitBasisDecomposer():
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
 
-        return U0r, U0l
+        return np.around(U0r, 13), np.around(U0l, 13)
 
     def decomp1(self, target):
         """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
@@ -460,16 +472,16 @@ class TwoQubitBasisDecomposer():
 
         best_nbasis = np.argmax(expected_fidelities)
         decomposition = self.decomposition_fns[best_nbasis](target_decomposed)
-        decomposition_angles = [_DECOMPOSER1Q.angles(x) for x in decomposition]
+        decomposition_euler = [self._decomposer1q(x) for x in decomposition]
 
         q = QuantumRegister(2)
         return_circuit = QuantumCircuit(q)
         for i in range(best_nbasis):
-            return_circuit.append(U3Gate(*decomposition_angles[2*i]), [q[0]])
-            return_circuit.append(U3Gate(*decomposition_angles[2*i+1]), [q[1]])
+            return_circuit.compose(decomposition_euler[2*i], [q[0]], inplace=True)
+            return_circuit.compose(decomposition_euler[2*i+1], [q[1]], inplace=True)
             return_circuit.append(self.gate, [q[0], q[1]])
-        return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis]), [q[0]])
-        return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis+1]), [q[1]])
+        return_circuit.compose(decomposition_euler[2*best_nbasis], [q[0]], inplace=True)
+        return_circuit.compose(decomposition_euler[2*best_nbasis+1], [q[1]], inplace=True)
 
         return return_circuit
 

@@ -23,11 +23,10 @@ from .parameterexpression import ParameterExpression
 class Parameter(ParameterExpression):
     """Parameter Class for variable parameters."""
 
-    def __new__(cls, _, uuid=None):
+    def __new__(cls, name, uuid=None):  # pylint:disable=unused-argument
         # Parameter relies on self._uuid being set prior to other attributes
         # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
         # or __eq__ functions.
-
         obj = object.__new__(cls)
 
         if uuid is None:
@@ -35,6 +34,7 @@ class Parameter(ParameterExpression):
         else:
             obj._uuid = uuid
 
+        obj._hash = hash(obj._uuid)
         return obj
 
     def __getnewargs__(self):
@@ -80,4 +80,4 @@ class Parameter(ParameterExpression):
             return False
 
     def __hash__(self):
-        return hash(self._uuid)
+        return self._hash
