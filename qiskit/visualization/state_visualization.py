@@ -14,6 +14,7 @@
 
 # pylint: disable=invalid-name,ungrouped-imports,import-error
 # pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
 Visualization functions for quantum states.
@@ -22,10 +23,9 @@ Visualization functions for quantum states.
 from functools import reduce
 import colorsys
 import numpy as np
-import scipy.linalg as la
-from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
-from qiskit.circuit.tools.pi_check import pi_check
+from scipy import linalg
+from qiskit.quantum_info.states import DensityMatrix
+from qiskit.util import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
@@ -40,7 +40,8 @@ if HAS_MATPLOTLIB:
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from qiskit.visualization.exceptions import VisualizationError
     from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.utils import _validate_input_state
+    from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+    from qiskit.circuit.tools.pi_check import pi_check
 
 
 if HAS_MATPLOTLIB:
@@ -60,11 +61,12 @@ if HAS_MATPLOTLIB:
             FancyArrowPatch.draw(self, renderer)
 
 
-def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
-    """Plot a hinton diagram for the quantum state.
+@deprecate_arguments({'rho': 'state'})
+def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+    """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
-        rho (ndarray): Numpy array for state vector or density matrix.
+        state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
@@ -87,30 +89,37 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
 
     Raises:
         ImportError: Requires matplotlib.
+        VisualizationError: if input is not a valid N-qubit state.
 
     Example:
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit, BasicAer, execute
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import DensityMatrix
             from qiskit.visualization import plot_state_hinton
             %matplotlib inline
 
-            qc = QuantumCircuit(2, 2)
+            qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
-            qc.measure([0, 1], [0, 1])
 
-            backend = BasicAer.get_backend('statevector_simulator')
-            job = execute(qc, backend).result()
-            plot_state_hinton(job.get_statevector(qc), title="New Hinton Plot")
+            state = DensityMatrix.from_instruction(qc)
+            plot_state_hinton(state, title="New Hinton Plot")
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run '
                           '"pip install matplotlib".')
-    rho = _validate_input_state(rho)
+    # Figure data
+    rho = DensityMatrix(state)
+    num = rho.num_qubits
+    if num is None:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    max_weight = 2 ** np.ceil(np.log(np.abs(rho.data).max()) / np.log(2))
+    datareal = np.real(rho.data)
+    dataimag = np.imag(rho.data)
+
     if figsize is None:
         figsize = (8, 5)
-    num = int(np.log2(len(rho)))
     if not ax_real and not ax_imag:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     else:
@@ -120,13 +129,9 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
             fig = ax_imag.get_figure()
         ax1 = ax_real
         ax2 = ax_imag
-    max_weight = 2 ** np.ceil(np.log(np.abs(rho).max()) / np.log(2))
-    datareal = np.real(rho)
-    dataimag = np.imag(rho)
     column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
     row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
-    lx = len(datareal[0])            # Work out matrix dimensions
-    ly = len(datareal[:, 0])
+    ly, lx = datareal.shape
     # Real
     if ax1:
         ax1.patch.set_facecolor('gray')
@@ -225,13 +230,14 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     return None
 
 
-def plot_bloch_multivector(rho, title='', figsize=None):
+@deprecate_arguments({'rho': 'state'})
+def plot_bloch_multivector(state, title='', figsize=None, *, rho=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
     Args:
-        rho (ndarray): Numpy array for state vector or density matrix.
+        state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Has no effect, here for compatibility only.
 
@@ -241,41 +247,34 @@ def plot_bloch_multivector(rho, title='', figsize=None):
 
     Raises:
         ImportError: Requires matplotlib.
+        VisualizationError: if input is not a valid N-qubit state.
 
     Example:
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit, BasicAer, execute
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import Statevector
             from qiskit.visualization import plot_bloch_multivector
             %matplotlib inline
 
-            qc = QuantumCircuit(2, 2)
+            qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
-            qc.measure([0, 1], [0, 1])
 
-            backend = BasicAer.get_backend('statevector_simulator')
-            job = execute(qc, backend).result()
-            plot_bloch_multivector(job.get_statevector(qc), title="New Bloch Multivector")
+            state = Statevector.from_instruction(qc)
+            plot_bloch_multivector(state, title="New Bloch Multivector")
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
                           'matplotlib".')
-    rho = _validate_input_state(rho)
-    num = int(np.log2(len(rho)))
+    # Data
+    bloch_data = _bloch_multivector_data(state)
+    num = len(bloch_data)
     width, height = plt.figaspect(1/num)
     fig = plt.figure(figsize=(width, height))
     for i in range(num):
         ax = fig.add_subplot(1, num, i + 1, projection='3d')
-        pauli_singles = [
-            Pauli.pauli_single(num, i, 'X'),
-            Pauli.pauli_single(num, i, 'Y'),
-            Pauli.pauli_single(num, i, 'Z')
-        ]
-        bloch_state = list(
-            map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                pauli_singles))
-        plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax,
+        plot_bloch_vector(bloch_data[i], "qubit " + str(i), ax=ax,
                           figsize=figsize)
     fig.suptitle(title, fontsize=16)
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
@@ -284,15 +283,16 @@ def plot_bloch_multivector(rho, title='', figsize=None):
     return fig
 
 
-def plot_state_city(rho, title="", figsize=None, color=None,
-                    alpha=1, ax_real=None, ax_imag=None):
+@deprecate_arguments({'rho': 'state'})
+def plot_state_city(state, title="", figsize=None, color=None,
+                    alpha=1, ax_real=None, ax_imag=None, *, rho=None):
     """Plot the cityscape of quantum state.
 
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
     part of the density matrix rho.
 
     Args:
-        rho (ndarray): Numpy array for state vector or density matrix.
+        state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         color (list): A list of len=2 giving colors for real and
@@ -319,33 +319,35 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     Raises:
         ImportError: Requires matplotlib.
         ValueError: When 'color' is not a list of len=2.
+        VisualizationError: if input is not a valid N-qubit state.
 
     Example:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, BasicAer, execute
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import DensityMatrix
            from qiskit.visualization import plot_state_city
            %matplotlib inline
 
-           qc = QuantumCircuit(2, 2)
+           qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
-           qc.measure([0, 1], [0, 1])
 
-           backend = BasicAer.get_backend('statevector_simulator')
-           job = execute(qc, backend).result()
-           plot_state_city(job.get_statevector(qc), color=['midnightblue', 'midnightblue'],
+           state = DensityMatrix.from_instruction(qc)
+           plot_state_city(state, color=['midnightblue', 'midnightblue'],
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
                           'matplotlib".')
-    rho = _validate_input_state(rho)
+    rho = DensityMatrix(state)
+    num = rho.num_qubits
+    if num is None:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
 
-    num = int(np.log2(len(rho)))
     # get the real and imag parts of rho
-    datareal = np.real(rho)
-    dataimag = np.imag(rho)
+    datareal = np.real(rho.data)
+    dataimag = np.imag(rho.data)
 
     # get the labels
     column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
@@ -492,13 +494,14 @@ def plot_state_city(rho, title="", figsize=None, color=None,
         return fig
 
 
-def plot_state_paulivec(rho, title="", figsize=None, color=None, ax=None):
+@deprecate_arguments({'rho': 'state'})
+def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
 
     Args:
-        rho (ndarray): Numpy array for state vector or density matrix
+        state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
         color (list or str): Color of the expectation value bars.
@@ -514,35 +517,32 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None, ax=None):
 
     Raises:
         ImportError: Requires matplotlib.
+        VisualizationError: if input is not a valid N-qubit state.
 
     Example:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, BasicAer, execute
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_paulivec
            %matplotlib inline
 
-           qc = QuantumCircuit(2, 2)
+           qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
-           qc.measure([0, 1], [0, 1])
 
-           backend = BasicAer.get_backend('statevector_simulator')
-           job = execute(qc, backend).result()
-           plot_state_paulivec(job.get_statevector(qc), color='midnightblue',
+           state = Statevector.from_instruction(qc)
+           plot_state_paulivec(state, color='midnightblue',
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
                           'matplotlib".')
-    rho = _validate_input_state(rho)
+    labels, values = _paulivec_data(state)
+    numelem = len(values)
+
     if figsize is None:
         figsize = (7, 5)
-    num = int(np.log2(len(rho)))
-    labels = list(map(lambda x: x.to_label(), pauli_group(num)))
-    values = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
-                      pauli_group(num)))
-    numelem = len(values)
     if color is None:
         color = "#648fff"
 
@@ -634,16 +634,16 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
-                       show_state_phases=False, use_degrees=False):
+@deprecate_arguments({'rho': 'state'})
+def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
+                       show_state_phases=False, use_degrees=False, *, rho=None):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
     of the corresponding term in the state and the color represents
     the phase.
 
     Args:
-        rho (ndarray): State vector or density matrix representation of
-            quantum state.
+        state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         figsize (tuple): Figure size in inches.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
@@ -661,24 +661,24 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
 
     Raises:
         ImportError: Requires matplotlib.
+        VisualizationError: if input is not a valid N-qubit state.
 
         QiskitError: Input statevector does not have valid dimensions.
 
     Example:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, BasicAer, execute
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_qsphere
            %matplotlib inline
 
            qc = QuantumCircuit(2)
-           qc.x(0)
            qc.h(0)
            qc.cx(0, 1)
 
-           backend = BasicAer.get_backend('statevector_simulator')
-           job = execute(qc, backend).result()
-           plot_state_qsphere(job.get_statevector(qc), show_state_phases=True)
+           state = Statevector.from_instruction(qc)
+           plot_state_qsphere(state)
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
@@ -688,25 +688,15 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
     except ImportError:
         raise ImportError('Must have seaborn installed to use '
                           'plot_state_qsphere. To install, run "pip install seaborn".')
+    rho = DensityMatrix(state)
+    num = rho.num_qubits
+    if num is None:
+        raise VisualizationError("Input is not a multi-qubit quantum state.")
+    # get the eigenvectors and eigenvalues
+    eigvals, eigvecs = linalg.eigh(rho.data)
+
     if figsize is None:
         figsize = (7, 7)
-
-    IS_DM = False
-    # Input is a DM
-    if len(rho.shape) == 2:
-        rho = _validate_input_state(rho)
-        IS_DM = True
-    else:
-        if np.log2(rho.shape[0]) % 1:
-            raise QiskitError('Incorrect statevector dimensions.')
-    num = int(np.log2(rho.shape[0]))
-
-    # Do eigendecomposition if input is DM
-    if IS_DM:
-        eigvals, eigvecs = la.eigh(rho)
-    else:
-        eigvals = np.array([1])
-        eigvecs = rho
 
     if ax is None:
         return_fig = True
@@ -753,15 +743,12 @@ def plot_state_qsphere(rho, figsize=None, ax=None, show_state_labels=True,
     for idx in range(eigvals.shape[0]-1, -1, -1):
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
-            if IS_DM:
-                state = eigvecs[:, idx]
-                loc = np.absolute(state).argmax()
-                # remove the global phase from max element
-                angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
-                angleset = np.exp(-1j * angles)
-                state = angleset * state
-            else:
-                state = eigvecs
+            state = eigvecs[:, idx]
+            loc = np.absolute(state).argmax()
+            # remove the global phase from max element
+            angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
+            angleset = np.exp(-1j * angles)
+            state = angleset * state
 
             d = num
             for i in range(2 ** num):
