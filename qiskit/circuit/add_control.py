@@ -121,7 +121,7 @@ def control(operation: Union[Gate, ControlledGate],
         qc.mcrz(operation.definition.data[0][0].params[0], q_control, q_target[0],
                 use_basis_gates=True)
     else:
-        basis_gates = ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'ccx', 'u1', 'u3', 'cx']
+        basis_gates = ['x', 'y', 'z', 'h', 'rx', 'ry', 'swap', 'ccx', 'u1', 'u3', 'cx']
         bgate = _unroll_gate(operation, basis_gates)
 
         # now we have a bunch of single qubit rotation gates and cx
@@ -178,11 +178,6 @@ def control(operation: Union[Gate, ControlledGate],
                 mcry = RYGate(rule[0].params[0]).control(num_ctrl_qubits)
                 qargs = q_control[:] + q_target[[bit.index for bit in rule[1]]]
                 qc.append(mcry, qargs)
-            elif rule[0].name == 'rz':
-                from qiskit.circuit.library.standard_gates import RZGate
-                mcrz = RZGate(rule[0].params[0]).control(num_ctrl_qubits)
-                qargs = q_control[:] + q_target[[bit.index for bit in rule[1]]]
-                qc.append(mcrz, qargs)
             elif rule[0].name == 'swap':
                 from qiskit.circuit.library.standard_gates import SwapGate
                 mcswap = SwapGate().control(num_ctrl_qubits)

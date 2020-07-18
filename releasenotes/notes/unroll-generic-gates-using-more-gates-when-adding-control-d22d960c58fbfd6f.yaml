@@ -6,5 +6,5 @@ fixes:
     the controlled version for each of these gates. This caused simple operations
     to be decomposed to multiple controlled rx,ry,rz rotations. Currently gates is
     unrolled using:
-      'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'ccx', 'u1', 'u3', 'cx'
+      'x', 'y', 'z', 'h', 'rx', 'ry', 'swap', 'ccx', 'u1', 'u3', 'cx'
     This allows more compact decomposition
