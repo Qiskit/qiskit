@@ -444,7 +444,8 @@ class DAGCircuit:
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
 
-    def _map_condition(self, wire_map, condition):
+    @staticmethod
+    def _map_condition(wire_map, condition):
         """Use the wire_map dict to change the condition tuple's creg name.
 
         Args:
