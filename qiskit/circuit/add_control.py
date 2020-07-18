@@ -29,8 +29,9 @@ def add_control(operation: Union[Gate, ControlledGate],
     library, it will be returned (e.g. XGate.control() = CnotGate().
 
     For more generic gates, this method implements the controlled
-    version by first decomposing into the ['x', 'z', 'y' 'u1', 'u3', 'cx'] basis,
-    then controlling each gate in the decomposition.
+    version by first decomposing into the ['x', 'z', 'y', 'h',
+    'rx', 'ry', 'swap', 'ccx' 'u1', 'u3', 'cx'] basis, then controlling
+    each gate in the decomposition.
 
     Open controls are implemented by conjugating the control line with
     X gates. Adds num_ctrl_qubits controls to operation.
@@ -78,8 +79,8 @@ def control(operation: Union[Gate, ControlledGate],
     """Return controlled version of gate using controlled rotations. This function
     first checks the name of the operation to see if it knows of a method from which
     to generate a controlled version. Currently these are `x`, `rx`, `ry`, and `rz`.
-    If a method is not directly known, it calls the unroller to convert to `u1`, `u3`,
-    and `cx` gates.
+    If a method is not directly known, it calls the unroller to convert to `x`, `y`,
+    `z`, `h`, `rx`, `ry`, `swap`, `ccx`, `u1`, `u3` and `cx` gates.
 
     Args:
         operation: The gate used to create the ControlledGate.
