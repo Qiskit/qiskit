@@ -64,7 +64,7 @@ class TGate(Gate):
         rules = [
             (U1Gate(pi / 4), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):
@@ -120,7 +120,7 @@ class TdgGate(Gate):
         rules = [
             (U1Gate(-pi / 4), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

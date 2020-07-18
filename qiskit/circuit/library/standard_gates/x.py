@@ -86,7 +86,7 @@ class XGate(Gate):
         rules = [
             (U3Gate(pi, 0, pi), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -351,7 +351,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
             (TdgGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -442,7 +442,7 @@ class RCCXGate(Gate):
             (U1Gate(-pi / 4), [q[2]], []),  # inverse T gate
             (U2Gate(0, pi), [q[2]], []),  # H gate
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def to_matrix(self):
@@ -533,7 +533,7 @@ class C3XGate(ControlledGate):
             (HGate(), [q[3]], [])
         ]
         qc = QuantumCircuit(q)
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -642,7 +642,7 @@ class RC3XGate(Gate):
             (U1Gate(-pi / 4), [q[3]], []),
             (U2Gate(0, pi), [q[3]], []),
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def to_matrix(self):
@@ -723,7 +723,7 @@ class C4XGate(ControlledGate):
             (C3XGate(), [q[0], q[1], q[2], q[3]], []),
             (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -801,7 +801,7 @@ class MCXGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q)
-        qc.append(MCXGrayCode(self.num_ctrl_qubits), qargs=q[:])
+        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
         self.definition = qc
 
     @property
@@ -846,9 +846,9 @@ class MCXGrayCode(MCXGate):
         from .u1 import MCU1Gate
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.h(q[-1])
-        qc.append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), qargs=q[:])
-        qc.h(q[-1])
+        qc._append(HGate(), [q[-1]], [])
+        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
+        qc._append(HGate(), [q[-1]], [])
         self.definition = qc
 
 
@@ -875,14 +875,14 @@ class MCXRecursive(MCXGate):
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
         if self.num_qubits == 4:
-            qc.append(C3XGate(), qargs=q[:])
+            qc._append(C3XGate(), q[:], [])
             self.definition = qc
         elif self.num_qubits == 5:
-            qc.append(C4XGate(), qargs=q[:])
+            qc._append(C4XGate(), q[:], [])
             self.definition = qc
         else:
             self.definition = qc
-            self.definition.data = self._recurse(q[:-1], q_ancilla=q[-1])
+            self.definition._data = self._recurse(q[:-1], q_ancilla=q[-1])
 
     def _recurse(self, q, q_ancilla=None):
         # recursion stop
@@ -994,5 +994,5 @@ class MCXVChain(MCXGate):
                 definition.append(
                     (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
 
-        qc.data = definition
+        qc._data = definition
         self.definition = qc

@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    The :class:`qiskit.quantum_info.operators.BaseOperator` and
+    :class:`qiskit.quantum_info.states.QuantumState` and their derived
+    classes use now property style setters and getters to retrieve
+    and set `atol` and `rtol` class properties
+
+    .. code-block::
+
+        ScalarOp.atol = 3e-5
+
+deprecations:
+  - |
+    The ``set_atol`` and ``set_rtol`` class methods of the
+    :class:`qiskit.quantum_info.operators.BaseOperator` and
+    :class:`qiskit.quantum_info.states.QuantumState` classes  are deprecated.
+    Use `.atol` and `.rtol` instead.
