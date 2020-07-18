@@ -94,9 +94,20 @@ class P_BFGS(Optimizer):
             num_procs if self._max_processes is None else min(num_procs, self._max_processes)
         num_procs = num_procs if num_procs >= 0 else 0
 
-        if platform.system() == "Windows":
+        if platform.system() == 'Darwin':
+            # Changed in version 3.8: On macOS, the spawn start method is now the
+            # default. The fork start method should be considered unsafe as it can
+            # lead to crashes.
+            # However P_BFGS doesn't support spawn, so we revert to single process.
+            major, minor, _ = platform.python_version_tuple()
+            if major > '3' or (major == '3' and minor >= '8'):
+                num_procs = 0
+                logger.warning("For MacOS, python >= 3.8, using only current process. "
+                               "Multiple core use not supported.")
+        elif platform.system() == 'Windows':
             num_procs = 0
-            logger.warning("Using only current process. Multiple core use not supported in Windows")
+            logger.warning("For Windows, using only current process. "
+                           "Multiple core use not supported.")
 
         queue = multiprocessing.Queue()
         # bounds for additional initial points in case bounds has any None values
