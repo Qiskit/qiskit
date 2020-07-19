@@ -47,6 +47,7 @@ from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import cx_gate_matrix
 from .basicaertools import einsum_vecmul_index
+from .basicaertools import h_gate_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -511,6 +512,10 @@ class QasmSimulatorPy(BaseBackend):
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
+                elif operation.name == "h":
+                    qubit = operation.qubits[0]
+                    gate = h_gate_matrix()
+                    self._add_unitary(gate, [qubit])
                 elif operation.name in ('U', 'u1', 'u2', 'u3'):
                     params = getattr(operation, 'params', None)
                     qubit = operation.qubits[0]

@@ -71,6 +71,12 @@ def cx_gate_matrix():
                      [0, 1, 0, 0]], dtype=complex)
 
 
+def h_gate_matrix():
+    """Get the matrix for an H gate."""
+    return 1/np.sqrt(2) * np.array([[1, 1],
+                                    [1, -1]], dtype=complex)
+
+
 def einsum_matmul_index(gate_indices, number_of_qubits):
     """Return the index string for Numpy.einsum matrix-matrix multiplication.
 
