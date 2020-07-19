@@ -226,7 +226,7 @@ class TestControlledGate(QiskitTestCase):
         expected.ccx(0, 1, 2)
         expected.ccx(0, 2, 1)
         expected.cz(0, 3)
-        expected.mcu1(3.22, 0, 3)
+        expected.mcu1(3.22, [0], 3)
         expected.mct([0, 2, 3], 1)
 
         self.assertEqual(controlled.decompose(), expected)
