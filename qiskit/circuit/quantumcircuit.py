@@ -385,7 +385,7 @@ class QuantumCircuit:
             except QiskitError:
                 inst = self.to_instruction()
             for _ in range(reps):
-                repeated_circ.append(inst, self.qubits, self.clbits)
+                repeated_circ._append(inst, self.qubits, self.clbits)
 
         return repeated_circ
 
@@ -1511,18 +1511,6 @@ class QuantumCircuit:
         else:
             new_creg = ClassicalRegister(length, name)
         return new_creg
-
-    def _create_qreg(self, length, name):
-        """ Creates a qreg, checking if QuantumRegister with same name exists
-        """
-        if name in [qreg.name for qreg in self.qregs]:
-            save_prefix = QuantumRegister.prefix
-            QuantumRegister.prefix = name
-            new_qreg = QuantumRegister(length)
-            QuantumRegister.prefix = save_prefix
-        else:
-            new_qreg = QuantumRegister(length, name)
-        return new_qreg
 
     def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
