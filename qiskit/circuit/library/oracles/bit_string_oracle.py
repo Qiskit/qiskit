@@ -20,9 +20,41 @@ from qiskit.circuit.library import MCXGate
 
 
 class BitStringOracle(QuantumCircuit):
-    """The bit string oracle.
+    r"""The bit string oracle.
 
     Adds a -1 phase if all the objective qubits are in the specified state.
+    E.g. the circuit  ``BitStringOracle(3, [0, 1], '10')`` multiplies the
+    phase of all states with -1 where qubit 0 is in state :math:`|1\rangle`
+    and qubit 1 is in state :math:`|0\rangle`.
+
+    This circuit can for instance be used to implement a reflection about the
+    :math:`|0\rangle^{\otimes n}` state, as
+
+        BitStringOracle(n, list(range(n)), '0' * n)
+
+    It is also used in Quantum Amplitude Estimation applications where sometimes
+    'bad' states are specified as states where the certain qubits are :math:`|0\rangle`
+    and we want to reflect about these states.
+
+    Examples:
+        >>> BitStringOracle.from_label(4, [0, 2, 3], '001').draw()
+                 ┌───┐     ┌───┐
+        state_0: ┤ X ├──■──┤ X ├
+                 └───┘  │  └───┘
+        state_1: ───────┼───────
+                 ┌───┐  │  ┌───┐
+        state_2: ┤ X ├──■──┤ X ├
+                 ├───┤┌─┴─┐├───┤
+        state_3: ┤ H ├┤ X ├┤ H ├
+                 └───┘└───┘└───┘
+
+        >>> BitStringOracle.from_label('xx1').draw()
+        state_0: ─────
+
+        state_1: ─────
+                 ┌───┐
+        state_2: ┤ Z ├
+                 └───┘
     """
 
     def __init__(self,
@@ -75,13 +107,6 @@ class BitStringOracle(QuantumCircuit):
                 elif state != '1':  # if not 1, then it was an invalid value
                     raise ValueError('Qubit states must consist of only 0 and 1: {}'.format(states))
 
-        # if num_state_qubits == 1:  # special case because mcx does not support 0 controls
-        #     if len(flip_qubits) > 0:
-        #         self.x(flip_qubits)
-        #     self.z(0)
-        #     if len(flip_qubits) > 0:
-        #         self.x(flip_qubits)
-        # else:
         if len(flip_qubits) > 0:
             self.x(flip_qubits)
         if len(objective_qubits) == 1:
