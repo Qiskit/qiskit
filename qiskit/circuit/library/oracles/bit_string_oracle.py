@@ -16,7 +16,6 @@
 
 from typing import List, Optional
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import MCXGate
 
 
 class BitStringOracle(QuantumCircuit):
@@ -83,6 +82,7 @@ class BitStringOracle(QuantumCircuit):
         if len(objective_qubits) == 0:
             return
 
+        from qiskit.circuit.library import MCXGate  # pylint: disable=cyclic-import
         num_ancillas = MCXGate.get_num_ancilla_qubits(len(objective_qubits) - 1, mcx)
         if num_ancillas > 0:
             qr_ancilla = AncillaRegister(num_ancillas, 'ancilla')
