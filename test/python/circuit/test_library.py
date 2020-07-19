@@ -31,7 +31,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction, GraphState, PhaseEstimation)
+                                    HiddenLinearFunction, GraphState, PhaseEstimation,
+                                    BitStringOracle)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -754,6 +755,41 @@ class TestIntegerComparator(QiskitTestCase):
         with self.subTest(msg='updating geq'):
             comp.geq = False
             self.assertComparisonIsCorrect(comp, 3, 2, False)
+
+
+@ddt
+class TestBitStringOracle(QiskitTestCase):
+    """Test the bit string oracle."""
+
+    def assertBitStringOracleIsCorrect(self, bitstr, circuit):
+        """Assert ``circuit`` implements the bitstring oracle defined via ``bitstr``."""
+        expected = []
+        num_qubits = circuit.num_qubits  # == len(bitstr)
+        for i in range(2 ** num_qubits):
+            as_bitstr = bin(i)[2:].zfill(num_qubits)[::-1]
+            if all([bit == target for bit, target in zip(as_bitstr, bitstr) if target in '01']):
+                expected.append(-1)
+            else:
+                expected.append(1)
+
+        statevector = Operator(circuit)
+        self.assertTrue(statevector.equiv(np.diag(expected)))
+
+    @data('000', '1xx0x1', 'xxx')
+    def test_oracle_from_label(self, bitstr):
+        """Test construction via the ``from_label`` method."""
+        oracle = BitStringOracle.from_label(bitstr)
+        self.assertBitStringOracleIsCorrect(bitstr, oracle)
+
+    def test_oracle(self):
+        """Test construction a BitString oracle."""
+        with self.subTest('xxx1'):
+            oracle = BitStringOracle(4, [3])
+            self.assertBitStringOracleIsCorrect('xxx1', oracle)
+
+        with self.subTest('0xx1'):
+            oracle = BitStringOracle(4, [0, 3], '01')
+            self.assertBitStringOracleIsCorrect('0xx1', oracle)
 
 
 class TestAquaApplications(QiskitTestCase):

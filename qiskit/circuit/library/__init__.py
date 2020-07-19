@@ -140,6 +140,7 @@ Particular Quantum Circuits
    IQP
    QuantumVolume
    PhaseEstimation
+   BitStringOracle
 
 
 N-local circuits
@@ -206,6 +207,9 @@ from .data_preparation import (
     PauliFeatureMap,
     ZFeatureMap,
     ZZFeatureMap
+)
+from .oracles import (
+    BitStringOracle
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
