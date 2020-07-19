@@ -153,7 +153,7 @@ def control(operation: Union[Gate, ControlledGate],
                        q_target[rule[1][-1].index],
                        q_ancillae)
             elif rule[0].name == 'x':
-                qc.mct(q_control[:], q_target[rule[1][0].index], q_ancillae)
+                qc.mcx(q_control[:], q_target[rule[1][0].index], q_ancillae)
             elif rule[0].name == 'z':
                 from qiskit.circuit.library.standard_gates import ZGate
                 mcz = ZGate().control(num_ctrl_qubits)
