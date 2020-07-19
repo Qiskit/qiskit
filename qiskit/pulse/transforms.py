@@ -16,7 +16,7 @@
 (and possibly some arguments) and return new schedules.
 """
 import warnings
-
+from collections import defaultdict
 from typing import List, Optional, Iterable
 
 import numpy as np
@@ -31,14 +31,21 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                    inst_map: Optional[InstructionScheduleMap] = None,
                    cal_gate: str = 'u3',
                    max_calibration_duration: Optional[int] = None,
-                   align_time: Optional[int] = None
+                   align_time: Optional[int] = None,
+                   align_all: Optional[bool] = True,
                    ) -> List[Schedule]:
-    """Return new schedules where measurements occur at the same physical time. Minimum measurement
-    wait time (to allow for calibration pulses) is enforced.
+    """Return new schedules where measurements occur at the same physical time.
 
-    This is only defined for schedules that are acquire-less or acquire-final per channel: a
-    schedule with pulses or acquires occurring on a channel which has already had a measurement will
-    throw an error.
+    Minimum measurement wait time (to allow for calibration pulses) is enforced
+    and may be set with ```max_calibration_duration`.
+
+    By default only instructions containing a :class:`~qiskit.pulse.AcquireChannel`
+    or :class:`~qiskit.pulse.MeasureChannel` will be shifted. If you wish to keep
+    the relative timing of all instructions in the schedule set ``align_all=True``.
+
+    This method assumes that ``MeasureChannel(i)`` and ``AcquireChannel(i)``
+    correspond to the same qubit and the acquire/play instructions
+    should be shifted together on these channels.
 
     Args:
         schedules: Collection of schedules to be aligned together
@@ -46,32 +53,31 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
         cal_gate: The name of the gate to inspect for the calibration time
         max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
-
+        align_all: Shift all instructions such that they happen at the same time
+            relative to the measurement post-alignment. If `False` on
     Returns:
         The input list of schedules transformed to have their measurements aligned.
 
     Raises:
-        PulseError: if an acquire or pulse is encountered on a channel that has already been part
-                    of an acquire, or if align_time is negative
+        PulseError: If the provided alignment time is negative.
     """
-    def calculate_align_time():
-        """Return the the max between the duration of the calibration time and the absolute time
-        of the latest scheduled acquire.
-        """
-        nonlocal max_calibration_duration
-        if max_calibration_duration is None:
-            max_calibration_duration = get_max_calibration_duration()
-        align_time = max_calibration_duration
+    def get_acquire_times(schedules):
+        """Return a list of first acquire times for each schedule."""
+        acquire_times = []
         for schedule in schedules:
-            last_acquire = 0
-            acquire_times = [time for time, inst in schedule.instructions
-                             if isinstance(inst, instructions.Acquire)]
-            if acquire_times:
-                last_acquire = max(acquire_times)
-            align_time = max(align_time, last_acquire)
-        return align_time
+            visited_channels = set()
+            sched_acquire_times = defaultdict(lambda: None)
 
-    def get_max_calibration_duration():
+            for time, inst in schedule.instructions:
+                if (isinstance(inst, instructions.Acquire) and
+                        inst.channel not in visited_channels):
+                    visited_channels.add(inst.channel)
+                    sched_acquire_times[inst.channel.index] = time
+
+            acquire_times.append(sched_acquire_times)
+        return acquire_times
+
+    def get_max_calibration_duration(inst_map, cal_gate):
         """Return the time needed to allow for readout discrimination calibration pulses."""
         max_calibration_duration = 0
         for qubits in inst_map.qubits_with_instruction(cal_gate):
@@ -79,44 +85,49 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
             max_calibration_duration = max(cmd.duration, max_calibration_duration)
         return max_calibration_duration
 
-    if align_time is None and max_calibration_duration is None and inst_map is None:
-        raise exceptions.PulseError("Must provide a inst_map, an alignment time, "
-                                    "or a calibration duration.")
     if align_time is not None and align_time < 0:
         raise exceptions.PulseError("Align time cannot be negative.")
+
+    first_acquire_times = get_acquire_times(schedules)
+    max_acquire_times = [max(0, *times.values()) for times in first_acquire_times]
     if align_time is None:
-        align_time = calculate_align_time()
+        if max_calibration_duration is None:
+            if inst_map:
+                max_calibration_duration = get_max_calibration_duration(inst_map, cal_gate)
+            else:
+                max_calibration_duration = 0
+        align_time = max(max_calibration_duration, *max_acquire_times)
 
     # Shift acquires according to the new scheduled time
     new_schedules = []
-    for schedule in schedules:
+    for sched_idx, schedule in enumerate(schedules):
         new_schedule = Schedule(name=schedule.name)
-        acquired_channels = set()
-        measured_channels = set()
-
+        stop_time = schedule.stop_time
         for time, inst in schedule.instructions:
-            for chan in inst.channels:
-                if isinstance(chan, chans.MeasureChannel):
-                    if chan.index in measured_channels:
-                        raise exceptions.PulseError("Multiple measurements are "
-                                                    "not supported by this "
-                                                    "rescheduling pass.")
-                elif chan.index in acquired_channels:
-                    raise exceptions.PulseError("Pulse encountered on channel "
-                                                "{0} after acquire on "
-                                                "same channel.".format(chan.index))
-
-            if isinstance(inst, instructions.Acquire):
-                if time > align_time:
-                    warnings.warn("You provided an align_time which is scheduling an acquire "
-                                  "sooner than it was scheduled for in the original Schedule.")
-                new_schedule |= inst << align_time
-                acquired_channels.add(inst.channel.index)
-            elif isinstance(inst.channels[0], chans.MeasureChannel):
-                new_schedule |= inst << align_time
-                measured_channels.update({a.index for a in inst.channels})
+            measurement_channels = {
+                chan.index for chan in inst.channels if
+                isinstance(chan, (chans.MeasureChannel, chans.AcquireChannel))
+            }
+            if measurement_channels:
+                max_start_time = max(first_acquire_times[sched_idx][chan]
+                                     for chan in measurement_channels)
+                shift = align_time - max_start_time
+            elif align_all:
+                if first_acquire_times[sched_idx]:
+                    shift = align_time - max_acquire_times[sched_idx]
+                else:
+                    shift = align_time - stop_time
             else:
-                new_schedule |= inst << time
+                shift = 0
+
+            if shift < 0:
+                warnings.warn(
+                    "The provided alignement time is scheduling an acquire instruction "
+                    "earlier than it was scheduled for in the original Schedule. "
+                    "This may result in an instruction being scheduled before t=0 and "
+                    "an error being raised."
+                )
+            new_schedule.insert(time+shift, inst, inplace=True)
 
         new_schedules.append(new_schedule)
 
