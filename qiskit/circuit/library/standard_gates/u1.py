@@ -88,7 +88,7 @@ class U1Gate(Gate):
         rules = [
             (U3Gate(0, 0, self.params[0]), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -196,7 +196,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(self.params[0] / 2), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -291,7 +291,7 @@ class MCU1Gate(ControlledGate):
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CU1Gate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-        qc.data = definition
+        qc._data = definition
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
