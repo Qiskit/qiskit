@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added a library circuit implementing a bit-string oracle, 
+    the ``BitStringOracle``. It applies a phase of -1 to the 
+    quantum states where the qubits match the specified states.
