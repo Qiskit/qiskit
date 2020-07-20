@@ -458,7 +458,7 @@ class QuantumCircuit:
         return controlled_circ
 
     def combine(self, rhs):
-        """DEPRECATED - Append rhs to self if self contains compatible registers.
+        """DEPRECATED - Returns rhs appended to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
