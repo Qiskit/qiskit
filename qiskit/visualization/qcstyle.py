@@ -73,7 +73,7 @@ class DefaultStyle:
             'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
             'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
             'reset': '$\\left|0\\right\\rangle$',
-            'initialize': '$|psi>$'
+            'initialize': '$|\\psi\\rangle$'
         }
         self.dispcol = {
             'u0': basis_color,
@@ -185,7 +185,7 @@ class BWStyle:
             'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
             'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
             'reset': '$\\left|0\\right\\rangle$',
-            'initialize': '$|psi>$'
+            'initialize': '$|\\psi\\rangle$'
         }
         self.dispcol = {
             'u0': '#ffffff',
