@@ -205,7 +205,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

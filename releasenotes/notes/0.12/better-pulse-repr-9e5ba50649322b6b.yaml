@@ -4,22 +4,3 @@ features:
     Pulse :class:`qiskit.pulse.Schedule` objects now have better
     representations that for simple schedules should be valid Python
     expressions.
-
-    for example:
-
-    .. jupyter-execute::
-       :hide-code:
-       :hide-output:
-
-       import warnings
-       warnings.simplefilter("ignore")
-
-    .. jupyter-execute::
-
-        from qiskit import pulse
-
-        sched = pulse.Schedule(name='test')
-        sched += pulse.SamplePulse(
-            [0., 0,], name='test_pulse')(pulse.DriveChannel(0))
-        sched += pulse.FrameChange(1.0)(pulse.DriveChannel(0))
-        print(sched)
