@@ -163,6 +163,8 @@ class QuantumCircuit:
         # This is a map of registers bound to this circuit, by name.
         self.qregs = []
         self.cregs = []
+        self._qubits = []
+        self._clbits = []
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -607,21 +609,21 @@ class QuantumCircuit:
         """
         Returns a list of quantum bits in the order that the registers were added.
         """
-        return [qbit for qreg in self.qregs for qbit in qreg]
+        return self._qubits
 
     @property
     def clbits(self):
         """
         Returns a list of classical bits in the order that the registers were added.
         """
-        return [cbit for creg in self.cregs for cbit in creg]
+        return self._clbits
 
     @property
     def ancillas(self):
         """
         Returns a list of quantum bits in the order that the registers were added.
         """
-        return [qbit for qreg in self.qregs for qbit in qreg if isinstance(qbit, AncillaQubit)]
+        return [qbit for qbit in self._qubits if isinstance(qbit, AncillaQubit)]
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
@@ -824,8 +826,10 @@ class QuantumCircuit:
                                    % register.name)
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
+                self._qubits.extend(register)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
+                self._clbits.extend(register)
             else:
                 raise CircuitError("expected a register")
 
@@ -1480,6 +1484,8 @@ class QuantumCircuit:
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
+        cpy._qubits = self._qubits.copy()
+        cpy._clbits = self._clbits.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self._data}
