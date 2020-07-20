@@ -498,7 +498,7 @@ class InputWire(DrawElement):
         super().__init__(label)
 
     @staticmethod
-    def fillup_layer(names, phase_label):
+    def fillup_layer(names, phase_label=None):
         """Creates a layer with InputWire elements.
 
         Args:
@@ -507,6 +507,7 @@ class InputWire(DrawElement):
         Returns:
             list: The new layer
         """
+        phase_label = phase_label if phase_label else ''
         longest = max([len(name) for name in names+[phase_label]])
         inputs_wires = []
         for name in names:
@@ -519,7 +520,7 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False, phase_label=None):
+                 cregbundle=False, phase=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -527,12 +528,16 @@ class TextDrawing():
         self.initial_state = initial_state
 
         self.cregbundle = cregbundle
-        self.phase_label = phase_label if phase_label else ''
+        self.phase = phase
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+        if self.phase:
+            self.phase_label = 'phase: %s' % pi_check(self.phase, ndigits=5)
+        else:
+            self.phase_label = ''
 
     def __str__(self):
         return self.single_string()
@@ -635,7 +640,10 @@ class TextDrawing():
             wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
 
-        lines[0] = self.phase_label+lines[0][len(self.phase_label):]
+        if lines:
+            lines[0] = self.phase_label+lines[0][len(self.phase_label):]
+        else:
+            lines = [self.phase_label]
         return lines
 
     def wire_names(self, with_initial_state=False):
