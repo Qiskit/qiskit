@@ -379,13 +379,12 @@ class QasmQobjExperimentConfig(QobjDictField):
         """
         if calibrations:
             self.calibrations = calibrations
-
-        if kwargs:
-            self.__dict__.update(kwargs)
+        super().__init__(**kwargs)
 
 
 class QasmQobjCalibrations(QobjDictField):
-    """"""
+    """The description of all the gate calibrations. Each gate dictionary should contain
+    "name", "qubits", "params", and "instructions" fields."""
 
     def __init__(self, gates, pulse_library):
         """
@@ -394,8 +393,7 @@ class QasmQobjCalibrations(QobjDictField):
                           and params, and contains the Pulse instructions to implement it.
             pulse_library (list): List of :class:`PulseLibraryItem`.
         """
-        self.gates = gates
-        self.pulse_library = pulse_library
+        super().__init__(gates=gates, pulse_library=pulse_library)
 
 
 class QobjHeader(QobjDictField):
