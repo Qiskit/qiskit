@@ -251,6 +251,7 @@ class PulseDefaults:
     @classmethod
     def from_dict(cls, data):
         """Create a new PulseDefaults object from a dictionary.
+
         Args:
             data (dict): A dictionary representing the PulseDefaults
                          to create. It will be in the same format as output by

@@ -210,6 +210,7 @@ class QasmBackendConfiguration:
                  configurable=None, credits_required=None, online_date=None,
                  display_name=None, description=None, tags=None, **kwargs):
         """Initialize a QasmBackendConfiguration Object
+
         Args:
             backend_name (str): The backend name
             backend_version (str): The backend version in the form X.Y.Z
@@ -311,6 +312,7 @@ class QasmBackendConfiguration:
     @classmethod
     def from_dict(cls, data):
         """Create a new GateConfig object from a dictionary.
+
         Args:
             data (dict): A dictionary representing the GateConfig to create.
                          It will be in the same format as output by
@@ -450,6 +452,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         """
         Initialize a backend configuration that contains all the extra configuration that is made
         available for OpenPulse backends.
+
         Args:
             backend_name: backend name.
             backend_version: backend version in the form X.Y.Z.
@@ -557,10 +560,11 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     @classmethod
     def from_dict(cls, data):
         """Create a new GateConfig object from a dictionary.
+
         Args:
             data (dict): A dictionary representing the GateConfig to create.
-                         It will be in the same format as output by
-                         :func:`to_dict`.
+                It will be in the same format as output by :func:`to_dict`.
+
         Returns:
             GateConfig: The GateConfig from the input dictionary.
         """
@@ -660,6 +664,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         Raises:
             BackendConfigurationError: If the qubit is not a part of the system.
+
         Returns:
             Qubit drive channel.
         """
