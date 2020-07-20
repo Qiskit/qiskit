@@ -2018,10 +2018,10 @@ class QuantumCircuit:
         from .library.standard_gates.u import UGate
         return self.append(UGate(theta, phi, lam), [qubit], [])
 
-    def cu(self, theta, phi, lam, control_qubit, target_qubit, label=None, ctrl_state=None):
+    def cu(self, theta, phi, lam, gamma, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CUGate`."""
         from .library.standard_gates.u import CUGate
-        return self.append(CUGate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
+        return self.append(CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})

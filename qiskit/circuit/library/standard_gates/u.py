@@ -84,7 +84,7 @@ class UGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CUGate(*self.params, label=label, ctrl_state=ctrl_state)
+            gate = CUGate(*self.params, 0, label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
@@ -113,20 +113,19 @@ class UGate(Gate):
 
 
 class CUGate(ControlledGate):
-    r"""Controlled-U gate (3-parameter two-qubit gate).
+    r"""Controlled-U gate (4-parameter two-qubit gate).
 
-    This is a controlled version of the U gate (generic single qubit rotation).
-    It is restricted to 3 parameters, and so cannot cover generic two-qubit
-    controlled gates.
+    This is a controlled version of the U gate (generic single qubit rotation),
+    including a possible global phase :math:`e^{i\gamma}` of the U gate.
 
     **Circuit symbol:**
 
     .. parsed-literal::
 
-        q_0: ─────■──────
-             ┌────┴─────┐
-        q_1: ┤ U(ϴ,φ,λ) ├
-             └──────────┘
+        q_0: ──────■──────
+             ┌─────┴──────┐
+        q_1: ┤ U(ϴ,φ,λ,γ) ├
+             └────────────┘
 
     **Matrix representation:**
 
@@ -136,12 +135,12 @@ class CUGate(ControlledGate):
 
         CU(\theta, \phi, \lambda)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
-            U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
+            e^{i\gamma} U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0                   & 0 & 0 \\
-                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
-                0 & 0                   & 1 & 0 \\
-                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
+                1 & 0                           & 0 & 0 \\
+                0 & e^{i\gamma}\cos(\th)        & 0 & e^{i(\gamma - \lambda)}\sin(\th) \\
+                0 & 0                           & 1 & 0 \\
+                0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)\cos(\th)}
             \end{pmatrix}
 
     .. note::
@@ -153,34 +152,35 @@ class CUGate(ControlledGate):
         gate will be:
 
         .. parsed-literal::
-                 ┌──────────┐
-            q_0: ┤ U(ϴ,φ,λ) ├
-                 └────┬─────┘
-            q_1: ─────■──────
+                 ┌────────────┐
+            q_0: ┤ U(ϴ,φ,λ,γ) ├
+                 └─────┬──────┘
+            q_1: ──────■───────
 
         .. math::
 
             CU(\theta, \phi, \lambda)\ q_1, q_0 =
                 |0\rangle\langle 0| \otimes I +
-                |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
+                e^{i\gamma}|1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
                 \begin{pmatrix}
-                    1 & 0   & 0                  & 0 \\
-                    0 & 1   & 0                  & 0 \\
-                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
-                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                    1 & 0 & 0                             & 0 \\
+                    0 & 1 & 0                             & 0 \\
+                    0 & 0 & e^{i\gamma} \cos(\th)         & e^{i(\gamma - \lambda)}\sin(\th) \\
+                    0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
+    def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
         """Create new CU gate."""
-        super().__init__('cu', 2, [theta, phi, lam], num_ctrl_qubits=1,
+        super().__init__('cu', 2, [theta, phi, lam, gamma], num_ctrl_qubits=1,
                          label=label, ctrl_state=ctrl_state)
         self.base_gate = UGate(theta, phi, lam)
 
     def _define(self):
         """
-        gate cu(theta,phi,lambda) c, t
-        { phase((lambda+phi)/2) c;
+        gate cu(theta,phi,lambda,gamma) c, t
+        { cphase(gamma) c,t;
+          phase((lambda+phi)/2) c;
           phase((lambda-phi)/2) t;
           cx c,t;
           u(-theta/2,0,-(phi+lambda)/2) t;
@@ -192,6 +192,7 @@ class CUGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
+        qc.cphase(self.params[3], 0, 1)
         qc.phase((self.params[2] + self.params[1]) / 2, 0)
         qc.phase((self.params[2] - self.params[1]) / 2, 1)
         qc.cx(0, 1)
@@ -203,9 +204,9 @@ class CUGate(ControlledGate):
     def inverse(self):
         r"""Return inverted CU gate.
 
-        :math:`CU(\theta,\phi,\lambda)^{\dagger} = CU(-\theta,-\phi,-\lambda)`)
+        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)
         """
-        return CUGate(-self.params[0], -self.params[2], -self.params[1])
+        return CUGate(-self.params[0], -self.params[2], -self.params[1], -self.params[3])
 
     # TODO: this is the correct definition but has a global phase with respect
     # to the decomposition above. Restore after allowing phase on circuits.

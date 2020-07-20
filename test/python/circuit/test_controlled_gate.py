@@ -97,7 +97,7 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled U gate."""
         theta, phi, lamb = 0.1, 0.2, 0.3
         self.assertEqual(UGate(theta, phi, lamb).control(),
-                         CUGate(theta, phi, lamb))
+                         CUGate(theta, phi, lamb, 0))
 
     def test_controlled_u3(self):
         """Test the creation of a controlled U3 gate."""
@@ -1122,7 +1122,7 @@ class TestParameterCtrlState(QiskitTestCase):
           (SwapGate(), CSwapGate()),
           (HGate(), CHGate()),
           (U3Gate(0.1, 0.2, 0.3), CU3Gate(0.1, 0.2, 0.3)),
-          (UGate(0.1, 0.2, 0.3), CUGate(0.1, 0.2, 0.3)))
+          (UGate(0.1, 0.2, 0.3), CUGate(0.1, 0.2, 0.3, 0)))
     @unpack
     def test_ctrl_state_one(self, gate, controlled_gate):
         """Test controlled gates with ctrl_state

@@ -148,6 +148,18 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_qc.append(param_gate, param_qc.qregs[0])
         float_qc.append(float_gate, float_qc.qregs[0])
 
+        # print(param_qc.decompose())
+        # for equiv in param_entry:
+        #     print(equiv)
+        #     print(param_qc.decompose() == equiv)
+
+        # print(float_qc.decompose())
+        # for equiv in float_entry:
+        #     print(equiv)
+        #     print(float_qc.decompose() == equiv)
+        #     print(float_qc.decompose().parameters, equiv.parameters)
+        #     print(Operator(float_qc.decompose()) == Operator(equiv))
+
         self.assertTrue(any(equiv == param_qc.decompose()
                             for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose()
