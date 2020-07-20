@@ -677,7 +677,7 @@ class Statevector(QuantumState):
         if not isinstance(obj.definition, QuantumCircuit):
             raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
                 obj.name, type(obj.definition)))
-        for instr, qregs, cregs in obj.definition.data:
+        for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
                     'Cannot apply instruction with classical registers: {}'.format(
