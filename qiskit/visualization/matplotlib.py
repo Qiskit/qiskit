@@ -20,7 +20,9 @@ import collections
 import itertools
 import json
 import logging
+import re
 from warnings import warn
+
 import numpy as np
 
 try:
@@ -242,6 +244,8 @@ class MatplotlibDrawer:
                            'z': (0.1562, 0.0979), '{': (0.1917, 0.1188), '|': (0.1, 0.0604),
                            '}': (0.1896, 0.1188)}
 
+        self._mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
+
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
@@ -263,9 +267,21 @@ class MatplotlibDrawer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
             return t.get_window_extent(renderer=self.renderer).width / 60.0
         else:
-            # if not using a get_renderer method, first remove
-            # any latex chars before getting width
+            math_mode_match = self._mathmode_regex.search(text)
+            num_underscores = 0
+            num_carets = 0
+            if math_mode_match:
+                math_mode_text = math_mode_match.group(1)
+                num_underscores = math_mode_text.count('_')
+                num_carets = math_mode_text.count('^')
             text = LatexNodes2Text().latex_to_text(text)
+            # If there are subscripts or superscripts in mathtext string
+            # we need to account for that spacing by manually removing
+            # from text string for text length
+            if num_underscores:
+                text.replace('_', '', num_underscores)
+            if num_carets:
+                text.replace('^', '', num_carets)
 
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
@@ -290,7 +306,6 @@ class MatplotlibDrawer:
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
-        param_parts = param_parts.replace('-', u'\u02d7')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
@@ -754,7 +769,7 @@ class MatplotlibDrawer:
 
                 if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
                     tname = 'U1' if op.name == 'cu1' else 'zz'
-                    gate_width = (self._get_text_width(tname + ' ()$$',
+                    gate_width = (self._get_text_width(tname + ' ()',
                                                        fontsize=self._style.sfs)
                                   + param_width) * 1.5
                 else:
