@@ -498,16 +498,16 @@ class InputWire(DrawElement):
         super().__init__(label)
 
     @staticmethod
-    def fillup_layer(names):
+    def fillup_layer(names, phase_label):
         """Creates a layer with InputWire elements.
 
         Args:
             names (list): List of names for the wires.
-
+            phase_label (str): The phase to add
         Returns:
             list: The new layer
         """
-        longest = max([len(name) for name in names])
+        longest = max([len(name) for name in names+[phase_label]])
         inputs_wires = []
         for name in names:
             inputs_wires.append(InputWire(name.rjust(longest)))
@@ -519,7 +519,7 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False):
+                 cregbundle=False, phase_label=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -527,6 +527,7 @@ class TextDrawing():
         self.initial_state = initial_state
 
         self.cregbundle = cregbundle
+        self.phase_label = phase_label if phase_label else ''
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
@@ -634,6 +635,7 @@ class TextDrawing():
             wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
 
+        lines[0] = self.phase_label+lines[0][len(self.phase_label):]
         return lines
 
     def wire_names(self, with_initial_state=False):
@@ -1064,7 +1066,7 @@ class TextDrawing():
         if not wire_names:
             return []
 
-        layers = [InputWire.fillup_layer(wire_names)]
+        layers = [InputWire.fillup_layer(wire_names, self.phase_label)]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs, self.cregbundle)
