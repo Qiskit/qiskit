@@ -37,7 +37,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     """Return new schedules where measurements occur at the same physical time.
 
     Minimum measurement wait time (to allow for calibration pulses) is enforced
-    and may be set with ```max_calibration_duration`.
+    and may be set with ``max_calibration_duration``.
 
     By default only instructions containing a :class:`~qiskit.pulse.AcquireChannel`
     or :class:`~qiskit.pulse.MeasureChannel` will be shifted. If you wish to keep
@@ -47,14 +47,49 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     correspond to the same qubit and the acquire/play instructions
     should be shifted together on these channels.
 
+    .. jupyter-kernel:: python3
+        :id: align_measures
+
+    .. jupyter-execute::
+
+        from qiskit import pulse
+        from qiskit.pulse import transforms
+
+        with pulse.build() as sched:
+            with pulse.align_sequential():
+                pulse.play(pulse.Constant(10, 0.5), pulse.DriveChannel(0))
+                pulse.play(pulse.Constant(10, 1.), pulse.MeasureChannel(0))
+                pulse.acquire(20, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+
+        sched_shifted = sched << 20
+
+        aligned_sched, aligned_sched_shifted = transforms.align_measures([sched, sched_shifted])
+
+        assert aligned_sched == aligned_sched_shifted
+
+    If it is desired to only shift acqusition and measurement stimulus instructions
+    set the flag ``align_all=False``:
+
+    .. jupyter-execute::
+
+        aligned_sched, aligned_sched_shifted = transforms.align_measures(
+            [sched, sched_shifted],
+            align_all=False,
+        )
+
+        assert aligned_sched != aligned_sched_shifted
+
+
     Args:
         schedules: Collection of schedules to be aligned together
         inst_map: Mapping of circuit operations to pulse schedules
         cal_gate: The name of the gate to inspect for the calibration time
         max_calibration_duration: If provided, inst_map and cal_gate will be ignored
         align_time: If provided, this will be used as final align time.
-        align_all: Shift all instructions such that they happen at the same time
-            relative to the measurement post-alignment. If `False` on
+        align_all: Shift all instructions in the schedule such that they maintain
+            their relative alignment with the shifted acqusition instruction.
+            If ``False`` only the acqusition and measurement pulse instructions
+            will be shifted.
     Returns:
         The input list of schedules transformed to have their measurements aligned.
 
