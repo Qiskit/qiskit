@@ -47,7 +47,30 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(['x', 'x'], [x[0].name for x in qc.data])
 
     def test_combine_circuit_common(self):
-        """Test combining two circuits with same registers.
+        """Test combining two circuits with same registers (inplace=False).
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        new_circuit = qc1.combine(qc2)
+
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(new_circuit, backend=backend, shots=shots, seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_combine_circuit_common_plus(self):
+        """Test combining two circuits with same registers (as plus).
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -63,6 +86,8 @@ class TestCircuitOperations(QiskitTestCase):
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 1})  # no changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_combine_circuit_fail(self):
@@ -82,7 +107,30 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertRaises(QiskitError, qc1.__add__, qcr3)
 
     def test_extend_circuit(self):
-        """Test extending a circuit with same registers.
+        """Test extending a circuit with same registers (in place add).
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc1 = QuantumCircuit(qr, cr)
+        qc2 = QuantumCircuit(qr, cr)
+        qc1.h(qr[0])
+        qc1.measure(qr[0], cr[0])
+        qc2.measure(qr[1], cr[1])
+
+        qc1.extend(qc2)
+        backend = BasicAer.get_backend('qasm_simulator')
+        shots = 1024
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
+        counts = result.get_counts()
+        target = {'00': shots / 2, '01': shots / 2}
+        threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 2})  # changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
+        self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_extend_circuit_iadd(self):
+        """Test extending a circuit with same registers (in place add).
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
@@ -99,6 +147,8 @@ class TestCircuitOperations(QiskitTestCase):
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
+        self.assertDictEqual(qc1.count_ops(), {'h': 1, 'measure': 2})  # changes "in-place"
+        self.assertDictEqual(qc2.count_ops(), {'measure': 1})  # no changes "in-place"
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_extend_circuit_fail(self):

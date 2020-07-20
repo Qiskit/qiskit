@@ -509,7 +509,7 @@ class QuantumCircuit:
         warnings.warn("The QuantumCircuit.extend() method is being deprecated."
                       "Use the compose() method which is more flexible w.r.t "
                       "circuit register compatibility.", DeprecationWarning)
-        return self.compose(rhs)
+        return self.compose(rhs, inplace=True)
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
