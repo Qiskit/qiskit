@@ -470,3 +470,11 @@ class TestOptimizationWithCondition(QiskitTestCase):
         backend = FakeJohannesburg()
         circ = transpile(qc, backend, optimization_level=level)
         self.assertIsInstance(circ, QuantumCircuit)
+
+    def test_input_dag_copy(self):
+        """Test substitute_node_with_dag input_dag copy on condition"""
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1).c_if(qc.cregs[0], 1)
+        qc.cx(1, 0)
+        circ = transpile(qc, basis_gates=['u3', 'cz'])
+        self.assertIsInstance(circ, QuantumCircuit)
