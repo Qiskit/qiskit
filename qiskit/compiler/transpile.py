@@ -368,9 +368,18 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         if pass_manager_config.scheduling_method is None:
             from qiskit.transpiler.passes import ALAPSchedule
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
-        if dynamical_decoupling == 'XY4':
+        if dynamical_decoupling in {'xy4','XY4'}:
             from qiskit.transpiler.passes import XY4Pass
             pass_manager.append(XY4Pass())
+        elif dynamical_decoupling in {'cpmg','CPMG'}:
+            from qiskit.transpiler.passes import CPMGPass
+            pass_manager.append(CPMGPass())
+        elif 'cdd' in dynamical_decoupling or 'CDD' in dynamical_decoupling:
+            from qiskit.transpiler.passes import CDDPass
+            pass_manager.append(CDDPass())
+        elif 'udd' in dynamical_decoupling or 'UDD' in dynamical_decoupling:
+            from qiskit.transpiler.passes import UDDPass
+            pass_manager.append(UDDPass())
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s." % dynamical_decoupling)
 

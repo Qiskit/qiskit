@@ -19,48 +19,65 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 class XY4Pass(TransformationPass):
 
-	def run(self, dag):
-		"""Run the XY4 pass on `dag`.
+    def run(self, dag):
+        """Run the XY4 pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to new DAG.
 
         Returns:
             DAGCircuit: A new DAG with XY4 DD Sequences inserted in large 
-            			enough delays.
+                        enough delays.
         """
-		xy4_duration = 0 							# TODO
-		new_dag = DAGCircuit()
+        count = 0
+        new_delay = 0
+        parity = 0
+        xy4_duration = 680                            # TODO find backend gate durations to calculate xy4_duration
+        first = True
+        dd_delay = 10
+        new_dag = DAGCircuit()
 
-		for qreg in dag.qregs.values():
-			new_dag.add_qreg(qreg)
-		for creg in dag.cregs.values():
-			new_dag.add_creg(creg)
+        for qreg in dag.qregs.values():
+            new_dag.add_qreg(qreg)
+        for creg in dag.cregs.values():
+            new_dag.add_creg(creg)
 
-		for node in dag.topological_op_nodes():
-			if node == Delay: 						# TODO
-				delay_duration = self.durations.get(node.op, node.qargs)
+        for node in dag.topological_op_nodes():
+            if isinstance(node.op, Delay):
+                delay_duration = dag.instruction_durations.get(node.op, node.qargs)
 
-				if xy4_duration <= delay_duration:	# Make sure they have same units!
-					while xy4_duration <= delay_duration:
-						new_dag.apply_operation_back(XGate(),qargs=node.qargs)
-						new_dag.apply_operation_back(Delay(10, unit='ns'),qargs=node.qargs)
-						new_dag.apply_operation_back(YGate(),qargs=node.qargs)
-						new_dag.apply_operation_back(Delay(10, unit='ns'),qargs=node.qargs)
-						new_dag.apply_operation_back(XGate(),qargs=node.qargs)
-						new_dag.apply_operation_back(Delay(10, unit='ns'),qargs=node.qargs)
-						new_dag.apply_operation_back(YGate(),qargs=node.qargs)
-						new_dag.apply_operation_back(Delay(10, unit='ns'),qargs=node.qargs)
+                if xy4_duration <= delay_duration:
+                    count = int(delay_duration//xy4_duration)
+                    parity = 1 if (delay_duration-count*xy4_duration+dd_delay)%2 else 0
+                    new_delay = int((delay_duration-count*xy4_duration+dd_delay)/2)
 
-						delay_duration = delay_duration - xy4_duration
+                    new_dag.apply_operation_back(Delay(new_delay),qargs=node.qargs)
 
-				new_dag.apply_operation_back(Delay(delay_duration, unit_'ns'),qargs=node.qargs)
+                    for _ in range(count):
+                        if not first:
+                            new_dag.apply_operation_back(Delay(dd_delay, unit='ns'),qargs=node.qargs)
+                        new_dag.apply_operation_back(XGate(),qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'),qargs=node.qargs)
+                        new_dag.apply_operation_back(YGate(),qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'),qargs=node.qargs)
+                        new_dag.apply_operation_back(XGate(),qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'),qargs=node.qargs)
+                        new_dag.apply_operation_back(YGate(),qargs=node.qargs)
+                        first = False
 
-			else:
-				new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+                    if parity:
+                        new_dag.apply_operation_back(Delay(new_delay+1),qargs=node.qargs)
+                    else:
+                        new_dag.apply_operation_back(Delay(new_delay),qargs=node.qargs)
+                    first = True
 
-		new_dag.name = dag.name
-        new_dag.duration = circuit_duration
-        new_dag.instruction_durations = self.durations
+                else:
+                    new_dag.apply_operation_back(Delay(delay_duration, unit='ns'),qargs=node.qargs)
 
-		return new_dag
+            else:
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+
+        new_dag.name = dag.name
+        new_dag.instruction_durations = dag.instruction_durations
+
+        return new_dag
