@@ -279,9 +279,9 @@ class MatplotlibDrawer:
             # we need to account for that spacing by manually removing
             # from text string for text length
             if num_underscores:
-                text.replace('_', '', num_underscores)
+                text = text.replace('_', '', num_underscores)
             if num_carets:
-                text.replace('^', '', num_carets)
+                text = text.replace('^', '', num_carets)
 
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
