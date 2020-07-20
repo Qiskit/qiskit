@@ -104,6 +104,6 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
                    []),
         rules))
     qc = QuantumCircuit(q, name=gate.name)
-    qc.data = rules
+    qc._data = rules
     gate.definition = qc
     return gate

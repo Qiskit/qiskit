@@ -26,23 +26,22 @@ def iplot_bloch_multivector(rho, figsize=None):
         Graphical representation of the input array, using as much bloch
         spheres as qubit are required.
         Args:
-            rho (array): State vector or density matrix
+            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
             figsize (tuple): Figure size in pixels.
         Returns:
             Figure: A matplotlib figure for the visualization
         Example:
             .. code-block::
 
-                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit import QuantumCircuit
+                from qiskit.quantum_info import Statevector
                 from qiskit.visualization import iplot_bloch_multivector
                 %matplotlib inline
-                qc = QuantumCircuit(2, 2)
+                qc = QuantumCircuit(2)
                 qc.h(0)
                 qc.cx(0, 1)
-                qc.measure([0, 1], [0, 1])
-                backend = BasicAer.get_backend('statevector_simulator')
-                job = execute(qc, backend).result()
-                iplot_bloch_multivector(job.get_statevector(qc))
+                state = Statevector.from_instruction(qc)
+                iplot_bloch_multivector(state)
 
     """
     warnings.warn(
