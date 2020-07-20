@@ -14,12 +14,14 @@
 
 """Tests basic functionality of the transpile function"""
 
-import math
 import io
+import sys
+import math
+
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
-import sys
-from ddt import ddt, data
+
+from ddt import ddt, data, unpack
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -27,7 +29,7 @@ from qiskit.circuit import Parameter
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.extensions.standard import CXGate
+from qiskit.circuit.library import CXGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler import Layout, CouplingMap
@@ -695,6 +697,45 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
         self.assertEqual(qc, out)
+
+    @data(
+        ['cx', 'u3'],
+        ['cz', 'u3'],
+        ['cz', 'rx', 'rz'],
+        ['rxx', 'rx', 'ry'],
+        ['iswap', 'rx', 'rz'],
+    )
+    def test_block_collection_runs_for_non_cx_bases(self, basis_gates):
+        """Verify block collection is run when a single two qubit gate is in the basis."""
+        twoq_gate, *_ = basis_gates
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
+
+        self.assertLessEqual(out.count_ops()[twoq_gate], 2)
+
+    @unpack
+    @data(
+        (['u3', 'cx'], {'u3': 1, 'cx': 1}),
+        (['rx', 'rz', 'iswap'], {'rx': 6, 'rz': 12, 'iswap': 2}),
+        (['rx', 'ry', 'rxx'], {'rx': 6, 'ry': 5, 'rxx': 1}),
+    )
+    def test_block_collection_reduces_1q_gate(self, basis_gates, gate_counts):
+        """For synthesis to non-U3 bases, verify we minimize 1q gates."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        for basis_gate in basis_gates:
+            self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
 
 
 class StreamHandlerRaiseException(StreamHandler):

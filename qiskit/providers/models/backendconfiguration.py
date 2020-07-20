@@ -16,7 +16,6 @@
 import re
 import copy
 import warnings
-from types import SimpleNamespace
 from typing import Dict, List, Any, Iterable, Union
 from collections import defaultdict
 
@@ -184,7 +183,7 @@ class UchannelLO:
         return "UchannelLO(%s, %s)" % (self.q, self.scale)
 
 
-class QasmBackendConfiguration(SimpleNamespace):
+class QasmBackendConfiguration:
     """Class representing a Qasm Backend Configuration.
 
     Attributes:
@@ -200,6 +199,8 @@ class QasmBackendConfiguration(SimpleNamespace):
         memory: backend supports memory.
         max_shots: maximum number of shots supported.
     """
+
+    _data = {}
 
     def __init__(self, backend_name, backend_version, n_qubits,
                  basis_gates, gates, local, simulator,
@@ -243,6 +244,7 @@ class QasmBackendConfiguration(SimpleNamespace):
             tags (list): A list of string tags to describe the backend
             **kwargs: optional fields
         """
+        self._data = {}
 
         self.backend_name = backend_name
         self.backend_version = backend_version
@@ -295,23 +297,17 @@ class QasmBackendConfiguration(SimpleNamespace):
             kwargs['meas_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
                                        (min_range, max_range) in kwargs['meas_lo_range']]
 
+        # convert rep_times from μs to sec
         if 'rep_times' in kwargs.keys():
             kwargs['rep_times'] = [_rt * 1e-6 for _rt in kwargs['rep_times']]
 
-        self.__dict__.update(kwargs)
+        self._data.update(kwargs)
 
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        return (self.__class__, (self.backend_name, self.backend_version,
-                                 self.n_qubits, self.basis_gates, self.gates,
-                                 self.local, self.simulator, self.conditional,
-                                 self.open_pulse, self.memory, self.max_shots,
-                                 self.coupling_map))
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     @classmethod
     def from_dict(cls, data):
@@ -336,8 +332,27 @@ class QasmBackendConfiguration(SimpleNamespace):
         Returns:
             dict: The dictionary form of the GateConfig.
         """
-        out_dict = copy.copy(self.__dict__)
-        out_dict['gates'] = [x.to_dict() for x in self.gates]
+        out_dict = {
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'n_qubits': self.n_qubits,
+            'basis_gates': self.basis_gates,
+            'gates': [x.to_dict() for x in self.gates],
+            'local': self.local,
+            'simulator': self.simulator,
+            'conditional': self.conditional,
+            'open_pulse': self.open_pulse,
+            'memory': self.memory,
+            'max_shots': self.max_shots,
+            'coupling_map': self.coupling_map,
+        }
+        for kwarg in ['max_experiments', 'sample_name', 'n_registers',
+                      'register_map', 'configurable', 'credits_required',
+                      'online_date', 'display_name', 'description',
+                      'tags']:
+            if hasattr(self, kwarg):
+                out_dict[kwarg] = getattr(self, kwarg)
+        out_dict.update(self._data)
         return out_dict
 
     @property
@@ -393,7 +408,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  rep_times: List[float],
                  meas_kernels: List[str],
                  discriminators: List[str],
-                 hamiltonian: Dict[str, str] = None,
+                 rep_delays: List[float] = None,
+                 dynamic_reprate_enabled: bool = False,
+                 hamiltonian: Dict[str, Any] = None,
                  channel_bandwidth=None,
                  acquisition_latency=None,
                  conditional_latency=None,
@@ -434,9 +451,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             meas_lo_range: Measurement lo ranges for each qubit with form (min, max) in GHz.
             dt: Qubit drive channel timestep in nanoseconds.
             dtm: Measurement drive channel timestep in nanoseconds.
-            rep_times: Supported repetition times for device in microseconds.
+            rep_times: Supported repetition times (program execution time) for backend in μs.
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
+            rep_delays: Supported repetition delays (delay between programs) for backend in μs.
+                Optional, but will be specified when ``dynamic_reprate_enabled=True``.
+            dynamic_reprate_enabled: whether delay between programs can be set dynamically
+                (ie via ``rep_delay``). Defaults to False.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
             channel_bandwidth (list): Bandwidth of all channels
                 (qubit, measurement, and U)
@@ -477,7 +498,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
 
-        self.rep_times = [_rt * 1e-6 for _rt in rep_times]
+        self.dynamic_reprate_enabled = dynamic_reprate_enabled
+
+        self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
+        # if ``rep_delays`` not specified, leave as None
+        self.rep_delays = None
+        if rep_delays:
+            self.rep_delays = [_rd * 1e-6 for _rd in rep_delays]  # convert to sec
         self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
 
@@ -556,6 +583,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             'dt': self.dt,
             'dtm': self.dtm,
         })
+        if hasattr(self, 'rep_delays'):
+            out_dict['rep_delays'] = self.rep_delays
+        if hasattr(self, 'dynamic_reprate_enabled'):
+            out_dict['dynamic_reprate_enabled'] = self.dynamic_reprate_enabled
         if hasattr(self, 'channel_bandwidth'):
             out_dict['channel_bandwidth'] = self.channel_bandwidth
         if hasattr(self, 'meas_map'):

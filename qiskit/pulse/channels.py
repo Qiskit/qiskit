@@ -12,8 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-This module defines Pulse Channels. Channels include:
+"""This module defines Pulse Channels. Channels include:
 
   - transmit channels, which should subclass ``PulseChannel``
   - receive channels, such as ``AcquireChannel``
@@ -115,7 +114,7 @@ class AcquireChannel(Channel):
 
 
 class SnapshotChannel(Channel):
-    """Snapshot channels are used to specify commands for simulators."""
+    """Snapshot channels are used to specify instructions for simulators."""
     prefix = 's'
 
     def __init__(self):

@@ -63,6 +63,15 @@ class CouplingTest(QiskitTestCase):
         expected = ("[[0, 1]]")
         self.assertEqual(expected, str(coupling))
 
+    def test_neighbors(self):
+        """Test neighboring qubits are found correctly."""
+        coupling = CouplingMap([[0, 1], [0, 2], [1, 0]])
+
+        physical_qubits = coupling.physical_qubits
+        self.assertEqual(set(coupling.neighbors(physical_qubits[0])), set([1, 2]))
+        self.assertEqual(set(coupling.neighbors(physical_qubits[1])), set([0]))
+        self.assertEqual(set(coupling.neighbors(physical_qubits[2])), set([]))
+
     def test_distance_error(self):
         """Test distance between unconnected physical_qubits."""
         graph = CouplingMap()
@@ -113,6 +122,15 @@ class CouplingTest(QiskitTestCase):
         coupling = CouplingMap(coupling_list)
 
         self.assertFalse(coupling.is_symmetric)
+
+    def test_make_symmetric(self):
+        coupling_list = [[0, 1], [0, 2]]
+        coupling = CouplingMap(coupling_list)
+
+        coupling.make_symmetric()
+        edges = coupling.get_edges()
+
+        self.assertEqual(set(edges), set([(0, 1), (0, 2), (2, 0), (1, 0)]))
 
     def test_full_factory(self):
         coupling = CouplingMap.from_full(4)

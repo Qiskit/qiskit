@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Add a ``conjugate`` method to the ``ParameterExpression`` to allow
+    calling ``numpy.conj()`` without raising an error. Since the 
+    ``ParameterExpression`` is real, it returns itself.
+    This behaviour is analogous to Python floats/ints.

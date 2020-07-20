@@ -31,13 +31,13 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction)
+                                    HiddenLinearFunction, GraphState, PhaseEstimation)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.standard import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
-                                        RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
-from qiskit.quantum_info import Statevector, Operator
+from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
+                                    RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
+from qiskit.quantum_info import Statevector, Operator, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
@@ -147,6 +147,7 @@ class TestPermutationLibrary(QiskitTestCase):
 @ddt
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
+
     def assertHLFIsCorrect(self, hidden_function, hlf):
         """Assert that the HLF circuit produces the correct matrix.
 
@@ -182,6 +183,51 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         """Test that adjacency matrix is required to be symmetric."""
         with self.assertRaises(CircuitError):
             HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
+
+
+@ddt
+class TestGraphStateLibrary(QiskitTestCase):
+    """Test the graph state circuit."""
+
+    def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
+        """Check the stabilizers of the graph state against the expected stabilizers.
+        Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
+        """
+
+        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
+
+        expected_stabilizers = []  # keep track of all expected stabilizers
+        num_vertices = len(adjacency_matrix)
+        for vertex_a in range(num_vertices):
+            stabilizer = [None] * num_vertices  # Paulis must be put into right place
+            for vertex_b in range(num_vertices):
+                if vertex_a == vertex_b:  # self-connection --> 'X'
+                    stabilizer[vertex_a] = 'X'
+                elif adjacency_matrix[vertex_a][vertex_b] != 0:  # vertices connected --> 'Z'
+                    stabilizer[vertex_b] = 'Z'
+                else:  # else --> 'I'
+                    stabilizer[vertex_b] = 'I'
+
+            # need to reverse for Qiskit's tensoring order
+            expected_stabilizers.append(''.join(stabilizer)[::-1])
+
+        self.assertListEqual(expected_stabilizers, stabilizers)
+
+    @data(
+        [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
+    )
+    def test_graph_state(self, adjacency_matrix):
+        """Verify the GraphState by checking if the circuit has the expected stabilizers."""
+        graph_state = GraphState(adjacency_matrix)
+        self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
+
+    @data(
+        [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
+    )
+    def test_non_symmetric_raises(self, adjacency_matrix):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            GraphState(adjacency_matrix)
 
 
 class TestIQPLibrary(QiskitTestCase):
@@ -1754,6 +1800,121 @@ class TestDiagonalGate(QiskitTestCase):
         ref_diag = Statevector(diag)
 
         self.assertTrue(simulated_diag.equiv(ref_diag))
+
+
+@ddt
+class TestPhaseEstimation(QiskitTestCase):
+    """Test the phase estimation circuit."""
+
+    def assertPhaseEstimationIsCorrect(self, pec: QuantumCircuit, eigenstate: QuantumCircuit,
+                                       phase_as_binary: str):
+        r"""Assert that the phase estimation circuit implements the correct transformation.
+
+        Applying the phase estimation circuit on a target register which holds the eigenstate
+        :math:`|u\rangle` (say the last register), the final state should be
+
+        .. math::
+
+            |\phi_1\rangle \cdots |\phi_t\rangle |u\rangle
+
+        where the eigenvalue is written as :math:`e^{2\pi i \phi}` and the angle is represented
+        in binary fraction, i.e. :math:`\phi = 0.\phi_1 \ldots \phi_t`.
+
+        Args:
+            pec: The circuit implementing the phase estimation circuit.
+            eigenstate: The eigenstate as circuit.
+            phase_as_binary: The phase of the eigenvalue in a binary fraction. E.g. if the
+                phase is 0.25, the binary fraction is '01' as 0.01 = 0 * 0.5 + 1 * 0.25 = 0.25.
+        """
+
+        # the target state
+        eigenstate_as_vector = Statevector.from_instruction(eigenstate).data
+        reference = eigenstate_as_vector
+
+        zero, one = [1, 0], [0, 1]
+        for qubit in phase_as_binary[::-1]:
+            reference = np.kron(reference, zero if qubit == '0' else one)
+
+        # the simulated state
+        circuit = QuantumCircuit(pec.num_qubits)
+        circuit.compose(eigenstate,
+                        list(range(pec.num_qubits - eigenstate.num_qubits, pec.num_qubits)),
+                        inplace=True)
+        circuit.compose(pec, inplace=True)
+        # TODO use Statevector for simulation once Qiskit/qiskit-terra#4681 is resolved
+        # actual = Statevector.from_instruction(circuit).data
+        backend = BasicAer.get_backend('statevector_simulator')
+        actual = execute(circuit, backend).result().get_statevector()
+
+        np.testing.assert_almost_equal(reference, actual)
+
+    def test_phase_estimation(self):
+        """Test the standard phase estimation circuit."""
+        with self.subTest('U=S, psi=|1>'):
+            unitary = QuantumCircuit(1)
+            unitary.s(0)
+
+            eigenstate = QuantumCircuit(1)
+            eigenstate.x(0)
+
+            # eigenvalue is 1j = exp(2j pi 0.25) thus phi = 0.25 = 0.010 = '010'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = '0100'
+
+            pec = PhaseEstimation(4, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest('U=SZ, psi=|11>'):
+            unitary = QuantumCircuit(2)
+            unitary.z(0)
+            unitary.s(1)
+
+            eigenstate = QuantumCircuit(2)
+            eigenstate.x([0, 1])
+
+            # eigenvalue is -1j = exp(2j pi 0.75) thus phi = 0.75 = 0.110 = '110'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = '110'
+
+            pec = PhaseEstimation(3, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest('a 3-q unitary'):
+            unitary = QuantumCircuit(3)
+            unitary.x([0, 1, 2])
+            unitary.cz(0, 1)
+            unitary.h(2)
+            unitary.ccx(0, 1, 2)
+            unitary.h(2)
+
+            eigenstate = QuantumCircuit(3)
+            eigenstate.h(0)
+            eigenstate.cx(0, 1)
+            eigenstate.cx(0, 2)
+
+            # the unitary acts as identity on the eigenstate, thus the phase is 0
+            phase_as_binary = '00'
+
+            pec = PhaseEstimation(2, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+    def test_phase_estimation_iqft_setting(self):
+        """Test default and custom setting of the QFT circuit."""
+        unitary = QuantumCircuit(1)
+        unitary.s(0)
+
+        with self.subTest('default QFT'):
+            pec = PhaseEstimation(3, unitary)
+            expected_qft = QFT(3, inverse=True, do_swaps=False)
+            self.assertEqual(pec.data[-1][0].definition, expected_qft)
+
+        with self.subTest('custom QFT'):
+            iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
+            pec = PhaseEstimation(3, unitary, iqft=iqft)
+            self.assertEqual(pec.data[-1][0].definition, iqft)
 
 
 if __name__ == '__main__':

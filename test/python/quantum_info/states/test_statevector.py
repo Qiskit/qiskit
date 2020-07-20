@@ -24,7 +24,7 @@ from numpy.testing import assert_allclose
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate
+from qiskit.circuit.library import HGate
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
@@ -844,6 +844,18 @@ class TestStatevector(QiskitTestCase):
             target = Statevector([0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(3, 3))
             value = Statevector.from_int(8, (3, 3))
             self.assertEqual(target, value)
+
+    def test_expval(self):
+        """Test expectation_value method"""
+
+        psi = Statevector([1, 0, 0, 1]) / np.sqrt(2)
+        for label, target in [
+                ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
+                ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Operator.from_label(label)
+                expval = psi.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
 
 
 if __name__ == '__main__':

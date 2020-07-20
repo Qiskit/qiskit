@@ -25,7 +25,8 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers import BaseBackend
-from qiskit.scheduler import schedule_circuit, ScheduleConfig
+from qiskit.scheduler import ScheduleConfig
+from qiskit.scheduler.schedule_circuit import schedule_circuit
 
 LOG = logging.getLogger(__name__)
 
@@ -64,7 +65,11 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         if backend is None:
             raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
                               "scheduling passes.")
-        inst_map = backend.defaults().instruction_schedule_map
+        defaults = backend.defaults()
+        if defaults is None:
+            raise QiskitError("The backend defaults are unavailable. The backend may not "
+                              "support pulse.")
+        inst_map = defaults.instruction_schedule_map
     if meas_map is None:
         if backend is None:
             raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
