@@ -20,7 +20,7 @@ import warnings
 from enum import Enum
 
 from qiskit.pulse import channels, instructions, library
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
@@ -70,7 +70,7 @@ class ConversionMethodBinder:
         try:
             return self._bound_instructions[bound]
         except KeyError:
-            raise PulseError('Bound method for %s is not found.' % bound)
+            raise QiskitError('Bound method for %s is not found.' % bound)
 
 
 class InstructionToQobjConverter:
@@ -168,30 +168,103 @@ class InstructionToQobjConverter:
                 })
         return self._qobj_model(**command_dict)
 
-    def convert_single_acquires(self, shift, instruction,
-                                qubits=None, memory_slot=None, register_slot=None):
-        """Return converted `AcquireInstruction`, with options to override the qubits,
-        memory_slot, and register_slot fields. This is useful for grouping
-        AcquisitionInstructions which are operated on a single AcquireChannel and
-        a single MemorySlot.
+    def convert_bundled_acquires(
+            self,
+            shift,
+            instructions_,
+    ):
+        """Bundle a list of acquires instructions at the same time into a single
+        Qobj acquire instruction.
 
         Args:
             shift (int): Offset time.
-            instruction (AcquireInstruction): acquire instruction.
-            qubits (list(int)): A list of qubit indices to acquire.
-            memory_slot (list(int)): A list of memory slot indices to store results.
-            register_slot (list(int)): A list of register slot addresses to store results.
+            instructions_ (List[Acquire]): List of acquire instructions to bundle.
         Returns:
             dict: Dictionary of required parameters.
+        Raises:
+            QiskitError: If ``instructions`` is empty.
         """
-        res = self.convert_acquire(shift, instruction)
-        if qubits:
-            res.qubits = qubits
-        if memory_slot:
-            res.memory_slot = memory_slot
-        if register_slot:
-            res.register_slot = register_slot
-        return res
+        if not instructions_:
+            raise QiskitError('"instructions" may not be empty.')
+
+        meas_level = self._run_config.get('meas_level', 2)
+
+        t0 = instructions_[0].start_time
+        duration = instructions_[0].duration
+        memory_slots = []
+        register_slots = []
+        qubits = []
+        discriminators = []
+        kernels = []
+
+        for instruction in instructions_:
+            qubits.append(instruction.channel.index)
+
+            if instruction.start_time != t0:
+                raise QiskitError(
+                    'The supplied acquire instructions have different starting times. '
+                    'Something has gone wrong calling this code. Please report this '
+                    'issue.'
+                )
+
+            if instruction.duration != duration:
+                raise QiskitError(
+                    'Acquire instructions beginning at the same time must have '
+                    'same duration.'
+                )
+
+            if instruction.mem_slot:
+                memory_slots.append(instruction.mem_slot.index)
+
+            if meas_level == MeasLevel.CLASSIFIED:
+                # setup discriminators
+                if instruction.discriminator:
+                    discriminators.append(QobjMeasurementOption(
+                        name=instruction.discriminator.name,
+                        params=instruction.discriminator.params))
+                # setup register_slots
+                if instruction.reg_slot:
+                    register_slots.append(instruction.reg_slot.index)
+
+            if meas_level in [MeasLevel.KERNELED, MeasLevel.CLASSIFIED]:
+                # setup kernels
+                if instruction.kernel:
+                    kernels.append(QobjMeasurementOption(
+                        name=instruction.kernel.name,
+                        params=instruction.kernel.params))
+        command_dict = {
+            'name': 'acquire',
+            't0': t0 + shift,
+            'duration': duration,
+            'qubits': qubits,
+        }
+        if memory_slots:
+            command_dict['memory_slot'] = memory_slots
+
+        if register_slots:
+            command_dict['register_slot'] = register_slots
+
+        if discriminators:
+            num_discriminators = len(discriminators)
+            if num_discriminators == len(qubits) or num_discriminators == 1:
+                command_dict['discriminators'] = discriminators
+            else:
+                raise QiskitError(
+                    'A discriminator must be supplied for every acquisition or a single '
+                    'discriminator for all acquisitions.'
+                    )
+
+        if kernels:
+            num_kernels = len(kernels)
+            if num_kernels == len(qubits) or num_kernels == 1:
+                command_dict['kernels'] = kernels
+            else:
+                raise QiskitError(
+                    'A kernel must be supplied for every acquisition or a single '
+                    'kernel for all acquisitions.'
+                    )
+
+        return self._qobj_model(**command_dict)
 
     @bind_instruction(instructions.SetFrequency)
     def convert_set_frequency(self, shift, instruction):
@@ -347,7 +420,7 @@ class QobjToInstructionConverter:
             (Channel, int): Matched channel
 
         Raises:
-            PulseError: Is raised if valid channel is not matched
+            QiskitError: Is raised if valid channel is not matched
         """
         match = self.chan_regex.match(channel)
         if match:
@@ -360,7 +433,7 @@ class QobjToInstructionConverter:
             elif prefix == channels.ControlChannel.prefix:
                 return channels.ControlChannel(index)
 
-        raise PulseError('Channel %s is not valid' % channel)
+        raise QiskitError('Channel %s is not valid' % channel)
 
     @bind_name('acquire')
     def convert_acquire(self, instruction):
