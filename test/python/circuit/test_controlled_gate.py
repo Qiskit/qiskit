@@ -915,7 +915,11 @@ class TestOpenControlledToMatrix(QiskitTestCase):
             free_params[0] = 3
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
+
         base_mat = Operator(cgate.base_gate).data
+        if gate_class == CUGate:  # account for global phase
+            base_mat = np.array(base_mat) * np.exp(1j * cgate.params[3])
+
         target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
                                          ctrl_state=ctrl_state)
         try:
@@ -1165,7 +1169,7 @@ class TestControlledGateLabel(QiskitTestCase):
                       (U3Gate, [0.1, 0.2, 0.3]),
                       (CHGate, []),
                       (CRZGate, [0.1]),
-                      (CUGate, [0.1, 0.2, 0.3]),
+                      (CUGate, [0.1, 0.2, 0.3, 0.4]),
                       (CU3Gate, [0.1, 0.2, 0.3]),
                       (MSGate, [5, 0.1]),
                       (RCCXGate, []),

@@ -73,7 +73,7 @@ class PhaseGate(Gate):
 
     def __init__(self, theta, label=None):
         """Create new Phase gate."""
-        super().__init__('phase', 1, [theta], label=label)
+        super().__init__('p', 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -155,7 +155,7 @@ class CPhaseGate(ControlledGate):
 
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CPhase gate."""
-        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1, label=label,
+        super().__init__('cp', 2, [theta], num_ctrl_qubits=1, label=label,
                          ctrl_state=ctrl_state)
         self.base_gate = PhaseGate(theta)
 

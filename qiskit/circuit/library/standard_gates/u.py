@@ -84,7 +84,8 @@ class UGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CUGate(*self.params, 0, label=label, ctrl_state=ctrl_state)
+            gate = CUGate(self.params[0], self.params[1], self.params[2], 0,
+                          label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
@@ -138,7 +139,7 @@ class CUGate(ControlledGate):
             e^{i\gamma} U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                           & 0 & 0 \\
-                0 & e^{i\gamma}\cos(\th)        & 0 & e^{i(\gamma - \lambda)}\sin(\th) \\
+                0 & e^{i\gamma}\cos(\th)        & 0 & -e^{i(\gamma + \lambda)}\sin(\th) \\
                 0 & 0                           & 1 & 0 \\
                 0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)\cos(\th)}
             \end{pmatrix}
@@ -165,7 +166,7 @@ class CUGate(ControlledGate):
                 \begin{pmatrix}
                     1 & 0 & 0                             & 0 \\
                     0 & 1 & 0                             & 0 \\
-                    0 & 0 & e^{i\gamma} \cos(\th)         & e^{i(\gamma - \lambda)}\sin(\th) \\
+                    0 & 0 & e^{i\gamma} \cos(\th)         & -e^{i(\gamma + \lambda)}\sin(\th) \\
                     0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
@@ -192,7 +193,7 @@ class CUGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.cphase(self.params[3], 0, 1)
+        qc.phase(self.params[3], 0)
         qc.phase((self.params[2] + self.params[1]) / 2, 0)
         qc.phase((self.params[2] - self.params[1]) / 2, 1)
         qc.cx(0, 1)
@@ -208,15 +209,22 @@ class CUGate(ControlledGate):
         """
         return CUGate(-self.params[0], -self.params[2], -self.params[1], -self.params[3])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CU gate."""
-    #    theta, phi, lam = self.params
-    #    cos = numpy.cos(theta / 2)
-    #    sin = numpy.sin(theta / 2)
-    #    return numpy.array([[1,0, 0, 0],
-    #                        [0, cos, 0, numpy.exp(-1j * lam) * sin],
-    #                        [0, 0, 1, 0],
-    #                        [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
-    #                       dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the CU gate."""
+        theta, phi, lam, gamma = self.params
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
+        a = numpy.exp(1j * gamma) * cos
+        b = -numpy.exp(1j * (gamma + lam)) * sin
+        c = numpy.exp(1j * (gamma + phi)) * sin
+        d = numpy.exp(1j * (gamma + phi + lam)) * cos
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, a, 0, b],
+                                [0, 0, 1, 0],
+                                [0, c, 0, d]], dtype=complex)
+        else:
+            return numpy.array([[a, 0, b, 0],
+                                [0, 1, 0, 0],
+                                [c, 0, d, 0],
+                                [0, 0, 0, 1]], dtype=complex)

@@ -142,7 +142,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
             U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                   & 0 & 0 \\
-                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
                 0 & 0                   & 1 & 0 \\
                 0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
             \end{pmatrix}
@@ -169,7 +169,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                 \begin{pmatrix}
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
-                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
                     0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
@@ -223,7 +223,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
     #    cos = numpy.cos(theta / 2)
     #    sin = numpy.sin(theta / 2)
     #    return numpy.array([[1,0, 0, 0],
-    #                        [0, cos, 0, numpy.exp(-1j * lam) * sin],
+    #                        [0, cos, 0, -numpy.exp(1j * lam) * sin],
     #                        [0, 0, 1, 0],
     #                        [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
     #                       dtype=complex)
