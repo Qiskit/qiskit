@@ -56,5 +56,4 @@ def circuit_to_dag(circuit):
         dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
 
     dagcircuit.duration = circuit.duration
-    dagcircuit.instruction_durations = circuit.instruction_durations
     return dagcircuit

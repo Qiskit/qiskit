@@ -170,7 +170,6 @@ class QuantumCircuit:
         self._layout = None
 
         self.duration = None
-        self.instruction_durations = None
 
     @property
     def data(self):
@@ -289,7 +288,6 @@ class QuantumCircuit:
             reverse_circ._append(inst.reverse_ops(), qargs, cargs)
 
         reverse_circ.duration = self.duration
-        reverse_circ.instruction_durations = self.instruction_durations
         return reverse_circ
 
     def reverse_bits(self):
@@ -735,7 +733,6 @@ class QuantumCircuit:
 
         # mark as normal circuit if a new instruction is added
         self.duration = None
-        self.instruction_durations = None
 
         return instruction
 

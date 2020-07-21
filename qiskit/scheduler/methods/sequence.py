@@ -15,15 +15,12 @@
 """
 Mapping a scheduled QuantumCircuit to a pulse Schedule.
 """
-import warnings
-from collections import defaultdict
 
 from qiskit.circuit.barrier import Barrier
-from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.transforms import pad
-
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.methods.lowering import lower_gates
 
@@ -41,32 +38,31 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
 
     Returns:
         A schedule corresponding to the input ``circuit``.
+
+    Raises:
+        QiskitError: If invalid scheduled circuit is supplied.
     """
-    # recall start times
-    qubit_time_available = defaultdict(int)
-    start_times = []
-    measure_times = []
-    for inst, qubits, _ in scheduled_circuit.data:
-        start_time = qubit_time_available[qubits[0]]
-        if isinstance(inst, Measure):
-            measure_times.append(start_time)
-        else:
-            start_times.append(start_time)
-        duration = scheduled_circuit.instruction_durations.get(inst, qubits)
-        for q in qubits:
-            qubit_time_available[q] += duration
-
-    if measure_times:
-        measure_time = measure_times[0]
-        for time in measure_times:
-            if time != measure_time:
-                # TODO: should we raise an exception?
-                warnings.warn('Not all measurements are done at once at the last.'
-                              'Resulting schedule may be incorrect.',
-                              UserWarning)
-        start_times.append(measure_time)
-
     circ_pulse_defs = lower_gates(scheduled_circuit, schedule_config)
+
+    # restore start times
+    qubit_time_available = {}
+    start_times = []
+    for circ_pulse_def in circ_pulse_defs:
+        active_qubits = [q for q in circ_pulse_def.qubits if q in qubit_time_available]
+
+        start_time = max([qubit_time_available[q] for q in active_qubits], default=0)
+        start_times.append(start_time)
+
+        for q in active_qubits:
+            if qubit_time_available[q] != start_time:
+                raise QiskitError("Invalid scheduled circuit.")
+
+        stop_time = start_time
+        if not isinstance(circ_pulse_def.schedule, Barrier):
+            stop_time += circ_pulse_def.schedule.duration
+        for q in circ_pulse_def.qubits:
+            qubit_time_available[q] = stop_time
+
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
     sched = Schedule(*timed_schedules, name=scheduled_circuit.name)
