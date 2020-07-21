@@ -139,6 +139,7 @@ Particular Quantum Circuits
    HiddenLinearFunction
    IQP
    QuantumVolume
+   PhaseEstimation
 
 
 N-local circuits
@@ -211,3 +212,4 @@ from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
+from .phase_estimation import PhaseEstimation

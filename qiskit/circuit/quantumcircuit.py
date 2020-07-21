@@ -18,6 +18,7 @@ import copy
 import itertools
 import sys
 import warnings
+import numbers
 import multiprocessing as mp
 from collections import OrderedDict
 import numpy as np
@@ -29,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit
+from .quantumregister import QuantumRegister, Qubit, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -384,9 +385,48 @@ class QuantumCircuit:
             except QiskitError:
                 inst = self.to_instruction()
             for _ in range(reps):
-                repeated_circ.append(inst, self.qubits, self.clbits)
+                repeated_circ._append(inst, self.qubits, self.clbits)
 
         return repeated_circ
+
+    def power(self, power, matrix_power=False):
+        """Raise this circuit to the power of ``power``.
+
+        If ``power`` is a positive integer and ``matrix_power`` is ``False``, this implementation
+        defaults to calling ``repeat``. Otherwise, if the circuit is unitary, the matrix is
+        computed to calculate the matrix power.
+
+        Args:
+            power (int): The power to raise this circuit to.
+            matrix_power (bool): If True, the circuit is converted to a matrix and then the
+                matrix power is computed. If False, and ``power`` is a positive integer,
+                the implementation defaults to ``repeat``.
+
+        Raises:
+            CircuitError: If the circuit needs to be converted to a gate but it is not unitary.
+
+        Returns:
+            QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
+        """
+        if power >= 0 and isinstance(power, numbers.Integral) and not matrix_power:
+            return self.repeat(power)
+
+        # attempt conversion to gate
+        if len(self.parameters) > 0:
+            raise CircuitError('Cannot raise a parameterized circuit to a non-positive power '
+                               'or matrix-power, please bind the free parameters: '
+                               '{}'.format(self.parameters))
+
+        try:
+            gate = self.to_gate()
+        except QiskitError:
+            raise CircuitError('The circuit contains non-unitary operations and cannot be '
+                               'controlled. Note that no qiskit.circuit.Instruction objects may '
+                               'be in the circuit for this operation.')
+
+        power_circuit = QuantumCircuit(*self.qregs, *self.cregs)
+        power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
+        return power_circuit
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Control this circuit on ``num_ctrl_qubits`` qubits.
@@ -575,6 +615,13 @@ class QuantumCircuit:
         Returns a list of classical bits in the order that the registers were added.
         """
         return [cbit for creg in self.cregs for cbit in creg]
+
+    @property
+    def ancillas(self):
+        """
+        Returns a list of quantum bits in the order that the registers were added.
+        """
+        return [qbit for qreg in self.qregs for qbit in qreg if isinstance(qbit, AncillaQubit)]
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
@@ -970,7 +1017,7 @@ class QuantumCircuit:
     def draw(self, output=None, scale=None, filename=None, style=None,
              interactive=False, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=False):
+             with_layout=True, fold=None, ax=None, initial_state=False, cregbundle=True):
         """Draw the quantum circuit.
 
         **text**: ASCII art TextDrawing that can be printed in the console.
@@ -1037,7 +1084,7 @@ class QuantumCircuit:
                 Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
                 Default: ``False``.
             cregbundle (bool): Optional. If set True bundle classical registers. Not used by
-                the ``matplotlib`` output. Default: ``False``.
+                the ``matplotlib`` output. Default: ``True``.
 
         Returns:
             :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
@@ -1282,6 +1329,11 @@ class QuantumCircuit:
         return qubits
 
     @property
+    def num_ancillas(self):
+        """Return the number of ancilla qubits."""
+        return len(self.ancillas)
+
+    @property
     def n_qubits(self):
         """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
         warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
@@ -1313,7 +1365,7 @@ class QuantumCircuit:
         """
         multi_qubit_gates = 0
         for instr, _, _ in self._data:
-            if instr.num_qubits > 1:
+            if instr.num_qubits > 1 and instr.name not in ['barrier', 'snapshot']:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
@@ -2012,7 +2064,7 @@ class QuantumCircuit:
     def cnot(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
              ctl=None, tgt=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
-        self.cx(control_qubit, target_qubit, ctl=ctl, tgt=tgt)
+        self.cx(control_qubit, target_qubit)
 
     def dcx(self, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.DCXGate`."""
