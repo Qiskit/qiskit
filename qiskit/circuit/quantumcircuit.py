@@ -392,6 +392,36 @@ class QuantumCircuit:
 
         return repeated_circ
 
+    # def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    #     """Control this circuit on ``num_ctrl_qubits`` qubits.
+
+    #     Args:
+    #         num_ctrl_qubits (int): The number of control qubits.
+    #         label (str): An optional label to give the controlled operation for visualization.
+    #         ctrl_state (str or int): The control state in decimal or as a bitstring
+    #             (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
+
+    #     Returns:
+    #         QuantumCircuit: The controlled version of this circuit.
+
+    #     Raises:
+    #         CircuitError: If the circuit contains a non-unitary operation and cannot be controlled.
+    #     """
+    #     try:
+    #         gate = self.to_gate()
+    #     except QiskitError:
+    #         raise CircuitError('The circuit contains non-unitary operations and cannot be '
+    #                            'controlled. Note that no qiskit.circuit.Instruction objects may '
+    #                            'be in the circuit for this operation.')
+
+    #     controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
+    #     control_qreg = QuantumRegister(num_ctrl_qubits)
+    #     controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
+    #                                      name='c_{}'.format(self.name))
+    #     controlled_circ.append(controlled_gate, controlled_circ.qubits)
+
+    #     return controlled_circ
+
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Control this circuit on ``num_ctrl_qubits`` qubits.
 
@@ -407,19 +437,88 @@ class QuantumCircuit:
         Raises:
             CircuitError: If the circuit contains a non-unitary operation and cannot be controlled.
         """
-        try:
-            gate = self.to_gate()
-        except QiskitError:
-            raise CircuitError('The circuit contains non-unitary operations and cannot be '
-                               'controlled. Note that no qiskit.circuit.Instruction objects may '
-                               'be in the circuit for this operation.')
+        from math import pi
+        # pylint: disable=cyclic-import
+        import qiskit.circuit.controlledgate as controlledgate
 
-        controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
-        control_qreg = QuantumRegister(num_ctrl_qubits)
-        controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
+        from qiskit.transpiler.passes import Unroller
+        unroller = Unroller(['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx'])
+        dag = circuit_to_dag(self)
+        unrolled_circ = dag_to_circuit(unroller.run(dag))
+
+        q_control = QuantumRegister(num_ctrl_qubits, name='control')
+        q_target = QuantumRegister(self.num_qubits, name='target')
+        q_ancillae = None  # TODO: add        
+        controlled_circ = QuantumCircuit(q_control, q_target,
                                          name='c_{}'.format(self.name))
-        controlled_circ.append(controlled_gate, controlled_circ.qubits)
-
+        has_open_ctrl = False
+        if ctrl_state is not None:
+            has_open_ctrl = ctrl_state < 2**num_ctrl_qubits - 1
+            if has_open_ctrl:
+                ctrl_state_circ = QuantumCircuit(q_control)
+                bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
+                for qind, val in enumerate(bit_ctrl_state[::-1]):
+                    if val == '0':
+                        ctrl_state_circ.x(qind)
+                controlled_circ.compose(ctrl_state_circ, q_control, inplace=True)
+        global_phase = 0            
+        for operation, qreg, creg in unrolled_circ.data:
+            if operation.name == 'x' or (
+                    isinstance(operation, controlledgate.ControlledGate) and
+                    operation.base_gate.name == 'x'):
+                controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1],
+                                    q_ancillae)
+            elif operation.name == 'rx':
+                controlled_circ.mcrx(operation.definition.data[0][0].params[0],
+                                     q_control, q_target[qreg[0].index],
+                                     use_basis_gates=True)
+            elif operation.name == 'ry':
+                controlled_circ.mcry(operation.definition.data[0][0].params[0],
+                                     q_control, q_target[qreg[0].index],
+                                     q_ancillae, mode='noancilla',
+                                     use_basis_gates=True)
+            elif operation.name == 'rz':
+                controlled_circ.mcrz(operation.definition.data[0][0].params[0],
+                                     q_control, q_target[qreg[0].index],
+                                     use_basis_gates=True)
+            elif operation.name == 'u1':
+                controlled_circ.mcu1(operation.params[0], q_control, q_target[qreg[0].index])
+            elif operation.name == 'cx':
+                controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]], q_target[qreg[1].index],
+                       q_ancillae)
+            elif operation.name == 'u3':
+                theta, phi, lamb = operation.params
+                if phi == -pi / 2 and lamb == pi / 2:
+                    controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],
+                                       use_basis_gates=True)
+                elif phi == 0 and lamb == 0:
+                    controlled_circ.mcry(theta, q_control, q_target[qreg[0].index],
+                                       q_ancillae, use_basis_gates=True)
+                elif theta == 0 and phi == 0:
+                    controlled_circ.mcrz(lamb, q_control, q_target[qreg[0].index],
+                                       use_basis_gates=True)
+                else:
+                    controlled_circ.mcrz(lamb, q_control, q_target[qreg[0].index],
+                                       use_basis_gates=True)
+                    controlled_circ.mcry(theta, q_control, q_target[qreg[0].index],
+                                       q_ancillae, use_basis_gates=True)
+                    controlled_circ.mcrz(phi, q_control, q_target[qreg[0].index],
+                                       use_basis_gates=True)
+            else:
+                raise CircuitError('gate contains non-controllable instructions: {}'.format(
+                    operation.name))
+            if operation.definition is not None and operation.definition.phase:
+                global_phase += operation.definition.phase
+        if has_open_ctrl:            
+            controlled_circ.compose(ctrl_state_circ, q_control, inplace=True)
+        if self.phase or global_phase:
+            if len(q_control) < 2:
+                controlled_circ.u1(self.phase + global_phase, q_control)
+            else:
+                controlled_circ.mcu1(self.phase + global_phase, q_control[:-1],
+                                     q_control[-1])
+            
         return controlled_circ
 
     def combine(self, rhs):
@@ -726,6 +825,11 @@ class QuantumCircuit:
         self._check_dups(qargs)
         self._check_qargs(qargs)
         self._check_cargs(cargs)
+
+        # add phase
+        # if instruction.definition and instruction.definition.phase:
+        #     self.phase += instruction.definition.phase
+        #     instruction.definition.phase = 0
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs

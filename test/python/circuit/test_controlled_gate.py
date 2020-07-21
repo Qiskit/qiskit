@@ -578,7 +578,7 @@ class TestControlledGate(QiskitTestCase):
         np.testing.assert_array_almost_equal(result.data, np.identity(result.dim[0]))
 
     @data(1, 2, 3)
-    def test_inverse_circuit(self, num_ctrl_qubits):
+    def test_inverse_gate(self, num_ctrl_qubits):
         """Test inverting a controlled gate based on a circuit definition."""
         qc = QuantumCircuit(3)
         qc.h(0)
@@ -587,10 +587,31 @@ class TestControlledGate(QiskitTestCase):
         qc.rx(np.pi / 4, [0, 1, 2])
         gate = qc.to_gate()
         cgate = gate.control(num_ctrl_qubits)
+        import qiskit.circuit.add_control as add_control
+        cgate2 = add_control.control2(gate, num_ctrl_qubits=num_ctrl_qubits)
+        inv_cgate2 = cgate2.inverse()
         inv_cgate = cgate.inverse()
         result = Operator(cgate).compose(Operator(inv_cgate))
+        np.set_printoptions(precision=2, linewidth=250, suppress=True)
+        import ipdb; ipdb.set_trace()
+        
         np.testing.assert_array_almost_equal(result.data, np.identity(result.dim[0]))
 
+    @data(1, 2, 3)
+    def test_inverse_circuit(self, num_ctrl_qubits):
+        """Test inverting a controlled gate based on a circuit definition."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.rx(np.pi / 4, [0, 1, 2])
+        qc_inv = qc.inverse()
+        result = Operator(qc).compose(Operator(qc_inv))
+        np.set_printoptions(precision=2, linewidth=250, suppress=True)
+        #import ipdb; ipdb.set_trace()
+        
+        np.testing.assert_array_almost_equal(result.data, np.identity(result.dim[0]))
+        
     @data(1, 2, 3, 4, 5)
     def test_controlled_unitary(self, num_ctrl_qubits):
         """Test the matrix data of an Operator, which is based on a controlled gate."""
@@ -724,9 +745,11 @@ class TestControlledGate(QiskitTestCase):
         qcomp.h(qreg[0])
         qcomp.cx(qreg[0], qreg[1])
         bell = qcomp.to_gate()
+        cbell2 = qcomp.control(ctrl_state=0)
         # create controlled composite gate
         cqreg = QuantumRegister(3)
         qc = QuantumCircuit(cqreg)
+        cbell = bell.control(ctrl_state=0)
         qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
         dag = circuit_to_dag(qc)
         unroller = Unroller(['x', 'u1', 'cbell'])
@@ -903,6 +926,38 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertEqual(Operator(ccx), Operator(target))
 
+    @data(1, 2)
+    def test_controlled_global_phase(self, num_ctrl_qubits):
+        """
+        Test controlled global phase on base gate.
+        """
+        theta = pi/4
+        circ = QuantumCircuit(2, phase=theta)
+        dag = circuit_to_dag(circ)
+        base_gate = circ.to_gate()
+        base_mat = Operator(base_gate).data
+        target = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        cgate = base_gate.control(num_ctrl_qubits)
+        ccirc = circ.control(num_ctrl_qubits)
+        self.assertEqual(Operator(cgate), Operator(target))
+        self.assertEqual(Operator(ccirc), Operator(target))        
+
+    @data(1, 2)
+    def test_rz_composite_global_phase(self, num_ctrl_qubits):
+        """
+        Test controlling CX with global phase
+        """
+        theta = pi/4
+        circ = QuantumCircuit(2, phase=theta)
+        circ.rz(0.1, 0)
+        circ.rz(0.2, 1)
+        ccirc = circ.control(num_ctrl_qubits)
+        base_gate = circ.to_gate()
+        cgate = base_gate.control(num_ctrl_qubits)
+        base_mat = Operator(base_gate).data
+        target = _compute_control_matrix(base_mat, num_ctrl_qubits)
+        self.assertEqual(Operator(cgate), Operator(target))
+        self.assertEqual(Operator(ccirc), Operator(target))        
 
 @ddt
 class TestOpenControlledToMatrix(QiskitTestCase):

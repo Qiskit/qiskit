@@ -207,4 +207,5 @@ class ControlledGate(Gate):
 
     def inverse(self) -> 'ControlledGate':
         """Invert this gate by calling inverse on the base gate."""
-        return self.base_gate.inverse().control(self.num_ctrl_qubits)
+        return self.base_gate.inverse().control(self.num_ctrl_qubits,
+                                                ctrl_state=self.ctrl_state)

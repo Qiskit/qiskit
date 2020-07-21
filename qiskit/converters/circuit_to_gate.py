@@ -91,9 +91,10 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         equivalence_library.add_equivalence(gate, target)
 
     rules = target.data
-    if target.phase:
-        target.u3(pi, target.phase, target.phase - pi, target.qregs[0][0])
-        target.x(target.qregs[0][0])
+    # if target.phase:
+    #     target.u3(pi, target.phase, target.phase - pi, target.qregs[0][0])
+    #     target.x(target.qregs[0][0])
+    #     target.phase = 0
 
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')
@@ -106,7 +107,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
                    list(map(lambda y: q[find_bit_position(y)], x[1])),
                    []),
         rules))
-    qc = QuantumCircuit(q, name=gate.name)
+    qc = QuantumCircuit(q, name=gate.name, phase=target.phase)
     qc.data = rules
     gate.definition = qc
     return gate
