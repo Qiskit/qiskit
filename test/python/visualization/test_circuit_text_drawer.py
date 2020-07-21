@@ -2994,7 +2994,7 @@ class TestTextPhase(QiskitTestCase):
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.phase = 3.141592653589793 / 2
+        circuit.global_phase = 3.141592653589793 / 2
 
         circuit.h(0)
         circuit.cx(0, 1)
@@ -3010,7 +3010,7 @@ class TestTextPhase(QiskitTestCase):
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.phase = 3
+        circuit.global_phase = 3
 
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
@@ -3019,7 +3019,7 @@ class TestTextPhase(QiskitTestCase):
         expected = '\n'.join(["phase: 4.21"])
 
         circuit = QuantumCircuit()
-        circuit.phase = 4.21
+        circuit.global_phase = 4.21
 
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
