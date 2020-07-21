@@ -21,7 +21,7 @@ gate u0(gamma) q { U(0,0,0) q; }
 // generic single qubit gate
 gate u(theta,phi,lambda) q { U(theta,phi,lambda) q; }
 // phase gate
-gate phase(lambda) q { U(0,0,lambda) q; }
+gate p(lambda) q { U(0,0,lambda) q; }
 // Pauli gate: bit-flip
 gate x a { u3(pi,0,pi) a; }
 // Pauli gate: bit and phase flip
@@ -115,13 +115,13 @@ gate cu1(lambda) a,b
   cx a,b;
   u1(lambda/2) b;
 }
-gate cphase(lambda) a,b
+gate cp(lambda) a,b
 {
-  phase(lambda/2) a;
+  p(lambda/2) a;
   cx a,b;
-  phase(-lambda/2) b;
+  p(-lambda/2) b;
   cx a,b;
-  phase(lambda/2) b;
+  p(lambda/2) b;
 }
 // controlled-U
 gate cu3(theta,phi,lambda) c, t
@@ -135,9 +135,9 @@ gate cu3(theta,phi,lambda) c, t
   u3(theta/2,phi,0) t;
 }
 gate cu(theta,phi,lambda,gamma) c, t
-{ cphase(gamma) c,t;
-  phase((lambda+phi)/2) c;
-  phase((lambda-phi)/2) t;
+{ cp(gamma) c,t;
+  p((lambda+phi)/2) c;
+  p((lambda-phi)/2) t;
   cx c,t;
   u(-theta/2,0,-(phi+lambda)/2) t;
   cx c,t;

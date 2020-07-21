@@ -171,11 +171,11 @@ class CPhaseGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.phase(self.params[0] / 2, 0)
+        qc.p(self.params[0] / 2, 0)
         qc.cx(0, 1)
-        qc.phase(-self.params[0] / 2, 1)
+        qc.p(-self.params[0] / 2, 1)
         qc.cx(0, 1)
-        qc.phase(self.params[0] / 2, 1)
+        qc.p(self.params[0] / 2, 1)
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -250,9 +250,9 @@ class MCPhaseGate(ControlledGate):
         qc = QuantumCircuit(q, name=self.name)
 
         if self.num_ctrl_qubits == 0:
-            qc.phase(self.params[0], 0)
+            qc.p(self.params[0], 0)
         if self.num_ctrl_qubits == 1:
-            qc.cphase(self.params[0], 0, 1)
+            qc.cp(self.params[0], 0, 1)
         else:
             from .u3 import _gray_code_chain
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))

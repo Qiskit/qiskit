@@ -193,9 +193,9 @@ class CUGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.phase(self.params[3], 0)
-        qc.phase((self.params[2] + self.params[1]) / 2, 0)
-        qc.phase((self.params[2] - self.params[1]) / 2, 1)
+        qc.p(self.params[3], 0)
+        qc.p((self.params[2] + self.params[1]) / 2, 0)
+        qc.p((self.params[2] - self.params[1]) / 2, 1)
         qc.cx(0, 1)
         qc.u(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
         qc.cx(0, 1)
