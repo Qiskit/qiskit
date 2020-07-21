@@ -588,7 +588,7 @@ class TestControlledGate(QiskitTestCase):
         gate = qc.to_gate()
         cgate = gate.control(num_ctrl_qubits)
         import qiskit.circuit.add_control as add_control
-        cgate2 = add_control.control2(gate, num_ctrl_qubits=num_ctrl_qubits)
+        cgate2 = add_control.control(gate, num_ctrl_qubits=num_ctrl_qubits)
         inv_cgate2 = cgate2.inverse()
         inv_cgate = cgate.inverse()
         result = Operator(cgate).compose(Operator(inv_cgate))
