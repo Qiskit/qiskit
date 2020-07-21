@@ -175,12 +175,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
+    pm3.append(_reset + _meas)
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout_1, condition=_choose_layout_condition)
         pm3.append(_choose_layout_2, condition=_choose_layout_condition)
         pm3.append(_embed)
-        pm3.append(_reset + _meas)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
