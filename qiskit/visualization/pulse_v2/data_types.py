@@ -15,7 +15,7 @@
 """
 Special data types.
 
-- InstructionTuple: Data set to generate drawing objects.
+- InstructionTuple: Type for representing instruction objects to draw.
     Waveform and Frame type instructions are internally converted into this data format and
     fed to the object generators.
 
