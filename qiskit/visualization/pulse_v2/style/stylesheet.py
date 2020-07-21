@@ -16,8 +16,9 @@ r"""
 Stylesheet for pulse drawer.
 
 The general stylesheet template `QiskitPulseStyle` is initialized with the hard-corded
-default values in the `default.json` file. This instance is generated when the pulse drawer
-module is loaded so that every lower modules can access to the information.
+default values in py:mod:`qiskit.visualization.pulse_v2.style.default`.
+This instance is generated when the pulse drawer module is loaded so that
+every lower modules can access to the information.
 
 The `QiskitPulseStyle` takes a nested python dictionary and stores the settings under
 flattened dictionary keys such as `formatter.color.background`.
