@@ -2986,11 +2986,12 @@ class TestTextPhase(QiskitTestCase):
 
     def test_bell(self):
         """Text Bell state with phase."""
-        expected = '\n'.join(["phase: pi/2┌───┐     ",
-                              "      q_0: ┤ H ├──■──",
-                              "           └───┘┌─┴─┐",
-                              "      q_1: ─────┤ X ├",
-                              "                └───┘"])
+        expected = '\n'.join(["global phase: pi/2",
+                              "     ┌───┐     ",
+                              "q_0: ┤ H ├──■──",
+                              "     └───┘┌─┴─┐",
+                              "q_1: ─────┤ X ├",
+                              "          └───┘"])
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
@@ -3002,11 +3003,12 @@ class TestTextPhase(QiskitTestCase):
 
     def test_empty(self):
         """Text empty circuit (two registers) with phase."""
-        expected = '\n'.join(["phase: 3",
-                              "   q_0: ",
-                              "        ",
-                              "   q_1: ",
-                              "        "])
+        expected = '\n'.join(["global phase: 3",
+                              "     ",
+                              "q_0: ",
+                              "     ",
+                              "q_1: ",
+                              "     "])
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
@@ -3016,7 +3018,7 @@ class TestTextPhase(QiskitTestCase):
 
     def test_empty_noregs(self):
         """Text empty circuit (no registers) with phase."""
-        expected = '\n'.join(["phase: 4.21"])
+        expected = '\n'.join(["global phase: 4.21"])
 
         circuit = QuantumCircuit()
         circuit.global_phase = 4.21

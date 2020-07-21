@@ -498,17 +498,15 @@ class InputWire(DrawElement):
         super().__init__(label)
 
     @staticmethod
-    def fillup_layer(names, phase_label=None):
+    def fillup_layer(names):
         """Creates a layer with InputWire elements.
 
         Args:
             names (list): List of names for the wires.
-            phase_label (str): The phase to add
         Returns:
             list: The new layer
         """
-        phase_label = phase_label if phase_label else ''
-        longest = max([len(name) for name in names+[phase_label]])
+        longest = max([len(name) for name in names])
         inputs_wires = []
         for name in names:
             inputs_wires.append(InputWire(name.rjust(longest)))
@@ -534,10 +532,7 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-        if self.phase:
-            self.phase_label = 'phase: %s' % pi_check(self.phase, ndigits=5)
-        else:
-            self.phase_label = ''
+
 
     def __str__(self):
         return self.single_string()
@@ -636,14 +631,14 @@ class TextDrawing():
                 rest_of_the_line -= layer_groups[-1][-1][0].length
 
         lines = []
+
+        if self.phase:
+            lines.append('global phase: %s' % pi_check(self.phase, ndigits=5))
+
         for layer_group in layer_groups:
             wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
 
-        if lines:
-            lines[0] = self.phase_label+lines[0][len(self.phase_label):]
-        else:
-            lines = [self.phase_label]
         return lines
 
     def wire_names(self, with_initial_state=False):
@@ -1074,7 +1069,7 @@ class TextDrawing():
         if not wire_names:
             return []
 
-        layers = [InputWire.fillup_layer(wire_names, self.phase_label)]
+        layers = [InputWire.fillup_layer(wire_names)]
 
         for instruction_layer in self.instructions:
             layer = Layer(self.qregs, self.cregs, self.cregbundle)
