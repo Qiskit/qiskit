@@ -14,10 +14,10 @@
 
 """Unrolls instructions with custom definitions."""
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
+from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
 class UnrollCustomDefinitions(TransformationPass):
@@ -66,9 +66,12 @@ class UnrollCustomDefinitions(TransformationPass):
                     continue
 
             try:
-                rule = node.op.definition
+                rule = node.op.definition.data
             except TypeError as err:
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
+            except AttributeError:
+                # definition is None
+                rule = None
 
             if not rule:
                 if rule == []:
@@ -80,19 +83,7 @@ class UnrollCustomDefinitions(TransformationPass):
                                   "Instruction %s not found in equivalence library "
                                   "and no rule found to expand." %
                                   (str(self._basis_gates), node.op.name))
-
-            # hacky way to build a dag on the same register as the rule is defined
-            # TODO: need anonymous rules to address wires by index
-            decomposition = DAGCircuit()
-            qregs = {qb.register for inst in rule for qb in inst[1]}
-            cregs = {cb.register for inst in rule for cb in inst[2]}
-            for qreg in qregs:
-                decomposition.add_qreg(qreg)
-            for creg in cregs:
-                decomposition.add_creg(creg)
-            for inst in rule:
-                decomposition.apply_operation_back(*inst)
-
+            decomposition = circuit_to_dag(node.op.definition)
             unrolled_dag = UnrollCustomDefinitions(self._equiv_lib,
                                                    self._basis_gates).run(
                                                        decomposition)

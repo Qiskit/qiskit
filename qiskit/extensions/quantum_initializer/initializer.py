@@ -84,7 +84,7 @@ class Initialize(Instruction):
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
-        self.definition = initialize_circuit.data
+        self.definition = initialize_circuit
 
     def gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
@@ -118,7 +118,7 @@ class Initialize(Instruction):
 
             if np.linalg.norm(thetas) != 0:
                 ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
-                circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i:self.num_qubits])
 
         return circuit
 

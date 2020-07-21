@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Previously when a circuit contained a conditional statement, the transpiler
+    would sometimes fail with an UnboundLocalError if using optimization level 3.
+    Fixes issue `#4672 <https://github.com/Qiskit/qiskit-terra/issues/4672>`_.

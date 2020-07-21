@@ -433,6 +433,18 @@ class TestCircuitProperties(QiskitTestCase):
         expected = 3
         self.assertEqual(expected, result)
 
+    def test_circuit_nonlocal_gates_no_instruction(self):
+        """Verify num_nunlocal_gates does not include barriers.
+        """
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/4500
+        n = 3
+        qc = QuantumCircuit(n)
+        qc.h(range(n))
+
+        qc.barrier()
+
+        self.assertEqual(qc.num_nonlocal_gates(), 0)
+
     def test_circuit_connected_components_empty(self):
         """Verify num_connected_components is width for empty
         """

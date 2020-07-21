@@ -254,6 +254,20 @@ class DensityMatrix(QuantumState):
             other = Operator(other)
         return self._evolve_operator(other, qargs=qargs)
 
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (Operator): an operator to evaluate expval.
+            qargs (None or list): subsystems to apply the operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        if not isinstance(oper, Operator):
+            oper = Operator(oper)
+        return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
+
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
 
@@ -575,6 +589,9 @@ class DensityMatrix(QuantumState):
         if other.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(
                 other.name))
+        if not isinstance(other.definition, QuantumCircuit):
+            raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
+                other.name, type(other.definition)))
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
