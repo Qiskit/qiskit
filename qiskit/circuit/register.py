@@ -154,4 +154,3 @@ class Register:
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         return self._hash
-    
