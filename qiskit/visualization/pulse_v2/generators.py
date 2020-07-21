@@ -19,9 +19,9 @@ See py:mod:`qiskit.visualization.pulse_v2.data_types` for the detail of input da
 
 Framework
 ~~~~~~~~~
-The functions in this module are called generator and all drawing objects are created
-by those generators. A stylesheet provides a list of generators and the core drawing
-function calls every generators for every instructions formatted in the input data format.
+The functions in this module are generators for drawing objects. All drawing objects are created
+by these generators. A stylesheet provides a list of generators and the core drawing
+function calls the generators for each input instruction.
 
 An end-user can write arbitrary functions with the following function signature:
 
