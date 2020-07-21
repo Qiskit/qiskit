@@ -460,16 +460,16 @@ class TestCircuitOperations(QiskitTestCase):
 
     def test_control_implementation(self):
         """Run a test case for controlling the circuit, which should use ``Gate.control``."""
-        qc = QuantumCircuit(5)
+        qc = QuantumCircuit(3)
         qc.cx(0, 1)
         qc.cry(0.2, 0, 1)
         qc.t(0)
-        qc.append(SGate().control(4), [0, 1, 3, 4, 2])
-        qc.iswap(3, 2)
+        qc.append(SGate().control(2), [0, 1, 2])
+        qc.iswap(2, 0)
 
-        c_qc = qc.control(3, ctrl_state='110')
+        c_qc = qc.control(2, ctrl_state='10')
 
-        cgate = qc.to_gate().control(3, ctrl_state='110')
+        cgate = qc.to_gate().control(2, ctrl_state='10')
         ref = QuantumCircuit(*c_qc.qregs)
         ref.append(cgate, ref.qubits)
 
