@@ -29,7 +29,7 @@ class DAGNode:
     """
 
     __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition', '_wire',
-                 'sort_key', '_node_id']
+                 'sort_key', '_node_id', '_hash']
 
     def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
                  condition=None, wire=None, nid=-1):
@@ -68,6 +68,7 @@ class DAGNode:
             self._wire = wire
         self._node_id = nid
         self.sort_key = str(self._qargs)
+        self._hash = hash(id(self))
 
     @property
     def op(self):
@@ -116,7 +117,7 @@ class DAGNode:
         """Needed for ancestors function, which returns a set.
         To be in a set requires the object to be hashable
         """
-        return hash(id(self))
+        return self._hash
 
     def __str__(self):
         # TODO is this used anywhere other than in DAG drawing?

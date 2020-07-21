@@ -176,7 +176,7 @@ class PassI_Bad_AP(DummyAP):
         for run in cx_runs:
             curr = []
             for node in run:
-                curr.append(node._node_id)
+                curr.append(dag._node_to_id[node])
             cx_runs_ids.add(tuple(curr))
 
         logging.getLogger(logger).info('cx_runs: %s', cx_runs_ids)

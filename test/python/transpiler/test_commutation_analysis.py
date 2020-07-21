@@ -31,7 +31,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         self.pass_ = CommutationAnalysis()
         self.pset = self.pass_.property_set = PropertySet()
 
-    def assertCommutationSet(self, result, expected):
+    def assertCommutationSet(self, result, expected, dag):
         """ Compares the result of propertyset["commutation_set"] with a dictionary of the form
         {'q[0]': [ [node_id, ...], [node_id, ...] ]}
         """
@@ -42,7 +42,7 @@ class TestCommutationAnalysis(QiskitTestCase):
             result_to_compare[qbit_str] = []
             for commutation_set in sets:
                 result_to_compare[qbit_str].append(
-                    sorted([node._node_id for node in commutation_set]))
+                    sorted([dag._node_to_id[node] for node in commutation_set]))
 
         for qbit_str, sets in expected.items():
             for commutation_set in sets:
@@ -98,7 +98,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                               [15],
                               [1]],
                     'qr[1]': [[2], [13], [14], [15], [3]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_non_commutative_circuit(self):
         """A simple circuit where no gates commute
@@ -117,7 +117,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         self.pass_.run(dag)
 
         expected = {'qr[0]': [[0], [6], [1]], 'qr[1]': [[2], [7], [3]], 'qr[2]': [[4], [8], [5]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_non_commutative_circuit_2(self):
         """A simple circuit where no gates commute
@@ -140,7 +140,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         expected = {'qr[0]': [[0], [6], [1]],
                     'qr[1]': [[2], [6], [8], [3]],
                     'qr[2]': [[4], [7], [8], [5]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_commutative_circuit(self):
         """A simple circuit where two CNOTs commute
@@ -164,7 +164,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         expected = {'qr[0]': [[0], [6], [1]],
                     'qr[1]': [[2], [6, 8], [3]],
                     'qr[2]': [[4], [7], [8], [5]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_commutative_circuit_2(self):
         """A simple circuit where a CNOT and a Z gate commute,
@@ -190,7 +190,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         expected = {'qr[0]': [[0], [6, 7], [1]],
                     'qr[1]': [[2], [6, 9], [3]],
                     'qr[2]': [[4], [8], [9], [5]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_commutative_circuit_3(self):
         """A simple circuit where multiple gates commute
@@ -218,7 +218,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         expected = {'qr[0]': [[0], [6, 8, 10, 12], [1]],
                     'qr[1]': [[2], [6, 9, 10], [13], [3]],
                     'qr[2]': [[4], [7], [9], [11, 13], [5]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_jordan_wigner_type_circuit(self):
         """A Jordan-Wigner type circuit where consecutive CNOTs commute
@@ -259,7 +259,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                     'qr[3]': [[6], [14], [15, 19], [20], [7]],
                     'qr[4]': [[8], [15], [16, 18], [19], [9]],
                     'qr[5]': [[10], [16], [17], [18], [11]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
     def test_all_commute_circuit(self):
         """Test circuit with that all commute"""
@@ -284,7 +284,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                     'qr[2]': [[4], [11, 13, 17, 19], [5]],
                     'qr[3]': [[6], [12, 13, 18, 19], [7]],
                     'qr[4]': [[8], [12, 15, 18], [9]]}
-        self.assertCommutationSet(self.pset["commutation_set"], expected)
+        self.assertCommutationSet(self.pset["commutation_set"], expected, dag)
 
 
 if __name__ == '__main__':
