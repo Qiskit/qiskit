@@ -19,7 +19,7 @@ The general stylesheet template `QiskitPulseStyle` is initialized with the hard-
 default values in the `default.json` file. This instance is generated when the pulse drawer
 module is loaded so that every lower modules can access to the information.
 
-The `QiskitPulseStyle` takes nested python dictionary and stores the settings under
+The `QiskitPulseStyle` takes a nested python dictionary and stores the settings under
 flattened dictionary keys such as `formatter.color.background`.
 This key representation and initialization framework are the imitative of
 `rcParams` of `matplotlib`. However, the `QiskitPulseStyle` is not compatible with the `rcParams`
