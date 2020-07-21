@@ -161,6 +161,34 @@ cdef class NLayout:
                 out[qreg[idx]] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
+
+    def __getstate__(self):
+        logic_to_phys_list = []
+        for x in range(self.l2p_len):
+            logic_to_phys_list.append(self.logic_to_phys[x])
+        phys_to_logic_list = []
+        for x in range(self.l2p_len):
+            phys_to_logic_list.append(self.phys_to_logic[x])
+        return {'num_logical': self.l2p_len, 'num_physical': self.p2l_len,
+                'logic_to_phys': logic_to_phys_list,
+                'phys_to_logic': phys_to_logic_list}
+
+    def __setstate__(self, state):
+        self.l2p_len = state['num_logical']
+        self.p2l_len = state['num_physical']
+        self.logic_to_phys = <unsigned int *>calloc(self.l2p_len,
+                                                    sizeof(unsigned int))
+        for index, x in enumerate(state['logic_to_phys']):
+            self.logic_to_phys[index] = x
+        self.phys_to_logic = <unsigned int *>calloc(self.p2l_len,
+                                                    sizeof(unsigned int))
+
+        for index, x in enumerate(state['phys_to_logic']):
+            self.phys_to_logic[index] = x
+
+    def __reduce__(self):
+        return (self.__class__, (self.l2p_len, self.p2l_len),
+                self.__getstate__())
     
     
 cpdef NLayout nlayout_from_layout(object layout, object qregs, 

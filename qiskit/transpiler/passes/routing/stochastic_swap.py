@@ -25,6 +25,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
+from qiskit.tools.parallel import parallel_map
+
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module
@@ -102,6 +104,27 @@ class StochasticSwap(TransformationPass):
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag
 
+    def _swap_trial(self, trial, num_qubits, int_layout, int_qubit_subset,
+                    int_gates, cdist2, cdist, edges, scale, rng):
+        if self.ideal_depth_found:
+            return
+        logger.info("layer_permutation: trial %s", trial)
+        # This is one Trial --------------------------------------
+        dist, optim_edges, trial_layout, depth_step = swap_trial(
+            num_qubits, int_layout, int_qubit_subset, int_gates, cdist2,
+            cdist, edges, scale, rng)
+
+        logger.debug("layer_permutation: final distance for this trial = %s", dist)
+        # Break out of trial loop if we found a depth 1 circuit
+        # since we can't improve it further
+        if depth_step == 1:
+            self.best_edges = optim_edges
+            self.best_layout = trial_layout
+            self.best_depth = 1
+            self.ideal_depth_found = True
+        return dist, optim_edges, trial_layout, depth_step
+
+
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
                            coupling, trials):
         """Find a swap circuit that implements a permutation for this layer.
@@ -169,10 +192,11 @@ class StochasticSwap(TransformationPass):
 
         # Begin loop over trials of randomized algorithm
         num_qubits = len(layout)
-        best_depth = inf  # initialize best depth
-        best_edges = None  # best edges found
-        best_circuit = None  # initialize best swap circuit
-        best_layout = None  # initialize best final layout
+        self.best_depth = inf  # initialize best depth
+        self.best_edges = None  # best edges found
+        self.best_circuit = None  # initialize best swap circuit
+        self.best_layout = None  # initialize best final layout
+        self.ideal_depth_found = False
 
         cdist2 = coupling._dist_matrix**2
         # Scaling matrix
@@ -189,45 +213,36 @@ class StochasticSwap(TransformationPass):
 
         edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
         cdist = coupling._dist_matrix
-        for trial in range(trials):
-            logger.debug("layer_permutation: trial %s", trial)
-            # This is one Trial --------------------------------------
-            dist, optim_edges, trial_layout, depth_step = swap_trial(num_qubits, int_layout,
-                                                                     int_qubit_subset,
-                                                                     int_gates, cdist2,
-                                                                     cdist, edges, scale,
-                                                                     self.rng)
 
-            logger.debug("layer_permutation: final distance for this trial = %s", dist)
-            if dist == len(gates) and depth_step < best_depth:
-                logger.debug("layer_permutation: got circuit with improved depth %s",
-                             depth_step)
-                best_edges = optim_edges
-                best_layout = trial_layout
-                best_depth = min(best_depth, depth_step)
-
-            # Break out of trial loop if we found a depth 1 circuit
-            # since we can't improve it further
-            if best_depth == 1:
-                break
-
+        results = parallel_map(self._swap_trial, range(trials),
+                               (num_qubits, int_layout, int_qubit_subset,
+                                int_gates, cdist2, cdist, edges, scale,
+                                self.rng))
+        if not self.ideal_depth_found:
+            for dist, optim_edges, trial_layout, depth_step in results:
+                if dist == len(gates) and depth_step < self.best_depth:
+                    logger.debug("layer_permutation: got circuit with improved depth %s",
+                                 depth_step)
+                    self.best_edges = optim_edges
+                    self.best_layout = trial_layout
+                    self.best_depth = min(self.best_depth, depth_step)
         # If we have no best circuit for this layer, all of the
         # trials have failed
-        if best_layout is None:
+        if self.best_layout is None:
             logger.debug("layer_permutation: failed!")
             return False, None, None, None
 
-        edges = best_edges.edges()
-        for idx in range(best_edges.size//2):
+        edges = self.best_edges.edges()
+        for idx in range(self.best_edges.size//2):
             swap_src = self.trivial_layout[edges[2*idx]]
             swap_tgt = self.trivial_layout[edges[2*idx+1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
-        best_circuit = trial_circuit
+        self.best_circuit = trial_circuit
 
         # Otherwise, we return our result for this layer
         logger.debug("layer_permutation: success!")
-        best_lay = best_layout.to_layout(qregs)
-        return True, best_circuit, best_depth, best_lay
+        best_lay = self.best_layout.to_layout(qregs)
+        return True, self.best_circuit, self.best_depth, best_lay
 
     def _layer_update(self, i, best_layout, best_depth,
                       best_circuit, layer_list):
