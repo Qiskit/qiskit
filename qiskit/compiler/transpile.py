@@ -364,22 +364,24 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager.append(RemoveOpsOnIdleQubits())
 
     dynamical_decoupling = pass_manager_config.dynamical_decoupling
+    backend_properties = pass_manager_config.backend_properties
+    delay_in_dt = pass_manager_config.instruction_durations.schedule_dt
     if dynamical_decoupling is not None:
         if pass_manager_config.scheduling_method is None:
             from qiskit.transpiler.passes import ALAPSchedule
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
         if dynamical_decoupling in {'xy4','XY4'}:
             from qiskit.transpiler.passes import XY4Pass
-            pass_manager.append(XY4Pass())
+            pass_manager.append(XY4Pass(backend_properties, delay_in_dt))
         elif dynamical_decoupling in {'cpmg','CPMG'}:
             from qiskit.transpiler.passes import CPMGPass
-            pass_manager.append(CPMGPass())
+            pass_manager.append(CPMGPass(backend_properties))
         elif 'cdd' in dynamical_decoupling or 'CDD' in dynamical_decoupling:
             from qiskit.transpiler.passes import CDDPass
-            pass_manager.append(CDDPass())
+            pass_manager.append(CDDPass(backend_properties))
         elif 'udd' in dynamical_decoupling or 'UDD' in dynamical_decoupling:
             from qiskit.transpiler.passes import UDDPass
-            pass_manager.append(UDDPass())
+            pass_manager.append(UDDPass(backend_properties))
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s." % dynamical_decoupling)
 
