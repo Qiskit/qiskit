@@ -621,7 +621,7 @@ class QuantumCircuit:
     @property
     def ancillas(self):
         """
-        Returns a list of quantum bits in the order that the registers were added.
+        Returns a list of ancilla bits in the order that the registers were added.
         """
         return [qbit for qbit in self._qubits if isinstance(qbit, AncillaQubit)]
 
