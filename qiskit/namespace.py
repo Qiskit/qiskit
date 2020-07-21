@@ -15,13 +15,12 @@
 """Module for utilities to manually construct qiskit namespace"""
 
 import sys
-import os
-import functools
 from importlib.abc import MetaPathFinder, Loader
 import importlib
 
 
 class QiskitLoader(Loader):
+    """Load qiskit element as a namespace package."""
     def __init__(self, new_package, old_namespace):
         super().__init__()
         self.new_package = new_package
@@ -43,6 +42,7 @@ class QiskitLoader(Loader):
 
 
 class QiskitElementImport(MetaPathFinder):
+    """Meta importer to enable unified qiskit namespace."""
     def __init__(self, new_package, old_namespace):
         super().__init__()
         self.new_package = new_package
@@ -51,3 +51,4 @@ class QiskitElementImport(MetaPathFinder):
     def find_module(self, fullname, path=None):
         if fullname.startswith(self.old_namespace):
             return QiskitLoader(self.new_package, self.old_namespace)
+        return None

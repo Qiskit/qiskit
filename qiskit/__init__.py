@@ -14,7 +14,6 @@
 
 # pylint: disable=wrong-import-order,invalid-name,wrong-import-position
 
-
 """Main Qiskit public functionality."""
 
 import sys
@@ -56,25 +55,25 @@ old_meta_path = sys.meta_path
 sys.meta_path = old_meta_path[:-1] + new_meta_path + [old_meta_path[-1]]
 
 # qiskit errors operator
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError  # noqa
 
 # The main qiskit operators
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import AncillaRegister
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ClassicalRegister  # noqa
+from qiskit.circuit import QuantumRegister  # noqa
+from qiskit.circuit import AncillaRegister  # noqa
+from qiskit.circuit import QuantumCircuit  # noqa
 
 # user config
-from qiskit import user_config as _user_config
+from qiskit import user_config as _user_config  # noqa
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
-import qiskit.extensions
-import qiskit.circuit.measure
-import qiskit.circuit.reset
+import qiskit.extensions  # noqa
+import qiskit.circuit.measure  # noqa
+import qiskit.circuit.reset  # noqa
 
 # Please note these are global instances, not modules.
-from qiskit.providers.basicaer import BasicAer
+from qiskit.providers.basicaer import BasicAer  # noqa
 
 _config = _user_config.get_config()
 

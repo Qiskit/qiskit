@@ -97,7 +97,7 @@ def _get_qiskit_versions():
     except Exception:
         out_dict['qiskit-ignis'] = None
     try:
-        import qiskit_ibmq_provider as ibm
+        import qiskit_ibmq_provider as ibmq
         out_dict['qiskit-ibmq-provider'] = ibmq.__version__
     except Exception:
         out_dict['qiskit-ibmq-provider'] = None
