@@ -103,7 +103,7 @@ class TestParametricPulses(QiskitTestCase):
     def test_sampled_pulse(self):
         """Test that we can convert to a sampled pulse."""
         gauss = Gaussian(duration=25, sigma=4, amp=0.5j)
-        sample_pulse = gauss.get_sample_pulse()
+        sample_pulse = gauss.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
         pulse_lib_gaus = gaussian(duration=25, sigma=4,
                                   amp=0.5j, zero_ends=False).samples
@@ -120,7 +120,7 @@ class TestParametricPulses(QiskitTestCase):
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
         # wf
         wf = Gaussian(duration=duration, sigma=sigma, amp=amp)
-        samples = wf.get_sample_pulse().samples
+        samples = wf.get_waveform().samples
         np.testing.assert_almost_equal(samples, gauss)
 
     def test_gauss_square_samples(self):
@@ -134,7 +134,7 @@ class TestParametricPulses(QiskitTestCase):
         gauss = amp * np.exp(-(times / sigma)**2 / 2)
         # wf
         wf = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=100)
-        samples = wf.get_sample_pulse().samples
+        samples = wf.get_waveform().samples
         np.testing.assert_almost_equal(samples[50], amp)
         np.testing.assert_almost_equal(samples[100], amp)
         np.testing.assert_almost_equal(samples[:10], gauss[:10])
@@ -146,12 +146,12 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5j
         gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=0)
         gaus = Gaussian(duration=duration, sigma=sigma, amp=amp)
-        np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples,
-                                       gaus.get_sample_pulse().samples)
+        np.testing.assert_almost_equal(gaus_square.get_waveform().samples,
+                                       gaus.get_waveform().samples)
         gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=121)
         const = Constant(duration=duration, amp=amp)
-        np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples[2:-2],
-                                       const.get_sample_pulse().samples[2:-2])
+        np.testing.assert_almost_equal(gaus_square.get_waveform().samples[2:-2],
+                                       const.get_waveform().samples[2:-2])
 
     def test_drag_samples(self):
         """Test that the drag samples match the formula."""
@@ -167,7 +167,7 @@ class TestParametricPulses(QiskitTestCase):
         drag = gauss + 1j * beta * gauss_deriv
         # wf
         wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = wf.get_sample_pulse().samples
+        samples = wf.get_waveform().samples
         np.testing.assert_almost_equal(samples, drag)
 
     def test_drag_validation(self):
@@ -177,7 +177,7 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5j
         beta = 1
         wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = wf.get_sample_pulse().samples
+        samples = wf.get_waveform().samples
         self.assertTrue(max(np.abs(samples)) <= 1)
         beta = sigma ** 2
         with self.assertRaises(PulseError):
@@ -190,7 +190,7 @@ class TestParametricPulses(QiskitTestCase):
         """Test drag beta parameter validation."""
         def check_drag(duration, sigma, amp, beta):
             wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-            samples = wf.get_sample_pulse().samples
+            samples = wf.get_waveform().samples
             self.assertTrue(max(np.abs(samples)) <= 1)
         check_drag(duration=50, sigma=16, amp=1, beta=2)
         check_drag(duration=50, sigma=16, amp=1, beta=4)
@@ -207,8 +207,8 @@ class TestParametricPulses(QiskitTestCase):
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
         const = Constant(duration=150, amp=0.1 + 0.4j)
-        self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
-        self.assertEqual(len(const.get_sample_pulse().samples), 150)
+        self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
+        self.assertEqual(len(const.get_waveform().samples), 150)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`
@@ -252,8 +252,8 @@ class TestParametricPulses(QiskitTestCase):
         """Test deprecated parametric pulses."""
         with self.assertWarns(DeprecationWarning):
             const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
-            self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
-            self.assertEqual(len(const.get_sample_pulse().samples), 150)
+            self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
+            self.assertEqual(len(const.get_waveform().samples), 150)
 
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
