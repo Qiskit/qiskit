@@ -3014,7 +3014,6 @@ class TestTextPhase(QiskitTestCase):
 
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
-
     def test_empty_noregs(self):
         """Text empty circuit (no registers) with phase."""
         expected = '\n'.join(["phase: 4.21"])
