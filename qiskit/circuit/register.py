@@ -118,13 +118,7 @@ class Register:
             CircuitError: if the `key` is not an integer.
             QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
-<<<<<<< HEAD
-        if not isinstance(key, (int, numbers.Integral, slice, list)):
-=======
-        if not isinstance(key, (numbers.Integral, slice, list)):
-            if isinstance(key, numbers.Number):
-                raise CircuitError("register index cannot be a float/complex, must be integer or slice")
->>>>>>> 6375707d83bdc7dbdf0db1564fa78e71c907eec7
+        if not isinstance(key, (numbers.Integral, int, slice, list)):
             raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
             return self._bits[key]
@@ -160,3 +154,4 @@ class Register:
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         return self._hash
+    
