@@ -30,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaQubit
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -165,6 +165,7 @@ class QuantumCircuit:
         self.cregs = []
         self._qubits = []
         self._clbits = []
+        self._ancillas = []
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -623,7 +624,7 @@ class QuantumCircuit:
         """
         Returns a list of ancilla bits in the order that the registers were added.
         """
-        return [qbit for qbit in self._qubits if isinstance(qbit, AncillaQubit)]
+        return self._ancillas
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
@@ -824,6 +825,10 @@ class QuantumCircuit:
             if register.name in [reg.name for reg in self.qregs + self.cregs]:
                 raise CircuitError("register name \"%s\" already exists"
                                    % register.name)
+
+            if isinstance(register, AncillaRegister):
+                self._ancillas.extend(register)
+
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
                 self._qubits.extend(register)
