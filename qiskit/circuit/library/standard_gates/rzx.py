@@ -136,7 +136,7 @@ class RZXGate(Gate):
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):
