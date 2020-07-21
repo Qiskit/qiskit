@@ -1868,12 +1868,12 @@ class QuantumCircuit:
 
     def p(self, theta, qubit):
         """Apply :class:`~qiskit.circuit.library.PhaseGate`."""
-        from .library.standard_gates.phase import PhaseGate
+        from .library.standard_gates.p import PhaseGate
         return self.append(PhaseGate(theta), [qubit], [])
 
     def cp(self, theta, control_qubit, target_qubit, label=None, ctrl_state=None):
         """Apply :class:`~qiskit.circuit.library.CPhaseGate`."""
-        from .library.standard_gates.phase import CPhaseGate
+        from .library.standard_gates.p import CPhaseGate
         return self.append(CPhaseGate(theta, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
