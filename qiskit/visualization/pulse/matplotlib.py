@@ -234,7 +234,7 @@ class EventsOutputChannels:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
-                    command = command.get_sample_pulse()
+                    command = command.get_waveform()
                 if isinstance(command, (Waveform, SamplePulse)):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
@@ -263,7 +263,7 @@ class EventsOutputChannels:
         return events_in_time_range
 
 
-class SamplePulseDrawer:
+class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
     def __init__(self, style: PulseStyle):
