@@ -46,7 +46,6 @@ The user can set the custom stylesheet to the drawer interface.
 """
 
 import re
-from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Tuple, Any, List, Union
 
@@ -55,13 +54,13 @@ import numpy as np
 from qiskit import pulse
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawing_objects, data_types, PULSE_STYLE
+from qiskit.visualization.pulse_v2 import drawing_objects, types, PULSE_STYLE
 
 
 # Waveform related information generation
 
 
-def _parse_waveform(inst_data: data_types.InstructionTuple) \
+def _parse_waveform(inst_data: types.InstructionTuple) \
         -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     r"""A helper function that generates sample data array of the waveform with
     instruction meta data.
@@ -77,7 +76,7 @@ def _parse_waveform(inst_data: data_types.InstructionTuple) \
     """
     inst = inst_data.inst
 
-    meta = OrderedDict()
+    meta = dict()
     if isinstance(inst, instructions.Play):
         # pulse
         if isinstance(inst.pulse, pulse.ParametricPulse):
@@ -115,7 +114,7 @@ def _parse_waveform(inst_data: data_types.InstructionTuple) \
 
 
 def _fill_waveform_color(channel: pulse.channels.Channel) \
-        -> data_types.ComplexColors:
+        -> types.ComplexColors:
     r"""A helper function that returns color code of the fill waveform.
 
     Args:
@@ -130,28 +129,28 @@ def _fill_waveform_color(channel: pulse.channels.Channel) \
     if isinstance(channel, pulse.DriveChannel):
         colors = PULSE_STYLE.style['formatter.color.fill_waveform_d']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.ControlChannel):
         colors = PULSE_STYLE.style['formatter.color.fill_waveform_u']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.MeasureChannel):
         colors = PULSE_STYLE.style['formatter.color.fill_waveform_m']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.AcquireChannel):
         colors = PULSE_STYLE.style['formatter.color.fill_waveform_a']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
 
     raise VisualizationError('Channel type %s is not supported.' % type(channel))
 
 
-def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
+def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
         -> List[drawing_objects.FilledAreaData]:
     r"""Generate filled area object of waveform envelope.
 
@@ -187,7 +186,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
     color = _fill_waveform_color(channel)
 
     # create real part
-    if any(re_y):
+    if np.any(re_y):
         re_style = style.copy()
         re_style['color'] = color.real
         re_meta = meta.copy()
@@ -202,7 +201,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
         fill_objs.append(real)
 
     # create imaginary part
-    if any(im_y):
+    if np.any(im_y):
         im_style = style.copy()
         im_style['color'] = color.imaginary
         im_meta = meta.copy()
@@ -219,7 +218,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
     return fill_objs
 
 
-def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
+def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted instruction name associated with the waveform.
 
@@ -307,7 +306,7 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
 # Channel related information generation
 
 
-def gen_baseline(channel_data: data_types.ChannelTuple) \
+def gen_baseline(channel_data: types.ChannelTuple) \
         -> List[drawing_objects.LineData]:
     r"""Generate baseline associated with the channel.
 
@@ -334,7 +333,7 @@ def gen_baseline(channel_data: data_types.ChannelTuple) \
     return [baseline]
 
 
-def gen_latex_channel_name(channel_data: data_types.ChannelTuple) \
+def gen_latex_channel_name(channel_data: types.ChannelTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate channel name of provided channel.
 
@@ -365,7 +364,7 @@ def gen_latex_channel_name(channel_data: data_types.ChannelTuple) \
     return [text]
 
 
-def gen_scaling_info(channel_data: data_types.ChannelTuple) \
+def gen_scaling_info(channel_data: types.ChannelTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate channel scaling factor of provided channel.
 
@@ -401,7 +400,7 @@ def gen_scaling_info(channel_data: data_types.ChannelTuple) \
 # Frame related information generation
 
 
-def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
+def gen_latex_vz_label(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted virtual Z rotations from provided frame instruction.
 
@@ -460,7 +459,7 @@ def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
     return [text]
 
 
-def gen_latex_frequency_mhz_value(frame_data: data_types.InstructionTuple) \
+def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted frequency change from provided frame instruction.
 
@@ -499,7 +498,7 @@ def gen_latex_frequency_mhz_value(frame_data: data_types.InstructionTuple) \
     return [text]
 
 
-def gen_raw_frame_operand_values(frame_data: data_types.InstructionTuple) \
+def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate both phase and frequency change from provided frame instruction.
 
@@ -536,7 +535,7 @@ def gen_raw_frame_operand_values(frame_data: data_types.InstructionTuple) \
     return [text]
 
 
-def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
+def gen_frame_symbol(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate a frame change symbol with instruction meta data from provided frame instruction.
 
@@ -589,7 +588,7 @@ def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
 # Misc information generation
 
 
-def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
+def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 
@@ -649,7 +648,7 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
     return [symbol_text, label_text]
 
 
-def gen_barrier(misc_data: data_types.NonPulseTuple) \
+def gen_barrier(misc_data: types.NonPulseTuple) \
         -> List[Union[drawing_objects.LineData, drawing_objects.TextData]]:
     r"""Generate a barrier from provided relative barrier instruction..
 

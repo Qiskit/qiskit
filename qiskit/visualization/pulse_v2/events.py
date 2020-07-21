@@ -80,7 +80,7 @@ from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
 
 from qiskit import pulse
-from qiskit.visualization.pulse_v2.data_types import PhaseFreqTuple
+from qiskit.visualization.pulse_v2.types import PhaseFreqTuple
 
 
 class ChannelEvents:

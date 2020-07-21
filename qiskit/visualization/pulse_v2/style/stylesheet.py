@@ -130,10 +130,10 @@ See py:mod:`qiskit.visualization.pulse_v2.generators` for the detail of generato
 - `generator.barrier`: Generate drawing objects from barrier information.
 """
 
-import json
-import os
 from typing import Dict, Any
 import warnings
+
+from qiskit.visualization.pulse_v2.style.default import default_style
 
 
 class QiskitPulseStyle:
@@ -201,14 +201,8 @@ def _replace_deprecated_key(key: str) -> str:
     return key
 
 
-def init_style_from_file() -> QiskitPulseStyle:
+def init_style_from_dict() -> QiskitPulseStyle:
     """Initialize stylesheet with default setting file."""
-    default_style = QiskitPulseStyle()
-
-    dirname = os.path.dirname(__file__)
-    filename = "default.json"
-    with open(os.path.join(dirname, filename), "r") as f_default:
-        default_dict = json.load(f_default)
-
-    default_style.style = default_dict
-    return default_style
+    init_style = QiskitPulseStyle()
+    init_style.style = default_style
+    return init_style

@@ -14,230 +14,29 @@
 
 # pylint: disable=missing-docstring, invalid-name
 
-"""Tests for IR generation of pulse visualization."""
+"""Tests for drawing object generation."""
 
 import numpy as np
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import (drawing_objects,
-                                           events,
                                            generators,
-                                           data_types)
+                                           types)
 from qiskit.visualization.pulse_v2.style import stylesheet
-
-
-class TestChannelEvents(QiskitTestCase):
-    """Tests for ChannelEvents."""
-    def test_parse_program(self):
-        """Test typical pulse program."""
-        test_pulse = pulse.Gaussian(10, 0.1, 3)
-
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-        sched = sched.insert(10, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
-        sched = sched.insert(10, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-
-        # check waveform data
-        waveforms = list(ch_events.get_waveforms())
-        t0, frame, inst = waveforms[0]
-        self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 3.14)
-        self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-
-        t0, frame, inst = waveforms[1]
-        self.assertEqual(t0, 10)
-        self.assertEqual(frame.phase, 1.57)
-        self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-
-        # check frame data
-        frames = list(ch_events.get_frame_changes())
-        t0, frame, insts = frames[0]
-        self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 3.14)
-        self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
-
-        t0, frame, insts = frames[1]
-        self.assertEqual(t0, 10)
-        self.assertEqual(frame.phase, -1.57)
-        self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
-
-    def test_empty(self):
-        """Test is_empty check."""
-        test_pulse = pulse.Gaussian(10, 0.1, 3)
-
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftPhase(1.57, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        self.assertTrue(ch_events.is_empty())
-
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        self.assertFalse(ch_events.is_empty())
-
-    def test_multiple_frames_at_the_same_time(self):
-        """Test multiple frame instruction at the same time."""
-        # shift phase followed by set phase
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        frames = list(ch_events.get_frame_changes())
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.phase, 3.14)
-
-        # set phase followed by shift phase
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        frames = list(ch_events.get_frame_changes())
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.phase, 1.57)
-
-    def test_frequency(self):
-        """Test parse frequency."""
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
-        sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        ch_events.init_frequency = 3.0
-        frames = list(ch_events.get_frame_changes())
-
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.freq, 1.0)
-
-        _, frame, _ = frames[1]
-        self.assertAlmostEqual(frame.freq, 1.0)
-
-
-class TestDrawingObjects(QiskitTestCase):
-    """Tests for DrawingObjects."""
-    def test_filled_area_data(self):
-        """Test FilledAreaData."""
-        data1 = drawing_objects.FilledAreaData(data_type='waveform',
-                                               channel=pulse.DriveChannel(0),
-                                               x=np.array([0, 1, 2]),
-                                               y1=np.array([3, 4, 5]),
-                                               y2=np.array([0, 0, 0]),
-                                               meta={'test_val': 0},
-                                               offset=0,
-                                               scale=1,
-                                               visible=True,
-                                               styles={'color': 'red'})
-
-        data2 = drawing_objects.FilledAreaData(data_type='waveform',
-                                               channel=pulse.DriveChannel(0),
-                                               x=np.array([0, 1, 2]),
-                                               y1=np.array([3, 4, 5]),
-                                               y2=np.array([0, 0, 0]),
-                                               meta={'test_val': 1},
-                                               offset=1,
-                                               scale=2,
-                                               visible=False,
-                                               styles={'color': 'blue'})
-
-        self.assertEqual(data1, data2)
-
-    def test_line_data(self):
-        """Test for LineData."""
-        data1 = drawing_objects.LineData(data_type='baseline',
-                                         channel=pulse.DriveChannel(0),
-                                         x=np.array([0, 1, 2]),
-                                         y=np.array([0, 0, 0]),
-                                         meta={'test_val': 0},
-                                         offset=0,
-                                         scale=1,
-                                         visible=True,
-                                         styles={'color': 'red'})
-
-        data2 = drawing_objects.LineData(data_type='baseline',
-                                         channel=pulse.DriveChannel(0),
-                                         x=np.array([0, 1, 2]),
-                                         y=np.array([0, 0, 0]),
-                                         meta={'test_val': 1},
-                                         offset=1,
-                                         scale=2,
-                                         visible=False,
-                                         styles={'color': 'blue'})
-
-        self.assertEqual(data1, data2)
-
-    def test_text_data(self):
-        """Test for TextData."""
-        data1 = drawing_objects.TextData(data_type='pulse_label',
-                                         channel=pulse.DriveChannel(0),
-                                         x=0,
-                                         y=0,
-                                         text='my_text',
-                                         meta={'test_val': 0},
-                                         offset=0,
-                                         scale=1,
-                                         visible=True,
-                                         styles={'color': 'red'})
-
-        data2 = drawing_objects.TextData(data_type='pulse_label',
-                                         channel=pulse.DriveChannel(0),
-                                         x=0,
-                                         y=0,
-                                         text='my_text',
-                                         meta={'test_val': 1},
-                                         offset=1,
-                                         scale=2,
-                                         visible=False,
-                                         styles={'color': 'blue'})
-
-        self.assertEqual(data1, data2)
-
-
-class TestStylesheet(QiskitTestCase):
-    """Tests for stylesheet."""
-    def test_key_flatten(self):
-        """Test flatten dictionary generation."""
-        input_dict = {
-            'key1': {
-                'key2': {
-                    'key3-1': 0,
-                    'key3-2': 1
-                }
-            }
-        }
-        flatten_dict = {
-            'key1.key2.key3-1': 0,
-            'key1.key2.key3-2': 1
-
-        }
-
-        test_style = stylesheet.QiskitPulseStyle()
-        test_style.style = input_dict
-
-        self.assertDictEqual(test_style.style, flatten_dict)
 
 
 class TestGenerators(QiskitTestCase):
     """Tests for generators."""
 
     def setUp(self) -> None:
-        self.style = stylesheet.init_style_from_file().style
+        self.style = stylesheet.init_style_from_dict().style
 
     @staticmethod
     def create_instruction(inst, phase, freq, t0, dt):
         """A helper function to create InstructionTuple."""
-        frame = data_types.PhaseFreqTuple(phase=phase, freq=freq)
-        return data_types.InstructionTuple(t0=t0, dt=dt, frame=frame, inst=inst)
+        frame = types.PhaseFreqTuple(phase=phase, freq=freq)
+        return types.InstructionTuple(t0=t0, dt=dt, frame=frame, inst=inst)
 
     def test_gen_filled_waveform_stepwise_play(self):
         """Test gen_filled_waveform_stepwise with play instruction."""
@@ -404,7 +203,7 @@ class TestGenerators(QiskitTestCase):
 
     def test_gen_baseline(self):
         """Test gen_baseline."""
-        channel_info = data_types.ChannelTuple(channel=pulse.DriveChannel(0), scaling=1)
+        channel_info = types.ChannelTuple(channel=pulse.DriveChannel(0), scaling=1)
 
         obj = generators.gen_baseline(channel_info)[0]
 
@@ -426,7 +225,7 @@ class TestGenerators(QiskitTestCase):
 
     def test_gen_latex_channel_name(self):
         """Test gen_latex_channel_name."""
-        channel_info = data_types.ChannelTuple(channel=pulse.DriveChannel(0), scaling=0.5)
+        channel_info = types.ChannelTuple(channel=pulse.DriveChannel(0), scaling=0.5)
 
         obj = generators.gen_latex_channel_name(channel_info)[0]
 
@@ -448,7 +247,7 @@ class TestGenerators(QiskitTestCase):
 
     def test_gen_gen_scaling_info(self):
         """Test gen_scaling_info."""
-        channel_info = data_types.ChannelTuple(channel=pulse.DriveChannel(0), scaling=0.5)
+        channel_info = types.ChannelTuple(channel=pulse.DriveChannel(0), scaling=0.5)
 
         obj = generators.gen_scaling_info(channel_info)[0]
 
@@ -575,7 +374,7 @@ class TestGenerators(QiskitTestCase):
     def test_gen_snapshot_symbol(self):
         """Test gen_snapshot_symbol."""
         snapshot = pulse.instructions.Snapshot(label='test_snapshot', snapshot_type='statevector')
-        inst_data = data_types.NonPulseTuple(5, 0.1, snapshot)
+        inst_data = types.NonPulseTuple(5, 0.1, snapshot)
         symbol, label = generators.gen_snapshot_symbol(inst_data)
 
         # type check
@@ -615,7 +414,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_barrier."""
         barrier = pulse.instructions.RelativeBarrier(pulse.DriveChannel(0),
                                                      pulse.ControlChannel(0))
-        inst_data = data_types.NonPulseTuple(5, 0.1, barrier)
+        inst_data = types.NonPulseTuple(5, 0.1, barrier)
         lines = generators.gen_barrier(inst_data)
 
         self.assertEqual(len(lines), 2)
