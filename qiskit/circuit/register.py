@@ -131,8 +131,8 @@ class Register:
             return self._bits[key]
 
     def __iter__(self):
-        for bit in range(self._size):
-            yield self[bit]
+        for idx in range(self._size):
+            yield self._bits[idx]
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
