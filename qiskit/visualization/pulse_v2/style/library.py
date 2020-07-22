@@ -40,7 +40,7 @@ class IqxStandard(dict):
     - Show latex channel name with channel's scaling factor.
     - Show snapshot and barrier.
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
@@ -55,6 +55,7 @@ class IqxStandard(dict):
                                        generators.gen_baseline],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier]}
+        style.update(**kwargs)
         self.update(style)
 
     def __repr__(self):
@@ -70,7 +71,7 @@ class IqxPublication(dict):
     - Do not show snapshot and barrier.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': False,
@@ -85,6 +86,7 @@ class IqxPublication(dict):
                                        generators.gen_baseline],
                  'generator.snapshot': [],
                  'generator.barrier': []}
+        style.update(**kwargs)
         self.update(style)
 
     def __repr__(self):
@@ -102,7 +104,7 @@ class IqxDebugging(dict):
     - Show snapshot and barrier.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
@@ -117,6 +119,7 @@ class IqxDebugging(dict):
                                        generators.gen_baseline],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier]}
+        style.update(**kwargs)
         self.update(style)
 
     def __repr__(self):
