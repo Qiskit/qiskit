@@ -144,7 +144,7 @@ class QiskitPulseStyle(dict):
         self.stylesheet = None
         self.update(default_style())
 
-    def update(self, __m: Mapping[str, Any] = None, **kwargs) -> None:
+    def update(self, __m: Mapping[str, Any], **kwargs) -> None:
         super().update(__m, **kwargs)
         for key, value in __m.items():
             if key in self._deprecated_keys:
