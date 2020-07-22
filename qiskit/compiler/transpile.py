@@ -317,7 +317,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
                               output_name=transpile_config['output_name'])
 
     if transpile_config['faulty_qubits_map']:
-        return _remap_circuit_faulty_backend(result, pass_manager_config.backend_num_qubits,
+        return _remap_circuit_faulty_backend(result, transpile_config['backend_num_qubits'],
                                              pass_manager_config.backend_properties,
                                              transpile_config['faulty_qubits_map'])
 
@@ -404,7 +404,7 @@ def _parse_transpile_args(circuits, backend,
     faulty_qubits_map = _parse_faulty_qubits_map(backend, num_circuits)
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
-    backend_num_qubits =_parse_backend_num_qubits(backend, num_circuits)
+    backend_num_qubits = _parse_backend_num_qubits(backend, num_circuits)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
@@ -426,11 +426,11 @@ def _parse_transpile_args(circuits, backend,
                                                                    layout_method=args[4],
                                                                    routing_method=args[5],
                                                                    translation_method=args[6],
-                                                                   seed_transpiler=args[7],
-                                                                   backend_num_qubits=args[11]),
+                                                                   seed_transpiler=args[7]),
                           'optimization_level': args[8],
                           'output_name': args[9],
                           'callback': args[10],
+                          'backend_num_qubits': args[11],
                           'faulty_qubits_map': args[12]}
         list_transpile_args.append(transpile_args)
 

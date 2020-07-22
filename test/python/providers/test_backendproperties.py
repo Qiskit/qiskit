@@ -112,4 +112,3 @@ class BackendpropertiesTestCase(QiskitTestCase):
         """Test that deepcopy creates an identical object."""
         copy_prop = copy.deepcopy(self.properties)
         self.assertEqual(copy_prop, self.properties)
-
