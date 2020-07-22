@@ -85,13 +85,12 @@ def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
                           best_path, gate_len, pool):
     # Handle the case where there are more CPUs than iterations by running
     # one on each CPU
-    cpus = CPU_COUNT if CPU_COUNT <= 8 else 8
-    if cpus > trials:
-        num_iter = 1
-        proc_count = trials
-    else:
-        num_iter = int(trials / cpus)
-        proc_count = cpus
+    max_workers = int(trials / 5)
+    if not max_workers:
+        max_workers = 1
+    cpus = CPU_COUNT if CPU_COUNT <= max_workers else max_workers
+    num_iter = int(trials / cpus)
+    proc_count = cpus
     results = pool.map(_swap_trial, [(x, num_iter,
                                       num_qubits, int_layout, int_qubit_subset,
                                       int_gates, cdist2, cdist, edges, scale, seed,
@@ -162,7 +161,10 @@ class StochasticSwap(TransformationPass):
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
 
-        cpus = CPU_COUNT if CPU_COUNT <= 8 else 8
+        max_workers = int(self.trials / 5)
+        if not max_workers:
+            max_workers = 1
+        cpus = CPU_COUNT if CPU_COUNT <= max_workers else max_workers
         with multiprocessing.Pool(cpus) as pool:
             new_dag = self._mapper(dag, self.coupling_map, trials=self.trials,
                                    pool=pool)
