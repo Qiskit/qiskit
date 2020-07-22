@@ -46,13 +46,15 @@ class XY4Pass(TransformationPass):
                         enough delays.
         """
         xy4_durations = {}
-        dd_delay = 10           # in nanoseconds
+        tau_c = 1461           # in units of dt
 
         u3_props = self.backend_properties._gates['u3']
         for qubit, props in u3_props.items():
             if 'gate_length' in props:
                 gate_length = props['gate_length'][0]
-                xy4_durations[qubit[0]] = round(4 * (dd_delay * 1e-9 + gate_length) / self.dt)
+                # TODO: Needs to check if durations of gates exceed cycle time
+                # If so, raise error
+                xy4_durations[qubit[0]] = tau_c - round(4 * gate_length / self.dt)
 
         new_dag = DAGCircuit()
 
@@ -67,27 +69,29 @@ class XY4Pass(TransformationPass):
                 delay_duration = dag.instruction_durations.get(node.op, node.qargs)
                 xy4_duration = xy4_durations[node.qargs[0].index]
 
-                if xy4_duration <= delay_duration:
-                    count = int(delay_duration // xy4_duration)
-                    parity = 1 if (delay_duration - count * xy4_duration + dd_delay) % 2 else 0
-                    new_delay = int((delay_duration - count * xy4_duration + dd_delay) / 2)
+                if tau_c <= delay_duration:
+                    count = int(delay_duration // tau_c)
+                    error = xy4_duration - 4 * (xy4_duration // 4)
+                    dd_delay = xy4_duration // 4
+                    parity = 1 if (delay_duration - count * tau_c + error + dd_delay) % 2 else 0
+                    new_delay = int((delay_duration - count * tau_c + error + dd_delay) / 2)
 
                     new_dag.apply_operation_back(Delay(new_delay - dd_delay), qargs=node.qargs)
 
                     for _ in range(count):
-                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay), qargs=node.qargs)
                         new_dag.apply_operation_back(XGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay), qargs=node.qargs)
                         new_dag.apply_operation_back(YGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay), qargs=node.qargs)
                         new_dag.apply_operation_back(XGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(dd_delay, unit='ns'), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(dd_delay), qargs=node.qargs)
                         new_dag.apply_operation_back(YGate(), qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay+parity), qargs=node.qargs)
+                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
                 else:
-                    new_dag.apply_operation_back(Delay(delay_duration, unit='ns'), qargs=node.qargs)
+                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
 
             else:
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)

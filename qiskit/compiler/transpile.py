@@ -377,15 +377,6 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         if dynamical_decoupling in {'xy4','XY4'}:
             from qiskit.transpiler.passes import XY4Pass
             pass_manager.append(XY4Pass(backend_properties, dt_in_sec))
-        elif dynamical_decoupling in {'cpmg','CPMG'}:
-            from qiskit.transpiler.passes import CPMGPass
-            pass_manager.append(CPMGPass(backend_properties))
-        elif 'cdd' in dynamical_decoupling or 'CDD' in dynamical_decoupling:
-            from qiskit.transpiler.passes import CDDPass
-            pass_manager.append(CDDPass(backend_properties))
-        elif 'udd' in dynamical_decoupling or 'UDD' in dynamical_decoupling:
-            from qiskit.transpiler.passes import UDDPass
-            pass_manager.append(UDDPass(backend_properties))
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s." % dynamical_decoupling)
 
