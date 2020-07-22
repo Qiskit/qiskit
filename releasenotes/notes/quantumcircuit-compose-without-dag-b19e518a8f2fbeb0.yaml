@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    ``QuantumCircuit.compose`` now supports the ``front`` keyword argument for
+    prepending the other circuit before the origin circuit.
