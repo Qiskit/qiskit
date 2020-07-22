@@ -27,7 +27,8 @@ class PassManagerConfig:
                  routing_method=None,
                  translation_method=None,
                  backend_properties=None,
-                 seed_transpiler=None):
+                 seed_transpiler=None,
+                 backend_num_qubits=None):
         """Initialize a PassManagerConfig object
 
         Args:
@@ -56,3 +57,4 @@ class PassManagerConfig:
         self.translation_method = translation_method
         self.backend_properties = backend_properties
         self.seed_transpiler = seed_transpiler
+        self.backend_num_qubits = backend_num_qubits
