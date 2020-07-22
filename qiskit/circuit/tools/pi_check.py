@@ -72,7 +72,10 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                 elif val == -1:
                     str_out = '-{}'.format(pi)
                 else:
-                    str_out = '{}{}'.format(val, pi)
+                    if output == 'qasm':
+                        str_out = '{}*{}'.format(val, pi)
+                    else:
+                        str_out = '{}{}'.format(val, pi)
                 return str_out
 
         val = np.pi / single_inpt
