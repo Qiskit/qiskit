@@ -16,7 +16,7 @@
 Pulse visualization module.
 """
 
-from qiskit.visualization.pulse_v2.style.stylesheet import init_style_from_dict
+from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
 
 
-PULSE_STYLE = init_style_from_dict()
+PULSE_STYLE = QiskitPulseStyle()

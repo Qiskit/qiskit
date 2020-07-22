@@ -122,23 +122,15 @@ class TestChannelEvents(QiskitTestCase):
 
 class TestStylesheet(QiskitTestCase):
     """Tests for stylesheet."""
-    def test_key_flatten(self):
-        """Test flatten dictionary generation."""
-        input_dict = {
-            'key1': {
-                'key2': {
-                    'key3-1': 0,
-                    'key3-2': 1
-                }
+    def test_deprecated_key(self):
+        """Test deprecation warning."""
+        style = stylesheet.QiskitPulseStyle()
+        style._deprecated_keys = {'deprecated_key': 'new_key'}
+
+        with self.assertWarns(DeprecationWarning):
+            dep_dict = {
+                'deprecated_key': 'value_1'
             }
-        }
-        flatten_dict = {
-            'key1.key2.key3-1': 0,
-            'key1.key2.key3-2': 1
+            style.update(dep_dict)
 
-        }
-
-        test_style = stylesheet.QiskitPulseStyle()
-        test_style.style = input_dict
-
-        self.assertDictEqual(test_style.style, flatten_dict)
+        self.assertEqual(style['new_key'], 'value_1')

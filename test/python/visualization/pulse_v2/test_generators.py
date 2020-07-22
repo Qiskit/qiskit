@@ -30,7 +30,7 @@ class TestGenerators(QiskitTestCase):
     """Tests for generators."""
 
     def setUp(self) -> None:
-        self.style = stylesheet.init_style_from_dict().style
+        self.style = stylesheet.QiskitPulseStyle()
 
     @staticmethod
     def create_instruction(inst, phase, freq, t0, dt):

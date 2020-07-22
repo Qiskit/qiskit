@@ -37,9 +37,7 @@ An end-user can write arbitrary functions with the following function signature:
 The user-defined drawing object is created by adding the generator to the stylesheet:
 
     ```python
-    my_custom_style = {
-        'generator': {'waveform': [my_object_generator, ...]}
-    }
+    my_custom_style = {'generator.waveform': [my_object_generator, ...]}
     ```
 
 The user can set the custom stylesheet to the drawer interface.
@@ -127,22 +125,22 @@ def _fill_waveform_color(channel: pulse.channels.Channel) \
         A color code of real and imaginary part of the waveform.
     """
     if isinstance(channel, pulse.DriveChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_d']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_d']
         if isinstance(colors, (tuple, list)):
             colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.ControlChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_u']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_u']
         if isinstance(colors, (tuple, list)):
             colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.MeasureChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_m']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_m']
         if isinstance(colors, (tuple, list)):
             colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.AcquireChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_a']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_a']
         if isinstance(colors, (tuple, list)):
             colors = types.ComplexColors(*colors)
         return colors
@@ -168,7 +166,7 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
     # generate waveform data
     xdata, ydata, meta = _parse_waveform(inst_data)
 
-    if PULSE_STYLE.style['formatter.control.apply_phase_modulation']:
+    if PULSE_STYLE['formatter.control.apply_phase_modulation']:
         ydata = np.array(ydata, dtype=np.complex) * np.exp(1j * inst_data.frame.phase)
     xdata = np.concatenate((xdata, [xdata[-1] + 1]))
     ydata = np.repeat(ydata, 2)
@@ -179,10 +177,10 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
     # setup style options
     channel = inst_data.inst.channel
 
-    style = {'alpha': PULSE_STYLE.style['formatter.alpha.fill_waveform'],
-             'zorder': PULSE_STYLE.style['formatter.layer.fill_waveform'],
-             'linewidth': PULSE_STYLE.style['formatter.line_width.fill_waveform'],
-             'linestyle': PULSE_STYLE.style['formatter.line_style.fill_waveform']}
+    style = {'alpha': PULSE_STYLE['formatter.alpha.fill_waveform'],
+             'zorder': PULSE_STYLE['formatter.layer.fill_waveform'],
+             'linewidth': PULSE_STYLE['formatter.line_width.fill_waveform'],
+             'linestyle': PULSE_STYLE['formatter.line_style.fill_waveform']}
     color = _fill_waveform_color(channel)
 
     # create real part
@@ -248,9 +246,9 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
     """
     systematic_name = inst_data.inst.pulse.name
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.annotate'],
-             'color': PULSE_STYLE.style['formatter.color.annotate'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.annotate'],
+             'color': PULSE_STYLE['formatter.color.annotate'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
@@ -295,7 +293,7 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
     text = drawing_objects.TextData(data_type='Waveform',
                                     channel=inst_data.inst.channel,
                                     x=inst_data.t0 + 0.5 * inst_data.inst.duration,
-                                    y=PULSE_STYLE.style['formatter.label_offset.pulse_name'],
+                                    y=PULSE_STYLE['formatter.label_offset.pulse_name'],
                                     text=systematic_name,
                                     latex=latex_name,
                                     styles=style)
@@ -318,11 +316,11 @@ def gen_baseline(channel_data: types.ChannelTuple) \
     Returns:
         List of `LineData` drawing objects.
     """
-    style = {'alpha': PULSE_STYLE.style['formatter.alpha.baseline'],
-             'zorder': PULSE_STYLE.style['formatter.layer.baseline'],
-             'linewidth': PULSE_STYLE.style['formatter.line_width.baseline'],
-             'linestyle': PULSE_STYLE.style['formatter.line_style.baseline'],
-             'color': PULSE_STYLE.style['formatter.color.baseline']}
+    style = {'alpha': PULSE_STYLE['formatter.alpha.baseline'],
+             'zorder': PULSE_STYLE['formatter.layer.baseline'],
+             'linewidth': PULSE_STYLE['formatter.line_width.baseline'],
+             'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
+             'color': PULSE_STYLE['formatter.color.baseline']}
 
     baseline = drawing_objects.LineData(data_type='BaseLine',
                                         channel=channel_data.channel,
@@ -345,9 +343,9 @@ def gen_latex_channel_name(channel_data: types.ChannelTuple) \
     Returns:
         List of `TextData` drawing objects.
     """
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.axis_label'],
-             'color': PULSE_STYLE.style['formatter.color.axis_label'],
-             'size': PULSE_STYLE.style['formatter.text_size.axis_label'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.axis_label'],
+             'color': PULSE_STYLE['formatter.color.axis_label'],
+             'size': PULSE_STYLE['formatter.text_size.axis_label'],
              'va': 'center',
              'ha': 'right'}
     latex_name = r'{}_{}'.format(channel_data.channel.prefix.upper(),
@@ -380,9 +378,9 @@ def gen_scaling_info(channel_data: types.ChannelTuple) \
     if channel_data.scaling == 1:
         return []
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.axis_label'],
-             'color': PULSE_STYLE.style['formatter.color.axis_label'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.axis_label'],
+             'color': PULSE_STYLE['formatter.color.axis_label'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'right'}
     value = r'x{:.1f}'.format(channel_data.scaling)
@@ -390,7 +388,7 @@ def gen_scaling_info(channel_data: types.ChannelTuple) \
     text = drawing_objects.TextData(data_type='ChannelInfo',
                                     channel=channel_data.channel,
                                     x=0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.scale_factor'],
+                                    y=PULSE_STYLE['formatter.label_offset.scale_factor'],
                                     text=value,
                                     styles=style)
 
@@ -427,9 +425,9 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
     """
     _max_denom = 10
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
@@ -451,7 +449,7 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
     text = drawing_objects.TextData(data_type='FrameInfo',
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
+                                    y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=r'VZ({:.2f} rad.)'.format(-frame_data.frame.phase),
                                     latex=r'{{\rm VZ}}({}{})'.format(sign, angle),
                                     styles=style)
@@ -478,9 +476,9 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
         List of `TextData` drawing objects.
     """
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
@@ -490,7 +488,7 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
     text = drawing_objects.TextData(data_type='FrameInfo',
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
+                                    y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=text_df,
                                     latex=latex_df,
                                     styles=style)
@@ -517,9 +515,9 @@ def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
         List of `TextData` drawing objects.
     """
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
@@ -528,7 +526,7 @@ def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
     text = drawing_objects.TextData(data_type='FrameInfo',
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
+                                    y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=frame_info,
                                     styles=style)
 
@@ -551,9 +549,9 @@ def gen_frame_symbol(frame_data: types.InstructionTuple) \
         List of `TextData` drawing objects.
     """
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.frame_change'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.frame_change'],
              'va': 'center',
              'ha': 'center'}
 
@@ -570,8 +568,8 @@ def gen_frame_symbol(frame_data: types.InstructionTuple) \
             't0 (cycle time)': frame_data.t0,
             't0 (sec)': frame_data.t0 * frame_data.dt if frame_data.dt else 'N/A'}
 
-    uni_symbol = PULSE_STYLE.style['formatter.unicode_symbol.frame_change']
-    latex = PULSE_STYLE.style['formatter.latex_symbol.frame_change']
+    uni_symbol = PULSE_STYLE['formatter.unicode_symbol.frame_change']
+    latex = PULSE_STYLE['formatter.latex_symbol.frame_change']
 
     text = drawing_objects.TextData(data_type='Symbol',
                                     channel=frame_data.inst[0].channel,
@@ -610,15 +608,15 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
     if not isinstance(misc_data.inst, pulse.instructions.Snapshot):
         return []
 
-    symbol_style = {'zorder': PULSE_STYLE.style['formatter.layer.snapshot'],
-                    'color': PULSE_STYLE.style['formatter.color.snapshot'],
-                    'size': PULSE_STYLE.style['formatter.text_size.snapshot'],
+    symbol_style = {'zorder': PULSE_STYLE['formatter.layer.snapshot'],
+                    'color': PULSE_STYLE['formatter.color.snapshot'],
+                    'size': PULSE_STYLE['formatter.text_size.snapshot'],
                     'va': 'bottom',
                     'ha': 'center'}
 
-    label_style = {'zorder': PULSE_STYLE.style['formatter.layer.snapshot'],
-                   'color': PULSE_STYLE.style['formatter.color.snapshot'],
-                   'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    label_style = {'zorder': PULSE_STYLE['formatter.layer.snapshot'],
+                   'color': PULSE_STYLE['formatter.color.snapshot'],
+                   'size': PULSE_STYLE['formatter.text_size.annotate'],
                    'va': 'bottom',
                    'ha': 'center'}
 
@@ -626,8 +624,8 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
             't0 (cycle time)': misc_data.t0,
             't0 (sec)': misc_data.t0 * misc_data.dt if misc_data.dt else 'N/A'}
 
-    uni_symbol = PULSE_STYLE.style['formatter.unicode_symbol.snapshot']
-    latex = PULSE_STYLE.style['formatter.latex_symbol.snapshot']
+    uni_symbol = PULSE_STYLE['formatter.unicode_symbol.snapshot']
+    latex = PULSE_STYLE['formatter.latex_symbol.snapshot']
 
     symbol_text = drawing_objects.TextData(data_type='Symbol',
                                            channel=misc_data.inst.channel,
@@ -641,7 +639,7 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
     label_text = drawing_objects.TextData(data_type='Symbol',
                                           channel=misc_data.inst.channel,
                                           x=misc_data.t0,
-                                          y=PULSE_STYLE.style['formatter.label_offset.snapshot'],
+                                          y=PULSE_STYLE['formatter.label_offset.snapshot'],
                                           text=misc_data.inst.label,
                                           styles=label_style)
 
@@ -664,11 +662,11 @@ def gen_barrier(misc_data: types.NonPulseTuple) \
     if not isinstance(misc_data.inst, pulse.instructions.RelativeBarrier):
         return []
 
-    style = {'alpha': PULSE_STYLE.style['formatter.alpha.barrier'],
-             'zorder': PULSE_STYLE.style['formatter.layer.barrier'],
-             'linewidth': PULSE_STYLE.style['formatter.line_width.barrier'],
-             'linestyle': PULSE_STYLE.style['formatter.line_style.barrier'],
-             'color': PULSE_STYLE.style['formatter.color.barrier']}
+    style = {'alpha': PULSE_STYLE['formatter.alpha.barrier'],
+             'zorder': PULSE_STYLE['formatter.layer.barrier'],
+             'linewidth': PULSE_STYLE['formatter.line_width.barrier'],
+             'linestyle': PULSE_STYLE['formatter.line_style.barrier'],
+             'color': PULSE_STYLE['formatter.color.barrier']}
 
     lines = []
     for chan in misc_data.inst.channels:
