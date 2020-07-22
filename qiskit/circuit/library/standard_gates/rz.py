@@ -69,11 +69,11 @@ class RZGate(Gate):
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
         theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, phase=-theta / 2)
+        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
         rules = [
             (U1Gate(theta), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -205,7 +205,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

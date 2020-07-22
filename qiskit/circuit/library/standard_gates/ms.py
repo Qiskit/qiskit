@@ -46,5 +46,5 @@ class MSGate(Gate):
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
                 rules += [(RXXGate(theta), [q[i], q[j]], [])]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc

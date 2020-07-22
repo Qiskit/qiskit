@@ -91,7 +91,7 @@ class DAGCircuit:
         self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
-        self._phase = 0
+        self._global_phase = 0
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
@@ -157,29 +157,29 @@ class DAGCircuit:
         return len(self._multi_graph)
 
     @property
-    def phase(self):
-        """Return the phase of the circuit."""
-        return self._phase
+    def global_phase(self):
+        """Return the global phase of the circuit."""
+        return self._global_phase
 
-    @phase.setter
-    def phase(self, angle):
-        """Set the phase of the circuit.
+    @global_phase.setter
+    def global_phase(self, angle):
+        """Set the global phase of the circuit.
 
         Args:
             angle (float, ParameterExpression)
         """
         from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
         if isinstance(angle, ParameterExpression):
-            self._phase = angle
+            self._global_phase = angle
         else:
             # Set the phase to the [-2 * pi, 2 * pi] interval
             angle = float(angle)
             if not angle:
-                self._phase = 0
+                self._global_phase = 0
             elif angle < 0:
-                self._phase = angle % (-2 * math.pi)
+                self._global_phase = angle % (-2 * math.pi)
             else:
-                self._phase = angle % (2 * math.pi)
+                self._global_phase = angle % (2 * math.pi)
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -472,7 +472,8 @@ class DAGCircuit:
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
 
-    def _map_condition(self, wire_map, condition):
+    @staticmethod
+    def _map_condition(wire_map, condition):
         """Use the wire_map dict to change the condition tuple's creg name.
 
         Args:
@@ -598,7 +599,7 @@ class DAGCircuit:
             dag = self
         else:
             dag = copy.deepcopy(self)
-        dag.phase += other.phase
+        dag.global_phase += other.global_phase
 
         for nd in other.topological_nodes():
             if nd.type == "in":
@@ -818,25 +819,27 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
+        in_dag = input_dag
         condition = node.condition
         # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:
-            input_dag.add_creg(condition[0])
+            in_dag = copy.deepcopy(input_dag)
+            in_dag.add_creg(condition[0])
             to_replay = []
-            for sorted_node in input_dag.topological_nodes():
+            for sorted_node in in_dag.topological_nodes():
                 if sorted_node.type == "op":
                     sorted_node.op.condition = condition
                     to_replay.append(sorted_node)
-            for input_node in input_dag.op_nodes():
-                input_dag.remove_op_node(input_node)
+            for input_node in in_dag.op_nodes():
+                in_dag.remove_op_node(input_node)
             for replay_node in to_replay:
-                input_dag.apply_operation_back(replay_node.op, replay_node.qargs,
-                                               replay_node.cargs)
+                in_dag.apply_operation_back(replay_node.op, replay_node.qargs,
+                                            replay_node.cargs)
 
         if wires is None:
-            wires = input_dag.wires
+            wires = in_dag.wires
 
         self._check_wires_list(wires, node)
 
@@ -844,13 +847,13 @@ class DAGCircuit:
         # and determine what registers need to be added to self
         proxy_map = {w: QuantumRegister(1, 'proxy') for w in wires}
         add_qregs = self._check_edgemap_registers(proxy_map,
-                                                  input_dag.qregs,
+                                                  in_dag.qregs,
                                                   {}, False)
         for qreg in add_qregs:
             self.add_qreg(qreg)
 
         add_cregs = self._check_edgemap_registers(proxy_map,
-                                                  input_dag.cregs,
+                                                  in_dag.cregs,
                                                   {}, False)
         for creg in add_cregs:
             self.add_creg(creg)
@@ -869,7 +872,7 @@ class DAGCircuit:
         self._check_wiremap_validity(wire_map, wires, self.input_map)
         pred_map, succ_map = self._make_pred_succ_maps(node)
         full_pred_map, full_succ_map = self._full_pred_succ_maps(pred_map, succ_map,
-                                                                 input_dag, wire_map)
+                                                                 in_dag, wire_map)
 
         if condition_bit_list:
             # If we are replacing a conditional node, map input dag through
@@ -877,7 +880,7 @@ class DAGCircuit:
             # bits.
             condition_bits = set(condition_bit_list)
 
-            for op_node in input_dag.op_nodes():
+            for op_node in in_dag.op_nodes():
                 mapped_cargs = {wire_map[carg] for carg in op_node.cargs}
 
                 if condition_bits & mapped_cargs:
@@ -888,7 +891,7 @@ class DAGCircuit:
         self._multi_graph.remove_node(node._node_id)
 
         # Iterate over nodes of input_circuit
-        for sorted_node in input_dag.topological_op_nodes():
+        for sorted_node in in_dag.topological_op_nodes():
             # Insert a new node
             condition = self._map_condition(wire_map, sorted_node.condition)
             m_qargs = list(map(lambda x: wire_map.get(x, x),
@@ -1386,21 +1389,12 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            # find the adjacent node that takes the wire being looked at as input
-            # TODO(mtreinish): Add function in retworkx that does this nested api
-            for node_index in self._multi_graph.adj(current_node._node_id):
-                node = self._multi_graph.get_node_data(node_index)
-                if self._multi_graph.has_edge(current_node._node_id,
-                                              node_index):
-                    edge_data = self._multi_graph.get_all_edge_data(
-                        current_node._node_id, node_index)
-                else:
-                    edge_data = self._multi_graph.get_all_edge_data(
-                        node_index, current_node._node_id)
-                if any(wire == edge['wire'] for edge in edge_data):
-                    current_node = node
-                    more_nodes = True
-                    break
+            try:
+                current_node = self._multi_graph.find_adjacent_node_by_edge(
+                    current_node._node_id, lambda x: wire == x['wire'])
+                more_nodes = True
+            except rx.NoSuitableNeighbors:
+                pass
 
     def count_ops(self):
         """Count the occurrences of operation names.

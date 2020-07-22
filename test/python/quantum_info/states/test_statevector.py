@@ -271,7 +271,7 @@ class TestStatevector(QiskitTestCase):
         state_i = Statevector([1, 0])
         qr = QuantumRegister(2)
         phase = np.pi / 4
-        circ = QuantumCircuit(qr, phase=phase)
+        circ = QuantumCircuit(qr, global_phase=phase)
         circ.x(0)
         state_f = state_i.evolve(circ, qargs=[0])
         target = Statevector([0, 1]) * np.exp(1j * phase)
@@ -855,6 +855,18 @@ class TestStatevector(QiskitTestCase):
             target = Statevector([0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(3, 3))
             value = Statevector.from_int(8, (3, 3))
             self.assertEqual(target, value)
+
+    def test_expval(self):
+        """Test expectation_value method"""
+
+        psi = Statevector([1, 0, 0, 1]) / np.sqrt(2)
+        for label, target in [
+                ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
+                ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
+            with self.subTest(msg="<{}>".format(label)):
+                op = Operator.from_label(label)
+                expval = psi.expectation_value(op)
+                self.assertAlmostEqual(expval, target)
 
 
 if __name__ == '__main__':

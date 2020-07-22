@@ -93,7 +93,7 @@ class RYYGate(Gate):
             (RXGate(-np.pi / 2), [q[0]], []),
             (RXGate(-np.pi / 2), [q[1]], []),
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

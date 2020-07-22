@@ -62,7 +62,7 @@ class RXGate(Gate):
         rules = [
             (RGate(self.params[0], 0), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -193,7 +193,7 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

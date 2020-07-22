@@ -23,7 +23,7 @@ from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.test.mock.utils import ConfigurableBackend
+from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
 from qiskit.pulse import library, instructions
 
 # pylint: disable=invalid-name

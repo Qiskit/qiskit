@@ -490,8 +490,6 @@ class Operator(BaseOperator):
         op = Operator(np.eye(dimension))
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
-            # if instruction.phase:
-            #     op *= ScalarOp(dimension, np.exp(1j * float(instruction.phase)))
             instruction = instruction.to_instruction()
         op._append_instruction(instruction)
         return op
@@ -534,9 +532,9 @@ class Operator(BaseOperator):
                 raise QiskitError('Instruction "{}" '
                                   'definition is {} but expected QuantumCircuit.'.format(
                                       obj.name, type(obj.definition)))
-            if obj.definition.phase:
+            if obj.definition.global_phase:
                 dimension = 2 ** self.num_qubits
-                op = self.compose(ScalarOp(dimension, np.exp(1j * float(obj.definition.phase))),
+                op = self.compose(ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                                   qargs=qargs)
                 self._data = op.data
             flat_instr = obj.definition.to_instruction()

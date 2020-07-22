@@ -905,7 +905,7 @@ class TestControlledGate(QiskitTestCase):
         Test controlling CX with global phase
         """
         theta = pi/2
-        circ = QuantumCircuit(2, phase=theta)
+        circ = QuantumCircuit(2, global_phase=theta)
         circ.cx(0, 1)
         cx = circ.to_gate()
         self.assertNotEqual(Operator(CXGate()), Operator(cx))
@@ -922,7 +922,7 @@ class TestControlledGate(QiskitTestCase):
         Test controlled global phase on base gate.
         """
         theta = pi/4
-        circ = QuantumCircuit(2, phase=theta)
+        circ = QuantumCircuit(2, global_phase=theta)
         base_gate = circ.to_gate()
         base_mat = Operator(base_gate).data
         target = _compute_control_matrix(base_mat, num_ctrl_qubits)
@@ -937,7 +937,7 @@ class TestControlledGate(QiskitTestCase):
         Test controlling CX with global phase
         """
         theta = pi/4
-        circ = QuantumCircuit(2, phase=theta)
+        circ = QuantumCircuit(2, global_phase=theta)
         circ.rz(0.1, 0)
         circ.rz(0.2, 1)
         ccirc = circ.control(num_ctrl_qubits)

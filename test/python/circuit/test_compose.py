@@ -453,12 +453,51 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_compose_global_phase(self):
         """Composing with global phase."""
-        circ1 = QuantumCircuit(1, phase=1)
+        circ1 = QuantumCircuit(1, global_phase=1)
         circ1.rz(0.5, 0)
-        circ2 = QuantumCircuit(1, phase=2)
-        circ3 = QuantumCircuit(1, phase=3)
+        circ2 = QuantumCircuit(1, global_phase=2)
+        circ3 = QuantumCircuit(1, global_phase=3)
         circ4 = circ1.compose(circ2).compose(circ3)
-        self.assertEqual(circ4.phase, circ1.phase + circ2.phase + circ3.phase)
+        self.assertEqual(circ4.global_phase, circ1.global_phase + circ2.global_phase + circ3.global_phase)
+
+    def test_compose_front_circuit(self):
+        """Test composing a circuit at the front of a circuit.
+        """
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        other = QuantumCircuit(2)
+        other.cz(1, 0)
+        other.z(1)
+
+        output = qc.compose(other, front=True)
+
+        expected = QuantumCircuit(2)
+        expected.cz(1, 0)
+        expected.z(1)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(output, expected)
+
+    def test_compose_front_gate(self):
+        """Test composing a gate at the front of a circuit.
+        """
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        output = qc.compose(CXGate(), [1, 0], front=True)
+
+        expected = QuantumCircuit(2)
+        expected.cx(1, 0)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(output, expected)
 
 
 if __name__ == '__main__':

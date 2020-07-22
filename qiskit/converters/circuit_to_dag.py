@@ -47,7 +47,7 @@ def circuit_to_dag(circuit):
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
-    dagcircuit.phase = circuit.phase
+    dagcircuit.global_phase = circuit.global_phase
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)

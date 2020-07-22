@@ -110,8 +110,8 @@ def control(operation: Union[Gate, ControlledGate],
             isinstance(operation, controlledgate.ControlledGate) and
             operation.base_gate.name == 'x'):
         controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
-        if operation.definition is not None and operation.definition.phase:
-            global_phase += operation.definition.phase
+        if operation.definition is not None and operation.definition.global_phase:
+            global_phase += operation.definition.global_phase
     else:
         basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
@@ -159,14 +159,14 @@ def control(operation: Union[Gate, ControlledGate],
             else:
                 raise CircuitError('gate contains non-controllable instructions: {}'.format(
                     gate.name))
-            if gate.definition is not None and gate.definition.phase:
-                global_phase += gate.definition.phase
+            if gate.definition is not None and gate.definition.global_phase:
+                global_phase += gate.definition.global_phase
     # apply controlled global phase
-    if ((operation.definition is not None and operation.definition.phase) or global_phase):
+    if ((operation.definition is not None and operation.definition.global_phase) or global_phase):
         if len(q_control) < 2:
-            controlled_circ.u1(operation.definition.phase + global_phase, q_control)
+            controlled_circ.u1(operation.definition.global_phase + global_phase, q_control)
         else:
-            controlled_circ.mcu1(operation.definition.phase + global_phase,
+            controlled_circ.mcu1(operation.definition.global_phase + global_phase,
                                  q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
