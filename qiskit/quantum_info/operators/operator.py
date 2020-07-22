@@ -485,18 +485,14 @@ class Operator(BaseOperator):
     @classmethod
     def _init_instruction(cls, instruction):
         """Convert a QuantumCircuit or Instruction to an Operator."""
-        from .scalar_op import ScalarOp
         # Initialize an identity operator of the correct size of the circuit
         dimension = 2 ** instruction.num_qubits
         op = Operator(np.eye(dimension))
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
-            if instruction.phase:
-                op *= ScalarOp(dimension, np.exp(1j * instruction.phase))
+            # if instruction.phase:
+            #     op *= ScalarOp(dimension, np.exp(1j * float(instruction.phase)))
             instruction = instruction.to_instruction()
-        elif isinstance(instruction, Instruction):
-            if instruction.definition is not None and instruction.definition.phase:
-                op *= ScalarOp(dimension, np.exp(1j * instruction.definition.phase))
         op._append_instruction(instruction)
         return op
 
@@ -518,6 +514,7 @@ class Operator(BaseOperator):
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
         from qiskit.circuit.barrier import Barrier
+        from .scalar_op import ScalarOp
 
         mat = self._instruction_to_matrix(obj)
         if mat is not None:
@@ -537,9 +534,12 @@ class Operator(BaseOperator):
                 raise QiskitError('Instruction "{}" '
                                   'definition is {} but expected QuantumCircuit.'.format(
                                       obj.name, type(obj.definition)))
+            if obj.definition.phase:
+                dimension = 2 ** self.num_qubits
+                op = self.compose(ScalarOp(dimension, np.exp(1j * float(obj.definition.phase))),
+                                  qargs=qargs)
+                self._data = op.data
             flat_instr = obj.definition.to_instruction()
-            # if flat_instr.definition is not None and flat_instr.definition.phase:
-            #     import ipdb; ipdb.set_trace()
             for instr, qregs, cregs in flat_instr.definition.data:
                 if cregs:
                     raise QiskitError(

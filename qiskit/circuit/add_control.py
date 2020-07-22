@@ -66,7 +66,7 @@ def add_control(operation: Union[Gate, ControlledGate],
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
-    cgate = control2(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+    cgate = control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
     cgate.base_gate.label = operation.label
     return cgate
 
@@ -99,189 +99,75 @@ def control(operation: Union[Gate, ControlledGate],
     from math import pi
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
-    # pylint: disable=unused-import
-    import qiskit.circuit.library.standard_gates.multi_control_rotation_gates
-
-    q_control = QuantumRegister(num_ctrl_qubits, name='control')
-    q_target = QuantumRegister(operation.num_qubits, name='target')
-    q_ancillae = None  # TODO: add
-    qc = QuantumCircuit(q_control, q_target)
-
-    if operation.name == 'x' or (
-            isinstance(operation, controlledgate.ControlledGate) and
-            operation.base_gate.name == 'x'):
-        qc.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
-    elif operation.name == 'rx':
-        qc.mcrx(operation.definition.data[0][0].params[0], q_control, q_target[0],
-                use_basis_gates=True)
-    elif operation.name == 'ry':
-        qc.mcry(operation.definition.data[0][0].params[0], q_control, q_target[0],
-                q_ancillae, mode='noancilla', use_basis_gates=True)
-    elif operation.name == 'rz':
-        qc.mcrz(operation.definition.data[0][0].params[0], q_control, q_target[0],
-                use_basis_gates=True)
-    else:
-        bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'], qc, q_control)
-        # now we have a bunch of single qubit rotation gates and cx
-        for rule in bgate.definition.data:
-            if rule[0].name == 'u3':
-                theta, phi, lamb = rule[0].params
-                if phi == -pi / 2 and lamb == pi / 2:
-                    qc.mcrx(theta, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-                elif phi == 0 and lamb == 0:
-                    qc.mcry(theta, q_control, q_target[rule[1][0].index],
-                            q_ancillae, use_basis_gates=True)
-                elif theta == 0 and phi == 0:
-                    qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-                else:
-                    qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-                    qc.mcry(theta, q_control, q_target[rule[1][0].index],
-                            q_ancillae, use_basis_gates=True)
-                    qc.mcrz(phi, q_control, q_target[rule[1][0].index],
-                            use_basis_gates=True)
-            elif rule[0].name == 'u1':
-                qc.mcu1(rule[0].params[0], q_control, q_target[rule[1][0].index])
-            elif rule[0].name == 'cx':
-                qc.mct(q_control[:] + [q_target[rule[1][0].index]], q_target[rule[1][1].index],
-                       q_ancillae)
-            elif rule[0].name == 'x':
-                # hack to catch unrolling with global phase
-                qc.mct(q_control, q_target[rule[1][0].index])
-            else:
-                raise CircuitError('gate contains non-controllable instructions: {}'.format(
-                    rule[0].name))
-
-    if isinstance(operation, controlledgate.ControlledGate):
-        new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
-        base_name = operation.base_gate.name
-        base_gate = operation.base_gate
-    else:
-        new_num_ctrl_qubits = num_ctrl_qubits
-        new_ctrl_state = ctrl_state
-        base_name = operation.name
-        base_gate = operation
-    # In order to maintain some backward compatibility with gate names this
-    # uses a naming convention where if the number of controls is <=2 the gate
-    # is named like "cc<base_gate.name>", else it is named like
-    # "c<num_ctrl_qubits><base_name>".
-    if new_num_ctrl_qubits > 2:
-        ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
-    else:
-        ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
-    new_name = '{0}{1}'.format(ctrl_substr, base_name)
-    cgate = controlledgate.ControlledGate(new_name,
-                                          qc.num_qubits,
-                                          operation.params,
-                                          label=label,
-                                          num_ctrl_qubits=new_num_ctrl_qubits,
-                                          definition=qc,
-                                          ctrl_state=new_ctrl_state)
-    cgate.base_gate = base_gate
-    return cgate
-
-def control2(operation: Union[Gate, ControlledGate],
-            num_ctrl_qubits: Optional[int] = 1,
-            label: Optional[Union[None, str]] = None,
-            ctrl_state: Optional[Union[None, int, str]] = None) -> ControlledGate:
-    """Return controlled version of gate using controlled rotations. This function
-    first checks the name of the operation to see if it knows of a method from which
-    to generate a controlled version. Currently these are `x`, `rx`, `ry`, and `rz`.
-    If a method is not directly known, it calls the unroller to convert to `u1`, `u3`,
-    and `cx` gates.
-
-    Args:
-        operation: The gate used to create the ControlledGate.
-        num_ctrl_qubits: The number of controls to add to gate (default=1).
-        label: An optional gate label.
-        ctrl_state: The control state in decimal or as
-            a bitstring (e.g. '111'). If specified as a bitstring the length
-            must equal num_ctrl_qubits, MSB on left. If None, use
-            2**num_ctrl_qubits-1.
-
-    Returns:
-        Controlled version of gate.
-
-    Raises:
-        CircuitError: gate contains non-gate in definition
-    """
-    from math import pi
-    # pylint: disable=cyclic-import
-    import qiskit.circuit.controlledgate as controlledgate
-    basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
-    unrolled_gate = _unroll_gate(operation, basis_gates=basis)
 
     q_control = QuantumRegister(num_ctrl_qubits, name='control')
     q_target = QuantumRegister(operation.num_qubits, name='target')
     q_ancillae = None  # TODO: add
     controlled_circ = QuantumCircuit(q_control, q_target,
                                      name='c_{}'.format(operation.name))
-    # if ctrl_state:
-    #     ctrl_state_circ = QuantumCircuit(q_control)
-    #     bit_ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
-    #     for qind, val in enumerate(bit_ctrl_state[::-1]):
-    #         if val == '0':
-    #             control_state_circ.x(qind)
-    #     controlled_circ.compose(ctrl_state_circ, q_control)
     global_phase = 0
-    for gate, qreg, creg in unrolled_gate.definition.data:
-        if gate.name == 'x' or (
-                isinstance(gate, controlledgate.ControlledGate) and
-                gate.base_gate.name == 'x'):
-            controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1],
-                                q_ancillae)
-        elif gate.name == 'rx':
-            controlled_circ.mcrx(gate.definition.data[0][0].params[0],
-                                 q_control, q_target[qreg[0].index],
-                                 use_basis_gates=True)
-        elif gate.name == 'ry':
-            controlled_circ.mcry(gate.definition.data[0][0].params[0],
-                                 q_control, q_target[qreg[0].index],
-                                 q_ancillae, mode='noancilla',
-                                 use_basis_gates=True)
-        elif gate.name == 'rz':
-            controlled_circ.mcrz(gate.definition.data[0][0].params[0],
-                                 q_control, q_target[qreg[0].index],
-                                 use_basis_gates=True)
-        elif gate.name == 'u1':
-            controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
-        elif gate.name == 'cx':
-            controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]], q_target[qreg[1].index],
-                   q_ancillae)
-        elif gate.name == 'u3':
-            theta, phi, lamb = gate.params
-            if phi == -pi / 2 and lamb == pi / 2:
-                controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],
-                                   use_basis_gates=True)
-            elif phi == 0 and lamb == 0:
-                controlled_circ.mcry(theta, q_control, q_target[qreg[0].index],
-                                   q_ancillae, use_basis_gates=True)
-            elif theta == 0 and phi == 0:
-                controlled_circ.mcrz(lamb, q_control, q_target[qreg[0].index],
-                                   use_basis_gates=True)
+    if operation.name == 'x' or (
+            isinstance(operation, controlledgate.ControlledGate) and
+            operation.base_gate.name == 'x'):
+        controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
+        if operation.definition is not None and operation.definition.phase:
+            global_phase += operation.definition.phase
+    else:
+        basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
+        unrolled_gate = _unroll_gate(operation, basis_gates=basis)
+        for gate, qreg, _ in unrolled_gate.definition.data:
+            if gate.name == 'x':
+                controlled_circ.mct(q_control, q_target[qreg[0].index],
+                                    q_ancillae)
+            elif gate.name == 'rx':
+                controlled_circ.mcrx(gate.definition.data[0][0].params[0],
+                                     q_control, q_target[qreg[0].index],
+                                     use_basis_gates=True)
+            elif gate.name == 'ry':
+                controlled_circ.mcry(gate.definition.data[0][0].params[0],
+                                     q_control, q_target[qreg[0].index],
+                                     q_ancillae, mode='noancilla',
+                                     use_basis_gates=True)
+            elif gate.name == 'rz':
+                controlled_circ.mcrz(gate.definition.data[0][0].params[0],
+                                     q_control, q_target[qreg[0].index],
+                                     use_basis_gates=True)
+            elif gate.name == 'u1':
+                controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
+            elif gate.name == 'cx':
+                controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]],
+                                    q_target[qreg[1].index],
+                                    q_ancillae)
+            elif gate.name == 'u3':
+                theta, phi, lamb = gate.params
+                if phi == -pi / 2 and lamb == pi / 2:
+                    controlled_circ.mcrx(theta, q_control, q_target[qreg[0].index],
+                                         use_basis_gates=True)
+                elif phi == 0 and lamb == 0:
+                    controlled_circ.mcry(theta, q_control, q_target[qreg[0].index],
+                                         q_ancillae, use_basis_gates=True)
+                elif theta == 0 and phi == 0:
+                    controlled_circ.mcrz(lamb, q_control, q_target[qreg[0].index],
+                                         use_basis_gates=True)
+                else:
+                    controlled_circ.mcrz(lamb, q_control, q_target[qreg[0].index],
+                                         use_basis_gates=True)
+                    controlled_circ.mcry(theta, q_control, q_target[qreg[0].index],
+                                         q_ancillae, use_basis_gates=True)
+                    controlled_circ.mcrz(phi, q_control, q_target[qreg[0].index],
+                                         use_basis_gates=True)
             else:
-                controlled_circ.mcrz(lamb, q_control, q_target[qreg[0].index],
-                                   use_basis_gates=True)
-                controlled_circ.mcry(theta, q_control, q_target[qreg[0].index],
-                                   q_ancillae, use_basis_gates=True)
-                controlled_circ.mcrz(phi, q_control, q_target[qreg[0].index],
-                                   use_basis_gates=True)
-        else:
-            raise CircuitError('gate contains non-controllable instructions: {}'.format(
-                gate.name))
-        if gate.definition is not None and gate.definition.phase:
-            global_phase += gate.definition.phase
-    # if ctrl_state:
-    #     controlled_circ.compose(ctrl_state_circ, q_control)
-    # apply global phase
-    if ((unrolled_gate.definition is not None and unrolled_gate.definition.phase) or global_phase):
+                raise CircuitError('gate contains non-controllable instructions: {}'.format(
+                    gate.name))
+            if gate.definition is not None and gate.definition.phase:
+                global_phase += gate.definition.phase
+    # apply controlled global phase
+    if ((operation.definition is not None and operation.definition.phase) or global_phase):
         if len(q_control) < 2:
-            controlled_circ.u1(unrolled_gate.definition.phase + global_phase, q_control)
+            controlled_circ.u1(operation.definition.phase + global_phase, q_control)
         else:
-            controlled_circ.mcu1(unrolled_gate.definition.phase + global_phase, q_control[:-1], q_control[-1])
+            controlled_circ.mcu1(operation.definition.phase + global_phase,
+                                 q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
@@ -336,16 +222,10 @@ def _gate_to_dag(operation):
         return circuit_to_dag(qc)
 
 
-def _unroll_gate(operation, basis_gates, qc=None, q_control=None):
+def _unroll_gate(operation, basis_gates):
     from qiskit.converters.dag_to_circuit import dag_to_circuit
     from qiskit.transpiler.passes import Unroller
     unroller = Unroller(basis_gates)
     dag = _gate_to_dag(operation)
     opqc = dag_to_circuit(unroller.run(dag))
-    # if opqc.phase and qc is not None and q_control is not None:
-    #     if len(q_control) < 2:
-    #         qc.u1(opqc.phase, q_control)
-    #     else:
-    #         qc.mcu1(opqc.phase, q_control[:-1], q_control[-1])
-    #     qc.phase = 0
     return opqc.to_gate()
