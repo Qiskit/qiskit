@@ -50,7 +50,8 @@ class U2Gate(Gate):
 
     .. math::
 
-        U2(0, \pi) = H
+        U2(0, 0) = RY(\pi/2)
+        U2(-\pi/2, \pi/2) = RX(\pi/2)
 
     .. seealso::
 
