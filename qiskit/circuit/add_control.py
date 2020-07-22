@@ -197,6 +197,7 @@ def control(operation: Union[Gate, ControlledGate],
     cgate.base_gate = base_gate
     return cgate
 
+
 def _gate_to_circuit(operation):
     qr = QuantumRegister(operation.num_qubits)
     qc = QuantumCircuit(qr, name=operation.name)

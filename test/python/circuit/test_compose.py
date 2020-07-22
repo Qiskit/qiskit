@@ -458,7 +458,8 @@ class TestCircuitCompose(QiskitTestCase):
         circ2 = QuantumCircuit(1, global_phase=2)
         circ3 = QuantumCircuit(1, global_phase=3)
         circ4 = circ1.compose(circ2).compose(circ3)
-        self.assertEqual(circ4.global_phase, circ1.global_phase + circ2.global_phase + circ3.global_phase)
+        self.assertEqual(circ4.global_phase,
+                         circ1.global_phase + circ2.global_phase + circ3.global_phase)
 
     def test_compose_front_circuit(self):
         """Test composing a circuit at the front of a circuit.

@@ -645,6 +645,8 @@ class QuantumCircuit:
         else:
             dest._data += mapped_instrs
 
+        dest.global_phase += other.global_phase
+
         if inplace:
             return None
 
@@ -1853,7 +1855,8 @@ class QuantumCircuit:
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
         # bind circuit's phase
-        if isinstance(self.global_phase, ParameterExpression) and parameter in self.global_phase.parameters:
+        if (isinstance(self.global_phase, ParameterExpression) and
+                parameter in self.global_phase.parameters):
             self.global_phase = self.global_phase.bind({parameter: value})
 
     def _substitute_parameter(self, old_parameter, new_parameter_expr):
@@ -1866,7 +1869,8 @@ class QuantumCircuit:
         entry = self._parameter_table.pop(old_parameter)
         for new_parameter in new_parameter_expr.parameters:
             self._parameter_table[new_parameter] = entry
-        if isinstance(self.global_phase, ParameterExpression) and old_parameter in self.global_phase.parameters:
+        if (isinstance(self.global_phase, ParameterExpression)
+                and old_parameter in self.global_phase.parameters):
             self.global_phase = self.global_phase.subs({old_parameter: new_parameter_expr})
 
     def _rebind_definition(self, instruction, parameter, value):

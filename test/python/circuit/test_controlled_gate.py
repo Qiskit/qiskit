@@ -948,6 +948,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(Operator(cgate), Operator(target))
         self.assertEqual(Operator(ccirc), Operator(target))
 
+
 @ddt
 class TestOpenControlledToMatrix(QiskitTestCase):
     """Test controlled_gates implementing to_matrix work with ctrl_state"""

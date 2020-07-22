@@ -534,8 +534,9 @@ class Operator(BaseOperator):
                                       obj.name, type(obj.definition)))
             if obj.definition.global_phase:
                 dimension = 2 ** self.num_qubits
-                op = self.compose(ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
-                                  qargs=qargs)
+                op = self.compose(
+                    ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
+                    qargs=qargs)
                 self._data = op.data
             flat_instr = obj.definition.to_instruction()
             for instr, qregs, cregs in flat_instr.definition.data:
