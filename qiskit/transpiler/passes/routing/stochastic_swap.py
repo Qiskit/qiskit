@@ -44,7 +44,7 @@ logger = getLogger(__name__)
 
 def _swap_trial(args):
     proc_num, num_iter, num_qubits, int_layout, int_qubit_subset, int_gates, \
-        cdist2, cdist, edges, scale, seed, best_path = args
+        cdist2, cdist, edges, scale, seed, gate_len, best_path = args
     if os.path.isfile(best_path):
         return None
     rng = np.random.default_rng(seed + proc_num)
@@ -64,14 +64,25 @@ def _swap_trial(args):
             with open(best_path, 'w') as fd:
                 fd.write(str(proc_num))
 
-            return [(dist, optim_edges, trial_layout, depth_step)]
+            return dist, optim_edges, trial_layout, depth_step
         results.append((dist, optim_edges, trial_layout, depth_step))
-    return results
+    best_depth = inf  # initialize best depth
+    best_edges = None  # best edges found
+    best_circuit = None  # initialize best swap circuit
+    best_layout = None  # initialize best final layout
+    best_dist = None
+    for dist, optim_edges, trial_layout, depth_step in results:
+        if dist == gate_len and depth_step < best_depth:
+            best_dist = dist
+            best_edges = optim_edges
+            best_layout = trial_layout
+            best_depth = min(best_depth, depth_step)
+    return best_dist, best_edges, best_layout, best_depth
 
 
 def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
                           int_gates, cdist2, cdist, edges, scale, seed,
-                          best_path, pool):
+                          best_path, gate_len, pool):
     # Handle the case where there are more CPUs than iterations by running
     # one on each CPU
     cpus = CPU_COUNT if CPU_COUNT <= 8 else 8
@@ -84,8 +95,8 @@ def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
     results = pool.map(_swap_trial, [(x, num_iter,
                                       num_qubits, int_layout, int_qubit_subset,
                                       int_gates, cdist2, cdist, edges, scale, seed,
-                                      best_path) for x in range(proc_count)])
-    return list(itertools.chain.from_iterable(filter(None, results)))
+                                      gate_len, best_path) for x in range(proc_count)])
+    return results
 
 
 class StochasticSwap(TransformationPass):
@@ -249,7 +260,7 @@ class StochasticSwap(TransformationPass):
         results = _parallel_swap_trials(trials, num_qubits, int_layout,
                                         int_qubit_subset, int_gates, cdist2,
                                         cdist, edges, scale, self.seed,
-                                        best_path, pool)
+                                        best_path, len(gates), pool)
         if os.path.isfile(best_path):
             filtered_results = filter(None, results)
             ideal_result = [x for x in filtered_results if x[3] == 1][0]
