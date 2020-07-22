@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    A bug was fixed where only the first :class:`qiskit.pulse.configuration.Kernel`
+    or :class:`qiskit.pulse.configuration.Discriminator` for an
+    :class:`qiskit.pulse.Acquire` was used when there were multiple Acquires
+    at the same time in a :class:`qiskit.pulse.Schedule`.
