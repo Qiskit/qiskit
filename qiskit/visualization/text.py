@@ -503,6 +503,7 @@ class InputWire(DrawElement):
 
         Args:
             names (list): List of names for the wires.
+
         Returns:
             list: The new layer
         """
@@ -532,7 +533,6 @@ class TextDrawing():
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-
 
     def __str__(self):
         return self.single_string()
