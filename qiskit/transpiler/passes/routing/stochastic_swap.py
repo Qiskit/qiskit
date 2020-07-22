@@ -19,6 +19,7 @@ import itertools
 import tempfile
 from logging import getLogger
 from math import inf
+import multiprocessing
 import os
 
 import numpy as np
@@ -29,7 +30,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-import multiprocessing
+from qiskit.tools.parallel import CPU_COUNT
+
 
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
@@ -41,34 +43,49 @@ logger = getLogger(__name__)
 
 
 def _swap_trial(args):
-    trial, num_qubits, int_layout, int_qubit_subset, int_gates, cdist2, \
-        cdist, edges, scale, seed, best_path = args
+    proc_num, num_iter, num_qubits, int_layout, int_qubit_subset, int_gates, \
+        cdist2, cdist, edges, scale, seed, best_path = args
     if os.path.isfile(best_path):
         return None
-    rng = np.random.default_rng(seed + trial)
-    logger.info("layer_permutation: trial %s", trial)
-    # This is one Trial --------------------------------------
-    dist, optim_edges, trial_layout, depth_step = swap_trial(
-        num_qubits, int_layout, int_qubit_subset, int_gates, cdist2,
-        cdist, edges, scale, rng)
+    rng = np.random.default_rng(seed + proc_num)
+    results = []
+    for i in range(num_iter):
+        if os.path.isfile(best_path):
+            return None
+        logger.info("layer_permutation %s: trial %s", proc_num, i)
+        # This is one Trial --------------------------------------
+        dist, optim_edges, trial_layout, depth_step = swap_trial(
+            num_qubits, int_layout, int_qubit_subset, int_gates, cdist2,
+            cdist, edges, scale, rng)
+        logger.debug("layer_permutation %s: final distance for this trial = %s", proc_num, dist)
+        # Break out of trial loop if we found a depth 1 circuit
+        # since we can't improve it further
+        if depth_step == 1:
+            with open(best_path, 'w') as fd:
+                fd.write(str(proc_num))
 
-    logger.debug("layer_permutation: final distance for this trial = %s", dist)
-    # Break out of trial loop if we found a depth 1 circuit
-    # since we can't improve it further
-    if depth_step == 1:
-        with open(best_path, 'w') as fd:
-            fd.write(str(trial))
-    return dist, optim_edges, trial_layout, depth_step
+            return [(dist, optim_edges, trial_layout, depth_step)]
+        results.append((dist, optim_edges, trial_layout, depth_step))
+    return results
 
 
 def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
                           int_gates, cdist2, cdist, edges, scale, seed,
                           best_path, pool):
-    results = pool.map(_swap_trial, [(x,
+    # Handle the case where there are more CPUs than iterations by running
+    # one on each CPU
+    cpus = CPU_COUNT if CPU_COUNT <= 8 else 8
+    if cpus > trials:
+        num_iter = 1
+        proc_count = trials
+    else:
+        num_iter = int(trials / cpus)
+        proc_count = cpus
+    results = pool.map(_swap_trial, [(x, num_iter,
                                       num_qubits, int_layout, int_qubit_subset,
                                       int_gates, cdist2, cdist, edges, scale, seed,
-                                      best_path) for x in range(trials)])
-    return results
+                                      best_path) for x in range(proc_count)])
+    return list(itertools.chain.from_iterable(filter(None, results)))
 
 
 class StochasticSwap(TransformationPass):
@@ -134,8 +151,10 @@ class StochasticSwap(TransformationPass):
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
 
-        pool = multiprocessing.Pool()
-        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, pool=pool)
+        cpus = CPU_COUNT if CPU_COUNT <= 8 else 8
+        with multiprocessing.Pool(cpus) as pool:
+            new_dag = self._mapper(dag, self.coupling_map, trials=self.trials,
+                                   pool=pool)
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
@@ -246,6 +265,7 @@ class StochasticSwap(TransformationPass):
                     best_edges = optim_edges
                     best_layout = trial_layout
                     best_depth = min(best_depth, depth_step)
+
         # If we have no best circuit for this layer, all of the
         # trials have failed
         if best_layout is None:
