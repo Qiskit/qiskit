@@ -79,7 +79,7 @@ except ImportError:
 # with other modules that check for IBMQ (tools)
 from qiskit.execute import execute  # noqa
 from qiskit.compiler import transpile, assemble, schedule  # noqa
-from qiskit.providers.quick_simulate import quick_simulate
+from qiskit.providers.quick_simulate import quick_simulate  # noqa
 
 from .version import __version__  # noqa
 from .version import _get_qiskit_versions  # noqa

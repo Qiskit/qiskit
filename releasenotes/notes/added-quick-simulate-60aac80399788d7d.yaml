@@ -1,6 +1,4 @@
 ---
-prelude: >
-    A handy function to quickly simulate a given circuit on a given classical input.
 features:
   - |
     Always forgetting the simulation code myself, this introduces a function 'quick_simulate'. For example to test a 1-bit adder,
