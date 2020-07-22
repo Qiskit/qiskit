@@ -913,8 +913,12 @@ class TestControlledGate(QiskitTestCase):
         ccx = cx.control(1)
         base_mat = Operator(cx).data
         target = _compute_control_matrix(base_mat, 1)
-
         self.assertEqual(Operator(ccx), Operator(target))
+
+        expected = QuantumCircuit(*ccx.definition.qregs)
+        expected.ccx(0, 1, 2)
+        expected.u1(theta, 0)
+        self.assertEqual(ccx.definition, expected)
 
     @data(1, 2)
     def test_controlled_global_phase(self, num_ctrl_qubits):
