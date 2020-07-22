@@ -155,7 +155,7 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, (SamplePulse, Waveform)):
-        drawer = _matplotlib.SamplePulseDrawer(style=style)
+        drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
