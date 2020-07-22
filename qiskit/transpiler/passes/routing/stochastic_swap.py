@@ -29,7 +29,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-from qiskit.tools.parallel import parallel_map
+import multiprocessing
 
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
@@ -39,10 +39,12 @@ from .cython.stochastic_swap.swap_trial import swap_trial
 
 logger = getLogger(__name__)
 
-def _swap_trial(trial, num_qubits, int_layout, int_qubit_subset,
-                int_gates, cdist2, cdist, edges, scale, seed, best_path):
+
+def _swap_trial(args):
+    trial, num_qubits, int_layout, int_qubit_subset, int_gates, cdist2, \
+        cdist, edges, scale, seed, best_path = args
     if os.path.isfile(best_path):
-        return
+        return None
     rng = np.random.default_rng(seed + trial)
     logger.info("layer_permutation: trial %s", trial)
     # This is one Trial --------------------------------------
@@ -60,12 +62,12 @@ def _swap_trial(trial, num_qubits, int_layout, int_qubit_subset,
 
 
 def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
-                         int_gates, cdist2, cdist, edges, scale, seed,
-                         best_path):
-    results = parallel_map(_swap_trial, range(trials),
-                           (num_qubits, int_layout, int_qubit_subset,
-                            int_gates, cdist2, cdist, edges, scale, seed,
-                            best_path))
+                          int_gates, cdist2, cdist, edges, scale, seed,
+                          best_path, pool):
+    results = pool.map(_swap_trial, [(x,
+                                      num_qubits, int_layout, int_qubit_subset,
+                                      int_gates, cdist2, cdist, edges, scale, seed,
+                                      best_path) for x in range(trials)])
     return results
 
 
@@ -132,11 +134,12 @@ class StochasticSwap(TransformationPass):
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
 
-        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
+        pool = multiprocessing.Pool()
+        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials, pool=pool)
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
-                           coupling, trials):
+                           coupling, trials, pool):
         """Find a swap circuit that implements a permutation for this layer.
 
         The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -227,7 +230,7 @@ class StochasticSwap(TransformationPass):
         results = _parallel_swap_trials(trials, num_qubits, int_layout,
                                         int_qubit_subset, int_gates, cdist2,
                                         cdist, edges, scale, self.seed,
-                                        best_path)
+                                        best_path, pool)
         if os.path.isfile(best_path):
             filtered_results = filter(None, results)
             ideal_result = [x for x in filtered_results if x[3] == 1][0]
@@ -302,7 +305,7 @@ class StochasticSwap(TransformationPass):
 
         return dagcircuit_output
 
-    def _mapper(self, circuit_graph, coupling_graph, trials=20):
+    def _mapper(self, circuit_graph, coupling_graph, trials=20, pool=None):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
 
         Use self.trivial_layout for the initial layout.
@@ -349,7 +352,7 @@ class StochasticSwap(TransformationPass):
             success_flag, best_circuit, best_depth, best_layout \
                 = self._layer_permutation(layer["partition"], layout,
                                           qubit_subset, coupling_graph,
-                                          trials)
+                                          trials, pool)
             logger.debug("mapper: layer %d", i)
             logger.debug("mapper: success_flag=%s,best_depth=%s",
                          success_flag, str(best_depth))
@@ -368,7 +371,7 @@ class StochasticSwap(TransformationPass):
                             serial_layer["partition"],
                             layout, qubit_subset,
                             coupling_graph,
-                            trials)
+                            trials, pool)
                     logger.debug("mapper: layer %d, sublayer %d", i, j)
                     logger.debug("mapper: success_flag=%s,best_depth=%s,",
                                  success_flag, str(best_depth))
