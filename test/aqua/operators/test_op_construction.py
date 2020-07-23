@@ -75,6 +75,15 @@ class TestOpConstruction(QiskitAquaTestCase):
         self.assertEqual(Y.eval('0').eval('1'), 1j)
         self.assertEqual(Y.eval('1').eval('1'), 0)
 
+        with self.assertRaises(ValueError):
+            Y.eval('11')
+
+        with self.assertRaises(ValueError):
+            (X ^ Y).eval('1111')
+
+        with self.assertRaises(ValueError):
+            Y.eval((X ^ X).to_matrix_op())
+
         # Check that Pauli logic eval returns same as matrix logic
         self.assertEqual(PrimitiveOp(Z.to_matrix()).eval('0').eval('0'), 1)
         self.assertEqual(PrimitiveOp(Z.to_matrix()).eval('1').eval('0'), 0)
