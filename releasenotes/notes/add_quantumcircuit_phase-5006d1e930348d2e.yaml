@@ -11,7 +11,7 @@ features:
       circ = QuantumCircuit(1, phase=math.pi)
       circ.u1(0)
 
-    The global phase may also be set or queried with the `circ.phase`
+    The global phase may also be set or queried with the `circ.global_phase`
     property. In either case the setting is in radians. If the circuit
     is converted to an instruction or gate the global phase is
     represented by two single qubit rotations on the first qubit.
