@@ -642,6 +642,9 @@ class QuantumCircuit:
         else:
             dest._data += mapped_instrs
 
+        for instr, _, _ in mapped_instrs:
+            dest._update_parameter_table(instr)
+
         if inplace:
             return None
 
