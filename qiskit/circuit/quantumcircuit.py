@@ -30,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaQubit
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -163,6 +163,9 @@ class QuantumCircuit:
         # This is a map of registers bound to this circuit, by name.
         self.qregs = []
         self.cregs = []
+        self._qubits = []
+        self._clbits = []
+        self._ancillas = []
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -576,52 +579,94 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
-        if front:
-            raise CircuitError("Front composition of QuantumCircuit not supported yet.")
 
-        if isinstance(other, QuantumCircuit):
-            from qiskit.converters.circuit_to_dag import circuit_to_dag
-            from qiskit.converters.dag_to_circuit import dag_to_circuit
+        if inplace:
+            dest = self
+        else:
+            dest = self.copy()
 
-            dag_self = circuit_to_dag(self)
-            dag_other = circuit_to_dag(other)
-            dag_self.compose(dag_other, qubits=qubits, clbits=clbits, front=front)
-            composed_circuit = dag_to_circuit(dag_self)
-            if inplace:  # FIXME: this is just a hack for inplace to work. Still copies.
-                self.__dict__.update(composed_circuit.__dict__)
-                return None
+        if not isinstance(other, QuantumCircuit):
+            if front:
+                dest.data.insert(0, (other, qubits, clbits))
             else:
-                return composed_circuit
+                dest.append(other, qargs=qubits, cargs=clbits)
 
-        else:  # fall back to append which accepts Instruction and BaseOperator
             if inplace:
-                self.append(other, qargs=qubits, cargs=clbits)
                 return None
-            else:
-                new_circuit = self.copy()
-                new_circuit.append(other, qargs=qubits, cargs=clbits)
-                return new_circuit
+            return dest
+
+        instrs = other.data
+
+        if other.num_qubits > self.num_qubits or \
+           other.num_clbits > self.num_clbits:
+            raise CircuitError("Trying to compose with another QuantumCircuit "
+                               "which has more 'in' edges.")
+
+        # number of qubits and clbits must match number in circuit or None
+        identity_qubit_map = dict(zip(other.qubits, self.qubits))
+        identity_clbit_map = dict(zip(other.clbits, self.clbits))
+
+        if qubits is None:
+            qubit_map = identity_qubit_map
+        elif len(qubits) != len(other.qubits):
+            raise CircuitError("Number of items in qubits parameter does not"
+                               " match number of qubits in the circuit.")
+        else:
+            qubit_map = {other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
+                         for i, q in enumerate(qubits)}
+        if clbits is None:
+            clbit_map = identity_clbit_map
+        elif len(clbits) != len(other.clbits):
+            raise CircuitError("Number of items in clbits parameter does not"
+                               " match number of clbits in the circuit.")
+        else:
+            clbit_map = {other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
+                         for i, c in enumerate(clbits)}
+
+        edge_map = {**qubit_map, **clbit_map} or {**identity_qubit_map, **identity_clbit_map}
+
+        mapped_instrs = []
+        for instr, qargs, cargs in instrs:
+            n_qargs = [edge_map[qarg] for qarg in qargs]
+            n_cargs = [edge_map[carg] for carg in cargs]
+            n_instr = instr.copy()
+
+            if instr.condition is not None:
+                from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
+                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition)
+
+            mapped_instrs.append((n_instr, n_qargs, n_cargs))
+
+        if front:
+            dest._data = mapped_instrs + dest._data
+        else:
+            dest._data += mapped_instrs
+
+        if inplace:
+            return None
+
+        return dest
 
     @property
     def qubits(self):
         """
         Returns a list of quantum bits in the order that the registers were added.
         """
-        return [qbit for qreg in self.qregs for qbit in qreg]
+        return self._qubits
 
     @property
     def clbits(self):
         """
         Returns a list of classical bits in the order that the registers were added.
         """
-        return [cbit for creg in self.cregs for cbit in creg]
+        return self._clbits
 
     @property
     def ancillas(self):
         """
-        Returns a list of quantum bits in the order that the registers were added.
+        Returns a list of ancilla bits in the order that the registers were added.
         """
-        return [qbit for qreg in self.qregs for qbit in qreg if isinstance(qbit, AncillaQubit)]
+        return self._ancillas
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
@@ -822,10 +867,16 @@ class QuantumCircuit:
             if register.name in [reg.name for reg in self.qregs + self.cregs]:
                 raise CircuitError("register name \"%s\" already exists"
                                    % register.name)
+
+            if isinstance(register, AncillaRegister):
+                self._ancillas.extend(register)
+
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
+                self._qubits.extend(register)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
+                self._clbits.extend(register)
             else:
                 raise CircuitError("expected a register")
 
@@ -1480,6 +1531,8 @@ class QuantumCircuit:
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
+        cpy._qubits = self._qubits.copy()
+        cpy._clbits = self._clbits.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self._data}
