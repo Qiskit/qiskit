@@ -1,6 +1,6 @@
 features:
   - |
-    Adds a `phase` attribute to `QuantumCircuit` for tracking global
+    Adds a `global_phase` attribute to `QuantumCircuit` for tracking global
     phase. This allows, for instance, to have the `to_matrix` method
     of a gate to exactly correspond to its decompositions instead of
     just up to a global phase. The same attribute has also been
