@@ -31,7 +31,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction, GraphState, PhaseEstimation)
+                                    HiddenLinearFunction, GraphState, PhaseEstimation,
+                                    GroverOperator)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -1915,6 +1916,42 @@ class TestPhaseEstimation(QiskitTestCase):
             iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
             pec = PhaseEstimation(3, unitary, iqft=iqft)
             self.assertEqual(pec.data[-1][0].definition, iqft)
+
+
+class TestGroverOperator(QiskitTestCase):
+    """Test the Grover operator."""
+
+    def assertGroverOperatorIsCorrect(self, grover_op, oracle, state_in=None):
+        """Test that ``grover_op`` implements the correct Grover operator."""
+
+        oracle = Operator(oracle)
+        if state_in is None:
+            state_in = QuantumCircuit(oracle.num_qubits)
+            state_in.h(state_in.qubits)
+        state_in = Operator(state_in)
+        zero_reflection = np.eye(2 ** oracle.num_qubits)
+        zero_reflection[0][0] = -1
+        zero_reflection = Operator(zero_reflection)
+
+        expected = state_in.dot(zero_reflection).dot(state_in.adjoint()).dot(oracle)
+        self.assertTrue(Operator(grover_op).equiv(expected))
+
+    def test_grover_operator(self):
+        """Test the base case for the Grover operator."""
+        with self.subTest('single Z oracle'):
+            oracle = QuantumCircuit(3)
+            oracle.z(2)  # good state if last qubit is 1
+            grover_op = GroverOperator(oracle)
+            self.assertGroverOperatorIsCorrect(grover_op, oracle)
+
+        with self.subTest('target state x0x1'):
+            oracle = QuantumCircuit(4)
+            oracle.x(1)
+            oracle.z(1)
+            oracle.x(1)
+            oracle.z(3)
+            grover_op = GroverOperator(oracle)
+            self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
 
 if __name__ == '__main__':
