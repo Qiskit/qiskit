@@ -653,7 +653,6 @@ class QuantumCircuit:
 
         dest.global_phase += other.global_phase
 
-
         if inplace:
             return None
 
