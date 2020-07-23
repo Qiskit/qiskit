@@ -586,6 +586,9 @@ class QuantumCircuit:
             dest = self.copy()
 
         if not isinstance(other, QuantumCircuit):
+            if isinstance(other, Instruction):
+                dest._update_parameter_table(other)
+
             if front:
                 dest.data.insert(0, (other, qubits, clbits))
             else:
@@ -641,6 +644,9 @@ class QuantumCircuit:
             dest._data = mapped_instrs + dest._data
         else:
             dest._data += mapped_instrs
+
+        for instr, _, _ in mapped_instrs:
+            dest._update_parameter_table(instr)
 
         if inplace:
             return None

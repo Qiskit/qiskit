@@ -18,7 +18,7 @@
 
 import unittest
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
 
@@ -489,6 +489,29 @@ class TestCircuitCompose(QiskitTestCase):
         expected.cx(0, 1)
 
         self.assertEqual(output, expected)
+
+    def test_compose_adds_parameters(self):
+        """Test the composed circuit contains all parameters."""
+        a, b = Parameter('a'), Parameter('b')
+
+        qc_a = QuantumCircuit(1)
+        qc_a.rx(a, 0)
+
+        qc_b = QuantumCircuit(1)
+        qc_b.rx(b, 0)
+
+        with self.subTest('compose with other circuit out-of-place'):
+            qc_1 = qc_a.compose(qc_b)
+            self.assertEqual(qc_1.parameters, {a, b})
+
+        with self.subTest('compose with other instruction out-of-place'):
+            instr_b = qc_b.to_instruction()
+            qc_2 = qc_a.compose(instr_b, [0])
+            self.assertEqual(qc_2.parameters, {a, b})
+
+        with self.subTest('compose with other circuit in-place'):
+            qc_a.compose(qc_b, inplace=True)
+            self.assertEqual(qc_a.parameters, {a, b})
 
 
 if __name__ == '__main__':
