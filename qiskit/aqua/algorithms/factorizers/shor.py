@@ -59,7 +59,7 @@ class Shor(QuantumAlgorithm):
         """
         Args:
             N: The integer to be factored, has a min. value of 3.
-            a: A random integer that satisfies a < N and gcd(a, N) = 1, has a min. value of 2.
+            a: Any integer that satisfies 1 < a < N and gcd(a, N) = 1.
             quantum_instance: Quantum Instance or Backend
 
          Raises:
