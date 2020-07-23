@@ -80,6 +80,9 @@ class MatrixOp(PrimitiveOp):
                 'Sum over operators with different numbers of qubits, {} and {}, is not well '
                 'defined'.format(self.num_qubits, other.num_qubits))
 
+        if isinstance(other, MatrixOp) and self.primitive == other.primitive:
+            return MatrixOp(self.primitive, coeff=self.coeff + other.coeff)
+
         # Terra's Operator cannot handle ParameterExpressions
         if isinstance(other, MatrixOp) and \
                 not isinstance(self.coeff, ParameterExpression) and \
@@ -95,10 +98,15 @@ class MatrixOp(PrimitiveOp):
                         coeff=np.conj(self.coeff))
 
     def equals(self, other: OperatorBase) -> bool:
-        if not isinstance(other, MatrixOp) or not self.coeff == other.coeff:
+        if not isinstance(other, MatrixOp):
             return False
-
-        return self.primitive == other.primitive
+        if isinstance(self.coeff, ParameterExpression) ^ \
+                isinstance(other.coeff, ParameterExpression):
+            return False
+        if isinstance(self.coeff, ParameterExpression) and \
+                isinstance(other.coeff, ParameterExpression):
+            return self.coeff == other.coeff and self.primitive == other.primitive
+        return self.coeff * self.primitive == other.coeff * other.primitive  # type: ignore
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         if isinstance(other.primitive, Operator):  # type: ignore
