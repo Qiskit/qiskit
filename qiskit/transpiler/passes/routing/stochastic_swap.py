@@ -15,7 +15,6 @@
 """Map a DAGCircuit onto a `coupling_map` adding swap gates."""
 
 from collections import OrderedDict
-import itertools
 import tempfile
 from logging import getLogger
 from math import inf
@@ -42,9 +41,9 @@ from .cython.stochastic_swap.swap_trial import swap_trial
 logger = getLogger(__name__)
 
 
-def _swap_trial(args):
-    proc_num, num_iter, num_qubits, int_layout, int_qubit_subset, int_gates, \
-        cdist2, cdist, edges, scale, seed, gate_len, best_path = args
+def _swap_trial(proc_num, num_iter, num_qubits, int_layout, int_qubit_subset,
+                int_gates, cdist2, cdist, edges, scale, seed, gate_len,
+                best_path):
     if os.path.isfile(best_path):
         return None
     rng = np.random.default_rng(seed + proc_num)
@@ -68,7 +67,6 @@ def _swap_trial(args):
         results.append((dist, optim_edges, trial_layout, depth_step))
     best_depth = inf  # initialize best depth
     best_edges = None  # best edges found
-    best_circuit = None  # initialize best swap circuit
     best_layout = None  # initialize best final layout
     best_dist = None
     for dist, optim_edges, trial_layout, depth_step in results:
@@ -91,10 +89,12 @@ def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
     cpus = CPU_COUNT if CPU_COUNT <= max_workers else max_workers
     num_iter = int(trials / cpus)
     proc_count = cpus
-    results = pool.map(_swap_trial, [(x, num_iter,
-                                      num_qubits, int_layout, int_qubit_subset,
-                                      int_gates, cdist2, cdist, edges, scale, seed,
-                                      gate_len, best_path) for x in range(proc_count)])
+    results = pool.starmap(_swap_trial,
+                           [(x, num_iter,
+                             num_qubits, int_layout,
+                             int_qubit_subset, int_gates, cdist2,
+                             cdist, edges, scale, seed, gate_len,
+                             best_path) for x in range(proc_count)])
     return results
 
 
