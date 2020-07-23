@@ -56,13 +56,6 @@ class GroverOperator(QuantumCircuit):
         self._build()
 
     @property
-    def num_state_qubits(self):
-        """The number of state qubits."""
-        if hasattr(self._oracle, 'num_state_qubits'):
-            return self._oracle.num_state_qubits
-        return self._oracle.num_qubits
-
-    @property
     def idle_qubits(self):
         """Idle qubits, on which S0 is not applied."""
         if self._idle_qubits is None:
