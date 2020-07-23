@@ -168,31 +168,40 @@ class PauliOp(PrimitiveOp):
             new_front = front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore
                                         for front_elem in front.oplist])
 
-        elif isinstance(front, DictStateFn):
-            new_dict = {}  # type: Dict
-            corrected_x_bits = self.primitive.x[::-1]  # type: ignore
-            corrected_z_bits = self.primitive.z[::-1]  # type: ignore
+        else:
 
-            for bstr, v in front.primitive.items():
-                bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
-                new_b_str = np.logical_xor(bitstr, corrected_x_bits)
-                new_str = ''.join(map(str, 1 * new_b_str))
-                z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits))
-                y_factor = np.product(np.sqrt(1 - 2 * np.logical_and(corrected_x_bits,
-                                                                     corrected_z_bits) + 0j))
-                new_dict[new_str] = (v * z_factor * y_factor) + new_dict.get(new_str, 0)
-            new_front = StateFn(new_dict, coeff=self.coeff * front.coeff)
+            if self.num_qubits != front.num_qubits:
+                raise ValueError(
+                    'eval does not support operands with differing numbers of qubits, '
+                    '{} and {}, respectively.'.format(
+                        self.num_qubits, front.num_qubits))
 
-        elif isinstance(front, StateFn) and front.is_measurement:
-            raise ValueError('Operator composed with a measurement is undefined.')
+            if isinstance(front, DictStateFn):
 
-        # Composable types with PauliOp
-        elif isinstance(front, (PauliOp, CircuitOp, CircuitStateFn)):
-            new_front = self.compose(front)
+                new_dict = {}  # type: Dict
+                corrected_x_bits = self.primitive.x[::-1]  # type: ignore
+                corrected_z_bits = self.primitive.z[::-1]  # type: ignore
+
+                for bstr, v in front.primitive.items():
+                    bitstr = np.asarray(list(bstr)).astype(np.int).astype(np.bool)
+                    new_b_str = np.logical_xor(bitstr, corrected_x_bits)
+                    new_str = ''.join(map(str, 1 * new_b_str))
+                    z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits))
+                    y_factor = np.product(np.sqrt(1 - 2 * np.logical_and(corrected_x_bits,
+                                                                         corrected_z_bits) + 0j))
+                    new_dict[new_str] = (v * z_factor * y_factor) + new_dict.get(new_str, 0)
+                    new_front = StateFn(new_dict, coeff=self.coeff * front.coeff)
+
+            elif isinstance(front, StateFn) and front.is_measurement:
+                raise ValueError('Operator composed with a measurement is undefined.')
+
+            # Composable types with PauliOp
+            elif isinstance(front, (PauliOp, CircuitOp, CircuitStateFn)):
+                new_front = self.compose(front)
 
         # Covers VectorStateFn and OperatorStateFn
-        elif isinstance(front, OperatorBase):
-            new_front = self.to_matrix_op().eval(front.to_matrix_op())  # type: ignore
+            elif isinstance(front, OperatorBase):
+                new_front = self.to_matrix_op().eval(front.to_matrix_op())  # type: ignore
 
         return new_front
 
