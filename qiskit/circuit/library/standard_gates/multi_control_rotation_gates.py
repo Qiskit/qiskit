@@ -173,9 +173,9 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
 
     if mode == 'basic':
         self.u3(theta / 2, 0, 0, q_target)
-        self.mct(q_controls, q_target, q_ancillae)
+        self.mcx(q_controls, q_target, q_ancillae, mode='v-chain')
         self.u3(-theta / 2, 0, 0, q_target)
-        self.mct(q_controls, q_target, q_ancillae)
+        self.mcx(q_controls, q_target, q_ancillae, mode='v-chain')
     elif mode == 'noancilla':
         n_c = len(control_qubits)
         if n_c == 1:  # cu3
