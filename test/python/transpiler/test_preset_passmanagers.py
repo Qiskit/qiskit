@@ -51,6 +51,22 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
 
+    def test_layout_3239(self, level=3):
+        """Test final layout after preset level3 passmanager does not include diagonal gates
+        See: https://github.com/Qiskit/qiskit-terra/issues/3239
+        """
+        qc = QuantumCircuit(5, 5)
+        qc.h(0)
+        qc.cx(range(3), range(1, 4))
+        qc.z(range(4))
+        qc.measure(range(4), range(4))
+        result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx'],
+                           layout_method='trivial', optimization_level=level)
+
+        dag = circuit_to_dag(result)
+        op_nodes = [node.name for node in dag.topological_op_nodes()]
+        self.assertNotIn('u1', op_nodes)  # Check if the diagonal Z-Gates (u1) were removed
+
     @combine(level=[0, 1, 2, 3], name='level{level}')
     def test_no_basis_gates(self, level):
         """Test that basis_gates can be None (level={level})"""
