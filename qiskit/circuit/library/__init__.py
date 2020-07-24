@@ -128,6 +128,14 @@ Comparators
 
    IntegerComparator
 
+Functions on binary variables
++++++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuadraticForm
+
 Particular Quantum Circuits
 ===========================
 

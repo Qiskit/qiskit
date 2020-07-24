@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quadratic form."""
+"""A circuit implementing a quadratic form on binary variables."""
 
 from typing import Union, Optional, List
 
@@ -23,17 +23,22 @@ from qiskit.circuit.library import QFT
 
 
 class QuadraticForm(QuantumCircuit):
-    """Converts an optimization problem (QUBO) to a negative value oracle.
+    r"""Implements a quadratic form on binary variables encoded in qubit registers.
 
-    In addition, a state preparation operator is generated from the coefficients and constant of a
-    QUBO, which can be used to encode the function into a quantum state. In conjunction, this oracle
-    and operator can be used to flag the negative values of a QUBO encoded in a quantum state.
+    A quadratic form on binary variables is a quadratic function :math:`Q` acting on a binary
+    variable of :math:`n` bits, :math:`x = x_0 ... x_{n-1}`. For a matrix :math:`A`, a vector
+    :math:`b` and a scalar :math:`c` the function can be written as
 
-    The construction of the oracle is discussed in [1].
+    .. math::
 
-    References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-            arxiv:1912.04088.
+        Q(x) = x^T A x + x^T b + c
+
+    Provided with :math:`m` qubits to encode the value, this circuit computes :math:`Q(x) \mod 2^m`.
+
+    .. math::
+
+        |x\rangle_n |0\rangle_m \mapsto |x\rangle_n |Q(x) \mod 2\rangle_m
+
     """
 
     def __init__(self,
@@ -43,7 +48,17 @@ class QuadraticForm(QuantumCircuit):
                  linear: Optional[Union[np.ndarray,
                                         List[Union[float, ParameterExpression]]]] = None,
                  offset: Optional[Union[float, ParameterExpression]] = None) -> None:
-        """ """
+        r"""
+        Args:
+            num_value_qubits: The number of qubits to encode the result. Called :math:`m` in
+                the class documentation.
+            quadratic: A matrix containing the quadratic coefficients, :math:`A`.
+            linear: An array containing the linear coefficients, :math:`b`.
+            offset: A constant offset, :math:`c`.
+
+        Raises:
+            ValueError: If ``linear`` and ``quadratic`` have mismatching sizes.
+        """
         # check inputs match
         if quadratic is not None and linear is not None:
             if len(quadratic) != len(linear):
@@ -58,26 +73,27 @@ class QuadraticForm(QuantumCircuit):
 
         qr_key = QuantumRegister(num_key)
         qr_value = QuantumRegister(num_value_qubits)
-        super().__init__(qr_key, qr_value, name='q(x)')
+        super().__init__(qr_key, qr_value, name='Q(x)')
 
         scaling = np.pi * 2 ** (1 - num_value_qubits)
 
         # constant coefficient
-        if offset is not None:
+        if offset is not None and offset != 0:
             for i in range(num_value_qubits):
                 self.u1(scaling * 2 ** i * offset, qr_value[i])
 
-        if linear is not None:
-            for j in range(num_key):
-                value = linear[j]
-                if value != 0:
-                    for i in range(num_value_qubits):
-                        self.cu1(scaling * 2 ** i * value, qr_key[j], qr_value[i])
+        # linear part
+        for j in range(num_key):
+            value = linear[j] if linear is not None else 0
+            value += quadratic[j][j] if quadratic is not None else 0
+            if value != 0:
+                for i in range(num_value_qubits):
+                    self.cu1(scaling * 2 ** i * value, qr_key[j], qr_value[i])
 
         if quadratic is not None:
             for j in range(num_key):
                 for k in range(j + 1, num_key):
-                    value = quadratic[j][k]
+                    value = quadratic[j][k] + quadratic[k][j]
                     if value != 0:
                         for i in range(num_value_qubits):
                             self.mcu1(scaling * 2 ** i * value, [qr_key[j], qr_key[k]], qr_value[i])
