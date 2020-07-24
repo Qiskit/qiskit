@@ -40,13 +40,18 @@ from .cython.stochastic_swap.swap_trial import swap_trial
 
 logger = getLogger(__name__)
 
+var_dict = {}
+
+def init_workers(seed):
+    var_dict['rng'] = np.random.default_rng(seed + os.getpid())
+
 
 def _swap_trial(proc_num, num_iter, num_qubits, int_layout, int_qubit_subset,
-                int_gates, cdist2, cdist, edges, scale, seed, gate_len,
+                int_gates, cdist2, cdist, edges, scale, gate_len,
                 best_path):
     if os.path.isfile(best_path):
         return None
-    rng = np.random.default_rng(seed + proc_num)
+    rng = var_dict['rng']
     results = []
     for i in range(num_iter):
         if os.path.isfile(best_path):
@@ -79,7 +84,7 @@ def _swap_trial(proc_num, num_iter, num_qubits, int_layout, int_qubit_subset,
 
 
 def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
-                          int_gates, cdist2, cdist, edges, scale, seed,
+                          int_gates, cdist2, cdist, edges, scale,
                           best_path, gate_len, pool):
     # Handle the case where there are more CPUs than iterations by running
     # one on each CPU
@@ -93,7 +98,7 @@ def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
                            [(x, num_iter,
                              num_qubits, int_layout,
                              int_qubit_subset, int_gates, cdist2,
-                             cdist, edges, scale, seed, gate_len,
+                             cdist, edges, scale, gate_len,
                              best_path) for x in range(proc_count)])
     return results
 
@@ -165,7 +170,8 @@ class StochasticSwap(TransformationPass):
         if not max_workers:
             max_workers = 1
         cpus = CPU_COUNT if CPU_COUNT <= max_workers else max_workers
-        with multiprocessing.Pool(cpus) as pool:
+        with multiprocessing.Pool(cpus, initializer=init_workers,
+                                  initargs=(self.seed,)) as pool:
             new_dag = self._mapper(dag, self.coupling_map, trials=self.trials,
                                    pool=pool)
         return new_dag
@@ -261,7 +267,7 @@ class StochasticSwap(TransformationPass):
                                  'stochastic_swap+%s' % os.getpid())
         results = _parallel_swap_trials(trials, num_qubits, int_layout,
                                         int_qubit_subset, int_gates, cdist2,
-                                        cdist, edges, scale, self.seed,
+                                        cdist, edges, scale,
                                         best_path, len(gates), pool)
         if os.path.isfile(best_path):
             filtered_results = filter(None, results)
