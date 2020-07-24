@@ -769,7 +769,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                 yvalue = np.sqrt(1 - zvalue ** 2) * np.sin(angle)
 
                 # get prob and angle - prob will be shade and angle color
-                prob = np.real(np.dot(state[i], state[i].conj()))
+                prob = np.around(np.real(np.dot(state[i], state[i].conj())), decimals=15)
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1
