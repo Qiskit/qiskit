@@ -194,6 +194,7 @@ from .arithmetic import (
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
+    QuadraticForm,
 )
 from .n_local import (
     NLocal,
