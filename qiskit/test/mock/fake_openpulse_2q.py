@@ -219,8 +219,6 @@ class FakeOpenPulse2Q(FakeBackend):
                                              t0=0).to_dict(),
                         PulseQobjInstruction(name='test_pulse_2', ch='u0',
                                              t0=10).to_dict(),
-                        PulseQobjInstruction(name='pv', ch='d1',
-                                             t0=2, val='cos(P2)').to_dict(),
                         PulseQobjInstruction(name='test_pulse_1', ch='d1',
                                              t0=20).to_dict(),
                         PulseQobjInstruction(name='fc', ch='d1',

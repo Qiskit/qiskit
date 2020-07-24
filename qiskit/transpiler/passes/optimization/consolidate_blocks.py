@@ -16,7 +16,8 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
@@ -24,6 +25,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.synthesis import unitary_synthesis
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -39,19 +41,27 @@ class ConsolidateBlocks(TransformationPass):
         collected by a previous pass, such as `Collect2qBlocks`.
     """
 
-    def __init__(self, kak_basis_gate=CXGate(), force_consolidate=False):
+    def __init__(self,
+                 kak_basis_gate=None,
+                 force_consolidate=False,
+                 basis_gates=None):
         """ConsolidateBlocks initializer.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
+            basis_gates (List(str)): Basis gates from which to choose a KAK gate.
         """
         super().__init__()
         self.force_consolidate = force_consolidate
+
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
+        elif basis_gates is not None:
+            kak_basis_gate = unitary_synthesis._choose_kak_gate(basis_gates)
+            self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         else:
-            self.decomposer = None
+            self.decomposer = TwoQubitBasisDecomposer(CXGate())
 
     def run(self, dag):
         """Run the ConsolidateBlocks pass on `dag`.
@@ -104,7 +114,7 @@ class ConsolidateBlocks(TransformationPass):
         # create the dag from the updated list of blocks
         basis_gate_name = self.decomposer.gate.name
         for block in blocks:
-            if len(block) == 1 and (block[0].name not in ['cx', 'cz', 'rxx', 'iswap']
+            if len(block) == 1 and (block[0].name != basis_gate_name
                                     or block[0].op.is_parameterized()):
                 # an intermediate node that was added into the overall list
                 new_dag.apply_operation_back(block[0].op, block[0].qargs,
@@ -112,12 +122,19 @@ class ConsolidateBlocks(TransformationPass):
             else:
                 # find the qubits involved in this block
                 block_qargs = set()
+                block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
+                    if nd.condition:
+                        block_cargs |= set(nd.condition[0])
                 # convert block to a sub-circuit, then simulate unitary and add
-                block_width = len(block_qargs)
-                q = QuantumRegister(block_width)
-                subcirc = QuantumCircuit(q)
+                q = QuantumRegister(len(block_qargs))
+                # if condition in node, add clbits to circuit
+                if len(block_cargs) > 0:
+                    c = ClassicalRegister(len(block_cargs))
+                    subcirc = QuantumCircuit(q, c)
+                else:
+                    subcirc = QuantumCircuit(q)
                 block_index_map = self._block_qargs_to_indices(block_qargs,
                                                                global_index_map)
                 basis_count = 0
@@ -126,17 +143,17 @@ class ConsolidateBlocks(TransformationPass):
                         basis_count += 1
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
-                if self.force_consolidate or unitary.num_qubits > 2 or \
-                        self.decomposer.num_basis_gates(unitary) < basis_count:
 
-                    if len(block_qargs) <= 2:
-                        new_dag.apply_operation_back(
-                            self.decomposer(unitary).to_gate(),
-                            sorted(block_qargs, key=lambda x: block_index_map[x]))
-                    else:
-                        new_dag.apply_operation_back(
-                            UnitaryGate(unitary),
-                            sorted(block_qargs, key=lambda x: block_index_map[x]))
+                max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
+                if (
+                        self.force_consolidate
+                        or unitary.num_qubits > 2
+                        or self.decomposer.num_basis_gates(unitary) < basis_count
+                        or len(subcirc) > max_2q_depth
+                ):
+                    new_dag.apply_operation_back(
+                        UnitaryGate(unitary),
+                        sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
                         new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)

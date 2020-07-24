@@ -181,11 +181,13 @@ class CU3Gate(ControlledGate):
           u3(theta/2,phi,0) t;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
             (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
@@ -193,9 +195,8 @@ class CU3Gate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         r"""Return inverted CU3 gate.

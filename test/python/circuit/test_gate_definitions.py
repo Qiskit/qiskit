@@ -136,7 +136,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_entry = std_eqlib.get_entry(param_gate)
         float_entry = std_eqlib.get_entry(float_gate)
 
-        if not param_gate.definition:
+        if not param_gate.definition or not param_gate.definition.data:
             return
 
         self.assertGreaterEqual(len(param_entry), 1)
