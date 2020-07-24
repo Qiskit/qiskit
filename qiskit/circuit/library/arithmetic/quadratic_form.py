@@ -39,6 +39,12 @@ class QuadraticForm(QuantumCircuit):
 
         |x\rangle_n |0\rangle_m \mapsto |x\rangle_n |Q(x) \mod 2\rangle_m
 
+    The implementation of this circuit is discussed in [1], Fig. 6.
+
+    References:
+        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
     """
 
     def __init__(self,
