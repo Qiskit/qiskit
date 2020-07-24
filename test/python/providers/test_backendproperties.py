@@ -14,7 +14,8 @@
 
 """Base TestCase for testing Providers."""
 
-import unittest  # pylint: disable=unused-import
+import copy
+
 from qiskit.test.mock import FakeOurense
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
@@ -88,7 +89,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.frequency(0),
                          self.properties._qubits[0]['frequency'][0])
 
-    def test_reaout_error(self):
+    def test_readout_error(self):
         """Test for getting the readout error of given qubit."""
         self.assertEqual(self.properties.readout_error(0),
                          self.properties._qubits[0]['readout_error'][0])
@@ -96,9 +97,14 @@ class BackendpropertiesTestCase(QiskitTestCase):
     def test_apply_prefix(self):
         """Testing unit conversions."""
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'µs'),
-                         7.195004210055389e-05)
+                         7.19500421005539e-05)
         self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'ms'),
                          0.0719500421005539)
 
         with self.assertRaises(BackendPropertyError):
             self.properties._apply_prefix(71.9500421005539, 'ws')
+
+    def test_deepcopy(self):
+        """Test that deepcopy creates an identical object."""
+        copy_prop = copy.deepcopy(self.properties)
+        self.assertEqual(copy_prop, self.properties)

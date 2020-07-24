@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    A new method :meth:`~qiskit.circuit.EquivalenceLibrary.draw` has been
+    added to the :class:`qiskit.circuit.EquivalenceLibrary` class. This
+    method can be used for drawing the contents of an equivalence library,
+    which can be useful for debugging. For example:
+
+    .. jupyter-execute:
+
+      from qiskit.circuit import EquivalenceLibrary
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit import QuantumRegister
+      from qiskit.circuit import Parameter
+      from qiskit.circuit.library import HGate
+      from qiskit.circuit.library import U2Gate
+      from qiskit.circuit.library import U3Gate
+
+      my_equiv_library = EquivalenceLibrary()
+
+      q = QuantumRegister(1, 'q')
+      def_h = QuantumCircuit(q)
+      def_h.append(U2Gate(0, pi), [q[0]], [])
+      my_equiv_library.add_equivalence(HGate(), def_h)
+
+      theta = Parameter('theta')
+      phi = Parameter('phi')
+      lam = Parameter('lam')
+      def_u2 = QuantumCircuit(q)
+      def_u2.append(U3Gate(pi / 2, phi, lam), [q[0]], [])
+      my_equiv_library.add_equivalence(U2Gate(phi, lam), def_u2)
+
+      my_equiv_library.draw()

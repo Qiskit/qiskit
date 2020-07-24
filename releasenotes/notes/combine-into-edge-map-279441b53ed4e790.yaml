@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    A :meth:`~qiskit.transpiler.Layout.combine_into_edge_map()` method is added
+    for converting two Layouts into a qubit map composing two circuits.

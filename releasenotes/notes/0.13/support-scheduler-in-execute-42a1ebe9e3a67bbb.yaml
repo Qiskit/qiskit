@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    :func:`~qiskit.execute.execute` has a new kwarg ``schedule_circuit``. By
+    setting ``schedule_circuit=True`` this enables scheduling of the circuit
+    into a :class:`~qiskit.pulse.Schedule`. This allows users building
+    :class:`qiskit.circuit.QuantumCircuit` objects to make use of custom
+    scheduler  methods, such as the ``as_late_as_possible`` and
+    ``as_soon_as_possible`` methods.
+    For example::
+
+        job = execute(qc, backend, schedule_circuit=True,
+                      scheduling_method="as_late_as_possible")

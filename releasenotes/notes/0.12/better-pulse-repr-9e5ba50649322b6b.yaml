@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Pulse :class:`qiskit.pulse.Schedule` objects now have better
+    representations that for simple schedules should be valid Python
+    expressions.

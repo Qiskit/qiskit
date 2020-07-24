@@ -141,5 +141,9 @@ src/qasm-simulator-cpp/test/qubit_vector_tests
 # Cython pass
 qiskit/transpiler/passes/**/cython/**/*.cpp
 
-docs/api/*
 docs/stubs/*
+
+# Notebook testing images
+test/ipynb/mpl/*.png
+test/ipynb/mpl/*.zip
+test/ipynb/mpl/result_test.json

@@ -16,5 +16,6 @@
 
 from .statevector import Statevector
 from .densitymatrix import DensityMatrix
-from .states import basis_state, projector, purity
-from .counts import state_to_counts
+from .utils import partial_trace, shannon_entropy
+from .measures import (state_fidelity, purity, entropy, concurrence,
+                       mutual_information, entanglement_of_formation)

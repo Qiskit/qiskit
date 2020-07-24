@@ -21,16 +21,14 @@ import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import PropertySet
-from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
-from qiskit.test.mock import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 
 
 class TestPassManager(QiskitTestCase):
-    """Test Pass maanger logic."""
+    """Test Pass manager logic."""
 
     def test_callback(self):
         """Test the callback parameter."""
@@ -56,10 +54,10 @@ class TestPassManager(QiskitTestCase):
             out_dict['dag'] = copy.deepcopy(kwargs['dag'])
             calls.append(out_dict)
 
-        passmanager = PassManager(callback=callback)
+        passmanager = PassManager()
         passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
-        transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+        passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]['count'], 0)
@@ -100,9 +98,9 @@ class TestPassManager(QiskitTestCase):
             out_dict['dag'] = copy.deepcopy(kwargs['dag'])
             calls.append(out_dict)
 
-        passmanager = PassManager(callback=callback)
+        passmanager = PassManager()
         passmanager.append(CommutativeCancellation())
-        passmanager.run(circuit)
+        passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]['count'], 0)

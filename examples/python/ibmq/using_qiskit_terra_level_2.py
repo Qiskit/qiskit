@@ -22,7 +22,7 @@ It builds some circuits and transpiles them with the pass_manager.
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit.circuit import QuantumCircuit
-from qiskit.extensions import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.compiler import assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
@@ -44,15 +44,15 @@ provider = IBMQ.load_account()
 qc1 = QuantumCircuit(4, 4)
 qc1.h(0)
 qc1.cx(0, 1)
-qc1.measure([0,1], [0,1])
+qc1.measure([0, 1], [0, 1])
 
 # Making another circuit: GHZ State
 qc2 = QuantumCircuit(4, 4)
-qc2.h([0,1,2,3])
+qc2.h([0, 1, 2, 3])
 qc2.cx(0, 1)
 qc2.cx(0, 2)
 qc2.cx(0, 3)
-qc2.measure([0,1,2,3], [0,1,2,3])
+qc2.measure([0, 1, 2, 3], [0, 1, 2, 3])
 
 # Setting up the backend
 print("(Aer Backends)")
@@ -120,7 +120,7 @@ print("Running on simulator:")
 sim_job = qasm_simulator.run(qobj)
 
 # Getting the result
-sim_result=sim_job.result()
+sim_result = sim_job.result()
 
 # Show the results
 print(sim_result.get_counts(qc1))

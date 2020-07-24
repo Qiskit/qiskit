@@ -12,6 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Samplers."""
+"""Module for methods which sample continuous functions."""
+import warnings
 
-from .decorators import *
+from qiskit.pulse.library.samplers.decorators import left, right, midpoint
+warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
+              DeprecationWarning, stacklevel=2)

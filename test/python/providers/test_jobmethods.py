@@ -24,6 +24,8 @@ import unittest
 from unittest.mock import patch
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeQobj, FakeRueschlikon
+from qiskit.providers.jobstatus import JobStatus
+from qiskit.providers.exceptions import JobTimeoutError
 
 
 class TestSimulatorsJob(QiskitTestCase):
@@ -66,6 +68,42 @@ class TestSimulatorsJob(QiskitTestCase):
         self.assertCalledOnce(executor.submit)
         mocked_future = executor.submit.return_value
         self.assertCalledOnce(mocked_future.cancel)
+
+    def test_wait_for_final_state(self):
+        """Test waiting for job to reach a final state."""
+        def _job_call_back(c_job_id, c_job_status, c_job):
+            """Job status query callback function."""
+            self.assertEqual(c_job_id, job_id)
+            self.assertEqual(c_job_status, JobStatus.RUNNING)
+            self.assertEqual(c_job, job)
+            mocked_future.running.return_value = False
+            mocked_future.done.return_value = True
+
+        job_id = str(uuid.uuid4())
+        backend = FakeRueschlikon()
+        with mocked_executor() as (BasicAerJob, executor):
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
+            job.submit()
+
+        mocked_future = executor.submit.return_value
+        mocked_future.running.return_value = True
+        mocked_future.cancelled.return_value = False
+        mocked_future.done.return_value = False
+        job.wait_for_final_state(callback=_job_call_back)
+
+    def test_wait_for_final_state_timeout(self):
+        """Test timeout waiting for job to reach a final state."""
+        job_id = str(uuid.uuid4())
+        backend = FakeRueschlikon()
+        with mocked_executor() as (BasicAerJob, executor):
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
+            job.submit()
+
+        mocked_future = executor.submit.return_value
+        mocked_future.running.return_value = True
+        mocked_future.cancelled.return_value = False
+        mocked_future.done.return_value = False
+        self.assertRaises(JobTimeoutError, job.wait_for_final_state, timeout=0.5)
 
     def assertCalledOnce(self, mocked_callable):
         """Assert a mocked callable has been called once."""

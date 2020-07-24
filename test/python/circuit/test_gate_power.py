@@ -18,12 +18,10 @@
 import unittest
 from ddt import ddt, data
 from numpy import array, eye
-from numpy.testing import assert_allclose, assert_array_almost_equal
-from numpy.linalg import matrix_power
 
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, UnitaryGate, CnotGate
-from qiskit.circuit import Gate
+from qiskit.extensions import SGate, UnitaryGate, CXGate
+from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 
 
@@ -39,7 +37,7 @@ class TestPowerSgate(QiskitTestCase):
 
         self.assertEqual(result.label, 's^%s' % n)
         self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), matrix_power(SGate().to_matrix(), n))
+        self.assertEqual(Operator(result), Operator(SGate()).power(n))
 
     results = {
         1.5: array([[1, 0], [0, -0.70710678 + 0.70710678j]], dtype=complex),
@@ -57,7 +55,7 @@ class TestPowerSgate(QiskitTestCase):
         expected = self.results[n]
         self.assertEqual(result.label, 's^%s' % n)
         self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), expected)
+        self.assertEqual(Operator(result), Operator(expected))
 
 
 @ddt
@@ -76,11 +74,11 @@ class TestPowerIntCX(QiskitTestCase):
     def test_cx_int(self, n):
         """Test CX.power(<int>) method.
         """
-        result = CnotGate().power(n)
+        result = CXGate().power(n)
 
         self.assertEqual(result.label, 'cx^' + str(n))
         self.assertIsInstance(result, UnitaryGate)
-        assert_array_almost_equal(result.to_matrix(), self.results[n])
+        self.assertEqual(Operator(result), Operator(self.results[n]))
 
 
 class TestGateSqrt(QiskitTestCase):
@@ -89,15 +87,15 @@ class TestGateSqrt(QiskitTestCase):
     def test_unitary_sqrt(self):
         """Test UnitaryGate.power(1/2) method.
         """
-        expected = array([[0.70710678118, 0.70710678118],
-                          [-0.70710678118, 0.70710678118]], dtype=complex)
+        expected = array([[0.5+0.5j, 0.5+0.5j],
+                          [-0.5-0.5j, 0.5+0.5j]], dtype=complex)
 
         result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
 
         self.assertEqual(result.label, 'unitary^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(result.definition[0][0].to_matrix(), expected)
+        self.assertEqual(Operator(result), Operator(expected))
 
     def test_standard_sqrt(self):
         """Test standard Gate.power(1/2) method.
@@ -110,7 +108,25 @@ class TestGateSqrt(QiskitTestCase):
         self.assertEqual(result.label, 's^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(result.definition[0][0].to_matrix(), expected)
+        self.assertEqual(Operator(result), Operator(expected))
+
+    def test_composite_sqrt(self):
+        """Test composite Gate.power(1/2) method.
+        """
+        circ = QuantumCircuit(1, name='my_gate')
+        circ.rz(0.1, 0)
+        circ.rx(0.2, 0)
+        gate = circ.to_gate()
+
+        expected = array([[0.99874948+6.25390559e-05j, 0.00374609-4.98542083e-02j],
+                          [-0.00124974-4.99791301e-02j, 0.99750443+4.98542083e-02j]])
+
+        result = gate.power(1 / 2)
+
+        self.assertEqual(result.label, 'my_gate^0.5')
+        self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Gate)
+        self.assertEqual(Operator(result), Operator(expected))
 
 
 @ddt
@@ -125,8 +141,8 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(result.label, 's^' + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree),
-                        SGate().to_matrix())
+        self.assertEqual(Operator(result).power(degree),
+                         Operator(SGate()))
 
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 0.2)
     def test_float_gt_one(self, exponent):
@@ -137,7 +153,7 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         # SGate().to_matrix() is diagonal so `**` is equivalent.
-        assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
+        self.assertEqual(Operator(SGate().to_matrix() ** exponent), Operator(result))
 
     def test_minus_zero_two(self, exponent=-0.2):
         """Test Sgate^(-0.2)"""
@@ -146,9 +162,9 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(array([[1, 0],
-                               [0, 0.95105652 - 0.30901699j]], dtype=complex),
-                        result.definition[0][0].to_matrix())
+        self.assertEqual(Operator(array([[1, 0],
+                                         [0, 0.95105652 - 0.30901699j]], dtype=complex)),
+                         Operator(result))
 
 
 @ddt
@@ -163,17 +179,17 @@ class TestPowerInvariant(QiskitTestCase):
         self.assertEqual(result.label, 'unitary^' + str(n))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(SGate().to_matrix(), result.definition[0][0].to_matrix())
+        self.assertTrue(Operator(SGate()), Operator(result))
 
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant2(self, n):
         """Test op^(n) * op^(-n) == I
         """
-        result = Operator(SGate().power(n)) @ Operator(SGate().power(-n))
+        result = Operator(SGate()).power(n) @ Operator(SGate()).power(-n)
         expected = Operator(eye(2))
 
         self.assertEqual(len(result.data), len(expected.data))
-        assert_array_almost_equal(result.data, expected.data)
+        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':

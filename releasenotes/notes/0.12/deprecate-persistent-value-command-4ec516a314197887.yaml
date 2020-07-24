@@ -1,0 +1,19 @@
+---
+deprecations:
+  - |
+    The :class:`qiskit.pulse.PersistentValue` command is deprecated and will
+    be removed in a future release. Similar functionality can be achieved with
+    the :class:`qiskit.pulse.ConstantPulse` command (one of the new parametric
+    pulses). Compare the following::
+
+        from qiskit.pulse import Schedule, PersistentValue, ConstantPulse, \
+                                 DriveChannel
+
+        # deprecated implementation
+        sched_w_pv = Schedule()
+        sched_w_pv += PersistentValue(value=0.5)(DriveChannel(0))
+        sched_w_pv += PersistentValue(value=0)(DriveChannel(0)) << 10
+
+        # preferred implementation
+        sched_w_const = Schedule()
+        sched_w_const += ConstantPulse(duration=10, amp=0.5)(DriveChannel(0))

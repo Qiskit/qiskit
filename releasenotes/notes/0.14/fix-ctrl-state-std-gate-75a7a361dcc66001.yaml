@@ -1,0 +1,24 @@
+---
+fixes:
+  - |
+    Previously when creating a controlled version of a standard qiskit
+    gate if a ``ctrl_state`` was specified a generic ``ControlledGate``
+    object would be returned whereas without it a standard qiskit
+    controlled gate would be returned if it was defined. This PR
+    allows standard qiskit controlled gates to understand
+    ``ctrl_state``.
+
+    Additionally, this PR fixes what might be considered a bug where
+    setting the ``ctrl_state`` of an already controlled gate would
+    assume the specified state applied to the full control width
+    instead of the control qubits being added. For instance,::
+
+      circ = QuantumCircuit(2)
+      circ.h(0)
+      circ.x(1)
+      gate = circ.to_gate()
+      cgate = gate.control(1)
+      c3gate = cgate.control(2, ctrl_state=0)
+
+    would apply ``ctrl_state`` to all three control qubits instead of just
+    the two control qubits being added.

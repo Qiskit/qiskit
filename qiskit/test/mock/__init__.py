@@ -23,6 +23,7 @@ The mock devices are mainly for testing the compiler.
 """
 
 from .fake_provider import FakeProvider
+from .fake_provider import FakeProviderFactory
 from .fake_backend import FakeBackend
 from .fake_job import FakeJob
 from .fake_qobj import FakeQobj

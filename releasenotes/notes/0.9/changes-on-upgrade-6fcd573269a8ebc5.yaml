@@ -35,6 +35,7 @@ upgrade:
   - |
     The following deprecated ``qiskit.dagcircuit.DAGCircuit`` methods have been
     removed:
+
      * ``DAGCircuit.get_qubits()`` - Use ``DAGCircuit.qubits()`` instead
      * ``DAGCircuit.get_bits()`` - Use ``DAGCircuit.clbits()`` instead
      * ``DAGCircuit.qasm()`` - Use a combination of
@@ -70,6 +71,7 @@ upgrade:
     The following ``qiskit.dagcircuit.DAGCircuit`` methods had deprecated
     support for accepting a ``node_id`` as a parameter. This has been removed
     and now only ``DAGNode`` objects are accepted as input:
+
      * ``successors()``
      * ``predecessors()``
      * ``ancestors()``
@@ -77,7 +79,7 @@ upgrade:
      * ``bfs_successors()``
      * ``quantum_successors()``
      * ``remove_op_node()``
-     * ``remove_ancestors_of()
+     * ``remove_ancestors_of()``
      * ``remove_descendants_of()``
      * ``remove_nonancestors_of()``
      * ``remove_nondescendants_of()``
@@ -125,7 +127,7 @@ other:
     instead of the numeric equivalent.
   - |
     When using ``qiskit.assembler.assemble_schedules()`` if you do not provide
-    the number of memory_slots to use the number will be infered based on the
+    the number of memory_slots to use the number will be inferred based on the
     number of acquisitions in the input schedules.
   - |
     The deprecation warning on the ``qiskit.dagcircuit.DAGCircuit`` property

@@ -213,7 +213,7 @@ def _plot_histogram_data(data, labels, number_to_keep):
         tuple: tuple containing:
             (dict): The labels actually used in the plotting.
             (list): List of ndarrays for the bars in each experiment.
-            (list): Indicies for the locations of the bars for each
+            (list): Indices for the locations of the bars for each
                     experiment.
     """
     labels_dict = OrderedDict()

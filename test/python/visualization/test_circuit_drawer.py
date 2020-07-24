@@ -36,7 +36,7 @@ class TestCircuitDrawer(QiskitTestCase):
             self.assertIsInstance(out, text.TextDrawing)
 
     @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
+                         'Skipped because matplotlib is not available')
     def test_user_config_default_output(self):
         with patch('qiskit.user_config.get_config',
                    return_value={'circuit_drawer': 'mpl'}):
@@ -52,7 +52,7 @@ class TestCircuitDrawer(QiskitTestCase):
             self.assertIsInstance(out, text.TextDrawing)
 
     @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
+                         'Skipped because matplotlib is not available')
     def test_kwarg_priority_over_user_config_default_output(self):
         with patch('qiskit.user_config.get_config',
                    return_value={'circuit_drawer': 'latex'}):
@@ -61,7 +61,7 @@ class TestCircuitDrawer(QiskitTestCase):
             self.assertIsInstance(out, figure.Figure)
 
     @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
+                         'Skipped because matplotlib is not available')
     def test_default_backend_auto_output_with_mpl(self):
         with patch('qiskit.user_config.get_config',
                    return_value={'circuit_drawer': 'auto'}):

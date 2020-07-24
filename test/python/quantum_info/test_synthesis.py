@@ -15,16 +15,19 @@
 """Tests for quantum synthesis methods."""
 
 import unittest
+from itertools import product
 
 import numpy as np
 import scipy.linalg as la
+
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
-                                        XGate, YGate, ZGate, CnotGate)
+from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate,
+                                    XGate, YGate, ZGate, CXGate, CZGate,
+                                    iSwapGate, RXXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
-from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
@@ -38,9 +41,9 @@ from qiskit.test import QiskitTestCase
 
 def make_oneq_cliffords():
     """Make as list of 1q Cliffords"""
-    ixyz_list = [g().to_matrix() for g in (IdGate, XGate, YGate, ZGate)]
-    ih_list = [g().to_matrix() for g in (IdGate, HGate)]
-    irs_list = [IdGate().to_matrix(),
+    ixyz_list = [g().to_matrix() for g in (IGate, XGate, YGate, ZGate)]
+    ih_list = [g().to_matrix() for g in (IGate, HGate)]
+    irs_list = [IGate().to_matrix(),
                 SdgGate().to_matrix() @ HGate().to_matrix(),
                 HGate().to_matrix() @ SGate().to_matrix()]
     oneq_cliffords = [Operator(ixyz @ ih @ irs) for ixyz in ixyz_list
@@ -101,11 +104,11 @@ class TestEulerAngles1Q(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate))
 
-    def test_euler_angles_1q_random(self, nsamples=100):
+    def test_euler_angles_1q_random(self, nsamples=100, seed=9000):
         """Verify euler_angles_1q produces correct Euler angles for random unitaries.
         """
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
+        for i in range(nsamples):
+            unitary = random_unitary(2, seed=seed+i)
             self.check_one_qubit_euler_angles(unitary)
 
 
@@ -113,45 +116,43 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
     """Test OneQubitEulerDecomposer"""
 
     def check_one_qubit_euler_angles(self, operator, basis='U3',
-                                     tolerance=1e-12):
+                                     tolerance=1e-12,
+                                     phase_equal=False):
         """Check euler_angles_1q works for the given unitary"""
         decomposer = OneQubitEulerDecomposer(basis)
         with self.subTest(operator=operator):
             target_unitary = operator.data
-            decomp_unitary = Operator(decomposer(target_unitary)).data
-            # Add global phase to make special unitary
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
+            decomp_unitary = Operator(decomposer(operator)).data
+            if not phase_equal:
+                target_unitary *= la.det(target_unitary)**(-0.5)
+                decomp_unitary *= la.det(decomp_unitary)**(-0.5)
             maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
+            if not phase_equal and maxdist > 0.1:
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance,
-                            "Worst distance {}".format(maxdist))
+            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
+    # U3 basis
     def test_one_qubit_clifford_u3_basis(self):
         """Verify for u3 basis and all Cliffords."""
         for clifford in ONEQ_CLIFFORDS:
             self.check_one_qubit_euler_angles(clifford, 'U3')
 
-    def test_one_qubit_clifford_u1x_basis(self):
-        """Verify for u1, x90 basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'U1X')
-
-    def test_one_qubit_clifford_zyz_basis(self):
-        """Verify for rz, ry, rz basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'ZYZ')
-
-    def test_one_qubit_clifford_xyx_basis(self):
-        """Verify for rx, ry, rx basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'XYX')
-
     def test_one_qubit_hard_thetas_u3_basis(self):
         """Verify for u3 basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate), 'U3')
+
+    def test_one_qubit_random_u3_basis(self, nsamples=50):
+        """Verify for u3 basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'U3')
+
+    # U1, X90 basis
+    def test_one_qubit_clifford_u1x_basis(self):
+        """Verify for u1, x90 basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'U1X')
 
     def test_one_qubit_hard_thetas_u1x_basis(self):
         """Verify for u1, x90 basis and close-to-degenerate theta."""
@@ -161,27 +162,22 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate), 'U1X', 1e-7)
 
-    def test_one_qubit_hard_thetas_zyz_basis(self):
-        """Verify for rz, ry, rz basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'ZYZ')
-
-    def test_one_qubit_hard_thetas_xyx_basis(self):
-        """Verify for rx, ry, rx basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'XYX')
-
-    def test_one_qubit_random_u3_basis(self, nsamples=50):
-        """Verify for u3 basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
-            self.check_one_qubit_euler_angles(unitary, 'U3')
-
     def test_one_qubit_random_u1x_basis(self, nsamples=50):
         """Verify for u1, x90 basis and random unitaries."""
         for _ in range(nsamples):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary, 'U1X')
+
+    # Rz, Ry, Rz basis
+    def test_one_qubit_clifford_zyz_basis(self):
+        """Verify for rz, ry, rz basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'ZYZ')
+
+    def test_one_qubit_hard_thetas_zyz_basis(self):
+        """Verify for rz, ry, rz basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'ZYZ')
 
     def test_one_qubit_random_zyz_basis(self, nsamples=50):
         """Verify for rz, ry, rz basis and random unitaries."""
@@ -189,11 +185,56 @@ class TestOneQubitEulerDecomposer(QiskitTestCase):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary, 'ZYZ')
 
+    # Rz, Rx, Rz basis
+    def test_one_qubit_clifford_zxz_basis(self):
+        """Verify for rz, rx, rz basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'ZXZ')
+
+    def test_one_qubit_hard_thetas_zxz_basis(self):
+        """Verify for rz, rx, rz basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'ZXZ')
+
+    def test_one_qubit_random_zxz_basis(self, nsamples=50):
+        """Verify for rz, rx, rz basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'ZXZ')
+
+    # Rx, Ry, Rx basis
+    def test_one_qubit_clifford_xyx_basis(self):
+        """Verify for rx, ry, rx basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'XYX')
+
+    def test_one_qubit_hard_thetas_xyx_basis(self):
+        """Verify for rx, ry, rx basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'XYX')
+
     def test_one_qubit_random_xyx_basis(self, nsamples=50):
         """Verify for rx, ry, rx basis and random unitaries."""
         for _ in range(nsamples):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary, 'XYX')
+
+    # R, R basis
+    def test_one_qubit_clifford_rr_basis(self):
+        """Verify for r, r basis and all Cliffords."""
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford, 'RR')
+
+    def test_one_qubit_hard_thetas_rr_basis(self):
+        """Verify for r, r basis and close-to-degenerate theta."""
+        for gate in HARD_THETA_ONEQS:
+            self.check_one_qubit_euler_angles(Operator(gate), 'RR')
+
+    def test_one_qubit_random_rr_basis(self, nsamples=50):
+        """Verify for r, r basis and random unitaries."""
+        for _ in range(nsamples):
+            unitary = random_unitary(2)
+            self.check_one_qubit_euler_angles(unitary, 'RR')
 
 
 # FIXME: streamline the set of test cases
@@ -380,7 +421,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
-        cnot = Operator(CnotGate())
+        cnot = Operator(CXGate())
         decomps = [cnot_rxx_decompose(),
                    cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
                    cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
@@ -399,8 +440,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
     def test_exact_two_qubit_cnot_decompose_paulis(self):
         """Verify exact CNOT decomposition for Paulis
         """
-        pauli_xz = Pauli(label='XZ')
-        unitary = Operator(pauli_xz)
+        unitary = Operator.from_label('XZ')
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     def test_exact_supercontrolled_decompose_random(self, nsamples=10):
@@ -420,7 +460,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_0cx_random(self):
         """Check random circuits with  0 cx
-        gates locally eqivilent to identity
+        gates locally equivalent to identity
         """
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -436,7 +476,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_1cx_random(self):
         """Check random circuits with  1 cx
-        gates locally eqivilent to a cx
+        gates locally equivalent to a cx
         """
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -459,7 +499,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
 
     def test_cx_equivalence_2cx_random(self):
         """Check random circuits with  2 cx
-        gates locally eqivilent to some
+        gates locally equivalent to some
         circuit with 2 cx.
         """
         qr = QuantumRegister(2, name='q')
@@ -525,6 +565,45 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         sim = UnitarySimulatorPy()
         U = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
+
+    def test_seed_289(self):
+        """This specific case failed when PR #3585 was applied
+        See https://github.com/Qiskit/qiskit-terra/pull/3652"""
+        unitary = random_unitary(4, seed=289)
+        self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
+
+    def test_euler_basis_selection(self):
+        """Verify decomposition uses euler_basis for 1q gates."""
+
+        euler_bases = [
+            ('U3', ['u3']),
+            ('U1X', ['u1', 'rx']),
+            ('RR', ['r']),
+            ('ZYZ', ['rz', 'ry']),
+            ('ZXZ', ['rz', 'rx']),
+            ('XYX', ['rx', 'ry']),
+        ]
+
+        kak_gates = [
+            (CXGate(), 'cx'),
+            (CZGate(), 'cz'),
+            (iSwapGate(), 'iswap'),
+            (RXXGate(np.pi/2), 'rxx'),
+        ]
+
+        for basis in product(euler_bases, kak_gates):
+            (euler_basis, oneq_gates), (kak_gate, kak_gate_name) = basis
+
+            with self.subTest(euler_basis=euler_basis, kak_gate=kak_gate):
+                decomposer = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
+                unitary = random_unitary(4)
+                self.check_exact_decomposition(unitary.data, decomposer)
+
+                decomposition_basis = set(decomposer(unitary).count_ops())
+                requested_basis = set(oneq_gates + [kak_gate_name])
+                self.assertTrue(
+                    decomposition_basis.issubset(requested_basis))
+
 
 # FIXME: need to write tests for the approximate decompositions
 

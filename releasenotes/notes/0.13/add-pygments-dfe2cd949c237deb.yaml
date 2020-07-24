@@ -1,0 +1,36 @@
+---
+features:
+  - |
+    A new jupyter widget, ``%circuit_library_info`` has been added to
+    :mod:`qiskit.tools.jupyter`. This widget is used for visualizing
+    details about circuits built from the circuit library. For example
+
+    .. jupyter-execute::
+
+        from qiskit.circuit.library import XOR
+        import qiskit.tools.jupyter
+        circuit = XOR(5, seed=42)
+        %circuit_library_info circuit
+
+  - |
+    A new kwarg option, ``formatted`` ,  has been added to
+    :meth:`qiskit.circuit.QuantumCircuit.qasm` . When set to ``True`` the
+    the method will print a syntax highlighted version (using pygments) to
+    stdout and return ``None`` (which differs from the normal behavior of
+    returning the QASM code as a string).
+  - |
+    A new kwarg option, ``filename`` , has been added to
+    :meth:`qiskit.circuit.QuantumCircuit.qasm`. When set to a path the method
+    will write the QASM code to that file. It will then continue to output as
+    normal.
+upgrade:
+  - |
+    A new optional visualization requirement,
+    `pygments <https://pygments.org/>`_ , has been added. It is used for
+    providing syntax highlighting of OpenQASM 2.0 code in Jupyter widgets and
+    optionally for the :meth:`qiskit.circuit.QuantumCircuit.qasm` method. It
+    must be installed (either with ``pip install pygments`` or
+    ``pip install qiskit-terra[visualization]``) prior to using the
+    ``%circuit_library_info`` widget in :mod:`qiskit.tools.jupyter` or
+    the ``formatted`` kwarg on the :meth:`~qiskit.circuit.QuantumCircuit.qasm`
+    method.

@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    A new class :py:class:`~qiskit.test.mock.utils.ConfigurableFakeBackend` has
+    been added which allows users to create configurable mock backends.
+    Example::
+
+        from qiskit.test.mock.utils import ConfigurableFakeBackend
+
+        backend = ConfigurableFakeBackend("Tashkent",
+                                          n_qubits=100,
+                                          version="0.0.1",
+                                          basis_gates=['u1'],
+                                          qubit_t1=99.,
+                                          qubit_t2=146.,
+                                          qubit_frequency=5.,
+                                          qubit_readout_error=0.01,
+                                          single_qubit_gates=['u1'])

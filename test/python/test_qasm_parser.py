@@ -22,18 +22,19 @@ from qiskit.qasm.node.node import Node
 from qiskit.test import QiskitTestCase, Path
 
 
-def parse(file_path, prec=15):
+def parse(file_path):
     """
       Simple helper
       - file_path: Path to the OpenQASM file
       - prec: Precision for the returned string
     """
     qasm = Qasm(file_path)
-    return qasm.parse().qasm(prec)
+    return qasm.parse().qasm()
 
 
 class TestParser(QiskitTestCase):
     """QasmParser"""
+
     def setUp(self):
         self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
         self.qasm_file_path_fail = self._get_resource_path(
@@ -47,10 +48,20 @@ class TestParser(QiskitTestCase):
         res = parse(self.qasm_file_path)
         self.log.info(res)
         # TODO: For now only some basic checks.
-        self.assertEqual(len(res), 1589)
-        self.assertEqual(res[:12], "OPENQASM 2.0")
-        self.assertEqual(res[14:41], "gate u3(theta,phi,lambda) q")
-        self.assertEqual(res[1573:1588], "measure r -> d;")
+        starts_expected = "OPENQASM 2.0;\ngate "
+        ends_expected = '\n'.join(['}',
+                                   'qreg q[3];',
+                                   'qreg r[3];',
+                                   'h q;',
+                                   'cx q,r;',
+                                   'creg c[3];',
+                                   'creg d[3];',
+                                   'barrier q;',
+                                   'measure q -> c;',
+                                   'measure r -> d;', ''])
+
+        self.assertEqual(res[:len(starts_expected)], starts_expected)
+        self.assertEqual(res[-len(ends_expected):], ends_expected)
 
     def test_parser_fail(self):
         """should fail a for a  not valid circuit."""
@@ -60,6 +71,7 @@ class TestParser(QiskitTestCase):
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
+
         def inspect(node):
             """Inspect node children."""
             for child in node.children:
@@ -76,10 +88,10 @@ class TestParser(QiskitTestCase):
         res_if = qasm_if.parse()
         inspect(res_if)
 
-    def test_get_tokens(self):
+    def test_generate_tokens(self):
         """Test whether we get only valid tokens."""
         qasm = Qasm(self.qasm_file_path)
-        for token in qasm.get_tokens():
+        for token in qasm.generate_tokens():
             self.assertTrue(isinstance(token, ply.lex.LexToken))
 
 

@@ -19,8 +19,7 @@ Fake Burlington device (5 qubit).
 import os
 import json
 
-from qiskit.providers.models import (PulseBackendConfiguration,
-                                     BackendProperties, PulseDefaults)
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
@@ -38,24 +37,14 @@ class FakeBurlington(FakeBackend):
         with open(os.path.join(dirname, filename), "r") as f_conf:
             conf = json.load(f_conf)
 
-        configuration = PulseBackendConfiguration.from_dict(conf)
+        configuration = QasmBackendConfiguration.from_dict(conf)
         configuration.backend_name = 'fake_burlington'
         super().__init__(configuration)
 
     def properties(self):
-        """Returns a snapshot of device properties as recorded on 10/24/19.
-        """
+        """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_burlington.json"
         with open(os.path.join(dirname, filename), "r") as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
-
-    def defaults(self):
-        """Returns a snapshot of device defaults as recorded on 10/21/19.
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "defs_burlington.json"
-        with open(os.path.join(dirname, filename), "r") as f_defs:
-            defs = json.load(f_defs)
-        return PulseDefaults.from_dict(defs)
