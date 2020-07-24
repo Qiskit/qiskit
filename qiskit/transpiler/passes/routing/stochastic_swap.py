@@ -42,17 +42,31 @@ logger = getLogger(__name__)
 
 var_dict = {}
 
-def init_workers(seed):
+
+def init_workers(seed, cdist2_base, cdist2_shape, cdist_base, cdist_shape,
+                 edges_base):
+    var_dict['cdist2_base'] = cdist2_base
+    var_dict['cdist2_shape'] = cdist2_shape
+    var_dict['cdist_base'] = cdist_base
+    var_dict['cdist_shape'] = cdist_shape
+    var_dict['edges_base'] = edges_base
     var_dict['rng'] = np.random.default_rng(seed + os.getpid())
 
 
 def _swap_trial(proc_num, num_iter, num_qubits, int_layout, int_qubit_subset,
-                int_gates, cdist2, cdist, edges, scale, gate_len,
-                best_path):
+                int_gates, scale, gate_len, best_path):
     if os.path.isfile(best_path):
         return None
     rng = var_dict['rng']
     results = []
+    cdist2 = np.frombuffer(
+        var_dict['cdist2_base']).reshape(var_dict['cdist2_shape'])
+    cdist = np.frombuffer(
+        var_dict['cdist_base']).reshape(var_dict['cdist_shape'])
+    edges = np.frombuffer(
+        var_dict['edges_base'], np.int32)
+
+
     for i in range(num_iter):
         if os.path.isfile(best_path):
             return None
@@ -84,8 +98,7 @@ def _swap_trial(proc_num, num_iter, num_qubits, int_layout, int_qubit_subset,
 
 
 def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
-                          int_gates, cdist2, cdist, edges, scale,
-                          best_path, gate_len, pool):
+                          int_gates, scale, best_path, gate_len, pool):
     # Handle the case where there are more CPUs than iterations by running
     # one on each CPU
     max_workers = int(trials / 5)
@@ -97,9 +110,8 @@ def _parallel_swap_trials(trials, num_qubits, int_layout, int_qubit_subset,
     results = pool.starmap(_swap_trial,
                            [(x, num_iter,
                              num_qubits, int_layout,
-                             int_qubit_subset, int_gates, cdist2,
-                             cdist, edges, scale, gate_len,
-                             best_path) for x in range(proc_count)])
+                             int_qubit_subset, int_gates, scale,
+                             gate_len, best_path) for x in range(proc_count)])
     return results
 
 
@@ -170,8 +182,29 @@ class StochasticSwap(TransformationPass):
         if not max_workers:
             max_workers = 1
         cpus = CPU_COUNT if CPU_COUNT <= max_workers else max_workers
+        self.coupling_map._compute_distance_matrix()
+        cdist2 = self.coupling_map._dist_matrix**2
+        cdist2_base = multiprocessing.RawArray(
+            'd', cdist2.shape[0] * cdist2.shape[1])
+        cdist2_shared = np.frombuffer(cdist2_base).reshape(cdist2.shape)
+        np.copyto(cdist2_shared, cdist2)
+        cdist = self.coupling_map._dist_matrix
+        cdist_base = multiprocessing.RawArray(
+            'd', cdist.shape[0] * cdist.shape[1])
+        cdist_shared = np.frombuffer(cdist_base).reshape(cdist.shape)
+        np.copyto(cdist_shared, cdist)
+        edges = np.asarray(self.coupling_map.get_edges(),
+                           dtype=np.int32).ravel()
+        edge_base = multiprocessing.RawArray(
+            'i', len(edges))
+        edges_shared = np.frombuffer(edge_base, np.int32)
+        np.copyto(edges_shared, edges)
+
         with multiprocessing.Pool(cpus, initializer=init_workers,
-                                  initargs=(self.seed,)) as pool:
+                                  initargs=(self.seed, cdist2_base,
+                                            cdist2.shape,
+                                            cdist_base, cdist.shape,
+                                            edge_base)) as pool:
             new_dag = self._mapper(dag, self.coupling_map, trials=self.trials,
                                    pool=pool)
         return new_dag
@@ -248,7 +281,6 @@ class StochasticSwap(TransformationPass):
         best_circuit = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
 
-        cdist2 = coupling._dist_matrix**2
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
 
@@ -261,13 +293,11 @@ class StochasticSwap(TransformationPass):
             if qubit.register not in trial_circuit.qregs.values():
                 trial_circuit.add_qreg(qubit.register)
 
-        edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
-        cdist = coupling._dist_matrix
         best_path = os.path.join(tempfile.gettempdir(),
                                  'stochastic_swap+%s' % os.getpid())
         results = _parallel_swap_trials(trials, num_qubits, int_layout,
-                                        int_qubit_subset, int_gates, cdist2,
-                                        cdist, edges, scale,
+                                        int_qubit_subset, int_gates,
+                                        scale,
                                         best_path, len(gates), pool)
         if os.path.isfile(best_path):
             filtered_results = filter(None, results)
