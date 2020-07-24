@@ -668,7 +668,7 @@ class TextDrawing():
                                                      index=self.layout[bit.index].index,
                                                      physical=bit.index))
                 else:
-                    qubit_labels.append('%s ' % bit.index)
+                    qubit_labels.append('%s ' % bit.index + initial_qubit_value )
 
         clbit_labels = []
         previous_creg = None
