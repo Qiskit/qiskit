@@ -46,9 +46,9 @@ gate rz(phi) a { u1(phi) a; }
 // --- QE Standard User-Defined Gates  ---
 
 // sqrt(X)
-gate sx a { rz(-pi/2) a; h a; rz(-pi/2) a; }
+gate sx a { sdg a; h a; sdg a; }
 // inverse sqrt(X)
-gate sxdg a { rz(pi/2) a; h a; rz(pi/2) a; }
+gate sxdg a { s a; h a; s a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
