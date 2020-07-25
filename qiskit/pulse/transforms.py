@@ -110,13 +110,13 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                 if time > align_time:
                     warnings.warn("You provided an align_time which is scheduling an acquire "
                                   "sooner than it was scheduled for in the original Schedule.")
-                new_schedule |= inst << align_time
+                new_schedule.insert(align_time, inst, inplace=True)
                 acquired_channels.add(inst.channel.index)
             elif isinstance(inst.channels[0], chans.MeasureChannel):
-                new_schedule |= inst << align_time
+                new_schedule.insert(align_time, inst, inplace=True)
                 measured_channels.update({a.index for a in inst.channels})
             else:
-                new_schedule |= inst << time
+                new_schedule.insert(time, inst, inplace=True)
 
         new_schedules.append(new_schedule)
 
@@ -168,7 +168,7 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
                     new_schedule |= explicit_inst
                     acquire_map[time].add(i)
         else:
-            new_schedule |= inst << time
+            new_schedule.insert(time, inst, inplace=True)
 
     return new_schedule
 
@@ -246,9 +246,9 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
                         identical_pulse, inst.channel, inst.name) << time
                 else:
                     existing_pulses.append(inst.pulse)
-                    new_schedule |= inst << time
+                    new_schedule.insert(time, inst, inplace=True)
             else:
-                new_schedule |= inst << time
+                new_schedule.insert(time, inst, inplace=True)
 
         new_schedules.append(new_schedule)
 
