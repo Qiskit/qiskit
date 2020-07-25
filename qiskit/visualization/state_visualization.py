@@ -193,13 +193,13 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>, <z>] (cartesian)
-            or [<r>, <theta>, <phi>]
+            or [<r>, <theta>, <phi>] (spherical)
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
-        coord_type (str): a string that specifies coordinate type (cartesian or spherical),
-            default is cartesian
+        coord_type (str): a string that specifies coordinate type for bloch
+            (cartesian or spherical), default is cartesian
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
