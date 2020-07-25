@@ -48,7 +48,7 @@ class QuadraticForm(QuantumCircuit):
     """
 
     def __init__(self,
-                 num_value_qubits: int,
+                 num_result_qubits: int,
                  quadratic: Optional[Union[np.ndarray,
                                            List[List[Union[float, ParameterExpression]]]]] = None,
                  linear: Optional[Union[np.ndarray,
@@ -56,7 +56,7 @@ class QuadraticForm(QuantumCircuit):
                  offset: Optional[Union[float, ParameterExpression]] = None) -> None:
         r"""
         Args:
-            num_value_qubits: The number of qubits to encode the result. Called :math:`m` in
+            num_result_qubits: The number of qubits to encode the result. Called :math:`m` in
                 the class documentation.
             quadratic: A matrix containing the quadratic coefficients, :math:`A`.
             linear: An array containing the linear coefficients, :math:`b`.
@@ -69,44 +69,47 @@ class QuadraticForm(QuantumCircuit):
         if quadratic is not None and linear is not None:
             if len(quadratic) != len(linear):
                 raise ValueError('Mismatching sizes of quadratic and linear.')
-            num_key = len(linear)
+            num_input_qubits = len(linear)
         elif quadratic is None and linear is not None:
-            num_key = len(linear)
+            num_input_qubits = len(linear)
         elif quadratic is not None and linear is None:
-            num_key = len(quadratic)
+            num_input_qubits = len(quadratic)
         else:  # both None
-            num_key = 1
+            num_input_qubits = 1
 
-        qr_key = QuantumRegister(num_key)
-        qr_value = QuantumRegister(num_value_qubits)
-        super().__init__(qr_key, qr_value, name='Q(x)')
+        qr_input = QuantumRegister(num_input_qubits)
+        qr_result = QuantumRegister(num_result_qubits)
+        super().__init__(qr_input, qr_result, name='Q(x)')
 
-        scaling = np.pi * 2 ** (1 - num_value_qubits)
+        scaling = np.pi * 2 ** (1 - num_result_qubits)
 
         # constant coefficient
         if offset is not None and offset != 0:
-            for i in range(num_value_qubits):
-                self.u1(scaling * 2 ** i * offset, qr_value[i])
+            for i in range(num_result_qubits):
+                self.u1(scaling * 2 ** i * offset, qr_result[i])
 
-        # linear part
-        for j in range(num_key):
+        # the linear part consists of the vector and the diagonal of the
+        # matrix, since x_i * x_i = x_i, as x_i is a binary variable
+        for j in range(num_input_qubits):
             value = linear[j] if linear is not None else 0
             value += quadratic[j][j] if quadratic is not None else 0
             if value != 0:
-                for i in range(num_value_qubits):
-                    self.cu1(scaling * 2 ** i * value, qr_key[j], qr_value[i])
+                for i in range(num_result_qubits):
+                    self.cu1(scaling * 2 ** i * value, qr_input[j], qr_result[i])
 
+        # the quadratic part adds A_ij and A_ji as x_i x_j == x_j x_i
         if quadratic is not None:
-            for j in range(num_key):
-                for k in range(j + 1, num_key):
+            for j in range(num_input_qubits):
+                for k in range(j + 1, num_input_qubits):
                     value = quadratic[j][k] + quadratic[k][j]
                     if value != 0:
-                        for i in range(num_value_qubits):
-                            self.mcu1(scaling * 2 ** i * value, [qr_key[j], qr_key[k]], qr_value[i])
+                        for i in range(num_result_qubits):
+                            self.mcu1(scaling * 2 ** i * value, [qr_input[j], qr_input[k]],
+                                      qr_result[i])
 
-        # Add IQFT. Adding swaps at the end of the IQFT, not the beginning.
-        iqft = QFT(num_value_qubits, do_swaps=False).inverse()
-        self.append(iqft, qr_value)
+        # add the inverse QFT, swaps are added at the end, not the beginning here
+        iqft = QFT(num_result_qubits, do_swaps=False).inverse()
+        self.append(iqft, qr_result)
 
-        for i in range(num_value_qubits // 2):
-            self.swap(qr_value[i], qr_value[-(i + 1)])
+        for i in range(num_result_qubits // 2):
+            self.swap(qr_result[i], qr_result[-(i + 1)])
