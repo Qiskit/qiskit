@@ -1923,7 +1923,7 @@ class TestQuadraticForm(QiskitTestCase):
 
     def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
         """Assert ``circuit`` implements the quadratic form correctly."""
-        def f(x):
+        def q_form(x):
             x = np.array([int(val) for val in x])
             return int(x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset)
 
@@ -1931,7 +1931,7 @@ class TestQuadraticForm(QiskitTestCase):
         ref = np.zeros(2 ** (n + m), dtype=complex)
         for x in range(2 ** n):
             x_bin = bin(x)[2:].zfill(n)[::-1]
-            index = x_bin + bin(f(x_bin) % 2 ** m)[2:].zfill(m)[::-1]
+            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)[::-1]
             index = int(index[::-1], 2)
             ref[index] = 1 / np.sqrt(2 ** n)
 
@@ -1987,11 +1987,11 @@ class TestQuadraticForm(QiskitTestCase):
 
     def test_quadratic_form_parameterized(self):
         """Test the quadratic form circuit with parameters."""
-        p = ParameterVector('p', 7)
+        theta = ParameterVector('th', 7)
 
-        p_quadratic = [[p[0], p[1]], [p[2], p[3]]]
-        p_linear = [p[4], p[5]]
-        p_offset = p[6]
+        p_quadratic = [[theta[0], theta[1]], [theta[2], theta[3]]]
+        p_linear = [theta[4], theta[5]]
+        p_offset = theta[6]
 
         quadratic = np.array([[2, 1], [-1, -2]])
         linear = np.array([2, 0])
