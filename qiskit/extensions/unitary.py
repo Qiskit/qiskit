@@ -149,9 +149,7 @@ class UnitaryGate(Gate):
             raise ExtensionError('controlled unitary generation failed')
         phase = numpy.angle(diag[0])
         if phase:
-            qreg = cunitary.definition.qregs[0]
-            cunitary.definition.u3(numpy.pi, phase, phase - numpy.pi, qreg[0])
-            cunitary.definition.u3(numpy.pi, 0, numpy.pi, qreg[0])
+            cunitary.definition.global_phase = phase
         cunitary.base_gate = self.copy()
         cunitary.base_gate.label = self.label
         return cunitary

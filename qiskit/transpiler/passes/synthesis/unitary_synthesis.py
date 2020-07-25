@@ -87,6 +87,7 @@ class UnitarySynthesis(TransformationPass):
             Output dag with UnitaryGates synthesized to target basis.
         """
 
+        import ipdb;ipdb.set_trace()
         euler_basis = _choose_euler_basis(self._basis_gates)
         kak_gate = _choose_kak_gate(self._basis_gates)
 
