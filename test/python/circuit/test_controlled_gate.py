@@ -652,8 +652,8 @@ class TestControlledGate(QiskitTestCase):
         ccugate2 = ugate.control(2)
         ref_mat = _compute_control_matrix(umat, 2)
         self.assertTrue(Operator(ccugate2).equiv(Operator(ref_mat)))
-        self.assertTrue(Operator(ccugate).equiv(Operator(ccugate2)))        
-        
+        self.assertTrue(Operator(ccugate).equiv(Operator(ccugate2)))
+
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
         """test open controlled unitary matrix"""
