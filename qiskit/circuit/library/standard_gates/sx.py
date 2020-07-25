@@ -66,14 +66,14 @@ class SXGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .rz import RZGate
+        from .s import SdgGate
         from .h import HGate
         q = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
         rules = [
-            (RZGate(-pi / 2), [q[0]], []),
+            (SdgGate(), [q[0]], []),
             (HGate(), [q[0]], []),
-            (RZGate(-pi / 2), [q[0]], [])
+            (SdgGate(), [q[0]], [])
         ]
         qc.data = rules
         self.definition = qc
@@ -98,13 +98,10 @@ class SXGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    # Differs by global phase of exp(-i pi/4) with correct RZ.
-    # If the RZ == U1, then the global phase difference is exp(i pi/4)
-    # TODO: Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #     """Return a numpy.array for the SX gate."""
-    #     return numpy.array([[1 + 1j, 1 - 1j],
-    #                         [1 - 1j, 1 + 1j]], dtype=complex) / 2
+    def to_matrix(self):
+        """Return a numpy.array for the SX gate."""
+        return numpy.array([[1 + 1j, 1 - 1j],
+                            [1 - 1j, 1 + 1j]], dtype=complex) / 2
 
 
 class SXdgGate(Gate):
@@ -143,25 +140,22 @@ class SXdgGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .rz import RZGate
+        from .s import SGate
         from .h import HGate
         q = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
         rules = [
-            (RZGate(pi / 2), [q[0]], []),
+            (SGate(), [q[0]], []),
             (HGate(), [q[0]], []),
-            (RZGate(pi / 2), [q[0]], [])
+            (SGate(), [q[0]], [])
         ]
         qc.data = rules
         self.definition = qc
 
-    # Differs by global phase of exp(-i pi/4) with correct RZ.
-    # If the RZ == U1, then the global phase difference is exp(i pi/4)
-    # TODO: Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #     """Return a numpy.array for the SX gate."""
-    #     return numpy.array([[1 - 1j, 1 + 1j],
-    #                         [1 + 1j, 1 - 1j]], dtype=complex) / 2
+    def to_matrix(self):
+        """Return a numpy.array for the SXdg gate."""
+        return numpy.array([[1 - 1j, 1 + 1j],
+                            [1 + 1j, 1 - 1j]], dtype=complex) / 2
 
 
 class CSXGate(ControlledGate):

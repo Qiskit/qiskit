@@ -28,7 +28,7 @@ from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
-    ZGate, CZGate, RYYGate, SXGate, SXdgGate
+    ZGate, CZGate, RYYGate, SXGate, SXdgGate, CSXGate
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (

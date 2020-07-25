@@ -970,8 +970,6 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
         base_mat = Operator(cgate.base_gate).data
-        if gate_class == CSXGate:
-            base_mat *= np.exp(0.25j * np.pi)  # SX has a global phase, must be accounted for in CSX
         target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
                                          ctrl_state=ctrl_state)
         try:
@@ -1093,9 +1091,6 @@ class TestControlledStandardGates(QiskitTestCase):
                     iden = Operator.from_label('I')
                     zgen = Operator.from_label('Z')
                     base_mat = (np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen).data
-                # account for global phase diff, CSX is exact
-                elif gate.name == 'sx' and num_ctrl_qubits == 1:
-                    base_mat = Operator(gate).data * np.exp(0.25j * np.pi)
                 else:
                     base_mat = Operator(gate).data
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,

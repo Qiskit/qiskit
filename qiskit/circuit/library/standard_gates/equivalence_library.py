@@ -311,7 +311,7 @@ _sel.add_equivalence(iSwapGate(), def_iswap)
 # SXGate
 
 q = QuantumRegister(1, 'q')
-def_sx = QuantumCircuit(q)
+def_sx = QuantumCircuit(q, global_phase=pi / 4)
 for inst, qargs, cargs in [
         (SdgGate(), [q[0]], []),
         (HGate(), [q[0]], []),
@@ -321,14 +321,14 @@ for inst, qargs, cargs in [
 _sel.add_equivalence(SXGate(), def_sx)
 
 q = QuantumRegister(1, 'q')
-sx_to_rx = QuantumCircuit(q)
+sx_to_rx = QuantumCircuit(q, global_phase=pi / 4)
 sx_to_rx.rx(pi / 2, 0)
 _sel.add_equivalence(SXGate(), sx_to_rx)
 
 # SXdgGate
 
 q = QuantumRegister(1, 'q')
-def_sxdg = QuantumCircuit(q)
+def_sxdg = QuantumCircuit(q, global_phase=-pi / 4)
 for inst, qargs, cargs in [
         (SGate(), [q[0]], []),
         (HGate(), [q[0]], []),
@@ -338,7 +338,7 @@ for inst, qargs, cargs in [
 _sel.add_equivalence(SXdgGate(), def_sxdg)
 
 q = QuantumRegister(1, 'q')
-sxdg_to_rx = QuantumCircuit(q)
+sxdg_to_rx = QuantumCircuit(q, global_phase=-pi / 4)
 sxdg_to_rx.rx(-pi / 2, 0)
 _sel.add_equivalence(SXdgGate(), sxdg_to_rx)
 
@@ -441,7 +441,7 @@ q = QuantumRegister(1, 'q')
 theta = Parameter('theta')
 phi = Parameter('phi')
 lam = Parameter('lam')
-u3_qasm_def = QuantumCircuit(q, global_phase=(lam + phi) / 2)
+u3_qasm_def = QuantumCircuit(q, global_phase=(lam + phi - pi) / 2)
 u3_qasm_def.rz(lam, 0)
 u3_qasm_def.sx(0)
 u3_qasm_def.rz(theta+pi, 0)
