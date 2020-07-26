@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    All the circuit drawers changed the default of the ``cregbundle`` to ``True``. If you want to preserver the
+    previous behavior, given a circuit ``circuit``, run ``circuit.draw(..., cregbundle=False)``.

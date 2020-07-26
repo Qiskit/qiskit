@@ -62,13 +62,13 @@ class GMS(QuantumCircuit):
     .. math::
 
         GMS(\chi_{12}, \chi_{13}, ..., \chi_{n-1 n}) =
-        exp(-i \sum_{i=1}^{n} \sum_{j=i+1}^{n} X{\otimes}X \frac{\chi_{ij}}{2}) =
+        exp(-i \sum_{i=1}^{n} \sum_{j=i+1}^{n} X{\otimes}X \frac{\chi_{ij}}{2})
 
     **References:**
 
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.
-    `arXiv:9810040 <https://arxiv.org/abs/9810040>`_
+    `arXiv:9810040 <https://arxiv.org/abs/quant-ph/9810040>`_
 
     [2] Maslov, D. and Nam, Y., Use of global interactions in efficient quantum circuit
     constructions. New Journal of Physics, 20(3), p.033018.
