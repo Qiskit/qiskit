@@ -765,7 +765,7 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
-    def append(self, instruction, qargs=None, cargs=None):
+    def append(self, instruction, qargs=None, cargs=None, i=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
@@ -773,6 +773,7 @@ class QuantumCircuit:
             instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
+            i (int): Index number for gate position on bit (zero-based)
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
@@ -797,10 +798,10 @@ class QuantumCircuit:
 
         instructions = InstructionSet()
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+            instructions.add(self._append(instruction, qarg, carg, i), qarg, carg)
         return instructions
 
-    def _append(self, instruction, qargs, cargs):
+    def _append(self, instruction, qargs, cargs, i=None):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
 
@@ -808,6 +809,7 @@ class QuantumCircuit:
             instruction (Instruction or Operator): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
             cargs (list(tuple)): clbits to attach instruction to
+            i (int): Index number for gate position on bit (zero-based)
 
         Returns:
             Instruction: a handle to the instruction that was just added
@@ -826,7 +828,16 @@ class QuantumCircuit:
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
-        self._data.append(instruction_context)
+        if i is not None and i < len(qargs[0].instruction_index):
+            lhs_data = self._data[0:qargs[0].instruction_index[i]]
+            lhs_index_list = qargs[0].instruction_index[0:i]
+            rhs_data = self._data[qargs[0].instruction_index[i]:]
+            rhs_index_list = qargs[0].instruction_index[i:]
+            self._data = lhs_data + [instruction_context] + rhs_data
+            qargs[0].instruction_index = rhs_index_list + (len(lhs_data),) + lhs_index_list
+        else:
+            qargs[0].instruction_index = qargs[0].instruction_index + (len(self._data),)
+            self._data.append(instruction_context)
 
         self._update_parameter_table(instruction)
 
@@ -1923,10 +1934,10 @@ class QuantumCircuit:
         return self.append(Barrier(len(qubits)), qubits, [])
 
     @deprecate_arguments({'q': 'qubit'})
-    def h(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
+    def h(self, qubit, *, q=None, i=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.HGate`."""
         from .library.standard_gates.h import HGate
-        return self.append(HGate(), [qubit], [])
+        return self.append(HGate(), [qubit], [], i)
 
     @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
     def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
