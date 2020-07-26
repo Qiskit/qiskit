@@ -15,6 +15,7 @@
 """Map a DAGCircuit onto a `coupling_map` adding swap gates."""
 
 from collections import OrderedDict
+import itertools
 import tempfile
 from logging import getLogger
 from math import inf
@@ -41,6 +42,7 @@ from .cython.stochastic_swap.swap_trial import swap_trial
 logger = getLogger(__name__)
 
 var_dict = {}
+count = itertools.count()
 
 
 def init_workers(seed, cdist2, cdist, edges):
@@ -48,7 +50,7 @@ def init_workers(seed, cdist2, cdist, edges):
     var_dict['cdist2'] = cdist2
     var_dict['cdist'] = cdist
     var_dict['edges'] = edges
-    var_dict['rng'] = np.random.default_rng(seed + os.getpid())
+    var_dict['rng'] = np.random.default_rng(seed + next(count))
 
 
 def _swap_trial(proc_num, num_iter, num_qubits, int_layout, int_qubit_subset,
