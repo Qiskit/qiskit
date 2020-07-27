@@ -417,6 +417,8 @@ from qiskit.pulse.builder import (
     align_left,
     align_right,
     align_sequential,
+    align_equispaced,
+    align_numerical,
     circuit_scheduler_settings,
     frequency_offset,
     inline,

@@ -229,6 +229,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.exceptions import PulseError
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
@@ -892,6 +893,98 @@ def align_sequential() -> ContextManager[None]:
                 pulse.play(pulse.Constant(20, 1.0), d1)
 
         assert pulse_prog.ch_stop_time(d0) == pulse_prog.ch_start_time(d1)
+    """
+
+
+# pylint: disable=unused-argument
+@_transform_context(transforms.align_equispaced)
+def align_equispaced(duration: int) -> ContextManager[None]:
+    """Equispaced alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled with the same interval.
+    If the total free induction time cannot be divided by the number of sub-schedules
+    within the context, the modulo is prepended and appended to the returned schedule.
+    Delay instruction is automatically inserted in between pulses.
+
+    This context may be convenient to write a schedule of the periodical dynamic decoupling or
+    the Hahn echo sequence.
+
+    Examples:
+
+    .. jupyter-execute::
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        x90 = pulse.Gaussian(10, 0.1, 3)
+        x180 = pulse.Gaussian(10, 0.2, 3)
+
+        with pulse.build() as hahn_echo:
+            with pulse.align_equispaced(duration=100):
+                pulse.play(x90, d0)
+                pulse.play(x180, d0)
+                pulse.play(x90, d0)
+
+        hahn_echo.draw()
+
+    Args:
+        duration: Duration of this context. This should be larger than the schedule duration.
+
+    Notes:
+        The scheduling is performed for sub-schedules within the context rather than
+        channel-wise. If you want to apply the equispaced context for each channel,
+        you need to apply the context independently to channels.
+    """
+
+
+# pylint: disable=unused-argument
+@_transform_context(transforms.align_numerical)
+def align_numerical(duration: int,
+                    position: Callable[[int], float]) -> ContextManager[None]:
+    """Numerically-defined alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled at the location specified by
+    arbitrary callback function `position` that takes integer index and returns
+    the associated fractional location witin [0, 1].
+    Delay instruction is automatically inserted in between pulses.
+
+    This context may be convenient to write a schedule of arbitrary dynamical decoupling
+    sequences such as Uhrig dynamical decoupling.
+
+    Examples:
+
+    .. jupyter-execute::
+
+        import numpy as np
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        x90 = pulse.Gaussian(10, 0.1, 3)
+        x180 = pulse.Gaussian(10, 0.2, 3)
+
+        def udd10_pos(j):
+            return np.sin(np.pi*j/(2*10 + 2))**2
+
+        with pulse.build() as udd_sched:
+            pulse.play(x90, d0)
+            with pulse.align_numerical(duration=100, position=udd10_pos):
+                for _ in range(10):
+                    pulse.play(x180, d0)
+            pulse.play(x90, d0)
+
+        udd_sched.draw()
+
+    Args:
+        duration: Duration of context. This should be larger than the schedule duration.
+        position: A function that takes an index of sub-schedule and returns the
+            fractional coordinate of of that sub-schedule.
+            The returned value should be defined within [0, 1].
+            The pulse index starts from 1.
+
+    Notes:
+        The scheduling is performed for sub-schedules within the context rather than
+        channel-wise. If you want to apply the numerical context for each channel,
+        you need to apply the context independently to channels.
     """
 
 
