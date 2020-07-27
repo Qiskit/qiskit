@@ -1132,6 +1132,9 @@ def _vector_to_latex(vector, precision=5, pretext="", max_size=16):
         Returns:
             str: Latex representation of the vector, wrapped in $$
     """
+    if max_size < 3:
+        raise ValueError("""max_size must be greater than or equal to 3""")
+
     out_string = "\n$$\n{}\n".format(pretext)
     out_string += "\\begin{bmatrix}\n"
 
@@ -1140,14 +1143,14 @@ def _vector_to_latex(vector, precision=5, pretext="", max_size=16):
         el_string = ""
         for e in elements:
             num_string = _num_to_latex(e, precision=precision)
-            el_string += num_string + " \\\\\n"
+            el_string += num_string + " \\\\\n "
         return el_string
 
     if len(vector) <= max_size:
         out_string += _elements_to_latex(vector)
     else:
         out_string += _elements_to_latex(vector[:max_size//2])
-        out_string += "\\vdots \\\\\n"
+        out_string += "\\vdots \\\\\n "
         out_string += _elements_to_latex(vector[-max_size//2+1:])
     if len(vector) != 0:
         out_string = out_string[:-4] + "\n"  # remove trailing characters
@@ -1155,7 +1158,7 @@ def _vector_to_latex(vector, precision=5, pretext="", max_size=16):
     return out_string
 
 
-def _matrix_to_latex(matrix, precision=5, pretext=""):
+def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
     """Latex representation of a complex numpy array (with dimension 2)
 
         Args:
@@ -1163,23 +1166,52 @@ def _matrix_to_latex(matrix, precision=5, pretext=""):
             precision (int): For numbers not close to integers, the number of decimal places
                              to round to.
             pretext (str): Latex string to be prepended to the latex, intended for labels.
+            max_size (list(```int```)): Indexable containing two integers: Maximum width and maximum height
+                              of output Latex matrix (including dots characters). If the width
+                              and/or height of matrix exceeds the maximum, the centre values will
+                              be replaced with dots.
 
         Returns:
             str: Latex representation of the matrix, wrapped in $$
     """
+    if min(max_size) < 3:
+        raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
+
     out_string = "\n$$\n{}\n".format(pretext)
     out_string += "\\begin{bmatrix}\n"
-    for row in matrix:
-        for amplitude in row:
-            num_string = _num_to_latex(amplitude, precision=precision)
-            out_string += num_string + " & "
-        out_string = out_string[:-2]  # remove trailing ampersands
-        out_string += " \\\\\n"
+    def _elements_to_latex(elements):
+        el_string = ""
+        for e in elements:
+            num_string = _num_to_latex(e, precision=precision)
+            el_string += num_string + " & "
+        el_string = el_string[:-2]  # remove trailing ampersands
+        return el_string
+
+    def _rows_to_latex(rows, max_width):
+        row_string = ""
+        for r in rows:
+            if len(r) <= max_width:
+                row_string += _elements_to_latex(r)
+            else:
+                row_string += _elements_to_latex(r[:max_width//2])
+                row_string += "& \\cdots & "
+                row_string += _elements_to_latex(r[-max_width//2+1:])
+            row_string += " \\\\\n "
+        return row_string
+
+    max_width, max_height = max_size
+    if len(matrix) > max_height:
+        out_string += _rows_to_latex(matrix[:max_height//2], max_width)
+        out_string += "\\vdots & "*(max_width//2) + "\\ddots & " + "\\vdots & "*int(np.floor((max_width/2)-.5))
+        out_string = out_string[:-2] + "\\\\\n "
+        out_string += _rows_to_latex(matrix[-max_height//2+1:], max_width)
+    else:
+        out_string += _rows_to_latex(matrix, max_size[1])
     out_string += "\\end{bmatrix}\n$$"
     return out_string
 
 
-def array_to_latex(array, precision=5, pretext="", display=True):
+def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
     """Latex representation of a complex numpy array (with dimension 1 or 2)
 
         Args:
@@ -1191,6 +1223,11 @@ def array_to_latex(array, precision=5, pretext="", display=True):
             display (bool): If True, will attempt to use IPython.display to display the LaTeX.
                             If display is False, or IPython.display is not available, will instead
                             return the LaTeX string.
+            max_size: list(```int```) or ```int``` The maximum size of the output Latex array.
+                      * If list(```int```), then the 0th element of the list specifies the maximum
+                        width (including dots characters) and the 1st specifies the maximum height
+                        (also inc. dots characters).
+                      * If a single ```int``` then this value sets the maximum width _and_ maximum height.
 
         Returns:
             if display is True:
@@ -1210,9 +1247,13 @@ def array_to_latex(array, precision=5, pretext="", display=True):
         or types that can be converted to such arrays""")
 
     if array.ndim == 1:
-        outstr = _vector_to_latex(array, precision=precision, pretext=pretext)
+        if not isinstance(max_size, int):
+            max_size = max_size[0]
+        outstr = _vector_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
     elif array.ndim == 2:
-        outstr = _matrix_to_latex(array, precision=precision, pretext=pretext)
+        if isinstance(max_size, int):
+            max_size = (max_size, max_size)
+        outstr = _matrix_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
     else:
         raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
 
