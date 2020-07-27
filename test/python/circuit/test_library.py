@@ -1999,7 +1999,7 @@ class TestQuadraticForm(QiskitTestCase):
         m = 2
 
         circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
-        param_dict = dict(zip(p, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
+        param_dict = dict(zip(theta, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
         circuit.assign_parameters(param_dict, inplace=True)
 
         self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
