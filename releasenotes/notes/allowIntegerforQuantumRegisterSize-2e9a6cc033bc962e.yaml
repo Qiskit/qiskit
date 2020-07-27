@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Use numbers.Integral instead of Python's built-in ``int`` as 
+    supported index to ``QuantumRegister`` and ``ClassicalRegister``.
+    

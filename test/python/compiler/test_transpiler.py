@@ -455,7 +455,6 @@ class TestTranspile(QiskitTestCase):
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
@@ -474,7 +473,6 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):
