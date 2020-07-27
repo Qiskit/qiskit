@@ -17,7 +17,6 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-import warnings
 from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np

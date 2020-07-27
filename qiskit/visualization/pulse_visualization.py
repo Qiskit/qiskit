@@ -17,7 +17,6 @@
 """
 matplotlib pulse visualization.
 """
-import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
 from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform, ScheduleComponent
