@@ -27,10 +27,10 @@ A sampler is a function that takes an continuous pulse function with signature:
         ...
     ```
 and returns a new function:
-    def f(duration: int, *args, **kwargs) -> SamplePulse:
+    def f(duration: int, *args, **kwargs) -> Waveform:
         ...
 
-Samplers are used to build up pulse commands from continuous pulse functions.
+Samplers are used to build up pulse waveforms from continuous pulse functions.
 
 In Python the creation of a dynamic function that wraps another function will cause
 the underlying signature and documentation of the underlying function to be overwritten.
@@ -85,7 +85,7 @@ linear below:
 Which after decoration may be called with a duration rather than an array of times
     ```python
     duration = 10
-    pulse_command = linear(10, 0.1, 0.1)
+    pulse_envelope = linear(10, 0.1, 0.1)
     ```
 If one calls help on `linear` they will find
     ```
@@ -136,12 +136,12 @@ import pydoc
 import numpy as np
 
 from ...exceptions import PulseError
-from ..sample_pulse import SamplePulse
+from ..waveform import Waveform
 from . import strategies
 
 
 def functional_pulse(func: Callable) -> Callable:
-    """A decorator for generating SamplePulse from python callable.
+    """A decorator for generating Waveform from python callable.
 
     Args:
         func: A function describing pulse envelope.
@@ -151,11 +151,11 @@ def functional_pulse(func: Callable) -> Callable:
     """
     @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
-        """Return SamplePulse."""
+        """Return Waveform."""
         if isinstance(duration, (int, np.integer)) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
-            return SamplePulse(samples=samples, name=name)
+            return Waveform(samples=samples, name=name)
         raise PulseError('The first argument must be an integer value representing duration.')
 
     return to_pulse
@@ -220,7 +220,7 @@ def sampler(sample_function: Callable) -> Callable:
     Where `times` is a numpy array of floats with length n_times and the output array
     is a complex numpy array with length n_times. The output of the decorator is an
     instance of `FunctionalPulse` with signature:
-        `def g(duration: int, *args, **kwargs) -> SamplePulse`
+        `def g(duration: int, *args, **kwargs) -> Waveform`
 
     Note if your continuous pulse function outputs a `complex` scalar rather than a
     `np.ndarray`, you should first vectorize it before applying a sampler.
@@ -236,7 +236,7 @@ def sampler(sample_function: Callable) -> Callable:
         """Return a decorated sampler function."""
 
         @functools.wraps(continuous_pulse)
-        def call_sampler(duration: int, *args, **kwargs) -> SamplePulse:
+        def call_sampler(duration: int, *args, **kwargs) -> Waveform:
             """Replace the call to the continuous function with a call to the sampler applied
             to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)

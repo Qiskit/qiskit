@@ -27,7 +27,7 @@ def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
     """ Create a paulivec representation.
         Graphical representation of the input array.
         Args:
-            rho (array): State vector or density matrix.
+            rho (Statevector or DensityMatrix or array): An N-qubit quantum state.
             figsize (tuple): Figure size in pixels.
             slider (bool): activate slider
             show_legend (bool): show legend of graph content
@@ -36,16 +36,15 @@ def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
         Example:
             .. code-block::
 
-                from qiskit import QuantumCircuit, BasicAer, execute
+                from qiskit import QuantumCircuit
+                from qiskit.quantum_info import Statevector
                 from qiskit.visualization import iplot_state_paulivec
                 %matplotlib inline
-                qc = QuantumCircuit(2, 2)
+                qc = QuantumCircuit(2)
                 qc.h(0)
                 qc.cx(0, 1)
-                qc.measure([0, 1], [0, 1])
-                backend = BasicAer.get_backend('statevector_simulator')
-                job = execute(qc, backend).result()
-                iplot_state_paulivec(job.get_statevector(qc))
+                state = Statevector.from_instruction(qc)
+                iplot_state_paulivec(state)
     """
     warnings.warn(
         "The iplot_state_paulivec function is deprecated and will be "

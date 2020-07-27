@@ -12,11 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""(BETA) Use the pulse builder to write pulse programs with an imperative,
-assembly-like syntax.
+r"""Use the pulse builder DSL to write pulse programs with an imperative syntax.
 
 .. warning::
-    The pulse builder interface is still in active development and may have
+    The pulse builder interface is still in active development. It may have
     breaking API changes without deprecation warnings in future releases until
     otherwise indicated.
 
@@ -39,7 +38,7 @@ a pulse:
 The builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
 schedule will survive after the context is exited and can be executed like a
-normal Qiskit program using ``qiskit.execute(pulse_prog, backend)``.
+normal Qiskit schedule using ``qiskit.execute(pulse_prog, backend)``.
 
 Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
@@ -49,7 +48,7 @@ We can optionally pass a :class:`~qiskit.providers.BaseBackend` to
 :func:`build` to enable enhanced functionality. Below, we prepare a Bell state
 by automatically compiling the required pulses from their gate-level
 representations, while simultaneously applying a long decoupling pulse to a
-neighboring qubit. We terminate the experiment with a measurement to see which
+neighboring qubit. We terminate the experiment with a measurement to observe the
 state we prepared. This program which mixes circuits and pulses will be
 automatically lowered to be run as a pulse program:
 
@@ -80,7 +79,7 @@ automatically lowered to be run as a pulse program:
     decoupled_bell_prep_and_measure.draw()
 
 With the pulse builder we are able to blend programming on qubits and channels.
-While the pulse IR of Qiskit is based on instructions that operate on
+While the pulse schedule is based on instructions that operate on
 channels, the pulse builder automatically handles the mapping from qubits to
 channels for you.
 
@@ -517,7 +516,7 @@ def build(backend=None,
           default_transpiler_settings: Optional[Dict[str, Any]] = None,
           default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
           ) -> ContextManager[Schedule]:
-    """A context manager for launching the imperative pulse builder DSL.
+    """Create a context manager for launching the imperative pulse builder DSL.
 
     To enter a building context and starting building a pulse program:
 
@@ -1070,7 +1069,7 @@ def phase_offset(phase: float,
 
         d0 = pulse.DriveChannel(0)
 
-        with pulse.build(backend) as pulse_prog:
+        with pulse.build() as pulse_prog:
             with pulse.phase_offset(math.pi, d0):
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
@@ -1285,9 +1284,8 @@ def play(pulse: Union[library.Pulse, np.ndarray],
         pulse: Pulse to play.
         channel: Channel to play pulse on.
     """
-
     if not isinstance(pulse, library.Pulse):
-        pulse = library.SamplePulse(pulse)
+        pulse = library.Waveform(pulse)
 
     append_instruction(instructions.Play(pulse, channel))
 
@@ -1703,7 +1701,7 @@ def measure(qubit: int,
         qubits=[qubit],
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={register: register})
+        qubit_mem_slots={register.index: register.index})
     call_schedule(measure_sched)
 
     return register
@@ -1742,7 +1740,7 @@ def measure_all() -> List[chans.MemorySlot]:
         qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={register: register for register in registers})
+        qubit_mem_slots={qubit: qubit for qubit in qubits})
     call_schedule(measure_sched)
 
     return registers

@@ -70,7 +70,7 @@ class SwapGate(Gate):
             (CXGate(), [q[1], q[0]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -229,7 +229,7 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
             (CCXGate(), [q[0], q[1], q[2]], []),
             (CXGate(), [q[2], q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):
