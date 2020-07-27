@@ -229,7 +229,6 @@ from qiskit.pulse import (
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule
-from qiskit.pulse.exceptions import PulseError
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
