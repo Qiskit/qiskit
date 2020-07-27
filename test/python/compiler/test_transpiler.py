@@ -22,6 +22,7 @@ from logging import StreamHandler, getLogger
 from unittest.mock import patch
 
 from ddt import ddt, data, unpack
+from test import combine  # pylint: disable=wrong-import-order
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -732,8 +733,31 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
 
         self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
         for basis_gate in basis_gates:
             self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        basis_gates=[
+            ['u3', 'cx'],
+            ['rx', 'rz', 'iswap'],
+            ['rx', 'ry', 'rxx'],
+        ],
+    )
+    def test_translation_method_synthesis(self, optimization_level, basis_gates):
+        """Verify translation_method='synthesis' gets to the basis."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, translation_method='synthesis',
+                        basis_gates=basis_gates,
+                        optimization_level=optimization_level)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
 
 class StreamHandlerRaiseException(StreamHandler):
