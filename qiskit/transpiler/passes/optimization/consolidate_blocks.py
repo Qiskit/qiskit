@@ -53,6 +53,7 @@ class ConsolidateBlocks(TransformationPass):
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
         """
         super().__init__()
+        self.basis_gates = basis_gates
         self.force_consolidate = force_consolidate
 
         if kak_basis_gate is not None:
@@ -145,11 +146,13 @@ class ConsolidateBlocks(TransformationPass):
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
-                if (
+                if (  # pylint: disable=too-many-boolean-expressions
                         self.force_consolidate
                         or unitary.num_qubits > 2
                         or self.decomposer.num_basis_gates(unitary) < basis_count
                         or len(subcirc) > max_2q_depth
+                        or (self.basis_gates is not None
+                            and not set(subcirc.count_ops()).issubset(self.basis_gates))
                 ):
                     new_dag.apply_operation_back(
                         UnitaryGate(unitary),
