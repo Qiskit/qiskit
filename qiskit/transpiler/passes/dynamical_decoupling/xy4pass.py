@@ -16,12 +16,11 @@ from qiskit.circuit.library.standard_gates import XGate, YGate
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.test.mock import FakeAlmaden
 
 
 class XY4Pass(TransformationPass):
 
-    def __init__(self, backend_properties, dt_in_sec):
+    def __init__(self, backend_properties, dt_in_sec, tau_c=None, tau_step=10):
         """XY4Pass initializer.
 
         Args:
@@ -29,10 +28,33 @@ class XY4Pass(TransformationPass):
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
             dt_in_sec (float): Sample duration [sec] used for the conversion.
+            tau_c (int): Cycle time of the DD sequence. Default is the sum of gate
+                durations of DD sequences with 10 ns delays in between.
+            tau_step (ns): Delay time between pulses in the DD sequence. Default
+                is 10 ns.
         """
         super().__init__()
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
+        self.tau_step = tau_step
+        self.tau_cs = {}
+
+        self.tau_step_totals = {}
+        u3_props = self.backend_properties._gates['u3']
+        for qubit, props in u3_props.items():
+            if 'gate_length' in props:
+                gate_length = props['gate_length'][0]
+                # TODO: Needs to check if durations of gates exceed cycle time
+                # If so, raise error
+                if tau_c is None:
+                    self.tau_cs[qubit[0]] = 4 * int(tau_step * 1e-9 / self.dt) + \
+                                            round(4 * gate_length / self.dt)
+                    self.tau_step_totals[qubit[0]] = self.tau_cs[qubit[0]] - \
+                                            round(4 * gate_length / self.dt)
+                else:
+                    self.tau_step_totals[qubit[0]] = tau_c - round(4 * gate_length / self.dt)
+
+        self.tau_c = tau_c
 
 
     def run(self, dag):
@@ -45,17 +67,6 @@ class XY4Pass(TransformationPass):
             DAGCircuit: A new DAG with XY4 DD Sequences inserted in large 
                         enough delays.
         """
-        xy4_durations = {}
-        tau_c = 1461           # in units of dt
-
-        u3_props = self.backend_properties._gates['u3']
-        for qubit, props in u3_props.items():
-            if 'gate_length' in props:
-                gate_length = props['gate_length'][0]
-                # TODO: Needs to check if durations of gates exceed cycle time
-                # If so, raise error
-                xy4_durations[qubit[0]] = tau_c - round(4 * gate_length / self.dt)
-
         new_dag = DAGCircuit()
 
         for qreg in dag.qregs.values():
@@ -67,14 +78,16 @@ class XY4Pass(TransformationPass):
 
             if isinstance(node.op, Delay):
                 delay_duration = dag.instruction_durations.get(node.op, node.qargs)
-                xy4_duration = xy4_durations[node.qargs[0].index]
+                tau_step_total = self.tau_step_totals[node.qargs[0].index]
+                tau_c = self.tau_cs[node.qargs[0].index] if self.tau_c is None else self.tau_c
 
                 if tau_c <= delay_duration:
                     count = int(delay_duration // tau_c)
-                    error = xy4_duration - 4 * (xy4_duration // 4)
-                    dd_delay = xy4_duration // 4
-                    parity = 1 if (delay_duration - count * tau_c + error + dd_delay) % 2 else 0
-                    new_delay = int((delay_duration - count * tau_c + error + dd_delay) / 2)
+                    remainder = tau_step_total % 4
+                    dd_delay = tau_step_total // 4
+                    parity = 1 if (delay_duration - count * (tau_c - remainder) + dd_delay) % 2 \
+                               else 0
+                    new_delay = int((delay_duration - count * (tau_c - remainder) + dd_delay) / 2)
 
                     new_dag.apply_operation_back(Delay(new_delay - dd_delay), qargs=node.qargs)
 

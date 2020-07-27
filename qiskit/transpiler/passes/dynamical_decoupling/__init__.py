@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing dynamical decoupling passes."""
+"""Module containing passes of dynamical decoupling, an error mitigation
+technique that attempts to cancel out system-environment interations by
+sending a sequence of pulses."""
 
 from .xy4pass import XY4Pass

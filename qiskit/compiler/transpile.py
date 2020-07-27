@@ -139,10 +139,10 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
             Durations defined in ``backend.properties`` are used as default and
             they are overwritten with the instruction_durations.
-        dynamical_decoupling: The name of the dynamical decoupling seqeuence to insert into times 
+        dynamical_decoupling: The name of the dynamical decoupling sequence to insert into times 
             when the qubit(s) is/are idling for durations longer than the duration of the specified
-            DD seqeuence. The circuit will need to be converted to a schedule before DD sequences 
-            can be inserted. If no scheduling method is provided, 'alap' will be provided 
+            DD seqeuence. The circuit will need to be converted to a scheduled circuit before DD 
+            sequences can be inserted. If no scheduling method is provided, 'alap' will be provided
             automatically as the scheduling method.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
@@ -368,14 +368,14 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager.append(RemoveOpsOnIdleQubits())
 
     dynamical_decoupling = pass_manager_config.dynamical_decoupling
-    backend_properties = pass_manager_config.backend_properties
-    dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
     if dynamical_decoupling is not None:
         if pass_manager_config.scheduling_method is None:
             from qiskit.transpiler.passes import ALAPSchedule
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
         if dynamical_decoupling in {'xy4','XY4'}:
             from qiskit.transpiler.passes import XY4Pass
+            backend_properties = pass_manager_config.backend_properties
+            dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
             pass_manager.append(XY4Pass(backend_properties, dt_in_sec))
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s." % dynamical_decoupling)
