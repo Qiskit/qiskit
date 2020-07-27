@@ -22,8 +22,8 @@ import json
 import math
 import re
 
-from fractions import Fraction
 import numpy as np
+from fractions import Fraction
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
@@ -1117,23 +1117,38 @@ def _num_to_latex(num, precision=5):
         return "{} {} {}i".format(realstring, operation, imagstring)
 
 
-def _vector_to_latex(vector, precision=5, pretext=""):
+def _vector_to_latex(vector, precision=5, pretext="", max_size=16):
     """Latex representation of a complex numpy array (with dimension 1)
 
         Args:
-            vector (ndarray): The vector to be converted to latex, must have dimension 1.
+            vector (ndarray): The vector to be converted to Latex, must have dimension 1.
             precision (int): For numbers not close to integers, the number of decimal places
             to round to.
             pretext (str): Latex string to be prepended to the latex, intended for labels.
+            max_size (int): The maximum number of elements present in the output Latex
+                            (including the vertical dots character). If the vector is larger
+                            than this, the centre elements will be replaced with vertical dots.
 
         Returns:
             str: Latex representation of the vector, wrapped in $$
     """
     out_string = "\n$$\n{}\n".format(pretext)
     out_string += "\\begin{bmatrix}\n"
-    for amplitude in vector:
-        num_string = _num_to_latex(amplitude, precision=precision)
-        out_string += num_string + " \\\\\n"
+
+    def _elements_to_latex(elements):
+        # Returns the latex representation of each numerical element, separated by "\\\\\n"
+        el_string = ""
+        for e in elements:
+            num_string = _num_to_latex(e, precision=precision)
+            el_string += num_string + " \\\\\n"
+        return el_string
+
+    if len(vector) <= max_size:
+        out_string += _elements_to_latex(vector)
+    else:
+        out_string += _elements_to_latex(vector[:max_size//2])
+        out_string += "\\vdots \\\\\n"
+        out_string += _elements_to_latex(vector[-max_size//2+1:])
     if len(vector) != 0:
         out_string = out_string[:-4] + "\n"  # remove trailing characters
     out_string += "\\end{bmatrix}\n$$"
@@ -1168,7 +1183,8 @@ def array_to_latex(array, precision=5, pretext="", display=True):
     """Latex representation of a complex numpy array (with dimension 1 or 2)
 
         Args:
-            array (ndarray): The array to be converted to latex, must have dimension 1 or 2.
+            array (ndarray): The array to be converted to latex, must have dimension 1 or 2 and
+                             contain only numerical data.
             precision (int): For numbers not close to integers or common terms, the number of
                              decimal places to round to.
             pretext (str): Latex string to be prepended to the latex, intended for labels.
@@ -1188,7 +1204,7 @@ def array_to_latex(array, precision=5, pretext="", display=True):
     """
     try:
         array = np.asarray(array)
-        _ = array+1  # Test array contains numerical data
+        _ = array[0]+1  # Test first element contains numerical data
     except Exception:
         raise ValueError("""array_to_latex can only convert numpy arrays containing numerical data,
         or types that can be converted to such arrays""")
