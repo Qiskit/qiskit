@@ -14,7 +14,6 @@
 
 """
 Pulse visualization module.
-# TODO : remove this dummy comment. this is inserted to trigger CI.
 """
 
 from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
