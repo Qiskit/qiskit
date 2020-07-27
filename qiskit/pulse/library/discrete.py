@@ -87,7 +87,6 @@ def square(duration: int, amp: complex, freq: float = None,
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         freq: Pulse frequency, units of 1./dt. If ``None`` defaults to 1./duration.
-        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
     """
@@ -118,7 +117,6 @@ def sawtooth(duration: int, amp: complex, freq: float = None,
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         freq: Pulse frequency, units of 1./dt. If ``None`` defaults to 1./duration.
-        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
 
@@ -131,8 +129,8 @@ def sawtooth(duration: int, amp: complex, freq: float = None,
 
             duration = 100
             amp = 1
-            period = duration
-            sawtooth_wave = np.real(sawtooth(duration, amp, period).samples)
+            freq = 1 / duration
+            sawtooth_wave = np.real(sawtooth(duration, amp, freq).samples)
             plt.plot(range(duration), sawtooth_wave)
     """
     if freq is None:
@@ -162,7 +160,6 @@ def triangle(duration: int, amp: complex, freq: float = None,
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         freq: Pulse frequency, units of 1./dt. If ``None`` defaults to 1./duration.
-        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
 
@@ -175,8 +172,8 @@ def triangle(duration: int, amp: complex, freq: float = None,
 
             duration = 100
             amp = 1
-            period = duration
-            triangle_wave = np.real(triangle(duration, amp, period).samples)
+            freq = 1 / duration
+            triangle_wave = np.real(triangle(duration, amp, freq).samples)
             plt.plot(range(duration), triangle_wave)
     """
     if freq is None:

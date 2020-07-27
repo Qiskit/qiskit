@@ -243,7 +243,6 @@ class Instruction(ScheduleComponent, ABC):
             table: Draw event table for supported instructions
             label: Label individual instructions
             framechange: Add framechange indicators
-            scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
 
         Returns:

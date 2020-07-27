@@ -15,13 +15,11 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-import warnings
 from typing import Callable, Optional
 from abc import ABC, abstractmethod
 
 import numpy as np
 
-from ..channels import PulseChannel
 from ..exceptions import PulseError
 
 
@@ -47,8 +45,7 @@ class Pulse(ABC):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scale: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -59,7 +56,6 @@ class Pulse(ABC):
             scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
-            scaling: Deprecated, see `scale`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope

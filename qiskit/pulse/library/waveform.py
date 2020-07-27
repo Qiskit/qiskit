@@ -17,7 +17,6 @@ from typing import Callable, Union, List, Optional
 
 import numpy as np
 
-from ..channels import PulseChannel
 from ..exceptions import PulseError
 from .pulse import Pulse
 
@@ -111,7 +110,6 @@ class Waveform(Pulse):
             scale: Relative visual scaling of waveform amplitudes.
             interactive: When set true show the circuit in a new window.
                          (This depends on the matplotlib backend being used.)
-            scaling: Deprecated, see `scale`,
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope

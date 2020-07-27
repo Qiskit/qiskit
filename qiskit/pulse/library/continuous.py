@@ -49,10 +49,7 @@ def square(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency. units of 1/dt.
-        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
-    Raises:
-        ValueError: If both `freq` and `period` are given, or if both are None
     """
     x = times*freq+phase/np.pi
     return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1).astype(np.complex_)
@@ -65,10 +62,7 @@ def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> 
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency. units of 1/dt.
-        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
-    Raises:
-        ValueError: If both `freq` and `period` are given, or if both are None
     """
     x = times*freq+phase/np.pi
     return amp*2*(x-np.floor(1/2+x)).astype(np.complex_)
@@ -81,10 +75,7 @@ def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> 
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency. units of 1/dt.
-        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
-    Raises:
-        ValueError: If both `freq` and `period` are given, or if both are None
     """
     return amp*(-2*np.abs(
         sawtooth(times, 1, freq, phase=(phase-np.pi/2)/2)) + 1).astype(np.complex_)
