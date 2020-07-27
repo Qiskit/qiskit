@@ -22,8 +22,8 @@ import json
 import math
 import re
 
-import numpy as np
 from fractions import Fraction
+import numpy as np
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
@@ -1128,9 +1128,13 @@ def _vector_to_latex(vector, precision=5, pretext="", max_size=16):
             max_size (int): The maximum number of elements present in the output Latex
                             (including the vertical dots character). If the vector is larger
                             than this, the centre elements will be replaced with vertical dots.
+                            Must be greater than 3.
 
         Returns:
             str: Latex representation of the vector, wrapped in $$
+
+        Raises:
+            ValueError: If max_size < 3
     """
     if max_size < 3:
         raise ValueError("""max_size must be greater than or equal to 3""")
@@ -1166,19 +1170,24 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
             precision (int): For numbers not close to integers, the number of decimal places
                              to round to.
             pretext (str): Latex string to be prepended to the latex, intended for labels.
-            max_size (list(```int```)): Indexable containing two integers: Maximum width and maximum height
-                              of output Latex matrix (including dots characters). If the width
-                              and/or height of matrix exceeds the maximum, the centre values will
-                              be replaced with dots.
+            max_size (list(```int```)): Indexable containing two integers: Maximum width and maximum
+                              height of output Latex matrix (including dots characters). If the
+                              width and/or height of matrix exceeds the maximum, the centre values
+                              will be replaced with dots. Maximum width or height must be greater
+                              than 3.
 
         Returns:
             str: Latex representation of the matrix, wrapped in $$
+
+        Raises:
+            ValueError: If minimum value in max_size < 3
     """
     if min(max_size) < 3:
         raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
 
     out_string = "\n$$\n{}\n".format(pretext)
     out_string += "\\begin{bmatrix}\n"
+
     def _elements_to_latex(elements):
         el_string = ""
         for e in elements:
@@ -1202,11 +1211,17 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
     max_width, max_height = max_size
     if len(matrix) > max_height:
         out_string += _rows_to_latex(matrix[:max_height//2], max_width)
-        out_string += "\\vdots & "*(max_width//2) + "\\ddots & " + "\\vdots & "*int(np.floor((max_width/2)-.5))
+
+        # number of vertical dots preceding and trailing the diagonal dots:
+        pre_vdots = max_width//2
+        post_vdots = max_width//2 + np.mod(max_width, 2) - 1
+
+        out_string += "\\vdots & "*pre_vdots + "\\ddots & " + "\\vdots & "*post_vdots
         out_string = out_string[:-2] + "\\\\\n "
         out_string += _rows_to_latex(matrix[-max_height//2+1:], max_width)
+
     else:
-        out_string += _rows_to_latex(matrix, max_size[1])
+        out_string += _rows_to_latex(matrix, max_width)
     out_string += "\\end{bmatrix}\n$$"
     return out_string
 
@@ -1223,11 +1238,12 @@ def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
             display (bool): If True, will attempt to use IPython.display to display the LaTeX.
                             If display is False, or IPython.display is not available, will instead
                             return the LaTeX string.
-            max_size: list(```int```) or ```int``` The maximum size of the output Latex array.
+            max_size (list(int) or int): The maximum size of the output Latex array.
                       * If list(```int```), then the 0th element of the list specifies the maximum
                         width (including dots characters) and the 1st specifies the maximum height
                         (also inc. dots characters).
-                      * If a single ```int``` then this value sets the maximum width _and_ maximum height.
+                      * If a single ```int``` then this value sets the maximum width _and_ maximum
+                        height.
 
         Returns:
             if display is True:
