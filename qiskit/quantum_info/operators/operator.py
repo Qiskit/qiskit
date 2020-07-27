@@ -485,11 +485,12 @@ class Operator(BaseOperator):
     @classmethod
     def _init_instruction(cls, instruction):
         """Convert a QuantumCircuit or Instruction to an Operator."""
+        # Initialize an identity operator of the correct size of the circuit
+        dimension = 2 ** instruction.num_qubits
+        op = Operator(np.eye(dimension))
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
             instruction = instruction.to_instruction()
-        # Initialize an identity operator of the correct size of the circuit
-        op = Operator(np.eye(2 ** instruction.num_qubits))
         op._append_instruction(instruction)
         return op
 
@@ -511,6 +512,7 @@ class Operator(BaseOperator):
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
         from qiskit.circuit.barrier import Barrier
+        from .scalar_op import ScalarOp
 
         mat = self._instruction_to_matrix(obj)
         if mat is not None:
@@ -530,6 +532,12 @@ class Operator(BaseOperator):
                 raise QiskitError('Instruction "{}" '
                                   'definition is {} but expected QuantumCircuit.'.format(
                                       obj.name, type(obj.definition)))
+            if obj.definition.global_phase:
+                dimension = 2 ** self.num_qubits
+                op = self.compose(
+                    ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
+                    qargs=qargs)
+                self._data = op.data
             flat_instr = obj.definition.to_instruction()
             for instr, qregs, cregs in flat_instr.definition.data:
                 if cregs:

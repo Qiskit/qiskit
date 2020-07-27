@@ -44,7 +44,6 @@ from qiskit.pulse.channels import (
     SnapshotChannel,
     MeasureChannel,
 )
-from qiskit.pulse.commands import PersistentValue, PulseInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _insertion_index
 from qiskit.test import QiskitTestCase
@@ -131,9 +130,6 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
-        with self.assertWarns(DeprecationWarning):
-            sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.config.control(
-                [0, 1])[0]))
         sched = sched.insert(60, ShiftPhase(-1.57, self.config.drive(0)))
         sched = sched.insert(30, Play(gp1, self.config.drive(0)))
         sched = sched.insert(60, Play(gp0, self.config.control([0, 1])[0]))
@@ -165,8 +161,6 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
-        with self.assertWarns(DeprecationWarning):
-            sched |= PersistentValue(value=0.2 + 0.4j)(self.config.control([0, 1])[0])
         sched |= ShiftPhase(-1.57, self.config.drive(0)) << 60
         sched |= Play(gp1, self.config.drive(0)) << 30
         sched |= Play(gp0, self.config.control(qubits=[0, 1])[0]) << 60
@@ -320,8 +314,6 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
         gp0 = library.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
-        with self.assertWarns(DeprecationWarning):
-            pv0 = PersistentValue(0.1)
         snapshot = Snapshot('snapshot_label', 'state')
 
         sched1 = Schedule(name='test_name')
@@ -337,10 +329,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched_pulse = Play(gp0, self.config.drive(0)) | sched1
         self.assertEqual(sched_pulse.name, 'pulse_name')
 
-        with self.assertWarns(DeprecationWarning):
-            sched_pv = pv0(self.config.drive(0), name='pv_name') | sched1
-        self.assertEqual(sched_pv.name, 'pv_name')
-
         sched_fc = ShiftPhase(0.1, self.config.drive(0), name='fc_name') | sched1
         self.assertEqual(sched_fc.name, 'fc_name')
 
@@ -352,19 +340,17 @@ class TestScheduleBuilding(BaseTestSchedule):
         arguments should not produce repeated parameters in resulting ParameterizedSchedule
         object."""
         def my_test_par_sched_one(x, y, z):
-            with self.assertWarns(DeprecationWarning):
-                result = PulseInstruction(
-                    Waveform(np.array([x, y, z]), name='sample'),
-                    self.config.drive(0)
-                )
+            result = Play(
+                Waveform(np.array([x, y, z]), name='sample'),
+                self.config.drive(0)
+            )
             return 0, result
 
         def my_test_par_sched_two(x, y, z):
-            with self.assertWarns(DeprecationWarning):
-                result = PulseInstruction(
-                    Waveform(np.array([x, y, z]), name='sample'),
-                    self.config.drive(0)
-                )
+            result = Play(
+                Waveform(np.array([x, y, z]), name='sample'),
+                self.config.drive(0)
+            )
             return 5, result
 
         par_sched_in_0 = ParameterizedSchedule(
@@ -766,7 +752,7 @@ class TestScheduleFilter(BaseTestSchedule):
 
         sched = sched.insert(90, Play(lp0, self.config.drive(0)))
 
-        # split instructions with filters on channel 0, of type PulseInstruction,
+        # split instructions with filters on channel 0, of type Play
         # occurring in the time interval (25, 100)
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                channels={self.config.drive(0)},
@@ -788,7 +774,7 @@ class TestScheduleFilter(BaseTestSchedule):
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, (ShiftPhase, Play))
         self.assertTrue(len(filtered.instructions), 4)
-        # make sure the PulseInstruction not in the intervals is maintained
+        # make sure the Play instruction is not in the intervals
         self.assertIsInstance(excluded.instructions[0][1], Play)
 
         # split based on Acquire in the specified intervals
@@ -864,7 +850,7 @@ class TestScheduleFilter(BaseTestSchedule):
         # empty channels with other non-empty filters
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                channels=[],
-                                                               instruction_types=[PulseInstruction])
+                                                               instruction_types=[Play])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 6)
 

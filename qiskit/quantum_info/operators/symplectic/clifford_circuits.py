@@ -91,7 +91,7 @@ def _append_circuit(clifford, circuit, qargs=None):
     if not isinstance(gate.definition, QuantumCircuit):
         raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
             gate.name, type(gate.definition)))
-    for instr, qregs, cregs in gate.definition.data:
+    for instr, qregs, cregs in gate.definition:
         if cregs:
             raise QiskitError(
                 'Cannot apply Instruction with classical registers: {}'.format(

@@ -1,2 +1,1 @@
 nbformat==4.4.0
-numpy!=1.19
