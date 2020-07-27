@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""XY4 DD Pass"""
 from qiskit.circuit.library.standard_gates import XGate, YGate
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
@@ -19,6 +20,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 
 class XY4Pass(TransformationPass):
+    """XY4 DD Pass"""
 
     def __init__(self, backend_properties, dt_in_sec, tau_c=None, tau_step=10):
         """XY4Pass initializer.
