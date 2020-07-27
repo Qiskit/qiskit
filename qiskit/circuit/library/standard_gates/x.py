@@ -749,6 +749,12 @@ class C4XGate(ControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate()
 
+    def to_matrix(self):
+        """Return a numpy.array for the C4X gate."""
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
+
 
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""

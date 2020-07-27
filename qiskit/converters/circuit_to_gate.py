@@ -14,7 +14,6 @@
 
 
 """Helper function for converting a circuit to a gate"""
-
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
@@ -103,7 +102,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
                    list(map(lambda y: q[find_bit_position(y)], x[1])),
                    []),
         rules))
-    qc = QuantumCircuit(q, name=gate.name)
+    qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
     qc._data = rules
     gate.definition = qc
     return gate
