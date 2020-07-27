@@ -146,13 +146,12 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
                                  facecolor=color, edgecolor=color)
             ax1.add_patch(rect)
 
-        ax1.set_xticks(np.arange(0, lx+0.5, 1))
-        ax1.set_yticks(np.arange(0, ly+0.5, 1))
-        row_names.append('')
+        ax1.set_xticks(np.arange(0, lx+1.5, 1))
+        ax1.set_yticks(np.arange(0, ly+1.5, 1))
+        row_names = [''] + row_names + ['']
         ax1.set_yticklabels(row_names, fontsize=14)
-        column_names.append('')
+        column_names = [''] + column_names + ['']
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax1.autoscale_view()
         ax1.invert_yaxis()
         ax1.set_title('Re[$\\rho$]', fontsize=14)
     # Imaginary
@@ -169,12 +168,11 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
                                  facecolor=color, edgecolor=color)
             ax2.add_patch(rect)
 
-        ax2.set_xticks(np.arange(0, lx+0.5, 1))
-        ax2.set_yticks(np.arange(0, ly+0.5, 1))
+        ax2.set_xticks(np.arange(0, lx+1.5, 1))
+        ax2.set_yticks(np.arange(0, ly+1.5, 1))
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
 
-        ax2.autoscale_view()
         ax2.invert_yaxis()
         ax2.set_title('Im[$\\rho$]', fontsize=14)
     if title:
