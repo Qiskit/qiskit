@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    A new translation method which will attempt to synthesize gates
+    directly to the device basis has been added to the transpiler.
+    It can be invoked by providing ``translation_method='synthesis'``
+    to calls to ``qiskit.transpile``.
