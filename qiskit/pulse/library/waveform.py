@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-import warnings
 from typing import Callable, Union, List, Optional
 
 import numpy as np
@@ -101,8 +100,7 @@ class Waveform(Pulse):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scale: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
@@ -119,12 +117,6 @@ class Waveform(Pulse):
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         # pylint: disable=invalid-name, cyclic-import
-        if scaling is not None:
-            warnings.warn(
-                'The parameter "scaling" is being replaced by "scale"',
-                DeprecationWarning, 3)
-            scale = scaling
-
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
@@ -144,11 +136,3 @@ class Waveform(Pulse):
         np.set_printoptions(**opt)
         return "{}({}{})".format(self.__class__.__name__, repr(self.samples),
                                  ", name='{}'".format(self.name) if self.name is not None else "")
-
-    def __call__(self, channel: PulseChannel):
-        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
-                      "instruction directly with a pulse and a channel. In this case, please "
-                      "use: `Play(Waveform(samples), {})`."
-                      "".format(self.__class__.__name__, channel),
-                      DeprecationWarning)
-        return super().__call__(channel)

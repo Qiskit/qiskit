@@ -42,14 +42,6 @@ class Pulse(ABC):
         """Unique identifier for this pulse."""
         return id(self)
 
-    def __call__(self, channel: PulseChannel):
-        warnings.warn("Calling `{}` with a channel is deprecated. Instantiate the new `Play` "
-                      "instruction directly with a pulse and a channel. In this case, please "
-                      "use: `Play({}, {})`.".format(self.__class__.__name__, repr(self), channel),
-                      DeprecationWarning)
-        from ..instructions import Play  # pylint: disable=cyclic-import
-        return Play(self, channel)
-
     @abstractmethod
     def draw(self, dt: float = 1,
              style=None,
