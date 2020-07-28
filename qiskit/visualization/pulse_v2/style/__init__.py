@@ -13,10 +13,5 @@
 # that they have been altered from the originals.
 
 """
-Pulse visualization module.
+Pulse style sheet.
 """
-
-from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
-
-
-PULSE_STYLE = QiskitPulseStyle()
