@@ -1387,7 +1387,8 @@ class TestStandardMethods(QiskitTestCase):
             definition_unitary = execute([circ], simulator).result().get_unitary()
 
             with self.subTest(gate_class):
-                self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+                # TODO check for exact equality once BasicAer can handle global phase
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 
     def test_to_matrix_op(self):
