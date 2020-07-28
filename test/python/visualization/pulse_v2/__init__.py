@@ -12,11 +12,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pulse visualization module.
-"""
-
-from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
-
-
-PULSE_STYLE = QiskitPulseStyle()
+"""Test for pulse visualization modules."""

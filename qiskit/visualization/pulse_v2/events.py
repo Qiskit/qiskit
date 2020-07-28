@@ -31,7 +31,6 @@ instructions within the channel with different visualization purposes.
 Phase and frequency related instructions are loosely grouped as frame changes.
 The instantaneous value of those operands are combined and provided as ``PhaseFreqTuple``.
 Instructions that have finite duration are grouped as waveforms.
-Other miscellaneous instructions such as snapshot are also grouped.
 
 The grouped instructions are returned as an iterator by the corresponding method call:
     ```python
@@ -39,9 +38,6 @@ The grouped instructions are returned as an iterator by the corresponding method
         ...
 
     for t0, frame_change, instructions in event.get_frame_changes():
-        ...
-
-    for t0, instructions in event.get_misc_instructions():
         ...
     ```
 
@@ -80,12 +76,11 @@ It should be also noted that zero duration instructions issued at the same time 
 overlapped on the canvas. Thus it is convenient to plot a total frame change amount rather
 than plotting each operand value bound to the instruction.
 """
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
 
 from qiskit import pulse
-
-PhaseFreqTuple = namedtuple('PhaseFreqTuple', 'phase freq')
+from qiskit.visualization.pulse_v2.types import PhaseFreqTuple
 
 
 class ChannelEvents:
@@ -98,24 +93,20 @@ class ChannelEvents:
                           pulse.instructions.ShiftFrequency,
                           pulse.instructions.SetPhase,
                           pulse.instructions.ShiftPhase))
-    _misc_group = tuple((pulse.instructions.Snapshot, ))
 
     def __init__(self,
                  waveforms: Dict[int, pulse.Instruction],
                  frames: Dict[int, List[pulse.Instruction]],
-                 miscellaneous: Dict[int, List[pulse.Instruction]],
                  channel: pulse.channels.Channel):
         """Create new event manager.
 
         Args:
             waveforms: List of waveforms shown in this channel.
             frames: List of frame change type instructions shown in this channel.
-            miscellaneous: List of miscellaneous instructions shown in this channel.
             channel: Channel object associated with this manager.
         """
         self._waveforms = waveforms
         self._frames = frames
-        self._miscellaneous = miscellaneous
         self.channel = channel
 
         # initial frame
@@ -137,7 +128,6 @@ class ChannelEvents:
         """
         waveforms = dict()
         frames = defaultdict(list)
-        miscellaneous = defaultdict(list)
 
         # parse instructions
         for t0, inst in program.filter(channels=[channel]).instructions:
@@ -145,10 +135,8 @@ class ChannelEvents:
                 waveforms[t0] = inst
             elif isinstance(inst, cls._frame_group):
                 frames[t0].append(inst)
-            elif isinstance(inst, cls._misc_group):
-                miscellaneous[t0].append(inst)
 
-        return ChannelEvents(waveforms, frames, miscellaneous, channel)
+        return ChannelEvents(waveforms, frames, channel)
 
     def is_empty(self):
         """Check if there is any nonzero waveforms in this channel."""
@@ -202,8 +190,3 @@ class ChannelEvents:
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
             yield t0, frame, insts
-
-    def get_misc_instructions(self) -> Iterator[Tuple[int, List[pulse.Instruction]]]:
-        """Return miscellaneous instructions."""
-        for t0, insts in self._miscellaneous:
-            yield t0, insts
