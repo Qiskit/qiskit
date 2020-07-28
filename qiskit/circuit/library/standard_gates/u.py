@@ -197,9 +197,11 @@ class CUGate(ControlledGate):
         qc.p((self.params[2] + self.params[1]) / 2, 0)
         qc.p((self.params[2] - self.params[1]) / 2, 1)
         qc.cx(0, 1)
-        qc.u(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
+        # TODO switch to u, but there's a parameter binding bug that disallows it right now
+        qc.u3(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
         qc.cx(0, 1)
-        qc.u(self.params[0] / 2, self.params[1], 0, 1)
+        # TODO switch to u, but there's a parameter binding bug that disallows it right now
+        qc.u3(self.params[0] / 2, self.params[1], 0, 1)
         self.definition = qc
 
     def inverse(self):
