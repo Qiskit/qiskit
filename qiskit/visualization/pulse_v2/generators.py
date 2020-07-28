@@ -45,10 +45,9 @@ The user can set the custom stylesheet to the drawer interface.
 
 import re
 from fractions import Fraction
-from typing import Dict, Tuple, Any, List, Union
+from typing import Dict, Tuple, Any, List
 
 import numpy as np
-
 from qiskit import pulse
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
