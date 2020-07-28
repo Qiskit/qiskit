@@ -31,7 +31,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction, GraphState, PhaseEstimation)
+                                    HiddenLinearFunction, GraphState, PhaseEstimation,
+                                    QuadraticForm)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -1915,6 +1916,93 @@ class TestPhaseEstimation(QiskitTestCase):
             iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
             pec = PhaseEstimation(3, unitary, iqft=iqft)
             self.assertEqual(pec.data[-1][0].definition, iqft)
+
+
+class TestQuadraticForm(QiskitTestCase):
+    """Test the QuadraticForm circuit."""
+
+    def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
+        """Assert ``circuit`` implements the quadratic form correctly."""
+        def q_form(x):
+            x = np.array([int(val) for val in x])
+            return int(x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset)
+
+        n = len(quadratic)  # number of value qubits
+        ref = np.zeros(2 ** (n + m), dtype=complex)
+        for x in range(2 ** n):
+            x_bin = bin(x)[2:].zfill(n)[::-1]
+            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)[::-1]
+            index = int(index[::-1], 2)
+            ref[index] = 1 / np.sqrt(2 ** n)
+
+        actual = QuantumCircuit(circuit.num_qubits)
+        actual.h(actual.qubits)
+        actual.compose(circuit, inplace=True)
+        self.assertTrue(Statevector.from_instruction(actual).equiv(ref))
+
+    def test_quadratic_form(self):
+        """Test the quadratic form circuit."""
+
+        with self.subTest('empty'):
+            m = 1
+            circuit = QuadraticForm(m)
+            self.assertQuadraticFormIsCorrect(m, [[0]], [0], 0, circuit)
+
+        with self.subTest('1d case'):
+            quadratic = np.array([[1]])
+            linear = np.array([2])
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, linear, offset)
+
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing quadratic'):
+            quadratic = np.zeros((3, 3))
+            linear = np.array([2, 0, 1])
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, None, linear, offset)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing linear'):
+            quadratic = np.array([[1, 2, 3], [3, 1, 2], [2, 3, 1]])
+            linear = np.zeros(3)
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, None, offset)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing offset'):
+            quadratic = np.array([[2, 1], [-1, -2]])
+            linear = np.array([2, 0])
+            offset = 0
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, linear)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+    def test_quadratic_form_parameterized(self):
+        """Test the quadratic form circuit with parameters."""
+        theta = ParameterVector('th', 7)
+
+        p_quadratic = [[theta[0], theta[1]], [theta[2], theta[3]]]
+        p_linear = [theta[4], theta[5]]
+        p_offset = theta[6]
+
+        quadratic = np.array([[2, 1], [-1, -2]])
+        linear = np.array([2, 0])
+        offset = 0
+        m = 2
+
+        circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
+        param_dict = dict(zip(theta, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
+        circuit.assign_parameters(param_dict, inplace=True)
+
+        self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
 
 if __name__ == '__main__':
