@@ -57,6 +57,8 @@ class DefaultStyle:
             'h': 'H',
             's': 'S',
             'sdg': 'S^\\dagger',
+            'sx': '\\sqrt{X}',
+            'sxdg': '\\sqrt{X}^\\dagger',
             't': 'T',
             'tdg': 'T^\\dagger',
             'iswap': 'Iswap',
