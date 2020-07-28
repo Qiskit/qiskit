@@ -15,12 +15,13 @@
 
 """Test hardcoded decomposition rules and matrix definitions for standard gates."""
 
+import numpy as np
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import ParameterVector, Gate, ControlledGate
 
 
 from qiskit.circuit.library import (
@@ -39,7 +40,8 @@ from .gate_utils import _get_free_params
 
 class TestGateDefinitions(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
-    yields the same matrix as the hardcoded matrix definition."""
+    yields the equivalent matrix as the hardcoded matrix definition
+    up to a global phase."""
 
     def test_ch_definition(self):  # TODO: expand this to all gates
         """Test ch gate matrix and definition.
@@ -112,6 +114,45 @@ class TestGateDefinitions(QiskitTestCase):
         circ.cx(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+
+class TestGateEquivalenceEqual(QiskitTestCase):
+    """Test the decomposition of a gate in terms of other gates
+    yields the same matrix as the hardcoded matrix definition."""
+
+    @classmethod
+    def setUpClass(cls):
+        class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
+                   'MCU1Gate', 'UnitaryGate', 'HamiltonianGate',
+                   'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
+                   'VariadicZeroParamGate'}
+        cls._gate_classes = []
+        for aclass in class_list:
+            if aclass.__name__ not in exclude:
+                cls._gate_classes.append(aclass)
+
+    def test_equivalence_phase(self):
+        """Test that the equivalent circuits from the equivalency_library
+        have equal matrix representations"""
+        for gate_class in self._gate_classes:
+            with self.subTest(i=gate_class):
+                n_params = len(_get_free_params(gate_class))
+                params = [0.1 * i for i in range(1, n_params+1)]
+                if gate_class.__name__ == 'RXXGate':
+                    params = [np.pi/2]
+                params = [-np.pi/2 * i for i in range(1, n_params+1)]
+                if gate_class.__name__ in ['MSGate']:
+                    params[0] = 2
+                elif gate_class in ['MCU1Gate']:
+                    params[1] = 2
+                gate = gate_class(*params)
+                equiv_lib_list = std_eqlib.get_entry(gate)
+                for ieq, equivalency in enumerate(equiv_lib_list):
+                    with self.subTest(msg=gate.name + '_' + str(ieq)):
+                        op1 = Operator(gate)
+                        op2 = Operator(equivalency)
+                        self.assertEqual(op1, op2)
 
 
 @ddt

@@ -78,6 +78,7 @@ class QuantumCircuit:
 
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
+        global_phase (float): The global phase of the circuit in radians.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -135,7 +136,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None):
+    def __init__(self, *regs, name=None, global_phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             try:
                 regs = tuple(int(reg) for reg in regs)
@@ -171,6 +172,8 @@ class QuantumCircuit:
         self._parameter_table = ParameterTable()
 
         self._layout = None
+        self._global_phase = 0
+        self.global_phase = global_phase
 
     @property
     def data(self):
@@ -361,7 +364,7 @@ class QuantumCircuit:
                  └───────────┘
         """
         inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                      name=self.name + '_dg')
+                                      name=self.name + '_dg', global_phase=-self.global_phase)
 
         for inst, qargs, cargs in reversed(self._data):
             inverse_circ._append(inst.inverse(), qargs, cargs)
@@ -377,7 +380,8 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                       name=self.name + '**{}'.format(reps))
+                                       name=self.name + '**{}'.format(reps),
+                                       global_phase=reps * self.global_phase)
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
@@ -622,6 +626,8 @@ class QuantumCircuit:
 
         for instr, _, _ in mapped_instrs:
             dest._update_parameter_table(instr)
+
+        dest.global_phase += other.global_phase
 
         if inplace:
             return None
@@ -1677,6 +1683,30 @@ class QuantumCircuit:
         return _circuit_from_qasm(qasm)
 
     @property
+    def global_phase(self):
+        """Return the global phase of the circuit in radians."""
+        return self._global_phase
+
+    @global_phase.setter
+    def global_phase(self, angle):
+        """Set the phase of the circuit.
+
+        Args:
+            angle (float, ParameterExpression): radians
+        """
+        if isinstance(angle, ParameterExpression):
+            self._global_phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._global_phase = 0
+            elif angle < 0:
+                self._global_phase = angle % (-2 * np.pi)
+            else:
+                self._global_phase = angle % (2 * np.pi)
+
+    @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
         return self._parameter_table.get_keys()
@@ -1815,6 +1845,10 @@ class QuantumCircuit:
             # instructions), search the definition for instances of the
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
+        # bind circuit's phase
+        if (isinstance(self.global_phase, ParameterExpression) and
+                parameter in self.global_phase.parameters):
+            self.global_phase = self.global_phase.bind({parameter: value})
 
     def _substitute_parameter(self, old_parameter, new_parameter_expr):
         """Substitute an existing parameter in all circuit instructions and the parameter table."""
@@ -1826,6 +1860,9 @@ class QuantumCircuit:
         entry = self._parameter_table.pop(old_parameter)
         for new_parameter in new_parameter_expr.parameters:
             self._parameter_table[new_parameter] = entry
+        if (isinstance(self.global_phase, ParameterExpression)
+                and old_parameter in self.global_phase.parameters):
+            self.global_phase = self.global_phase.subs({old_parameter: new_parameter_expr})
 
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
