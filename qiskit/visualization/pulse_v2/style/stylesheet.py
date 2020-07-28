@@ -15,12 +15,12 @@
 r"""
 Stylesheet for pulse drawer.
 
-The general stylesheet template `QiskitPulseStyle` is initialized with the hard-corded
-default values in the `default.json` file. This instance is generated when the pulse drawer
-module is loaded so that every lower modules can access to the information.
+The stylesheet `QiskitPulseStyle` is initialized with the hard-corded default values in
+`default_style`. This instance is generated when the pulse drawer module is loaded so that
+every lower modules can access to the information.
 
-The `QiskitPulseStyle` takes nested python dictionary and stores the settings under
-flattened dictionary keys such as `formatter.color.background`.
+The `QiskitPulseStyle` is a wrapper class of python dictionary with the structured keys
+such as `formatter.color.fill_waveform_d` to represent a color code of the drive channel.
 This key representation and initialization framework are the imitative of
 `rcParams` of `matplotlib`. However, the `QiskitPulseStyle` is not compatible with the `rcParams`
 because the pulse stylesheet is heavily specialized to the context of the pulse program.
@@ -130,85 +130,88 @@ See py:mod:`qiskit.visualization.pulse_v2.generators` for the detail of generato
 - `generator.barrier`: Generate drawing objects from barrier information.
 """
 
-import json
-import os
-from typing import Dict, Any
 import warnings
+from typing import Dict, Any, Mapping
 
 
-class QiskitPulseStyle:
-    """Stylesheet for pulse drawer.
-    """
+class QiskitPulseStyle(dict):
+    """Stylesheet for pulse drawer."""
+    _deprecated_keys = {}
+
     def __init__(self):
-        self._style = dict()
+        super().__init__()
+        # to inform which stylesheet is applied. some plotter may not support specific style.
+        self.stylesheet = None
+        self.update(default_style())
 
-    @property
-    def style(self):
-        """Return style dictionary."""
-        return self._style
-
-    @style.setter
-    def style(self, new_style):
-        """Set nested style dictionary."""
-        flat_dict = _flatten_dict(new_style)
-
-        current_style = dict()
-        for key, val in flat_dict.items():
-            current_style[_replace_deprecated_key(key)] = val
-
-        self._style.update(current_style)
+    def update(self, __m: Mapping[str, Any], **kwargs) -> None:
+        super().update(__m, **kwargs)
+        for key, value in __m.items():
+            if key in self._deprecated_keys:
+                warnings.warn('%s is deprecated. Use %s instead.'
+                              % (key, self._deprecated_keys[key]),
+                              DeprecationWarning)
+                self.__setitem__(self._deprecated_keys[key], value)
+            else:
+                self.__setitem__(key, value)
 
 
-def _flatten_dict(nested_dict: Dict[str, Any],
-                  parent: str = None) -> Dict[str, Any]:
-    """A helper function to flatten the nested dictionary.
-
-    Args:
-        nested_dict: A nested python dictionary.
-        parent: A key of items in the parent dictionary.
-
-    Returns:
-        Flattened dictionary.
-    """
-    items = []
-    for key, val in nested_dict.items():
-        concatenated_key = '{}.{}'.format(parent, key) if parent else key
-        if isinstance(val, dict):
-            items.extend(_flatten_dict(val, parent=concatenated_key).items())
-        else:
-            items.append((concatenated_key, val))
-
-    return dict(items)
-
-
-def _replace_deprecated_key(key: str) -> str:
-    """A helper function to replace deprecated key.
-
-    Args:
-        key: Key to check.
-
-    Returns:
-        Key in the latest version.
-    """
-    _replace_table = {}
-
-    if key in _replace_table:
-        warnings.warn('%s is deprecated. Use %s instead.' % (key, _replace_table[key]),
-                      DeprecationWarning)
-
-        return _replace_table[key]
-
-    return key
-
-
-def init_style_from_file() -> QiskitPulseStyle:
-    """Initialize stylesheet with default setting file."""
-    default_style = QiskitPulseStyle()
-
-    dirname = os.path.dirname(__file__)
-    filename = "default.json"
-    with open(os.path.join(dirname, filename), "r") as f_default:
-        default_dict = json.load(f_default)
-
-    default_style.style = default_dict
-    return default_style
+def default_style() -> Dict[str, Any]:
+    """Define default values of the pulse stylesheet."""
+    return {
+        'formatter.general.fig_size': [8, 6],
+        'formatter.general.dpi': 150,
+        'formatter.color.fill_waveform_d': ['#648fff', '#002999'],
+        'formatter.color.fill_waveform_u': ['#ffb000', '#994A00'],
+        'formatter.color.fill_waveform_m': ['#dc267f', '#760019'],
+        'formatter.color.fill_waveform_a': ['#dc267f', '#760019'],
+        'formatter.color.baseline': '#000000',
+        'formatter.color.barrier': '#222222',
+        'formatter.color.background': 'f2f3f4',
+        'formatter.color.annotate': '#222222',
+        'formatter.color.frame_change': '#000000',
+        'formatter.color.snapshot': '#000000',
+        'formatter.color.axis_label': '#000000',
+        'formatter.alpha.fill_waveform': 1.0,
+        'formatter.alpha.baseline': 1.0,
+        'formatter.alpha.barrier': 0.7,
+        'formatter.layer.fill_waveform': 2,
+        'formatter.layer.baseline': 1,
+        'formatter.layer.barrier': 1,
+        'formatter.layer.annotate': 4,
+        'formatter.layer.axis_label': 4,
+        'formatter.layer.frame_change': 3,
+        'formatter.layer.snapshot': 3,
+        'formatter.margin.top': 0.2,
+        'formatter.margin.bottom': 0.2,
+        'formatter.margin.left': 0.05,
+        'formatter.margin.right': 0.05,
+        'formatter.margin.between_channel': 0.1,
+        'formatter.label_offset.pulse_name': -0.1,
+        'formatter.label_offset.scale_factor': -0.1,
+        'formatter.label_offset.frame_change': 0.1,
+        'formatter.label_offset.snapshot': 0.1,
+        'formatter.text_size.axis_label': 15,
+        'formatter.text_size.annotate': 12,
+        'formatter.text_size.frame_change': 20,
+        'formatter.text_size.snapshot': 20,
+        'formatter.text_size.fig_title': 15,
+        'formatter.line_width.fill_waveform': 0,
+        'formatter.line_width.baseline': 1,
+        'formatter.line_width.barrier': 1,
+        'formatter.line_style.fill_waveform': '-',
+        'formatter.line_style.baseline': '-',
+        'formatter.line_style.barrier': ':',
+        'formatter.control.apply_phase_modulation': True,
+        'formatter.control.show_snapshot_channel': True,
+        'formatter.control.show_acquire_channel': True,
+        'formatter.control.show_empty_channel': True,
+        'formatter.unicode_symbol.frame_change': u'\u21BA',
+        'formatter.unicode_symbol.snapshot': u'\u21AF',
+        'formatter.latex_symbol.frame_change': r'\circlearrowleft',
+        'formatter.latex_symbol.snapshot': '',
+        'generator.waveform': [],
+        'generator.frame': [],
+        'generator.channel': [],
+        'generator.snapshot': [],
+        'generator.barrier': []}

@@ -19,9 +19,9 @@ See py:mod:`qiskit.visualization.pulse_v2.data_types` for the detail of input da
 
 Framework
 ~~~~~~~~~
-The functions in this module are called generator and all drawing objects are created
-by those generators. A stylesheet provides a list of generators and the core drawing
-function calls every generators for every instructions formatted in the input data format.
+The functions in this module are generators for drawing objects. All drawing objects are created
+by these generators. A stylesheet provides a list of generators and the core drawing
+function calls the generators for each input instruction.
 
 An end-user can write arbitrary functions with the following function signature:
 
@@ -37,31 +37,28 @@ An end-user can write arbitrary functions with the following function signature:
 The user-defined drawing object is created by adding the generator to the stylesheet:
 
     ```python
-    my_custom_style = {
-        'generator': {'waveform': [my_object_generator, ...]}
-    }
+    my_custom_style = {'generator.waveform': [my_object_generator, ...]}
     ```
 
 The user can set the custom stylesheet to the drawer interface.
 """
 
 import re
-from collections import OrderedDict
 from fractions import Fraction
-from typing import Dict, Tuple, Any, List
+from typing import Dict, Tuple, Any, List, Union
 
 import numpy as np
 
 from qiskit import pulse
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawing_objects, data_types, PULSE_STYLE
+from qiskit.visualization.pulse_v2 import drawing_objects, types, PULSE_STYLE
 
 
 # Waveform related information generation
 
 
-def _parse_waveform(inst_data: data_types.InstructionTuple) \
+def _parse_waveform(inst_data: types.InstructionTuple) \
         -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     r"""A helper function that generates sample data array of the waveform with
     instruction meta data.
@@ -77,7 +74,7 @@ def _parse_waveform(inst_data: data_types.InstructionTuple) \
     """
     inst = inst_data.inst
 
-    meta = OrderedDict()
+    meta = dict()
     if isinstance(inst, instructions.Play):
         # pulse
         if isinstance(inst.pulse, pulse.ParametricPulse):
@@ -115,7 +112,7 @@ def _parse_waveform(inst_data: data_types.InstructionTuple) \
 
 
 def _fill_waveform_color(channel: pulse.channels.Channel) \
-        -> data_types.ComplexColors:
+        -> types.ComplexColors:
     r"""A helper function that returns color code of the fill waveform.
 
     Args:
@@ -128,30 +125,30 @@ def _fill_waveform_color(channel: pulse.channels.Channel) \
         A color code of real and imaginary part of the waveform.
     """
     if isinstance(channel, pulse.DriveChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_d']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_d']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.ControlChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_u']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_u']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.MeasureChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_m']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_m']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
     if isinstance(channel, pulse.AcquireChannel):
-        colors = PULSE_STYLE.style['formatter.color.fill_waveform_a']
+        colors = PULSE_STYLE['formatter.color.fill_waveform_a']
         if isinstance(colors, (tuple, list)):
-            colors = data_types.ComplexColors(*colors)
+            colors = types.ComplexColors(*colors)
         return colors
 
     raise VisualizationError('Channel type %s is not supported.' % type(channel))
 
 
-def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
+def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
         -> List[drawing_objects.FilledAreaData]:
     r"""Generate filled area object of waveform envelope.
 
@@ -169,7 +166,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
     # generate waveform data
     xdata, ydata, meta = _parse_waveform(inst_data)
 
-    if PULSE_STYLE.style['formatter.control.apply_phase_modulation']:
+    if PULSE_STYLE['formatter.control.apply_phase_modulation']:
         ydata = np.array(ydata, dtype=np.complex) * np.exp(1j * inst_data.frame.phase)
     xdata = np.concatenate((xdata, [xdata[-1] + 1]))
     ydata = np.repeat(ydata, 2)
@@ -180,19 +177,19 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
     # setup style options
     channel = inst_data.inst.channel
 
-    style = {'alpha': PULSE_STYLE.style['formatter.alpha.fill_waveform'],
-             'zorder': PULSE_STYLE.style['formatter.layer.fill_waveform'],
-             'linewidth': PULSE_STYLE.style['formatter.line_width.fill_waveform'],
-             'linestyle': PULSE_STYLE.style['formatter.line_style.fill_waveform']}
+    style = {'alpha': PULSE_STYLE['formatter.alpha.fill_waveform'],
+             'zorder': PULSE_STYLE['formatter.layer.fill_waveform'],
+             'linewidth': PULSE_STYLE['formatter.line_width.fill_waveform'],
+             'linestyle': PULSE_STYLE['formatter.line_style.fill_waveform']}
     color = _fill_waveform_color(channel)
 
     # create real part
-    if any(re_y):
+    if np.any(re_y):
         re_style = style.copy()
         re_style['color'] = color.real
         re_meta = meta.copy()
         re_meta['data'] = 'real'
-        real = drawing_objects.FilledAreaData(data_type=data_types.DrawingWaveform.REAL,
+        real = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.REAL,
                                               channel=channel,
                                               x=time,
                                               y1=re_y,
@@ -202,12 +199,12 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
         fill_objs.append(real)
 
     # create imaginary part
-    if any(im_y):
+    if np.any(im_y):
         im_style = style.copy()
         im_style['color'] = color.imaginary
         im_meta = meta.copy()
         im_meta['data'] = 'imaginary'
-        imag = drawing_objects.FilledAreaData(data_type=data_types.DrawingWaveform.IMAG,
+        imag = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.IMAG,
                                               channel=channel,
                                               x=time,
                                               y1=im_y,
@@ -219,7 +216,7 @@ def gen_filled_waveform_stepwise(inst_data: data_types.InstructionTuple) \
     return fill_objs
 
 
-def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
+def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted instruction name associated with the waveform.
 
@@ -249,9 +246,9 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
     """
     systematic_name = inst_data.inst.pulse.name
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.annotate'],
-             'color': PULSE_STYLE.style['formatter.color.annotate'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.annotate'],
+             'color': PULSE_STYLE['formatter.color.annotate'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
@@ -293,10 +290,10 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
             systematic_name = 'Measure'
         latex_name = None
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.PULSE_NAME,
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_NAME,
                                     channel=inst_data.inst.channel,
                                     x=inst_data.t0 + 0.5 * inst_data.inst.duration,
-                                    y=PULSE_STYLE.style['formatter.label_offset.pulse_name'],
+                                    y=PULSE_STYLE['formatter.label_offset.pulse_name'],
                                     text=systematic_name,
                                     latex=latex_name,
                                     styles=style)
@@ -307,7 +304,7 @@ def gen_iqx_latex_waveform_name(inst_data: data_types.InstructionTuple) \
 # Channel related information generation
 
 
-def gen_baseline(channel_data: data_types.ChannelTuple) \
+def gen_baseline(channel_data: types.ChannelTuple) \
         -> List[drawing_objects.HorizontalLineData]:
     r"""Generate baseline associated with the channel.
 
@@ -319,13 +316,13 @@ def gen_baseline(channel_data: data_types.ChannelTuple) \
     Returns:
         List of `HorizontalLineData` drawing objects.
     """
-    style = {'alpha': PULSE_STYLE.style['formatter.alpha.baseline'],
-             'zorder': PULSE_STYLE.style['formatter.layer.baseline'],
-             'linewidth': PULSE_STYLE.style['formatter.line_width.baseline'],
-             'linestyle': PULSE_STYLE.style['formatter.line_style.baseline'],
-             'color': PULSE_STYLE.style['formatter.color.baseline']}
+    style = {'alpha': PULSE_STYLE['formatter.alpha.baseline'],
+             'zorder': PULSE_STYLE['formatter.layer.baseline'],
+             'linewidth': PULSE_STYLE['formatter.line_width.baseline'],
+             'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
+             'color': PULSE_STYLE['formatter.color.baseline']}
 
-    baseline = drawing_objects.HorizontalLineData(data_type=data_types.DrawingLine.BASELINE,
+    baseline = drawing_objects.HorizontalLineData(data_type=types.DrawingLine.BASELINE,
                                                   channel=channel_data.channel,
                                                   y0=0,
                                                   styles=style)
@@ -333,7 +330,7 @@ def gen_baseline(channel_data: data_types.ChannelTuple) \
     return [baseline]
 
 
-def gen_latex_channel_name(channel_data: data_types.ChannelTuple) \
+def gen_latex_channel_name(channel_data: types.ChannelTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate channel name of provided channel.
 
@@ -345,15 +342,15 @@ def gen_latex_channel_name(channel_data: data_types.ChannelTuple) \
     Returns:
         List of `TextData` drawing objects.
     """
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.axis_label'],
-             'color': PULSE_STYLE.style['formatter.color.axis_label'],
-             'size': PULSE_STYLE.style['formatter.text_size.axis_label'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.axis_label'],
+             'color': PULSE_STYLE['formatter.color.axis_label'],
+             'size': PULSE_STYLE['formatter.text_size.axis_label'],
              'va': 'center',
              'ha': 'right'}
     latex_name = r'{}_{}'.format(channel_data.channel.prefix.upper(),
                                  channel_data.channel.index)
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.CH_NAME,
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_NAME,
                                     channel=channel_data.channel,
                                     x=0,
                                     y=0,
@@ -364,7 +361,7 @@ def gen_latex_channel_name(channel_data: data_types.ChannelTuple) \
     return [text]
 
 
-def gen_scaling_info(channel_data: data_types.ChannelTuple) \
+def gen_scaling_info(channel_data: types.ChannelTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate channel scaling factor of provided channel.
 
@@ -380,17 +377,17 @@ def gen_scaling_info(channel_data: data_types.ChannelTuple) \
     if channel_data.scaling == 1:
         return []
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.axis_label'],
-             'color': PULSE_STYLE.style['formatter.color.axis_label'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.axis_label'],
+             'color': PULSE_STYLE['formatter.color.axis_label'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'right'}
     value = r'x{:.1f}'.format(channel_data.scaling)
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.CH_SCALE,
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_SCALE,
                                     channel=channel_data.channel,
                                     x=0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.scale_factor'],
+                                    y=PULSE_STYLE['formatter.label_offset.scale_factor'],
                                     text=value,
                                     styles=style)
 
@@ -400,7 +397,7 @@ def gen_scaling_info(channel_data: data_types.ChannelTuple) \
 # Frame related information generation
 
 
-def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
+def gen_latex_vz_label(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted virtual Z rotations from provided frame instruction.
 
@@ -427,9 +424,9 @@ def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
     """
     _max_denom = 10
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
@@ -448,10 +445,10 @@ def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
     # Phase Shift is defined as negative value
     sign = '' if frame_data.frame.phase <= 0 else '-'
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.FRAME,
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
+                                    y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=r'VZ({:.2f} rad.)'.format(-frame_data.frame.phase),
                                     latex=r'{{\rm VZ}}({}{})'.format(sign, angle),
                                     styles=style)
@@ -459,7 +456,7 @@ def gen_latex_vz_label(frame_data: data_types.InstructionTuple) \
     return [text]
 
 
-def gen_latex_frequency_mhz_value(frame_data: data_types.InstructionTuple) \
+def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted frequency change from provided frame instruction.
 
@@ -478,19 +475,19 @@ def gen_latex_frequency_mhz_value(frame_data: data_types.InstructionTuple) \
         List of `TextData` drawing objects.
     """
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
     text_df = u'\u0394' + 'f={:.2f} MHz'.format(frame_data.frame.freq/1e6)
     latex_df = r'\Delta f = {:.2f} ~{{\rm MHz}}'.format(frame_data.frame.freq/1e6)
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.FRAME,
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
+                                    y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=text_df,
                                     latex=latex_df,
                                     styles=style)
@@ -498,7 +495,7 @@ def gen_latex_frequency_mhz_value(frame_data: data_types.InstructionTuple) \
     return [text]
 
 
-def gen_raw_frame_operand_values(frame_data: data_types.InstructionTuple) \
+def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate both phase and frequency change from provided frame instruction.
 
@@ -517,25 +514,25 @@ def gen_raw_frame_operand_values(frame_data: data_types.InstructionTuple) \
         List of `TextData` drawing objects.
     """
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.annotate'],
              'va': 'center',
              'ha': 'center'}
 
     frame_info = '({:.2f}, {:.1e})'.format(frame_data.frame.phase, frame_data.frame.freq)
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingLabel.FRAME,
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
-                                    y=PULSE_STYLE.style['formatter.label_offset.frame_change'],
+                                    y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=frame_info,
                                     styles=style)
 
     return [text]
 
 
-def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
+def gen_frame_symbol(frame_data: types.InstructionTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate a frame change symbol with instruction meta data from provided frame instruction.
 
@@ -551,9 +548,9 @@ def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
         List of `TextData` drawing objects.
     """
 
-    style = {'zorder': PULSE_STYLE.style['formatter.layer.frame_change'],
-             'color': PULSE_STYLE.style['formatter.color.frame_change'],
-             'size': PULSE_STYLE.style['formatter.text_size.frame_change'],
+    style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
+             'color': PULSE_STYLE['formatter.color.frame_change'],
+             'size': PULSE_STYLE['formatter.text_size.frame_change'],
              'va': 'center',
              'ha': 'center'}
 
@@ -570,10 +567,10 @@ def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
             't0 (cycle time)': frame_data.t0,
             't0 (sec)': frame_data.t0 * frame_data.dt if frame_data.dt else 'N/A'}
 
-    uni_symbol = PULSE_STYLE.style['formatter.unicode_symbol.frame_change']
-    latex = PULSE_STYLE.style['formatter.latex_symbol.frame_change']
+    uni_symbol = PULSE_STYLE['formatter.unicode_symbol.frame_change']
+    latex = PULSE_STYLE['formatter.latex_symbol.frame_change']
 
-    text = drawing_objects.TextData(data_type=data_types.DrawingSymbol.FRAME,
+    text = drawing_objects.TextData(data_type=types.DrawingSymbol.FRAME,
                                     channel=frame_data.inst[0].channel,
                                     x=frame_data.t0,
                                     y=0,
@@ -588,7 +585,7 @@ def gen_frame_symbol(frame_data: data_types.InstructionTuple) \
 # Misc information generation
 
 
-def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
+def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
         -> List[drawing_objects.TextData]:
     r"""Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 
@@ -610,15 +607,15 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
     if not isinstance(misc_data.inst, pulse.instructions.Snapshot):
         return []
 
-    symbol_style = {'zorder': PULSE_STYLE.style['formatter.layer.snapshot'],
-                    'color': PULSE_STYLE.style['formatter.color.snapshot'],
-                    'size': PULSE_STYLE.style['formatter.text_size.snapshot'],
+    symbol_style = {'zorder': PULSE_STYLE['formatter.layer.snapshot'],
+                    'color': PULSE_STYLE['formatter.color.snapshot'],
+                    'size': PULSE_STYLE['formatter.text_size.snapshot'],
                     'va': 'bottom',
                     'ha': 'center'}
 
-    label_style = {'zorder': PULSE_STYLE.style['formatter.layer.snapshot'],
-                   'color': PULSE_STYLE.style['formatter.color.snapshot'],
-                   'size': PULSE_STYLE.style['formatter.text_size.annotate'],
+    label_style = {'zorder': PULSE_STYLE['formatter.layer.snapshot'],
+                   'color': PULSE_STYLE['formatter.color.snapshot'],
+                   'size': PULSE_STYLE['formatter.text_size.annotate'],
                    'va': 'bottom',
                    'ha': 'center'}
 
@@ -626,10 +623,10 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
             't0 (cycle time)': misc_data.t0,
             't0 (sec)': misc_data.t0 * misc_data.dt if misc_data.dt else 'N/A'}
 
-    uni_symbol = PULSE_STYLE.style['formatter.unicode_symbol.snapshot']
-    latex = PULSE_STYLE.style['formatter.latex_symbol.snapshot']
+    uni_symbol = PULSE_STYLE['formatter.unicode_symbol.snapshot']
+    latex = PULSE_STYLE['formatter.latex_symbol.snapshot']
 
-    symbol_text = drawing_objects.TextData(data_type=data_types.DrawingSymbol.SNAPSHOT,
+    symbol_text = drawing_objects.TextData(data_type=types.DrawingSymbol.SNAPSHOT,
                                            channel=misc_data.inst.channel,
                                            x=misc_data.t0,
                                            y=0,
@@ -638,17 +635,17 @@ def gen_snapshot_symbol(misc_data: data_types.NonPulseTuple) \
                                            meta=meta,
                                            styles=symbol_style)
 
-    label_text = drawing_objects.TextData(data_type=data_types.DrawingLabel.SNAPSHOT,
+    label_text = drawing_objects.TextData(data_type=types.DrawingLabel.SNAPSHOT,
                                           channel=misc_data.inst.channel,
                                           x=misc_data.t0,
-                                          y=PULSE_STYLE.style['formatter.label_offset.snapshot'],
+                                          y=PULSE_STYLE['formatter.label_offset.snapshot'],
                                           text=misc_data.inst.label,
                                           styles=label_style)
 
     return [symbol_text, label_text]
 
 
-def gen_barrier(misc_data: data_types.NonPulseTuple) \
+def gen_barrier(misc_data: types.NonPulseTuple) \
         -> List[drawing_objects.VerticalLineData]:
     r"""Generate a barrier from provided relative barrier instruction..
 
@@ -664,15 +661,15 @@ def gen_barrier(misc_data: data_types.NonPulseTuple) \
     if not isinstance(misc_data.inst, pulse.instructions.RelativeBarrier):
         return []
 
-    style = {'alpha': PULSE_STYLE.style['formatter.alpha.barrier'],
-             'zorder': PULSE_STYLE.style['formatter.layer.barrier'],
-             'linewidth': PULSE_STYLE.style['formatter.line_width.barrier'],
-             'linestyle': PULSE_STYLE.style['formatter.line_style.barrier'],
-             'color': PULSE_STYLE.style['formatter.color.barrier']}
+    style = {'alpha': PULSE_STYLE['formatter.alpha.barrier'],
+             'zorder': PULSE_STYLE['formatter.layer.barrier'],
+             'linewidth': PULSE_STYLE['formatter.line_width.barrier'],
+             'linestyle': PULSE_STYLE['formatter.line_style.barrier'],
+             'color': PULSE_STYLE['formatter.color.barrier']}
 
     lines = []
     for chan in misc_data.inst.channels:
-        line = drawing_objects.VerticalLineData(data_type=data_types.DrawingLine.BARRIER,
+        line = drawing_objects.VerticalLineData(data_type=types.DrawingLine.BARRIER,
                                                 channel=chan,
                                                 x0=misc_data.t0,
                                                 styles=style)

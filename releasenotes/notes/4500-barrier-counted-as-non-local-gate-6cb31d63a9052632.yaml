@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    ``QuantumCircuit.num_nonlocal_gates`` previously included multi-qubit
+    ``Instruction`` (for example, ``Barrier``) in its count of non-local
+    gates. This has been corrected so that only nonlocal ``Gate`` s are
+    counted.

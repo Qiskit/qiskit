@@ -11,12 +11,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Pulse visualization module.
 """
 
-from qiskit.visualization.pulse_v2.style.stylesheet import init_style_from_file
+from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
 
 
-PULSE_STYLE = init_style_from_file()
+PULSE_STYLE = QiskitPulseStyle()

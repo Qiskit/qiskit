@@ -17,14 +17,10 @@ Stylesheet library of the pulse drawer.
 
 The standard stylesheets provided by the pulse drawer are the subclass of the python dictionary.
 This enables a stylesheet to provide sufficient information of preferences in the docstring.
-An end-user can still create a custom stylesheet as a nested dictionary:
+An end-user can still create a custom stylesheet as a python dictionary:
 
     ```python
-    my_favorite_style = {
-        'formatter': {
-            'color': {'background': '#ffffff'}
-        }
-    }
+    my_favorite_style = {'formatter.color.background': '#ffffff'}
     ```
 
 Note that the user can partially update a default stylesheet with py:method:`dict.update`.
@@ -33,7 +29,7 @@ Those stylesheets are fed into the drawer interface and the output images are mo
 according to the provided preferences.
 """
 
-from qiskit.visualization.pulse_v2 import generators, layouts
+from qiskit.visualization.pulse_v2 import generators
 
 
 class IqxStandard(dict):
@@ -44,32 +40,22 @@ class IqxStandard(dict):
     - Show latex channel name with channel's scaling factor.
     - Show snapshot and barrier.
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
-        style = {
-            'formatter': {
-                'control': {
-                    'apply_phase_modulation': True,
-                    'show_snapshot_channel': True,
-                    'show_acquire_channel': True,
-                    'show_empty_channel': False,
-                }
-            },
-            'generator': {
-                'waveform': [generators.gen_filled_waveform_stepwise,
-                             generators.gen_iqx_latex_waveform_name],
-                'frame': [generators.gen_frame_symbol,
-                          generators.gen_raw_frame_operand_values],
-                'channel': [generators.gen_latex_channel_name,
-                            generators.gen_scaling_info,
-                            generators.gen_baseline],
-                'snapshot': [generators.gen_snapshot_symbol],
-                'barrier': [generators.gen_barrier]
-            },
-            'layout': {
-                'channel': layouts.channel_index_sort_wo_control
-            }
-        }
+        style = {'formatter.control.apply_phase_modulation': True,
+                 'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_acquire_channel': True,
+                 'formatter.control.show_empty_channel': False,
+                 'generator.waveform': [generators.gen_filled_waveform_stepwise,
+                                        generators.gen_iqx_latex_waveform_name],
+                 'generator.frame': [generators.gen_frame_symbol,
+                                     generators.gen_raw_frame_operand_values],
+                 'generator.channel': [generators.gen_latex_channel_name,
+                                       generators.gen_scaling_info,
+                                       generators.gen_baseline],
+                 'generator.snapshot': [generators.gen_snapshot_symbol],
+                 'generator.barrier': [generators.gen_barrier]}
+        style.update(**kwargs)
         self.update(style)
 
     def __repr__(self):
@@ -85,33 +71,22 @@ class IqxPublication(dict):
     - Do not show snapshot and barrier.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
-        style = {
-            'formatter': {
-                'control': {
-                    'apply_phase_modulation': True,
-                    'show_snapshot_channel': False,
-                    'show_acquire_channel': False,
-                    'show_empty_channel': False,
-                }
-            },
-            'generator': {
-                'waveform': [generators.gen_filled_waveform_stepwise,
-                             generators.gen_iqx_latex_waveform_name],
-                'frame': [generators.gen_frame_symbol,
-                          generators.gen_latex_vz_label],
-                'channel': [generators.gen_latex_channel_name,
-                            generators.gen_scaling_info,
-                            generators.gen_baseline],
-                'snapshot': [],
-                'barrier': []
-            },
-            'layout': {
-                'channel': layouts.channel_index_sort_wo_control
-            }
-        }
-
+        style = {'formatter.control.apply_phase_modulation': True,
+                 'formatter.control.show_snapshot_channel': False,
+                 'formatter.control.show_acquire_channel': False,
+                 'formatter.control.show_empty_channel': False,
+                 'generator.waveform': [generators.gen_filled_waveform_stepwise,
+                                        generators.gen_iqx_latex_waveform_name],
+                 'generator.frame': [generators.gen_frame_symbol,
+                                     generators.gen_latex_vz_label],
+                 'generator.channel': [generators.gen_latex_channel_name,
+                                       generators.gen_scaling_info,
+                                       generators.gen_baseline],
+                 'generator.snapshot': [],
+                 'generator.barrier': []}
+        style.update(**kwargs)
         self.update(style)
 
     def __repr__(self):
@@ -129,33 +104,22 @@ class IqxDebugging(dict):
     - Show snapshot and barrier.
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
-        style = {
-            'formatter': {
-                'control': {
-                    'apply_phase_modulation': True,
-                    'show_snapshot_channel': True,
-                    'show_acquire_channel': True,
-                    'show_empty_channel': True,
-                }
-            },
-            'generator': {
-                'waveform': [generators.gen_filled_waveform_stepwise,
-                             generators.gen_iqx_latex_waveform_name],
-                'frame': [generators.gen_frame_symbol,
-                          generators.gen_raw_frame_operand_values],
-                'channel': [generators.gen_latex_channel_name,
-                            generators.gen_scaling_info,
-                            generators.gen_baseline],
-                'snapshot': [generators.gen_snapshot_symbol],
-                'barrier': [generators.gen_barrier]
-            },
-            'layout': {
-                'channel': layouts.channel_index_sort_wo_control
-            }
-        }
-
+        style = {'formatter.control.apply_phase_modulation': True,
+                 'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_acquire_channel': True,
+                 'formatter.control.show_empty_channel': True,
+                 'generator.waveform': [generators.gen_filled_waveform_stepwise,
+                                        generators.gen_iqx_latex_waveform_name],
+                 'generator.frame': [generators.gen_frame_symbol,
+                                     generators.gen_raw_frame_operand_values],
+                 'generator.channel': [generators.gen_latex_channel_name,
+                                       generators.gen_scaling_info,
+                                       generators.gen_baseline],
+                 'generator.snapshot': [generators.gen_snapshot_symbol],
+                 'generator.barrier': [generators.gen_barrier]}
+        style.update(**kwargs)
         self.update(style)
 
     def __repr__(self):
