@@ -441,8 +441,9 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
         layout = circuit._layout
     else:
         layout = None
+    phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
-                                     cregbundle=cregbundle)
+                                     cregbundle=cregbundle, phase=phase)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression

@@ -183,19 +183,6 @@ class Instruction(ScheduleComponent, ABC):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent], name: Optional[str] = None) -> Schedule:
-        """Return a new schedule which is the union of `self` and `schedule`.
-
-        Args:
-            *schedules: Schedules to be take the union with this Instruction.
-            name: Name of the new schedule. Defaults to name of self
-        """
-        warnings.warn("The union method is deprecated. Use insert with start_time=0.",
-                      DeprecationWarning)
-        if name is None:
-            name = self.name
-        return Schedule(self, *schedules, name=name)
-
     def shift(self: ScheduleComponent, time: int, name: Optional[str] = None) -> Schedule:
         """Return a new schedule shifted forward by `time`.
 
@@ -240,7 +227,6 @@ class Instruction(ScheduleComponent, ABC):
              plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = True,
              label: bool = False, framechange: bool = True,
-             scaling: float = None,
              channels: Optional[List[Channel]] = None):
         """Plot the instruction.
 
@@ -257,18 +243,12 @@ class Instruction(ScheduleComponent, ABC):
             table: Draw event table for supported instructions
             label: Label individual instructions
             framechange: Add framechange indicators
-            scaling: Deprecated, see `scale`
             channels: A list of channel names to plot
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=invalid-name, cyclic-import
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
-
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
