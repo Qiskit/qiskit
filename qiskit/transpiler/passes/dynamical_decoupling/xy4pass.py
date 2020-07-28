@@ -32,7 +32,7 @@ class XY4Pass(TransformationPass):
             dt_in_sec (float): Sample duration [sec] used for the conversion.
             tau_c (int): Cycle time of the DD sequence. Default is the sum of gate
                 durations of DD sequences with 10 ns delays in between.
-            tau_step (ns): Delay time between pulses in the DD sequence. Default
+            tau_step (int): Delay time between pulses in the DD sequence. Default
                 is 10 ns.
         """
         super().__init__()
@@ -79,11 +79,11 @@ class XY4Pass(TransformationPass):
         for node in dag.topological_op_nodes():
 
             if isinstance(node.op, Delay):
-                delay_duration = dag.instruction_durations.get(node.op, node.qargs)
+                delay_duration = node.op.duration
                 tau_step_total = self.tau_step_totals[node.qargs[0].index]
                 tau_c = self.tau_cs[node.qargs[0].index] if self.tau_c is None else self.tau_c
 
-                if tau_c <= delay_duration:
+                if tau_c <= delay_duration and len(dag.ancestors(node)) > 1:
                     count = int(delay_duration // tau_c)
                     remainder = tau_step_total % 4
                     dd_delay = tau_step_total // 4

@@ -141,7 +141,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             they are overwritten with the instruction_durations.
         dynamical_decoupling: The name of the dynamical decoupling sequence to insert into times 
             when the qubit(s) is/are idling for durations longer than the duration of the specified
-            DD seqeuence. The circuit will need to be converted to a scheduled circuit before DD 
+            DD sequence. The circuit will need to be converted to a scheduled circuit before DD 
             sequences can be inserted. If no scheduling method is provided, 'alap' will be provided
             automatically as the scheduling method.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
