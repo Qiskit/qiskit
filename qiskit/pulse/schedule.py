@@ -14,6 +14,7 @@
 A ``Schedule`` is a representation of a *program* in Pulse. Each schedule tracks the time of each
 instruction occuring in parallel over multiple signal *channels*.
 """
+import warnings
 
 import abc
 import copy
@@ -44,7 +45,8 @@ class Schedule(ScheduleComponent):
     prefix = 'sched'
 
     def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
-                 name: Optional[str] = None):
+                 name: Optional[str] = None,
+                 inplace: bool = None):
         """Create an empty schedule.
 
         Args:
@@ -56,6 +58,15 @@ class Schedule(ScheduleComponent):
             name = self.prefix + str(next(self.instances_counter))
             if sys.platform != "win32" and not is_main_process():
                 name += '-{}'.format(mp.current_process().pid)
+
+        self.inplace = inplace
+        if inplace is None:
+            self.inplace = False
+            warnings.warn("Schedules have been immutable by default. For performance, Schedules "
+                          "will be mutable by default in an upcoming release. You can enable this "
+                          "behavior now by including ``inplace=True`` in your Schedule "
+                          "initialization: ``my_sched = Schedule(name=name, inplace=True)``.",
+                          DeprecationWarning)
 
         self._name = name
         self._duration = 0
@@ -176,8 +187,7 @@ class Schedule(ScheduleComponent):
     def shift(self,
               time: int,
               name: Optional[str] = None,
-              inplace: bool = False
-              ) -> 'Schedule':
+              inplace: bool = None) -> 'Schedule':
         """Return a schedule shifted forward by ``time``.
 
         Args:
@@ -186,14 +196,15 @@ class Schedule(ScheduleComponent):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
+        if inplace is None:
+            inplace = self.inplace
         if inplace:
             return self._mutable_shift(time)
         return self._immutable_shift(time, name=name)
 
     def _immutable_shift(self,
                          time: int,
-                         name: Optional[str] = None
-                         ) -> 'Schedule':
+                         name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -202,11 +213,10 @@ class Schedule(ScheduleComponent):
         """
         if name is None:
             name = self.name
-        return Schedule((time, self), name=name)
+        return Schedule((time, self), name=name, inplace=self.inplace)
 
     def _mutable_shift(self,
-                       time: int
-                       ) -> 'Schedule':
+                       time: int) -> 'Schedule':
         """Return this schedule shifted forward by `time`.
 
         Args:
@@ -237,8 +247,7 @@ class Schedule(ScheduleComponent):
                start_time: int,
                schedule: ScheduleComponent,
                name: Optional[str] = None,
-               inplace: bool = False
-               ) -> 'Schedule':
+               inplace: bool = None) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
         Args:
@@ -248,14 +257,15 @@ class Schedule(ScheduleComponent):
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
+        if inplace is None:
+            inplace = self.inplace
         if inplace:
             return self._mutable_insert(start_time, schedule)
         return self._immutable_insert(start_time, schedule, name=name)
 
     def _mutable_insert(self,
                         start_time: int,
-                        schedule: ScheduleComponent
-                        ) -> 'Schedule':
+                        schedule: ScheduleComponent) -> 'Schedule':
         """Mutably insert `schedule` into `self` at `start_time`.
 
         Args:
@@ -269,8 +279,7 @@ class Schedule(ScheduleComponent):
     def _immutable_insert(self,
                           start_time: int,
                           schedule: ScheduleComponent,
-                          name: Optional[str] = None,
-                          ) -> 'Schedule':
+                          name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
         Args:
@@ -280,7 +289,7 @@ class Schedule(ScheduleComponent):
         """
         if name is None:
             name = self.name
-        new_sched = Schedule(name=name)
+        new_sched = Schedule(name=name, inplace=self.inplace)
         new_sched._mutable_insert(0, self)
         new_sched._mutable_insert(start_time, schedule)
         return new_sched
@@ -288,7 +297,7 @@ class Schedule(ScheduleComponent):
     # pylint: disable=arguments-differ
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None,
-               inplace: bool = False) -> 'Schedule':
+               inplace: bool = None) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
 
@@ -309,7 +318,7 @@ class Schedule(ScheduleComponent):
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""
-        return Schedule(*self.instructions, name=self.name)
+        return Schedule(*self.instructions, name=self.name, inplace=self.inplace)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
@@ -379,7 +388,7 @@ class Schedule(ScheduleComponent):
         """
         subschedules = self.flatten()._children
         valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
-        return Schedule(*valid_subschedules, name=new_sched_name)
+        return Schedule(*valid_subschedules, name=new_sched_name, inplace=self.inplace)
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
@@ -719,15 +728,15 @@ class Schedule(ScheduleComponent):
 
     def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
-        return self.append(other)
+        return self.append(other, inplace=False)
 
     def __or__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
-        return self.insert(0, other)
+        return self.insert(0, other, inplace=False)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by ``time``."""
-        return self.shift(time)
+        return self.shift(time, inplace=False)
 
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
@@ -783,7 +792,7 @@ class ParameterizedSchedule:
     def bind_parameters(self, *args: List[Union[float, complex]],
                         **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
-        bound_schedule = Schedule(name=self.name)
+        bound_schedule = Schedule(name=self.name, inplace=False)
         schedules = list(self._schedules)
 
         named_parameters = {}
