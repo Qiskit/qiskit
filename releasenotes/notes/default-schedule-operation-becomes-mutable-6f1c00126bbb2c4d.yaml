@@ -1,0 +1,37 @@
+---
+deprecations:
+  - |
+    Schedules have been immutable by default. That meant that operations were
+    executed as such::
+
+        sched = sched.insert(...)
+
+    In particular, the following would leave ``sched`` unchanged:
+
+        sched.insert(...)
+
+    The same was true of ``append`` and ``shift``.
+
+    The default behavior for schedules is changing to mutable. To get this
+    more performant behavior now, initialize your schedule with::
+
+        sched = Schedule(inplace=True)
+
+    This will make a mutable schedule that can be modified with::
+
+        sched.insert(...)
+
+    or ``sched.append``/``sched.shift``.
+
+    The behavior of special syntax isn't changing. You can still use:
+
+        sched |= ...
+        sched += ...
+        sched <<= ..
+
+    to update your schedule (with ``inplace`` you get the *same* schedule
+    back rather than a new object), and ``sched_a | schedule_b`` will return
+    a new schedule and leave ``sched_a`` and ``sched_b`` alone.
+
+    To silence the deprecation warning and keep the immutable behavior,
+    initialize your schedule as ``Schedule(inplace=False)``.
