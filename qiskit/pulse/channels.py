@@ -114,7 +114,7 @@ class AcquireChannel(Channel):
 
 
 class SnapshotChannel(Channel):
-    """Snapshot channels are used to specify commands for simulators."""
+    """Snapshot channels are used to specify instructions for simulators."""
     prefix = 's'
 
     def __init__(self):
