@@ -800,7 +800,7 @@ class QuantumCircuit:
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         if index is not None and len(instructions.qargs) == 1 and len(instructions.qargs[0]) == 1:
-            #Todo: raise error if index is not None and len of qargs>1 or qargs[0]
+            # Todo: raise error if index is not None and len of qargs>1 or qargs[0]
             qubit_gate_count = -1
             instruction_count = -1
             qubit_to_find = instructions.qargs[0][0]
@@ -2117,7 +2117,8 @@ class QuantumCircuit:
         return self.append(TdgGate(), [qubit], [], index)
 
     @deprecate_arguments({'q': 'qubit'})
-    def u1(self, theta, qubit, *, q=None, index=None):  # pylint: disable=invalid-name,unused-argument
+    def u1(self, theta, qubit, *,
+           q=None, index=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.U1Gate`."""
         from .library.standard_gates.u1 import U1Gate
         return self.append(U1Gate(theta), [qubit], [], index)
@@ -2138,13 +2139,15 @@ class QuantumCircuit:
         return self.append(MCU1Gate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
-    def u2(self, phi, lam, qubit, *, q=None, index=None):  # pylint: disable=invalid-name,unused-argument
+    def u2(self, phi, lam, qubit, *,
+           q=None, index=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
         return self.append(U2Gate(phi, lam), [qubit], [], index)
 
     @deprecate_arguments({'q': 'qubit'})
-    def u3(self, theta, phi, lam, qubit, *, q=None, index=None):  # pylint: disable=invalid-name,unused-argument
+    def u3(self, theta, phi, lam, qubit, *,
+           q=None, index=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.U3Gate`."""
         from .library.standard_gates.u3 import U3Gate
         return self.append(U3Gate(theta, phi, lam), [qubit], [], index)
@@ -2159,7 +2162,8 @@ class QuantumCircuit:
                            [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
-    def x(self, qubit, *, label=None, ctrl_state=None, q=None, index=None):  # pylint: disable=unused-argument
+    def x(self, qubit, *,
+          label=None, ctrl_state=None, q=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.XGate`."""
         from .library.standard_gates.x import XGate
         return self.append(XGate(label=label), [qubit], [], index)
