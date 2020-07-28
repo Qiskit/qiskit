@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test library of quantum circuits."""
+"""Test library of QFT circuits."""
 
 import unittest
 import numpy as np
@@ -26,8 +26,8 @@ from qiskit.quantum_info import Operator
 
 
 @ddt
-class TestBasisChanges(QiskitTestCase):
-    """Test the basis changes."""
+class TestQFT(QiskitTestCase):
+    """Test the QFT."""
 
     def assertQFTIsCorrect(self, qft, num_qubits=None, inverse=False, add_swaps_at_end=False):
         """Assert that the QFT circuit produces the correct matrix.

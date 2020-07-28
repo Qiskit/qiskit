@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test library of quantum circuits."""
+"""Test library of integer comparison circuits."""
 
 import unittest
 import numpy as np
@@ -26,7 +26,7 @@ from qiskit.circuit.library import IntegerComparator
 
 @ddt
 class TestIntegerComparator(QiskitTestCase):
-    """Text Fixed Value Comparator"""
+    """Test the integer comparator circuit."""
 
     def assertComparisonIsCorrect(self, comp, num_state_qubits, value, geq):
         """Assert that the comparator output is correct."""

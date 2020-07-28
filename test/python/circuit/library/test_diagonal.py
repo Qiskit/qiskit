@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test library of quantum circuits."""
+"""Test the digonal circuit."""
 
 import unittest
 from ddt import ddt, data
