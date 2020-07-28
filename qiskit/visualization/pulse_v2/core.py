@@ -205,16 +205,16 @@ class DrawDataContainer:
         # generate drawing objects
         for chan, chan_event in self.chan_event_table.items():
             # create drawing objects for waveform
-            for gen in PULSE_STYLE.style['generator.waveform']:
+            for gen in PULSE_STYLE['generator.waveform']:
                 for drawing in sum(list(map(gen, chan_event.get_waveforms())), []):
                     self._replace_drawing(drawing)
             # create drawing objects for frame change
-            for gen in PULSE_STYLE.style['generator.frame']:
+            for gen in PULSE_STYLE['generator.frame']:
                 for drawing in sum(list(map(gen, chan_event.get_frame_changes())), []):
                     self._replace_drawing(drawing)
             # create channel info
             chan_info = types.ChannelTuple(chan, 1.0)
-            for gen in PULSE_STYLE.style['generator.channel']:
+            for gen in PULSE_STYLE['generator.channel']:
                 for drawing in gen(chan_info):
                     self._replace_drawing(drawing)
 
@@ -222,7 +222,7 @@ class DrawDataContainer:
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.Snapshot])
         for t0, inst in snapshot_sched.instructions:
             inst_data = types.NonPulseTuple(t0, self.dt, inst)
-            for gen in PULSE_STYLE.style['generator.snapshot']:
+            for gen in PULSE_STYLE['generator.snapshot']:
                 for drawing in gen(inst_data):
                     self._replace_drawing(drawing)
 
@@ -230,7 +230,7 @@ class DrawDataContainer:
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.RelativeBarrier])
         for t0, inst in snapshot_sched.instructions:
             inst_data = types.NonPulseTuple(t0, self.dt, inst)
-            for gen in PULSE_STYLE.style['generator.barrier']:
+            for gen in PULSE_STYLE['generator.barrier']:
                 for drawing in gen(inst_data):
                     self._replace_drawing(drawing)
 
@@ -265,8 +265,8 @@ class DrawDataContainer:
 
         duration = t_end - t_start
 
-        self.bbox_left = t_start - int(duration * PULSE_STYLE.style['formatter.margin.left'])
-        self.bbox_right = t_end + int(duration * PULSE_STYLE.style['formatter.margin.right'])
+        self.bbox_left = t_start - int(duration * PULSE_STYLE['formatter.margin.left'])
+        self.bbox_right = t_end + int(duration * PULSE_STYLE['formatter.margin.right'])
 
     def update_channel_property(self,
                                 visible_channels: Optional[List[pulse.channels.Channel]] = None,
@@ -296,8 +296,8 @@ class DrawDataContainer:
 
         # update channel property
         time_range = (self.bbox_left, self.bbox_right)
-        y0 = - PULSE_STYLE.style['formatter.margin.top']
-        y0_interval = PULSE_STYLE.style['formatter.margin.between_channel']
+        y0 = - PULSE_STYLE['formatter.margin.top']
+        y0_interval = PULSE_STYLE['formatter.margin.between_channel']
         for chan in ordered_channels:
             min_v, max_v = self.chan_event_table[chan].get_min_max(time_range)
 
@@ -305,7 +305,7 @@ class DrawDataContainer:
             if chan in scales:
                 # channel scale factor is specified by user
                 scale = scales[chan]
-            elif PULSE_STYLE.style['formatter.control.auto_channel_scaling']:
+            elif PULSE_STYLE['formatter.control.auto_channel_scaling']:
                 # auto scaling is enabled
                 max_abs_val = max(abs(max_v), abs(min_v))
                 if max_abs_val < 1e-6:
@@ -315,19 +315,19 @@ class DrawDataContainer:
             else:
                 # not specified by user, no auto scale, then apply default scaling
                 if isinstance(chan, pulse.DriveChannel):
-                    scale = PULSE_STYLE.style['formatter.channel_scaling.drive']
+                    scale = PULSE_STYLE['formatter.channel_scaling.drive']
                 elif isinstance(chan, pulse.ControlChannel):
-                    scale = PULSE_STYLE.style['formatter.channel_scaling.control']
+                    scale = PULSE_STYLE['formatter.channel_scaling.control']
                 elif isinstance(chan, pulse.MeasureChannel):
-                    scale = PULSE_STYLE.style['formatter.channel_scaling.measure']
+                    scale = PULSE_STYLE['formatter.channel_scaling.measure']
                 elif isinstance(chan, pulse.AcquireChannel):
-                    scale = PULSE_STYLE.style['formatter.channel_scaling.acquire']
+                    scale = PULSE_STYLE['formatter.channel_scaling.acquire']
                 else:
                     scale = 1.0
 
             # keep minimum space
-            _min_v = min(PULSE_STYLE.style['formatter.channel_scaling.min_height'], scale * min_v)
-            _max_v = max(PULSE_STYLE.style['formatter.channel_scaling.max_height'], scale * max_v)
+            _min_v = min(PULSE_STYLE['formatter.channel_scaling.min_height'], scale * min_v)
+            _max_v = max(PULSE_STYLE['formatter.channel_scaling.max_height'], scale * max_v)
 
             # calculate offset coordinate
             offset = y0 - _max_v
@@ -343,7 +343,7 @@ class DrawDataContainer:
         for chan in self.channels:
             # update channel info to replace scaling factor
             chan_info = types.ChannelTuple(chan, chan_scale.get(chan, 1.0))
-            for gen in PULSE_STYLE.style['generator.channel']:
+            for gen in PULSE_STYLE['generator.channel']:
                 for drawing in gen(chan_info):
                     self._replace_drawing(drawing)
 
@@ -355,7 +355,7 @@ class DrawDataContainer:
                     drawing.scale = chan_scale.get(chan, 1.0)
 
         # update boundary box
-        self.bbox_bottom = y0 - (PULSE_STYLE.style['formatter.margin.bottom'] - y0_interval)
+        self.bbox_bottom = y0 - (PULSE_STYLE['formatter.margin.bottom'] - y0_interval)
 
     def _ordered_channels(self,
                           visible_channels: Optional[List[pulse.channels.Channel]] = None) \
@@ -375,11 +375,11 @@ class DrawDataContainer:
             channels = []
             for chan in self.channels:
                 # remove acquire
-                if PULSE_STYLE.style['formatter.control.show_acquire_channel'] and \
+                if not PULSE_STYLE['formatter.control.show_acquire_channel'] and \
                         isinstance(chan, pulse.AcquireChannel):
                     continue
                 # remove empty
-                if PULSE_STYLE.style['formatter.control.show_empty_channel'] and \
+                if not PULSE_STYLE['formatter.control.show_empty_channel'] and \
                         self.chan_event_table[chan].is_empty():
                     continue
                 channels.append(chan)
@@ -387,7 +387,7 @@ class DrawDataContainer:
             channels = visible_channels
 
         # callback function to arrange channels
-        layout_pattern = PULSE_STYLE.style['layout.channel']
+        layout_pattern = PULSE_STYLE['layout.channel']
 
         return layout_pattern(channels)
 

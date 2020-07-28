@@ -78,7 +78,7 @@ def _parse_waveform(inst_data: types.InstructionTuple) \
     if isinstance(inst, instructions.Play):
         # pulse
         if isinstance(inst.pulse, pulse.ParametricPulse):
-            pulse_data = inst.pulse.get_sample_pulse()
+            pulse_data = inst.pulse.get_waveform()
             meta.update(inst.pulse.parameters)
         else:
             pulse_data = inst.pulse

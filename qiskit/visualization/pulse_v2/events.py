@@ -199,10 +199,10 @@ class ChannelEvents:
             if isinstance(inst, pulse.instructions.Play):
                 pulse_data = inst.pulse
                 if isinstance(pulse_data, pulse.ParametricPulse):
-                    pulse_data = pulse_data.get_sample_pulse()
+                    pulse_data = pulse_data.get_waveform()
                 samples = np.array(pulse_data.samples, dtype=np.complex)
                 # apply phase modulation
-                if PULSE_STYLE.style['formatter.control.apply_phase_modulation']:
+                if PULSE_STYLE['formatter.control.apply_phase_modulation']:
                     samples *= np.exp(1j * phase)
                 max_val = max(*samples.real, *samples.imag, max_val)
                 min_val = min(*samples.real, *samples.imag, min_val)

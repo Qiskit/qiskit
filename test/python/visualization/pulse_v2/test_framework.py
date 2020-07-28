@@ -158,19 +158,14 @@ class TestDrawDataContainer(QiskitTestCase):
 
     def setUp(self) -> None:
         # draw only waveform, fc symbol, channel name, scaling, baseline, snapshot and barrier
-        callbacks_for_test = {
-            'generator': {
-                'waveform': [generators.gen_filled_waveform_stepwise],
-                'frame': [generators.gen_frame_symbol],
-                'channel': [generators.gen_latex_channel_name,
-                            generators.gen_scaling_info,
-                            generators.gen_baseline],
-                'snapshot': [generators.gen_snapshot_symbol],
-                'barrier': [generators.gen_barrier]
-            },
-            'layout': {
-                'channel': layouts.channel_index_sort_wo_control
-            }}
+        callbacks_for_test = {'generator.waveform': [generators.gen_filled_waveform_stepwise],
+                              'generator.frame': [generators.gen_frame_symbol],
+                              'generator.channel': [generators.gen_latex_channel_name,
+                                                    generators.gen_scaling_info,
+                                                    generators.gen_baseline],
+                              'generator.snapshot': [generators.gen_snapshot_symbol],
+                              'generator.barrier': [generators.gen_barrier],
+                              'layout.channel': layouts.channel_index_sort_wo_control}
         PULSE_STYLE.update(callbacks_for_test)
 
         gaussian = pulse.Gaussian(40, 0.3, 10)
@@ -245,9 +240,9 @@ class TestDrawDataContainer(QiskitTestCase):
         m_scale = 1 / 0.2
         a_scale = 1
 
-        top_margin = PULSE_STYLE.style['formatter.margin.top']
-        interval = PULSE_STYLE.style['formatter.margin.between_channel']
-        min_h = np.abs(PULSE_STYLE.style['formatter.channel_scaling.min_height'])
+        top_margin = PULSE_STYLE['formatter.margin.top']
+        interval = PULSE_STYLE['formatter.margin.between_channel']
+        min_h = np.abs(PULSE_STYLE['formatter.channel_scaling.min_height'])
 
         d_offset = - (top_margin + 1)
         m_offset = - (top_margin + 1 + min_h + interval + 1)
