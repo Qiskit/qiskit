@@ -97,8 +97,7 @@ class ParametricPulse(Pulse):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scale: float = 1, interactive: bool = False):
         """Plot the pulse.
 
         Args:
@@ -109,7 +108,6 @@ class ParametricPulse(Pulse):
             scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
-            scaling: Deprecated, see `scale`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
