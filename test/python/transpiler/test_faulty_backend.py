@@ -248,20 +248,19 @@ class TestFaultyQ1(TestFaultyBackendCase):
 
 
 class TestFaultyQ1Unpickable(TestFaultyBackendCase):
-    """Test preset passmanagers with FakeOurenseFaultyQ1UNPICKABLE.
-       A 5 qubit backend, with a faulty q1
-         0 ↔ (1) ↔ 3 ↔ 4
-              ↕
-              2
+    """See:
+      https://github.com/Qiskit/qiskit-terra/pull/4723
+      https://github.com/Qiskit/qiskit-terra/pull/4782
     """
 
     def setUp(self):
+        """Creates a FakeBackend that is unpickable"""
         backend = FakeOurenseFaultyQ1()
         backend.unpickable_prop = (lambda x: x)
         self.unpickable_backend = backend
 
     def test_unpickable_backend(self):
-        """Test Ourense unpickable backend with a faulty Q1 """
+        """Test Ourense unpickable backend with a faulty Q1 in parallel """
         circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
         circuit.h(range(2))
         circuit.cz(0, 1)
