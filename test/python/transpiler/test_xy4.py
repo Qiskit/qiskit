@@ -21,28 +21,26 @@ from qiskit.transpiler.passes import XY4Pass
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
 
-from math import pi
-
-
 class TestXY4(QiskitTestCase):
     """Test the XY4 DD pass."""
 
-    def test_xy4(self):
+    def setUp(self):
+        self.backend = FakeAlmaden()
+        self.dt_in_sec = self.backend.configuration().dt
+        self.backend_prop = self.backend.properties()
+
+    def test_xy4_simple(self):
         """Test the XY4 DD pass.
 
         It should replace large enough delay blocks with XY4 DD sequences.
         """
-        backend = FakeAlmaden()
-
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.delay(2000)
         circuit.h(0)
 
-        dt_in_sec = backend.configuration().dt
-        backend_prop = backend.properties()
         pass_manager = PassManager()
-        pass_manager.append(XY4Pass(backend_prop, dt_in_sec))
+        pass_manager.append(XY4Pass(self.backend_prop, self.dt_in_sec))
         actual = pass_manager.run(circuit)
         
         expected = QuantumCircuit(1)
@@ -60,3 +58,68 @@ class TestXY4(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(actual, expected)
+
+    def test_xy4_multiple(self):
+        """Test the XY4 DD pass.
+
+        It should replace very large enough delay blocks with multiple XY4 DD sequences.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.delay(3000)
+        circuit.h(0)
+
+        pass_manager = PassManager()
+        pass_manager.append(XY4Pass(self.backend_prop, self.dt_in_sec))
+        actual = pass_manager.run(circuit)
+        
+        expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.delay(17, 0)
+        for _ in range(2):
+            expected.delay(45, 0)
+            expected.x(0)
+            expected.delay(45, 0)
+            expected.y(0)
+            expected.delay(45, 0)
+            expected.x(0)
+            expected.delay(45, 0)
+            expected.y(0)
+        expected.delay(63, 0)
+        expected.h(0)
+
+        self.assertEqual(actual, expected)
+
+    def test_cpmg_not_first(self):
+        """Test the XY4 DD pass.
+
+        It should replace large enough delay blocks with XY4 DD sequences
+        except for the first delay block.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.delay(2000)
+        circuit.h(0)
+        circuit.delay(2000)
+        circuit.h(0)
+
+        pass_manager = PassManager()
+        pass_manager.append(XY4Pass(self.backend_prop, self.dt_in_sec))
+        actual = pass_manager.run(circuit)
+        
+        expected = QuantumCircuit(1)
+        expected.delay(2000, 0)
+        expected.h(0)
+        expected.delay(247, 0)
+        expected.delay(45, 0)
+        expected.x(0)
+        expected.delay(45, 0)
+        expected.y(0)
+        expected.delay(45, 0)
+        expected.x(0)
+        expected.delay(45, 0)
+        expected.y(0)
+        expected.delay(293, 0)
+        expected.h(0)
+
+        self.assertEqual(actual, expected)
+
