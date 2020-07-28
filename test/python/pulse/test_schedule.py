@@ -79,8 +79,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        with self.assertWarns(DeprecationWarning):
-            sched = sched.append(lp0(self.config.drive(0)))
+        sched = sched.append(Play(lp0, self.config.drive(0)))
         self.assertEqual(0, sched.start_time)
         self.assertEqual(3, sched.stop_time)
 
@@ -179,10 +178,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = Play(gp1, self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
         # would be raised.
-        with self.assertWarns(DeprecationWarning):
-            sched.union(gp0(self.config.drive(0)))
-        with self.assertWarns(DeprecationWarning):
-            sched.union(gp0(self.config.drive(0)))
+        sched.insert(0, Play(gp0, self.config.drive(0)))
+        sched.insert(0, Play(gp0, self.config.drive(0)))
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
