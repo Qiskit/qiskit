@@ -519,7 +519,7 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False, phase=None):
+                 cregbundle=False, global_phase=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -527,7 +527,7 @@ class TextDrawing():
         self.initial_state = initial_state
 
         self.cregbundle = cregbundle
-        self.phase = phase
+        self.global_phase = global_phase
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
@@ -632,8 +632,9 @@ class TextDrawing():
 
         lines = []
 
-        if self.phase:
-            lines.append('global phase: %s' % pi_check(self.phase, ndigits=5))
+        if self.global_phase:
+            lines.append('global phase: %s' % pi_check(self.global_phase,
+                                                       ndigits=5))
 
         for layer_group in layer_groups:
             wires = list(zip(*layer_group))
