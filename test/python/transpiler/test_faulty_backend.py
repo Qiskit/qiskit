@@ -22,7 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
 from qiskit.extensions.standard import CnotGate
 from qiskit.transpiler import TranspilerError
-from ..providers.faulty_backends import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01,\
+from ..providers.faulty_backends import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01, \
     FakeOurenseFaultyCX13
 
 
@@ -245,3 +245,28 @@ class TestFaultyQ1(TestFaultyBackendCase):
                       seed_transpiler=42)
 
         self.assertEqual(context.exception.message, message)
+
+
+class TestFaultyQ1Unpickable(TestFaultyBackendCase):
+    """Test preset passmanagers with FakeOurenseFaultyQ1UNPICKABLE.
+       A 5 qubit backend, with a faulty q1
+         0 ↔ (1) ↔ 3 ↔ 4
+              ↕
+              2
+    """
+
+    def setUp(self):
+        backend = FakeOurenseFaultyQ1()
+        backend.unpickable_prop = (lambda x: x)
+        self.unpickable_backend = backend
+
+    def test_unpickable_backend(self):
+        """Test Ourense unpickable backend with a faulty Q1 """
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+        result = transpile([circuit, circuit], backend=self.unpickable_backend,
+                           optimization_level=1, seed_transpiler=42)
+        self.assertEqualCount(circuit, result[0])
+        self.assertEqualCount(circuit, result[1])
