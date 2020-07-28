@@ -203,10 +203,16 @@ class CPhaseGate(ControlledGate):
     def to_matrix(self):
         """Return a numpy.array for the CPhase gate."""
         eith = numpy.exp(1j * self.params[0])
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0,    0],
+                                [0, 1, 0,    0],
+                                [0, 0, 1,    0],
+                                [0, 0, 0, eith]],
+                               dtype=complex)
         return numpy.array([[1, 0, 0,    0],
                             [0, 1, 0,    0],
-                            [0, 0, 1,    0],
-                            [0, 0, 0, eith]],
+                            [0, 0, eith, 0],
+                            [0, 0, 0,    1]],
                            dtype=complex)
 
 
