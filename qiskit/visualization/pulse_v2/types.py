@@ -62,6 +62,7 @@ Special data types.
     imaginary: Color code for the imaginary part of waveform.
 """
 
+from enum import Enum
 from typing import NamedTuple, Union, List, Optional
 
 from qiskit import pulse
@@ -101,3 +102,53 @@ ComplexColors = NamedTuple(
     'ComplexColors',
     [('real', str),
      ('imaginary', str)])
+
+
+class DrawingWaveform(str, Enum):
+    r"""
+    Waveform data type.
+
+    REAL: Assigned to objects that represent real part of waveform.
+    IMAG: Assigned to objects that represent imaginary part of waveform.
+    """
+    REAL = 'Waveform.Real'
+    IMAG = 'Waveform.Imag'
+
+
+class DrawingLabel(str, Enum):
+    r"""
+    Label data type.
+
+    PULSE_NAME: Assigned to objects that represent name of waveform.
+    CH_NAME: Assigned to objects that represent name of channel.
+    CH_SCALE: Assigned to objects that represent scaling factor of channel.
+    FRAME: Assigned to objects that represent value of frame.
+    SNAPSHOT: Assigned to objects that represent label of snapshot.
+    """
+    PULSE_NAME = 'Label.Pulse.Name'
+    CH_NAME = 'Label.Channel.Name'
+    CH_SCALE = 'Label.Channel.Scale'
+    FRAME = 'Label.Frame.Value'
+    SNAPSHOT = 'Label.Snapshot'
+
+
+class DrawingSymbol(str, Enum):
+    r"""
+    Symbol data type.
+
+    FRAME: Assigned to objects that represent symbol of frame.
+    SNAPSHOT: Assigned to objects that represent symbol of snapshot.
+    """
+    FRAME = 'Symbol.Frame'
+    SNAPSHOT = 'Symbol.Snapshot'
+
+
+class DrawingLine(str, Enum):
+    r"""
+    Line data type.
+
+    BASELINE: Assigned to objects that represent zero line of channel.
+    BARRIER: Assigned to objects that represent barrier line.
+    """
+    BASELINE = 'Line.Baseline'
+    BARRIER = 'Line.Barrier'

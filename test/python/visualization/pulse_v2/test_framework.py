@@ -158,7 +158,6 @@ class TestDrawDataContainer(QiskitTestCase):
 
     def setUp(self) -> None:
         # draw only waveform, fc symbol, channel name, scaling, baseline, snapshot and barrier
-        default_style = stylesheet.QiskitPulseStyle()
         callbacks_for_test = {
             'generator': {
                 'waveform': [generators.gen_filled_waveform_stepwise],
@@ -172,8 +171,7 @@ class TestDrawDataContainer(QiskitTestCase):
             'layout': {
                 'channel': layouts.channel_index_sort_wo_control
             }}
-        default_style.update(callbacks_for_test)
-        PULSE_STYLE.update(default_style)
+        PULSE_STYLE.update(callbacks_for_test)
 
         gaussian = pulse.Gaussian(40, 0.3, 10)
         square = pulse.Constant(100, 0.2)

@@ -52,7 +52,7 @@ from typing import Union, Optional, Dict, List
 from qiskit import pulse
 from qiskit.providers import BaseBackend
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import events, data_types, drawing_objects, PULSE_STYLE
+from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_STYLE
 
 
 class DrawDataContainer:
@@ -213,7 +213,7 @@ class DrawDataContainer:
                 for drawing in sum(list(map(gen, chan_event.get_frame_changes())), []):
                     self._replace_drawing(drawing)
             # create channel info
-            chan_info = data_types.ChannelTuple(chan, 1.0)
+            chan_info = types.ChannelTuple(chan, 1.0)
             for gen in PULSE_STYLE.style['generator.channel']:
                 for drawing in gen(chan_info):
                     self._replace_drawing(drawing)
@@ -221,7 +221,7 @@ class DrawDataContainer:
         # create snapshot
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.Snapshot])
         for t0, inst in snapshot_sched.instructions:
-            inst_data = data_types.NonPulseTuple(t0, self.dt, inst)
+            inst_data = types.NonPulseTuple(t0, self.dt, inst)
             for gen in PULSE_STYLE.style['generator.snapshot']:
                 for drawing in gen(inst_data):
                     self._replace_drawing(drawing)
@@ -229,7 +229,7 @@ class DrawDataContainer:
         # create barrier
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.RelativeBarrier])
         for t0, inst in snapshot_sched.instructions:
-            inst_data = data_types.NonPulseTuple(t0, self.dt, inst)
+            inst_data = types.NonPulseTuple(t0, self.dt, inst)
             for gen in PULSE_STYLE.style['generator.barrier']:
                 for drawing in gen(inst_data):
                     self._replace_drawing(drawing)
@@ -342,7 +342,7 @@ class DrawDataContainer:
         # update drawing objects
         for chan in self.channels:
             # update channel info to replace scaling factor
-            chan_info = data_types.ChannelTuple(chan, chan_scale.get(chan, 1.0))
+            chan_info = types.ChannelTuple(chan, chan_scale.get(chan, 1.0))
             for gen in PULSE_STYLE.style['generator.channel']:
                 for drawing in gen(chan_info):
                     self._replace_drawing(drawing)
