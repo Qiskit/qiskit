@@ -173,6 +173,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color', category=None):
             tmp_path = os.path.join(tmpdirname, 'dag.png')
             dot.write_png(tmp_path)
             image = Image.open(tmp_path)
-            os.remove(tmp_path)
             image.show()
+            os.remove(tmp_path)
             return None

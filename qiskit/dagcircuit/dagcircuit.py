@@ -26,6 +26,7 @@ from collections import OrderedDict
 import copy
 import itertools
 import warnings
+import math
 
 import retworkx as rx
 import networkx as nx
@@ -90,6 +91,8 @@ class DAGCircuit:
         self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
+        self._global_phase = 0
+
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         G = nx.MultiDiGraph()
@@ -152,6 +155,31 @@ class DAGCircuit:
         Returns the number of nodes in the dag.
         """
         return len(self._multi_graph)
+
+    @property
+    def global_phase(self):
+        """Return the global phase of the circuit."""
+        return self._global_phase
+
+    @global_phase.setter
+    def global_phase(self, angle):
+        """Set the global phase of the circuit.
+
+        Args:
+            angle (float, ParameterExpression)
+        """
+        from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
+        if isinstance(angle, ParameterExpression):
+            self._global_phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._global_phase = 0
+            elif angle < 0:
+                self._global_phase = angle % (-2 * math.pi)
+            else:
+                self._global_phase = angle % (2 * math.pi)
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -571,6 +599,7 @@ class DAGCircuit:
             dag = self
         else:
             dag = copy.deepcopy(self)
+        dag.global_phase += other.global_phase
 
         for nd in other.topological_nodes():
             if nd.type == "in":
