@@ -1057,7 +1057,7 @@ def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
                         height.
 
         Returns:
-            if display is True:
+            if display is False:
                 str: Latex representation of the array, wrapped in $$
             else:
                 None
