@@ -184,7 +184,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
         gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
-        sched = Schedule()
+        sched = Schedule(inplace=False)
         sched = sched + Play(gp1, self.config.drive(0))
         sched2 = sched
         sched += Play(gp0, self.config.drive(0))
@@ -508,6 +508,47 @@ class TestScheduleBuilding(BaseTestSchedule):
         for j in range(1, 10):
             sched = sched.append(Play(lp0, self.config.drive(0)))
             self.assertEqual(len(sched), j)
+
+    def test_inplace(self):
+        """Test the inplace init arg of Schedule."""
+        dummy_inst = lambda channel: Play(Waveform([1.0, 1.0]),
+                                          DriveChannel(channel))
+
+        ref_sched = Schedule(inplace=False)
+        ref_sched + dummy_inst(0)  # No effect on either
+        ref_sched.append(dummy_inst(1))  # No effect when inplace=False
+        ref_sched = ref_sched.append(dummy_inst(10))
+        ref_sched += dummy_inst(11)
+        ref_sched = ref_sched.insert(0, dummy_inst(12))
+        ref_sched = ref_sched.shift(10)
+        ref_sched.shift(10)  # No effect
+
+        sched = Schedule(inplace=True)
+        sched + dummy_inst(0)  # No effect on either
+        sched.append(dummy_inst(10))
+        sched += dummy_inst(11)
+        sched.insert(0, dummy_inst(12))
+        sched.shift(10)
+
+        self.assertEqual(ref_sched, sched)
+
+    def test_flatten_inplace(self):
+        """Test that flatten happens in place when inplace is True."""
+        sub_schedule = Schedule(inplace=False)
+        sub_schedule += ShiftPhase(1, DriveChannel(0))
+        sub_schedule += Play(Waveform([1.0]), DriveChannel(0))
+
+        sched = Schedule(inplace=True)
+        sched.append(sub_schedule)
+        sched.append(sub_schedule)
+        sched.flatten()
+
+        ref_sched = Schedule(inplace=False)
+        ref_sched += sched
+        ref_sched_flat = ref_sched.flatten()
+
+        self.assertNotEqual(sched._children, ref_sched._children)
+        self.assertEqual(sched, ref_sched_flat)
 
 
 class TestReplace(BaseTestSchedule):
@@ -906,6 +947,22 @@ class TestScheduleFilter(BaseTestSchedule):
                                                                instruction_types=[Play])
         self.assertTrue(len(filtered.instructions) == 0)
         self.assertTrue(len(excluded.instructions) == 6)
+
+    def test_filter_inplace(self):
+        """Test that filtering in place works."""
+        dummy_inst = lambda channel: Play(Waveform([1.0, 1.0]),
+                                          DriveChannel(channel))
+        sched = Schedule(inplace=True)
+        sched.append(dummy_inst(0))
+        sched.append(dummy_inst(0))
+        sched.append(dummy_inst(1))
+        sched.append(dummy_inst(2))
+
+        sched.filter(channels=[DriveChannel(1)])
+        ref_sched = Schedule(dummy_inst(1), inplace=False)
+        ref_sched.filter(channels=[DriveChannel(0)])  # No effect
+        self.assertEqual(sched.duration, ref_sched.duration)
+        self.assertEqual(sched, ref_sched)
 
     def _filter_and_test_consistency(self, schedule: Schedule, *args, **kwargs):
         """
