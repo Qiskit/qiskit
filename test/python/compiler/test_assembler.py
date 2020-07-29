@@ -347,7 +347,7 @@ class TestCircuitAssembler(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.cx(0, 1)
-        circ.measure_all
+        circ.measure_all()
         circ.global_phase = .3 * np.pi
         qobj = assemble([circ, self.circ])
         self.assertEqual(getattr(qobj.experiments[1].header, 'global_phase'),
