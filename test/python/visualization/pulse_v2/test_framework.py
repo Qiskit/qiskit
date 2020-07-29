@@ -323,8 +323,8 @@ class TestDrawDataContainer(QiskitTestCase):
         ddc.load_program(sched)
         ddc.update_channel_property()
 
-        self.assertEqual(len(ddc.axis_break), 1)
+        self.assertEqual(len(ddc.axis_breaks), 1)
 
-        removed_t0, removed_t1 = ddc.axis_break[0]
+        removed_t0, removed_t1 = ddc.axis_breaks[0]
         self.assertEqual(removed_t0, 500)
         self.assertEqual(removed_t1, 9500)

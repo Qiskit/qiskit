@@ -19,16 +19,16 @@ Core module of the pulse drawer.
 
 This module provides `DrawDataContainer` which is a collection of drawing objects
 with additional information such as the modulation frequency and the time resolution.
-In addition, this instance also performs the simple data processing such as channel arrangement
-and auto scaling of channels before passing the drawing objects to the plotters.
+In addition, this instance performs the simple data processing such as channel arrangement,
+auto scaling of channels, and truncation of long pulses when a program is loaded.
 
 This class may be initialized with backend instance which plays the schedule,
-then the schedule is loaded and channel information is updated according to the preference:
+then a program is loaded and channel information is updated according to the preference:
 
     ```python
     ddc = DrawDataContainer(backend)
     ddc.load_program(sched)
-    ddc.update_channel_property()
+    ddc.update_channel_property(visible_channels=[DriveChannel(0), DriveChannel(1)])
     ```
 
 If the `DrawDataContainer` is initialized without backend information, the output shows
@@ -38,13 +38,20 @@ This module is expected to be used by the pulse drawer interface and not exposed
 
 The `DrawDataContainer` takes a schedule or pusle waveform data and convert it into
 a set of drawing objects, then a plotter interface takes the drawing objects
-from the container to call the plotter's API. The generated drawing objects can be accessed from
+from the container to call the plotter's API. A type of drawing object to generate can be
+customized with stylesheet. The generated drawing objects can be accessed from
 
     ```python
     ddc.drawings
     ```
 
-This module can be commonly used among different plotters.
+This module can be commonly used among different plotters. If the plotter supports
+dynamic update of drawings, the channel data can be updated with new preference:
+
+    ```python
+    ddc.update_channel_property(visible_channels=[DriveChannel(0)])
+    ```
+In this example, `DriveChannel(1)` will be removed from the output.
 """
 
 from typing import Union, Optional, Dict, List
@@ -92,9 +99,11 @@ class DrawDataContainer:
         self.c_los = dict()
         self.m_los = dict()
         self.channels = set()
-        self.drawings = []
         self.chan_event_table = dict()
-        self.axis_break = []
+        self.axis_breaks = []
+
+        # drawing objects
+        self.drawings = []
 
         # boundary box
         self.bbox_top = 0
@@ -108,13 +117,13 @@ class DrawDataContainer:
 
         # overwrite default values
         if drive_los is not None:
-            self.d_los = drive_los
+            self.d_los.update(drive_los)
 
         if control_los is not None:
-            self.c_los = control_los
+            self.c_los.update(control_los)
 
         if measure_los is not None:
-            self.m_los = measure_los
+            self.m_los.update(measure_los)
 
         if dt is not None:
             self.dt = dt
@@ -458,7 +467,7 @@ class DrawDataContainer:
             self.drawings.append(drawing)
 
     def _horizontal_axis_break(self):
-        """"""
+        """Generate intervals that are removed from visualization."""
         global_waveform_edges = set()
 
         for drawing in self.drawings:
@@ -478,4 +487,4 @@ class DrawDataContainer:
             if duration > PULSE_STYLE['formatter.axis_break.length']:
                 t0 = int(event_slack[0] + 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
                 t1 = int(event_slack[1] - 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
-                self.axis_break.append((t0, t1))
+                self.axis_breaks.append((t0, t1))
