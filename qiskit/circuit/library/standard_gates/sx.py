@@ -130,7 +130,7 @@ class SXdgGate(Gate):
 
     """
 
-    def __init__(self, label='√X^†'):
+    def __init__(self, label='√X_dg'):
         """Create new SXdg gate."""
         super().__init__('sxdg', 1, [], label=label)
 
