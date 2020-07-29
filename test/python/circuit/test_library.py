@@ -1930,13 +1930,13 @@ class TestQuadraticForm(QiskitTestCase):
         n = len(quadratic)  # number of value qubits
         ref = np.zeros(2 ** (n + m), dtype=complex)
         for x in range(2 ** n):
-            x_bin = bin(x)[2:].zfill(n)[::-1]
-            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)[::-1]
+            x_bin = bin(x)[2:].zfill(n)
+            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)
             index = int(index[::-1], 2)
             ref[index] = 1 / np.sqrt(2 ** n)
 
         actual = QuantumCircuit(circuit.num_qubits)
-        actual.h(actual.qubits)
+        actual.h(list(range(n)))
         actual.compose(circuit, inplace=True)
         self.assertTrue(Statevector.from_instruction(actual).equiv(ref))
 

@@ -83,6 +83,9 @@ class QuadraticForm(QuantumCircuit):
 
         scaling = np.pi * 2 ** (1 - num_result_qubits)
 
+        # initial QFT (just hadamards)
+        self.h(qr_result)
+
         # constant coefficient
         if offset is not None and offset != 0:
             for i in range(num_result_qubits):
@@ -107,9 +110,6 @@ class QuadraticForm(QuantumCircuit):
                             self.mcu1(scaling * 2 ** i * value, [qr_input[j], qr_input[k]],
                                       qr_result[i])
 
-        # add the inverse QFT, swaps are added at the end, not the beginning here
+        # add the inverse QFT
         iqft = QFT(num_result_qubits, do_swaps=False).inverse()
         self.append(iqft, qr_result)
-
-        for i in range(num_result_qubits // 2):
-            self.swap(qr_result[i], qr_result[-(i + 1)])
