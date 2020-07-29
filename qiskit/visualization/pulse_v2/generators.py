@@ -14,7 +14,7 @@
 
 r"""
 A collection of functions that generate drawing objects from formatted input data.
-See py:mod:`qiskit.visualization.pulse_v2.data_types` for the detail of input data.
+See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of input data.
 
 
 Framework

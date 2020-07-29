@@ -19,11 +19,11 @@ Core module of the pulse drawer.
 
 This module provides `DrawDataContainer` which is a collection of drawing objects
 with additional information such as the modulation frequency and the time resolution.
-However, this instance also performs the simple data processing such as channel arrangement
+In addition, this instance also performs the simple data processing such as channel arrangement
 and auto scaling of channels before passing the drawing objects to the plotters.
 
-This class is initialized with backend instance which plays the schedule,
-then the schedule is loaded and channel information is updated:
+This class may be initialized with backend instance which plays the schedule,
+then the schedule is loaded and channel information is updated according to the preference:
 
     ```python
     ddc = DrawDataContainer(backend)
@@ -31,14 +31,14 @@ then the schedule is loaded and channel information is updated:
     ddc.update_channel_property()
     ```
 
-If the `DrawDataContainer` is initialized without arguments, the output shows
-the time axis in units of system cycle time `dt` and the frequencies are initialized to zero.
+If the `DrawDataContainer` is initialized without backend information, the output shows
+the time in units of system cycle time `dt` and the frequencies are initialized to zero.
 
 This module is expected to be used by the pulse drawer interface and not exposed to users.
 
-The `DrawDataContainer` takes the schedule and convert it into drawing objects, then each plotter
-interface takes the drawing objects from the container to call the plotter's API.
-The generated drawing objects can be accessed from
+The `DrawDataContainer` takes a schedule or pusle waveform data and convert it into
+a set of drawing objects, then a plotter interface takes the drawing objects
+from the container to call the plotter's API. The generated drawing objects can be accessed from
 
     ```python
     ddc.drawings
@@ -146,11 +146,11 @@ class DrawDataContainer:
                 temp_val = self.d_los[u_lo_mapper.q] * complex(*u_lo_mapper.scale)
             self.c_los[ind] = temp_val.real
 
-    def load_program(self, program: Union[pulse.Waveform, pulse.Schedule]):
+    def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
         """Load a program to draw.
 
         Args:
-            program: `Waveform` or `Schedule` to draw.
+            program: `Waveform`, `ParametricPulse`, or `Schedule` to draw.
 
         Raises:
             VisualizationError: When input program is invalid data format.
@@ -162,8 +162,7 @@ class DrawDataContainer:
         else:
             raise VisualizationError('Data type %s is not supported.' % type(program))
 
-    @staticmethod
-    def _waveform_loader(program: pulse.Waveform):
+    def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
         """Load Waveform instance.
 
         This function is sub-routine of py:method:`load_program`.
@@ -171,9 +170,53 @@ class DrawDataContainer:
         Args:
             program: `Waveform` to draw.
         """
-        # TODO: implement this
+        sample_channel = types.SamplePulseChannel()
+        inst_tuple = types.InstructionTuple(t0=0,
+                                            dt=self.dt,
+                                            frame=types.PhaseFreqTuple(phase=0, freq=0),
+                                            inst=pulse.Play(program, sample_channel))
 
-        pass
+        # generate waveform related elements
+        for gen in PULSE_STYLE['generator.waveform']:
+            for drawing in gen(inst_tuple):
+                self._replace_drawing(drawing)
+
+        # baseline
+        style = {'alpha': PULSE_STYLE['formatter.alpha.baseline'],
+                 'zorder': PULSE_STYLE['formatter.layer.baseline'],
+                 'linewidth': PULSE_STYLE['formatter.line_width.baseline'],
+                 'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
+                 'color': PULSE_STYLE['formatter.color.baseline']}
+
+        bline = drawing_objects.HorizontalLineData(data_type=types.DrawingLine.BASELINE,
+                                                   channel=sample_channel,
+                                                   y0=0,
+                                                   styles=style)
+        self._replace_drawing(bline)
+
+        self.set_time_range(0, program.duration)
+
+        pulse_data = program if isinstance(program, pulse.Waveform) else program.get_waveform()
+        max_v = max(pulse_data.samples.real, pulse_data.samples.imag)
+        min_v = min(pulse_data.samples.real, pulse_data.samples.imag)
+
+        # calculate offset coordinate
+        offset = - PULSE_STYLE['formatter.margin.top'] - max_v
+
+        # calculate scaling
+        max_abs_val = max(abs(max_v), abs(min_v))
+        if max_abs_val < 1e-6:
+            scale = 1.0
+        else:
+            scale = 1 / max_abs_val
+
+        for drawing in self.drawings:
+            drawing.visible = True
+            drawing.offset = offset
+            drawing.scale = scale
+
+        # update boundary box
+        self.bbox_bottom = offset - min_v - (PULSE_STYLE['formatter.margin.bottom'])
 
     def _schedule_loader(self, program: pulse.Schedule):
         """Load Schedule instance.
@@ -387,9 +430,10 @@ class DrawDataContainer:
             channels = visible_channels
 
         # callback function to arrange channels
-        layout_pattern = PULSE_STYLE['layout.channel']
-
-        return layout_pattern(channels)
+        if len(channels) > 1:
+            return PULSE_STYLE['layout.channel'](channels)
+        else:
+            return channels
 
     def _replace_drawing(self,
                          drawing: drawing_objects.ElementaryData):
