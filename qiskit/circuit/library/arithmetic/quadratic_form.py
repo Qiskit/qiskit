@@ -53,7 +53,8 @@ class QuadraticForm(QuantumCircuit):
                                            List[List[Union[float, ParameterExpression]]]]] = None,
                  linear: Optional[Union[np.ndarray,
                                         List[Union[float, ParameterExpression]]]] = None,
-                 offset: Optional[Union[float, ParameterExpression]] = None) -> None:
+                 offset: Optional[Union[float, ParameterExpression]] = None,
+                 little_endian: bool = True) -> None:
         r"""
         Args:
             num_result_qubits: The number of qubits to encode the result. Called :math:`m` in
@@ -61,6 +62,7 @@ class QuadraticForm(QuantumCircuit):
             quadratic: A matrix containing the quadratic coefficients, :math:`A`.
             linear: An array containing the linear coefficients, :math:`b`.
             offset: A constant offset, :math:`c`.
+            little_endian: Encode the result in little endianness.
 
         Raises:
             ValueError: If ``linear`` and ``quadratic`` have mismatching sizes.
@@ -113,3 +115,7 @@ class QuadraticForm(QuantumCircuit):
         # add the inverse QFT
         iqft = QFT(num_result_qubits, do_swaps=False).inverse()
         self.append(iqft, qr_result)
+
+        if little_endian:
+            for i in range(num_result_qubits // 2):
+                self.swap(qr_result[i], qr_result[-(i + 1)])

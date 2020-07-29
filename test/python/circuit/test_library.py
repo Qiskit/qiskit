@@ -1918,27 +1918,46 @@ class TestPhaseEstimation(QiskitTestCase):
             self.assertEqual(pec.data[-1][0].definition, iqft)
 
 
+@ddt
 class TestQuadraticForm(QiskitTestCase):
     """Test the QuadraticForm circuit."""
 
     def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
         """Assert ``circuit`` implements the quadratic form correctly."""
         def q_form(x):
-            x = np.array([int(val) for val in x])
+            x = np.array([int(val) for val in reversed(x)])
             return int(x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset)
 
         n = len(quadratic)  # number of value qubits
         ref = np.zeros(2 ** (n + m), dtype=complex)
         for x in range(2 ** n):
             x_bin = bin(x)[2:].zfill(n)
-            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)
-            index = int(index[::-1], 2)
+            index = bin(q_form(x_bin) % 2 ** m)[2:].zfill(m) + x_bin
+            index = int(index, 2)
             ref[index] = 1 / np.sqrt(2 ** n)
 
         actual = QuantumCircuit(circuit.num_qubits)
         actual.h(list(range(n)))
         actual.compose(circuit, inplace=True)
         self.assertTrue(Statevector.from_instruction(actual).equiv(ref))
+
+    @data(True, False)
+    def test_endian(self, little_endian):
+        """Test the outcome for different endianness."""
+        qform = QuadraticForm(2, linear=[0, 1], little_endian=little_endian)
+        circuit = QuantumCircuit(4)
+        circuit.x(1)
+        circuit.compose(qform, inplace=True)
+
+        # the result is x_0 linear_0 + x_1 linear_1 = 1 = '0b01'
+        result = '01'
+
+        # the state is encoded as |q(x)>|x>, |x> = |x_1 x_0> = |10>
+        index = (result if little_endian else result[::-1]) + '10'
+        ref = np.zeros(2 ** 4, dtype=complex)
+        ref[int(index, 2)] = 1
+
+        self.assertTrue(Statevector.from_instruction(circuit).equiv(ref))
 
     def test_quadratic_form(self):
         """Test the quadratic form circuit."""
