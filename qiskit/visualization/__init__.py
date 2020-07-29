@@ -32,6 +32,7 @@ Counts and State Visualizations
    plot_state_hinton
    plot_state_paulivec
    plot_state_qsphere
+   plot_state_pixel
 
 Device Visualizations
 =====================
@@ -104,7 +105,8 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_bloch_multivector,
                                                       plot_state_city,
                                                       plot_state_paulivec,
-                                                      plot_state_qsphere)
+                                                      plot_state_qsphere,
+                                                      plot_state_pixel)
 from qiskit.visualization.transition_visualization import visualize_transition
 
 from .circuit_visualization import circuit_drawer, qx_color_scheme

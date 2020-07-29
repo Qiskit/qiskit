@@ -20,17 +20,20 @@
 Visualization functions for quantum states.
 """
 
+from typing import Dict, Optional, Union, List, Tuple
 from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info.states import DensityMatrix
+from qiskit.quantum_info import Statevector
 from qiskit.util import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
+    from matplotlib.axes import Axes
     from matplotlib.patches import FancyArrowPatch
     from matplotlib.patches import Circle
     import matplotlib.colors as mcolors
@@ -683,11 +686,6 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed. To install, run "pip install '
                           'matplotlib".')
-    try:
-        import seaborn as sns
-    except ImportError:
-        raise ImportError('Must have seaborn installed to use '
-                          'plot_state_qsphere. To install, run "pip install seaborn".')
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -819,29 +817,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
         else:
             break
 
-    n = 64
-    theta = np.ones(n)
-
     ax2 = fig.add_subplot(gs[2:, 2:])
-    ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
-    offset = 0.95  # since radius of sphere is one.
-
-    if use_degrees:
-        labels = ['Phase\n(Deg)', '0', '90', '180   ', '270']
-    else:
-        labels = ['Phase', '$0$', '$\\pi/2$', '$\\pi$', '$3\\pi/2$']
-
-    ax2.text(0, 0, labels[0], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(offset, 0, labels[1], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(0, offset, labels[2], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(-offset, 0, labels[3], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
-    ax2.text(0, -offset, labels[4], horizontalalignment='center',
-             verticalalignment='center', fontsize=14)
+    _plot_color_wheel(ax2, 14, use_degrees=use_degrees)
 
     if return_fig:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
@@ -936,6 +913,189 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
 
     normals = _generate_normals(polys)
     return _shade_colors(facecolors, normals)
+
+
+def plot_state_pixel(state: Union[List[complex], Dict[str, complex], Statevector],
+                     num_prefix: int,
+                     num_suffix: int,
+                     title: Optional[str] = "",
+                     figsize: Optional[Tuple[float, float]] = None,
+                     int_labels: Optional[bool] = False,
+                     row_label_order: Optional[str] = 'asc',
+                     column_ticks_bottom: Optional[bool] = True,
+                     twos_complement_order: Optional[bool] = False,
+                     font_size: Optional[int] = 14,
+                     color_wheel: Optional[bool] = True,
+                     **fig_kwargs) -> plt.Figure:
+    """ Plots a statevector or results dictionary as a pixel graph.
+
+        Args:
+            state: A statevector (Statevector or list of complex), state dictionary (keys: outcome,
+                values: amplitude).
+            num_prefix: The number of bits in the outcome prefix.
+            num_suffix: The number of bits in the outcome suffix.
+            title: a string that represents the plot title
+            figsize: Figure size in inches.
+            int_labels: Whether or not to use integer labels.
+            row_label_order: Order of the row labels - 'desc' or 'asc'.
+            column_ticks_bottom: Whether or not the column ticks should be on the bottom.
+            twos_complement_order: Whether or not to use a two's complement interpretation
+                of the row labels.
+            font_size: The font size for the figure labels.
+            color_wheel: Whether or not to plot a reference color wheel below the pixel graph.
+            fig_kwargs: Additional figure keyword arguments to pass to matplotlib.
+
+        Returns:
+            Figure: A matplotlib figure instance.
+
+        Raises:
+            ImportError: Requires matplotlib.
+            VisualizationError: if input is not a valid N-qubit state.
+
+        Example:
+            .. jupyter-execute::
+                from qiskit import QuantumCircuit, QuantumRegister
+                from qiskit.quantum_info import Statevector
+                from qiskit.visualization import plot_state_pixel
+                %matplotlib inline
+
+                input = QuantumRegister(2)
+                output = QuantumRegister(2)
+                qc = QuantumCircuit(input, output)
+                qc.h(input[0])
+                qc.cx(input[0], input[1])
+                qc.cx(input[1], output[0])
+                qc.cx(output[0], output[1])
+
+                state = Statevector.from_instruction(qc)
+                plot_state_pixel(state, 2, 2).show()
+    """
+    if not HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed. To install, run '
+                          '"pip install matplotlib".')
+
+    def formatted_int(v: Union[str, float], *args) -> int:
+        """A stand-in function for converting to integers."""
+        return int(v)
+
+    # Initialize format variables and process input data.
+    if isinstance(state, Statevector):
+        state = list(state.data)
+    n = len(state)
+    num_bits = float(np.log2(n))
+    if not num_bits.is_integer():
+        raise VisualizationError("Input statevector does not have valid dimensions.")
+    num_bits = int(num_bits)
+    num_input = 2**num_prefix
+    num_output = 2**num_suffix
+    ancilla_string = "0" * (num_bits - (num_prefix + num_suffix))
+    label_func = formatted_int if int_labels else _twos_complement
+    if isinstance(state, list):
+        keys = [bin(i)[2::].rjust(num_bits, '0') for i in range(0, n)]
+        state = dict(zip(keys, state))
+    figsize = (7, 7) if figsize is None else figsize
+
+    # Create the label lists.
+    col_labels = [''] if num_input == 1 else [label_func(v, num_prefix) for v in range(num_input)]
+    if num_output > 1:
+        if twos_complement_order:
+            row_labels = [label_func(v-2**(num_suffix-1), num_suffix) for v in range(num_output)]
+        else:
+            row_labels = [label_func(v, num_suffix) for v in range(num_output)]
+        row_labels = row_labels[::-1] if row_label_order == 'desc' else row_labels
+    else:
+        row_labels = ['']
+
+    # If the using the integer label format, we need to convert to binary for processing.
+    if int_labels:
+        bin_column = col_labels if num_input <= 1 else \
+            [_twos_complement(v, num_prefix) for v in col_labels]
+        bin_row = row_labels if num_output <= 1 else \
+            [_twos_complement(v, num_suffix) for v in row_labels]
+    else:
+        bin_column = col_labels
+        bin_row = row_labels
+
+    # Convert the results dictionary to a table.
+    table = []
+    for row_key in bin_row:
+        row = []
+        for col_key in bin_column:
+            result_key = col_key + row_key + ancilla_string
+            a = state[result_key] if result_key in state else 0 + 0j
+            c = phase_to_rgb(a)
+            row.append([c[0], c[1], c[2], np.abs(a)**2])
+        table.append(row)
+    table = np.array(table)
+
+    # Build subplots.
+    fig = plt.figure(figsize=figsize, **fig_kwargs)
+    gs = gridspec.GridSpec(4, 3) if color_wheel else gridspec.GridSpec(3, 3)
+    ax1 = plt.subplot(gs[:3, :3])
+    plt.title(title, pad=10)
+    if color_wheel:
+        ax2 = fig.add_subplot(gs[3:, 0:])
+        _plot_color_wheel(ax2, font_size)
+    ax1.imshow(table)
+
+    # Add labels and ticks.
+    xticks = np.arange(len(col_labels)) if num_input > 1 else []
+    xticklabels = col_labels if num_input > 1 else []
+    yticks = np.arange(len(row_labels)) if num_output > 1 else []
+    yticklabels = row_labels if num_output > 1 else []
+    ax1.set(xticks=xticks, yticks=yticks)
+    ax1.set_xticklabels(xticklabels, fontsize=font_size)
+    ax1.set_yticklabels(yticklabels, fontsize=font_size)
+    rot_angle = 0 if int_labels else -45
+    if column_ticks_bottom:
+        rot_angle *= -1
+    else:
+        ax1.xaxis.tick_top()
+    plt.setp(ax1.get_xticklabels(), rotation=rot_angle, ha="right",
+             rotation_mode="anchor")
+
+    return fig
+
+
+def _twos_complement(v: int, n_bits: int):
+    """Returns the corresponding two's complement representation of the given integer."""
+    assert -2**n_bits <= v < 2**n_bits
+    if v < 0:
+        v += 2**n_bits
+    format_string = '{0:0'+str(n_bits)+'b}'
+    bin_v = format_string.format(v)
+    return bin_v
+
+
+def _plot_color_wheel(ax: Axes, font_size: int,
+                      use_degrees: Optional[bool] = False) -> None:
+    """Plots a color wheel on the given Axes object."""
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError('Must have seaborn installed to use plot_state_pixel or'
+                          ' plot_state_qpshere. To install, run "pip install seaborn".')
+    n = 64
+    theta = np.ones(n)
+    ax.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
+    ax.add_artist(Circle((0, 0), 0.5, color='white', zorder=1))
+    offset = 0.95  # since radius of sphere is one.
+
+    if use_degrees:
+        labels = ['Phase\n(Deg)', '0', '90', '180   ', '270']
+    else:
+        labels = ['Phase', '$0$', '$\\pi/2$', '$\\pi$', '$3\\pi/2$']
+
+    ax.text(0, 0, labels[0], horizontalalignment='center',
+            verticalalignment='center', fontsize=font_size)
+    ax.text(offset, 0, labels[1], horizontalalignment='center',
+            verticalalignment='center', fontsize=font_size)
+    ax.text(0, offset, labels[2], horizontalalignment='center',
+            verticalalignment='center', fontsize=font_size)
+    ax.text(-offset, 0, labels[3], horizontalalignment='center',
+            verticalalignment='center', fontsize=font_size)
+    ax.text(0, -offset, labels[4], horizontalalignment='center',
+            verticalalignment='center', fontsize=font_size)
 
 
 def _generate_normals(polygons):
