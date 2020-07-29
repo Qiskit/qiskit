@@ -20,7 +20,9 @@ import collections
 import itertools
 import json
 import logging
+import re
 from warnings import warn
+
 import numpy as np
 
 try:
@@ -31,6 +33,13 @@ try:
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
+
+try:
+    from pylatexenc.latex2text import LatexNodes2Text
+
+    HAS_PYLATEX = True
+except ImportError:
+    HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
@@ -112,6 +121,10 @@ class MatplotlibDrawer:
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
                               'To install, run "pip install matplotlib".')
+
+        if not HAS_PYLATEX:
+            raise ImportError('The class MatplotlibDrawer needs pylatexenc. '
+                              'to install, run "pip install pylatexenc".')
 
         self._ast = None
         self._scale = 1.0 if scale is None else scale
@@ -198,9 +211,6 @@ class MatplotlibDrawer:
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
-        self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
-                             '\\dagger', '\\rangle')
-        self._latex_chars1 = ('\\mapsto', '\\pi', '\\;')
         self._char_list = {' ': (0.0958, 0.0583), '!': (0.1208, 0.0729), '"': (0.1396, 0.0875),
                            '#': (0.2521, 0.1562), '$': (0.1917, 0.1167), '%': (0.2854, 0.1771),
                            '&': (0.2333, 0.1458), "'": (0.0833, 0.0521), '(': (0.1167, 0.0729),
@@ -234,6 +244,8 @@ class MatplotlibDrawer:
                            'z': (0.1562, 0.0979), '{': (0.1917, 0.1188), '|': (0.1, 0.0604),
                            '}': (0.1896, 0.1188)}
 
+        self._mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
+
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
@@ -255,12 +267,21 @@ class MatplotlibDrawer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
             return t.get_window_extent(renderer=self.renderer).width / 60.0
         else:
-            # if not using a get_renderer method, first remove
-            # any latex chars before getting width
-            for t in self._latex_chars1:
-                text = text.replace(t, 'r')
-            for t in self._latex_chars:
-                text = text.replace(t, '')
+            math_mode_match = self._mathmode_regex.search(text)
+            num_underscores = 0
+            num_carets = 0
+            if math_mode_match:
+                math_mode_text = math_mode_match.group(1)
+                num_underscores = math_mode_text.count('_')
+                num_carets = math_mode_text.count('^')
+            text = LatexNodes2Text().latex_to_text(text)
+            # If there are subscripts or superscripts in mathtext string
+            # we need to account for that spacing by manually removing
+            # from text string for text length
+            if num_underscores:
+                text = text.replace('_', '', num_underscores)
+            if num_carets:
+                text = text.replace('^', '', num_carets)
 
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
@@ -285,9 +306,6 @@ class MatplotlibDrawer:
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
-        # remove $'s since "${}$".format will add them back on the outside
-        param_parts = param_parts.replace('$', '')
-        param_parts = param_parts.replace('-', u'\u02d7')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
@@ -309,18 +327,12 @@ class MatplotlibDrawer:
             gate_text = op.name
 
         if gate_text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[gate_text])
+            gate_text = "{}".format(self._style.disptex[gate_text])
         else:
-            gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
+            gate_text = "{}".format(gate_text[0].upper() + gate_text[1:])
 
-        # mathtext .format removes spaces so add them back and it changes
-        # hyphen to wide minus sign, so use unicode hyphen to prevent that
-        gate_text = gate_text.replace(' ', '\\;')
-        gate_text = gate_text.replace('-', u'\u02d7')
         if ctrl_text:
-            ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
-            ctrl_text = ctrl_text.replace(' ', '\\;')
-            ctrl_text = ctrl_text.replace('-', u'\u02d7')
+            ctrl_text = "{}".format(ctrl_text[0].upper() + ctrl_text[1:])
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
@@ -613,7 +625,7 @@ class MatplotlibDrawer:
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
-                label = '${name}$'.format(name=reg.register.name)
+                label = '{name}'.format(name=reg.register.name)
                 label = _fix_double_script(label) + initial_qbit
                 text_width = self._get_text_width(label, self._style.fs)
 
@@ -635,7 +647,7 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self.cregbundle:
-                    label = '${}$'.format(reg.register.name)
+                    label = '{}'.format(reg.register.name)
                     label = _fix_double_script(label) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
@@ -757,7 +769,7 @@ class MatplotlibDrawer:
 
                 if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
                     tname = 'U1' if op.name == 'cu1' else 'zz'
-                    gate_width = (self._get_text_width(tname + ' ()$$',
+                    gate_width = (self._get_text_width(tname + ' ()',
                                                        fontsize=self._style.sfs)
                                   + param_width) * 1.5
                 else:
@@ -824,7 +836,7 @@ class MatplotlibDrawer:
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])):
-                    param = "${}$".format(self.param_parse(op.op.params))
+                    param = "{}".format(self.param_parse(op.op.params))
                 else:
                     param = ''
 
@@ -920,7 +932,7 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     stext = self._style.disptex['u1'] if op.name == 'cu1' else 'zz'
                     self._sidetext(qreg_b, tc=tc,
-                                   text='${}$'.format(stext) + ' ' + '({})'.format(param))
+                                   text='{}'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # swap gate
