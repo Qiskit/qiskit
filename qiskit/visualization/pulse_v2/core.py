@@ -94,6 +94,7 @@ class DrawDataContainer:
         self.channels = set()
         self.drawings = []
         self.chan_event_table = dict()
+        self.axis_break = []
 
         # boundary box
         self.bbox_top = 0
@@ -170,7 +171,7 @@ class DrawDataContainer:
         Args:
             program: `Waveform` to draw.
         """
-        sample_channel = types.SamplePulseChannel()
+        sample_channel = types.WaveformChannel()
         inst_tuple = types.InstructionTuple(t0=0,
                                             dt=self.dt,
                                             frame=types.PhaseFreqTuple(phase=0, freq=0),
@@ -197,8 +198,8 @@ class DrawDataContainer:
         self.set_time_range(0, program.duration)
 
         pulse_data = program if isinstance(program, pulse.Waveform) else program.get_waveform()
-        max_v = max(pulse_data.samples.real, pulse_data.samples.imag)
-        min_v = min(pulse_data.samples.real, pulse_data.samples.imag)
+        max_v = max(*pulse_data.samples.real, *pulse_data.samples.imag)
+        min_v = min(*pulse_data.samples.real, *pulse_data.samples.imag)
 
         # calculate offset coordinate
         offset = - PULSE_STYLE['formatter.margin.top'] - max_v
@@ -400,6 +401,10 @@ class DrawDataContainer:
         # update boundary box
         self.bbox_bottom = y0 - (PULSE_STYLE['formatter.margin.bottom'] - y0_interval)
 
+        # update axis break
+        if PULSE_STYLE['formatter.control.axis_break']:
+            self._horizontal_axis_break()
+
     def _ordered_channels(self,
                           visible_channels: Optional[List[pulse.channels.Channel]] = None) \
             -> List[pulse.channels.Channel]:
@@ -452,3 +457,25 @@ class DrawDataContainer:
         else:
             self.drawings.append(drawing)
 
+    def _horizontal_axis_break(self):
+        """"""
+        global_waveform_edges = set()
+
+        for drawing in self.drawings:
+            if drawing.data_type in [types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG] \
+                    and drawing.visible:
+                global_waveform_edges.add(drawing.x[0])
+                global_waveform_edges.add(drawing.x[-1])
+
+        global_waveform_edges = sorted(global_waveform_edges)
+
+        event_slacks = []
+        for ind in range(1, len(global_waveform_edges)):
+            event_slacks.append((global_waveform_edges[ind-1], global_waveform_edges[ind]))
+
+        for event_slack in event_slacks:
+            duration = event_slack[1] - event_slack[0]
+            if duration > PULSE_STYLE['formatter.axis_break.length']:
+                t0 = int(event_slack[0] + 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
+                t1 = int(event_slack[1] - 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
+                self.axis_break.append((t0, t1))

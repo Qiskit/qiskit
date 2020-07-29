@@ -143,6 +143,11 @@ def _fill_waveform_color(channel: pulse.channels.Channel) \
         if isinstance(colors, (tuple, list)):
             colors = types.ComplexColors(*colors)
         return colors
+    if isinstance(channel, types.WaveformChannel):
+        colors = PULSE_STYLE['formatter.color.fill_waveform_w']
+        if isinstance(colors, (tuple, list)):
+            colors = types.ComplexColors(*colors)
+        return colors
 
     raise VisualizationError('Channel type %s is not supported.' % type(channel))
 

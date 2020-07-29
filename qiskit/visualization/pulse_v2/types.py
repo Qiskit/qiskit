@@ -154,12 +154,12 @@ class DrawingLine(str, Enum):
     BARRIER = 'Line.Barrier'
 
 
-class SamplePulseChannel(pulse.channels.PulseChannel):
+class WaveformChannel(pulse.channels.PulseChannel):
     r"""
-    Dummy channel to visualize a sample pulse.
+    Dummy channel to visualize a waveform.
     """
-    prefix = 's'
+    prefix = 'w'
 
     def __init__(self):
-        """Create new sample pulse channel."""
+        """Create new waveform channel."""
         super().__init__(0)

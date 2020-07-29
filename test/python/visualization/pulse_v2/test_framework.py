@@ -311,3 +311,20 @@ class TestDrawDataContainer(QiskitTestCase):
 
         # baseline and waveform for real and imaginary
         self.assertEqual(len(ddc.drawings), 3)
+
+    def test_very_long_pulse(self):
+        """Test truncation of long pulse."""
+        ddc = core.DrawDataContainer()
+
+        very_long_pulse = pulse.Constant(10000, 0.1)
+        sched = pulse.Schedule()
+        sched = sched.insert(0, pulse.Play(very_long_pulse, pulse.DriveChannel(0)))
+
+        ddc.load_program(sched)
+        ddc.update_channel_property()
+
+        self.assertEqual(len(ddc.axis_break), 1)
+
+        removed_t0, removed_t1 = ddc.axis_break[0]
+        self.assertEqual(removed_t0, 500)
+        self.assertEqual(removed_t1, 9500)
