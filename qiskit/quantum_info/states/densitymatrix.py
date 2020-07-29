@@ -31,6 +31,7 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.tools.latex.array import _matrix_to_latex
 
 
 class DensityMatrix(QuantumState):
@@ -107,6 +108,10 @@ class DensityMatrix(QuantumState):
             prefix, np.array2string(
                 self._data, separator=', ', prefix=prefix),
             pad, self._dims)
+
+    def _repr_latex_(self):
+        latex_str = _matrix_to_latex(self._data)
+        return latex_str
 
     @property
     def data(self):

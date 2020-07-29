@@ -29,6 +29,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.tools.latex.array import _vector_to_latex
 
 
 class Statevector(QuantumState):
@@ -96,6 +97,10 @@ class Statevector(QuantumState):
             prefix, np.array2string(
                 self.data, separator=', ', prefix=prefix),
             pad, self._dims)
+
+    def _repr_latex_(self):
+        latex_str = _vector_to_latex(self._data)
+        return latex_str
 
     @property
     def data(self):
