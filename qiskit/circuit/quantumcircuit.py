@@ -799,25 +799,37 @@ class QuantumCircuit:
         instructions = InstructionSet()
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
-        if index is not None and len(instructions.qargs) == 1 and len(instructions.qargs[0]) == 1:
-            # Todo: raise error if index is not None and len of qargs>1 or qargs[0]
-            qubit_gate_count = -1
-            instruction_count = -1
-            qubit_to_find = instructions.qargs[0][0]
-            for inst in self._data:
-                if index != qubit_gate_count:
-                    instruction_count += 1
-                    for qubit_in_instruct in inst[1]:
-                        if qubit_in_instruct == qubit_to_find:
-                            qubit_gate_count += 1
-                else:
-                    break
-            if index == qubit_gate_count:
-                lhs_data = self._data[0:instruction_count]
-                rhs_data = self._data[instruction_count:-len(instructions.qargs)]
-                self._data = lhs_data + self._data[-len(instructions.qargs):] + rhs_data
+
+        if index is not None and len(instructions.qargs[0]) == 1:
+            # Todo: functionality for len of qargs[n]>1 (multi bit multi bit gate)
+            if isinstance(index, int):
+                index = [index]
+            self._indexer(instructions, index)
 
         return instructions
+
+    def _indexer(self, instructions, index):
+        # Update: added functionality for len of qargs>1 (multi bit single gate done)
+        # Todo: docs for helper func
+        for qubit_list in enumerate(instructions.qargs):
+            for qubit_to_find in enumerate(qubit_list[1]):
+                qubit_gate_count = -1
+                instruction_count = -1
+
+                for instruct in self._data:
+                    if index[qubit_to_find[0]] != qubit_gate_count:
+                        instruction_count += 1
+                        qubits_in_instruct = instruct[1]
+
+                        for qubit_in_instruct in qubits_in_instruct:
+                            if qubit_in_instruct == qubit_to_find[1]:
+                                qubit_gate_count += 1
+                    else:
+                        break
+
+                if index[qubit_to_find[0]] == qubit_gate_count:
+                    inst_to_move = self._data.pop(-len(instructions.qargs) + qubit_list[0])
+                    self._data.insert(instruction_count, inst_to_move)
 
     def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
