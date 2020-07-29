@@ -320,6 +320,9 @@ class Schedule(ScheduleComponent):
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""
+        if self.inplace:
+            self.__children = self.instructions
+            return self
         return Schedule(*self.instructions, name=self.name, inplace=self.inplace)
 
     def filter(self, *filter_funcs: List[Callable],
@@ -388,9 +391,17 @@ class Schedule(ScheduleComponent):
             filter_func: Function of the form (int, ScheduleComponent) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
         """
-        subschedules = self.flatten()._children
-        valid_subschedules = [sched for sched in subschedules if filter_func(sched)]
-        return Schedule(*valid_subschedules, name=new_sched_name, inplace=self.inplace)
+        valid_subschedules = [sched for sched in self.instructions if filter_func(sched)]
+
+        if not self.inplace:
+            return Schedule(*valid_subschedules, name=new_sched_name, inplace=self.inplace)
+
+        self._duration = 0
+        self._timeslots = {}
+        self.__children = []
+        for time, sched in valid_subschedules:
+            self._mutable_insert(time, sched)
+        return self
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
