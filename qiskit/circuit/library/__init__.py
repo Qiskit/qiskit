@@ -131,6 +131,14 @@ Comparators
 
    IntegerComparator
 
+Functions on binary variables
++++++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuadraticForm
+
 Particular Quantum Circuits
 ===========================
 
@@ -197,6 +205,7 @@ from .arithmetic import (
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
+    QuadraticForm,
 )
 from .n_local import (
     NLocal,
