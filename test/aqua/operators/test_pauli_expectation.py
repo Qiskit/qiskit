@@ -20,6 +20,7 @@ from test.aqua import QiskitAquaTestCase
 import itertools
 import numpy as np
 
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
                                    ListOp, Zero, One, Plus, Minus, StateFn,
                                    PauliExpectation, CircuitSampler)
@@ -35,8 +36,10 @@ class TestPauliExpectation(QiskitAquaTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.seed = 97
         backend = BasicAer.get_backend('qasm_simulator')
-        self.sampler = CircuitSampler(backend, attach_results=True)
+        q_instance = QuantumInstance(backend, seed_simulator=self.seed, seed_transpiler=self.seed)
+        self.sampler = CircuitSampler(q_instance, attach_results=True)
         self.expect = PauliExpectation()
 
     def test_pauli_expect_pair(self):
@@ -164,7 +167,9 @@ class TestPauliExpectation(QiskitAquaTestCase):
         self.assertEqual(num_circuits_ungrouped, 5)
 
         expect_op_grouped = PauliExpectation(group_paulis=True).convert(~StateFn(two_qubit_H2) @ wf)
-        sampler = CircuitSampler(BasicAer.get_backend('statevector_simulator'))
+        q_instance = QuantumInstance(BasicAer.get_backend('statevector_simulator'),
+                                     seed_simulator=self.seed, seed_transpiler=self.seed)
+        sampler = CircuitSampler(q_instance)
         sampler._extract_circuitstatefns(expect_op_grouped)
         num_circuits_grouped = len(sampler._circuit_ops_cache)
         self.assertEqual(num_circuits_grouped, 2)
@@ -175,6 +180,8 @@ class TestPauliExpectation(QiskitAquaTestCase):
         from qiskit import IBMQ
         p = IBMQ.load_account()
         backend = p.get_backend('ibmq_qasm_simulator')
+        q_instance = QuantumInstance(backend, seed_simulator=self.seed, seed_transpiler=self.seed)
+
         paulis_op = ListOp([X, Y, Z, I])
         states_op = ListOp([One, Zero, Plus, Minus])
 
@@ -183,7 +190,7 @@ class TestPauliExpectation(QiskitAquaTestCase):
                   [-1, 1, 0, -0],
                   [+1, 1, 1, 1]]
         converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
-        sampled = CircuitSampler(backend).convert(converted_meas)
+        sampled = CircuitSampler(q_instance).convert(converted_meas)
         np.testing.assert_array_almost_equal(sampled.eval(), valids, decimal=1)
 
     def test_multi_representation_ops(self):

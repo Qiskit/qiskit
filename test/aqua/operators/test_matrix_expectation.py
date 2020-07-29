@@ -20,6 +20,7 @@ from test.aqua import QiskitAquaTestCase
 import itertools
 import numpy as np
 
+from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
                                    ListOp, Zero, One, Plus, Minus, StateFn,
                                    MatrixExpectation, CircuitSampler)
@@ -33,8 +34,10 @@ class TestMatrixExpectation(QiskitAquaTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.seed = 97
         backend = BasicAer.get_backend('statevector_simulator')
-        self.sampler = CircuitSampler(backend, attach_results=True)
+        q_instance = QuantumInstance(backend, seed_simulator=self.seed, seed_transpiler=self.seed)
+        self.sampler = CircuitSampler(q_instance, attach_results=True)
         self.expect = MatrixExpectation()
 
     def test_pauli_expect_pair(self):
