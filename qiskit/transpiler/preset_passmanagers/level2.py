@@ -47,6 +47,9 @@ from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import UnitarySynthesis
 
 from qiskit.transpiler import TranspilerError
 
@@ -136,6 +139,13 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         _unroll = [UnrollCustomDefinitions(sel, basis_gates),
                    BasisTranslator(sel, basis_gates)]
+    elif translation_method == 'synthesis':
+        _unroll = [
+            Unroll3qOrMore(),
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=basis_gates),
+            UnitarySynthesis(basis_gates),
+        ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 

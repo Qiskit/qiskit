@@ -18,7 +18,7 @@
 
 import unittest
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
 
@@ -451,6 +451,16 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(circ, expected)
 
+    def test_compose_global_phase(self):
+        """Composing with global phase."""
+        circ1 = QuantumCircuit(1, global_phase=1)
+        circ1.rz(0.5, 0)
+        circ2 = QuantumCircuit(1, global_phase=2)
+        circ3 = QuantumCircuit(1, global_phase=3)
+        circ4 = circ1.compose(circ2).compose(circ3)
+        self.assertEqual(circ4.global_phase,
+                         circ1.global_phase + circ2.global_phase + circ3.global_phase)
+
     def test_compose_front_circuit(self):
         """Test composing a circuit at the front of a circuit.
         """
@@ -489,6 +499,29 @@ class TestCircuitCompose(QiskitTestCase):
         expected.cx(0, 1)
 
         self.assertEqual(output, expected)
+
+    def test_compose_adds_parameters(self):
+        """Test the composed circuit contains all parameters."""
+        a, b = Parameter('a'), Parameter('b')
+
+        qc_a = QuantumCircuit(1)
+        qc_a.rx(a, 0)
+
+        qc_b = QuantumCircuit(1)
+        qc_b.rx(b, 0)
+
+        with self.subTest('compose with other circuit out-of-place'):
+            qc_1 = qc_a.compose(qc_b)
+            self.assertEqual(qc_1.parameters, {a, b})
+
+        with self.subTest('compose with other instruction out-of-place'):
+            instr_b = qc_b.to_instruction()
+            qc_2 = qc_a.compose(instr_b, [0])
+            self.assertEqual(qc_2.parameters, {a, b})
+
+        with self.subTest('compose with other circuit in-place'):
+            qc_a.compose(qc_b, inplace=True)
+            self.assertEqual(qc_a.parameters, {a, b})
 
 
 if __name__ == '__main__':
