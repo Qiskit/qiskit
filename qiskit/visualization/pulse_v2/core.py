@@ -157,7 +157,7 @@ class DrawDataContainer:
         """
         if isinstance(program, pulse.Schedule):
             self._schedule_loader(program)
-        elif isinstance(program, pulse.Waveform):
+        elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse)):
             self._waveform_loader(program)
         else:
             raise VisualizationError('Data type %s is not supported.' % type(program))
@@ -451,3 +451,4 @@ class DrawDataContainer:
             self.drawings[ind] = drawing
         else:
             self.drawings.append(drawing)
+

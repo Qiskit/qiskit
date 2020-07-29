@@ -301,3 +301,13 @@ class TestDrawDataContainer(QiskitTestCase):
 
         # barrier line, baseline, channel name
         self.assertEqual(len(ddc.drawings), 3)
+
+    def test_load_waveform(self):
+        """Test loading waveform."""
+        ddc = core.DrawDataContainer()
+
+        waveform = pulse.library.Constant(duration=10, amp=0.1+0.1j)
+        ddc.load_program(waveform)
+
+        # baseline and waveform for real and imaginary
+        self.assertEqual(len(ddc.drawings), 3)
