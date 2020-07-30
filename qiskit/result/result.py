@@ -280,7 +280,6 @@ class Result:
             return postprocess.format_statevector(self.data(experiment)['statevector'],
                                                   decimals=decimals)
         except KeyError:
-            exp = self._get_experiment(experiment)
             raise QiskitError('No statevector for experiment "{0}"'.format(repr(experiment)))
 
     def get_unitary(self, experiment=None, decimals=None):
