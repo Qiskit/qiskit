@@ -1953,6 +1953,50 @@ class TestGroverOperator(QiskitTestCase):
             grover_op = GroverOperator(oracle)
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
+    def test_idle_qubits(self):
+        """Test setting idle qubits doesn't apply any operations on these qubits."""
+        oracle = QuantumCircuit(4)
+        oracle.z(3)
+        grover_op = GroverOperator(oracle, idle_qubits=[1, 2])
+        dag = circuit_to_dag(grover_op)
+        self.assertEqual(set(wire.index for wire in dag.idle_wires()), {1, 2})
+
+    def test_custom_state_in(self):
+        """Test passing a custom state_in operator."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        bernoulli = QuantumCircuit(1)
+        sampling_probability = 0.2
+        bernoulli.ry(2 * np.arcsin(np.sqrt(sampling_probability)), 0)
+
+        grover_op = GroverOperator(oracle, bernoulli)
+        self.assertGroverOperatorIsCorrect(grover_op, oracle, bernoulli)
+
+    def test_custom_zero_reflection(self):
+        """Test passing in a custom zero reflection."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        zero_reflection = QuantumCircuit(1)
+        zero_reflection.x(0)
+        zero_reflection.rz(np.pi, 0)
+        zero_reflection.x(0)
+
+        grover_op = GroverOperator(oracle, zero_reflection=zero_reflection)
+
+        with self.subTest('zero reflection up to phase works'):
+            self.assertGroverOperatorIsCorrect(grover_op, oracle)
+
+        with self.subTest('circuits match'):
+            expected = QuantumCircuit(*grover_op.qregs)
+            expected.compose(oracle, inplace=True)
+            expected.h(0)  # state_in is H
+            expected.compose(zero_reflection, inplace=True)
+            expected.h(0)
+
+            self.assertEqual(expected, grover_op)
+
 
 if __name__ == '__main__':
     unittest.main()

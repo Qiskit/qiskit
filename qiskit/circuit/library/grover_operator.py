@@ -21,7 +21,58 @@ from .standard_gates import MCXGate
 
 
 class GroverOperator(QuantumCircuit):
-    """The Grover operator."""
+    r"""The Grover operator.
+
+    Grover's search algorithm [1, 2] consists of repeated applications of the so-called
+    Grover operator used to amplify the amplitudes of the desired output states.
+    This operator consists of the oracle, $\mathcal{S}_f$, that multiplies the amplitude of the
+    good states by -1, a reflection $\mathcal{S}_0$ about the $\ket{0}^{\otimes n}$ state
+    and an input state $\mathcal{A}$. For the textbook Grover search, $\mathcal{A} = H^{\otimes n}$,
+    however for generic amplitude amplification the input state might differ [3].
+    With these terms, the Grover operator can be written as
+
+    .. math::
+
+        \mathcal{Q} = \mathcal{A} \mathcal{S}_0 \mathcal{A} \mathcal{S_f}
+
+    .. note::
+
+        Sometimes the Grover operator is defined with a negative sign, in that case
+        $\mathcal{S}_0$ multiplies all states *except* $\ket{0}^{\otimes n}$ with -1.
+        In our formulation, $\mathcal{S}_0$ only multiplies $\ket{0}^{\otimes n}$ with -1.
+
+    Examples:
+        >>> from qiskit.circuit import QuantumCircuit
+        >>> from qiskit.circuit.library import GroverOperator
+        >>> oracle = QuantumCircuit(2)
+        >>> oracle.z(0)  # good state = first qubit is |1>
+        >>> grover_op = GroverOperator(oracle, insert_barriers=True)
+        >>> grover_op.draw()
+                 ┌───┐ ░ ┌───┐ ░ ┌───┐          ┌───┐      ░ ┌───┐
+        state_0: ┤ Z ├─░─┤ H ├─░─┤ X ├───────■──┤ X ├──────░─┤ H ├
+                 └───┘ ░ ├───┤ ░ ├───┤┌───┐┌─┴─┐├───┤┌───┐ ░ ├───┤
+        state_1: ──────░─┤ H ├─░─┤ X ├┤ H ├┤ X ├┤ H ├┤ X ├─░─┤ H ├
+                       ░ └───┘ ░ └───┘└───┘└───┘└───┘└───┘ ░ └───┘
+
+        >>> oracle = QuantumCircuit(1)
+        >>> oracle.z(0)  # the qubit state |1> is the good state
+        >>> state_in = QuantumCircuit(1)
+        >>> state_in.ry(0.2, 0)  # non-uniform state preparation
+        >>> grover_op = GroverOperator(oracle, state_in)
+        >>> grover_op.draw()
+                 ┌───┐┌──────────┐┌───┐┌───┐┌───┐┌─────────┐
+        state_0: ┤ Z ├┤ RY(-0.2) ├┤ X ├┤ Z ├┤ X ├┤ RY(0.2) ├
+                 └───┘└──────────┘└───┘└───┘└───┘└─────────┘
+
+    References:
+        [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
+            `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
+        [2]: I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
+            Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
+        [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
+            Quantum Amplitude Amplification and Estimation.
+            `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+    """
 
     def __init__(self, oracle: QuantumCircuit,
                  state_in: Optional[QuantumCircuit] = None,
