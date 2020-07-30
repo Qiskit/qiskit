@@ -178,7 +178,7 @@ class TestResultOperations(QiskitTestCase):
         """Test measurement level 1 average result."""
         # 3 qubits
         raw_memory = [[0., 1.], [1., 0.], [0.5, 0.5]]
-        processed_memory = np.array([1.j, 1., 0.5+0.5j], dtype=np.complex_)
+        processed_memory = np.array([1.j, 1., 0.5 + 0.5j], dtype=np.complex_)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(shots=2, success=True, meas_level=1,
                                              meas_return='avg', data=data)
@@ -194,8 +194,8 @@ class TestResultOperations(QiskitTestCase):
         # 3 qubits
         raw_memory = [[[0., 1.], [1., 0.], [0.5, 0.5]],
                       [[0.5, 0.5], [1., 0.], [0., 1.]]]
-        processed_memory = np.array([[1.j, 1., 0.5+0.5j],
-                                     [0.5+0.5j, 1., 1.j]], dtype=np.complex_)
+        processed_memory = np.array([[1.j, 1., 0.5 + 0.5j],
+                                     [0.5 + 0.5j, 1., 1.j]], dtype=np.complex_)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(shots=2, success=True, meas_level=1,
                                              meas_return='single', data=data)
@@ -243,6 +243,7 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(memory.shape, (2, 2, 3))
         self.assertEqual(memory.dtype, np.complex_)
         np.testing.assert_almost_equal(memory, processed_memory)
+
 
 class TestResultOperationsFailed(QiskitTestCase):
     """Result operations methods."""
