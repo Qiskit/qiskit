@@ -143,7 +143,7 @@ class TwoQubitWeylDecomposition:
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
 
-    def __init__(self, unitary_matrix):
+    def __init__(self, unitary_matrix, seed=None):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
 
@@ -166,8 +166,9 @@ class TwoQubitWeylDecomposition:
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
+        seed_seq = np.random.SeedSequence(seed)
+        state = np.random.Generator(np.random.MT19937(seed_seq))
         for i in range(100):  # FIXME: this randomized algorithm is horrendous
-            state = np.random.Generator(np.random.MT19937(2**33 + i))
             M2real = state.normal()*M2.real + state.normal()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
@@ -286,11 +287,12 @@ class TwoQubitBasisDecomposer():
             Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U3', 'U1X', 'RR']. Default 'U3'.
     """
 
-    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None):
+    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, seed=None):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
+        self.seed = seed
 
-        basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
+        basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data, seed=self.seed)
         if euler_basis is not None:
             self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
         else:
@@ -466,7 +468,7 @@ class TwoQubitBasisDecomposer():
         if not is_unitary_matrix(target):
             raise QiskitError("TwoQubitBasisDecomposer: target matrix is not unitary.")
 
-        target_decomposed = TwoQubitWeylDecomposition(target)
+        target_decomposed = TwoQubitWeylDecomposition(target, seed=self.seed)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
@@ -494,7 +496,7 @@ class TwoQubitBasisDecomposer():
         if hasattr(unitary, 'to_matrix'):
             unitary = unitary.to_matrix()
         unitary = np.asarray(unitary, dtype=complex)
-        a, b, c = weyl_coordinates(unitary)[:]
+        a, b, c = weyl_coordinates(unitary, seed=self.seed)[:]
         traces = [4*(np.cos(a)*np.cos(b)*np.cos(c)+1j*np.sin(a)*np.sin(b)*np.sin(c)),
                   4*(np.cos(np.pi/4-a)*np.cos(self.basis.b-b)*np.cos(c) +
                      1j*np.sin(np.pi/4-a)*np.sin(self.basis.b-b)*np.sin(c)),
