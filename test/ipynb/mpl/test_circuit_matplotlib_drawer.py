@@ -333,6 +333,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename='scale_half.png', scale=0.5)
         self.circuit_drawer(circuit, filename='scale_double.png', scale=2)
 
+    def test_init_reset(self):
+        """Test reset and initialize with 1 and 2 qubits"""
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0, 1], 0)
+        circuit.reset(1)
+        circuit.initialize([0, 1, 0, 0], [0, 1])
+        self.circuit_drawer(circuit, filename='init_reset.png')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
