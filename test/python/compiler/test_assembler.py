@@ -342,6 +342,19 @@ class TestCircuitAssembler(QiskitTestCase):
         qobj = assemble(self.circ, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
+    def test_circuit_with_global_phase(self):
+        """Test that global phase for a circuit is handled correctly."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ.global_phase = .3 * np.pi
+        qobj = assemble([circ, self.circ])
+        self.assertEqual(getattr(qobj.experiments[1].header, 'global_phase'),
+                         0)
+        self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
+                         .3 * np.pi)
+
 
 class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
