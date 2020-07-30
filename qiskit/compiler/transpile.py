@@ -120,7 +120,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             Sometimes a perfect layout can be available in which case the layout_method
             may not run.
         routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
-        translation_method: Name of translation pass ('unroller', 'translator')
+        translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,

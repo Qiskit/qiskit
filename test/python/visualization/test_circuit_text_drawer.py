@@ -2981,5 +2981,50 @@ class TestTextHamiltonianGate(QiskitTestCase):
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
+class TestTextPhase(QiskitTestCase):
+    """Testing the draweing a circuit with phase"""
+
+    def test_bell(self):
+        """Text Bell state with phase."""
+        expected = '\n'.join(["global phase: pi/2",
+                              "     ┌───┐     ",
+                              "q_0: ┤ H ├──■──",
+                              "     └───┘┌─┴─┐",
+                              "q_1: ─────┤ X ├",
+                              "          └───┘"])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 3.141592653589793 / 2
+
+        circuit.h(0)
+        circuit.cx(0, 1)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_empty(self):
+        """Text empty circuit (two registers) with phase."""
+        expected = '\n'.join(["global phase: 3",
+                              "     ",
+                              "q_0: ",
+                              "     ",
+                              "q_1: ",
+                              "     "])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 3
+
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_empty_noregs(self):
+        """Text empty circuit (no registers) with phase."""
+        expected = '\n'.join(["global phase: 4.21"])
+
+        circuit = QuantumCircuit()
+        circuit.global_phase = 4.21
+
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+
 if __name__ == '__main__':
     unittest.main()

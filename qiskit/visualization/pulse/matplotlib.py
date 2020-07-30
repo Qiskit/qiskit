@@ -17,7 +17,6 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-import warnings
 from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
@@ -234,7 +233,7 @@ class EventsOutputChannels:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
-                    command = command.get_sample_pulse()
+                    command = command.get_waveform()
                 if isinstance(command, (Waveform, SamplePulse)):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
@@ -263,7 +262,7 @@ class EventsOutputChannels:
         return events_in_time_range
 
 
-class SamplePulseDrawer:
+class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
     def __init__(self, style: PulseStyle):
@@ -277,7 +276,7 @@ class SamplePulseDrawer:
     def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None):
+             scale: float = 1):
         """Draw figure.
 
         Args:
@@ -285,15 +284,10 @@ class SamplePulseDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
-            scaling: Deprecated, see `scale`.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
@@ -770,7 +764,7 @@ class ScheduleDrawer:
              channel_scales: Dict[Channel, float] = None,
              plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
-             scaling: float = None, channels: List[Channel] = None,
+             channels: List[Channel] = None,
              show_framechange_channels: bool = True):
         """Draw figure.
 
@@ -790,7 +784,6 @@ class ScheduleDrawer:
             table: When set `True` draw event table for supported commands.
             label: When set `True` draw label for individual instructions.
             framechange: When set `True` draw framechange indicators.
-            scaling: Deprecated, see `scale`.
             channels: A list of channel names to plot.
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
@@ -802,10 +795,6 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels is None:
