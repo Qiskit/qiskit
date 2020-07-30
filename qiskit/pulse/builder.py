@@ -172,7 +172,7 @@ In the example below we demonstrate some more features of the pulse builder:
 
 
             # It is also be possible to call a preexisting schedule
-            tmp_sched = pulse.Schedule()
+            tmp_sched = pulse.Schedule(inplace=True)
             tmp_sched += pulse.Play(gaussian_pulse, d0)
             pulse.call(tmp_sched)
 
@@ -318,9 +318,9 @@ class _PulseBuilder():
             default_circuit_scheduler_settings or {}
 
         # pulse.Schedule: Root program context-schedule
-        self._schedule = schedule or Schedule(name=name)
+        self._schedule = schedule or Schedule(name=name, inplace=True)
 
-        self.set_context_schedule(Schedule())
+        self.set_context_schedule(Schedule(inplace=True))
 
     def __enter__(self) -> Schedule:
         """Enter this builder context and yield either the supplied schedule
@@ -389,7 +389,7 @@ class _PulseBuilder():
         # This should be offloaded to a true compilation module
         # once we define a more sophisticated IR.
         program = self._schedule.append(self.context_schedule, inplace=True)
-        self.set_context_schedule(Schedule())
+        self.set_context_schedule(Schedule(inplace=True))
         return program
 
     @_compile_lazy_circuit_before
@@ -796,7 +796,7 @@ def _transform_context(transform: Callable[[Schedule], Schedule],
         def wrapped_transform(*args, **kwargs):
             builder = _active_builder()
             context_schedule = builder.context_schedule
-            transform_schedule = Schedule()
+            transform_schedule = Schedule(inplace=True)
             builder.set_context_schedule(transform_schedule)
             try:
                 yield
@@ -957,7 +957,7 @@ def inline() -> ContextManager[None]:
     """
     builder = _active_builder()
     context_schedule = builder.context_schedule
-    transform_schedule = Schedule()
+    transform_schedule = Schedule(inplace=True)
     builder.set_context_schedule(transform_schedule)
     try:
         yield
@@ -1470,7 +1470,7 @@ def call_schedule(schedule: Schedule):
 
         d0 = pulse.DriveChannel(0)
 
-        sched = pulse.Schedule()
+        sched = pulse.Schedule(inplace=True)
         sched += pulse.Play(pulse.Constant(10, 1.0), d0)
 
         with pulse.build() as pulse_prog:
@@ -1830,7 +1830,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
                 builder.call_gate(gates.CXGate(), (0, 1))
                 builder.call_gate(gates.CXGate(), (0, 1))
 
-        assert pulse_prog == pulse.Schedule()
+        assert pulse_prog == pulse.Schedule(inplace=True)
 
     .. note:: If multiple gates are called in a row they may be optimized by
         the transpiler, depending on the
