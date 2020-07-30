@@ -173,12 +173,15 @@ def execute(experiments, backend,
         memory_slot_size (int): Size of each memory slot if the output is Level 0.
 
         rep_time (int): Time per program execution in sec. Must be from the list provided
-            by the backend (``backend.configuration().rep_times``).
+            by the backend (``backend.configuration().rep_times``). Defaults to the first entry
+            in ``backend.configuration().rep_times``.
 
         rep_delay (float): Delay between programs in sec. Only supported on certain
-            backends (``backend.configuration().dynamic_reprate_enabled`` ).
-            If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
-            provided by the backend (``backend.configuration().rep_delays``).
+            backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+            ``rep_delay`` will be used instead of ``rep_time`` and must be from the range supplied
+            by the backend (``backend.configuration().rep_delay_range``). Default is given by
+            ``backend.configuration().default_rep_delay`` and will be used if no user ``rep_delay``
+            is provided.
 
         parameter_binds (list[dict]): List of Parameter bindings over which the set of
             experiments will be executed. Each list element (bind) should be of the form
