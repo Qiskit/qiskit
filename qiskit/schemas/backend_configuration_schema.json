@@ -226,6 +226,10 @@
                                 "minItems": 0,
                                 "description": "Range of delay times between programs (microseconds) allowed by backend.",
                                 "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "minimum": 0}}},
+                            "default_rep_delay": {
+                                "type": "number",
+                                "description": "Default rep delay.",
+                                "minimum": 0},
                             "dynamic_reprate_enabled": {
                                 "type": "boolean",
                                 "description": "Whether delay between programs can be set dynamically using 'rep_delay').",

@@ -304,8 +304,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             rep_delay_range = getattr(backend_config, 'rep_delay_range', [-1, -1])
             # check that rep_delay is in rep_delay_range
             if rep_delay and not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
-                raise QiskitError('Supplied rep delay {} not in the allowed '
-                                'backend rep delay range {}'.format(rep_delay, rep_delay_range))
+                raise QiskitError("Supplied rep delay {} not in the allowed "
+                                  "backend rep delay range {}".format(rep_delay, rep_delay_range))
 
             rep_delay = rep_delay * 1e6  # convert sec to μs
     else:
