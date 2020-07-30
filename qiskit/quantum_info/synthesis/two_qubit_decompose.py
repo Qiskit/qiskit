@@ -143,7 +143,7 @@ class TwoQubitWeylDecomposition:
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
 
-    def __init__(self, unitary_matrix):
+    def __init__(self, unitary_matrix, seed=None):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
 
@@ -166,8 +166,8 @@ class TwoQubitWeylDecomposition:
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
         # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
+        state = np.random.default_rng(seed)
         for i in range(100):  # FIXME: this randomized algorithm is horrendous
-            state = np.random.default_rng(i)
             M2real = state.normal()*M2.real + state.normal()*M2.imag
             _, P = la.eigh(M2real)
             D = P.T.dot(M2).dot(P).diagonal()
@@ -286,11 +286,12 @@ class TwoQubitBasisDecomposer():
             Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U3', 'U1X', 'RR']. Default 'U3'.
     """
 
-    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None):
+    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, seed=None):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
+        self.seed = seed
 
-        basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
+        basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data, seed=self.seed)
         if euler_basis is not None:
             self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
         else:
@@ -466,7 +467,7 @@ class TwoQubitBasisDecomposer():
         if not is_unitary_matrix(target):
             raise QiskitError("TwoQubitBasisDecomposer: target matrix is not unitary.")
 
-        target_decomposed = TwoQubitWeylDecomposition(target)
+        target_decomposed = TwoQubitWeylDecomposition(target, seed=self.seed)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
