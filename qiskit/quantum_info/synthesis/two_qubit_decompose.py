@@ -161,7 +161,7 @@ class TwoQubitWeylDecomposition:
         U *= la.det(U)**(-0.25)
 
         Up = _Bd.dot(U).dot(_B)
-        M2 = Up.T.dot(Up)
+        M2 = np.around(Up.T.dot(Up), 10)
 
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
