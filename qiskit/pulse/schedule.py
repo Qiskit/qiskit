@@ -23,7 +23,6 @@ import itertools
 import multiprocessing as mp
 import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
-import warnings
 
 from qiskit.util import is_main_process
 from qiskit.pulse.channels import Channel
@@ -174,23 +173,6 @@ class Schedule(ScheduleComponent):
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
-
-    def union(self,
-              *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
-              name: Optional[str] = None,
-              inplace: bool = False
-              ) -> 'Schedule':
-        """Return a schedule which is the union of both ``self`` and ``schedules``.
-
-        Args:
-            schedules: Schedules to be take the union with this ``Schedule``.
-            name: Name of the new schedule. Defaults to the name of self.
-            inplace: Perform operation inplace on this schedule. Otherwise return
-                a new ``Schedule``.
-        """
-        warnings.warn("The union method is deprecated. Use insert with start_time=0.",
-                      DeprecationWarning)
-        return self.insert(0, *schedules, name=name, inplace=inplace)
 
     # pylint: disable=arguments-differ
     def shift(self,
@@ -523,7 +505,7 @@ class Schedule(ScheduleComponent):
              channel_scales: Optional[Dict[Channel, float]] = None,
              plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
              interactive: bool = False, table: bool = False, label: bool = False,
-             framechange: bool = True, scaling: float = None,
+             framechange: bool = True,
              channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True):
         r"""Plot the schedule.
@@ -542,7 +524,6 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands.
             label: Label individual instructions.
             framechange: Add framechange indicators.
-            scaling: Deprecated, see ``scale``.
             channels: A list of channel names to plot.
             show_framechange_channels: Plot channels with only framechanges.
 
@@ -563,11 +544,6 @@ class Schedule(ScheduleComponent):
             matplotlib.Figure: A matplotlib figure object of the pulse schedule.
         """
         # pylint: disable=invalid-name, cyclic-import
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
-
         from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,

@@ -30,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaQubit
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -79,6 +79,7 @@ class QuantumCircuit:
 
         name (str): the name of the quantum circuit. If not set, an
             automatically generated string will be assigned.
+        global_phase (float): The global phase of the circuit in radians.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
@@ -136,7 +137,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None):
+    def __init__(self, *regs, name=None, global_phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             try:
                 regs = tuple(int(reg) for reg in regs)
@@ -163,12 +164,17 @@ class QuantumCircuit:
         # This is a map of registers bound to this circuit, by name.
         self.qregs = []
         self.cregs = []
+        self._qubits = []
+        self._clbits = []
+        self._ancillas = []
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
         self._parameter_table = ParameterTable()
 
         self._layout = None
+        self._global_phase = 0
+        self.global_phase = global_phase
 
     @property
     def data(self):
@@ -359,7 +365,7 @@ class QuantumCircuit:
                  └───────────┘
         """
         inverse_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                      name=self.name + '_dg')
+                                      name=self.name + '_dg', global_phase=-self.global_phase)
 
         for inst, qargs, cargs in reversed(self._data):
             inverse_circ._append(inst.inverse(), qargs, cargs)
@@ -375,7 +381,8 @@ class QuantumCircuit:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
         """
         repeated_circ = QuantumCircuit(*self.qregs, *self.cregs,
-                                       name=self.name + '**{}'.format(reps))
+                                       name=self.name + '**{}'.format(reps),
+                                       global_phase=reps * self.global_phase)
 
         # benefit of appending instructions: decomposing shows the subparts, i.e. the power
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
@@ -493,6 +500,7 @@ class QuantumCircuit:
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for instruction_context in itertools.chain(self.data, rhs.data):
             circuit._append(*instruction_context)
+        circuit.global_phase = self.global_phase + rhs.global_phase
         return circuit
 
     def extend(self, rhs):
@@ -532,6 +540,7 @@ class QuantumCircuit:
         # Add new gates
         for instruction_context in data:
             self._append(*instruction_context)
+        self.global_phase += rhs.global_phase
         return self
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
@@ -639,6 +648,11 @@ class QuantumCircuit:
         else:
             dest._data += mapped_instrs
 
+        for instr, _, _ in mapped_instrs:
+            dest._update_parameter_table(instr)
+
+        dest.global_phase += other.global_phase
+
         if inplace:
             return None
 
@@ -649,21 +663,21 @@ class QuantumCircuit:
         """
         Returns a list of quantum bits in the order that the registers were added.
         """
-        return [qbit for qreg in self.qregs for qbit in qreg]
+        return self._qubits
 
     @property
     def clbits(self):
         """
         Returns a list of classical bits in the order that the registers were added.
         """
-        return [cbit for creg in self.cregs for cbit in creg]
+        return self._clbits
 
     @property
     def ancillas(self):
         """
-        Returns a list of quantum bits in the order that the registers were added.
+        Returns a list of ancilla bits in the order that the registers were added.
         """
-        return [qbit for qreg in self.qregs for qbit in qreg if isinstance(qbit, AncillaQubit)]
+        return self._ancillas
 
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
@@ -864,10 +878,16 @@ class QuantumCircuit:
             if register.name in [reg.name for reg in self.qregs + self.cregs]:
                 raise CircuitError("register name \"%s\" already exists"
                                    % register.name)
+
+            if isinstance(register, AncillaRegister):
+                self._ancillas.extend(register)
+
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
+                self._qubits.extend(register)
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
+                self._clbits.extend(register)
             else:
                 raise CircuitError("expected a register")
 
@@ -1522,6 +1542,8 @@ class QuantumCircuit:
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
+        cpy._qubits = self._qubits.copy()
+        cpy._clbits = self._clbits.copy()
 
         instr_instances = {id(instr): instr
                            for instr, _, __ in self._data}
@@ -1684,6 +1706,30 @@ class QuantumCircuit:
         return _circuit_from_qasm(qasm)
 
     @property
+    def global_phase(self):
+        """Return the global phase of the circuit in radians."""
+        return self._global_phase
+
+    @global_phase.setter
+    def global_phase(self, angle):
+        """Set the phase of the circuit.
+
+        Args:
+            angle (float, ParameterExpression): radians
+        """
+        if isinstance(angle, ParameterExpression):
+            self._global_phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._global_phase = 0
+            elif angle < 0:
+                self._global_phase = angle % (-2 * np.pi)
+            else:
+                self._global_phase = angle % (2 * np.pi)
+
+    @property
     def parameters(self):
         """Convenience function to get the parameters defined in the parameter table."""
         return self._parameter_table.get_keys()
@@ -1822,6 +1868,10 @@ class QuantumCircuit:
             # instructions), search the definition for instances of the
             # parameter which also need to be bound.
             self._rebind_definition(instr, parameter, value)
+        # bind circuit's phase
+        if (isinstance(self.global_phase, ParameterExpression) and
+                parameter in self.global_phase.parameters):
+            self.global_phase = self.global_phase.bind({parameter: value})
 
     def _substitute_parameter(self, old_parameter, new_parameter_expr):
         """Substitute an existing parameter in all circuit instructions and the parameter table."""
@@ -1833,6 +1883,9 @@ class QuantumCircuit:
         entry = self._parameter_table.pop(old_parameter)
         for new_parameter in new_parameter_expr.parameters:
             self._parameter_table[new_parameter] = entry
+        if (isinstance(self.global_phase, ParameterExpression)
+                and old_parameter in self.global_phase.parameters):
+            self.global_phase = self.global_phase.subs({old_parameter: new_parameter_expr})
 
     def _rebind_definition(self, instruction, parameter, value):
         if instruction._definition:
