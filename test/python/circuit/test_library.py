@@ -31,7 +31,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction, GraphState)
+                                    HiddenLinearFunction, GraphState, PhaseEstimation,
+                                    QuadraticForm)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -1800,6 +1801,208 @@ class TestDiagonalGate(QiskitTestCase):
         ref_diag = Statevector(diag)
 
         self.assertTrue(simulated_diag.equiv(ref_diag))
+
+
+@ddt
+class TestPhaseEstimation(QiskitTestCase):
+    """Test the phase estimation circuit."""
+
+    def assertPhaseEstimationIsCorrect(self, pec: QuantumCircuit, eigenstate: QuantumCircuit,
+                                       phase_as_binary: str):
+        r"""Assert that the phase estimation circuit implements the correct transformation.
+
+        Applying the phase estimation circuit on a target register which holds the eigenstate
+        :math:`|u\rangle` (say the last register), the final state should be
+
+        .. math::
+
+            |\phi_1\rangle \cdots |\phi_t\rangle |u\rangle
+
+        where the eigenvalue is written as :math:`e^{2\pi i \phi}` and the angle is represented
+        in binary fraction, i.e. :math:`\phi = 0.\phi_1 \ldots \phi_t`.
+
+        Args:
+            pec: The circuit implementing the phase estimation circuit.
+            eigenstate: The eigenstate as circuit.
+            phase_as_binary: The phase of the eigenvalue in a binary fraction. E.g. if the
+                phase is 0.25, the binary fraction is '01' as 0.01 = 0 * 0.5 + 1 * 0.25 = 0.25.
+        """
+
+        # the target state
+        eigenstate_as_vector = Statevector.from_instruction(eigenstate).data
+        reference = eigenstate_as_vector
+
+        zero, one = [1, 0], [0, 1]
+        for qubit in phase_as_binary[::-1]:
+            reference = np.kron(reference, zero if qubit == '0' else one)
+
+        # the simulated state
+        circuit = QuantumCircuit(pec.num_qubits)
+        circuit.compose(eigenstate,
+                        list(range(pec.num_qubits - eigenstate.num_qubits, pec.num_qubits)),
+                        inplace=True)
+        circuit.compose(pec, inplace=True)
+        # TODO use Statevector for simulation once Qiskit/qiskit-terra#4681 is resolved
+        # actual = Statevector.from_instruction(circuit).data
+        backend = BasicAer.get_backend('statevector_simulator')
+        actual = execute(circuit, backend).result().get_statevector()
+
+        np.testing.assert_almost_equal(reference, actual)
+
+    def test_phase_estimation(self):
+        """Test the standard phase estimation circuit."""
+        with self.subTest('U=S, psi=|1>'):
+            unitary = QuantumCircuit(1)
+            unitary.s(0)
+
+            eigenstate = QuantumCircuit(1)
+            eigenstate.x(0)
+
+            # eigenvalue is 1j = exp(2j pi 0.25) thus phi = 0.25 = 0.010 = '010'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = '0100'
+
+            pec = PhaseEstimation(4, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest('U=SZ, psi=|11>'):
+            unitary = QuantumCircuit(2)
+            unitary.z(0)
+            unitary.s(1)
+
+            eigenstate = QuantumCircuit(2)
+            eigenstate.x([0, 1])
+
+            # eigenvalue is -1j = exp(2j pi 0.75) thus phi = 0.75 = 0.110 = '110'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = '110'
+
+            pec = PhaseEstimation(3, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest('a 3-q unitary'):
+            unitary = QuantumCircuit(3)
+            unitary.x([0, 1, 2])
+            unitary.cz(0, 1)
+            unitary.h(2)
+            unitary.ccx(0, 1, 2)
+            unitary.h(2)
+
+            eigenstate = QuantumCircuit(3)
+            eigenstate.h(0)
+            eigenstate.cx(0, 1)
+            eigenstate.cx(0, 2)
+
+            # the unitary acts as identity on the eigenstate, thus the phase is 0
+            phase_as_binary = '00'
+
+            pec = PhaseEstimation(2, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+    def test_phase_estimation_iqft_setting(self):
+        """Test default and custom setting of the QFT circuit."""
+        unitary = QuantumCircuit(1)
+        unitary.s(0)
+
+        with self.subTest('default QFT'):
+            pec = PhaseEstimation(3, unitary)
+            expected_qft = QFT(3, inverse=True, do_swaps=False)
+            self.assertEqual(pec.data[-1][0].definition, expected_qft)
+
+        with self.subTest('custom QFT'):
+            iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
+            pec = PhaseEstimation(3, unitary, iqft=iqft)
+            self.assertEqual(pec.data[-1][0].definition, iqft)
+
+
+class TestQuadraticForm(QiskitTestCase):
+    """Test the QuadraticForm circuit."""
+
+    def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
+        """Assert ``circuit`` implements the quadratic form correctly."""
+        def q_form(x):
+            x = np.array([int(val) for val in x])
+            return int(x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset)
+
+        n = len(quadratic)  # number of value qubits
+        ref = np.zeros(2 ** (n + m), dtype=complex)
+        for x in range(2 ** n):
+            x_bin = bin(x)[2:].zfill(n)[::-1]
+            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)[::-1]
+            index = int(index[::-1], 2)
+            ref[index] = 1 / np.sqrt(2 ** n)
+
+        actual = QuantumCircuit(circuit.num_qubits)
+        actual.h(actual.qubits)
+        actual.compose(circuit, inplace=True)
+        self.assertTrue(Statevector.from_instruction(actual).equiv(ref))
+
+    def test_quadratic_form(self):
+        """Test the quadratic form circuit."""
+
+        with self.subTest('empty'):
+            m = 1
+            circuit = QuadraticForm(m)
+            self.assertQuadraticFormIsCorrect(m, [[0]], [0], 0, circuit)
+
+        with self.subTest('1d case'):
+            quadratic = np.array([[1]])
+            linear = np.array([2])
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, linear, offset)
+
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing quadratic'):
+            quadratic = np.zeros((3, 3))
+            linear = np.array([2, 0, 1])
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, None, linear, offset)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing linear'):
+            quadratic = np.array([[1, 2, 3], [3, 1, 2], [2, 3, 1]])
+            linear = np.zeros(3)
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, None, offset)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing offset'):
+            quadratic = np.array([[2, 1], [-1, -2]])
+            linear = np.array([2, 0])
+            offset = 0
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, linear)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+    def test_quadratic_form_parameterized(self):
+        """Test the quadratic form circuit with parameters."""
+        theta = ParameterVector('th', 7)
+
+        p_quadratic = [[theta[0], theta[1]], [theta[2], theta[3]]]
+        p_linear = [theta[4], theta[5]]
+        p_offset = theta[6]
+
+        quadratic = np.array([[2, 1], [-1, -2]])
+        linear = np.array([2, 0])
+        offset = 0
+        m = 2
+
+        circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
+        param_dict = dict(zip(theta, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
+        circuit.assign_parameters(param_dict, inplace=True)
+
+        self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
 
 if __name__ == '__main__':

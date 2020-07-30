@@ -128,6 +128,14 @@ Comparators
 
    IntegerComparator
 
+Functions on binary variables
++++++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuadraticForm
+
 Particular Quantum Circuits
 ===========================
 
@@ -139,6 +147,7 @@ Particular Quantum Circuits
    HiddenLinearFunction
    IQP
    QuantumVolume
+   PhaseEstimation
 
 
 N-local circuits
@@ -252,6 +261,7 @@ from .arithmetic import (
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
+    QuadraticForm,
 )
 from .n_local import (
     NLocal,
@@ -270,3 +280,4 @@ from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
+from .phase_estimation import PhaseEstimation
