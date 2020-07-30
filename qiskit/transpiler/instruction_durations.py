@@ -21,16 +21,12 @@ from qiskit.circuit import Instruction, Qubit
 from qiskit.providers import BaseBackend
 from qiskit.transpiler.exceptions import TranspilerError
 
-InstructionDurationsType = Union[List[Tuple[str, Optional[Iterable[int]], int]],
-                                 'InstructionDurations']
-"""List of tuples representing (instruction name, qubits indices, duration)."""
-
 
 class InstructionDurations:
     """Helper class to provide integer durations for safe scheduling."""
 
     def __init__(self,
-                 instruction_durations: Optional[InstructionDurationsType] = None,
+                 instruction_durations: Optional['InstructionDurationsType'] = None,
                  schedule_dt=None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
@@ -70,7 +66,7 @@ class InstructionDurations:
         return InstructionDurations(instruction_durations, dt)
 
     def update(self,
-               instruction_durations: Optional[InstructionDurationsType] = None,
+               instruction_durations: Optional['InstructionDurationsType'] = None,
                dt=None):
         """Merge/extend self with instruction_durations."""
         if self.schedule_dt and dt and self.schedule_dt != dt:
@@ -144,3 +140,8 @@ class InstructionDurations:
             return self.duration_by_name[name]
 
         raise TranspilerError("No value is found for key={}".format(key))
+
+
+InstructionDurationsType = Union[List[Tuple[str, Optional[Iterable[int]], int]],
+                                 InstructionDurations]
+"""List of tuples representing (instruction name, qubits indices, duration)."""
