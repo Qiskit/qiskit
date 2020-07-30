@@ -171,7 +171,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched += sched
 
     def test_immutability(self):
-        """Test that operations are immutable."""
+        """Test that operations are immutable. Deprecated."""
         gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
         gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
@@ -181,8 +181,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched.insert(0, Play(gp0, self.config.drive(0)))
         sched.insert(0, Play(gp0, self.config.drive(0)))
 
-    def test_inplace(self):
-        """Test that in place operations on schedule are still immutable."""
+    def test_inplace_false(self):
+        """Test that in place operations on schedule are still immutable. Deprecated."""
         gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
         gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
 
@@ -513,11 +513,12 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_inplace(self):
         """Test the inplace init arg of Schedule."""
-        dummy_inst = lambda channel: Play(Waveform([1.0, 1.0]),
-                                          DriveChannel(channel))
+        def dummy_inst(channel):
+            return Play(Waveform([1.0, 1.0]), DriveChannel(channel))
 
         ref_sched = Schedule(inplace=False)
-        ref_sched + dummy_inst(0)  # No effect on either
+        # No effect on either
+        ref_sched + dummy_inst(0)  # pylint: ignore=expression-not-assigned
         ref_sched.append(dummy_inst(1))  # No effect when inplace=False
         ref_sched = ref_sched.append(dummy_inst(10))
         ref_sched += dummy_inst(11)
@@ -526,7 +527,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         ref_sched.shift(10)  # No effect
 
         sched = Schedule(inplace=True)
-        sched + dummy_inst(0)  # No effect on either
+        # No effect on either
+        sched + dummy_inst(0)  # pylint: ignore=expression-not-assigned
         sched.append(dummy_inst(10))
         sched += dummy_inst(11)
         sched.insert(0, dummy_inst(12))
@@ -894,8 +896,8 @@ class TestScheduleFilter(BaseTestSchedule):
 
     def test_filter_inplace(self):
         """Test that filtering in place works."""
-        dummy_inst = lambda channel: Play(Waveform([1.0, 1.0]),
-                                          DriveChannel(channel))
+        def dummy_inst(channel):
+            return Play(Waveform([1.0, 1.0]), DriveChannel(channel))
         sched = Schedule(inplace=True)
         sched.append(dummy_inst(0))
         sched.append(dummy_inst(0))
