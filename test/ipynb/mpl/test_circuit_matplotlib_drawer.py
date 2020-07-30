@@ -339,6 +339,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.initialize([0, 1], 0)
         circuit.reset(1)
         circuit.initialize([0, 1, 0, 0], [0, 1])
+
         self.circuit_drawer(circuit, filename='init_reset.png')
 
 
