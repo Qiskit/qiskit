@@ -1,0 +1,10 @@
+---
+
+features:
+  - |
+    Creates an n-qubit entangled state. Takes unlimited number of qubits as argument. 2 qubits generates a Bell pair, 3 a GHZ state, etc.
+    E.g.
+
+    from qiskit import QuantumCircuit
+    qc = QuatumCircuit(2)
+    qc.entangle(0,1) #generates a Bell pair

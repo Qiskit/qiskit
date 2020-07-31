@@ -2220,6 +2220,17 @@ class QuantumCircuit:
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
+    def entangle(self, *qubits):
+    	if len(qubits) < 2:
+    		raise CircuitError("Please provide at least 2 qubits")
+
+    	prev, *remaining = qubits
+    	self.h(prev)
+    	for rem in remaining:
+    		self.cx(prev, rem)
+    		prev = rem
+
+
 
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import
