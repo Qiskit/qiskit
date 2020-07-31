@@ -897,8 +897,12 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = "$[{}]$".format(param.replace('$', ''))
-                    self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
-                                          text=gate_text, subtext=vec)
+                    if len(q_xy) == 1:
+                        self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
+                                   text=gate_text, subtext=vec)
+                    else:
+                        self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
+                                              text=gate_text, subtext=vec)
                 #
                 # draw single qubit gates
                 #
