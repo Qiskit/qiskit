@@ -104,10 +104,10 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                 * ``avg`` returns average measurement output (averaged over number of shots).
         meas_map: List of lists, containing qubits that must be measured together.
         memory_slot_size: Size of each memory slot if the output is Level 0.
-        rep_time (int): Time per program execution in sec. Must be from the list provided by the
-            backend (``backend.configuration().rep_times``). Defaults to the first entry in
+        rep_time: Time per program execution in sec. Must be from the list provided by the backend
+            (``backend.configuration().rep_times``). Defaults to the first entry in
             ``backend.configuration().rep_times``.
-        rep_delay (float): Delay between programs in sec. Only supported on certain backends
+        rep_delay: Delay between programs in sec. Only supported on certain backends
             (``backend.configuration().dynamic_reprate_enabled`` ). If supported, ``rep_delay``
             be used instead of ``rep_time`` and must be from the range supplied by the backend
             (``backend.configuration().rep_delay_range``). Default is given by
