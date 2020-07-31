@@ -6,7 +6,7 @@ deprecations:
 
         sched = sched.insert(...)
 
-    In particular, the following would leave ``sched`` unchanged:
+    In particular, the following would leave ``sched`` unchanged::
 
         sched.insert(...)
 
@@ -23,7 +23,7 @@ deprecations:
 
     or ``sched.append``/``sched.shift``.
 
-    The behavior of special syntax isn't changing. You can still use:
+    The behavior of special syntax isn't changing. You can still use::
 
         sched |= ...
         sched += ...
