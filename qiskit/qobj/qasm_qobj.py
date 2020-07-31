@@ -382,18 +382,85 @@ class QasmQobjExperimentConfig(QobjDictField):
         super().__init__(**kwargs)
 
 
-class QasmQobjCalibrations(QobjDictField):
-    """The description of all the gate calibrations. Each gate dictionary should contain
-    "name", "qubits", "params", and "instructions" fields."""
+class QasmQobjCalibrations:
+    """The description of all the gate calibrations and their pulse waveforms."""
 
     def __init__(self, gates, pulse_library):
         """
+        Initailize calibrations for a job.
+
         Args:
-            gates (list): A list of dictionaries which specify a gate by name, qubits,
-                          and params, and contains the Pulse instructions to implement it.
+            gates (list(GateCalibrations)): A list of calibrations.
             pulse_library (list): List of :class:`PulseLibraryItem`.
         """
-        super().__init__(gates=gates, pulse_library=pulse_library)
+        self.gates = gates
+        self.pulse_library = pulse_library
+
+    def to_dict(self):
+        """Return a dictionary format representation of the QASM Qobj Calibrations.
+
+        Returns:
+            dict: The dictionary form of the QasmQobjCalibrations.
+
+        """
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new QasmQobjCalibrations object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the QasmQobjCalibrations to create. It
+                will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            QasmQobjCalibrations: The QasmQobjCalibrations from the input dictionary.
+        """
+        return cls(**data)
+
+
+class GateCalibration:
+    """Each calibration specifies a unique gate by name, qubits and params, and
+    contains the Pulse instructions to implement it."""
+
+    def __init__(self, name, qubits, params, instructions):
+        """
+        Initialize a single gate calibration. Instructions may reference waveforms which should be
+        made available in the pulse_library.
+
+        Args:
+            name (str): Gate name.
+            qubits (list(int)): Qubits the gate applies to.
+            params (list(complex)): Gate parameter values, if any.
+            instructions (list(PulseQobjInstruction)): The Pulse instructions which implement
+                                                       the gate.
+        """
+        self.name = name
+        self.qubits = qubits
+        self.params = params
+        self.intructions = instructions
+
+    def to_dict(self):
+        """Return a dictionary format representation of the Gate Calibration.
+
+        Returns:
+            dict: The dictionary form of the GateCalibration.
+
+        """
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new GateCalibration object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the GateCalibration to create. It
+                will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            GateCalibration: The GateCalibration from the input dictionary.
+        """
+        return cls(**data)
 
 
 class QobjHeader(QobjDictField):

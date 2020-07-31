@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "definitions": {
         "bfunc": {
             "properties": {
@@ -908,13 +908,6 @@
                             "properties": {
                                 "gates": {
                                     "$ref": "#/definitions/calibration_entry"
-                                },
-                                "pulse_library": {
-                                    "description": "Pulses for gate calibrations.",
-                                        "items": {
-                                            "$ref": "#/definitions/pulse_library"
-                                        },
-                                    "type": "array"
                                 }
                             }
                         }
@@ -1115,6 +1108,13 @@
                                     "$ref": "#/definitions/discriminator"
                                 }
                             }
+                        },
+                        "pulse_library": {
+                            "description": "Pulses for gate calibrations.",
+                                "items": {
+                                    "$ref": "#/definitions/pulse_library"
+                                },
+                            "type": "array"
                         }
                     },
                     "title": "Qobj-level configuration",
