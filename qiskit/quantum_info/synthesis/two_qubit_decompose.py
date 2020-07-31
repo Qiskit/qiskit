@@ -196,7 +196,11 @@ class TwoQubitWeylDecomposition:
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
         K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j*d))).dot(_Bd)
+        K1.real[abs(K1.real) < eps] = 0.0
+        K1.imag[abs(K1.imag) < eps] = 0.0
         K2 = _B.dot(P.T).dot(_Bd)
+        K2.real[abs(K2.real) < eps] = 0.0
+        K2.imag[abs(K2.imag) < eps] = 0.0
 
         K1l, K1r = decompose_two_qubit_product_gate(K1)
         K2l, K2r = decompose_two_qubit_product_gate(K2)
