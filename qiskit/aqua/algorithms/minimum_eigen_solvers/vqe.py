@@ -299,9 +299,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         ret += "===============================================================\n"
         return ret
 
-    def construct_circuit(self,
-                          parameter: Union[List[float], List[Parameter], np.ndarray]
-                          ) -> OperatorBase:
+    def construct_expectation(self,
+                              parameter: Union[List[float], List[Parameter], np.ndarray]
+                              ) -> OperatorBase:
         r"""
         Generate the ansatz circuit and expectation value measurement, and return their
         runnable composition.
@@ -329,12 +329,45 @@ class VQE(VQAlgorithm, MinimumEigensolver):
             wave_function = self.var_form.construct_circuit(parameter)
 
         # If ExpectationValue was never created, create one now.
-        if not self.expectation:
+        if self.expectation is None:
             self._try_set_expectation_value_from_factory()
+
+        # If setting the expectation failed, raise an Error:
+        if self.expectation is None:
+            raise AquaError('No expectation set and could not automatically set one, please '
+                            'try explicitly setting an expectation or specify a backend so it '
+                            'can be chosen automatically.')
 
         observable_meas = self.expectation.convert(StateFn(self.operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         return observable_meas.compose(ansatz_circuit_op).reduce()
+
+    def construct_circuit(self,
+                          parameter: Union[List[float], List[Parameter], np.ndarray]
+                          ) -> List[QuantumCircuit]:
+        """Return the circuits used to compute the expectation value.
+
+        Args:
+            parameter: Parameters for the ansatz circuit.
+
+        Returns:
+            A list of the circuits used to compute the expectation value.
+        """
+        expect_op = self.construct_expectation(parameter).to_circuit_op()
+
+        circuits = []
+
+        # recursively extract circuits
+        def extract_circuits(op):
+            if isinstance(op, CircuitStateFn):
+                circuits.append(op.primitive)
+            elif isinstance(op, ListOp):
+                for op_i in op.oplist:
+                    extract_circuits(op_i)
+
+        extract_circuits(expect_op)
+
+        return circuits
 
     def supports_aux_operators(self) -> bool:
         return True
@@ -436,7 +469,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
             RuntimeError: If the variational form has no parameters.
         """
         if not self._expect_op:
-            self._expect_op = self.construct_circuit(self._var_form_params)
+            self._expect_op = self.construct_expectation(self._var_form_params)
 
         num_parameters = self.var_form.num_parameters
         if self._var_form.num_parameters == 0:
