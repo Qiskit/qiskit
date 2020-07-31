@@ -143,7 +143,7 @@ class TwoQubitWeylDecomposition:
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
 
-    def __init__(self, unitary_matrix):
+    def __init__(self, unitary_matrix, eps=1e-16):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
 
@@ -161,7 +161,9 @@ class TwoQubitWeylDecomposition:
         U *= la.det(U)**(-0.25)
 
         Up = _Bd.dot(U).dot(_B)
-        M2 = np.around(Up.T.dot(Up), 13)
+        M2 = Up.T.dot(Up)
+        M2.real[abs(M2.real) < eps] = 0.0
+        M2.imag[abs(M2.imag) < eps] = 0.0
 
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
@@ -385,7 +387,7 @@ class TwoQubitBasisDecomposer():
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
 
-        return np.around(U0r, 13), np.around(U0l, 13)
+        return U0r, U0l
 
     def decomp1(self, target):
         """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
