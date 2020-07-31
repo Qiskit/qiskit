@@ -100,7 +100,7 @@ class UGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the U gate."""
-        theta, phi, lam = self.params
+        theta, phi, lam = [float(param) for param in self.params]
         return numpy.array([
             [
                 numpy.cos(theta / 2),
@@ -197,11 +197,9 @@ class CUGate(ControlledGate):
         qc.p((self.params[2] + self.params[1]) / 2, 0)
         qc.p((self.params[2] - self.params[1]) / 2, 1)
         qc.cx(0, 1)
-        # TODO switch to u, but there's a parameter binding bug that disallows it right now
-        qc.u3(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
+        qc.u(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
         qc.cx(0, 1)
-        # TODO switch to u, but there's a parameter binding bug that disallows it right now
-        qc.u3(self.params[0] / 2, self.params[1], 0, 1)
+        qc.u(self.params[0] / 2, self.params[1], 0, 1)
         self.definition = qc
 
     def inverse(self):
@@ -213,7 +211,7 @@ class CUGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CU gate."""
-        theta, phi, lam, gamma = self.params
+        theta, phi, lam, gamma = [float(param) for param in self.params]
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         a = numpy.exp(1j * gamma) * cos

@@ -419,9 +419,9 @@ def_cu.p(gamma, 0)
 def_cu.p((lam + phi) / 2, 0)
 def_cu.p((lam - phi) / 2, 1)
 def_cu.cx(0, 1)
-def_cu.u3(-theta / 2, 0, -(phi + lam) / 2, 1)  # TODO use QuantumCircuit.u but fails a test
+def_cu.u(-theta / 2, 0, -(phi + lam) / 2, 1)
 def_cu.cx(0, 1)
-def_cu.u3(theta / 2, phi, 0, 1)  # TODO use QuantumCircuit.u but fails a test
+def_cu.u(theta / 2, phi, 0, 1)
 _sel.add_equivalence(CUGate(theta, phi, lam, gamma), def_cu)
 
 q = QuantumRegister(2, 'q')
