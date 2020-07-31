@@ -28,6 +28,14 @@ def _num_to_latex(num, precision=5):
         Returns:
             str: Latex representation of num
     """
+    # Result is combination of maximum 4 strings:
+    #     {c} ( {r} {o} {i}i )
+    # c: A common factor between the real and imaginary part
+    # r: The real part (inc. a negative sign if applicable)
+    # o: The operation between the real and imaginary parts ('+' or '-')
+    # i: Absolute value of the imaginary parts (i.e. not inc. any negative sign).
+    # This function computes each of these strings and combines appropriately.
+
     r = np.real(num)
     i = np.imag(num)
     common_factor = None
@@ -47,7 +55,8 @@ def _num_to_latex(num, precision=5):
     }
 
     def _proc_value(val):
-        # See if val is close to an integer
+        # This function converts a real value to a latex string
+        # First, see if val is close to an integer:
         val_mod = np.mod(val, 1)
         if (np.isclose(val_mod, 0) or np.isclose(val_mod, 1)):
             # If so, return that integer
@@ -63,6 +72,7 @@ def _num_to_latex(num, precision=5):
         frac = Fraction(val).limit_denominator()
         num, denom = frac.numerator, frac.denominator
         if num + denom < 20:
+            # If fraction is 'nice' return
             if val > 0:
                 return "\\tfrac{%i}{%i}" % (abs(num), abs(denom))
             else:
@@ -71,11 +81,16 @@ def _num_to_latex(num, precision=5):
             # Failing everything else, return val as a decimal
             return "{:.{}f}".format(val, precision).rstrip("0")
 
+    # Get string (or None) for common factor between real and imag
     if common_factor is not None:
         common_facstring = _proc_value(common_factor)
     else:
         common_facstring = None
+
+    # Get string for real part
     realstring = _proc_value(r)
+
+    # Get string for both imaginary part and operation between real and imaginary parts
     if i > 0:
         operation = "+"
         imagstring = _proc_value(i)
@@ -83,10 +98,13 @@ def _num_to_latex(num, precision=5):
         operation = "-"
         imagstring = _proc_value(-i)
     if imagstring == "1":
-        imagstring = ""
+        imagstring = ""  # Don't want to return '1i', just 'i'
+
+    # Now combine the strings appropriately:
     if imagstring == "0":
-        return realstring
+        return realstring  # realstring already contains the negative sign (if needed)
     if realstring == "0":
+        # imagstring needs the negative sign adding
         if operation == "-":
             return "-{}i".format(imagstring)
         else:
