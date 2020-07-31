@@ -341,6 +341,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename='pi_in_param_expr.png')
 
+    def test_init_reset(self):
+        """Test reset and initialize with 1 and 2 qubits"""
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0, 1], 0)
+        circuit.reset(1)
+        circuit.initialize([0, 1, 0, 0], [0, 1])
+
+        self.circuit_drawer(circuit, filename='init_reset.png')
+
     def test_with_global_phase(self):
         """Tests with global phase"""
         circuit = QuantumCircuit(3, global_phase=1.57079632679)
