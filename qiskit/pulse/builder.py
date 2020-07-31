@@ -1700,6 +1700,8 @@ def measure(qubits: Union[List[int], int],
         qubits = [qubits]
     if not registers:
         registers = [chans.MemorySlot(qubit) for qubit in qubits]
+    elif isinstance(registers, (chans.MemorySlot, chans.RegisterSlot)):
+        registers = [registers]
 
     measure_sched = macros.measure(
         qubits=qubits,
