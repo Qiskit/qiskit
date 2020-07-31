@@ -516,7 +516,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         ref_sched = Schedule(inplace=False)
         # No effect on either
-        ref_sched + dummy_inst(0)  # pylint: ignore=expression-not-assigned
+        ref_sched + dummy_inst(0)  # pylint: disable=expression-not-assigned
         ref_sched.append(dummy_inst(1))  # No effect when inplace=False
         ref_sched = ref_sched.append(dummy_inst(10))
         ref_sched += dummy_inst(11)
@@ -526,7 +526,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched = Schedule(inplace=True)
         # No effect on either
-        sched + dummy_inst(0)  # pylint: ignore=expression-not-assigned
+        sched + dummy_inst(0)  # pylint: disable=expression-not-assigned
         sched.append(dummy_inst(10))
         sched += dummy_inst(11)
         sched.insert(0, dummy_inst(12))
