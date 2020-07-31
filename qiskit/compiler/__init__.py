@@ -28,6 +28,7 @@ Circuit and Pulse Compilation Functions
    assemble
    schedule
    transpile
+   sequence
 
 """
 

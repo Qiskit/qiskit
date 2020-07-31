@@ -129,7 +129,7 @@ class InstructionDurations:
 
     def _get(self, name: str, qubits: List[int]):
         """Get the duration of the instruction with the name and the qubits."""
-        if name  == 'barrier':
+        if name == 'barrier':
             return 0
 
         key = (name, tuple(qubits))
