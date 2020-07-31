@@ -73,7 +73,7 @@ def as_soon_as_possible(circuit: QuantumCircuit,
 
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
-    return Schedule(*timed_schedules, name=circuit.name)
+    return Schedule(*timed_schedules, name=circuit.name, inplace=False)
 
 
 def as_late_as_possible(circuit: QuantumCircuit,
@@ -120,7 +120,7 @@ def as_late_as_possible(circuit: QuantumCircuit,
     start_times = [last_stop - t for t in reversed(rev_stop_times)]
     timed_schedules = [(time, cpd.schedule) for time, cpd in zip(start_times, circ_pulse_defs)
                        if not isinstance(cpd.schedule, Barrier)]
-    return Schedule(*timed_schedules, name=circuit.name)
+    return Schedule(*timed_schedules, name=circuit.name, inplace=False)
 
 
 def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
@@ -151,7 +151,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
 
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
-        sched = Schedule()
+        sched = Schedule(inplace=False)
         sched += measure(qubits=list(qubit_mem_slots.keys()),
                          inst_map=inst_map,
                          meas_map=schedule_config.meas_map,
