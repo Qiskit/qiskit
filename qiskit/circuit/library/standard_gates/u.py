@@ -136,7 +136,7 @@ class CUGate(ControlledGate):
 
         CU(\theta, \phi, \lambda)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
-            e^{i\gamma} U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
+            e^{i\gamma} U(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                           & 0 & 0 \\
                 0 & e^{i\gamma}\cos(\th)        & 0 & -e^{i(\gamma + \lambda)}\sin(\th) \\
@@ -180,7 +180,7 @@ class CUGate(ControlledGate):
     def _define(self):
         """
         gate cu(theta,phi,lambda,gamma) c, t
-        { cphase(gamma) c,t;
+        { phase(gamma) c;
           phase((lambda+phi)/2) c;
           phase((lambda-phi)/2) t;
           cx c,t;

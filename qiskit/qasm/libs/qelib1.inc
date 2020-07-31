@@ -135,7 +135,7 @@ gate cu3(theta,phi,lambda) c, t
   u3(theta/2,phi,0) t;
 }
 gate cu(theta,phi,lambda,gamma) c, t
-{ cp(gamma) c,t;
+{ p(gamma) c;
   p((lambda+phi)/2) c;
   p((lambda-phi)/2) t;
   cx c,t;
