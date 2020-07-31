@@ -116,7 +116,7 @@ class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=None, style=None, plot_barriers=True,
                  reverse_bits=False, layout=None, fold=25, ax=None,
-                 initial_state=False, cregbundle=True):
+                 initial_state=False, cregbundle=True, global_phase=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -132,6 +132,7 @@ class MatplotlibDrawer:
         self._qreg = []
         self._registers(cregs, qregs)
         self._ops = ops
+        self.global_phase = global_phase
 
         self._qreg_dict = collections.OrderedDict()
         self._creg_dict = collections.OrderedDict()
@@ -582,6 +583,9 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * BASE_SIZE * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
+        if self.global_phase:
+            plt.text(_xl, _yt, 'Global Phase: %s' % pi_check(self.global_phase,
+                                                             output='mpl'))
 
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
