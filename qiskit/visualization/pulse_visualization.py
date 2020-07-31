@@ -93,7 +93,7 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 
-            sched = pulse.Schedule()
+            sched = pulse.Schedule(inplace=True)
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
             sched += inst_map.get('measure', list(range(20))) << sched.duration
 
@@ -121,7 +121,7 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 
-            sched = pulse.Schedule()
+            sched = pulse.Schedule(inplace=True)
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
             sched += inst_map.get('measure', list(range(20))) << sched.duration
 

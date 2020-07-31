@@ -479,7 +479,7 @@ class QobjToInstructionConverter:
         if kernel:
             kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
-        schedule = Schedule()
+        schedule = Schedule(inplace=False)
 
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
             schedule |= instructions.Acquire(duration, acquire_channel, mem_slot=mem_slot,
