@@ -378,6 +378,14 @@ def_u2 = QuantumCircuit(q)
 def_u2.append(U3Gate(pi / 2, phi, lam), [q[0]], [])
 _sel.add_equivalence(U2Gate(phi, lam), def_u2)
 
+# U1Gate
+
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+u1_to_rz = QuantumCircuit(q, global_phase=theta / 2)
+u1_to_rz.append(RZGate(theta), [q[0]], [])
+_sel.add_equivalence(U1Gate(theta), u1_to_rz)
+
 # CU1Gate
 
 q = QuantumRegister(2, 'q')
