@@ -20,7 +20,7 @@ features:
     It is required when transpiling circuits with delays.
     If `scheduling_method` is specified, the transpiler returns a scheduled circuit such that all idle times in it
     are padded with delays (i.e. start time of each instruction is uniquely determined).
-    This makes it possible to see how scheduled instructions (gates) look like in the circuit level.
+    This makes it possible to see how scheduled instructions (gates) look in the circuit level.
 
     .. jupyter-execute::
 
