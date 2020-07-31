@@ -2,7 +2,7 @@
 features:
   - |
     A new class :class:`~qiskit.circuit.Delay` for representing a delay instruction in a circuit has been added.
-    A new method :meth:`~qiskit.circuit.QuatumCircuit.delay` has been also added for easy appending of the delay object.
+    A new method :meth:`~qiskit.circuit.QuatumCircuit.delay` is now available for easily appending delays to circuits.
     This makes it possible to describe timing-sensitive experiments (e.g. T1/T2 experiment) in the circuit level.
 
     .. jupyter-execute::
