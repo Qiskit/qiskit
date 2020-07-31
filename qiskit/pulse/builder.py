@@ -1696,12 +1696,19 @@ def measure(qubits: Union[List[int], int],
         The ``register`` the qubit measurement result will be stored in.
     """
     backend = active_backend()
-    if isinstance(qubits, int):
+
+    try:
+        qubits = iter(qubits)
+    except TypeError:
         qubits = [qubits]
-    if not registers:
+
+    if registers is None:
         registers = [chans.MemorySlot(qubit) for qubit in qubits]
-    elif isinstance(registers, (chans.MemorySlot, chans.RegisterSlot)):
-        registers = [registers]
+    else:
+        try:
+            registers = iter(registers)
+        except TypeError:
+            registers = [registers]
 
     measure_sched = macros.measure(
         qubits=qubits,
