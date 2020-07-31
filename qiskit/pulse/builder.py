@@ -1636,9 +1636,11 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
 
 # Macros
-def measure(qubit: int,
-            register: Union[chans.MemorySlot, chans.RegisterSlot] = None,
-            ) -> Union[chans.MemorySlot, chans.RegisterSlot]:
+def measure(qubits: Union[List[int], int],
+            registers: Union[List[Union[chans.MemorySlot, chans.RegisterSlot]],
+                             Union[chans.MemorySlot, chans.RegisterSlot]] = None,
+            ) -> Union[List[Union[chans.MemorySlot, chans.RegisterSlot]],
+                       Union[chans.MemorySlot, chans.RegisterSlot]]:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
@@ -1686,25 +1688,30 @@ def measure(qubit: int,
     .. note:: Requires the active builder context to have a backend set.
 
     Args:
-        qubit: Physical qubit to measure.
-        register: Register to store result in. If not selected the current
+        qubits: Physical qubit to measure.
+        registers: Register to store result in. If not selected the current
             behaviour is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
     """
     backend = active_backend()
-    if not register:
-        register = chans.MemorySlot(qubit)
+    if isinstance(qubits, int):
+        qubits = [qubits]
+    if not registers:
+        registers = [chans.MemorySlot(qubit) for qubit in qubits]
 
     measure_sched = macros.measure(
-        qubits=[qubit],
+        qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={register.index: register.index})
+        qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)})
     call_schedule(measure_sched)
 
-    return register
+    if len(qubits) == 1:
+        return registers[0]
+    else:
+        return registers
 
 
 def measure_all() -> List[chans.MemorySlot]:
