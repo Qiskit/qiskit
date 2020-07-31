@@ -139,7 +139,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     # Shift acquires according to the new scheduled time
     new_schedules = []
     for sched_idx, schedule in enumerate(schedules):
-        new_schedule = Schedule(name=schedule.name)
+        new_schedule = Schedule(name=schedule.name, inplace=schedule.inplace)
         stop_time = schedule.stop_time
 
         if align_all:
@@ -192,7 +192,7 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
     Returns:
         A ``Schedule`` with the additional acquisition instructions.
     """
-    new_schedule = Schedule(name=schedule.name)
+    new_schedule = Schedule(name=schedule.name, inplace=schedule.inplace)
     acquire_map = dict()
 
     for time, inst in schedule.instructions:
@@ -288,7 +288,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     new_schedules = []
 
     for schedule in schedules:
-        new_schedule = Schedule(name=schedule.name)
+        new_schedule = Schedule(name=schedule.name, inplace=schedule.inplace)
 
         for time, inst in schedule.instructions:
             if isinstance(inst, instructions.Play):
@@ -352,7 +352,7 @@ def align_left(schedule: Schedule) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         left aligned.
     """
-    aligned = Schedule()
+    aligned = Schedule(inplace=schedule.inplace)
     for _, child in schedule._children:
         _push_left_append(aligned, child)
     return aligned
@@ -405,7 +405,7 @@ def align_right(schedule: Schedule) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         right aligned.
     """
-    aligned = Schedule()
+    aligned = Schedule(inplace=schedule.inplace)
     for _, child in reversed(schedule._children):
         aligned = _push_right_prepend(aligned, child)
     return aligned
@@ -422,7 +422,7 @@ def align_sequential(schedule: Schedule) -> Schedule:
         New schedule with input `schedule`` child schedules and instructions
         applied sequentially across channels
     """
-    aligned = Schedule()
+    aligned = Schedule(inplace=schedule.inplace)
     for _, child in schedule._children:
         aligned.insert(aligned.duration, child, inplace=True)
     return aligned
