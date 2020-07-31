@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.circuit.library import CZGate, ZGate
 
 from qiskit.aqua.operators import (
-    X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus, CircuitOp, MatrixOp
+    X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus, CircuitOp, MatrixOp, ListOp
 )
 
 
@@ -403,6 +403,47 @@ class TestOpConstruction(QiskitAquaTestCase):
         hashes. Thus, the PrimitiveOp.__hash__ should support this requirement.
         """
         self.assertEqual(set([2 * op]), set([2 * op]))
+
+
+class TestListOpComboFn(QiskitAquaTestCase):
+    """Test combo fn is propagated."""
+
+    def setUp(self):
+        super().setUp()
+        self.combo_fn = lambda x: [x_i ** 2 for x_i in x]
+        self.listop = ListOp([X], combo_fn=self.combo_fn)
+
+    def assertComboFnPreserved(self, processed_op):
+        """Assert the quadratic combo_fn is preserved."""
+        x = [1, 2, 3]
+        self.assertListEqual(processed_op.combo_fn(x), self.combo_fn(x))
+
+    def test_at_conversion(self):
+        """Test after conversion the combo_fn is preserved."""
+        for method in ['to_matrix_op', 'to_pauli_op', 'to_circuit_op']:
+            with self.subTest(method):
+                converted = getattr(self.listop, method)()
+                self.assertComboFnPreserved(converted)
+
+    def test_after_mul(self):
+        """Test after multiplication the combo_fn is preserved."""
+        self.assertComboFnPreserved(2 * self.listop)
+
+    def test_at_traverse(self):
+        """Test after traversing the combo_fn is preserved."""
+        def traverse_fn(op):
+            return -op
+
+        traversed = self.listop.traverse(traverse_fn)
+        self.assertComboFnPreserved(traversed)
+
+    def test_after_adjoint(self):
+        """Test after traversing the combo_fn is preserved."""
+        self.assertComboFnPreserved(self.listop.adjoint())
+
+    def test_after_reduce(self):
+        """Test after reducing the combo_fn is preserved."""
+        self.assertComboFnPreserved(self.listop.reduce())
 
 
 if __name__ == '__main__':
