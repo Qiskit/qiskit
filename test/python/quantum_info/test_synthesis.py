@@ -407,12 +407,12 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
         self.check_two_qubit_weyl_decomposition(Operator(gate).data)
         decomp = TwoQubitWeylDecomposition(Operator(gate).data)
         expected_k1r = np.array([[-0.5+0.5j, -0.5+0.5j],
-                                 [ 0.5+0.5j, -0.5-0.5j]])
-        expected_k2l = np.array([[0.0+0.0j, -1+0j],
-                                 [1.0+0.0j, 0+0j]])
+                                 [0.5+0.5j, -0.5-0.5j]])
+        expected_k2l = np.array([[0.0+0.0j, -1.0+0.0j],
+                                 [1.0+0.0j, 0.0+0.0j]])
         sqrt_2 = 1 / np.sqrt(2)
         expected_k2r = np.array([[complex(0, sqrt_2), complex(0, sqrt_2)],
-                                [complex(0, sqrt_2), complex(0, -sqrt_2)]])
+                                 [complex(0, sqrt_2), complex(0, -sqrt_2)]])
         expected_k1l = np.array([[complex(0, sqrt_2), complex(-sqrt_2, 0)],
                                  [complex(sqrt_2, 0), complex(0, -sqrt_2)]])
         np.allclose(decomp.K1r, expected_k1r)
