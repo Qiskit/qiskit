@@ -427,13 +427,24 @@ for inst, qargs, cargs in [
     def_cu1.append(inst, qargs, cargs)
 _sel.add_equivalence(CU1Gate(theta), def_cu1)
 
-# U2Gate
+# U1Gate
 
 q = QuantumRegister(1, 'q')
 theta = Parameter('theta')
 def_u1 = QuantumCircuit(q)
 def_u1.append(U3Gate(0, 0, theta), [q[0]], [])
 _sel.add_equivalence(U1Gate(theta), def_u1)
+
+# U2Gate
+
+q = QuantumRegister(1, 'q')
+phi = Parameter('phi')
+lam = Parameter('lam')
+u2_to_u1sx = QuantumCircuit(q, global_phase=-pi / 4)
+u2_to_u1sx.u1(lam - pi/2, 0)
+u2_to_u1sx.sx(0)
+u2_to_u1sx.u1(phi + pi/2, 0)
+_sel.add_equivalence(U2Gate(phi, lam), u2_to_u1sx)
 
 # U3Gate
 
