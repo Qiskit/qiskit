@@ -1698,7 +1698,7 @@ def measure(qubits: Union[List[int], int],
     backend = active_backend()
 
     try:
-        qubits = iter(qubits)
+        qubits = list(qubits)
     except TypeError:
         qubits = [qubits]
 
@@ -1706,7 +1706,7 @@ def measure(qubits: Union[List[int], int],
         registers = [chans.MemorySlot(qubit) for qubit in qubits]
     else:
         try:
-            registers = iter(registers)
+            registers = list(registers)
         except TypeError:
             registers = [registers]
 
