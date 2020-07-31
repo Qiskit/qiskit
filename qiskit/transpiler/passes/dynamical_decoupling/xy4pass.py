@@ -92,7 +92,7 @@ class XY4Pass(TransformationPass):
                                                                        else self.tau_c
 
                 if approx_tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
-                    # if a cycle of XY4 can't fit or there isn't at least 1 other operation before
+                    # If a cycle of XY4 can't fit or there isn't at least 1 other operation before.
                     new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
 
                 else:
