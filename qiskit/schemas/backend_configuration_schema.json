@@ -341,7 +341,7 @@
     {
     "required": ["open_pulse"],
     "properties": {
-                "open_pulse": {"enum": [ true, false ]}
+                "open_pulse": {"enum": [ false ]}
                 }}]}
                 ]
 }
