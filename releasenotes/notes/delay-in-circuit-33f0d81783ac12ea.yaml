@@ -49,7 +49,7 @@ features:
 
 upgrade:
   - |
-    The :func:`~qiskit.compiler.schedule` has updated so that it can schedule circuits with delays.
+    The :func:`~qiskit.compiler.schedule` has been updated so that it can schedule circuits with delays.
     Now we have two paths to schedule a circuit with delay::
 
         qc = QuantumCircuit(1, 1)
