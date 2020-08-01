@@ -809,6 +809,7 @@ class QuantumCircuit:
     def _indexer(self, instructions, index_list):
         # TODO: docs for this helper function
         # TODO: make helper functions and clean up variable names
+        # TODO: throw exception when qubit gate width does not match index width
         for qubit_list in enumerate(instructions.qargs):
             qubit_gate_counts = [-1] * len(qubit_list[1])
             instruction_counts = [-1] * len(qubit_list[1])
@@ -1982,8 +1983,8 @@ class QuantumCircuit:
 
     @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
     def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
-           *, label=None, ctrl_state=None, ctl=None,
-           tgt=None, index=None):  # pylint: disable=unused-argument
+           *, label=None, ctrl_state=None,   # pylint: disable=unused-argument
+           ctl=None, tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CHGate`."""
         from .library.standard_gates.h import CHGate
         return self.append(CHGate(label=label, ctrl_state=ctrl_state),
