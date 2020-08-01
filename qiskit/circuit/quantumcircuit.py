@@ -800,36 +800,58 @@ class QuantumCircuit:
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
 
-        if index is not None and len(instructions.qargs[0]) == 1:
-            # Todo: functionality for len of qargs[n]>1 (multi bit multi bit gate)
+        if index is not None:
             if isinstance(index, int):
                 index = [index]
             self._indexer(instructions, index)
-
         return instructions
 
-    def _indexer(self, instructions, index):
-        # Update: added functionality for len of qargs>1 (multi bit single gate done)
-        # Todo: docs for helper func
+    def _indexer(self, instructions, index_list):
+        # TODO: docs for this helper function
+        # TODO: make helper functions and clean up variable names
         for qubit_list in enumerate(instructions.qargs):
-            for qubit_to_find in enumerate(qubit_list[1]):
-                qubit_gate_count = -1
-                instruction_count = -1
+            qubit_gate_counts = [-1] * len(qubit_list[1])
+            instruction_counts = [-1] * len(qubit_list[1])
+            shifter_instructions = [[] for n in range(len(qubit_list[1]))]
+            for instruct in self._data:
+                if qubit_gate_counts != index_list:
+                    qubits_in_instruct = instruct[1]
+                    for n in range(len(qubit_list[1])):
+                        if qubit_gate_counts[n] != index_list[n]:
+                            instruction_counts[n] += 1
+                            for qubit_in_instruct in qubits_in_instruct:
+                                if qubit_list[1][n] == qubit_in_instruct:
+                                    qubit_gate_counts[n] += 1
+                else:
+                    break
 
-                for instruct in self._data:
-                    if index[qubit_to_find[0]] != qubit_gate_count:
-                        instruction_count += 1
-                        qubits_in_instruct = instruct[1]
+            low_index = instruction_counts.index(min(instruction_counts))
+            high_index = instruction_counts.index(max(instruction_counts))
+            low_instruction = instruction_counts[low_index]
+            high_instruction = instruction_counts[high_index]
+            for instruct in self._data[min(instruction_counts):max(instruction_counts)]:
+                qubit_flags = [False for n in range(len(qubit_list[1]))]
+                if not all(qubit in instruct[1] for qubit in qubit_list[1]):
+                    for qubit_in_instruct in instruct[1]:
+                        for n in range(len(qubit_list[1])):
+                            if qubit_list[1][n] == qubit_in_instruct:
+                                shifter_instructions[n].append(instruct)
+                                qubit_flags[n] = True
+                    if not any(qubit_flags): # move instruction not affecting qubits
+                        shifter_instructions[low_index].append(instruct) # low_index is arbitary
+                else:
+                    raise CircuitError("Unable to place gate at index"
+                                       " as multibit gate is in between")
+            inst_to_move = self._data.pop(-len(instructions.qargs) + qubit_list[0])
+            self._data[low_instruction:high_instruction] = (shifter_instructions[high_index]
+                                                            + [inst_to_move]
+                                                            + shifter_instructions[low_index])
+            if qubit_list[0] + 1 < len(instructions.qargs):
+                for n in range(len(inst_to_move[1])):
+                    for m in range(len(instructions.qargs[qubit_list[0]+1])):
+                        if instructions.qargs[qubit_list[0]+1][m] == inst_to_move[1][n]:
+                            index_list[m] += 1
 
-                        for qubit_in_instruct in qubits_in_instruct:
-                            if qubit_in_instruct == qubit_to_find[1]:
-                                qubit_gate_count += 1
-                    else:
-                        break
-
-                if index[qubit_to_find[0]] == qubit_gate_count:
-                    inst_to_move = self._data.pop(-len(instructions.qargs) + qubit_list[0])
-                    self._data.insert(instruction_count, inst_to_move)
 
     def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
@@ -1961,11 +1983,11 @@ class QuantumCircuit:
 
     @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
     def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
-           *, label=None, ctrl_state=None, ctl=None, tgt=None):  # pylint: disable=unused-argument
+           *, label=None, ctrl_state=None, ctl=None, tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CHGate`."""
         from .library.standard_gates.h import CHGate
         return self.append(CHGate(label=label, ctrl_state=ctrl_state),
-                           [control_qubit, target_qubit], [])
+                           [control_qubit, target_qubit], [], index)
 
     @deprecate_arguments({'q': 'qubit'})
     def i(self, qubit, *, q=None, index=None):  # pylint: disable=unused-argument
@@ -2060,11 +2082,11 @@ class QuantumCircuit:
 
     @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
     def crz(self, theta, control_qubit, target_qubit, *, label=None, ctrl_state=None,
-            ctl=None, tgt=None):  # pylint: disable=unused-argument
+            ctl=None, tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CRZGate`."""
         from .library.standard_gates.rz import CRZGate
         return self.append(CRZGate(theta, label=label, ctrl_state=ctrl_state),
-                           [control_qubit, target_qubit], [])
+                           [control_qubit, target_qubit], [], index)
 
     def rzx(self, theta, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.RZXGate`."""
@@ -2088,10 +2110,10 @@ class QuantumCircuit:
         from .library.standard_gates.s import SdgGate
         return self.append(SdgGate(), [qubit], [], index)
 
-    def swap(self, qubit1, qubit2):
+    def swap(self, qubit1, qubit2, *, index=None):
         """Apply :class:`~qiskit.circuit.library.SwapGate`."""
         from .library.standard_gates.swap import SwapGate
-        return self.append(SwapGate(), [qubit1, qubit2], [])
+        return self.append(SwapGate(), [qubit1, qubit2], [], index)
 
     def iswap(self, qubit1, qubit2):
         """Apply :class:`~qiskit.circuit.library.iSwapGate`."""
@@ -2183,11 +2205,11 @@ class QuantumCircuit:
     @deprecate_arguments({'ctl': 'control_qubit',
                           'tgt': 'target_qubit'})
     def cx(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
-           ctl=None, tgt=None):  # pylint: disable=unused-argument
+           ctl=None, tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CXGate`."""
         from .library.standard_gates.x import CXGate
         return self.append(CXGate(label=label, ctrl_state=ctrl_state),
-                           [control_qubit, target_qubit], [])
+                           [control_qubit, target_qubit], [], index)
 
     @deprecate_arguments({'ctl': 'control_qubit',
                           'tgt': 'target_qubit'})
@@ -2302,11 +2324,11 @@ class QuantumCircuit:
     @deprecate_arguments({'ctl': 'control_qubit',
                           'tgt': 'target_qubit'})
     def cz(self, control_qubit, target_qubit, *, label=None, ctrl_state=None,
-           ctl=None, tgt=None):  # pylint: disable=unused-argument
+           ctl=None, tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CZGate`."""
         from .library.standard_gates.z import CZGate
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
-                           [control_qubit, target_qubit], [])
+                           [control_qubit, target_qubit], [], index)
 
 
 def _circuit_from_qasm(qasm):
