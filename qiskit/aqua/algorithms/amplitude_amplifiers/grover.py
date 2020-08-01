@@ -246,9 +246,15 @@ class Grover(QuantumAlgorithm):
         Returns:
             QuantumCircuit: the QuantumCircuit object for the constructed circuit
         """
-        if self._qc_amplitude_amplification is None:
-            self._qc_amplitude_amplification = \
-                QuantumCircuit() + self.qc_amplitude_amplification_iteration
+        if self._incremental:
+            if self._qc_amplitude_amplification is None:
+                self._qc_amplitude_amplification = \
+                    QuantumCircuit() + self.qc_amplitude_amplification_iteration
+        else:
+            self._qc_amplitude_amplification = QuantumCircuit()
+            for _ in range(self._num_iterations):
+                self._qc_amplitude_amplification += self.qc_amplitude_amplification_iteration
+
         qc = QuantumCircuit(self._oracle.variable_register, self._oracle.output_register)
         qc.u3(pi, 0, pi, self._oracle.output_register)  # x
         qc.u2(0, pi, self._oracle.output_register)  # h
@@ -291,8 +297,6 @@ class Grover(QuantumAlgorithm):
 
         else:
             self._qc_amplitude_amplification = QuantumCircuit()
-            for _ in range(self._num_iterations):
-                self._qc_amplitude_amplification += self.qc_amplitude_amplification_iteration
             assignment, oracle_evaluation = self._run_with_existing_iterations()
 
         self._ret['result'] = assignment
