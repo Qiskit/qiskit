@@ -150,6 +150,7 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
         self._expectation = expectation
+        self._user_valid_expectation = self._expectation is not None
         self._include_custom = include_custom
         self._expect_op = None
         self._operator = None
@@ -184,26 +185,29 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         self._operator = operator
         self._expect_op = None
         self._check_operator_varform()
-        if self._expectation is None:
+        # Expectation was not passed by user, try to create one
+        if not self._user_valid_expectation:
             self._try_set_expectation_value_from_factory()
 
-    def _try_set_expectation_value_from_factory(self):
-        if self.operator and self.quantum_instance:
-            self.expectation = ExpectationFactory.build(operator=self.operator,
-                                                        backend=self.quantum_instance,
-                                                        include_custom=self._include_custom)
+    def _try_set_expectation_value_from_factory(self) -> None:
+        if self.operator is not None and self.quantum_instance is not None:
+            self._set_expectation(ExpectationFactory.build(operator=self.operator,
+                                                           backend=self.quantum_instance,
+                                                           include_custom=self._include_custom))
+
+    def _set_expectation(self, exp: ExpectationBase) -> None:
+        self._expectation = exp
+        self._user_valid_expectation = False
+        self._expect_op = None
 
     @QuantumAlgorithm.quantum_instance.setter
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend]) -> None:
         """ set quantum_instance """
         super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
 
-        if self._circuit_sampler is None:
-            self._circuit_sampler = CircuitSampler(self._quantum_instance)
-        else:
-            self._circuit_sampler.quantum_instance = self._quantum_instance
-
-        if self._expectation is None:
+        self._circuit_sampler = CircuitSampler(self._quantum_instance)
+        # Expectation was not passed by user, try to create one
+        if not self._user_valid_expectation:
             self._try_set_expectation_value_from_factory()
 
     @property
@@ -214,8 +218,8 @@ class VQE(VQAlgorithm, MinimumEigensolver):
 
     @expectation.setter
     def expectation(self, exp: ExpectationBase) -> None:
-        self._expectation = exp
-        self._expect_op = None
+        self._set_expectation(exp)
+        self._user_valid_expectation = self._expectation is not None
 
     @property
     def aux_operators(self) -> Optional[List[Optional[OperatorBase]]]:
@@ -328,12 +332,12 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         else:
             wave_function = self.var_form.construct_circuit(parameter)
 
-        # If ExpectationValue was never created, create one now.
-        if self.expectation is None:
+        # Expectation was never created, try to create one
+        if self._expectation is None:
             self._try_set_expectation_value_from_factory()
 
         # If setting the expectation failed, raise an Error:
-        if self.expectation is None:
+        if self._expectation is None:
             raise AquaError('No expectation set and could not automatically set one, please '
                             'try explicitly setting an expectation or specify a backend so it '
                             'can be chosen automatically.')

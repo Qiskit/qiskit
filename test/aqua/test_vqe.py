@@ -25,7 +25,7 @@ from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
 from qiskit.aqua.operators import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
                                    AerPauliExpectation, PauliExpectation,
-                                   MatrixExpectation)
+                                   MatrixExpectation, ExpectationBase)
 from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.aqua.algorithms import VQE
@@ -314,6 +314,38 @@ class TestVQE(QiskitAquaTestCase):
         self.assertEqual(len(result.optimal_point), 16)
         self.assertIsNotNone(result.cost_function_evals)
         self.assertIsNotNone(result.optimizer_time)
+
+    @data(MatrixExpectation(), None)
+    def test_backend_change(self, user_expectation):
+        """Test that VQE works when backend changes."""
+        vqe = VQE(operator=self.h2_op,
+                  var_form=TwoLocal(rotation_blocks=['ry', 'rz'], entanglement_blocks='cz'),
+                  optimizer=SLSQP(maxiter=2),
+                  expectation=user_expectation,
+                  quantum_instance=BasicAer.get_backend('statevector_simulator'))
+        result0 = vqe.run()
+        if user_expectation is not None:
+            with self.subTest('User expectation kept.'):
+                self.assertEqual(vqe.expectation, user_expectation)
+        else:
+            with self.subTest('Expectation created.'):
+                self.assertIsInstance(vqe.expectation, ExpectationBase)
+        try:
+            vqe.set_backend(BasicAer.get_backend('qasm_simulator'))
+        except Exception as ex:  # pylint: disable=broad-except
+            self.fail("Failed to change backend. Error: '{}'".format(str(ex)))
+            return
+
+        result1 = vqe.run()
+        if user_expectation is not None:
+            with self.subTest('Change backend with user expectation, it is kept.'):
+                self.assertEqual(vqe.expectation, user_expectation)
+        else:
+            with self.subTest('Change backend without user expectation, one created.'):
+                self.assertIsInstance(vqe.expectation, ExpectationBase)
+
+        with self.subTest('Check results.'):
+            self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
 
 
 if __name__ == '__main__':
