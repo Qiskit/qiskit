@@ -404,6 +404,18 @@ class TestOpConstruction(QiskitAquaTestCase):
         """
         self.assertEqual(set([2 * op]), set([2 * op]))
 
+    @data(Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]))
+    def test_op_indent(self, op):
+        """Test that indentation correctly adds INDENTATION at the beginning of each line"""
+        initial_str = str(op)
+        indented_str = op._indent(initial_str)
+        starts_with_indent = indented_str.startswith(op.INDENTATION)
+        self.assertTrue(starts_with_indent)
+        indented_str_content = (
+            indented_str[len(op.INDENTATION):]
+        ).split("\n{}".format(op.INDENTATION))
+        self.assertListEqual(indented_str_content, initial_str.split("\n"))
+
 
 class TestListOpComboFn(QiskitAquaTestCase):
     """Test combo fn is propagated."""
