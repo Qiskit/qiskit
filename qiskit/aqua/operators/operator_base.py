@@ -34,6 +34,9 @@ class OperatorBase(ABC):
     building blocks for algorithms in Aqua.
 
     """
+    # Indentation used in string representation of list operators
+    # Can be changed to use another indentation than two whitespaces
+    INDENTATION = '  '
 
     @property
     @abstractmethod
@@ -134,6 +137,14 @@ class OperatorBase(ABC):
                 unbound coeff Parameter.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _indent(lines: str, indentation: str = INDENTATION) -> str:
+        """ Indented representation to allow pretty representation of nested operators. """
+        indented_str = indentation + lines.replace("\n", "\n{}".format(indentation))
+        if indented_str.endswith("\n{}".format(indentation)):
+            indented_str = indented_str[:-len(indentation)]
+        return indented_str
 
     # Addition / Subtraction
 
