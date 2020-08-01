@@ -837,8 +837,8 @@ class QuantumCircuit:
                             if qubit_list[1][n] == qubit_in_instruct:
                                 shifter_instructions[n].append(instruct)
                                 qubit_flags[n] = True
-                    if not any(qubit_flags): # move instruction not affecting qubits
-                        shifter_instructions[low_index].append(instruct) # low_index is arbitary
+                    if not any(qubit_flags):   # move instruction not affecting qubits
+                        shifter_instructions[low_index].append(instruct)   # low_index is arbitary
                 else:
                     raise CircuitError("Unable to place gate at index"
                                        " as multibit gate is in between")
@@ -851,7 +851,6 @@ class QuantumCircuit:
                     for m in range(len(instructions.qargs[qubit_list[0]+1])):
                         if instructions.qargs[qubit_list[0]+1][m] == inst_to_move[1][n]:
                             index_list[m] += 1
-
 
     def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
@@ -1983,7 +1982,8 @@ class QuantumCircuit:
 
     @deprecate_arguments({'ctl': 'control_qubit', 'tgt': 'target_qubit'})
     def ch(self, control_qubit, target_qubit,  # pylint: disable=invalid-name
-           *, label=None, ctrl_state=None, ctl=None, tgt=None, index=None):  # pylint: disable=unused-argument
+           *, label=None, ctrl_state=None, ctl=None,
+           tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CHGate`."""
         from .library.standard_gates.h import CHGate
         return self.append(CHGate(label=label, ctrl_state=ctrl_state),
