@@ -902,6 +902,38 @@ class TestTextDrawerLabels(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_rzz_on_wide_layer(self):
+        """ Test a labeled gate (RZZ) in a wide layer.
+        See https://github.com/Qiskit/qiskit-terra/issues/4838"""
+        expected = '\n'.join(["                                               ",
+                              "q_0: |0>───────────────■───────────────────────",
+                              "                       │zz(pi/2)               ",
+                              "q_1: |0>───────────────■───────────────────────",
+                              "        ┌─────────────────────────────────────┐",
+                              "q_2: |0>┤ This is a really long long long box ├",
+                              "        └─────────────────────────────────────┘"])
+        circuit = QuantumCircuit(3)
+        circuit.rzz(pi / 2, 0, 1)
+        circuit.x(2, label='This is a really long long long box')
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_cu1_on_wide_layer(self):
+        """ Test a labeled gate (CU1) in a wide layer.
+        See https://github.com/Qiskit/qiskit-terra/issues/4838"""
+        expected = '\n'.join(["                                               ",
+                              "q_0: |0>─────────────────■─────────────────────",
+                              "                         │pi/2                 ",
+                              "q_1: |0>─────────────────■─────────────────────",
+                              "        ┌─────────────────────────────────────┐",
+                              "q_2: |0>┤ This is a really long long long box ├",
+                              "        └─────────────────────────────────────┘"])
+        circuit = QuantumCircuit(3)
+        circuit.cu1(pi / 2, 0, 1)
+        circuit.x(2, label='This is a really long long long box')
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """ Gates implying multiple qubits."""
