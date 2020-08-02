@@ -75,7 +75,7 @@ class TemplateOptimization(TransformationPass):
     def run(self, dag):
         """
         Args:
-            dag(DAGCircuit()): DAG circuit.
+            dag(DAGCircuit): DAG circuit.
         Returns:
             DAGCircuit: optimized DAG circuit.
         Raises:
