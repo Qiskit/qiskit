@@ -32,7 +32,7 @@ class TestTemplateMatching(QiskitTestCase):
         Check the cancellation of CX gates for the apply of the three basic
         template x-x, cx-cx. ccx-ccx.
         """
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(3)
         circuit_in = QuantumCircuit(qr)
         circuit_in.h(qr[0])
         circuit_in.h(qr[0])
@@ -179,7 +179,7 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_pass_template_wrong_type(self):
         """
-        If a template is not equivalent to the identity, it raises an erro.
+        If a template is not equivalent to the identity, it raises an error.
         """
         qr = QuantumRegister(2, 'qr')
         circuit_in = QuantumCircuit(qr)
@@ -228,8 +228,8 @@ class TestTemplateMatching(QiskitTestCase):
         qct.x(0)
         qct.h(1)
         qct.h(1)
-        qct.t(8)
-        qct.t(8)
+        qct.x(8)
+        qct.x(8)
 
         template_list = [qct]
         pass_ = TemplateOptimization(template_list)
