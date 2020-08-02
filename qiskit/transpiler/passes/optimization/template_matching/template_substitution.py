@@ -84,15 +84,42 @@ class TemplateSubstitution:
 
         return pred
 
-    def _rules(self, circuit_sublist):
+    def _quantum_cost(self, left, right):
+        """
+        Compare the two parts of the template and returns True if the quantum cost is reduced.
+        Args:
+            left (list): list of matched nodes in the template.
+            right (list): list of nodes to be replaced.
+        Returns:
+            bool: True if the quantum cost is reduced
+        """
+        cost_dict = {'id': 0, 'x': 1, 'y':1, 'z':1, 'h':1, 't': 1, 'tdg':1, 's':1, 'sdg':1,
+                     'u1':1, 'u2':2, 'u3':2, 'rx':1, 'ry': 1, 'rz':1, 'r':2, 'cx':2, 'cy':4,
+                     'cz':4, 'ch':8, 'swap':6, 'iswap':8, 'rxx':9, 'ryy':9, 'rzz':5, 'rzx':7,
+                     'ms':9, 'cu3':10, 'crx':10, 'cry':10, 'crz':10, 'ccx':21, 'rccx':12,
+                     'c3x':96, 'rc3x':24, 'c4x':312}
+        cost_left = 0
+        for i in left:
+            cost_left += cost_dict[self.template_dag_dep.get_node(i).name]
+
+        cost_right = 0
+        for j in right:
+            cost_right += cost_dict[self.template_dag_dep.get_node(j).name]
+
+        return cost_left > cost_right
+
+    def _rules(self, circuit_sublist, template_sublist, template_complement):
         """
         Set of rules to decide whether the match is to be substitute or not.
         Args:
             circuit_sublist (list): list of the gates matched in the circuit.
+            template_sublist (list): list of matched nodes in the template.
+            template_complement (list): list of gates not matched in the template.
         Returns:
             bool: True if the match respects the given rule for replacement, False otherwise.
         """
-        if len(circuit_sublist) > (self.template_dag_dep.size() / 2):
+
+        if self._quantum_cost(template_sublist, template_complement):
             for elem in circuit_sublist:
                 for config in self.substitution_list:
                     if any(elem == x for x in config.circuit_config):
@@ -101,18 +128,19 @@ class TemplateSubstitution:
         else:
             return False
 
-    def _template_inverse(self, template_sublist):
+    def _template_inverse(self, template_list, template_sublist, template_complement):
         """
         The template circuit realizes the identity operator, then given the list of
         matches in the template, it returns the inverse part of the template that
         will be replaced.
         Args:
+            template_list (list): list of all gates in the template.
             template_sublist (list): list of the gates matched in the circuit.
+            template_complement  (list): list of gates not matched in the template.
         Returns:
             list: the template inverse part that will substitute the circuit match.
         """
-        template_list = range(0, self.template_dag_dep.size())
-        inverse = list(set(template_list) - set(template_sublist))
+        inverse = template_complement
         left = []
         right = []
 
@@ -230,9 +258,14 @@ class TemplateSubstitution:
             circuit_sublist = [x[1] for x in current_match]
             circuit_sublist.sort()
 
+            template_list = range(0, self.template_dag_dep.size())
+            template_complement = list(set(template_list) - set(template_sublist))
+
             # If the match obey the rule then it is added to the list.
-            if self._rules(circuit_sublist):
-                template_sublist_inverse = self._template_inverse(template_sublist)
+            if self._rules(circuit_sublist, template_sublist, template_complement):
+                template_sublist_inverse = self._template_inverse(template_list,
+                                                                  template_sublist,
+                                                                  template_complement)
 
                 config = SubstitutionConfig(circuit_sublist,
                                             template_sublist_inverse,
