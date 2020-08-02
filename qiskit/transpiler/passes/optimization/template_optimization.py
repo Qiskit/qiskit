@@ -18,8 +18,8 @@ all compatible maximal matches that reduces the size of the circuit.
 
 **Reference:**
 
-[1] Iten, R., Sutter, D. and Woerner, S., 2019.
-Efficient template matching in quantum circuits.
+[1] Iten, R., Moyard, R., Metger, T., Sutter, D. and Woerner, S., 2020.
+Exact and practical pattern matching for quantum circuit optimization.
 `arXiv:1909.05270 <https://arxiv.org/abs/1909.05270>`_
 """
 import numpy as np
