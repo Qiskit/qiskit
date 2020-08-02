@@ -206,7 +206,7 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_pass_template_too_many_qubits(self):
         """
-        If the the template has more qubits than the circuit, it raises an error.
+        If the template has more qubits than the circuit, it raises an error.
         """
         qr = QuantumRegister(2, 'qr')
         circuit_in = QuantumCircuit(qr)
