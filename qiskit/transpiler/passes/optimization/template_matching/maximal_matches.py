@@ -56,7 +56,7 @@ class MaximalMatches:
 
     def run_maximal_matches(self):
         """
-        Method that extracts and store maximal matches in decreasing length order.
+        Method that extracts and stores maximal matches in decreasing length order.
         """
 
         self.max_match_list = [Match(sorted(self.template_matches[0].match),
