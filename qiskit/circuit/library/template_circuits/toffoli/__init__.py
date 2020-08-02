@@ -26,7 +26,6 @@ from .template_2a_3 import template_2a_3
 from .template_4a_1 import template_4a_1
 from .template_4a_2 import template_4a_2
 from .template_4a_3 import template_4a_3
-from .template_4a_4 import template_4a_4
 from .template_4a_5 import template_4a_5
 from .template_4b_1 import template_4b_1
 from .template_4b_2 import template_4b_2

@@ -15,13 +15,11 @@
 """
 Template 4a_3:
 .. parsed-literal::
-    q_0: ───────■─────────■──
-                │         │
-    q_1: ──■────■────■────■──
+    q_0: ──■────■────■────■──
            │  ┌─┴─┐  │  ┌─┴─┐
-    q_2: ──┼──┤ X ├──┼──┤ X ├
+    q_1: ──┼──┤ X ├──┼──┤ X ├
          ┌─┴─┐└───┘┌─┴─┐└───┘
-    q_3: ┤ X ├─────┤ X ├─────
+    q_2: ┤ X ├─────┤ X ├─────
          └───┘     └───┘
 """
 
@@ -33,9 +31,9 @@ def template_4a_3():
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """
-    qc = QuantumCircuit(4)
-    qc.cx(1, 3)
-    qc.ccx(0, 1, 2)
-    qc.cx(1, 3)
-    qc.ccx(0, 1, 2)
+    qc = QuantumCircuit(3)
+    qc.cx(0, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    qc.cx(0, 1)
     return qc
