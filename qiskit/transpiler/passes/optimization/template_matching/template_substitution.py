@@ -206,7 +206,7 @@ class TemplateSubstitution:
 
     def _remove_impossible(self):
         """
-        Remove matches groups if the have both predecessors in the other one, they are not
+        Remove matched groups if they both have predecessors in the other one, they are not
         compatible.
         """
         list_predecessors = []
