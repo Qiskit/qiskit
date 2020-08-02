@@ -317,7 +317,6 @@ class QasmBackendConfiguration:
             data (dict): A dictionary representing the GateConfig to create.
                          It will be in the same format as output by
                          :func:`to_dict`.
-
         Returns:
             GateConfig: The GateConfig from the input dictionary.
         """
@@ -352,7 +351,30 @@ class QasmBackendConfiguration:
                       'tags']:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
+
         out_dict.update(self._data)
+
+        if 'dt' in out_dict:
+            out_dict['dt'] *= 1e-9
+        if 'dtm' in out_dict:
+            out_dict['dtm'] *= 1e-9
+
+        if 'qubit_lo_range' in out_dict:
+            out_dict['qubit_lo_range'] = [
+                [min_range * 1e9, max_range * 1e9] for
+                (min_range, max_range) in out_dict['qubit_lo_range']
+            ]
+
+        if 'meas_lo_range' in out_dict:
+            out_dict['meas_lo_range'] = [
+                [min_range * 1e9, max_range * 1e9] for
+                (min_range, max_range) in out_dict['meas_lo_range']
+            ]
+
+        # convert rep_times from μs to sec
+        if 'rep_times' in out_dict:
+            out_dict['rep_times'] = [_rt * 1e-6 for _rt in out_dict['rep_times']]
+
         return out_dict
 
     @property
@@ -541,8 +563,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         Args:
             data (dict): A dictionary representing the GateConfig to create.
-                         It will be in the same format as output by
-                         :func:`to_dict`.
+                It will be in the same format as output by :func:`to_dict`.
 
         Returns:
             GateConfig: The GateConfig from the input dictionary.
@@ -599,6 +620,31 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict.pop('_qubit_channel_map')
             out_dict.pop('_channel_qubit_map')
             out_dict.pop('_control_channels')
+
+        if self.qubit_lo_range:
+            out_dict['qubit_lo_range'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.qubit_lo_range]
+
+        if self.meas_lo_range:
+            out_dict['meas_lo_range'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.meas_lo_range]
+
+        if self.rep_times:
+            out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
+
+        if self.rep_delays:
+            out_dict['rep_delays'] = [_rd * 1e6 for _rd in self.rep_delays]
+
+        out_dict['dt'] = out_dict['dt'] * 1e9  # pylint: disable=invalid-name
+        out_dict['dtm'] = out_dict['dtm'] * 1e9
+
+        if hasattr(self, 'channel_bandwidth'):
+            out_dict['channel_bandwidth'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.channel_bandwidth]
+
         return out_dict
 
     def __eq__(self, other):
@@ -618,6 +664,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         Raises:
             BackendConfigurationError: If the qubit is not a part of the system.
+
         Returns:
             Qubit drive channel.
         """

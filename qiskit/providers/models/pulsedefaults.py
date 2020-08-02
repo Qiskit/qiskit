@@ -181,7 +181,6 @@ class PulseDefaults:
                  **kwargs: Dict[str, Any]):
         """
         Validate and reformat transport layer inputs to initialize.
-
         Args:
             qubit_freq_est: Estimated qubit frequencies in GHz.
             meas_freq_est: Estimated measurement cavity frequencies in GHz.
@@ -223,7 +222,6 @@ class PulseDefaults:
 
     def to_dict(self):
         """Return a dictionary format representation of the PulseDefaults.
-
         Returns:
             dict: The dictionary form of the PulseDefaults.
         """
@@ -245,6 +243,9 @@ class PulseDefaults:
                            'instruction_schedule_map']:
                 out_dict[key] = value
         out_dict.update(self._data)
+
+        out_dict['qubit_freq_est'] = [freq * 1e-9 for freq in self.qubit_freq_est]
+        out_dict['meas_freq_est'] = [freq * 1e-9 for freq in self.meas_freq_est]
         return out_dict
 
     @classmethod
@@ -255,7 +256,6 @@ class PulseDefaults:
             data (dict): A dictionary representing the PulseDefaults
                          to create. It will be in the same format as output by
                          :meth:`to_dict`.
-
         Returns:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
