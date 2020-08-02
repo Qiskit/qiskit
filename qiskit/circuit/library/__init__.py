@@ -185,11 +185,8 @@ Toffoli template circuits
    template_circuits.toffoli.template_4a_1
    template_circuits.toffoli.template_4a_2
    template_circuits.toffoli.template_4a_3
-   template_circuits.toffoli.template_4a_4
-   template_circuits.toffoli.template_4a_5
    template_circuits.toffoli.template_4b_1
    template_circuits.toffoli.template_4b_2
-   template_circuits.toffoli.template_2a_2
    template_circuits.toffoli.template_5a_1
    template_circuits.toffoli.template_5a_2
    template_circuits.toffoli.template_5a_3
