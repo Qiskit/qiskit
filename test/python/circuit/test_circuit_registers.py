@@ -22,6 +22,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+import warnings
 
 
 class TestCircuitRegisters(QiskitTestCase):
@@ -60,6 +61,16 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test attempt to create a non-integer size QuantumRegister.
         """
         self.assertRaises(CircuitError, QuantumRegister, 'string')
+
+    def test_qarg_noninteger_float(self):
+        """ Test warning when passing non-integer float to QuantumRegister.
+        """
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+
+            QuantumRegister(3.5)
+
+            self.assertEqual(len(w), 1)
 
     def test_qarg_numpy_int_size(self):
         """Test castable to integer size QuantumRegister.
