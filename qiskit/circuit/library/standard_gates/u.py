@@ -141,7 +141,7 @@ class CUGate(ControlledGate):
                 1 & 0                           & 0 & 0 \\
                 0 & e^{i\gamma}\cos(\th)        & 0 & -e^{i(\gamma + \lambda)}\sin(\th) \\
                 0 & 0                           & 1 & 0 \\
-                0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)\cos(\th)}
+                0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     .. note::
@@ -167,7 +167,7 @@ class CUGate(ControlledGate):
                     1 & 0 & 0                             & 0 \\
                     0 & 1 & 0                             & 0 \\
                     0 & 0 & e^{i\gamma} \cos(\th)         & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                    0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)\cos(\th)}
+                    0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
 
