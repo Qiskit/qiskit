@@ -18,6 +18,8 @@
 
 import unittest
 import numpy as np
+import warnings
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -58,6 +60,15 @@ class TestCircuitProperties(QiskitTestCase):
         """Test attempt to pass non-castable arg to QuantumCircuit.
         """
         self.assertRaises(CircuitError, QuantumCircuit, 'string')
+
+    def test_warning_on_noninteger_float(self):
+        """Test warning when passing non-integer float to QuantumCircuit
+        """
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+
+            QuantumCircuit(3.5,2.2)
+            self.assertEqual(len(w), 1)
 
     def test_circuit_depth_empty(self):
         """Test depth of empty circuity
