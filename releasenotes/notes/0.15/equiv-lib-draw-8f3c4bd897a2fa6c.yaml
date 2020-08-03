@@ -6,7 +6,9 @@ features:
     method can be used for drawing the contents of an equivalence library,
     which can be useful for debugging. For example:
 
-    .. jupyter-execute:
+    .. jupyter-execute::
+
+      from numpy import pi
 
       from qiskit.circuit import EquivalenceLibrary
       from qiskit.circuit import QuantumCircuit
