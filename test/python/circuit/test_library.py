@@ -1924,15 +1924,19 @@ class TestQuadraticForm(QiskitTestCase):
 
     def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
         """Assert ``circuit`` implements the quadratic form correctly."""
-        def q_form(x):
+        def q_form(x, num_bits):
             x = np.array([int(val) for val in reversed(x)])
-            return int(x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset)
+            res = x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset
+            # compute 2s complement
+            res = (2**num_bits + int(res)) % 2**num_bits
+            twos = bin(res)[2:].zfill(num_bits)
+            return twos
 
         n = len(quadratic)  # number of value qubits
         ref = np.zeros(2 ** (n + m), dtype=complex)
         for x in range(2 ** n):
             x_bin = bin(x)[2:].zfill(n)
-            index = bin(q_form(x_bin) % 2 ** m)[2:].zfill(m) + x_bin
+            index = q_form(x_bin, m) + x_bin
             index = int(index, 2)
             ref[index] = 1 / np.sqrt(2 ** n)
 
@@ -1959,17 +1963,46 @@ class TestQuadraticForm(QiskitTestCase):
 
         self.assertTrue(Statevector.from_instruction(circuit).equiv(ref))
 
+    def test_required_result_qubits(self):
+        """Test getting the number of required result qubits."""
+
+        with self.subTest('positive bound'):
+            quadratic = [[1, -50], [100, 0]]
+            linear = [-5, 5]
+            offset = 0
+            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(106 + 1))))
+
+        with self.subTest('negative bound'):
+            quadratic = [[1, -50], [10, 0]]
+            linear = [-5, 5]
+            offset = 0
+            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(55))))
+
+        with self.subTest('empty'):
+            num_result_qubits = QuadraticForm.required_result_qubits([[]], [], 0)
+            self.assertEqual(num_result_qubits, 1)
+
     def test_quadratic_form(self):
         """Test the quadratic form circuit."""
 
         with self.subTest('empty'):
-            m = 1
-            circuit = QuadraticForm(m)
-            self.assertQuadraticFormIsCorrect(m, [[0]], [0], 0, circuit)
+            circuit = QuadraticForm()
+            self.assertQuadraticFormIsCorrect(1, [[0]], [0], 0, circuit)
 
         with self.subTest('1d case'):
             quadratic = np.array([[1]])
             linear = np.array([2])
+            offset = -1
+
+            circuit = QuadraticForm(quadratic=quadratic, linear=linear, offset=offset)
+
+            self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
+
+        with self.subTest('negative'):
+            quadratic = np.array([[-2]])
+            linear = np.array([0])
             offset = -1
             m = 2
 
@@ -1979,12 +2012,11 @@ class TestQuadraticForm(QiskitTestCase):
 
         with self.subTest('missing quadratic'):
             quadratic = np.zeros((3, 3))
-            linear = np.array([2, 0, 1])
+            linear = np.array([-2, 0, 1])
             offset = -1
-            m = 2
 
-            circuit = QuadraticForm(m, None, linear, offset)
-            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+            circuit = QuadraticForm(linear=linear, offset=offset)
+            self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
 
         with self.subTest('missing linear'):
             quadratic = np.array([[1, 2, 3], [3, 1, 2], [2, 3, 1]])
