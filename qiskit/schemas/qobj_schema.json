@@ -1110,11 +1110,7 @@
                             }
                         },
                         "pulse_library": {
-                            "description": "Pulses for gate calibrations.",
-                                "items": {
-                                    "$ref": "#/definitions/pulse_library"
-                                },
-                            "type": "array"
+                            "$ref": "#/definitions/pulse_library"
                         }
                     },
                     "title": "Qobj-level configuration",
