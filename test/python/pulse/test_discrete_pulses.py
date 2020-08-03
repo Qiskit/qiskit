@@ -139,7 +139,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration) + 0.5
         gaussian_ref = continuous.gaussian(times, amp, center, sigma,
-                                           zeroed_width=2*center, rescale_amp=True)
+                                           zeroed_width=2*(center+1), rescale_amp=True)
         gaussian_pulse = library.gaussian(duration, amp, sigma)
         self.assertIsInstance(gaussian_pulse, Waveform)
         np.testing.assert_array_almost_equal(gaussian_pulse.samples, gaussian_ref)
@@ -164,7 +164,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration) + 0.5
         sech_ref = continuous.sech(times, amp, center, sigma,
-                                   zeroed_width=2*center, rescale_amp=True)
+                                   zeroed_width=2*(center+1), rescale_amp=True)
         sech_pulse = library.sech(duration, amp, sigma)
         self.assertIsInstance(sech_pulse, Waveform)
         np.testing.assert_array_almost_equal(sech_pulse.samples, sech_ref)
@@ -224,15 +224,3 @@ class TestDiscretePulses(QiskitTestCase):
         drag_pulse = library.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, Waveform)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)
-
-    def test_period_deprecation_warning(self):
-        """Tests for DeprecationWarning"""
-        amp = 0.5
-        period = 5.
-        duration = 10
-        self.assertWarns(DeprecationWarning,
-                         lambda: library.triangle(duration, amp=amp, period=period))
-        self.assertWarns(DeprecationWarning,
-                         lambda: library.sawtooth(duration, amp=amp, period=period))
-        self.assertWarns(DeprecationWarning,
-                         lambda: library.square(duration, amp=amp, period=period))
