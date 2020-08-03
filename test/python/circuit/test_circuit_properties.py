@@ -67,7 +67,7 @@ class TestCircuitProperties(QiskitTestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            QuantumCircuit(3.5,2.2)
+            QuantumCircuit(3.5, 2.2)
             self.assertEqual(len(w), 1)
 
     def test_circuit_depth_empty(self):

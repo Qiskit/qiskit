@@ -142,7 +142,7 @@ class QuantumCircuit:
             try:
                 if any([not isinstance(reg, (int, np.int, np.int32, np.int64)) for reg in regs]):
                     warnings.warn('Provided register sizes were not all int.'
-                                'Casting to int...')
+                                  'Casting to int...')
                 regs = tuple(int(reg) for reg in regs)
             except Exception:
                 raise CircuitError("Circuit args must be Registers or be castable to an int" +
