@@ -71,7 +71,7 @@ extensions = [
 ]
 
 nbsphinx_timeout = 60
-nbsphinx_execute = 'never'
+nbsphinx_execute = os.getenv('QISKIT_DOCS_BUILD_TUTORIALS', 'never')
 nbsphinx_widgets_path = ''
 html_sourcelink_suffix = ''
 exclude_patterns = ['_build', '**.ipynb_checkpoints']
