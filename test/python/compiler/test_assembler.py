@@ -769,30 +769,23 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
-        # now remove rep_delay and enable dynamic rep rates
+        # enable dynamic rep rates
         # RuntimeWarning bc using ``rep_time`` when dynamic rep rates are enabled
-        del self.config['rep_delay']
         setattr(self.backend_config, 'dynamic_reprate_enabled', True)
         with self.assertWarns(RuntimeWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_time*1e6))
-        self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
-
-        # use ``rep_delay`` in ``rep_delay_range
-        # ``rep_time`` comes from allowed backend rep_times
-        rep_times = [0.5, 1.0, 1.5]  # sec
-        self.backend_config.rep_times = rep_times
-        setattr(self.backend_config, 'rep_delay_range', [0, 3.0e-6])
-        del self.config['rep_time']
-        self.config['rep_delay'] = rep_delay
-        qobj = assemble(self.schedule, self.backend, **self.config)
-        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
         self.assertEqual(qobj.config.rep_delay, rep_delay*1e6)
 
-        # use ``rep_delay`` outside of ``rep_delay_range
-        self.config['rep_delay'] = 5.0e-6
-        with self.assertRaises(QiskitError):
-            assemble(self.schedule, self.backend, **self.config)
+        # use default ``rep_time`` and ```rep_delay``
+        rep_times = [0.5, 1.0, 1.5]  # sec
+        self.backend_config.rep_times = rep_times
+        setattr(self.backend_config, 'default_rep_delay', 3.0e-6)
+        del self.config['rep_time']
+        del self.config['rep_delay']
+        qobj = assemble(self.schedule, self.backend, **self.config)
+        self.assertEqual(qobj.config.rep_time, int(rep_times[0]*1e6))
+        self.assertEqual(qobj.config.rep_delay, 3.0)
 
     def test_assemble_with_individual_discriminators(self):
         """Test that assembly works with individual discriminators."""
