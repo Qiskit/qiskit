@@ -22,7 +22,6 @@ import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
 import numpy as np
-from typing import Union, List, Tuple
 from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
