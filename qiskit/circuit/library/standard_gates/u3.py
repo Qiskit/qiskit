@@ -93,15 +93,11 @@ class U3Gate(Gate):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
         return numpy.array([
-            [
-                numpy.cos(theta / 2),
-                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
-            ],
-            [
-                numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
-            ]
+            [cos, -numpy.exp(1j * lam) * sin],
+            [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos]
         ], dtype=complex)
 
 
@@ -142,7 +138,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
             U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                   & 0 & 0 \\
-                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
                 0 & 0                   & 1 & 0 \\
                 0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
             \end{pmatrix}
@@ -169,7 +165,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                 \begin{pmatrix}
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
-                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
                     0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
@@ -215,18 +211,26 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         """
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CRY gate."""
-    #    theta, phi, lam = self.params
-    #    cos = numpy.cos(theta / 2)
-    #    sin = numpy.sin(theta / 2)
-    #    return numpy.array([[1,0, 0, 0],
-    #                        [0, cos, 0, numpy.exp(-1j * lam) * sin],
-    #                        [0, 0, 1, 0],
-    #                        [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
-    #                       dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the CRY gate."""
+        theta, phi, lam = self.params
+        theta, phi, lam = float(theta), float(phi), float(lam)
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
+        if self.ctrl_state:
+            return numpy.array(
+                [[1, 0, 0, 0],
+                 [0, cos, 0, -numpy.exp(1j * lam) * sin],
+                 [0, 0, 1, 0],
+                 [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
+                dtype=complex)
+        else:
+            return numpy.array(
+                [[cos, 0, -numpy.exp(1j * lam) * sin, 0],
+                 [0, 1, 0, 0],
+                 [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
+                 [0, 0, 0, 1]],
+                dtype=complex)
 
 
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):
