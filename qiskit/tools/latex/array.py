@@ -28,12 +28,12 @@ def _num_to_latex(num, precision=5):
         Returns:
             str: Latex representation of num
     """
-    # Result is combination of maximum 4 strings:
-    #     {c} ( {r} {o} {i}i )
-    # c: A common factor between the real and imaginary part
-    # r: The real part (inc. a negative sign if applicable)
-    # o: The operation between the real and imaginary parts ('+' or '-')
-    # i: Absolute value of the imaginary parts (i.e. not inc. any negative sign).
+    # Result is combination of maximum 4 strings in the form:
+    #     {common_facstring} ( {realstring} {operation} {imagstring}i )
+    # common_facstring: A common factor between the real and imaginary part
+    # realstring: The real part (inc. a negative sign if applicable)
+    # operation: The operation between the real and imaginary parts ('+' or '-')
+    # imagstring: Absolute value of the imaginary parts (i.e. not inc. any negative sign).
     # This function computes each of these strings and combines appropriately.
 
     r = np.real(num)
