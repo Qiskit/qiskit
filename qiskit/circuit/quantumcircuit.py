@@ -20,15 +20,16 @@ import sys
 import warnings
 import numbers
 import multiprocessing as mp
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import numpy as np
+from typing import Union, List, Tuple
 from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.exceptions import CircuitError, CalibrationError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
@@ -167,6 +168,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
         self._ancillas = []
+        self._calibrations = defaultdict(dict)
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -2272,6 +2274,23 @@ class QuantumCircuit:
         from .library.standard_gates.z import CZGate
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
+
+    def add_calibrations(self, gate, qubits, params, schedule):
+        """Add calibrations information to a calibration dictionary.
+
+        Args:
+            gate (Union[Gate, str]): Gate information.
+            qubits (Union[int, Tuple[int]]): Qubits
+            params (List[Union[float, Parameter]]): Parameters
+            schedule (Schedule): Schedule
+        """
+        if gate == None or qubits == None or params == None:
+            raise CalibrationError("One of the parameter is None. gate- {}, qubits- {}, "
+                                   "params- {}, schedule- {}".format(gate, qubits, params,
+                                                                     schedule))
+        calibrations = dict()
+        calibrations[tuple(params)] = schedule
+        self._calibrations[gate.name][tuple(qubits)] = calibrations
 
 
 def _circuit_from_qasm(qasm):
