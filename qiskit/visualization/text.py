@@ -1080,7 +1080,7 @@ class TextDrawing():
                     self._instruction_to_gate(instruction, layer)
 
                 layer.connections.append((connection_label, current_connections))
-                layer.connect_with("│")
+            layer.connect_with("│")
             layers.append(layer.full_layer)
 
         return layers
