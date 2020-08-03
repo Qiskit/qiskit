@@ -20,6 +20,7 @@ Base register reference object.
 import re
 import itertools
 import numpy as np
+from warnings import warn
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -41,6 +42,9 @@ class Register:
 
         # validate (or cast) size
         try:
+            if not isinstance(size, (int, np.int, np.int32, np.int64)):
+                warn("Provided register size was not an int. Casting to int...")
+
             size = int(size)
         except Exception:
             raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
