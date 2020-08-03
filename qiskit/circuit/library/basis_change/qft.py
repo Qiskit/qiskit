@@ -256,7 +256,8 @@ class QFT(BlueprintCircuit):
 
         for j in reversed(range(self.num_qubits)):
             self.h(j)
-            num_entanglements = max(0, j - max(0, self.approximation_degree - (self.num_qubits-j-1)))
+            num_entanglements = max(0,
+                j - max(0, self.approximation_degree - (self.num_qubits-j-1)))
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
                 self.cu1(lam, j, k)
