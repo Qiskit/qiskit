@@ -1,0 +1,12 @@
+---
+prelude: >
+    The 0.15.0 release includes several new features and bug fixes. Some
+    highlights for this release are:
+
+    For the transpiler this release include the introduction of arbitrarty
+    basis translation to the transpiler. This includes support for directly
+    targetting a broader range of device basis sets, including backends
+    implementing the CZ and iSwap gates.
+
+    The :class:`~qiskit.circuits.QuantumCircuit` class now tracks global
+    phase.
