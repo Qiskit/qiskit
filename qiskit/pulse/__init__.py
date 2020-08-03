@@ -442,11 +442,6 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
-from qiskit.pulse.commands import (
-    AcquireInstruction,
-    FrameChange,
-    PersistentValue,
-)
 from qiskit.pulse.configuration import (
     Discriminator,
     Kernel,

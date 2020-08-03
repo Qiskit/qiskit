@@ -16,7 +16,7 @@
 
 from typing import Dict, List, Optional, Union
 
-from qiskit.pulse import channels, commands, exceptions, instructions, utils
+from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 
@@ -76,16 +76,14 @@ def measure(qubits: List[int],
                 "argument. For assistance, the instructions which are defined are: "
                 "{}".format(measure_name, inst_map.instructions))
         for time, inst in default_sched.instructions:
-            if qubit_mem_slots and isinstance(
-                    inst, (instructions.Acquire, commands.AcquireInstruction)):
+            if qubit_mem_slots and isinstance(inst, instructions.Acquire):
                 if inst.channel.index in qubit_mem_slots:
                     mem_slot = channels.MemorySlot(qubit_mem_slots[inst.channel.index])
                 else:
                     mem_slot = channels.MemorySlot(unused_mem_slots.pop())
                 schedule = schedule.insert(time, instructions.Acquire(
                     inst.duration, inst.channel, mem_slot=mem_slot))
-            elif qubit_mem_slots is None and isinstance(
-                    inst, (instructions.Acquire, commands.AcquireInstruction)):
+            elif qubit_mem_slots is None and isinstance(inst, instructions.Acquire):
                 schedule = schedule.insert(time, inst)
             # Measurement pulses should only be added if its qubit was measured by the user
             elif inst.channels[0].index in qubits:

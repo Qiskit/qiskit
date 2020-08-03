@@ -18,7 +18,6 @@
 
 Note the sampling strategy use for all discrete pulses is `midpoint`.
 """
-import warnings
 from typing import Optional
 
 from ..exceptions import PulseError
@@ -69,7 +68,7 @@ def zero(duration: int, name: Optional[str] = None) -> Waveform:
 _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
-def square(duration: int, amp: complex, freq: float = None, period: float = None,
+def square(duration: int, amp: complex, freq: float = None,
            phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates square wave :class:`~qiskit.pulse.Waveform`.
 
@@ -88,17 +87,11 @@ def square(duration: int, amp: complex, freq: float = None, period: float = None
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         freq: Pulse frequency, units of 1./dt. If ``None`` defaults to 1./duration.
-        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
     """
-    if (freq is None) and (period is None):
+    if freq is None:
         freq = 1./duration
-    elif freq is None:
-        freq = 1./period
-        warnings.warn("The argument `period` is being deprecated."
-                      " Use `freq` for frequency instead",
-                      DeprecationWarning)
 
     return _sampled_square_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -106,7 +99,7 @@ def square(duration: int, amp: complex, freq: float = None, period: float = None
 _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
-def sawtooth(duration: int, amp: complex, freq: float = None, period: float = None,
+def sawtooth(duration: int, amp: complex, freq: float = None,
              phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates sawtooth wave :class:`~qiskit.pulse.Waveform`.
 
@@ -124,7 +117,6 @@ def sawtooth(duration: int, amp: complex, freq: float = None, period: float = No
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         freq: Pulse frequency, units of 1./dt. If ``None`` defaults to 1./duration.
-        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
 
@@ -137,17 +129,12 @@ def sawtooth(duration: int, amp: complex, freq: float = None, period: float = No
 
             duration = 100
             amp = 1
-            period = duration
-            sawtooth_wave = np.real(sawtooth(duration, amp, period).samples)
+            freq = 1 / duration
+            sawtooth_wave = np.real(sawtooth(duration, amp, freq).samples)
             plt.plot(range(duration), sawtooth_wave)
     """
-    if (freq is None) and (period is None):
+    if freq is None:
         freq = 1./duration
-    elif freq is None:
-        freq = 1./period
-        warnings.warn("The argument `period` is being deprecated."
-                      " Use `freq` for frequency instead",
-                      DeprecationWarning)
 
     return _sampled_sawtooth_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -155,7 +142,7 @@ def sawtooth(duration: int, amp: complex, freq: float = None, period: float = No
 _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
-def triangle(duration: int, amp: complex, freq: float = None, period: float = None,
+def triangle(duration: int, amp: complex, freq: float = None,
              phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates triangle wave :class:`~qiskit.pulse.Waveform`.
 
@@ -173,7 +160,6 @@ def triangle(duration: int, amp: complex, freq: float = None, period: float = No
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude. Wave range is :math:`[-` ``amp`` :math:`,` ``amp`` :math:`]`.
         freq: Pulse frequency, units of 1./dt. If ``None`` defaults to 1./duration.
-        period: Pulse period, units of dt. (Deprecated, use `freq` instead)
         phase: Pulse phase.
         name: Name of pulse.
 
@@ -186,17 +172,12 @@ def triangle(duration: int, amp: complex, freq: float = None, period: float = No
 
             duration = 100
             amp = 1
-            period = duration
-            triangle_wave = np.real(triangle(duration, amp, period).samples)
+            freq = 1 / duration
+            triangle_wave = np.real(triangle(duration, amp, freq).samples)
             plt.plot(range(duration), triangle_wave)
     """
-    if (freq is None) and (period is None):
+    if freq is None:
         freq = 1./duration
-    elif freq is None:
-        freq = 1./period
-        warnings.warn("The argument `period` is being deprecated."
-                      " Use `freq` for frequency instead",
-                      DeprecationWarning)
 
     return _sampled_triangle_pulse(duration, amp, freq, phase=phase, name=name)
 

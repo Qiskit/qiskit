@@ -17,7 +17,6 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-import warnings
 from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
@@ -33,8 +32,7 @@ from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
-from qiskit.pulse.commands import FrameChangeInstruction
-from qiskit.pulse import (Waveform, SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
+from qiskit.pulse import (Waveform, SamplePulse, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
                           Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
@@ -71,9 +69,7 @@ class EventsOutputChannels:
             start_time: Starting time of instruction
             instruction: Instruction object to be added
         """
-        if instruction.command is not None:
-            pulse = instruction.command
-        elif isinstance(instruction, Play):
+        if isinstance(instruction, Play):
             pulse = instruction.pulse
         else:
             pulse = instruction
@@ -91,7 +87,7 @@ class EventsOutputChannels:
         return self._waveform[self.t0:self.tf]
 
     @property
-    def framechanges(self) -> Dict[int, FrameChangeInstruction]:
+    def framechanges(self) -> Dict[int, ShiftPhase]:
         """Get frame changes."""
         if self._framechanges is None:
             self._build_waveform()
@@ -205,7 +201,6 @@ class EventsOutputChannels:
         fc = 0
         pv = np.zeros(self.tf + 1, dtype=np.complex128)
         wf = np.zeros(self.tf + 1, dtype=np.complex128)
-        last_pv = None
         for time, commands in sorted(self.pulses.items()):
             if time > self.tf:
                 break
@@ -213,7 +208,7 @@ class EventsOutputChannels:
             tmp_set_phase = 0
             tmp_sf = None
             for command in commands:
-                if isinstance(command, (FrameChange, ShiftPhase)):
+                if isinstance(command, ShiftPhase):
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, SetPhase):
@@ -233,25 +228,16 @@ class EventsOutputChannels:
                 fc = tmp_set_phase
             if tmp_sf is not None:
                 self._frequencychanges[time] = tmp_sf
-            for command in commands:
-                if isinstance(command, PersistentValue):
-                    pv[time:] = np.exp(1j*fc) * command.value
-                    last_pv = (time, command)
-                    break
 
             for command in commands:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
-                    command = command.get_sample_pulse()
+                    command = command.get_waveform()
                 if isinstance(command, (Waveform, SamplePulse)):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
                     self._labels[time] = (tf, command)
-                    if last_pv is not None:
-                        pv_cmd = last_pv[1]
-                        self._labels[last_pv[0]] = (time, pv_cmd)
-                        last_pv = None
 
                 elif isinstance(command, Acquire):
                     wf[time:tf] = np.ones(tf - time)
@@ -276,7 +262,7 @@ class EventsOutputChannels:
         return events_in_time_range
 
 
-class SamplePulseDrawer:
+class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
     def __init__(self, style: PulseStyle):
@@ -290,7 +276,7 @@ class SamplePulseDrawer:
     def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None):
+             scale: float = 1):
         """Draw figure.
 
         Args:
@@ -298,15 +284,10 @@ class SamplePulseDrawer:
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
-            scaling: Deprecated, see `scale`.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
@@ -377,7 +358,7 @@ class ScheduleDrawer:
             channels: Channels to plot.
             t0: Start time of plot.
             tf: End time of plot.
-            show_framechange_channels: Plot channels only with FrameChanges.
+            show_framechange_channels: Plot channels only with FrameChanges (ShiftPhase).
 
         Returns:
             channels: All channels.
@@ -396,7 +377,7 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase, SetPhase)):
+                if not isinstance(instruction, (ShiftPhase, SetPhase)):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)
@@ -581,7 +562,7 @@ class ScheduleDrawer:
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax,
-                           fcs: Dict[int, FrameChangeInstruction],
+                           fcs: Dict[int, ShiftPhase],
                            y0: float) -> bool:
         """Draw frame change of given channel to given mpl axis.
 
@@ -663,9 +644,7 @@ class ScheduleDrawer:
             y0: vertical position to draw the labels.
         """
         for t0, (tf, cmd) in labels.items():
-            if isinstance(cmd, PersistentValue):
-                name = cmd.name if cmd.name else 'pv'
-            elif isinstance(cmd, Acquire):
+            if isinstance(cmd, Acquire):
                 name = cmd.name if cmd.name else 'acquire'
             else:
                 name = cmd.name
@@ -785,7 +764,7 @@ class ScheduleDrawer:
              channel_scales: Dict[Channel, float] = None,
              plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
-             scaling: float = None, channels: List[Channel] = None,
+             channels: List[Channel] = None,
              show_framechange_channels: bool = True):
         """Draw figure.
 
@@ -805,7 +784,6 @@ class ScheduleDrawer:
             table: When set `True` draw event table for supported commands.
             label: When set `True` draw label for individual instructions.
             framechange: When set `True` draw framechange indicators.
-            scaling: Deprecated, see `scale`.
             channels: A list of channel names to plot.
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
@@ -817,10 +795,6 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels is None:
