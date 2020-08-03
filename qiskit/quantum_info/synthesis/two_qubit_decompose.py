@@ -143,7 +143,7 @@ class TwoQubitWeylDecomposition:
     𝜋/4 ≥ a ≥ b ≥ |c|
     """
 
-    def __init__(self, unitary_matrix):
+    def __init__(self, unitary_matrix, eps=1e-15):
         """The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac,
         Phys. Rev. A 63, 062309 (2001).
 
@@ -162,6 +162,8 @@ class TwoQubitWeylDecomposition:
 
         Up = _Bd.dot(U).dot(_B)
         M2 = Up.T.dot(Up)
+        M2.real[abs(M2.real) < eps] = 0.0
+        M2.imag[abs(M2.imag) < eps] = 0.0
 
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
@@ -194,7 +196,11 @@ class TwoQubitWeylDecomposition:
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
         K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j*d))).dot(_Bd)
+        K1.real[abs(K1.real) < eps] = 0.0
+        K1.imag[abs(K1.imag) < eps] = 0.0
         K2 = _B.dot(P.T).dot(_Bd)
+        K2.real[abs(K2.real) < eps] = 0.0
+        K2.imag[abs(K2.imag) < eps] = 0.0
 
         K1l, K1r = decompose_two_qubit_product_gate(K1)
         K2l, K2r = decompose_two_qubit_product_gate(K2)
@@ -385,7 +391,7 @@ class TwoQubitBasisDecomposer():
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
 
-        return np.around(U0r, 13), np.around(U0l, 13)
+        return U0r, U0l
 
     def decomp1(self, target):
         """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
