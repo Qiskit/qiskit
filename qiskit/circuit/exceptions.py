@@ -21,3 +21,8 @@ class CircuitError(QiskitError):
     """Base class for errors raised while processing a circuit."""
 
     pass
+
+class CalibrationError(QiskitError):
+    """Base class for errors raised during waveform level calibrations."""
+
+    pass
