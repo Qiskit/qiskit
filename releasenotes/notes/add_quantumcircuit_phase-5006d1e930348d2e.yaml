@@ -1,0 +1,17 @@
+features:
+  - |
+    Adds a `global_phase` attribute to `QuantumCircuit` for tracking global
+    phase. This allows, for instance, to have the `to_matrix` method
+    of a gate to exactly correspond to its decompositions instead of
+    just up to a global phase. The same attribute has also been
+    extended to DAGCircuit so the phase can be tracked when converting
+    between QuantumCircuit and DAGCircuit. For example::
+
+      from qiskit import QuantumCircuit
+      circ = QuantumCircuit(1, phase=math.pi)
+      circ.u1(0)
+
+    The global phase may also be set or queried with the `circ.global_phase`
+    property. In either case the setting is in radians. If the circuit
+    is converted to an instruction or gate the global phase is
+    represented by two single qubit rotations on the first qubit.
