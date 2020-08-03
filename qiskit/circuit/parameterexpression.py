@@ -46,8 +46,11 @@ class ParameterExpression():
         return set(self._parameter_symbols.keys())
 
     def conjugate(self):
-        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
-        return self
+        """Return the conjugate of the ParameterExpression."""
+        from sympy import conjugate
+        return ParameterExpression(
+            self._parameter_symbols,
+            conjugate(self._symbol_expr))
 
     def bind(self, parameter_values):
         """Binds the provided set of parameters to their corresponding values.
@@ -119,7 +122,7 @@ class ParameterExpression():
         self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
 
         from sympy import Symbol
-        new_parameter_symbols = {p: Symbol(p.name)
+        new_parameter_symbols = {p: Symbol(p.name, real=True)
                                  for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
@@ -189,7 +192,7 @@ class ParameterExpression():
             ParameterExpression: a new expression describing the result of the
                 operation.
         """
-
+        from sympy.core.numbers import ImaginaryUnit
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
@@ -198,6 +201,9 @@ class ParameterExpression():
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
         elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+            parameter_symbols = self._parameter_symbols.copy()
+            other_expr = other
+        elif isinstance(other, ImaginaryUnit):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -262,3 +268,37 @@ class ParameterExpression():
         return (isinstance(other, ParameterExpression)
                 and self.parameters == other.parameters
                 and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+
+
+def cos(self):
+    """Returns a new Expression with cosine applied to the old one. """
+    if not isinstance(self, ParameterExpression):
+        raise TypeError('Input should be a ParameterExpression')
+    from sympy import cos as _cos
+
+    return ParameterExpression(
+        self._parameter_symbols,
+        _cos(self._symbol_expr))
+
+
+def sin(self):
+    """Returns a new Expression with sine applied to the old one. """
+    if not isinstance(self, ParameterExpression):
+        raise TypeError('Input should be a ParameterExpression')
+    from sympy import sin as _sin
+
+    return ParameterExpression(
+        self._parameter_symbols,
+        _sin(self._symbol_expr))
+
+
+def exp(self):
+    """Returns a new Expression with sine applied to the old one. """
+    if not isinstance(self, ParameterExpression):
+        raise TypeError('Input should be a ParameterExpression')
+    from sympy import exp as _exp
+    from sympy import I
+
+    return ParameterExpression(
+        self._parameter_symbols,
+        _exp(I * self._symbol_expr))
