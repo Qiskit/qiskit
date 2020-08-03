@@ -104,15 +104,13 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                 * ``avg`` returns average measurement output (averaged over number of shots).
         meas_map: List of lists, containing qubits that must be measured together.
         memory_slot_size: Size of each memory slot if the output is Level 0.
-        rep_time: Time per program execution in sec. Must be from the list provided by the backend
-            (``backend.configuration().rep_times``). Defaults to the first entry in
-            ``backend.configuration().rep_times``.
-        rep_delay: Delay between programs in sec. Only supported on certain backends
-            (``backend.configuration().dynamic_reprate_enabled`` ). If supported, ``rep_delay``
-            be used instead of ``rep_time`` and must be from the range supplied by the backend
-            (``backend.configuration().rep_delay_range``). Default is given by
-            ``backend.configuration().default_rep_delay`` and will be used if no user ``rep_delay``
-            is provided.
+        rep_time (int): Time per program execution in seconds. Must be from the list provided
+            by the backend (``backend.configuration().rep_times``). Defaults to the first entry.
+        rep_delay (float): Delay between programs in seconds. Only supported on certain
+            backends (if ``backend.configuration().dynamic_reprate_enabled=True``). If supported,
+            ``rep_delay`` will be used instead of ``rep_time`` and must be from the range supplied
+            by the backend (``backend.configuration().rep_delay_range``). Default is given by
+            ``backend.configuration().default_rep_delay``.
         parameter_binds: List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be

@@ -612,9 +612,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             'dynamic_reprate_enabled': self.dynamic_reprate_enabled
         })
         if hasattr(self, 'rep_delay_range'):
-            out_dict['rep_delay_range'] = self.rep_delay_range
+            out_dict['rep_delay_range'] = [_rd * 1e6 for _rd in self.rep_delay_range]
         if hasattr(self, 'default_rep_delay'):
-            out_dict['default_rep_delay'] = self.default_rep_delay
+            out_dict['default_rep_delay'] = self.default_rep_delay*1e6
         if hasattr(self, 'channel_bandwidth'):
             out_dict['channel_bandwidth'] = self.channel_bandwidth
         if hasattr(self, 'meas_map'):
