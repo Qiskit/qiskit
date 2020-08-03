@@ -102,10 +102,12 @@ class QuadraticForm(QuantumCircuit):
         # deduce number of result bits if not added
         if num_result_qubits is None:
             # check no value is parameterized
-            if (any(any(isinstance(q_ij, ParameterExpression) for q_ij in q_i) for q_i in quadratic)
+            if (
+                    any(any(isinstance(q_ij, ParameterExpression) for q_ij in q_i)
+                        for q_i in quadratic)
                     or any(isinstance(l_i, ParameterExpression) for l_i in linear)
                     or isinstance(offset, ParameterExpression)
-               ):
+            ):
                 raise ValueError('If the number of result qubits is not specified, the quadratic '
                                  'form matrices/vectors/offset may not be parameterized.')
             num_result_qubits = self.required_result_qubits(quadratic, linear, offset)
