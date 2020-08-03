@@ -25,8 +25,9 @@ This module can easily be extended to describe more pulse shapes. The new class 
   - have a descriptive name
   - be a well known and/or well described formula (include the formula in the class docstring)
   - take some parameters (at least `duration`) and validate them, if necessary
-  - implement a `get_waveform` method which returns a corresponding Waveform in the
-    case that it is assembled for a backend which does not support it.
+  - implement a ``get_sample_pulse`` method which returns a corresponding Waveform in the case that
+    it is assembled for a backend which does not support it. Ends are zeroed to avoid steep jumps at
+    pulse edges. By default, the ends are defined such that ``f(-1), f(duration+1) = 0``.
 
 The new pulse must then be registered by the assembler in
 `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
@@ -162,7 +163,7 @@ class Gaussian(ParametricPulse):
 
     def get_waveform(self) -> Waveform:
         return gaussian(duration=self.duration, amp=self.amp,
-                        sigma=self.sigma, zero_ends=False)
+                        sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -240,7 +241,7 @@ class GaussianSquare(ParametricPulse):
     def get_waveform(self) -> Waveform:
         return gaussian_square(duration=self.duration, amp=self.amp,
                                width=self.width, sigma=self.sigma,
-                               zero_ends=False)
+                               zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -334,7 +335,7 @@ class Drag(ParametricPulse):
 
     def get_waveform(self) -> Waveform:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
-                    beta=self.beta, zero_ends=False)
+                    beta=self.beta, zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
