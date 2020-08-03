@@ -809,49 +809,98 @@ class QuantumCircuit:
     def _indexer(self, instructions, index_list):
         # TODO: docs for this helper function
         # TODO: make helper functions and clean up variable names
-        # TODO: throw exception when qubit gate width does not match index width
-        for qubit_list in enumerate(instructions.qargs):
-            qubit_gate_counts = [-1] * len(qubit_list[1])
-            instruction_counts = [-1] * len(qubit_list[1])
-            shifter_instructions = [[] for n in range(len(qubit_list[1]))]
-            for instruct in self._data:
-                if qubit_gate_counts != index_list:
-                    qubits_in_instruct = instruct[1]
-                    for n in range(len(qubit_list[1])):
-                        if qubit_gate_counts[n] != index_list[n]:
-                            instruction_counts[n] += 1
-                            for qubit_in_instruct in qubits_in_instruct:
-                                if qubit_list[1][n] == qubit_in_instruct:
-                                    qubit_gate_counts[n] += 1
-                else:
-                    break
+        for qubit_list_index, qubits in enumerate(instructions.qargs):
+            if len(qubits) != len(index_list):
+                del self._data[-len(instructions.qargs):]
+                raise CircuitError("Number of qubits (%s) does not match index width (%s)"
+                                   % (len(qubits), len(index_list)))
 
-            low_index = instruction_counts.index(min(instruction_counts))
-            high_index = instruction_counts.index(max(instruction_counts))
-            low_instruction = instruction_counts[low_index]
-            high_instruction = instruction_counts[high_index]
-            for instruct in self._data[min(instruction_counts):max(instruction_counts)]:
-                qubit_flags = [False for n in range(len(qubit_list[1]))]
-                if not all(qubit in instruct[1] for qubit in qubit_list[1]):
-                    for qubit_in_instruct in instruct[1]:
-                        for n in range(len(qubit_list[1])):
-                            if qubit_list[1][n] == qubit_in_instruct:
-                                shifter_instructions[n].append(instruct)
-                                qubit_flags[n] = True
-                    if not any(qubit_flags):   # move instruction not affecting qubits
-                        shifter_instructions[low_index].append(instruct)   # low_index is arbitary
-                else:
-                    raise CircuitError("Unable to place gate at index"
-                                       " as multibit gate is in between")
-            inst_to_move = self._data.pop(-len(instructions.qargs) + qubit_list[0])
-            self._data[low_instruction:high_instruction] = (shifter_instructions[high_index]
-                                                            + [inst_to_move]
-                                                            + shifter_instructions[low_index])
-            if qubit_list[0] + 1 < len(instructions.qargs):
-                for n in range(len(inst_to_move[1])):
-                    for m in range(len(instructions.qargs[qubit_list[0]+1])):
-                        if instructions.qargs[qubit_list[0]+1][m] == inst_to_move[1][n]:
-                            index_list[m] += 1
+            instruction_counts = self._count_instructions(qubits, index_list)
+
+            try:
+                shifter_instructions, splitter_list = self._sort_instructions(qubits,
+                                                                              instruction_counts)
+            except CircuitError as circuit_error:
+                del self._data[-len(instructions.qargs):]
+                raise circuit_error
+
+            replacement_instructions = [self._data.pop(-len(instructions.qargs) + qubit_list_index)]
+            for inst_list_index, inst_list in enumerate(shifter_instructions):
+                replacement_instructions = (inst_list[:splitter_list[inst_list_index]]
+                                            + replacement_instructions
+                                            + inst_list[splitter_list[inst_list_index]:])
+
+            self._data[min(instruction_counts):max(instruction_counts)] = replacement_instructions
+
+            self._repeated_qubit(qubit_list_index, qubits, instructions.qargs, index_list)
+
+    def _count_instructions(self, qubits, index_list):
+        # TODO: docs for this helper function
+        qubit_gate_counts = [-1] * len(qubits)
+        instruction_counts = [-1] * len(qubits)
+        for instruct in self._data:
+            if qubit_gate_counts != index_list:
+                qubits_in_instruct = instruct[1]
+                for qubit_index, qubit in enumerate(qubits):
+                    if qubit_gate_counts[qubit_index] != index_list[qubit_index]:
+                        instruction_counts[qubit_index] += 1
+                        for qubit_in_instruct in qubits_in_instruct:
+                            if qubit == qubit_in_instruct:
+                                qubit_gate_counts[qubit_index] += 1
+            else:
+                break  # instruction counts for gate insertion found
+        return instruction_counts
+
+    def _sort_instructions(self, qubits, instruction_counts):
+        # TODO: docs for this helper function
+        lowest_instruction = min(instruction_counts)
+        highest_instruction = max(instruction_counts)
+        low_index = instruction_counts.index(lowest_instruction)
+        high_index = instruction_counts.index(highest_instruction)
+
+        shifter_instructions = [[] for n in range(len(qubits))]  # sorted instructions to shift
+        shifter_qubits = [set() for n in range(len(qubits))]
+
+        splitter_list = [-1] * len(qubits)  # stores indexes to divide instructions to be shifted
+
+        for instruction_index, instruction in enumerate(self._data[lowest_instruction:
+                                                                   highest_instruction],
+                                                        lowest_instruction):
+            for count_index, instruction_count in enumerate(instruction_counts):
+                if instruction_index == instruction_count:
+                    splitter_list[count_index] = len(shifter_instructions[count_index])
+            qubit_flags = [qubit in instruction[1] for qubit in qubits]
+            if not any(qubit_flags):   # move instruction not affecting qubits
+                shifter_instructions[low_index].append(instruction)   # low_index is arbitary
+                for qarg in instruction[1]:
+                    shifter_qubits[low_index].add(qarg)
+            elif qubit_flags.count(True) == 1:
+                true_index = qubit_flags.index(True)
+                shifter_instructions[true_index].append(instruction)
+                for qarg in instruction[1]:
+                    shifter_qubits[true_index].add(qarg)
+            else:
+                raise CircuitError("Unable to place gate at index "
+                                   "as multibit gate is in between")
+
+        qubit_intersection = set.intersection(*shifter_qubits)
+        if qubit_intersection:
+            raise CircuitError("Unable to place gate at index, "
+                               "as gate order for %s cannot be changed" %
+                               [q.register.name + "_" + str(q.index) for q in qubit_intersection])
+
+        splitter_list[high_index] = len(shifter_instructions[high_index])
+
+        return shifter_instructions, splitter_list
+
+    @staticmethod
+    def _repeated_qubit(qubit_list_index, qubits, inst_qargs, index_list):
+        # TODO: docs for this helper function
+        if qubit_list_index + 1 < len(inst_qargs):
+            for qubit in qubits:
+                for m in range(len(inst_qargs[qubit_list_index + 1])):
+                    if inst_qargs[qubit_list_index + 1][m] == qubit:
+                        index_list[m] += 1
 
     def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
