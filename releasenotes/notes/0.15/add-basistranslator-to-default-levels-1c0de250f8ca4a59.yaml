@@ -9,3 +9,14 @@ features:
     :class:`~qiskit.transpiler.passes.Unroller` pass and ``'translator'`` to
     use the :class:`~qiskit.transpiler.passes.BasisTranslator` pass. The
     default value is ``'translator'``.
+upgrade:
+  - |
+    By default the preset passmanagers in
+    :mod:`qiskit.transpiler.preset_passmanagers` are using
+    :class:`~qiskit.transpiler.passes.UnrollCustomDefinitions` and
+    :class:`~qiskit.transpiler.passes.BasisTranslator` to handle basis changing
+    instead of the previous default :class:`~qiskit.transpiler.passes.Unroller`.
+    This was done because the new passes are more flexible and allow targetting
+    any basis set, however the output may differ. To use the previous default
+    you can set the ``translation_method`` kwarg on
+    :func:`~qiskit.compiler.transpile` to ``'unroller'``.

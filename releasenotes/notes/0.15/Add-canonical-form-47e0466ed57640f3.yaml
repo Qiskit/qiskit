@@ -8,18 +8,19 @@ features:
   - |
     Four new functions to :mod:`qiskit.converters` for converting back and
     forth to :class:`~qiskit.dagcircuit.DAGDependency`. These functions are:
-      * :func:`~qiskit.converters.circuit_to_dagdependency` to convert
-        from a :class:`~qiskit.circuit.QuantumCircuit` object to a
-        :class:`Qiskit.dagcircuit.DAGDependency` object.
-      * :func:`~qiskit.converters.dagdependency_to_ciruit` to convert from a
-        :class:`~qiskit.dagcircuit.DAGDependency` object to a
-        :class:`~qiskit.circuit.QuantumCircuit` object.
-      * :func:`~qiskit.converters.dag_to_dagdependency` to convert from
-        a :class:`~qiskit.dagcircuit.DAGCircuit` object to a
-        :class:`~qiskit.dagcircuit.DAGDependency` object.
-      * :func:`~qiskit.converters.dagdependency_to_ciruit` to convert from
-        a :class:`~qiskit.dagcircuit.DAGDependency` object to a
-        :class:`~qiskit.dagcircuit.DAGCircuit` object.
+
+    * :func:`~qiskit.converters.circuit_to_dagdependency` to convert
+      from a :class:`~qiskit.circuit.QuantumCircuit` object to a
+      :class:`~qiskit.dagcircuit.DAGDependency` object.
+    * :func:`~qiskit.converters.dagdependency_to_ciruit` to convert from a
+      :class:`~qiskit.dagcircuit.DAGDependency` object to a
+      :class:`~qiskit.circuit.QuantumCircuit` object.
+    * :func:`~qiskit.converters.dag_to_dagdependency` to convert from
+      a :class:`~qiskit.dagcircuit.DAGCircuit` object to a
+      :class:`~qiskit.dagcircuit.DAGDependency` object.
+    * :func:`~qiskit.converters.dagdependency_to_ciruit` to convert from
+      a :class:`~qiskit.dagcircuit.DAGDependency` object to a
+      :class:`~qiskit.dagcircuit.DAGCircuit` object.
 
     For example::
     
