@@ -17,8 +17,8 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-import numpy as np
 import warnings
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase

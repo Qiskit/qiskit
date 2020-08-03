@@ -14,6 +14,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import warnings
 import numpy as np
 
 from qiskit.circuit import (
@@ -22,7 +23,6 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-import warnings
 
 
 class TestCircuitRegisters(QiskitTestCase):

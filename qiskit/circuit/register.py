@@ -19,8 +19,9 @@ Base register reference object.
 """
 import re
 import itertools
-import numpy as np
 from warnings import warn
+import numpy as np
+
 
 from qiskit.circuit.exceptions import CircuitError
 
