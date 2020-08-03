@@ -126,10 +126,13 @@ class QuadraticForm(QuantumCircuit):
         # initial QFT (just hadamards)
         self.h(qr_result)
 
+        if little_endian:
+            qr_result = qr_result[::-1]
+
         # constant coefficient
         if offset != 0:
-            for i in range(num_result_qubits):
-                self.u1(scaling * 2 ** i * offset, qr_result[i])
+            for i, q_i in enumerate(qr_result):
+                self.u1(scaling * 2 ** i * offset, q_i)
 
         # the linear part consists of the vector and the diagonal of the
         # matrix, since x_i * x_i = x_i, as x_i is a binary variable
@@ -137,8 +140,8 @@ class QuadraticForm(QuantumCircuit):
             value = linear[j] if linear is not None else 0
             value += quadratic[j][j] if quadratic is not None else 0
             if value != 0:
-                for i in range(num_result_qubits):
-                    self.cu1(scaling * 2 ** i * value, qr_input[j], qr_result[i])
+                for i, q_i in enumerate(qr_result):
+                    self.cu1(scaling * 2 ** i * value, qr_input[j], q_i)
 
         # the quadratic part adds A_ij and A_ji as x_i x_j == x_j x_i
         if quadratic is not None:
@@ -146,19 +149,12 @@ class QuadraticForm(QuantumCircuit):
                 for k in range(j + 1, num_input_qubits):
                     value = quadratic[j][k] + quadratic[k][j]
                     if value != 0:
-                        for i in range(num_result_qubits):
-                            self.mcu1(scaling * 2 ** i * value, [qr_input[j], qr_input[k]],
-                                      qr_result[i])
+                        for i, q_i in enumerate(qr_result):
+                            self.mcu1(scaling * 2 ** i * value, [qr_input[j], qr_input[k]], q_i)
 
         # add the inverse QFT
         iqft = QFT(num_result_qubits, do_swaps=False).inverse()
         self.append(iqft, qr_result)
-
-        if little_endian:
-            # self = self.reverse_bits()
-            # pass
-            for i in range(num_result_qubits // 2):
-                self.swap(qr_result[i], qr_result[-(i + 1)])
 
     @staticmethod
     def required_result_qubits(quadratic: Union[np.ndarray, List[List[float]]],
