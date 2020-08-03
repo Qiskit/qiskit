@@ -287,15 +287,12 @@ class MatplotlibDrawer:
 
             # This removes some arbitrary \n's and spaces that are returned
             # by latex_to_text when parameters contain pi. Not sure why this
-            # happens and may change in a future release of latex_to_text.
-            # It also changes hyphen to + for any leading hypens to match
-            # width of math mode minus sign.
+            # happens and may change in a future release of latex_to_text. It
+            # also changes hyphen to + to match width of math mode minus sign.
             if param:
                 text = text.replace('\n    ', '')
                 text = text.replace('\n', '')
-                text = text.replace(', -', ', +')
-                if text.startswith('-'):
-                    text = text.replace('-', '+')
+                text = text.replace('-', '+')
 
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
