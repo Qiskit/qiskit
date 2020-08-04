@@ -240,10 +240,13 @@ class QCircuitImage:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                        self.layout[self.ordered_regs[i].index].register.name,
-                        self.layout[self.ordered_regs[i].index].index,
-                        self.ordered_regs[i].index)
+                    if self.layout[self.ordered_regs[i].index]:
+                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            self.layout[self.ordered_regs[i].index].register.name,
+                            self.layout[self.ordered_regs[i].index].index,
+                            self.ordered_regs[i].index)
+                    else:
+                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
