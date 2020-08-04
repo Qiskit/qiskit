@@ -212,6 +212,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    NewType
 )
 
 import numpy as np
@@ -234,6 +235,8 @@ from qiskit.pulse.schedule import Schedule
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
 T = TypeVar('T')  # pylint: disable=invalid-name
+
+MeasResource = NewType('MeasResource', Union[chans.MemorySlot, chans.RegisterSlot])
 
 
 def _compile_lazy_circuit_before(function: Callable[..., T]
@@ -1292,7 +1295,7 @@ def play(pulse: Union[library.Pulse, np.ndarray],
 
 def acquire(duration: int,
             qubit_or_channel: Union[int, chans.AcquireChannel],
-            register: Union[chans.RegisterSlot, chans.MemorySlot],
+            register: MeasResource,
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
@@ -1637,10 +1640,8 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
 # Macros
 def measure(qubits: Union[List[int], int],
-            registers: Union[List[Union[chans.MemorySlot, chans.RegisterSlot]],
-                             Union[chans.MemorySlot, chans.RegisterSlot]] = None,
-            ) -> Union[List[Union[chans.MemorySlot, chans.RegisterSlot]],
-                       Union[chans.MemorySlot, chans.RegisterSlot]]:
+            registers: Union[List[MeasResource], MeasResource] = None,
+            ) -> Union[List[MeasResource], MeasResource]:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
