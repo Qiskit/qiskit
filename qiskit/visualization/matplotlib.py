@@ -623,9 +623,12 @@ class MatplotlibDrawer:
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
-                    label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
-                        name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index, physical=reg.index)
+                    if self.layout[reg.index]:
+                        label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
+                            name=self.layout[reg.index].register.name,
+                            index=self.layout[reg.index].index, physical=reg.index)
+                    else:
+                        label = '${{{physical}}}$'.format(physical=reg.index)
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
