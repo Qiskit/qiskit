@@ -103,8 +103,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(QiskitError, qc1.__add__, qc2)
-        self.assertRaises(QiskitError, qc1.__add__, qcr3)
+        self.assertRaises(CircuitError, qc1.__add__, qc2)
+        self.assertRaises(CircuitError, qc1.__add__, qcr3)
 
     def test_extend_circuit(self):
         """Test extending a circuit with same registers (in place add).
