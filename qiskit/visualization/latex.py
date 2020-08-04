@@ -42,7 +42,7 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
-                 cregbundle=False):
+                 cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
 
         Args:
@@ -59,6 +59,7 @@ class QCircuitImage:
                included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
+            global_phase (float): Optional, the global phase for the circuit.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -135,6 +136,7 @@ class QCircuitImage:
         for bit in self.ordered_regs:
             self.wire_type[bit] = bit.register in self.cregs.keys()
         self.cregbundle = cregbundle
+        self.global_phase = global_phase
 
     def latex(self):
         """Return LaTeX string representation of circuit.
@@ -162,8 +164,9 @@ class QCircuitImage:
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
-\begin{equation*}"""
+"""
         qcircuit_line = r"""
+\begin{equation*}
     \Qcircuit @C=%.1fem @R=%.1fem @!R {
 """
         output = io.StringIO()
@@ -171,6 +174,9 @@ class QCircuitImage:
         output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
         output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
+        if self.global_phase:
+            output.write(r"""
+{\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
         for i in range(self.img_width):

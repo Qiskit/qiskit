@@ -249,12 +249,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test U 1, 2, & 3 gates"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.u1(3*pi/2, 0)
-        circuit.u2(3*pi/2, 2*pi/3, 1)
-        circuit.u3(3*pi/2, 4.5, pi/4, 2)
-        circuit.cu1(pi/4, 0, 1)
-        circuit.append(U2Gate(pi/2, 3*pi/2).control(1), [qr[2], qr[3]])
-        circuit.cu3(3*pi/2, -3*pi/4, -pi/2, 0, 1)
+        circuit.u1(3 * pi / 2, 0)
+        circuit.u2(3 * pi / 2, 2 * pi / 3, 1)
+        circuit.u3(3 * pi / 2, 4.5, pi / 4, 2)
+        circuit.cu1(pi / 4, 0, 1)
+        circuit.append(U2Gate(pi / 2, 3 * pi / 2).control(1), [qr[2], qr[3]])
+        circuit.cu3(3 * pi / 2, -3 * pi / 4, -pi / 2, 0, 1)
 
         self.circuit_drawer(circuit, filename='u_gates.png')
 
@@ -276,14 +276,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test all R gates"""
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.r(3*pi/4, 3*pi/8, 0)
-        circuit.rx(pi/2, 1)
-        circuit.ry(-pi/2, 2)
-        circuit.rz(3*pi/4, 3)
-        circuit.rxx(pi/2, 0, 1)
-        circuit.ryy(3*pi/4, 2, 3)
-        circuit.rzx(-pi/2, 0, 1)
-        circuit.rzz(pi/2, 2, 3)
+        circuit.r(3 * pi / 4, 3 * pi / 8, 0)
+        circuit.rx(pi / 2, 1)
+        circuit.ry(-pi / 2, 2)
+        circuit.rz(3 * pi / 4, 3)
+        circuit.rxx(pi / 2, 0, 1)
+        circuit.ryy(3 * pi / 4, 2, 3)
+        circuit.rzx(-pi / 2, 0, 1)
+        circuit.rzz(pi / 2, 2, 3)
 
         self.circuit_drawer(circuit, filename='r_gates.png')
 
@@ -305,7 +305,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cswap(0, 1, 2)
-        circuit.append(RZZGate(3*pi/4).control(3, ctrl_state='010'), [2, 1, 4, 3, 0])
+        circuit.append(RZZGate(3 * pi / 4).control(3, ctrl_state='010'), [2, 1, 4, 3, 0])
 
         self.circuit_drawer(circuit, filename='cswap_rzz.png')
 
@@ -343,6 +343,22 @@ class TestMatplotlibDrawer(QiskitTestCase):
                                seed_transpiler=0)
 
         self.circuit_drawer(transpiled, filename='partial_layout.png')
+
+    def test_init_reset(self):
+        """Test reset and initialize with 1 and 2 qubits"""
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0, 1], 0)
+        circuit.reset(1)
+        circuit.initialize([0, 1, 0, 0], [0, 1])
+
+        self.circuit_drawer(circuit, filename='init_reset.png')
+
+    def test_with_global_phase(self):
+        """Tests with global phase"""
+        circuit = QuantumCircuit(3, global_phase=1.57079632679)
+        circuit.h(range(3))
+
+        self.circuit_drawer(circuit, filename='global_phase.png')
 
 
 if __name__ == '__main__':

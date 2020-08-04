@@ -124,6 +124,9 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     qc = QuantumCircuit(*regs, name=instruction.name)
     qc._data = definition
+    if circuit.global_phase:
+        qc.global_phase = circuit.global_phase
+
     instruction.definition = qc
 
     return instruction
