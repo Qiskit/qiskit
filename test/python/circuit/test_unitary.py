@@ -250,7 +250,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qr = QuantumRegister(2, 'q0')
         cr = ClassicalRegister(1, 'c0')
         qc = QuantumCircuit(qr, cr)
-        matrix = numpy.eye(4)
+        matrix = random_unitary(4, seed=4242)
         unitary_gate = UnitaryGate(matrix, label="custom_gate")
 
         qc.x(qr[0])
@@ -263,8 +263,17 @@ class TestUnitaryCircuit(QiskitTestCase):
                         "creg c0[1];\n" \
                         "x q0[0];\n" \
                         "gate custom_gate p0,p1 {\n" \
-                        "\tu3(0,0,0) p0;\n" \
-                        "\tu3(0,0,0) p1;\n" \
+                        "\tu3(2.3357379,-1.8518069,-0.7971604) p0;\n" \
+                        "\tu3(1.4450577,-4.0364661,1.5603609) p1;\n" \
+                        "\tcx p0,p1;\n" \
+                        "\tu3(1.0586145,-3*pi/2,pi/2) p0;\n" \
+                        "\tu3(pi/2,-pi,-2.766067) p1;\n" \
+                        "\tcx p0,p1;\n" \
+                        "\tu3(0.71687194,-pi,-pi/2) p0;\n" \
+                        "\tu3(pi/2,0,-3*pi/2) p1;\n" \
+                        "\tcx p0,p1;\n" \
+                        "\tu3(2.9456177,0.68371166,1.9683595) p0;\n" \
+                        "\tu3(0.71790899,-4.6089877,1.2400911) p1;\n" \
                         "}\n" \
                         "custom_gate q0[0],q0[1];\n" \
                         "custom_gate q0[1],q0[0];\n"
