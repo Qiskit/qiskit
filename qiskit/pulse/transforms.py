@@ -127,6 +127,8 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
         raise exceptions.PulseError("Align time cannot be negative.")
 
     first_acquire_times = get_first_acquire_times(schedules)
+    # Extract the maximum acquire in every schedule across all acquires in the schedule.
+    # If there are no acquires in the schedule default to 0.
     max_acquire_times = [max(0, *times.values()) for times in first_acquire_times]
     if align_time is None:
         if max_calibration_duration is None:
