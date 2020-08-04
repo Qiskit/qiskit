@@ -901,7 +901,7 @@ def align_equispaced(duration: int) -> ContextManager[None]:
     """Equispaced alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled with the same interval spacing such that the total length of the context block is ``duration``.
-    If the total free induction time cannot be divided by the number of sub-schedules
+    If the total free ``duration`` cannot be evenly divided by the number of component instructions
     within the context, the modulo is prepended and appended to the returned schedule.
     Delay instruction is automatically inserted in between pulses.
 
