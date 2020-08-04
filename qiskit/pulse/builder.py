@@ -905,7 +905,7 @@ def align_equispaced(duration: int) -> ContextManager[None]:
     within the context, the modulo is split and then prepended and appended to the returned schedule.
     Delay instructions are automatically inserted in between pulses.
 
-    This context may be convenient to write a schedule of the periodical dynamic decoupling or
+    This context is convenient to write a schedule for periodical dynamic decoupling or
     the Hahn echo sequence.
 
     Examples:
