@@ -250,7 +250,7 @@ class QasmQobjConfig(SimpleNamespace):
 
     def __init__(self, shots=None, max_credits=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
-                 n_qubits=None, **kwargs):
+                 n_qubits=None, pulse_library=None, **kwargs):
         """Model for RunConfig.
 
         Args:
@@ -261,6 +261,7 @@ class QasmQobjConfig(SimpleNamespace):
             parameter_binds (list[dict]): List of parameter bindings
             memory_slots (int): The number of memory slots on the device
             n_qubits (int): The number of qubits on the device
+            pulse_library (list): List of :class:`PulseLibraryItem`.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
@@ -284,6 +285,9 @@ class QasmQobjConfig(SimpleNamespace):
 
         if n_qubits is not None:
             self.n_qubits = n_qubits
+
+        if pulse_library is not None:
+            self.pulse_library = pulse_library
 
         if kwargs:
             self.__dict__.update(kwargs)
@@ -372,51 +376,14 @@ class QasmQobjExperimentConfig(QobjDictField):
     def __init__(self, calibrations=None, **kwargs):
         """
         Args:
-            calibrations (QasmQobjCalibrations): Information required for
-                                                 Pulse gates.
+            calibrations (list(GateCalibration)): Information required for
+                                                  Pulse gates.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
         if calibrations:
             self.calibrations = calibrations
         super().__init__(**kwargs)
-
-
-class QasmQobjCalibrations:
-    """The description of all the gate calibrations and their pulse waveforms."""
-
-    def __init__(self, gates, pulse_library):
-        """
-        Initailize calibrations for a job.
-
-        Args:
-            gates (list(GateCalibrations)): A list of calibrations.
-            pulse_library (list): List of :class:`PulseLibraryItem`.
-        """
-        self.gates = gates
-        self.pulse_library = pulse_library
-
-    def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj Calibrations.
-
-        Returns:
-            dict: The dictionary form of the QasmQobjCalibrations.
-
-        """
-        return self.__dict__
-
-    @classmethod
-    def from_dict(cls, data):
-        """Create a new QasmQobjCalibrations object from a dictionary.
-
-        Args:
-            data (dict): A dictionary representing the QasmQobjCalibrations to create. It
-                will be in the same format as output by :func:`to_dict`.
-
-        Returns:
-            QasmQobjCalibrations: The QasmQobjCalibrations from the input dictionary.
-        """
-        return cls(**data)
 
 
 class GateCalibration:
