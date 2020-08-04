@@ -289,7 +289,7 @@ class TestPad(QiskitTestCase):
                  Delay(delay, DriveChannel(0)))
         ref_sched = (sched | pulse.Delay(10, DriveChannel(0)))
 
-        self.assertEqual(transforms.pad(sched, until=30), ref_sched)
+        self.assertEqual(transforms.pad(sched, until=30, inplace=True), ref_sched)
 
 
 def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
