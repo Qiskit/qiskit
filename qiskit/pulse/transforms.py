@@ -149,8 +149,10 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                 isinstance(chan, (chans.MeasureChannel, chans.AcquireChannel))
             }
             if measurement_channels:
-                max_start_time = max(first_acquire_times[sched_idx][chan]
-                                     for chan in measurement_channels)
+                sched_first_acquire_times = first_acquire_times[sched_idx]
+                max_start_time = max(sched_first_acquire_times[chan]
+                                     for chan in measurement_channels if
+                                     chan in sched_first_acquire_times)
                 shift = align_time - max_start_time
             elif align_all:
                 if first_acquire_times[sched_idx]:

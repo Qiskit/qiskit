@@ -179,6 +179,21 @@ class TestAlignMeasures(QiskitTestCase):
         self.assertEqual(all_not_aligned[0], ref1_not_aligned)
         self.assertEqual(all_not_aligned[1], sched1)
 
+    def test_measurement_at_zero(self):
+        """Test that acquire at t=0 works."""
+        sched1 = pulse.Schedule(name='fake_experiment')
+        sched1 = sched1.insert(0, Play(self.short_pulse, self.config.drive(0)))
+        sched1 = sched1.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
+        sched2 = pulse.Schedule(name='fake_experiment')
+        sched2 = sched2.insert(0, Play(self.short_pulse, self.config.drive(0)))
+        sched2 = sched2.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
+        schedules = transforms.align_measures([sched1, sched2], max_calibration_duration=0)
+        for time, inst in schedules[0].instructions:
+            if isinstance(inst, Acquire):
+                self.assertEqual(time, 0)
+        for time, inst in schedules[0].instructions:
+            if isinstance(inst, Acquire):
+                self.assertEqual(time, 0)
 
 class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
