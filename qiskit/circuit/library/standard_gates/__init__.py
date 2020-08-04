@@ -25,10 +25,12 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    CCXGate
    DCXGate
    CHGate
+   CPhaseGate
    CRXGate
    CRYGate
    CRZGate
    CSwapGate
+   CUGate
    CU1Gate
    CU3Gate
    CXGate
@@ -37,6 +39,8 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    HGate
    IGate
    MSGate
+   MCPhaseGate
+   PhaseGate
    RCCXGate
    RC3XGate
    RXGate
@@ -52,6 +56,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    iSwapGate
    TGate
    TdgGate
+   UGate
    U1Gate
    U2Gate
    U3Gate
@@ -64,6 +69,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 from .h import HGate, CHGate
 from .i import IGate
 from .ms import MSGate
+from .p import PhaseGate, CPhaseGate, MCPhaseGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
@@ -77,6 +83,7 @@ from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
 from .dcx import DCXGate
 from .t import TGate, TdgGate
+from .u import UGate, CUGate
 from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate, CU3Gate

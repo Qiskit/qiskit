@@ -28,7 +28,7 @@ from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
     U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
-    ZGate, CZGate, RYYGate
+    ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -124,7 +124,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
     def setUpClass(cls):
         class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         exclude = {'ControlledGate', 'DiagonalGate', 'UCGate', 'MCGupDiag',
-                   'MCU1Gate', 'UnitaryGate', 'HamiltonianGate',
+                   'MCU1Gate', 'UnitaryGate', 'HamiltonianGate', 'MCPhaseGate',
                    'UCPauliRotGate', 'SingleQubitUnitary', 'MCXGate',
                    'VariadicZeroParamGate'}
         cls._gate_classes = []
@@ -141,11 +141,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                 params = [0.1 * i for i in range(1, n_params+1)]
                 if gate_class.__name__ == 'RXXGate':
                     params = [np.pi/2]
-                params = [-np.pi/2 * i for i in range(1, n_params+1)]
                 if gate_class.__name__ in ['MSGate']:
                     params[0] = 2
-                elif gate_class in ['MCU1Gate']:
-                    params[1] = 2
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):
@@ -163,7 +160,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
         CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
         U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
-        ZGate, CZGate, RYYGate
+        ZGate, CZGate, RYYGate, PhaseGate, CPhaseGate, UGate, CUGate
     )
     def test_definition_parameters(self, gate_class):
         """Verify decompositions from standard equivalence library match definitions."""
