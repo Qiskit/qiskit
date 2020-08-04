@@ -139,6 +139,9 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             try:
+                if any([isinstance(reg, float) for reg in regs]):
+                    warnings.warn("Float type argument passed as register. Casting to int.")
+
                 regs = tuple(int(reg) for reg in regs)
             except Exception:
                 raise CircuitError("Circuit args must be Registers or be castable to an int" +
