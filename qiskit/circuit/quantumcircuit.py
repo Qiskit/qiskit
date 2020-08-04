@@ -658,13 +658,12 @@ class QuantumCircuit:
         return self._ancillas
 
     def __add__(self, rhs):
-        """Overload + to compose two circuits and return resulting circuit."""
-        return self.compose(rhs, inplace=False)
+        """Overload + to implement self.combine."""
+        return self.combine(rhs)
 
     def __iadd__(self, rhs):
-        """Overload += to compose with another circuit inplace."""
-        self.compose(rhs, inplace=True)
-        return self
+        """Overload += to implement self.extend."""
+        return self.extend(rhs)
 
     def __len__(self):
         """Return number of operations in circuit."""
