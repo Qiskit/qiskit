@@ -21,7 +21,7 @@ from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
 from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.utils import ConfigurableBackend
+from qiskit.test.mock.utils import ConfigurableFakeBackend
 
 from qiskit.test.mock.fake_backend import HAS_AER
 
@@ -42,7 +42,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     """Generated fake backends test."""
 
     def setUp(self) -> None:
-        self.backend = ConfigurableBackend("Tashkent", n_qubits=4)
+        self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
 
     @unittest.skip('Skipped until qiskit-aer#741 is fixed and released')
     @unittest.skipUnless(HAS_AER, 'qiskit-aer is required to run this test')
