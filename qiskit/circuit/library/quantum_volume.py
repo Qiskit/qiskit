@@ -14,7 +14,7 @@
 
 """Quantum Volume model circuit."""
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from qiskit.quantum_info.random import random_unitary
@@ -62,45 +62,45 @@ class QuantumVolume(QuantumCircuit):
     def __init__(self,
                  num_qubits: int,
                  depth: Optional[int] = None,
-                 seed: Optional[int] = None,
+                 seed: Optional[Union[int, np.random.Generator]] = None,
                  classical_permutation: bool = True) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
-            seed: randomization seed.
+            seed: Random number generator or generator seed.
             classical_permutation: use classical permutations at every layer,
                 rather than quantum.
         """
-        depth = depth or num_qubits  # how many layers of SU(4)
-        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
-
+        # Initialize RNG
         if seed is None:
             rng_set = np.random.default_rng()
             seed = rng_set.integers(low=1, high=1000)
 
-        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
+        if isinstance(seed, np.random.Generator):
+            rng = seed
+        else:
+            rng = np.random.default_rng(seed)
 
+        # Parameters
+        depth = depth or num_qubits  # how many layers of SU(4)
+        width = int(np.floor(num_qubits/2))  # how many SU(4)s fit in each layer
+        name = "quantum_volume_" + str([num_qubits, depth]).replace(' ', '')
         super().__init__(num_qubits, name=name)
-
-        rng = np.random.default_rng(seed)
-
-        unitary_seeds = rng.integers(low=1, high=1000, size=[depth, width])
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
         inner = QuantumCircuit(num_qubits, name=name)
         perm_0 = list(range(num_qubits))
-        for d in range(depth):
+        for _ in range(depth):
             perm = rng.permutation(perm_0)
             if not classical_permutation:
                 layer_perm = Permutation(num_qubits, perm)
                 inner.compose(layer_perm, inplace=True)
             for w in range(width):
-                seed_u = unitary_seeds[d][w]
-                su4 = random_unitary(4, seed=seed_u).to_instruction()
-                su4.label = 'su4_' + str(seed_u)
+                su4 = random_unitary(4, seed=rng).to_instruction()
+                su4.label = 'su4'
                 if classical_permutation:
                     physical_qubits = int(perm[2*w]), int(perm[2*w+1])
                     inner.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)

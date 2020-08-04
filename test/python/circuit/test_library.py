@@ -274,11 +274,18 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
     def test_qv(self):
         """Test qv circuit."""
-        circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
+        seed = 10203
+        rng1 = np.random.default_rng(seed)
+        rng2 = np.random.default_rng(seed)
+
+        depth = 2
+        circuit = QuantumVolume(2, depth, seed=rng1, classical_permutation=False)
+
         expected = QuantumCircuit(2)
-        expected.swap(0, 1)
-        expected.append(random_unitary(4, seed=837), [0, 1])
-        expected.append(random_unitary(4, seed=262), [0, 1])
+        for _ in range(depth):
+            if rng2.permutation([0, 1]).tolist() == [1, 0]:
+                expected.swap(0, 1)
+            expected.append(random_unitary(4, seed=rng2), [0, 1])
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
