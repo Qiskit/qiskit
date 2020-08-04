@@ -940,7 +940,7 @@ def align_equispaced(duration: int) -> ContextManager[None]:
 @_transform_context(transforms.align_numerical)
 def align_numerical(duration: int,
                     position: Callable[[int], float]) -> ContextManager[None]:
-    """Numerically-defined alignment pulse scheduling context.
+    """Callback defined alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled at the location specified by
     arbitrary callback function `position` that takes integer index and returns
