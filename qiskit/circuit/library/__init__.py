@@ -31,11 +31,13 @@ Standard Gates
    CCXGate
    DCXGate
    CHGate
+   CPhaseGate
    CRXGate
    CRYGate
    CRZGate
    CSwapGate
    CSXGate
+   CUGate
    CU1Gate
    CU3Gate
    CXGate
@@ -43,8 +45,10 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MCPhaseGate
    Measure
    MSGate
+   PhaseGate
    RCCXGate
    RC3XGate
    Reset
@@ -63,6 +67,7 @@ Standard Gates
    SXdgGate
    TGate
    TdgGate
+   UGate
    U1Gate
    U2Gate
    U3Gate
