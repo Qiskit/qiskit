@@ -236,7 +236,7 @@ BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
 T = TypeVar('T')  # pylint: disable=invalid-name
 
-MeasResource = NewType('MeasResource', Union[chans.MemorySlot, chans.RegisterSlot])
+StorageLocation = NewType('StorageLocation', Union[chans.MemorySlot, chans.RegisterSlot])
 
 
 def _compile_lazy_circuit_before(function: Callable[..., T]
@@ -1295,7 +1295,7 @@ def play(pulse: Union[library.Pulse, np.ndarray],
 
 def acquire(duration: int,
             qubit_or_channel: Union[int, chans.AcquireChannel],
-            register: MeasResource,
+            register: StorageLocation,
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
@@ -1640,8 +1640,8 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
 # Macros
 def measure(qubits: Union[List[int], int],
-            registers: Union[List[MeasResource], MeasResource] = None,
-            ) -> Union[List[MeasResource], MeasResource]:
+            registers: Union[List[StorageLocation], StorageLocation] = None,
+            ) -> Union[List[StorageLocation], StorageLocation]:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
