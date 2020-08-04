@@ -140,14 +140,18 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None, global_phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             try:
-                if any([not isinstance(reg, (int, np.int, np.int32, np.int64)) for reg in regs]):
-                    warnings.warn('Provided register sizes were not all int.'
-                                  'Casting to int...')
-                regs = tuple(int(reg) for reg in regs)
+                regs_int = tuple(int(reg) for reg in regs)
             except Exception:
-                raise CircuitError("Circuit args must be Registers or be castable to an int" +
+                raise CircuitError("Circuit args must be Registers or be castable to an int. " +
                                    "(%s '%s' was provided)"
                                    % ([type(reg).__name__ for reg in regs], regs))
+
+            if not all(np.isclose(regs, regs_int)):
+                raise CircuitError("Circuit args must be approximately integers. " +
+                                   "(%s '%s' was provided)"
+                                   % ([type(reg).__name__ for reg in regs], regs))
+            regs = regs_int
+
         if name is None:
             name = self.cls_prefix() + str(self.cls_instances())
             if sys.platform != "win32" and not is_main_process():
