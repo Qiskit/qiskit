@@ -26,6 +26,8 @@ from . import (
     HGate,
     CHGate,
     MSGate,
+    PhaseGate,
+    CPhaseGate,
     RGate,
     RCCXGate,
     RXGate,
@@ -45,6 +47,8 @@ from . import (
     DCXGate,
     TGate,
     TdgGate,
+    UGate,
+    CUGate,
     U1Gate,
     CU1Gate,
     U2Gate,
@@ -99,6 +103,32 @@ for num_qubits in range(2, 20):
         for j in range(i + 1, num_qubits):
             def_ms.append(RXXGate(theta), [q[i], q[j]])
     _sel.add_equivalence(MSGate(num_qubits, theta), def_ms)
+
+# PhaseGate
+
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+phase_to_u1 = QuantumCircuit(q)
+phase_to_u1.u1(theta, 0)
+_sel.add_equivalence(PhaseGate(theta), phase_to_u1)
+
+# CPhaseGate
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+def_cphase = QuantumCircuit(q)
+def_cphase.p(theta / 2, 0)
+def_cphase.cx(0, 1)
+def_cphase.p(-theta / 2, 1)
+def_cphase.cx(0, 1)
+def_cphase.p(theta / 2, 1)
+_sel.add_equivalence(CPhaseGate(theta), def_cphase)
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+cphase_to_cu1 = QuantumCircuit(q)
+cphase_to_cu1.cu1(theta, 0, 1)
+_sel.add_equivalence(CPhaseGate(theta), cphase_to_cu1)
 
 # RGate
 
@@ -355,14 +385,56 @@ def_tdg = QuantumCircuit(q)
 def_tdg.append(U1Gate(-pi / 4), [q[0]], [])
 _sel.add_equivalence(TdgGate(), def_tdg)
 
-# U2Gate
+# UGate
 
 q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
 phi = Parameter('phi')
 lam = Parameter('lam')
-def_u2 = QuantumCircuit(q)
-def_u2.append(U3Gate(pi / 2, phi, lam), [q[0]], [])
-_sel.add_equivalence(U2Gate(phi, lam), def_u2)
+u_to_u3 = QuantumCircuit(q)
+u_to_u3.u3(theta, phi, lam, 0)
+_sel.add_equivalence(UGate(theta, phi, lam), u_to_u3)
+
+# CUGate
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+gamma = Parameter('gamma')
+def_cu = QuantumCircuit(q)
+def_cu.p(gamma, 0)
+def_cu.p((lam + phi) / 2, 0)
+def_cu.p((lam - phi) / 2, 1)
+def_cu.cx(0, 1)
+def_cu.u(-theta / 2, 0, -(phi + lam) / 2, 1)
+def_cu.cx(0, 1)
+def_cu.u(theta / 2, phi, 0, 1)
+_sel.add_equivalence(CUGate(theta, phi, lam, gamma), def_cu)
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+gamma = Parameter('gamma')
+cu_to_cu3 = QuantumCircuit(q)
+cu_to_cu3.p(gamma, 0)
+cu_to_cu3.cu3(theta, phi, lam, 0, 1)
+_sel.add_equivalence(CUGate(theta, phi, lam, gamma), cu_to_cu3)
+
+# U1Gate
+
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+def_u1 = QuantumCircuit(q)
+def_u1.append(U3Gate(0, 0, theta), [q[0]], [])
+_sel.add_equivalence(U1Gate(theta), def_u1)
+
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+u1_to_phase = QuantumCircuit(q)
+u1_to_phase.p(theta, 0)
+_sel.add_equivalence(U1Gate(theta), u1_to_phase)
 
 # CU1Gate
 
@@ -382,10 +454,11 @@ _sel.add_equivalence(CU1Gate(theta), def_cu1)
 # U2Gate
 
 q = QuantumRegister(1, 'q')
-theta = Parameter('theta')
-def_u1 = QuantumCircuit(q)
-def_u1.append(U3Gate(0, 0, theta), [q[0]], [])
-_sel.add_equivalence(U1Gate(theta), def_u1)
+phi = Parameter('phi')
+lam = Parameter('lam')
+def_u2 = QuantumCircuit(q)
+def_u2.append(U3Gate(pi / 2, phi, lam), [q[0]], [])
+_sel.add_equivalence(U2Gate(phi, lam), def_u2)
 
 # U3Gate
 
@@ -400,6 +473,14 @@ u3_qasm_def.rz(theta+pi, 0)
 u3_qasm_def.rx(pi/2, 0)
 u3_qasm_def.rz(phi+3*pi, 0)
 _sel.add_equivalence(U3Gate(theta, phi, lam), u3_qasm_def)
+
+q = QuantumRegister(1, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+u3_to_u = QuantumCircuit(q)
+u3_to_u.u(theta, phi, lam, 0)
+_sel.add_equivalence(U3Gate(theta, phi, lam), u3_to_u)
 
 # CU3Gate
 
@@ -418,6 +499,13 @@ for inst, qargs, cargs in [
 ]:
     def_cu3.append(inst, qargs, cargs)
 _sel.add_equivalence(CU3Gate(theta, phi, lam), def_cu3)
+
+q = QuantumRegister(2, 'q')
+theta = Parameter('theta')
+phi = Parameter('phi')
+lam = Parameter('lam')
+cu3_to_cu = QuantumCircuit(q)
+cu3_to_cu.cu(theta, phi, lam, 0, 0, 1)
 
 # XGate
 
