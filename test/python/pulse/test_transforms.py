@@ -653,7 +653,7 @@ class TestAlignNumerical(QiskitTestCase):
         for _ in range(3):
             sched.append(Delay(10, d0), inplace=True)
 
-        sched = transforms.align_numerical(sched, duration=20, position=self._position)
+        sched = transforms.align_func(sched, duration=20, position=self._position)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
@@ -670,7 +670,7 @@ class TestAlignNumerical(QiskitTestCase):
         for _ in range(3):
             sched.append(Delay(10, d0), inplace=True)
 
-        sched = transforms.align_numerical(sched, duration=80, position=self._position)
+        sched = transforms.align_func(sched, duration=80, position=self._position)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(15, d0), inplace=True)

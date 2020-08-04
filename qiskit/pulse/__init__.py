@@ -414,11 +414,11 @@ from qiskit.pulse.builder import (
     drive_channel,
     measure_channel,
     # Contexts.
+    align_equispaced,
+    align_func,
     align_left,
     align_right,
     align_sequential,
-    align_equispaced,
-    align_numerical,
     circuit_scheduler_settings,
     frequency_offset,
     inline,

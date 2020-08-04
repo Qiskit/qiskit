@@ -937,9 +937,9 @@ def align_equispaced(duration: int) -> ContextManager[None]:
 
 
 # pylint: disable=unused-argument
-@_transform_context(transforms.align_numerical)
-def align_numerical(duration: int,
-                    position: Callable[[int], float]) -> ContextManager[None]:
+@_transform_context(transforms.align_func)
+def align_func(duration: int,
+               func: Callable[[int], float]) -> ContextManager[None]:
     """Callback defined alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled at the location specified by
@@ -966,7 +966,7 @@ def align_numerical(duration: int,
 
         with pulse.build() as udd_sched:
             pulse.play(x90, d0)
-            with pulse.align_numerical(duration=100, position=udd10_pos):
+            with pulse.align_func(duration=100, func=udd10_pos):
                 for _ in range(10):
                     pulse.play(x180, d0)
             pulse.play(x90, d0)
@@ -975,7 +975,7 @@ def align_numerical(duration: int,
 
     Args:
         duration: Duration of context. This should be larger than the schedule duration.
-        position: A function that takes an index of sub-schedule and returns the
+        func: A function that takes an index of sub-schedule and returns the
             fractional coordinate of of that sub-schedule.
             The returned value should be defined within [0, 1].
             The pulse index starts from 1.

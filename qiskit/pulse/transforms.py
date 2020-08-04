@@ -422,9 +422,9 @@ def align_equispaced(schedule: Schedule,
     return pad(aligned, aligned.channels, until=duration, inplace=True)
 
 
-def align_numerical(schedule: Schedule,
-                    duration: int,
-                    position: Callable[[int], float]) -> Schedule:
+def align_func(schedule: Schedule,
+               duration: int,
+               func: Callable[[int], float]) -> Schedule:
     """Schedule a list of pulse instructions with schedule position defined by the
     numerical expression.
 
@@ -432,7 +432,7 @@ def align_numerical(schedule: Schedule,
         schedule: Input schedule of which top-level ``child`` nodes will be
             reschedulued.
         duration: Duration of context. This should be larger than the schedule duration.
-        position: A function that takes an index of sub-schedule and returns the
+        func: A function that takes an index of sub-schedule and returns the
             fractional coordinate of of that sub-schedule.
             The returned value should be defined within [0, 1].
             The pulse index starts from 1.
@@ -449,7 +449,7 @@ def align_numerical(schedule: Schedule,
 
     aligned = Schedule()
     for ind, (_, child) in enumerate(schedule._children):
-        _t_center = duration * position(ind + 1)
+        _t_center = duration * func(ind + 1)
         _t0 = int(_t_center - 0.5 * child.duration)
         if _t0 < 0 or _t0 > duration:
             PulseError('Invalid schedule position t=%d is specified at index=%d' % (_t0, ind))
