@@ -164,8 +164,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = QuantumCircuit(qr2)
         qcr3 = QuantumCircuit(cr1)
 
-        self.assertRaises(QiskitError, qc1.__iadd__, qc2)
-        self.assertRaises(QiskitError, qc1.__iadd__, qcr3)
+        self.assertRaises(CircuitError, qc1.__iadd__, qc2)
+        self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
