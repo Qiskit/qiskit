@@ -45,6 +45,8 @@ class Schedule(ScheduleComponent):
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
     prefix = 'sched'
+    # Avoid warning more than once about Schedule ``inplace`` attribute
+    _warn_about_inplace = True
 
     def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
                  name: Optional[str] = None,
@@ -66,11 +68,13 @@ class Schedule(ScheduleComponent):
         self.inplace = inplace
         if inplace is None:
             self.inplace = False
-            warnings.warn("Schedules have been immutable by default. For performance, Schedules "
-                          "will be mutable by default in an upcoming release. You can enable this "
-                          "behavior now by including ``inplace=True`` in your Schedule "
-                          "initialization: ``my_sched = Schedule(name=name, inplace=True)``.",
-                          DeprecationWarning)
+            if Schedule._warn_about_inplace:
+                warnings.warn("Schedules have been immutable by default. For performance, Schedules "
+                              "will be mutable by default in an upcoming release. You can enable this "
+                              "behavior now by including ``inplace=True`` in your Schedule "
+                              "initialization: ``my_sched = Schedule(name=name, inplace=True)``.",
+                              DeprecationWarning)
+                Schedule._warn_about_inplace = False
 
         self._name = name
         self._duration = 0
