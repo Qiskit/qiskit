@@ -515,7 +515,7 @@ class QuantumCircuit:
         self._check_compatible_regs(rhs)
 
         warnings.warn("The QuantumCircuit.extend() method is being deprecated."
-                      "Use the compose() method which is more flexible w.r.t "
+                      "Use the compose(inplace=True) method which is more flexible w.r.t "
                       "circuit register compatibility.", DeprecationWarning)
         self.compose(rhs, inplace=True)
         return self
