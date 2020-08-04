@@ -903,7 +903,7 @@ def align_equispaced(duration: int) -> ContextManager[None]:
     Pulse instructions within this context are scheduled with the same interval spacing such that the total length of the context block is ``duration``.
     If the total free ``duration`` cannot be evenly divided by the number of component instructions
     within the context, the modulo is split and then prepended and appended to the returned schedule.
-    Delay instruction is automatically inserted in between pulses.
+    Delay instructions are automatically inserted in between pulses.
 
     This context may be convenient to write a schedule of the periodical dynamic decoupling or
     the Hahn echo sequence.
