@@ -637,8 +637,8 @@ class TestAlignEquispaced(QiskitTestCase):
         self.assertEqual(sched, reference)
 
 
-class TestAlignNumerical(QiskitTestCase):
-    """Test numerical alignment transform."""
+class TestAlignFunc(QiskitTestCase):
+    """Test callback alignment transform."""
 
     @staticmethod
     def _position(ind):
@@ -653,7 +653,7 @@ class TestAlignNumerical(QiskitTestCase):
         for _ in range(3):
             sched.append(Delay(10, d0), inplace=True)
 
-        sched = transforms.align_func(sched, duration=20, position=self._position)
+        sched = transforms.align_func(sched, duration=20, func=self._position)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
@@ -670,7 +670,7 @@ class TestAlignNumerical(QiskitTestCase):
         for _ in range(3):
             sched.append(Delay(10, d0), inplace=True)
 
-        sched = transforms.align_func(sched, duration=80, position=self._position)
+        sched = transforms.align_func(sched, duration=80, func=self._position)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(15, d0), inplace=True)
