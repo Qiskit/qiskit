@@ -234,7 +234,8 @@ class TestBasisTranslator(QiskitTestCase):
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatability with the Unroller pass.
 
-    Duplicate of TestUnroller from test.python.transpiler.test_unroller with
+    Duplicate of TestUnroller from
+    qiskit.tests.python.transpiler.test_unroller with
     Unroller replaced by UnrollCustomDefinitions -> BasisTranslator.
     """
 

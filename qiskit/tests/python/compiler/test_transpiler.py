@@ -22,7 +22,7 @@ from logging import StreamHandler, getLogger
 from unittest.mock import patch
 
 from ddt import ddt, data, unpack
-from test import combine  # pylint: disable=wrong-import-order
+from qiskit.tests import combine  # pylint: disable=wrong-import-order
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
