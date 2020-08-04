@@ -22,6 +22,7 @@ import copy
 import itertools
 import multiprocessing as mp
 import sys
+import warnings
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
 from qiskit.util import is_main_process
@@ -112,11 +113,38 @@ class Schedule(ScheduleComponent):
         return tuple(self.__children)
 
     @property
-    def instructions(self):
+    def instructions(self) -> List[Tuple[int, ScheduleComponent]]:
         """Get the time-ordered instructions from self.
 
         ReturnType:
             Tuple[Tuple[int, Instruction], ...]
+        """
+        warnings.warn(
+            '"Schedule.instructions" has been deprecated and will be removed in '
+            ' in a later release. Please replace all calls with "Schedule.timed_instructions(flatten=True)"',
+            DeprecationWarning
+        )
+        return self.timed_instructions(flatten=True)
+
+    def timed_instructions(self, flatten: bool = False) -> List[Tuple[int, ScheduleComponent]]:
+        """Get the time-ordered instructions from self.
+
+        .. jupyter-execute::
+
+            from qiskit import pulse
+
+            element = pulse.Schedule()
+            element += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+            element += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(1))
+
+            sched = pulse.Schedule()
+            sched += element
+
+            print("Tree: {}" .format(sched.timed_instructions()))
+            print("Flattened: {}" .format(sched.timed_instructions(flatten=True)))
+
+        Args:
+            flatten: Flatten the Schedule tree into a list of timed instructions.
         """
 
         def key(time_inst_pair):
@@ -124,7 +152,9 @@ class Schedule(ScheduleComponent):
             return (time_inst_pair[0], inst.duration,
                     sorted(chan.name for chan in inst.channels))
 
-        return tuple(sorted(self._instructions(), key=key))
+        if flatten:
+            return sorted(self._flattened_instructions(), key=key)
+        return sorted(self._children, key=key)
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
@@ -160,7 +190,7 @@ class Schedule(ScheduleComponent):
             # If there are no instructions over channels
             return 0
 
-    def _instructions(self, time: int = 0):
+    def _flattened_instructions(self, time: int = 0):
         """Iterable for flattening Schedule tree.
 
         Args:
@@ -172,7 +202,7 @@ class Schedule(ScheduleComponent):
                 starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
         for insert_time, child_sched in self._children:
-            yield from child_sched._instructions(time + insert_time)
+            yield from child_sched._flattened_instructions(time + insert_time)
 
     # pylint: disable=arguments-differ
     def shift(self,

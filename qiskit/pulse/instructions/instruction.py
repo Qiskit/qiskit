@@ -137,9 +137,22 @@ class Instruction(ScheduleComponent, ABC):
         return ()
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
+    def instructions(self) -> List[Tuple[int, 'Instruction']]:
+        """Get the time-ordered instructions from self.
+
+        ReturnType:
+            Tuple[Tuple[int, Instruction], ...]
+        """
+        warnings.warn(
+            '"Instruction.instructions" has been deprecated and will be removed in '
+            ' in a later release. Please replace all calls with "Instruction.timed_instructions()"',
+            DeprecationWarning
+        )
+        return self.timed_instructions()
+
+    def timed_instructions(self) -> List[Tuple[int, 'Instruction']]:
         """Iterable for getting instructions from Schedule tree."""
-        return tuple(self._instructions())
+        return list(self._flattened_instructions())
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of the supplied channels in this Instruction.
@@ -167,7 +180,7 @@ class Instruction(ScheduleComponent, ABC):
             return self.duration
         return 0
 
-    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+    def _flattened_instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
         """Iterable for flattening Schedule tree.
 
         Args:

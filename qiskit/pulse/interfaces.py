@@ -73,14 +73,13 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def _children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
+    def _children(self) -> List[Union[int, 'ScheduleComponent']]:
         """Child nodes of this schedule component. """
         pass
 
-    @property
     @abstractmethod
-    def instructions(self) -> Tuple[Tuple[int, 'Instructions']]:
-        """Return iterable for all `Instruction`s in `Schedule` tree."""
+    def timed_instructions(self) -> List[Tuple[int, 'Instructions']]:
+        """Return tuple of all `Instruction`s with their time in the `Schedule` tree."""
         pass
 
     @abstractmethod

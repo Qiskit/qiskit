@@ -244,7 +244,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         sched += acq_q0
         sched += acq_q0 << sched.duration
         sched = transforms.add_implicit_acquires(sched, meas_map=[[0]])
-        self.assertEqual(sched.instructions, ((0, acq_q0), (2400, acq_q0)))
+        self.assertEqual(sched.instructions, [(0, acq_q0), (2400, acq_q0)])
 
 
 class TestPad(QiskitTestCase):
