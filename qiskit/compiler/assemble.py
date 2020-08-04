@@ -266,7 +266,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                  ).format(meas_level, backend_config.backend_name, backend_config.meas_levels)
             )
 
-        if rep_time not in getattr(backend_config, 'rep_times', []) and rep_delay is None:
+        if rep_time not in getattr(backend_config, 'rep_times', []) or rep_delay is None:
             raise SchemaValidationError(
                 'rep_time = {} not supported for backend {}, '
                 'only {} is supported'.format(
@@ -275,7 +275,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                     backend_config.rep_times)
             )
 
-        if rep_delay not in getattr(backend_config, 'rep_delays', []) and rep_time is None:
+        if rep_delay not in getattr(backend_config, 'rep_delays', []) or rep_time is None:
             raise SchemaValidationError(
                 'rep_delay = {} not supported for backend {}, '
                 'only {} is supported'.format(
