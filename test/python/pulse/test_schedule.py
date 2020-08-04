@@ -45,7 +45,7 @@ from qiskit.pulse.channels import (
     MeasureChannel,
 )
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _insertion_index
+from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _locate_interval_index
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -996,44 +996,44 @@ class TestTimingUtils(QiskitTestCase):
         self.assertTrue(_overlaps((a, a + 2), (a + 1, a + 1)))
         self.assertTrue(_overlaps((a + 1, a + 1), (a, a + 2)))
 
-    def test_insertion_index(self):
-        """Test the `_insertion_index` function."""
+    def test_locate_interval_index(self):
+        """Test the `_locate_interval_index` function."""
         intervals = [(1, 2), (4, 5)]
-        self.assertEqual(_insertion_index(intervals, (2, 3)), 1)
-        self.assertEqual(_insertion_index(intervals, (3, 4)), 1)
+        self.assertEqual(_locate_interval_index(intervals, (2, 3)), 1)
+        self.assertEqual(_locate_interval_index(intervals, (3, 4)), 1)
         self.assertEqual(intervals, [(1, 2), (4, 5)])
         intervals = [(1, 2), (4, 5), (6, 7)]
-        self.assertEqual(_insertion_index(intervals, (2, 3)), 1)
-        self.assertEqual(_insertion_index(intervals, (0, 1)), 0)
-        self.assertEqual(_insertion_index(intervals, (5, 6)), 2)
-        self.assertEqual(_insertion_index(intervals, (8, 9)), 3)
+        self.assertEqual(_locate_interval_index(intervals, (2, 3)), 1)
+        self.assertEqual(_locate_interval_index(intervals, (0, 1)), 0)
+        self.assertEqual(_locate_interval_index(intervals, (5, 6)), 2)
+        self.assertEqual(_locate_interval_index(intervals, (8, 9)), 3)
 
         longer_intervals = [(1, 2), (2, 3), (4, 5), (5, 6), (7, 9), (11, 11)]
-        self.assertEqual(_insertion_index(longer_intervals, (4, 4)), 2)
-        self.assertEqual(_insertion_index(longer_intervals, (5, 5)), 3)
-        self.assertEqual(_insertion_index(longer_intervals, (3, 4)), 2)
-        self.assertEqual(_insertion_index(longer_intervals, (3, 4)), 2)
+        self.assertEqual(_locate_interval_index(longer_intervals, (4, 4)), 2)
+        self.assertEqual(_locate_interval_index(longer_intervals, (5, 5)), 3)
+        self.assertEqual(_locate_interval_index(longer_intervals, (3, 4)), 2)
+        self.assertEqual(_locate_interval_index(longer_intervals, (3, 4)), 2)
 
         # test when two identical zero duration timeslots are present
         intervals = [(0, 10), (73, 73), (73, 73), (90, 101)]
-        self.assertEqual(_insertion_index(intervals, (42, 73)), 1)
-        self.assertEqual(_insertion_index(intervals, (73, 81)), 3)
+        self.assertEqual(_locate_interval_index(intervals, (42, 73)), 1)
+        self.assertEqual(_locate_interval_index(intervals, (73, 81)), 3)
 
-    def test_insertion_index_when_overlapping(self):
-        """Test that `_insertion_index` raises an error when the new_interval _overlaps."""
+    def test_locate_interval_index_when_overlapping(self):
+        """Test that `_locate_interval_index` raises an error when the new_interval _overlaps."""
         intervals = [(10, 20), (44, 55), (60, 61), (80, 1000)]
         with self.assertRaises(PulseError):
-            _insertion_index(intervals, (60, 62))
+            _locate_interval_index(intervals, (60, 62))
         with self.assertRaises(PulseError):
-            _insertion_index(intervals, (100, 1500))
+            _locate_interval_index(intervals, (100, 1500))
 
         intervals = [(0, 1), (10, 15)]
         with self.assertRaises(PulseError):
-            _insertion_index(intervals, (7, 13))
+            _locate_interval_index(intervals, (7, 13))
 
-    def test_insertion_index_empty_list(self):
+    def test_locate_interval_index_empty_list(self):
         """Test that the insertion index is properly found for empty lists."""
-        self.assertEqual(_insertion_index([], (0, 1)), 0)
+        self.assertEqual(_locate_interval_index([], (0, 1)), 0)
 
 
 if __name__ == '__main__':

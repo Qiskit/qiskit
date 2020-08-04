@@ -633,17 +633,17 @@ class Schedule(ScheduleComponent):
             else:
                 new_children.append((time, child))
 
-            if inplace:
-                self.__children = new_children
-                return self
-            else:
-                try:
-                    return Schedule(*new_children)
-                except PulseError as err:
-                    raise PulseError(
-                        'Replacement of {old} with {new} results in '
-                        'overlapping instructions.'.format(
-                            old=old, new=new)) from err
+        if inplace:
+            self.__children = new_children
+            return self
+        else:
+            try:
+                return Schedule(*new_children)
+            except PulseError as err:
+                raise PulseError(
+                    'Replacement of {old} with {new} results in '
+                    'overlapping instructions.'.format(
+                        old=old, new=new)) from err
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
