@@ -34,13 +34,13 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import (CXGate, XGate, YGate, ZGate, U1Gate,
-                                    CYGate, CZGate, CU1Gate, SwapGate,
-                                    CCXGate, HGate, RZGate, RXGate,
-                                    RYGate, CRYGate, CRXGate, CSwapGate,
-                                    U3Gate, CHGate, CRZGate, CU3Gate,
+                                    CYGate, CZGate, CU1Gate, SwapGate, PhaseGate,
+                                    CCXGate, HGate, RZGate, RXGate, CPhaseGate,
+                                    RYGate, CRYGate, CRXGate, CSwapGate, UGate,
+                                    U3Gate, CHGate, CRZGate, CU3Gate, CUGate,
                                     MSGate, Barrier, RCCXGate, RC3XGate,
                                     MCU1Gate, MCXGate, MCXGrayCode, MCXRecursive,
-                                    MCXVChain, C3XGate, C4XGate)
+                                    MCXVChain, C3XGate, C4XGate, MCPhaseGate)
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
@@ -68,6 +68,11 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled H gate."""
         self.assertEqual(HGate().control(), CHGate())
 
+    def test_controlled_phase(self):
+        """Test the creation of a controlled U1 gate."""
+        theta = 0.5
+        self.assertEqual(PhaseGate(theta).control(), CPhaseGate(theta))
+
     def test_controlled_u1(self):
         """Test the creation of a controlled U1 gate."""
         theta = 0.5
@@ -87,6 +92,12 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled RX gate."""
         theta = 0.5
         self.assertEqual(RXGate(theta).control(), CRXGate(theta))
+
+    def test_controlled_u(self):
+        """Test the creation of a controlled U gate."""
+        theta, phi, lamb = 0.1, 0.2, 0.3
+        self.assertEqual(UGate(theta, phi, lamb).control(),
+                         CUGate(theta, phi, lamb, 0))
 
     def test_controlled_u3(self):
         """Test the creation of a controlled U3 gate."""
@@ -759,7 +770,7 @@ class TestControlledGate(QiskitTestCase):
         """
         num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
         free_params = [0.1 * i for i in range(num_free_params)]
-        if gate_class in [MCU1Gate]:
+        if gate_class in [MCU1Gate, MCPhaseGate]:
             free_params[1] = 3
         elif gate_class in [MCXGate]:
             free_params[0] = 3
@@ -963,13 +974,17 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         num_free_params = len(_get_free_params(gate_class.__init__,
                                                ignore=['self']))
         free_params = [0.1 * i for i in range(1, num_free_params + 1)]
-        if gate_class in [MCU1Gate]:
+        if gate_class in [MCU1Gate, MCPhaseGate]:
             free_params[1] = 3
         elif gate_class in [MCXGate]:
             free_params[0] = 3
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
+
         base_mat = Operator(cgate.base_gate).data
+        if gate_class == CUGate:  # account for global phase
+            base_mat = np.array(base_mat) * np.exp(1j * cgate.params[3])
+
         target = _compute_control_matrix(base_mat, cgate.num_ctrl_qubits,
                                          ctrl_state=ctrl_state)
         try:
@@ -1068,7 +1083,7 @@ class TestControlledStandardGates(QiskitTestCase):
         args = [theta] * numargs
         if gate_class in [MSGate, Barrier]:
             args[0] = 2
-        elif gate_class in [MCU1Gate]:
+        elif gate_class in [MCU1Gate, MCPhaseGate]:
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
@@ -1173,9 +1188,11 @@ class TestParameterCtrlState(QiskitTestCase):
           (YGate(), CYGate()),
           (ZGate(), CZGate()),
           (U1Gate(0.5), CU1Gate(0.5)),
+          (PhaseGate(0.5), CPhaseGate(0.5)),
           (SwapGate(), CSwapGate()),
           (HGate(), CHGate()),
-          (U3Gate(0.1, 0.2, 0.3), CU3Gate(0.1, 0.2, 0.3)))
+          (U3Gate(0.1, 0.2, 0.3), CU3Gate(0.1, 0.2, 0.3)),
+          (UGate(0.1, 0.2, 0.3), CUGate(0.1, 0.2, 0.3, 0)))
     @unpack
     def test_ctrl_state_one(self, gate, controlled_gate):
         """Test controlled gates with ctrl_state
@@ -1200,9 +1217,11 @@ class TestControlledGateLabel(QiskitTestCase):
                       (C3XGate, []),
                       (C4XGate, []),
                       (MCXGate, [5]),
+                      (PhaseGate, [0.1]),
                       (U1Gate, [0.1]),
                       (CYGate, []),
                       (CZGate, []),
+                      (CPhaseGate, [0.1]),
                       (CU1Gate, [0.1]),
                       (SwapGate, []),
                       (CCXGate, []),
@@ -1212,9 +1231,11 @@ class TestControlledGateLabel(QiskitTestCase):
                       (CRYGate, [0.1]),
                       (CRXGate, [0.1]),
                       (CSwapGate, []),
+                      (UGate, [0.1, 0.2, 0.3]),
                       (U3Gate, [0.1, 0.2, 0.3]),
                       (CHGate, []),
                       (CRZGate, [0.1]),
+                      (CUGate, [0.1, 0.2, 0.3, 0.4]),
                       (CU3Gate, [0.1, 0.2, 0.3]),
                       (MSGate, [5, 0.1]),
                       (RCCXGate, []),
