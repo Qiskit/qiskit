@@ -460,16 +460,16 @@ class TestCircuitOperations(QiskitTestCase):
 
     def test_control_implementation(self):
         """Run a test case for controlling the circuit, which should use ``Gate.control``."""
-        qc = QuantumCircuit(5)
+        qc = QuantumCircuit(3)
         qc.cx(0, 1)
         qc.cry(0.2, 0, 1)
         qc.t(0)
-        qc.append(SGate().control(4), [0, 1, 3, 4, 2])
-        qc.iswap(3, 2)
+        qc.append(SGate().control(2), [0, 1, 2])
+        qc.iswap(2, 0)
 
-        c_qc = qc.control(3, ctrl_state='110')
+        c_qc = qc.control(2, ctrl_state='10')
 
-        cgate = qc.to_gate().control(3, ctrl_state='110')
+        cgate = qc.to_gate().control(2, ctrl_state='10')
         ref = QuantumCircuit(*c_qc.qregs)
         ref.append(cgate, ref.qubits)
 
@@ -573,6 +573,21 @@ class TestCircuitOperations(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
         self.assertEqual(qc, expected)
+
+    def test_inverse(self):
+        """Test inverse circuit."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr, global_phase=0.5)
+        qc.h(0)
+        qc.barrier(qr)
+        qc.t(1)
+
+        expected = QuantumCircuit(qr)
+        expected.tdg(1)
+        expected.barrier(qr)
+        expected.h(0)
+        expected.global_phase = -0.5
+        self.assertEqual(qc.inverse(), expected)
 
 
 class TestCircuitBuilding(QiskitTestCase):

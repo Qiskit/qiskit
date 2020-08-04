@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a circuit implementing a quadratic form on binary variables.
+    The circuit implements the operation 
+    :math:`|x\rangle |0\rangle \mapsto |x\rangle |Q(x) \mod 2^m\rangle` 
+    for the quadratic form :math:`Q` and :math:`m` output qubits.
+    The quadratic form is specified using a matrix for the quadratic 
+    terms, a vector for the linear terms and a constant offset.
