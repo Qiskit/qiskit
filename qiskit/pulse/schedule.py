@@ -69,11 +69,11 @@ class Schedule(ScheduleComponent):
         if inplace is None:
             self.inplace = False
             if Schedule._warn_about_inplace:
-                warnings.warn("Schedules have been immutable by default. For performance, Schedules "
-                              "will be mutable by default in an upcoming release. You can enable this "
-                              "behavior now by including ``inplace=True`` in your Schedule "
-                              "initialization: ``my_sched = Schedule(name=name, inplace=True)``.",
-                              DeprecationWarning)
+                warnings.warn("Schedules have been immutable by default. For performance, "
+                              "Schedules will be mutable by default in an upcoming release. You "
+                              "can enable this behavior now by including ``inplace=True`` in your "
+                              "Schedule initialization: ``my_sched = Schedule(name=name, "
+                              "inplace=True)``.", DeprecationWarning)
                 Schedule._warn_about_inplace = False
 
         self._name = name
