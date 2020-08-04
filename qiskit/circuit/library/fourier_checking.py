@@ -84,7 +84,7 @@ class FourierChecking(QuantumCircuit):
                                "tables, each as a list of 2**n entries of "
                                "{1, -1}.")
 
-        super().__init__(int(num_qubits), name="fc: %s, %s" % (f, g))
+        super().__init__(num_qubits, name="fc: %s, %s" % (f, g))
 
         self.h(self.qubits)
 

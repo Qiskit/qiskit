@@ -19,9 +19,7 @@ Base register reference object.
 """
 import re
 import itertools
-from warnings import warn
 import numpy as np
-
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -43,13 +41,17 @@ class Register:
 
         # validate (or cast) size
         try:
-            if not isinstance(size, (int, np.int, np.int32, np.int64)):
-                warn("Provided register size was not an int. Casting to int...")
-
-            size = int(size)
+            size_int = int(size)
         except Exception:
             raise CircuitError("Register size must be castable to an int (%s '%s' was provided)"
                                % (type(size).__name__, size))
+
+        if not np.isclose(size_int, size):
+            raise CircuitError("Register size must be approximately an integer. " +
+                               "(%s '%s' was provided)"
+                               % (type(size).__name__, size))
+        size = size_int
+
         if size <= 0:
             raise CircuitError("Register size must be positive (%s '%s' was provided)"
                                % (type(size).__name__, size))

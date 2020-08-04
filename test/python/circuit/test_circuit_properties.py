@@ -17,7 +17,6 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-import warnings
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -64,11 +63,9 @@ class TestCircuitProperties(QiskitTestCase):
     def test_warning_on_noninteger_float(self):
         """Test warning when passing non-integer float to QuantumCircuit
         """
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-
-            QuantumCircuit(3.5, 2.2)
-            self.assertEqual(len(w), 1)
+        self.assertRaises(CircuitError, QuantumCircuit, 2.2)
+        # but an integer float should pass
+        QuantumCircuit(2.0)
 
     def test_circuit_depth_empty(self):
         """Test depth of empty circuity
