@@ -121,11 +121,13 @@ class Schedule(ScheduleComponent):
         """
         warnings.warn(
             '"Schedule.instructions" has been deprecated and will be removed in '
-            ' in a later release. Please replace all calls with "Schedule.timed_instructions(flatten=True)"',
+            ' in a later release. Please replace all calls with '
+            '"Schedule.timed_instructions(flatten=True)"',
             DeprecationWarning
         )
         return self.timed_instructions(flatten=True)
 
+    # pylint: disable=arguments-differ
     def timed_instructions(self, flatten: bool = False) -> List[Tuple[int, ScheduleComponent]]:
         """Get the time-ordered instructions from self.
 

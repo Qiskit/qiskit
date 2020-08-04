@@ -253,7 +253,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = sched.append(Play(lp0, self.config.drive(0)))   # child
         sched = sched.append(subsched)
 
-        start_times = sorted([shft+instr.start_time for shft, instr in sched.timed_instructions(flatten=True)])
+        start_times = sorted([shft+instr.start_time for shft, instr in
+                              sched.timed_instructions(flatten=True)])
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shift_schedule(self):
@@ -761,7 +762,8 @@ class TestScheduleFilter(BaseTestSchedule):
             self.assertTrue(all([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
         self.assertEqual(len(excluded.flatten()), 5)
-        self.assertTrue(excluded.timed_instructions(flatten=True)[0][1].channels[0] == DriveChannel(0))
+        self.assertEqual(excluded.timed_instructions(flatten=True)[0][1].channels[0],
+                         DriveChannel(0))
         self.assertTrue(excluded.timed_instructions(flatten=True)[2][0] == 30)
 
         # split based on Plays in the specified intervals
