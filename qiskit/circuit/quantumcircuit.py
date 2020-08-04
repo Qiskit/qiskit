@@ -488,7 +488,8 @@ class QuantumCircuit:
 
         warnings.warn("The QuantumCircuit.combine() method is being deprecated."
                       "Use the compose() method which is more flexible w.r.t "
-                      "circuit register compatibility.", DeprecationWarning)
+                      "circuit register compatibility.", DeprecationWarning,
+                      stacklevel=2)
         return self.compose(rhs)
 
     def extend(self, rhs):
