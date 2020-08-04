@@ -1,5 +1,32 @@
 ---
 upgrade:
   - |
-    All the circuit drawers changed the default of the ``cregbundle`` to ``True``. If you want to preserver the
-    previous behavior, given a circuit ``circuit``, run ``circuit.draw(..., cregbundle=False)``.
+    The default value of the ``cregbundle`` kwarg for the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method and
+    func:`qiskit.visualization.circuit_drawer` function has been changed
+    to ``True``. This means that by default the classical bits in the
+    circuit diagram will now be bundled by default, for example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circ = QuantumCircuit(4)
+      circ.x(0)
+      circ.h(1)
+      circ.measure_all()
+      circ.draw(output='mpl')
+
+    If you want to have your circuit drawing retain the previous behavior
+    and show each classical bit in the diagram you can set the ``cregbundle``
+    kwarg to ``False``. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circ = QuantumCircuit(4)
+      circ.x(0)
+      circ.h(1)
+      circ.measure_all()
+      circ.draw(output='mpl', cregbundle=False)
