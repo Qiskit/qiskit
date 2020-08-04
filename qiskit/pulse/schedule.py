@@ -878,10 +878,12 @@ def _locate_interval_index(intervals: List[Interval],
                            interval: Interval,
                            index: int = 0) -> int:
     """Using binary search on start times, find an interval.
+
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         interval: The interval for which the index into intervals will be found.
         index: A running tally of the index, for recursion. The user should not pass a value.
+
     Returns:
         The index into intervals that new_interval would be inserted to maintain
         a sorted list of intervals.
@@ -900,12 +902,15 @@ def _locate_interval_index(intervals: List[Interval],
 def _find_insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
     """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
+
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         new_interval: The interval for which the index into intervals will be found.
+
     Returns:
         The index into intervals that new_interval should be inserted to maintain a sorted list
         of intervals.
+
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
