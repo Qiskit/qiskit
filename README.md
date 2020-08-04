@@ -119,7 +119,7 @@ https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0
 
 The changelog for the current release can be found in the releases tab:
 ![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)
-The changelog provides a quick overview of noteable changes for a given
+The changelog provides a quick overview of noteble changes for a given
 release.
 
 Additionally, as part of each release detailed release notes are written to
