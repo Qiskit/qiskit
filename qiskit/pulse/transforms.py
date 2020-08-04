@@ -36,6 +36,9 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                    ) -> List[Schedule]:
     """Return new schedules where measurements occur at the same physical time.
 
+    This transformation will align the first :class:`qiskit.pulse.Acquire` on
+    every channel to occur at the same time.
+
     Minimum measurement wait time (to allow for calibration pulses) is enforced
     and may be set with ``max_calibration_duration``.
 
