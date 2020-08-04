@@ -900,7 +900,7 @@ def align_sequential() -> ContextManager[None]:
 def align_equispaced(duration: int) -> ContextManager[None]:
     """Equispaced alignment pulse scheduling context.
 
-    Pulse instructions within this context are scheduled with the same interval.
+    Pulse instructions within this context are scheduled with the same interval spacing such that the total length of the context block is ``duration``.
     If the total free induction time cannot be divided by the number of sub-schedules
     within the context, the modulo is prepended and appended to the returned schedule.
     Delay instruction is automatically inserted in between pulses.
