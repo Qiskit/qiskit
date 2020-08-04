@@ -143,6 +143,15 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     for sched_idx, schedule in enumerate(schedules):
         new_schedule = Schedule(name=schedule.name)
         stop_time = schedule.stop_time
+
+        if align_all:
+            if first_acquire_times[sched_idx]:
+                shift = align_time - max_acquire_times[sched_idx]
+            else:
+                shift = align_time - stop_time
+        else:
+            shift = 0
+
         for time, inst in schedule.instructions:
             measurement_channels = {
                 chan.index for chan in inst.channels if
@@ -154,13 +163,6 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
                                      for chan in measurement_channels if
                                      chan in sched_first_acquire_times)
                 shift = align_time - max_start_time
-            elif align_all:
-                if first_acquire_times[sched_idx]:
-                    shift = align_time - max_acquire_times[sched_idx]
-                else:
-                    shift = align_time - stop_time
-            else:
-                shift = 0
 
             if shift < 0:
                 warnings.warn(
