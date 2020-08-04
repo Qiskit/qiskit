@@ -624,7 +624,7 @@ def append_instruction(instruction: instructions.Instruction):
         with pulse.build() as pulse_prog:
             pulse.builder.append_instruction(pulse.Delay(10, d0))
 
-        print(pulse_prog.instructions)
+        print(pulse_prog.timed_instructions(flatten=True))
     """
     _active_builder().append_instruction(instruction)
 
@@ -963,7 +963,7 @@ def inline() -> ContextManager[None]:
     finally:
         builder._compile_lazy_circuit()
         builder.set_context_schedule(context_schedule)
-        for _, instruction in transform_schedule.instructions:
+        for _, instruction in transform_schedule.timed_instructions(flatten=True):
             append_instruction(instruction)
 
 
@@ -1073,7 +1073,7 @@ def phase_offset(phase: float,
             with pulse.phase_offset(math.pi, d0):
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
-        assert len(pulse_prog.instructions) == 3
+        assert len(pulse_prog.timed_instructions(flatten=True)) == 3
 
     Args:
         phase: Amount of phase offset in radians.
@@ -1112,7 +1112,7 @@ def frequency_offset(frequency: float,
             with pulse.frequency_offset(1e9, d0):
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
-        assert len(pulse_prog.instructions) == 3
+        assert len(pulse_prog.timed_instructions(flatten=True)) == 3
 
         with pulse.build(backend) as pulse_prog:
             # Shift frequency by 1GHz.
@@ -1121,7 +1121,7 @@ def frequency_offset(frequency: float,
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.play(pulse.Constant(10, 1.0), d0)
 
-        assert len(pulse_prog.instructions) == 4
+        assert len(pulse_prog.timed_instructions(flatten=True)) == 4
 
     Args:
         frequency: Amount of frequency offset in Hz.

@@ -148,7 +148,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(200, new_sched.stop_time)
         self.assertEqual(200, new_sched.duration)
         ids = set()
-        for _, inst in sched.instructions:
+        for _, inst in sched.timed_instructions(flatten=True):
             self.assertFalse(inst.id in ids)
             ids.add(inst.id)
 
@@ -201,7 +201,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(0, len(sched))
         self.assertEqual((), sched._children)
         self.assertEqual({}, sched.timeslots)
-        self.assertEqual([], list(sched.instructions))
+        self.assertEqual([], list(sched.timed_instructions(flatten=True)))
         self.assertFalse(sched)
 
     def test_overlapping_schedules(self):
@@ -227,7 +227,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         # empty schedule with empty schedule
         empty = Schedule().append(Schedule())
-        for _, instr in empty.instructions:
+        for _, instr in empty.timed_instructions(flatten=True):
             self.assertIsInstance(instr, Instruction)
 
         # normal schedule
@@ -238,7 +238,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = Schedule()
         sched = sched.append(Play(lp0, self.config.drive(0)))   # child
         sched = sched.append(subsched)
-        for _, instr in sched.instructions:
+        for _, instr in sched.timed_instructions(flatten=True):
             self.assertIsInstance(instr, Instruction)
 
     def test_absolute_start_time_of_grandchild(self):
@@ -253,7 +253,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = sched.append(Play(lp0, self.config.drive(0)))   # child
         sched = sched.append(subsched)
 
-        start_times = sorted([shft+instr.start_time for shft, instr in sched.instructions])
+        start_times = sorted([shft+instr.start_time for shft, instr in sched.timed_instructions(flatten=True)])
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shift_schedule(self):
@@ -270,7 +270,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         shift = sched.shift(100)
 
-        start_times = sorted([shft+instr.start_time for shft, instr in shift.instructions])
+        start_times = sorted([shft+instr.start_time for shft, instr in
+                              shift.timed_instructions(flatten=True)])
 
         self.assertEqual([100, 130, 140], start_times)
 
@@ -278,18 +279,18 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test if a schedule keeps its children after attached to another schedule."""
         children = (Acquire(10, self.config.acquire(0), MemorySlot(0)).shift(20) +
                     Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        self.assertEqual(2, len(list(children.instructions)))
+        self.assertEqual(2, len(list(children.timed_instructions(flatten=True))))
 
         sched = Acquire(10, self.config.acquire(0), MemorySlot(0)).append(children)
-        self.assertEqual(3, len(list(sched.instructions)))
+        self.assertEqual(3, len(sched.flatten()))
 
         # add 2 instructions to children (2 instructions -> 4 instructions)
         children = children.append(Acquire(10, self.config.acquire(0), MemorySlot(0)))
         children = children.insert(
             100, Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        self.assertEqual(4, len(list(children.instructions)))
+        self.assertEqual(4, len(children.flatten()))
         # sched must keep 3 instructions (must not update to 5 instructions)
-        self.assertEqual(3, len(list(sched.instructions)))
+        self.assertEqual(3, len(sched.flatten()))
 
     @patch('qiskit.util.is_main_process', return_value=True)
     def test_auto_naming(self, is_main_process_mock):
@@ -373,7 +374,7 @@ class TestScheduleBuilding(BaseTestSchedule):
                                                            mem_slot=MemorySlot(i),
                                                            reg_slot=RegisterSlot(i)))
 
-        self.assertEqual(len(sched_single.instructions), 2)
+        self.assertEqual(len(sched_single.flatten()), 2)
         self.assertEqual(len(sched_single.channels), 6)
 
     def test_parametric_commands_in_sched(self):
@@ -387,7 +388,7 @@ class TestScheduleBuilding(BaseTestSchedule):
                                      sigma=8, width=140),
                       MeasureChannel(0)) << sched_duration
         self.assertEqual(sched.duration, 1525)
-        self.assertTrue('sigma' in sched.instructions[0][1].pulse.parameters)
+        self.assertIn('sigma', sched.timed_instructions(flatten=True)[0][1].pulse.parameters)
 
     def test_negative_time_raises(self):
         """Test that a negative time will raise an error."""
@@ -509,7 +510,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         for j in range(1, 10):
             sched = sched.append(Play(lp0, self.config.drive(0)))
-            self.assertEqual(len(sched), j)
+            self.assertEqual(len(sched.flatten()), j)
 
 
 class TestDelay(BaseTestSchedule):
@@ -526,7 +527,7 @@ class TestDelay(BaseTestSchedule):
         # should pass as is an append
         sched = Delay(self.delay_time, drive_ch) + Play(pulse, drive_ch)
         self.assertIsInstance(sched, Schedule)
-        pulse_instr = sched.instructions[-1]
+        pulse_instr = sched.timed_instructions(flatten=True)[-1]
         # assert last instruction is pulse
         self.assertIsInstance(pulse_instr[1], Play)
         # assert pulse is scheduled at time 10
@@ -602,16 +603,16 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # split instructions for those on AcquireChannel(1) and those not
         filtered, excluded = self._filter_and_test_consistency(sched, channels=[AcquireChannel(1)])
-        self.assertEqual(len(filtered.instructions), 1)
-        self.assertEqual(len(excluded.instructions), 5)
+        self.assertEqual(len(filtered.flatten()), 1)
+        self.assertEqual(len(excluded.flatten()), 5)
 
         # Split schedule into the part with channels on 1 and into a part without
         channels = [AcquireChannel(1), DriveChannel(1)]
         filtered, excluded = self._filter_and_test_consistency(sched, channels=channels)
-        for _, inst in filtered.instructions:
+        for _, inst in filtered.timed_instructions(flatten=True):
             self.assertTrue(any([chan in channels for chan in inst.channels]))
 
-        for _, inst in excluded.instructions:
+        for _, inst in excluded.timed_instructions(flatten=True):
             self.assertFalse(any([chan in channels for chan in inst.channels]))
 
     def test_filter_exclude_name(self):
@@ -643,50 +644,50 @@ class TestScheduleFilter(BaseTestSchedule):
         # test on Acquire
         only_acquire, no_acquire = \
             self._filter_and_test_consistency(sched, instruction_types=[Acquire])
-        for _, inst in only_acquire.instructions:
+        for _, inst in only_acquire.timed_instructions(flatten=True):
             self.assertIsInstance(inst, Acquire)
-        for _, inst in no_acquire.instructions:
+        for _, inst in no_acquire.timed_instructions(flatten=True):
             self.assertFalse(isinstance(inst, Acquire))
 
         # test two instruction types
         only_pulse_and_fc, no_pulse_and_fc = \
             self._filter_and_test_consistency(sched, instruction_types=[Play,
                                                                         ShiftPhase])
-        for _, inst in only_pulse_and_fc.instructions:
+        for _, inst in only_pulse_and_fc.timed_instructions(flatten=True):
             self.assertIsInstance(inst, (Play, ShiftPhase))
-        for _, inst in no_pulse_and_fc.instructions:
+        for _, inst in no_pulse_and_fc.timed_instructions(flatten=True):
             self.assertFalse(isinstance(inst, (Play, ShiftPhase)))
-        self.assertEqual(len(only_pulse_and_fc.instructions), 4)
-        self.assertEqual(len(no_pulse_and_fc.instructions), 5)
+        self.assertEqual(len(only_pulse_and_fc.flatten()), 4)
+        self.assertEqual(len(no_pulse_and_fc.flatten()), 5)
 
         # test on ShiftPhase
         only_fc, no_fc = \
             self._filter_and_test_consistency(sched, instruction_types={ShiftPhase})
-        self.assertEqual(len(only_fc.instructions), 1)
-        self.assertEqual(len(no_fc.instructions), 8)
+        self.assertEqual(len(only_fc.flatten()), 1)
+        self.assertEqual(len(no_fc.flatten()), 8)
 
         # test on SetPhase
         only_setp, no_setp = \
             self._filter_and_test_consistency(sched, instruction_types={SetPhase})
-        self.assertEqual(len(only_setp.instructions), 1)
-        self.assertEqual(len(no_setp.instructions), 8)
+        self.assertEqual(len(only_setp.flatten()), 1)
+        self.assertEqual(len(no_setp.flatten()), 8)
 
         # test on SetFrequency
         only_setf, no_setf = self._filter_and_test_consistency(
             sched, instruction_types=[SetFrequency])
-        for _, inst in only_setf.instructions:
+        for _, inst in only_setf.timed_instructions(flatten=True):
             self.assertTrue(isinstance(inst, SetFrequency))
-        self.assertEqual(len(only_setf.instructions), 1)
-        self.assertEqual(len(no_setf.instructions), 8)
+        self.assertEqual(len(only_setf.flatten()), 1)
+        self.assertEqual(len(no_setf.flatten()), 8)
 
         # test on ShiftFrequency
         only_shiftf, no_shiftf = \
             self._filter_and_test_consistency(sched,
                                               instruction_types=[ShiftFrequency])
-        for _, inst in only_shiftf.instructions:
+        for _, inst in only_shiftf.timed_instructions(flatten=True):
             self.assertTrue(isinstance(inst, ShiftFrequency))
-        self.assertEqual(len(only_shiftf.instructions), 1)
-        self.assertEqual(len(no_shiftf.instructions), 8)
+        self.assertEqual(len(only_shiftf.flatten()), 1)
+        self.assertEqual(len(no_shiftf.flatten()), 8)
 
     def test_filter_intervals(self):
         """Test filtering on intervals."""
@@ -701,41 +702,41 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # split schedule into instructions occurring in (0,13), and those outside
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=((0, 13),))
-        for start_time, inst in filtered.instructions:
+        for start_time, inst in filtered.timed_instructions(flatten=True):
             self.assertTrue((start_time >= 0) and (start_time + inst.stop_time <= 13))
-        for start_time, inst in excluded.instructions:
+        for start_time, inst in excluded.timed_instructions(flatten=True):
             self.assertFalse((start_time >= 0) and (start_time + inst.stop_time <= 13))
-        self.assertEqual(len(filtered.instructions), 2)
-        self.assertEqual(len(excluded.instructions), 4)
+        self.assertEqual(len(filtered.flatten()), 2)
+        self.assertEqual(len(excluded.flatten()), 4)
 
         # split into schedule occurring in and outside of interval (59,65)
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[(59, 65)])
-        self.assertEqual(len(filtered.instructions), 2)
-        self.assertEqual(filtered.instructions[0][0], 60)
-        self.assertIsInstance(filtered.instructions[0][1], Acquire)
-        self.assertEqual(len(excluded.instructions), 4)
-        self.assertEqual(excluded.instructions[3][0], 90)
-        self.assertIsInstance(excluded.instructions[3][1], Play)
+        self.assertEqual(len(filtered.flatten()), 2)
+        self.assertEqual(filtered.timed_instructions(flatten=True)[0][0], 60)
+        self.assertIsInstance(filtered.timed_instructions(flatten=True)[0][1], Acquire)
+        self.assertEqual(len(excluded.flatten()), 4)
+        self.assertEqual(excluded.timed_instructions(flatten=True)[3][0], 90)
+        self.assertIsInstance(excluded.timed_instructions(flatten=True)[3][1], Play)
 
         # split instructions based on the interval
         # (none should be, though they have some overlap with some of the instructions)
         filtered, excluded = \
             self._filter_and_test_consistency(sched, time_ranges=[(0, 2), (8, 11), (61, 70)])
-        self.assertEqual(len(filtered.instructions), 0)
-        self.assertEqual(len(excluded.instructions), 6)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 6)
 
         # split instructions from multiple non-overlapping intervals, specified
         # as time ranges
         filtered, excluded = \
             self._filter_and_test_consistency(sched, time_ranges=[(10, 15), (63, 93)])
-        self.assertEqual(len(filtered.instructions), 2)
-        self.assertEqual(len(excluded.instructions), 4)
+        self.assertEqual(len(filtered.flatten()), 2)
+        self.assertEqual(len(excluded.flatten()), 4)
 
         # split instructions from non-overlapping intervals, specified as Intervals
         filtered, excluded = \
             self._filter_and_test_consistency(sched, intervals=[(10, 15), (63, 93)])
-        self.assertEqual(len(filtered.instructions), 2)
-        self.assertEqual(len(excluded.instructions), 4)
+        self.assertEqual(len(filtered.flatten()), 2)
+        self.assertEqual(len(excluded.flatten()), 4)
 
     def test_filter_multiple(self):
         """Test filter composition."""
@@ -755,34 +756,34 @@ class TestScheduleFilter(BaseTestSchedule):
                                                                channels={self.config.drive(0)},
                                                                instruction_types=[Play],
                                                                time_ranges=[(25, 100)])
-        for time, inst in filtered.instructions:
+        for time, inst in filtered.timed_instructions(flatten=True):
             self.assertIsInstance(inst, Play)
             self.assertTrue(all([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
-        self.assertEqual(len(excluded.instructions), 5)
-        self.assertTrue(excluded.instructions[0][1].channels[0] == DriveChannel(0))
-        self.assertTrue(excluded.instructions[2][0] == 30)
+        self.assertEqual(len(excluded.flatten()), 5)
+        self.assertTrue(excluded.timed_instructions(flatten=True)[0][1].channels[0] == DriveChannel(0))
+        self.assertTrue(excluded.timed_instructions(flatten=True)[2][0] == 30)
 
         # split based on Plays in the specified intervals
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                instruction_types=[Play],
                                                                time_ranges=[(25, 100), (0, 11)])
-        self.assertTrue(len(excluded.instructions), 3)
-        for time, inst in filtered.instructions:
+        self.assertTrue(len(excluded.flatten()), 3)
+        for time, inst in filtered.timed_instructions(flatten=True):
             self.assertIsInstance(inst, (ShiftPhase, Play))
-        self.assertTrue(len(filtered.instructions), 4)
+        self.assertTrue(len(filtered.flatten()), 4)
         # make sure the Play instruction is not in the intervals
-        self.assertIsInstance(excluded.instructions[0][1], Play)
+        self.assertIsInstance(excluded.timed_instructions(flatten=True)[0][1], Play)
 
         # split based on Acquire in the specified intervals
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                instruction_types=[
                                                                    Acquire],
                                                                time_ranges=[(25, 100)])
-        self.assertTrue(len(excluded.instructions), 4)
-        for _, inst in filtered.instructions:
+        self.assertTrue(len(excluded.flatten()), 4)
+        for _, inst in filtered.timed_instructions(flatten=True):
             self.assertIsInstance(inst, Acquire)
-        self.assertTrue(len(filtered.instructions), 2)
+        self.assertTrue(len(filtered.flatten()), 2)
 
     def test_custom_filters(self):
         """Test custom filters."""
@@ -793,25 +794,25 @@ class TestScheduleFilter(BaseTestSchedule):
         sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: True)
-        for i in filtered.instructions:
-            self.assertTrue(i in sched.instructions)
-        for i in excluded.instructions:
-            self.assertFalse(i in sched.instructions)
+        for i in filtered.timed_instructions(flatten=True):
+            self.assertTrue(i in sched.timed_instructions(flatten=True))
+        for i in excluded.timed_instructions(flatten=True):
+            self.assertFalse(i in sched.timed_instructions(flatten=True))
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: False)
-        self.assertEqual(len(filtered.instructions), 0)
-        self.assertEqual(len(excluded.instructions), 3)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 3)
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: x[0] < 30)
-        self.assertEqual(len(filtered.instructions), 2)
-        self.assertEqual(len(excluded.instructions), 1)
+        self.assertEqual(len(filtered.flatten()), 2)
+        self.assertEqual(len(excluded.flatten()), 1)
 
         # multiple custom filters
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                lambda x: x[0] > 0,
                                                                lambda x: x[0] < 30)
-        self.assertEqual(len(filtered.instructions), 1)
-        self.assertEqual(len(excluded.instructions), 2)
+        self.assertEqual(len(filtered.flatten()), 1)
+        self.assertEqual(len(excluded.flatten()), 2)
 
     def test_empty_filters(self):
         """Test behavior on empty filters."""
@@ -826,30 +827,30 @@ class TestScheduleFilter(BaseTestSchedule):
 
         # empty channels
         filtered, excluded = self._filter_and_test_consistency(sched, channels=[])
-        self.assertTrue(len(filtered.instructions) == 0)
-        self.assertTrue(len(excluded.instructions) == 6)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 6)
 
         # empty instruction_types
         filtered, excluded = self._filter_and_test_consistency(sched, instruction_types=[])
-        self.assertTrue(len(filtered.instructions) == 0)
-        self.assertTrue(len(excluded.instructions) == 6)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 6)
 
         # empty time_ranges
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=[])
-        self.assertTrue(len(filtered.instructions) == 0)
-        self.assertTrue(len(excluded.instructions) == 6)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 6)
 
         # empty intervals
         filtered, excluded = self._filter_and_test_consistency(sched, intervals=[])
-        self.assertTrue(len(filtered.instructions) == 0)
-        self.assertTrue(len(excluded.instructions) == 6)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 6)
 
         # empty channels with other non-empty filters
         filtered, excluded = self._filter_and_test_consistency(sched,
                                                                channels=[],
                                                                instruction_types=[Play])
-        self.assertTrue(len(filtered.instructions) == 0)
-        self.assertTrue(len(excluded.instructions) == 6)
+        self.assertEqual(len(filtered.flatten()), 0)
+        self.assertEqual(len(excluded.flatten()), 6)
 
     def _filter_and_test_consistency(self, schedule: Schedule, *args, **kwargs):
         """

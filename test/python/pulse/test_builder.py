@@ -211,12 +211,12 @@ class TestContexts(TestBuilder):
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=0):
                 builder.call_circuit(twice_cx_qc)
-        self.assertNotEqual(len(schedule.instructions), 0)
+        self.assertNotEqual(len(schedule.timed_instructions(flatten=True)), 0)
 
         with pulse.build(self.backend) as schedule:
             with pulse.transpiler_settings(optimization_level=3):
                 builder.call_circuit(twice_cx_qc)
-        self.assertEqual(len(schedule.instructions), 0)
+        self.assertEqual(len(schedule.timed_instructions(flatten=True)), 0)
 
     def test_scheduler_settings(self):
         """Test the circuit scheduler settings context."""

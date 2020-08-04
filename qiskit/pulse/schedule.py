@@ -341,7 +341,7 @@ class Schedule(ScheduleComponent):
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""
-        return Schedule(*self.instructions, name=self.name)
+        return Schedule(*self.timed_instructions(flatten=True), name=self.name)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
@@ -608,14 +608,18 @@ class Schedule(ScheduleComponent):
             return False
 
         # then verify same number of instructions in each
-        instructions = self.instructions
-        other_instructions = other.instructions
+        instructions = self.timed_instructions(flatten=True)
+        if isinstance(other, Schedule):
+            other_instructions = other.timed_instructions(flatten=True)
+        else:
+            other_instructions = other.timed_instructions()
+
         if len(instructions) != len(other_instructions):
             return False
 
         # finally check each instruction in `other` is in this schedule
         for idx, inst in enumerate(other_instructions):
-            # check assumes `Schedule.instructions` is sorted consistently
+            # check assumes `Schedule.timed_instructions(flatten=True)` is sorted consistently
             if instructions[idx] != inst:
                 return False
 
@@ -635,12 +639,13 @@ class Schedule(ScheduleComponent):
 
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
-        return len(self.instructions)
+        return len(self.timed_instructions())
 
     def __repr__(self):
         name = format(self._name) if self._name else ""
-        instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
-        if len(self.instructions) > 25:
+        timed_instrs = self.timed_instructions(flatten=True)
+        instructions = ", ".join([repr(instr) for instr in timed_instrs[:50]])
+        if len(timed_instrs) > 25:
             instructions += ", ..."
         return 'Schedule({}, name="{}")'.format(instructions, name)
 

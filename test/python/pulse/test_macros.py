@@ -45,7 +45,7 @@ class TestMeasure(QiskitTestCase):
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(10, AcquireChannel(0), MemorySlot(0)),
             Acquire(10, AcquireChannel(1), MemorySlot(1)))
-        self.assertEqual(sched.instructions, expected.instructions)
+        self.assertEqual(sched, expected)
 
     def test_measure_sched_with_qubit_mem_slots(self):
         """Test measure with custom qubit_mem_slots."""
@@ -56,7 +56,7 @@ class TestMeasure(QiskitTestCase):
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(10, AcquireChannel(0), MemorySlot(1)),
             Acquire(10, AcquireChannel(1), MemorySlot(0)))
-        self.assertEqual(sched.instructions, expected.instructions)
+        self.assertEqual(sched, expected)
 
     def test_measure_sched_with_meas_map(self):
         """Test measure with custom meas_map as list and dict."""
@@ -70,8 +70,8 @@ class TestMeasure(QiskitTestCase):
             self.inst_map.get('measure', [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(10, AcquireChannel(0), MemorySlot(0)),
             Acquire(10, AcquireChannel(1), MemorySlot(1)))
-        self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
-        self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
+        self.assertEqual(sched_with_meas_map_list, expected)
+        self.assertEqual(sched_with_meas_map_dict, expected)
 
     def test_measure_with_custom_inst_map(self):
         """Test measure with custom inst_map, meas_map with measure_name."""
@@ -83,7 +83,7 @@ class TestMeasure(QiskitTestCase):
                                measure_name='my_sched',
                                inst_map=inst_map,
                                meas_map=[[0]])
-        self.assertEqual(sched.instructions, q0_sched.instructions)
+        self.assertEqual(sched, q0_sched)
 
         with self.assertRaises(PulseError):
             macros.measure(qubits=[0],
@@ -112,4 +112,4 @@ class TestMeasureAll(QiskitTestCase):
         """Test measure_all function."""
         sched = macros.measure_all(self.backend)
         expected = Schedule(self.inst_map.get('measure', [0, 1]))
-        self.assertEqual(sched.instructions, expected.instructions)
+        self.assertEqual(sched, expected)
