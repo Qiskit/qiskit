@@ -8,7 +8,9 @@ features:
     can be set using the :meth:`~qiskit.quantum_info.Statevector.seed` method.
 fixes:
   - |
-    Fixes issue where initializing or evolving :class:`qiskit.quantum_info.Statevector`
-    and  :class:`qiskit.quantum_info.DensityMatrix` classes by circuits by
-    circuit containing :class:`~qiskit.circuit.Barrier` instructions would raise
-    an exception.
+    Fixes issue where initializing or evolving
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes by circuits by
+    circuit containing :class:`~qiskit.circuit.Barrier` instructions would
+    raise an exception. Fixes
+    `#4461 <https://github.com/Qiskit/qiskit-terra/issues/4461>`__
