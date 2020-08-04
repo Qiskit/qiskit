@@ -28,7 +28,7 @@ from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.qasm.qasm import Qasm
-from qiskit.circuit.exceptions import CircuitError, CalibrationError
+from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister
 from .classicalregister import ClassicalRegister, Clbit
@@ -189,6 +189,10 @@ class QuantumCircuit:
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
+
+    def _get_calibrations(self):
+        """Return calibration dictionary."""
+        return dict(self._calibrations)
 
     @data.setter
     def data(self, data_input):
@@ -2333,10 +2337,6 @@ class QuantumCircuit:
             params (List[Union[float, Parameter]]): Parameters
             schedule (Schedule): Schedule
         """
-        if gate == None or qubits == None or params == None:
-            raise CalibrationError("One of the parameter is None. gate- {}, qubits- {}, "
-                                   "params- {}, schedule- {}".format(gate, qubits, params,
-                                                                     schedule))
         calibrations = dict()
         calibrations[tuple(params)] = schedule
         self._calibrations[gate.name][tuple(qubits)] = calibrations
