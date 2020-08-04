@@ -96,20 +96,20 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     Raises:
         PulseError: If the provided alignment time is negative.
     """
-    def get_acquire_times(schedules):
+    def get_first_acquire_times(schedules):
         """Return a list of first acquire times for each schedule."""
         acquire_times = []
         for schedule in schedules:
             visited_channels = set()
-            sched_acquire_times = defaultdict(lambda: None)
+            qubit_first_acquire_times = defaultdict(lambda: None)
 
             for time, inst in schedule.instructions:
                 if (isinstance(inst, instructions.Acquire) and
                         inst.channel not in visited_channels):
                     visited_channels.add(inst.channel)
-                    sched_acquire_times[inst.channel.index] = time
+                    qubit_first_acquire_times[inst.channel.index] = time
 
-            acquire_times.append(sched_acquire_times)
+            acquire_times.append(qubit_first_acquire_times)
         return acquire_times
 
     def get_max_calibration_duration(inst_map, cal_gate):
@@ -123,7 +123,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
     if align_time is not None and align_time < 0:
         raise exceptions.PulseError("Align time cannot be negative.")
 
-    first_acquire_times = get_acquire_times(schedules)
+    first_acquire_times = get_first_acquire_times(schedules)
     max_acquire_times = [max(0, *times.values()) for times in first_acquire_times]
     if align_time is None:
         if max_calibration_duration is None:
