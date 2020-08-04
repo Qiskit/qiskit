@@ -932,7 +932,7 @@ def align_equispaced(duration: int) -> ContextManager[None]:
     Notes:
         The scheduling is performed for sub-schedules within the context rather than
         channel-wise. If you want to apply the equispaced context for each channel,
-        you need to apply the context independently to channels.
+        you should use the context independently for channels.
     """
 
 
