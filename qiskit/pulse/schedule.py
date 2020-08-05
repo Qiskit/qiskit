@@ -117,11 +117,7 @@ class Schedule(ScheduleComponent):
 
     @property
     def instructions(self) -> List[TimedInstruction]:
-        """Get the time-ordered instructions from self.
-
-        ReturnType:
-            Tuple[Tuple[int, Instruction], ...]
-        """
+        """Get the time-ordered instructions from self."""
         warnings.warn(
             '"Schedule.instructions" has been deprecated and will be removed in '
             ' in a later release. Please replace all calls with '
@@ -163,7 +159,7 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent.
 
         Yields:
-            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
+            Iterable[TimedInstruction]: Tuple containing the time each
                 :class:`~qiskit.pulse.Instruction`
                 starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
         """
@@ -349,7 +345,7 @@ class Schedule(ScheduleComponent):
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
                instruction_types=None,
-               time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+               time_ranges: Optional[Iterable[Interval]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
         though the provided filters; i.e. an instruction will be retained iff every function in
@@ -380,7 +376,7 @@ class Schedule(ScheduleComponent):
     def exclude(self, *filter_funcs: List[Callable],
                 channels: Optional[Iterable[Channel]] = None,
                 instruction_types=None,
-                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+                time_ranges: Optional[Iterable[Interval]] = None,
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a Schedule with only the instructions from this Schedule *failing* at least one
         of the provided filters. This method is the complement of ``self.filter``, so that::
@@ -419,7 +415,7 @@ class Schedule(ScheduleComponent):
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
                           instruction_types=None,
-                          time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+                          time_ranges: Optional[Iterable[Interval]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
         returns ``True`` iff the input satisfies all of the criteria specified by the arguments;
@@ -438,31 +434,31 @@ class Schedule(ScheduleComponent):
             intervals: For example, ``[(0, 5), (6, 10)]``.
         """
         def only_channels(channels: Set[Channel]) -> Callable:
-            def channel_filter(time_inst) -> bool:
+            def channel_filter(time_inst: TimedInstruction) -> bool:
                 """Filter channel.
 
                 Args:
-                    time_inst (Tuple[int, Instruction]): Time
+                    time_inst: Time
                 """
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
         def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
-            def instruction_filter(time_inst) -> bool:
+            def instruction_filter(time_inst: TimedInstruction) -> bool:
                 """Filter instruction.
 
                 Args:
-                    time_inst (Tuple[int, Instruction]): Time
+                    time_inst: Time
                 """
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
-            def interval_filter(time_inst) -> bool:
+            def interval_filter(time_inst: TimedInstruction) -> bool:
                 """Filter interval.
 
                 Args:
-                    time_inst (Tuple[int, Instruction]): Time
+                    time_inst: Time
                 """
                 for i in ranges:
                     inst_start = time_inst[0]
