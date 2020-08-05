@@ -195,6 +195,7 @@ class TestAlignMeasures(QiskitTestCase):
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 0)
 
+
 class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
