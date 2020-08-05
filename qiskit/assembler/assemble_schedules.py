@@ -170,7 +170,7 @@ def _assemble_instructions(
     qobj_instructions = []
 
     acquire_instruction_map = defaultdict(list)
-    for time, instruction in schedule.timed_instructions(flatten=True):
+    for time, instruction in schedule.timed_instructions():
 
         if (isinstance(instruction, instructions.Play) and
                 isinstance(instruction.pulse, library.ParametricPulse)):

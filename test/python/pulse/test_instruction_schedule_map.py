@@ -174,19 +174,19 @@ class TestInstructionScheduleMap(QiskitTestCase):
             inst_map.get('inst_seq', 0, 1, 2, 3, P1=1)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, 3)
-        instrs = sched.timed_instructions(flatten=True)
+        instrs = sched.timed_instructions()
         self.assertEqual(instrs[0][-1].phase, 1)
         self.assertEqual(instrs[1][-1].phase, 2)
         self.assertEqual(instrs[2][-1].phase, 3)
 
         sched = inst_map.get('inst_seq', 0, P1=1, P2=2, P3=3)
-        instrs = sched.timed_instructions(flatten=True)
+        instrs = sched.timed_instructions()
         self.assertEqual(instrs[0][-1].phase, 1)
         self.assertEqual(instrs[1][-1].phase, 2)
         self.assertEqual(instrs[2][-1].phase, 3)
 
         sched = inst_map.get('inst_seq', 0, 1, 2, P3=3)
-        instrs = sched.timed_instructions(flatten=True)
+        instrs = sched.timed_instructions()
         self.assertEqual(instrs[0][-1].phase, 1)
         self.assertEqual(instrs[1][-1].phase, 2)
         self.assertEqual(instrs[2][-1].phase, 3)

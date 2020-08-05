@@ -145,14 +145,11 @@ class Instruction(ScheduleComponent, ABC):
         """
         warnings.warn(
             '"Instruction.instructions" has been deprecated and will be removed in '
-            ' in a later release. Please replace all calls with "Instruction.timed_instructions()"',
+            ' in a later release. An instruction does not have timing without being '
+            ' part of another schedule.',
             DeprecationWarning
         )
-        return self.timed_instructions()
-
-    def timed_instructions(self) -> List[Tuple[int, 'Instruction']]:
-        """Iterable for getting instructions from Schedule tree."""
-        return list(self._flattened_instructions())
+        return [(0, self)]
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of the supplied channels in this Instruction.
@@ -179,18 +176,6 @@ class Instruction(ScheduleComponent, ABC):
         if any(chan in self.channels for chan in channels):
             return self.duration
         return 0
-
-    def _flattened_instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time of this node due to parent
-
-        Yields:
-            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`
-        """
-        yield (time, self)
 
     def flatten(self) -> 'Instruction':
         """Return itself as already single instruction."""

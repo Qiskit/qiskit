@@ -16,7 +16,7 @@
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Union, Optional
+from typing import List, Union, Optional
 
 from qiskit.pulse.channels import Channel
 
@@ -75,11 +75,6 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def _children(self) -> List[Union[int, 'ScheduleComponent']]:
         """Child nodes of this schedule component. """
-        pass
-
-    @abstractmethod
-    def timed_instructions(self) -> List[Tuple[int, 'Instructions']]:
-        """Return tuple of all `Instruction`s with their time in the `Schedule` tree."""
         pass
 
     @abstractmethod

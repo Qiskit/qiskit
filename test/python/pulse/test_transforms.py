@@ -90,12 +90,12 @@ class TestAlignMeasures(QiskitTestCase):
         sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched = sched.insert(1, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         sched = transforms.align_measures([sched], self.inst_map)[0]
-        for time, inst in sched.timed_instructions(flatten=True):
+        for time, inst in sched.timed_instructions():
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 4)
         sched = transforms.align_measures(
             [sched], self.inst_map, max_calibration_duration=10)[0]
-        for time, inst in sched.timed_instructions(flatten=True):
+        for time, inst in sched.timed_instructions():
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 10)
 
@@ -141,10 +141,10 @@ class TestAlignMeasures(QiskitTestCase):
         sched2 = sched2.insert(3, Play(self.short_pulse, self.config.drive(0)))
         sched2 = sched2.insert(25, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         schedules = transforms.align_measures([sched1, sched2], self.inst_map)
-        for time, inst in schedules[0].timed_instructions(flatten=True):
+        for time, inst in schedules[0].timed_instructions():
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 25)
-        for time, inst in schedules[0].timed_instructions(flatten=True):
+        for time, inst in schedules[0].timed_instructions():
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 25)
 
@@ -188,10 +188,10 @@ class TestAlignMeasures(QiskitTestCase):
         sched2 = sched2.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched2 = sched2.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         schedules = transforms.align_measures([sched1, sched2], max_calibration_duration=0)
-        for time, inst in schedules[0].timed_instructions(flatten=True):
+        for time, inst in schedules[0].timed_instructions():
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 0)
-        for time, inst in schedules[0].timed_instructions(flatten=True):
+        for time, inst in schedules[0].timed_instructions():
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 0)
 
@@ -214,7 +214,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         """Test that implicit acquires are made explicit according to the meas map."""
         sched = transforms.add_implicit_acquires(self.sched, [[0, 1]])
         acquired_qubits = set()
-        for _, inst in sched.timed_instructions(flatten=True):
+        for _, inst in sched.timed_instructions():
             if isinstance(inst, Acquire):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1})
@@ -223,7 +223,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         """Test that implicit acquires in separate meas map sublists are all added."""
         sched = transforms.add_implicit_acquires(self.sched, [[0, 2], [1, 3]])
         acquired_qubits = set()
-        for _, inst in sched.timed_instructions(flatten=True):
+        for _, inst in sched.timed_instructions():
             if isinstance(inst, Acquire):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
@@ -233,7 +233,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         sched = transforms.add_implicit_acquires(
             self.sched, [[4, 5], [0, 2], [1, 3]])
         acquired_qubits = set()
-        for _, inst in sched.timed_instructions(flatten=True):
+        for _, inst in sched.timed_instructions():
             if isinstance(inst, Acquire):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
@@ -245,7 +245,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
         sched += acq_q0
         sched += acq_q0 << sched.duration
         sched = transforms.add_implicit_acquires(sched, meas_map=[[0]])
-        self.assertEqual(sched.timed_instructions(flatten=True), [(0, acq_q0), (2400, acq_q0)])
+        self.assertEqual(sched.timed_instructions(), [(0, acq_q0), (2400, acq_q0)])
 
 
 class TestPad(QiskitTestCase):
@@ -343,7 +343,7 @@ def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
     """Returns ids of pulses used in Schedules."""
     ids = set()
     for schedule in schedules:
-        for _, inst in schedule.timed_instructions(flatten=True):
+        for _, inst in schedule.timed_instructions():
             ids.add(inst.pulse.id)
     return ids
 

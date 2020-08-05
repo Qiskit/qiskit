@@ -35,6 +35,9 @@ from qiskit.pulse.exceptions import PulseError
 Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
 
+TimedInstruction = Tuple[int, ScheduleComponent]
+"""An instruction scheduled to occur at a specific time."""
+
 
 class Schedule(ScheduleComponent):
     """A quantum program *schedule* with exact time constraints for its instructions, operating
@@ -46,7 +49,7 @@ class Schedule(ScheduleComponent):
     # Prefix to use for auto naming.
     prefix = 'sched'
 
-    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+    def __init__(self, *schedules: List[Union[ScheduleComponent, TimedInstruction]],
                  name: Optional[str] = None):
         """Create an empty schedule.
 
@@ -101,7 +104,7 @@ class Schedule(ScheduleComponent):
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+    def _children(self) -> Tuple[TimedInstruction, ...]:
         """Return the child``ScheduleComponent``s of this ``Schedule`` in the
         order they were added to the schedule.
 
@@ -113,7 +116,7 @@ class Schedule(ScheduleComponent):
         return tuple(self.__children)
 
     @property
-    def instructions(self) -> List[Tuple[int, ScheduleComponent]]:
+    def instructions(self) -> List[TimedInstruction]:
         """Get the time-ordered instructions from self.
 
         ReturnType:
@@ -122,14 +125,15 @@ class Schedule(ScheduleComponent):
         warnings.warn(
             '"Schedule.instructions" has been deprecated and will be removed in '
             ' in a later release. Please replace all calls with '
-            '"Schedule.timed_instructions(flatten=True)"',
+            '"Schedule.timed_instructions()"',
             DeprecationWarning
         )
-        return self.timed_instructions(flatten=True)
+        return self.timed_instructions()
 
     # pylint: disable=arguments-differ
-    def timed_instructions(self, flatten: bool = False) -> List[Tuple[int, ScheduleComponent]]:
-        """Get the time-ordered instructions from self.
+    def timed_instructions(self) -> List[TimedInstruction]:
+        """Produce a time-ordered list of all instructions and the time they ocurr
+        at in the schedule.
 
         .. jupyter-execute::
 
@@ -142,11 +146,7 @@ class Schedule(ScheduleComponent):
             sched = pulse.Schedule()
             sched += element
 
-            print("Tree: {}" .format(sched.timed_instructions()))
-            print("Flattened: {}" .format(sched.timed_instructions(flatten=True)))
-
-        Args:
-            flatten: Flatten the Schedule tree into a list of timed instructions.
+            print(sched.timed_instructions())
         """
 
         def key(time_inst_pair):
@@ -154,9 +154,24 @@ class Schedule(ScheduleComponent):
             return (time_inst_pair[0], inst.duration,
                     sorted(chan.name for chan in inst.channels))
 
-        if flatten:
-            return sorted(self._flattened_instructions(), key=key)
-        return sorted(self._children, key=key)
+        return sorted(self._iter_instructions(), key=key)
+
+    def _iter_instructions(self, time: int = 0):
+        """Iterable for flattening Schedule tree.
+
+        Args:
+            time: Shifted time due to parent.
+
+        Yields:
+            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
+                :class:`~qiskit.pulse.Instruction`
+                starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
+        """
+        for insert_time, child in self._children:
+            if isinstance(child, Schedule):
+                yield from child._iter_instructions(time + insert_time)
+            else:
+                yield (time+insert_time, child)
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
@@ -191,20 +206,6 @@ class Schedule(ScheduleComponent):
         except ValueError:
             # If there are no instructions over channels
             return 0
-
-    def _flattened_instructions(self, time: int = 0):
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time due to parent.
-
-        Yields:
-            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
-                :class:`~qiskit.pulse.Instruction`
-                starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
-        """
-        for insert_time, child_sched in self._children:
-            yield from child_sched._flattened_instructions(time + insert_time)
 
     # pylint: disable=arguments-differ
     def shift(self,
@@ -343,7 +344,7 @@ class Schedule(ScheduleComponent):
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all ``instructions``."""
-        return Schedule(*self.timed_instructions(flatten=True), name=self.name)
+        return Schedule(*self.timed_instructions(), name=self.name)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
@@ -610,9 +611,9 @@ class Schedule(ScheduleComponent):
             return False
 
         # then verify same number of instructions in each
-        instructions = self.timed_instructions(flatten=True)
+        instructions = self.timed_instructions()
         if isinstance(other, Schedule):
-            other_instructions = other.timed_instructions(flatten=True)
+            other_instructions = other.timed_instructions()
         else:
             other_instructions = other.timed_instructions()
 
@@ -621,7 +622,7 @@ class Schedule(ScheduleComponent):
 
         # finally check each instruction in `other` is in this schedule
         for idx, inst in enumerate(other_instructions):
-            # check assumes `Schedule.timed_instructions(flatten=True)` is sorted consistently
+            # check assumes `Schedule.timed_instructions()` is sorted consistently
             if instructions[idx] != inst:
                 return False
 
@@ -645,7 +646,7 @@ class Schedule(ScheduleComponent):
 
     def __repr__(self):
         name = format(self._name) if self._name else ""
-        timed_instrs = self.timed_instructions(flatten=True)
+        timed_instrs = self.timed_instructions()
         instructions = ", ".join([repr(instr) for instr in timed_instrs[:50]])
         if len(timed_instrs) > 25:
             instructions += ", ..."

@@ -106,7 +106,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
             visited_channels = set()
             qubit_first_acquire_times = defaultdict(lambda: None)
 
-            for time, inst in schedule.timed_instructions(flatten=True):
+            for time, inst in schedule.timed_instructions():
                 if (isinstance(inst, instructions.Acquire) and
                         inst.channel not in visited_channels):
                     visited_channels.add(inst.channel)
@@ -152,7 +152,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
         else:
             shift = 0
 
-        for time, inst in schedule.timed_instructions(flatten=True):
+        for time, inst in schedule.timed_instructions():
             measurement_channels = {
                 chan.index for chan in inst.channels if
                 isinstance(chan, (chans.MeasureChannel, chans.AcquireChannel))
@@ -197,7 +197,7 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
     new_schedule = Schedule(name=schedule.name)
     acquire_map = dict()
 
-    for time, inst in schedule.timed_instructions(flatten=True):
+    for time, inst in schedule.timed_instructions():
         if isinstance(inst, instructions.Acquire):
             if inst.mem_slot and inst.mem_slot.index != inst.channel.index:
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
@@ -292,7 +292,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     for schedule in schedules:
         new_schedule = Schedule(name=schedule.name)
 
-        for time, inst in schedule.timed_instructions(flatten=True):
+        for time, inst in schedule.timed_instructions():
             if isinstance(inst, instructions.Play):
                 if inst.pulse in existing_pulses:
                     idx = existing_pulses.index(inst.pulse)
