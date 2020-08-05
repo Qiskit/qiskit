@@ -166,7 +166,7 @@ def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
 
             if shift < 0:
                 warnings.warn(
-                    "The provided alignement time is scheduling an acquire instruction "
+                    "The provided alignment time is scheduling an acquire instruction "
                     "earlier than it was scheduled for in the original Schedule. "
                     "This may result in an instruction being scheduled before t=0 and "
                     "an error being raised."
