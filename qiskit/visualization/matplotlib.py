@@ -304,7 +304,7 @@ class MatplotlibDrawer:
                 param_parts[i] = str(e)
 
             if param_parts[i].startswith('-'):
-                param_parts[i] = '$-$' + param_parts[i][1:]
+                param_parts[i] = '$-$' + '${}$'.format(param_parts[i][1:])
 
         param_parts = ', '.join(param_parts)
         return param_parts
