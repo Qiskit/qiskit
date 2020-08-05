@@ -30,6 +30,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    CRYGate
    CRZGate
    CSwapGate
+   CSXGate
    CUGate
    CU1Gate
    CU3Gate
@@ -54,6 +55,8 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    SdgGate
    SwapGate
    iSwapGate
+   SXGate
+   SXdgGate
    TGate
    TdgGate
    UGate
@@ -81,6 +84,7 @@ from .rzx import RZXGate
 from .s import SGate, SdgGate
 from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
+from .sx import SXGate, SXdgGate, CSXGate
 from .dcx import DCXGate
 from .t import TGate, TdgGate
 from .u import UGate, CUGate
