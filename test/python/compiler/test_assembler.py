@@ -915,6 +915,12 @@ class TestPulseAssembler(QiskitTestCase):
                      meas_lo_freq=self.default_meas_lo_freq,
                      meas_map=[[0, 1, 2]])
 
+    def test_assemble_single_instruction(self):
+        """Test assembling schedules, no lo config."""
+        inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+        qobj = assemble(inst, self.backend)
+        validate_qobj_against_schema(qobj)
+
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
