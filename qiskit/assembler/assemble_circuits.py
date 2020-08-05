@@ -13,13 +13,16 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
+from qiskit.assembler.assemble_schedules import _assemble_instructions as assemble_schedule
+from qiskit.assembler.run_config import RunConfig
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
-                         QasmQobjConfig)
+                         QasmQobjConfig, QasmExperimentCalibrations, GateCalibration,
+                         PulseQobjInstruction, PulseLibraryItem, converters)
 from qiskit.tools.parallel import parallel_map
 
 
-def _assemble_circuit(circuit):
+def _assemble_circuit(circuit, run_config):
     # header stuff
     num_qubits = 0
     memory_slots = 0
@@ -49,8 +52,13 @@ def _assemble_circuit(circuit):
                                   creg_sizes=creg_sizes,
                                   name=circuit.name,
                                   global_phase=circuit.global_phase)
+
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
+
+    calibrations, pulse_library = _assemble_pulse_gates(circuit, run_config)
+    if calibrations:
+        config.calibrations = calibrations
 
     # Convert conditionals from QASM-style (creg ?= int) to qobj-style
     # (register_bit ?= 1), by assuming device has unlimited register slots
@@ -107,8 +115,39 @@ def _assemble_circuit(circuit):
             del instruction._condition
 
         instructions.append(instruction)
-    return QasmQobjExperiment(instructions=instructions, header=header,
-                              config=config)
+    return (QasmQobjExperiment(instructions=instructions, header=header, config=config),
+            pulse_library)
+
+
+def _assemble_pulse_gates(circuit, run_config):
+    """
+    Assemble and return the circuit calibrations and associated pulse library, if there are any.
+    The calibrations themselves may reference the pulse library which is returned as a dict.
+
+    Args:
+        circuit (QuantumCircuit): circuit which may have pulse calibrations
+
+    Returns:
+        tuple(QasmExperimentCalibrations, dict(str, array)): The calibrations and pulse library.
+    """
+    if not circuit.calibrations:
+        return None, None
+    if not hasattr(run_config, 'parametric_pulses'):
+        run_config.parametric_pulses = []
+    calibrations = []
+    pulse_library = {}
+    for gate, cals in circuit.calibrations.items():
+        for qubits, cal in cals.items():
+            for params, schedule in cal.items():
+                qobj_instructions, _ = assemble_schedule(
+                    schedule,
+                    converters.InstructionToQobjConverter(PulseQobjInstruction),
+                    run_config,
+                    pulse_library)
+                calibrations.append(
+                    GateCalibration(str(gate), list(qubits), list(params),
+                                    qobj_instructions))
+    return QasmExperimentCalibrations(gates=calibrations), pulse_library
 
 
 def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
@@ -140,7 +179,15 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
     qobj_config.memory_slots = max(memory_slot_sizes)
     qobj_config.n_qubits = max(qubit_sizes)
 
-    experiments = parallel_map(_assemble_circuit, circuits)
+    experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
+    experiments = []
+    pulse_library = {}
+    for exp, lib in experiments_and_pulse_libs:
+        experiments.append(exp)
+        pulse_library.update(lib)
+    if pulse_library:
+        qobj_config.pulse_library = [PulseLibraryItem(name=name, samples=samples)
+                                     for name, samples in pulse_library.items()]
 
     return QasmQobj(qobj_id=qobj_id,
                     config=qobj_config,
