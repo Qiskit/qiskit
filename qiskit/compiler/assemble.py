@@ -299,16 +299,18 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if dynamic_reprate_enabled:
         rep_delay = rep_delay or getattr(backend_config, "default_rep_delay", None)
         if rep_delay is not None:
-            rep_delay_range = getattr(backend_config, "rep_delay_range", [])
+            rep_delay_range = getattr(backend_config, "rep_delay_range", None)
             # check that rep_delay is in rep_delay_range
-            if (
-                    len(rep_delay_range) != 2
-                    or not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]
-            ):
-                raise SchemaValidationError(
-                    "Supplied rep delay {} not in the supported "
-                    "backend range {}".format(rep_delay, rep_delay_range)
-                )
+            if rep_delay_range is not None:
+                rep_delay_range = list(rep_delay_range)
+                if (
+                        len(rep_delay_range) != 2
+                        or not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]
+                ):
+                    raise SchemaValidationError(
+                        "Supplied rep delay {} not in the supported "
+                        "backend range {}".format(rep_delay, rep_delay_range)
+                    )
             rep_delay = rep_delay * 1e6  # convert sec to μs
     else:
         rep_delay = None
