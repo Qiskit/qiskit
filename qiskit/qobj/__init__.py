@@ -40,6 +40,7 @@ Qasm
    QasmQobjExperimentConfig
    QasmQobjExperiment
    QasmQobjConfig
+   GateCalibration
 
 Pulse
 =====
@@ -74,6 +75,7 @@ from qiskit.qobj.pulse_qobj import PulseQobjConfig
 from qiskit.qobj.pulse_qobj import QobjMeasurementOption
 from qiskit.qobj.pulse_qobj import PulseLibraryItem
 
+from qiskit.qobj.qasm_qobj import GateCalibration
 from qiskit.qobj.qasm_qobj import QasmQobj
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.qobj.qasm_qobj import QasmQobjExperiment
