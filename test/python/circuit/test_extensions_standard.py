@@ -1354,7 +1354,7 @@ class TestStandardMethods(QiskitTestCase):
         definition."""
         from qiskit.circuit.library.standard_gates.ms import MSGate
 
-        params = [0.1 * i for i in range(10)]
+        params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
@@ -1385,8 +1385,11 @@ class TestStandardMethods(QiskitTestCase):
                               gate.name)
                 continue
             definition_unitary = execute([circ], simulator).result().get_unitary()
-            self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
-            self.assertTrue(is_unitary_matrix(gate_matrix))
+
+            with self.subTest(gate_class):
+                # TODO check for exact equality once BasicAer can handle global phase
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
+                self.assertTrue(is_unitary_matrix(gate_matrix))
 
     def test_to_matrix_op(self):
         """test gates implementing to_matrix generate matrix which matches
