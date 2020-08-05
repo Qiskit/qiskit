@@ -268,37 +268,3 @@ class ParameterExpression():
         return (isinstance(other, ParameterExpression)
                 and self.parameters == other.parameters
                 and srepr(self._symbol_expr) == srepr(other._symbol_expr))
-
-
-def cos(self):
-    """Returns a new Expression with cosine applied to the old one. """
-    if not isinstance(self, ParameterExpression):
-        raise TypeError('Input should be a ParameterExpression')
-    from sympy import cos as _cos
-
-    return ParameterExpression(
-        self._parameter_symbols,
-        _cos(self._symbol_expr))
-
-
-def sin(self):
-    """Returns a new Expression with sine applied to the old one. """
-    if not isinstance(self, ParameterExpression):
-        raise TypeError('Input should be a ParameterExpression')
-    from sympy import sin as _sin
-
-    return ParameterExpression(
-        self._parameter_symbols,
-        _sin(self._symbol_expr))
-
-
-def exp(self):
-    """Returns a new Expression with sine applied to the old one. """
-    if not isinstance(self, ParameterExpression):
-        raise TypeError('Input should be a ParameterExpression')
-    from sympy import exp as _exp
-    from sympy import I
-
-    return ParameterExpression(
-        self._parameter_symbols,
-        _exp(I * self._symbol_expr))
