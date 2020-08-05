@@ -47,7 +47,42 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         try:
             return pi_check(float(inpt), eps=eps, output=output, ndigits=ndigits)
         except (ValueError, TypeError):
-            return str(inpt)
+            # string expression of the Parameter expression
+            string_p = str(inpt)
+
+            # modified expression of the Parameter expression
+            new_str = ''
+
+            # creating the new string by replacing all special characters
+            for tup in enumerate(string_p):
+                if tup[1] in ['+', '-', '*', '/', '(', ')']:
+                    new_str = new_str + ' ' + tup[1] + ' '
+                else:
+                    new_str = new_str + tup[1]
+
+            # splitting the new string and filtering it for unwanted symbols
+            elements = new_str.split(' ')
+            elements = list(filter((' ').__ne__, elements))
+            new_arr = []
+
+            # replacing the value of pi by its symbol
+            for item in elements:
+                try:
+                    val = float(item)
+                    if 'pi' in pi_check(val):
+                        new_arr.append(pi_check(val))
+                    elif 'pi' in pi_check(1/val):
+                        new_arr.append('(1/(' + pi_check(1/val) + '))')
+                    else:
+                        new_arr.append(pi_check(val))
+                except (ValueError, TypeError):
+                    new_arr.append(item)
+
+            # joining the elements together
+            separator = ''
+            output_string = separator.join(new_arr)
+            return output_string
+
     elif isinstance(inpt, str):
         return inpt
 
