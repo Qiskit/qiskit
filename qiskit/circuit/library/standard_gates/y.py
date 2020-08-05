@@ -78,7 +78,7 @@ class YGate(Gate):
         rules = [
             (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -204,7 +204,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
             (CXGate(), [q[0], q[1]], []),
             (SGate(), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

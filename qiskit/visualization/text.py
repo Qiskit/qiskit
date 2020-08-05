@@ -519,7 +519,7 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False):
+                 cregbundle=False, global_phase=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
@@ -527,6 +527,7 @@ class TextDrawing():
         self.initial_state = initial_state
 
         self.cregbundle = cregbundle
+        self.global_phase = global_phase
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
@@ -630,6 +631,11 @@ class TextDrawing():
                 rest_of_the_line -= layer_groups[-1][-1][0].length
 
         lines = []
+
+        if self.global_phase:
+            lines.append('global phase: %s' % pi_check(self.global_phase,
+                                                       ndigits=5))
+
         for layer_group in layer_groups:
             wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
@@ -662,10 +668,14 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '{name}_{index} -> {physical} ' + initial_qubit_value
-                qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
-                                                 index=self.layout[bit.index].index,
-                                                 physical=bit.index))
+                if self.layout[bit.index]:
+                    label = '{name}_{index} -> {physical} ' + initial_qubit_value
+                    qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
+                                                     index=self.layout[bit.index].index,
+                                                     physical=bit.index))
+                else:
+                    qubit_labels.append('%s ' % bit.index + initial_qubit_value)
+
         clbit_labels = []
         previous_creg = None
         for bit in self.cregs:
@@ -1074,7 +1084,7 @@ class TextDrawing():
                     self._instruction_to_gate(instruction, layer)
 
                 layer.connections.append((connection_label, current_connections))
-                layer.connect_with("│")
+            layer.connect_with("│")
             layers.append(layer.full_layer)
 
         return layers

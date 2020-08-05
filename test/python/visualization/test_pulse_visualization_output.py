@@ -61,8 +61,8 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
         sched = Schedule(name='test_schedule')
         sched = sched.append(gp0(DriveChannel(0)))
-        sched = sched.insert(0, library.Constant(duration=60, amp=0.2 + 0.4j)(
-            ControlChannel(0)))
+        sched = sched.insert(0, Play(library.Constant(duration=60, amp=0.2 + 0.4j),
+                                     ControlChannel(0)))
         sched = sched.insert(60, ShiftPhase(-1.57, DriveChannel(0)))
         sched = sched.insert(60, SetFrequency(8.0, DriveChannel(0)))
         sched = sched.insert(60, SetPhase(3.14, DriveChannel(0)))
@@ -87,7 +87,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         """Test that parametric instructions/schedules can be drawn."""
         filename = self._get_resource_path('current_parametric_matplotlib_ref.png')
         schedule = Schedule(name='test_parametric')
-        schedule += library.Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
+        schedule += Play(library.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.parametric_matplotlib_reference)
         os.remove(filename)
