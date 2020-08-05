@@ -309,7 +309,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                             rep_delay_range
                         )
                     )
-                if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:  #
+                if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
                     raise SchemaValidationError(
                         "Supplied rep delay {} not in the supported "
                         "backend range {}".format(rep_delay, rep_delay_range)
