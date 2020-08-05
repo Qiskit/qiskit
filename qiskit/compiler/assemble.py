@@ -190,7 +190,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
-        memory. Also if shots exceeds max_shots for the configured backend.
+            memory. Also if shots exceeds max_shots for the configured backend.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -252,8 +252,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             and determines the runtime environment.
     Raises:
         SchemaValidationError: If the given meas_level is not allowed for the given `backend`. If
-            backend rep_delay_range does not have length 2. If rep_delay is not in the backend
-            rep_delay_range.
+            rep_delay is not in the backend rep_delay_range.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -301,16 +300,15 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
         rep_delay = rep_delay or getattr(backend_config, "default_rep_delay", None)
         if rep_delay is not None:
             rep_delay_range = getattr(backend_config, "rep_delay_range", [])
-            if len(rep_delay_range) == 2:
-                # check that rep_delay is in rep_delay_range
-                if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
-                    raise SchemaValidationError(
-                        "Supplied rep delay {} not in the supported "
-                        "backend range {}".format(rep_delay, rep_delay_range)
-                    )
-            else:
-                raise SchemaValidationError('"rep_delay_range" must be a list with two entries."')
-
+            # check that rep_delay is in rep_delay_range
+            if (
+                    len(rep_delay_range) != 2
+                    or not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]
+            ):
+                raise SchemaValidationError(
+                    "Supplied rep delay {} not in the supported "
+                    "backend range {}".format(rep_delay, rep_delay_range)
+                )
             rep_delay = rep_delay * 1e6  # convert sec to μs
     else:
         rep_delay = None
