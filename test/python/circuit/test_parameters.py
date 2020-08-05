@@ -810,7 +810,7 @@ class TestParameters(QiskitTestCase):
 
         self.assertEqual(qc, qc_ref)
 
-    def test_compilie_with_ufunc(self):
+    def test_compile_with_ufunc(self):
         """Test compiling of circuit with unbounded parameters
         after we apply universal functions."""
         phi = Parameter('phi')
