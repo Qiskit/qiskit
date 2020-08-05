@@ -59,7 +59,6 @@ deprecations:
     :func:`qiskit.visualization.circuit_drawer` function and the
     :class:`~qiskit.circuit.QuantumCircuit` method
     :meth:`~qiskit.circuit.QuantumCircuit.draw`.
-    The default value is ``True``. 
 fixes:
   - |
     On some occasions long gate and register names would overflow, or leave

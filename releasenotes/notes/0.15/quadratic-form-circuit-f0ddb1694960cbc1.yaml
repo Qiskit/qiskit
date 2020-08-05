@@ -19,7 +19,7 @@ features:
     If all terms are integers, the circuit implements the quadratic form
     exactly, otherwise it is only an approximation.
     
-    For example:
+    For example::
 
       import numpy as np
 

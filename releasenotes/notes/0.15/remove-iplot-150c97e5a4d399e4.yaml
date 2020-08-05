@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The interactive plotting functions from :mod:`qiskit.visualizations`,
+    The interactive plotting functions from :mod:`qiskit.visualization`,
     ``iplot_bloch_multivector``, ``iplot_state_city``, ``iplot_state_qsphere``,
     ``iplot_state_hinton``, ``iplot_histogram``, ``iplot_state_paulivec`` now
     are just deprecated aliases for the matplotlib based equivalents and are
@@ -11,11 +11,11 @@ upgrade:
     exists.
 deprecations:
   - |
-    The interactive plotting functions from :mod:`qiskit.visualizations`,
+    The interactive plotting functions from :mod:`qiskit.visualization`,
     ``iplot_bloch_multivector``, ``iplot_state_city``, ``iplot_state_qsphere``,
     ``iplot_state_hinton``, ``iplot_histogram``, ``iplot_state_paulivec`` have
     been deprecated and will be removed in a future release. The matplotlib
-    based equivalent functions from :mod:`qiskit.visualizations`,
+    based equivalent functions from :mod:`qiskit.visualization`,
     :func:`~qiskit.visualization.plot_bloch_multivector`,
     :func:`~qiskit.visualization.plot_state_city`,
     :func:`~qiskit.visualization.plot_state_qsphere`,
