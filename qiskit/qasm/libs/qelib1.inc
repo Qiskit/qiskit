@@ -49,6 +49,10 @@ gate rz(phi) a { u1(phi) a; }
 
 // --- QE Standard User-Defined Gates  ---
 
+// sqrt(X)
+gate sx a { sdg a; h a; sdg a; }
+// inverse sqrt(X)
+gate sxdg a { s a; h a; s a; }
 // controlled-Phase
 gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
@@ -134,6 +138,9 @@ gate cu3(theta,phi,lambda) c, t
   cx c,t;
   u3(theta/2,phi,0) t;
 }
+// controlled-sqrt(X)
+gate csx a,b { h b; cu1(pi/2) a,b; h b; }
+// controlled-U gate
 gate cu(theta,phi,lambda,gamma) c, t
 { p(gamma) c;
   p((lambda+phi)/2) c;
