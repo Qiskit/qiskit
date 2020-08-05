@@ -27,7 +27,7 @@ import warnings
 
 from abc import ABC
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 import numpy as np
 
 from ..channels import Channel
