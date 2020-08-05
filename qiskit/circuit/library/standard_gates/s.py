@@ -103,7 +103,7 @@ class SdgGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label='S_dg'):
         """Create new Sdg gate."""
         super().__init__('sdg', 1, [], label=label)
 
