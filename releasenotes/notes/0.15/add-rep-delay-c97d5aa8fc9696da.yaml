@@ -20,3 +20,12 @@ features:
     :class:`~qiskit.qobj.PulseQobjtConfig` will be used rather than
     ``rep_delay``. ``rep_time`` only allows users to specify the duration of a
     program, rather than the delay between programs.
+  - |
+    The ``qobj_schema.json`` JSON Schema file in :mod:`qiskit.schemas` has
+    been updated to include the ``rep_delay`` as an optional configuration
+    propery for pulse qobjs.
+  - |
+    The ``backend_configuration_schema.json`` JSON Scehma file in
+    mod:`qiskit.schemas` has been updated to include ``rep_delay_range`` and
+    ``default_rep_delay`` as optional properties for a pulse backend
+    configuration.
