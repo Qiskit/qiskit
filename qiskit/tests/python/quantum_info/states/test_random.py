@@ -15,12 +15,12 @@
 """Test random operator functions."""
 
 import unittest
-from qiskit.tests import combine
 
 from ddt import ddt
 import numpy as np
 
 from qiskit.test import QiskitTestCase
+from qiskit.tests import combine
 from qiskit.quantum_info import Statevector, DensityMatrix
 from qiskit.quantum_info.random import random_statevector
 from qiskit.quantum_info.random import random_density_matrix

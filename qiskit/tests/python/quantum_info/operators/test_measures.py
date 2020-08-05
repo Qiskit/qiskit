@@ -14,7 +14,6 @@
 """Tests for operator measures."""
 
 import unittest
-from qiskit.tests import combine
 
 from ddt import ddt
 
@@ -26,6 +25,7 @@ from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
 from qiskit.test import QiskitTestCase
+from qiskit.tests import combine
 
 
 @ddt

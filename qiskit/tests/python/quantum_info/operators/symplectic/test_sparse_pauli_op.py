@@ -17,12 +17,12 @@
 
 import unittest
 import itertools as it
-from qiskit.tests import combine
 
 from ddt import ddt
 import numpy as np
 
 from qiskit import QiskitError
+from qiskit.tests import combine
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator, SparsePauliOp, PauliTable

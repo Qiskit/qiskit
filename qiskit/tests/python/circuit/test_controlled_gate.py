@@ -16,11 +16,11 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
-from qiskit.tests import combine
 import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
+from qiskit.tests import combine
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate

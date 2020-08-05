@@ -22,10 +22,10 @@ from logging import StreamHandler, getLogger
 from unittest.mock import patch
 
 from ddt import ddt, data, unpack
-from qiskit.tests import combine  # pylint: disable=wrong-import-order
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.tests import combine  # pylint: disable=wrong-import-order
 from qiskit.circuit import Parameter
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag

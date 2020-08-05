@@ -17,10 +17,10 @@
 
 import operator
 
-from qiskit.tests import combine
 
 from ddt import ddt, data
 
+from qiskit.tests import combine
 from qiskit.circuit import QuantumCircuit
 from qiskit.execute import execute
 from qiskit.test.base import QiskitTestCase

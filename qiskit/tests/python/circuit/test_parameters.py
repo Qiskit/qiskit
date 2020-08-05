@@ -17,8 +17,6 @@
 import pickle
 from operator import add, sub, mul, truediv
 
-from qiskit.tests import combine
-
 import numpy
 
 from ddt import ddt, data
@@ -26,6 +24,7 @@ from ddt import ddt, data
 import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.tests import combine
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError

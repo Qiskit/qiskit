@@ -13,11 +13,11 @@
 # that they have been altered from the originals.
 
 """Tests preset pass managers with 1Q backend"""
-from qiskit.tests import combine
 
 from ddt import ddt
 
 from qiskit import QuantumCircuit
+from qiskit.tests import combine
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import Fake1Q

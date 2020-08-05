@@ -13,11 +13,11 @@
 # that they have been altered from the originals.
 
 """Tests preset pass manager API"""
-from qiskit.tests import combine
 
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.tests import combine
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap
 from qiskit.circuit.library import U2Gate, U3Gate

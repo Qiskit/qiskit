@@ -15,11 +15,11 @@
 """Test random operator functions."""
 
 import unittest
-from qiskit.tests import combine
 
 from ddt import ddt
 import numpy as np
 
+from qiskit.tests import combine
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator, Stinespring, Choi
 from qiskit.quantum_info import Clifford, PauliTable, StabilizerTable
