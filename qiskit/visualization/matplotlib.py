@@ -623,9 +623,12 @@ class MatplotlibDrawer:
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
-                    label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
-                        name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index, physical=reg.index)
+                    if self.layout[reg.index]:
+                        label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
+                            name=self.layout[reg.index].register.name,
+                            index=self.layout[reg.index].index, physical=reg.index)
+                    else:
+                        label = '${{{physical}}}$'.format(physical=reg.index)
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
@@ -718,7 +721,7 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         _standard_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset']
+                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx', 'sxdg']
         _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
