@@ -25,7 +25,7 @@ deprecations:
     their subclasses such as :class:`~qiskit.quantum_info.Operator`
     and :class:`qiskit.quantum_info.DensityMatrix`) are deprecated and will
     be removed in a future release. Instead the value for the attributes
-    ``.atol`` and `.rtol` shoulde be set on the class instead. For example::
+    ``.atol`` and ``.rtol`` shoulde be set on the class instead. For example::
 
       from qiskit.quantum_info import ScalarOp
 
