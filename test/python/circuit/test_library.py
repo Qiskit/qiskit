@@ -279,13 +279,15 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
         rng2 = np.random.default_rng(seed)
 
         depth = 2
+        width = 1
         circuit = QuantumVolume(2, depth, seed=rng1, classical_permutation=False)
 
         expected = QuantumCircuit(2)
-        for _ in range(depth):
+        unitary_seeds = rng2.integers(low=1, high=1000, size=[depth, width])
+        for d in range(depth):
             if rng2.permutation([0, 1]).tolist() == [1, 0]:
                 expected.swap(0, 1)
-            expected.append(random_unitary(4, seed=rng2), [0, 1])
+            expected.append(random_unitary(4, seed=unitary_seeds[d][0]), [0, 1])
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))

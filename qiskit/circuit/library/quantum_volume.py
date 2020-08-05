@@ -88,18 +88,26 @@ class QuantumVolume(QuantumCircuit):
         name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(' ', '')
         super().__init__(num_qubits, name=name)
 
+        # Generator random unitary seeds in advance.
+        # Note that this means we are constructing multiple new generator
+        # objects from low-entropy integer seeds rather than pass the shared
+        # generator object to the random_unitary function. This is done so
+        # that we can use the integer seed as a label for the generated gates.
+        unitary_seeds = rng.integers(low=1, high=1000, size=[depth, width])
+
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
         inner = QuantumCircuit(num_qubits, name=name)
         perm_0 = list(range(num_qubits))
-        for _ in range(depth):
+        for d in range(depth):
             perm = rng.permutation(perm_0)
             if not classical_permutation:
                 layer_perm = Permutation(num_qubits, perm)
                 inner.compose(layer_perm, inplace=True)
             for w in range(width):
-                su4 = random_unitary(4, seed=rng).to_instruction()
-                su4.label = 'su4'
+                seed_u = unitary_seeds[d][w]
+                su4 = random_unitary(4, seed=seed_u).to_instruction()
+                su4.label = 'su4' + str(seed_u)
                 if classical_permutation:
                     physical_qubits = int(perm[2*w]), int(perm[2*w+1])
                     inner.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)
