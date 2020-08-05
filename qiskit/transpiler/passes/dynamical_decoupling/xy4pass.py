@@ -22,7 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 class XY4Pass(TransformationPass):
     """XY4 DD Pass"""
 
-    def __init__(self, backend_properties, dt_in_sec, tau_c=None, tau_step=10):
+    def __init__(self, backend_properties, dt_in_sec, tau_step=10e-9):
         """XY4Pass initializer.
 
         Args:
@@ -30,35 +30,20 @@ class XY4Pass(TransformationPass):
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
             dt_in_sec (float): Sample duration [sec] used for the conversion.
-            tau_c (int): Cycle time of the DD sequence. Default is the sum of gate
-                durations of DD sequences with 10 ns delays in between.
-            tau_step (int): Delay time between pulses in the DD sequence. Default
-                is 10 ns. tau_step calculates tau_c if tau_c is not specified.
+            tau_step (float): Delay time between pulses in the DD sequence. Default
+                is 10 ns.
         """
         super().__init__()
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-
-        if tau_c is not None and tau_step != 10:
-            raise TranspilerError("Only either tau_c or tau_step can be specified, not both.")
-
-        self.tau_step_dt = int(tau_step * 1e-9 / self.dt)
-        self.tau_c = tau_c
-        self.approx_tau_cs = {}
+        self.tau_step_dt = int(tau_step / self.dt)
+        self.tau_cs = {}
 
         u3_props = self.backend_properties._gates['u3']
         for qubit, props in u3_props.items():
             if 'gate_length' in props:
                 gate_length = props['gate_length'][0]
-                # TODO: Needs to check if durations of gates exceed cycle time
-                # If so, raise error
-                if tau_c is not None:
-                    self.approx_tau_cs[qubit[0]] = 4 * tau_c // 4
-                else:
-                    self.approx_tau_cs[qubit[0]] = 4 * self.tau_step_dt + \
-                                            round(4 * gate_length / self.dt)
-
-                # Should also raise warning about cycle time estimations
+                self.tau_cs[qubit[0]] = 4 * (self.tau_step_dt + round(gate_length / self.dt))
 
     def run(self, dag):
         """Run the XY4 pass on `dag`.
@@ -83,37 +68,33 @@ class XY4Pass(TransformationPass):
         for node in dag.topological_op_nodes():
 
             if not isinstance(node.op, Delay):
-
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+                continue
 
-            else:
-                delay_duration = node.op.duration
-                approx_tau_c = self.approx_tau_cs[node.qargs[0].index] if self.tau_c is None \
-                                                                       else self.tau_c
+            delay_duration = node.op.duration
+            tau_c = self.tau_cs[node.qargs[0].index]
 
-                if approx_tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
-                    # If a cycle of XY4 can't fit or there isn't at least 1 other operation before.
-                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+            if tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
+                # If a cycle of XY4 can't fit or there isn't at least 1 other operation before.
+                new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+                continue
 
-                else:
-                    count = int(delay_duration // approx_tau_c)
-                    parity = 1 if (delay_duration - count * approx_tau_c + self.tau_step_dt) % 2 \
-                               else 0
-                    new_delay = int((delay_duration - count * approx_tau_c + self.tau_step_dt) / 2)
+            count = int(delay_duration // tau_c)
+            new_delay = int((delay_duration - count * tau_c + self.tau_step_dt) / 2)
 
-                    new_dag.apply_operation_back(Delay(new_delay - self.tau_step_dt), \
-                                                        qargs=node.qargs)
+            new_dag.apply_operation_back(Delay(new_delay - self.tau_step_dt), qargs=node.qargs)
 
-                    for _ in range(count):
-                        new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                        new_dag.apply_operation_back(XGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                        new_dag.apply_operation_back(YGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                        new_dag.apply_operation_back(XGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                        new_dag.apply_operation_back(YGate(), qargs=node.qargs)
+            for _ in range(count):
+                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(XGate().definition.data[0][0], qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(XGate().definition.data[0][0], qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+            parity = 1 if (delay_duration - count * tau_c + self.tau_step_dt) % 2 else 0
+            new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
         return new_dag
