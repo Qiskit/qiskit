@@ -23,7 +23,7 @@ from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.test.mock.utils import ConfigurableBackend
+from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
 from qiskit.pulse import library, instructions
 
 # pylint: disable=invalid-name
@@ -680,6 +680,20 @@ class TestMacros(TestBuilder):
 
         reference = macros.measure(
             qubits=[0],
+            inst_map=self.inst_map,
+            meas_map=self.configuration.meas_map)
+
+        self.assertEqual(schedule, reference)
+
+    def test_measure_multi_qubits(self):
+        """Test utility function - measure with multi qubits."""
+        with pulse.build(self.backend) as schedule:
+            regs = pulse.measure([0, 1])
+
+        self.assertListEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
+
+        reference = macros.measure(
+            qubits=[0, 1],
             inst_map=self.inst_map,
             meas_map=self.configuration.meas_map)
 

@@ -42,7 +42,7 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
-                 cregbundle=False):
+                 cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
 
         Args:
@@ -59,6 +59,7 @@ class QCircuitImage:
                included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
+            global_phase (float): Optional, the global phase for the circuit.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -135,8 +136,9 @@ class QCircuitImage:
         for bit in self.ordered_regs:
             self.wire_type[bit] = bit.register in self.cregs.keys()
         self.cregbundle = cregbundle
+        self.global_phase = global_phase
 
-    def latex(self, aliases=None):
+    def latex(self):
         """Return LaTeX string representation of circuit.
 
         This method uses the LaTeX Qconfig package to create a graphical
@@ -146,7 +148,7 @@ class QCircuitImage:
             string: for writing to a LaTeX file.
         """
         self._initialize_latex_array()
-        self._build_latex_array(aliases)
+        self._build_latex_array()
         header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
@@ -162,8 +164,9 @@ class QCircuitImage:
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
-\begin{equation*}"""
+"""
         qcircuit_line = r"""
+\begin{equation*}
     \Qcircuit @C=%.1fem @R=%.1fem @!R {
 """
         output = io.StringIO()
@@ -171,6 +174,9 @@ class QCircuitImage:
         output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
         output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
+        if self.global_phase:
+            output.write(r"""
+{\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
         for i in range(self.img_width):
@@ -234,10 +240,13 @@ class QCircuitImage:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                        self.layout[self.ordered_regs[i].index].register.name,
-                        self.layout[self.ordered_regs[i].index].index,
-                        self.ordered_regs[i].index)
+                    if self.layout[self.ordered_regs[i].index]:
+                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            self.layout[self.ordered_regs[i].index].register.name,
+                            self.layout[self.ordered_regs[i].index].index,
+                            self.ordered_regs[i].index)
+                    else:
+                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -366,24 +375,12 @@ class QCircuitImage:
             return generate_latex_label(str(param))
         return pi_check(param, output='latex')
 
-    def _build_latex_array(self, aliases=None):
+    def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit.
-
-        If aliases is not None, aliases contains a dict mapping
-        the current qubits in the circuit to new qubit names.
-        We will deduce the register names and sizes from aliases.
         """
 
+        qregdata = self.qregs
         # Rename qregs if necessary
-        if aliases:
-            qregdata = {}
-            for q in aliases.values():
-                if q[0] not in qregdata:
-                    qregdata[q[0]] = q[1] + 1
-                elif qregdata[q[0]] < q[1] + 1:
-                    qregdata[q[0]] = q[1] + 1
-        else:
-            qregdata = self.qregs
 
         column = 1
         # Leave a column to display number of classical registers if needed
@@ -496,8 +493,7 @@ class QCircuitImage:
                                      'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
-                    if aliases is not None:
-                        qarglist = map(lambda x: aliases[x], qarglist)
+
                     if len(qarglist) == 1:
                         pos_1 = self.img_regs[qarglist[0]]
 
@@ -936,11 +932,6 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    if aliases:
-                        newq = aliases[(qname, qindex)]
-                        qname = newq[0]
-                        qindex = newq[1]
-
                     pos_1 = self.img_regs[op.qargs[0]]
                     if self.cregbundle:
                         pos_2 = self.img_regs[self.clbit_list[0]]
@@ -973,8 +964,6 @@ class QCircuitImage:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
                         indexes.sort()
-                        if aliases is not None:
-                            qarglist = map(lambda x: aliases[x], qarglist)
 
                         first = last = indexes[0]
                         for index in indexes[1:]:
