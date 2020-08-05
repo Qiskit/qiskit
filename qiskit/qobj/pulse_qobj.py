@@ -271,11 +271,13 @@ class PulseQobjConfig(QobjDictField):
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
             rep_time (int): Time per program execution in sec. Must be from the list provided
-                by the backend (``backend.configuration().rep_times``).
+                by the backend (``backend.configuration().rep_times``). Defaults to the first entry
+                in ``backend.configuration().rep_times``.
             rep_delay (float): Delay between programs in sec. Only supported on certain
-                backends (``backend.configuration().dynamic_reprate_enabled``).
-                If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the
-                list provided by the backend (``backend.configuration().rep_delays``).
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+                ``rep_delay`` will be used instead of ``rep_time`` and must be from the range
+                supplied by the backend (``backend.configuration().rep_delay_range``). Default is
+                ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
