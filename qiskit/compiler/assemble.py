@@ -303,10 +303,13 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             # check that rep_delay is in rep_delay_range
             if rep_delay_range is not None and isinstance(rep_delay_range, list):
                 #  pylint: disable=E1136
-                if (
-                        len(rep_delay_range) != 2
-                        or not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]
-                ):
+                if len(rep_delay_range) != 2:
+                    raise SchemaValidationError(
+                        "Backend rep_delay_range {} must be a list with two entries.".format(
+                            rep_delay_range
+                        )
+                    )
+                elif not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
                     raise SchemaValidationError(
                         "Supplied rep delay {} not in the supported "
                         "backend range {}".format(rep_delay, rep_delay_range)
@@ -315,8 +318,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     else:
         rep_delay = None
         warnings.warn(
-            "Dynamic rep rates not supported on this backend. 'rep_time' will be "
-            "used instead of 'rep_delay.",
+            "Dynamic rep rates not supported on this backend. rep_time will be "
+            "used instead of rep_delay.",
             RuntimeWarning,
         )
 
