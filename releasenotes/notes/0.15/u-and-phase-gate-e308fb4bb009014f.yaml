@@ -8,7 +8,7 @@ features:
     :class:`~qiskit.circuit.QuantumCircuit` methods
     :meth:`~qiskit.circuit.QuantumCircuit.u`,
     :meth:`~qiskit.circuit.QuantumCircuit.cu`,
-    :meth:`~qiskit.circuit.QuantumCircuit.p`,
+    :meth:`~qiskit.circuit.QuantumCircuit.p`, and
     :meth:`~qiskit.circuit.QuantumCircuit.cp`.
     The :class:`~qiskit.circuit.library.UGate` gate is the generic single qubit
     rotation gate with 3 Euler angles and the
