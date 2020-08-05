@@ -1,0 +1,8 @@
+[
+  {
+  "name": "Hidden weighted bit 4 qubits",
+  "class_name": "HiddenWeightedBit4",
+  "original_file": "hidden_weighted_bit.py",
+  "alternative_file": "hidden_weighted_bit_alt.py"
+  }
+]
