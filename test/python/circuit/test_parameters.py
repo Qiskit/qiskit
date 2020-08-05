@@ -27,6 +27,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit.ufunc import sin, cos, tan, asin, acos, atan
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
@@ -781,6 +782,44 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc.parameters, set())
         raise_if_parameter_table_invalid(qc)
 
+    def test_circuit_with_ufunc(self):
+        """Test construction of circuit and binding of parameters
+        after we apply universal functions."""
+        from math import pi
+        phi = Parameter(name='phi')
+        theta = Parameter(name='theta')
+
+        qc = QuantumCircuit(2)
+        qc.u1(cos(phi), 0)
+        qc.u1(sin(phi), 0)
+        qc.u1(tan(phi), 0)
+        qc.rz(acos(theta), 1)
+        qc.rz(atan(theta), 1)
+        qc.rz(asin(theta), 1)
+
+        qc.assign_parameters({phi: pi, theta: 1},
+                             inplace=True)
+
+        qc_ref = QuantumCircuit(2)
+        qc_ref.u1(-1, 0)
+        qc_ref.u1(0, 0)
+        qc_ref.u1(0, 0)
+        qc_ref.rz(0, 1)
+        qc_ref.rz(pi / 4, 1)
+        qc_ref.rz(pi / 2, 1)
+
+        self.assertEqual(qc, qc_ref)
+
+    def test_compilie_with_ufunc(self):
+        """Test compiling of circuit with unbounded parameters
+        after we apply universal functions."""
+        phi = Parameter('phi')
+        qc = QuantumCircuit(1)
+        qc.rx(cos(phi), 0)
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc_aer = transpile(qc, backend)
+        self.assertIn(phi, qc_aer.parameters)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
@@ -1194,6 +1233,11 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter('x')
         self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
 
+        from sympy import I
+        x = I * x
+        conj = -1 * x
+        self.assertEqual(conj, x.conjugate())
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
@@ -1242,3 +1286,10 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr, theta)
         self.assertEqual(theta, expr)
+
+    def test_parameter_symbol_equal_after_ufunc(self):
+        """Verfiy ParameterExpression phi
+        and ParameterExpression cos(phi) have the same symbol map"""
+        phi = Parameter('phi')
+        cos_phi = cos(phi)
+        self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
