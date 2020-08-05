@@ -1,23 +1,41 @@
 ---
 upgrade:
   - |
-    The `qiskit.pulse.commands` module containing `Commands` was deprecated in
-    Terra release 0.13.0 and have now been removed. You will have to upgrade
-    your Pulse code if you were still using commands. For example::
+    The ``qiskit.pulse.commands`` module containing ``Commands`` classes
+    was deprecated in the 0.13.0 release and has now been removed. You will
+    have to upgrade your Pulse code if you were still using commands. For
+    example:
 
-        # old
-        Command(args)(channel)
+    .. list-table::
+      :header-rows: 2
 
-        # new
-        Instruction(args, channel)
+      * - Old
+        - New
+      * - ``Command(args)(channel)``
+        - ``Instruction(args, channel)``
+      * - .. code-block:: python
 
-    ::
+            Acquire(duration)(AcquireChannel(0))
+        - .. code-block:: python
 
-        Acquire(duration)(AcquireChannel(0)) -> Acquire(duration, AcquireChannel(0))
-        Delay(duration)(channel) -> Delay(duration, channel)
+            Acquire(duration, AcquireChannel(0))
+      * - .. code-block:: python
 
-        # FrameChange was also renamed
-        FrameChange(angle)(DriveChannel(0)) -> ShiftPhase(angle, DriveChannel(0))
+            Delay(duration)(channel)
+        - .. code-block:: python
 
-        # Pulses need to be `Play`d
-        Gaussian(...)(DriveChannel(0)) -> Play(Gaussian(...), DriveChannel(0))
+            Delay(duration, channel)
+      * - .. code-block:: python
+
+            FrameChange(angle)(DriveChannel(0))
+        - .. code-block:: python
+
+            # FrameChange was also renamed
+            ShiftPhase(angle, DriveChannel(0))
+      * - .. code-block:: python
+
+            Gaussian(...)(DriveChannel(0))
+        - .. code-block:: python
+
+            # Pulses need to be `Play`d
+            Play(Gaussian(...), DriveChannel(0))

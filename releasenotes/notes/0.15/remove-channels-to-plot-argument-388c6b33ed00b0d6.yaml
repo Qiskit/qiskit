@@ -2,9 +2,10 @@
 upgrade:
   - |
     The deprecated kwarg ``channels_to_plot`` for
-    :meth:`~qiskit.pulse.Schedule.draw`,
-    :meth:`~qiskit.pulse.Instruction.draw`,
-    :meth:`~qiskit.visualization.pulse.matplotlib.ScheduleDrawer.draw`, and
+    :meth:`qiskit.pulse.Schedule.draw`,
+    :meth:`qiskit.pulse.Instruction.draw`,
+    ``qiskit.visualization.pulse.matplotlib.ScheduleDrawer.draw`` and
     :func:`~qiskit.visualization.pulse_drawer` has been removed. The kwarg
     has been deprecated since the 0.11.0 release and was replaced by
-    the ``channels`` kwarg, which functions identically.
+    the ``channels`` kwarg, which functions identically and should be used
+    instead.

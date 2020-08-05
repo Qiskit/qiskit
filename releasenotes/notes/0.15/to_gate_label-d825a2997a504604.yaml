@@ -16,4 +16,4 @@ features:
       custom_gate = circuit_gate.to_gate(label='My Special Bell')
       new_circ = QuantumCircuit(2)
       new_circ.append(custom_gate, [0, 1], [])
-      new_cic.draw(output='mpl')
+      new_circ.draw(output='mpl')

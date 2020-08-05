@@ -1,9 +1,9 @@
 ---
 upgrade:
   - |
-    All classes in the ``qiskit.tool.qi`` namespace were deprecated as of
-    Qiskit Terra 0.14.0 and are now removed. Instead use the
-    ``qiskit.quantum_info`` namespace and the new methods and classes that
+    All classes and function in the ``qiskit.tool.qi`` module were deprecated
+    in the 0.12.0 release and have now been removed. Instead use the
+    :mod:`qiskit.quantum_info` module and the new methods and classes that
     it has for working with quantum states and operators.
   - |
     The ``qiskit.quantum_info.basis_state`` and
