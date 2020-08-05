@@ -212,7 +212,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def to_matrix(self):
-        """Return a numpy.array for the CRY gate."""
+        """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = numpy.cos(theta / 2)
