@@ -3,7 +3,7 @@ fixes:
   - |
     Previously when a :class:`~qiskit.circuit.QuantumCircuit` contained a
     :class:`~qiskit.circuit.Gate` with a classical condition the transpiler
-    would sometimes fail when using ``optimization_leve=3`` on
+    would sometimes fail when using ``optimization_level=3`` on
     :func:`~qiskit.compiler.transpile` or
     :func:`~qiskit.execute.execute` raising an ``UnboundLocalError``. This has
     been fixed by updating the
