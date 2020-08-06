@@ -104,12 +104,13 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                 * ``avg`` returns average measurement output (averaged over number of shots).
         meas_map: List of lists, containing qubits that must be measured together.
         memory_slot_size: Size of each memory slot if the output is Level 0.
-        rep_time: Time per program execution in sec. Must be from the list provided
-            by the backend (``backend.configuration().rep_times``).
-        rep_delay: Delay between programs in sec. Only supported on certain
-            backends (``backend.configuration().dynamic_reprate_enabled`` ).
-            If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the list
-            provided by the backend (``backend.configuration().rep_delays``).
+        rep_time (int): Time per program execution in seconds. Must be from the list provided
+            by the backend (``backend.configuration().rep_times``). Defaults to the first entry.
+        rep_delay (float): Delay between programs in seconds. Only supported on certain
+            backends (if ``backend.configuration().dynamic_reprate_enabled=True``). If supported,
+            ``rep_delay`` will be used instead of ``rep_time`` and must be from the range supplied
+            by the backend (``backend.configuration().rep_delay_range``). Default is given by
+            ``backend.configuration().default_rep_delay``.
         parameter_binds: List of Parameter bindings over which the set of experiments will be
             executed. Each list element (bind) should be of the form
             {Parameter1: value1, Parameter2: value2, ...}. All binds will be
@@ -189,7 +190,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
 
     Raises:
         QiskitError: if the memory arg is True and the backend does not support
-        memory. Also if shots exceeds max_shots for the configured backend.
+            memory. Also if shots exceeds max_shots for the configured backend.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -250,7 +251,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
     Raises:
-        SchemaValidationError: if the given meas_level is not allowed for the given `backend`.
+        SchemaValidationError: If the given meas_level is not allowed for the given `backend`. If
+            rep_delay is not in the backend rep_delay_range.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -289,20 +291,37 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if rep_time:
         if dynamic_reprate_enabled:
             warnings.warn("Dynamic rep rates are supported on this backend. 'rep_delay' will be "
-                          "used instead, if specified.", RuntimeWarning)
+                          "used instead of 'rep_time'.", RuntimeWarning)
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
 
-    rep_delay = rep_delay or getattr(backend_config, 'rep_delays', None)
-    if rep_delay:
-        if not dynamic_reprate_enabled:
-            warnings.warn("Dynamic rep rates not supported on this backend. 'rep_time' will be "
-                          "used instead.", RuntimeWarning)
-
-        if isinstance(rep_delay, list):
-            rep_delay = rep_delay[0]
-        rep_delay = rep_delay * 1e6  # convert sec to μs
+    if dynamic_reprate_enabled:
+        rep_delay = rep_delay or getattr(backend_config, "default_rep_delay", None)
+        if rep_delay is not None:
+            rep_delay_range = getattr(backend_config, "rep_delay_range", None)
+            # check that rep_delay is in rep_delay_range
+            if rep_delay_range is not None and isinstance(rep_delay_range, list):
+                #  pylint: disable=E1136
+                if len(rep_delay_range) != 2:
+                    raise SchemaValidationError(
+                        "Backend rep_delay_range {} must be a list with two entries.".format(
+                            rep_delay_range
+                        )
+                    )
+                if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
+                    raise SchemaValidationError(
+                        "Supplied rep delay {} not in the supported "
+                        "backend range {}".format(rep_delay, rep_delay_range)
+                    )
+            rep_delay = rep_delay * 1e6  # convert sec to μs
+    else:
+        rep_delay = None
+        warnings.warn(
+            "Dynamic rep rates not supported on this backend. rep_time will be "
+            "used instead of rep_delay.",
+            RuntimeWarning,
+        )
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
