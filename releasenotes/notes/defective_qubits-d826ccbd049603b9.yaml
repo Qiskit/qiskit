@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The `transpile` function supports backends with defective qubits or gates. If a gate/qubit parameter backend
+    property called ``operational`` exists  and it is ``False``, the transpiler will considered the maximun connected
+    subgraph of qubits as a coulpling map and handle the process to avoid using non-operation qubits/gates.
