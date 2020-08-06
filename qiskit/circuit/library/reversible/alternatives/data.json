@@ -4,5 +4,11 @@
   "class_name": "HiddenWeightedBit4",
   "original_file": "hidden_weighted_bit.py",
   "alternative_file": "hidden_weighted_bit_alt.py"
+  },
+  {
+  "name": "Hidden weighted bit 5 qubits",
+  "class_name": "HiddenWeightedBit5",
+  "original_file": "hidden_weighted_bit.py",
+  "alternative_file": "hidden_weighted_bit_alt.py"
   }
 ]
