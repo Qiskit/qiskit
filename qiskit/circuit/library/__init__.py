@@ -46,6 +46,10 @@ Standard Gates
    HGate
    IGate
    MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    Measure
    MSGate
    PhaseGate

@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Added the sqrt(X), its adjoint and controlled-sqrt(X) gates as circuit methods.
-    They are available as ``QuantumCircuit.sx``, ``QuantumCircuit.sxdg``
-    and ``QuantumCircuit.csx``, with the respective gate classes ``SXGate``,
-    ``SXdgGate`` and ``CSXGate``.
