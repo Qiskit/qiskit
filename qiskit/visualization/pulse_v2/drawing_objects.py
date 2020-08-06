@@ -69,11 +69,12 @@ on top of the existing plotter API, it could be difficult to prevent bugs with t
 due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
 
 from qiskit.pulse import channels
+from qiskit.visualization.pulse_v2 import types
 
 
 class ElementaryData(ABC):
@@ -87,6 +88,7 @@ class ElementaryData(ABC):
                  offset: float,
                  scale: float,
                  visible: bool,
+                 fix_position: bool,
                  styles: Optional[Dict[str, Any]]):
         """Create new drawing object.
 
@@ -97,6 +99,7 @@ class ElementaryData(ABC):
             offset: Offset coordinate of vertical axis.
             scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
+            fix_position: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.data_type = data_type
@@ -105,6 +108,7 @@ class ElementaryData(ABC):
         self.scale = scale
         self.offset = offset
         self.visible = visible
+        self.fix_position = fix_position
         self.styles = styles or dict()
 
     @property
@@ -130,15 +134,18 @@ class FilledAreaData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
-                 x: np.ndarray,
-                 y1: np.ndarray,
-                 y2: np.ndarray,
+                 x: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
+                 y1: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
+                 y2: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
                  visible: bool = True,
+                 fix_position: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
+
+        Consecutive elements in ``y1`` and ``y2`` are compressed.
 
         Args:
             data_type: String representation of this drawing object.
@@ -150,11 +157,28 @@ class FilledAreaData(ElementaryData):
             offset: Offset coordinate of vertical axis.
             scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
+            fix_position: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
-        self.x = x
-        self.y1 = y1
-        self.y2 = y2
+        # find consecutive elements in y1
+        if all(isinstance(val, np.number) for val in y1):
+            y1_consecutive_ind_l = np.insert(np.diff(y1).astype(bool), 0, True)
+            y1_consecutive_ind_r = np.insert(np.diff(y1).astype(bool), -1, True)
+            y1_inds = y1_consecutive_ind_l | y1_consecutive_ind_r
+        else:
+            y1_inds = np.ones(len(x)).astype(bool)
+
+        # find consecutive elements in y2
+        if all(isinstance(val, np.number) for val in y2):
+            y2_consecutive_ind_l = np.insert(np.diff(y2).astype(bool), 0, True)
+            y2_consecutive_ind_r = np.insert(np.diff(y2).astype(bool), -1, True)
+            y2_inds = y2_consecutive_ind_l | y2_consecutive_ind_r
+        else:
+            y2_inds = np.ones(len(x)).astype(bool)
+
+        self.x = np.array(x)[y1_inds | y2_inds]
+        self.y1 = np.array(y1)[y1_inds | y2_inds]
+        self.y2 = np.array(y2)[y1_inds | y2_inds]
 
         super().__init__(data_type=data_type,
                          channel=channel,
@@ -162,6 +186,7 @@ class FilledAreaData(ElementaryData):
                          offset=offset,
                          scale=scale,
                          visible=visible,
+                         fix_position=fix_position,
                          styles=styles)
 
     @property
@@ -183,14 +208,17 @@ class LineData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
-                 x: np.ndarray,
-                 y: np.ndarray,
+                 x: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
+                 y: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
                  visible: bool = True,
+                 fix_position: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
+
+        Consecutive elements in ``y2`` are compressed.
 
         Args:
             data_type: String representation of this drawing object.
@@ -201,10 +229,19 @@ class LineData(ElementaryData):
             offset: Offset coordinate of vertical axis.
             scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
+            fix_position: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
-        self.x = np.array(x, dtype=float)
-        self.y = np.array(y, dtype=float)
+        # find consecutive elements in y
+        if all(isinstance(val, np.number) for val in y):
+            y_consecutive_ind_l = np.insert(np.diff(y).astype(bool), 0, True)
+            y_consecutive_ind_r = np.insert(np.diff(y).astype(bool), -1, True)
+            y_inds = y_consecutive_ind_l | y_consecutive_ind_r
+        else:
+            y_inds = np.ones(len(x)).astype(bool)
+
+        self.x = np.array(x)[y_inds]
+        self.y = np.array(y)[y_inds]
 
         super().__init__(data_type=data_type,
                          channel=channel,
@@ -212,6 +249,7 @@ class LineData(ElementaryData):
                          offset=offset,
                          scale=scale,
                          visible=visible,
+                         fix_position=fix_position,
                          styles=styles)
 
     @property
@@ -224,102 +262,6 @@ class LineData(ElementaryData):
                          tuple(self.y))))
 
 
-class HorizontalLineData(ElementaryData):
-    """Drawing object to represent object appears as a horizontal line.
-
-    This is the counterpart of `matplotlib.pyploy.axhline`.
-    """
-    def __init__(self,
-                 data_type: str,
-                 channel: channels.Channel,
-                 y0: float,
-                 meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
-                 visible: bool = True,
-                 styles: Optional[Dict[str, Any]] = None):
-        """Create new drawing object of horizontal line data.
-
-        Args:
-            data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
-            y0: A vertical coordinate that the object is drawn.
-            meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
-            visible: Set ``True`` to show the component on the canvas.
-            styles: Style keyword args of the object. This conforms to `matplotlib`.
-
-        Raises:
-            VisualizationError: When both `x` and `y` are None.
-        """
-        self.y0 = y0
-
-        super().__init__(data_type=data_type,
-                         channel=channel,
-                         meta=meta,
-                         offset=offset,
-                         scale=scale,
-                         visible=visible,
-                         styles=styles)
-
-    @property
-    def data_key(self):
-        """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         self.channel,
-                         self.y0)))
-
-
-class VerticalLineData(ElementaryData):
-    """Drawing object to represent object appears as a vertical line.
-
-    This is the counterpart of `matplotlib.pyploy.axvline`.
-    """
-    def __init__(self,
-                 data_type: str,
-                 channel: channels.Channel,
-                 x0: float,
-                 meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
-                 visible: bool = True,
-                 styles: Optional[Dict[str, Any]] = None):
-        """Create new drawing object of vertical line data.
-
-        Args:
-            data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
-            x0: A horizontal coordinate that the object is drawn.
-            meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
-            visible: Set ``True`` to show the component on the canvas.
-            styles: Style keyword args of the object. This conforms to `matplotlib`.
-
-        Raises:
-            VisualizationError: When both `x` and `y` are None.
-        """
-        self.x0 = x0
-
-        super().__init__(data_type=data_type,
-                         channel=channel,
-                         meta=meta,
-                         offset=offset,
-                         scale=scale,
-                         visible=visible,
-                         styles=styles)
-
-    @property
-    def data_key(self):
-        """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         self.channel,
-                         self.x0)))
-
-
 class TextData(ElementaryData):
     """Drawing object to represent object appears as a text.
 
@@ -328,14 +270,15 @@ class TextData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
-                 x: float,
-                 y: float,
+                 x: Union[float, types.AbstractCoordinate],
+                 y: Union[float, types.AbstractCoordinate],
                  text: str,
                  latex: Optional[str] = None,
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
                  visible: bool = True,
+                 fix_position: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of text data.
 
@@ -350,6 +293,7 @@ class TextData(ElementaryData):
             offset: Offset coordinate of vertical axis.
             scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
+            fix_position: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
@@ -363,6 +307,7 @@ class TextData(ElementaryData):
                          offset=offset,
                          scale=scale,
                          visible=visible,
+                         fix_position=fix_position,
                          styles=styles)
 
     @property

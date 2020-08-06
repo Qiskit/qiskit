@@ -154,10 +154,22 @@ class DrawingLine(str, Enum):
     BARRIER = 'Line.Barrier'
 
 
-class WaveformChannel(pulse.channels.PulseChannel):
-    r"""
-    Dummy channel to visualize a waveform.
+class AbstractCoordinate(Enum):
+    r"""Abstract coordinate that the exact value depends on the user preference.
+
+    RIGHT: The horizontal coordinate at t0 shifted by the left margin.
+    LEFT: The horizontal coordinate at tf shifted by the right margin.
+    Y_MAX: The vertical coordinate at the top of the associated channel.
+    Y_MIN: The vertical coordinate at the bottom of the associated channel.
     """
+    RIGHT = 0
+    LEFT = 1
+    Y_MAX = 2
+    Y_MIN = 3
+
+
+class WaveformChannel(pulse.channels.PulseChannel):
+    r"""Dummy channel to visualize a waveform."""
     prefix = 'w'
 
     def __init__(self):

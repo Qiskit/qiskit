@@ -29,7 +29,7 @@ Those stylesheets are fed into the drawer interface and the output images are mo
 according to the provided preferences.
 """
 
-from qiskit.visualization.pulse_v2 import generators
+from qiskit.visualization.pulse_v2 import generators, layouts
 
 
 class IqxStandard(dict):
@@ -54,7 +54,8 @@ class IqxStandard(dict):
                                        generators.gen_scaling_info,
                                        generators.gen_baseline],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
-                 'generator.barrier': [generators.gen_barrier]}
+                 'generator.barrier': [generators.gen_barrier],
+                 'layout.channel': layouts.channel_index_sort_wo_control}
         style.update(**kwargs)
         self.update(style)
 
@@ -85,7 +86,8 @@ class IqxPublication(dict):
                                        generators.gen_scaling_info,
                                        generators.gen_baseline],
                  'generator.snapshot': [],
-                 'generator.barrier': []}
+                 'generator.barrier': [],
+                 'layout.channel': layouts.channel_index_sort_wo_control}
         style.update(**kwargs)
         self.update(style)
 
@@ -118,7 +120,8 @@ class IqxDebugging(dict):
                                        generators.gen_scaling_info,
                                        generators.gen_baseline],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
-                 'generator.barrier': [generators.gen_barrier]}
+                 'generator.barrier': [generators.gen_barrier],
+                 'layout.channel': layouts.channel_index_sort_wo_control}
         style.update(**kwargs)
         self.update(style)
 

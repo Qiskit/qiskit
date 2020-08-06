@@ -248,51 +248,55 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
     Returns:
         List of `TextData` drawing objects.
     """
-    systematic_name = inst_data.inst.pulse.name
 
     style = {'zorder': PULSE_STYLE['formatter.layer.annotate'],
              'color': PULSE_STYLE['formatter.color.annotate'],
              'size': PULSE_STYLE['formatter.text_size.annotate'],
-             'va': 'center',
+             'va': 'top',
              'ha': 'center'}
 
-    template = r'(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+'
-    match_result = re.match(template, systematic_name)
-    if match_result is not None:
-        match_dict = match_result.groupdict()
-        sign = '' if match_dict['sign'] == 'p' else '-'
-        if match_dict['op'] == 'CR':
-            # cross resonance
-            if match_dict['ch'] == 'u':
-                op_name = r'{\rm CR}'
-            else:
-                op_name = r'\overline{\rm CR}'
-            # IQX name def is not standard. Echo CR is annotated with pi/4 rather than pi/2
-            angle_val = match_dict['angle']
-            frac = Fraction(int(int(angle_val)/2), 180)
-            if frac.numerator == 1:
-                angle = r'\frac{{\pi}}{{{}}}'.format(frac.denominator)
-            else:
-                angle = r'\frac{{{}}}{{{}}}\pi'.format(frac.numerator, frac.denominator)
-        else:
-            # single qubit pulse
-            op_name = r'{{\rm {}}}'.format(match_dict['op'])
-            angle_val = match_dict['angle']
-            if angle_val is None:
-                angle = r'\pi'
-            else:
-                frac = Fraction(int(angle_val), 180)
+    if isinstance(inst_data.inst, pulse.instructions.Acquire):
+        systematic_name = 'Acquire'
+        latex_name = None
+    elif isinstance(inst_data.inst.channel, pulse.channels.MeasureChannel):
+        systematic_name = 'Measure'
+        latex_name = None
+    else:
+        systematic_name = inst_data.inst.pulse.name
+
+        template = r'(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+'
+        match_result = re.match(template, systematic_name)
+        if match_result is not None:
+            match_dict = match_result.groupdict()
+            sign = '' if match_dict['sign'] == 'p' else '-'
+            if match_dict['op'] == 'CR':
+                # cross resonance
+                if match_dict['ch'] == 'u':
+                    op_name = r'{\rm CR}'
+                else:
+                    op_name = r'\overline{\rm CR}'
+                # IQX name def is not standard. Echo CR is annotated with pi/4 rather than pi/2
+                angle_val = match_dict['angle']
+                frac = Fraction(int(int(angle_val)/2), 180)
                 if frac.numerator == 1:
                     angle = r'\frac{{\pi}}{{{}}}'.format(frac.denominator)
                 else:
                     angle = r'\frac{{{}}}{{{}}}\pi'.format(frac.numerator, frac.denominator)
-        latex_name = r'{}({}{})'.format(op_name, sign, angle)
-    else:
-        if isinstance(inst_data.inst, pulse.instructions.Acquire):
-            systematic_name = 'Acquire'
-        if isinstance(inst_data.inst.channel, pulse.channels.MeasureChannel):
-            systematic_name = 'Measure'
-        latex_name = None
+            else:
+                # single qubit pulse
+                op_name = r'{{\rm {}}}'.format(match_dict['op'])
+                angle_val = match_dict['angle']
+                if angle_val is None:
+                    angle = r'\pi'
+                else:
+                    frac = Fraction(int(angle_val), 180)
+                    if frac.numerator == 1:
+                        angle = r'\frac{{\pi}}{{{}}}'.format(frac.denominator)
+                    else:
+                        angle = r'\frac{{{}}}{{{}}}\pi'.format(frac.numerator, frac.denominator)
+            latex_name = r'{}({}{})'.format(op_name, sign, angle)
+        else:
+            latex_name = None
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_NAME,
                                     channel=inst_data.inst.channel,
@@ -300,6 +304,7 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
                                     y=PULSE_STYLE['formatter.label_offset.pulse_name'],
                                     text=systematic_name,
                                     latex=latex_name,
+                                    fix_position=True,
                                     styles=style)
 
     return [text]
@@ -309,7 +314,7 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
 
 
 def gen_baseline(channel_data: types.ChannelTuple) \
-        -> List[drawing_objects.HorizontalLineData]:
+        -> List[drawing_objects.LineData]:
     r"""Generate baseline associated with the channel.
 
     The `baseline` style is applied.
@@ -318,7 +323,7 @@ def gen_baseline(channel_data: types.ChannelTuple) \
         channel_data: Channel data to draw.
 
     Returns:
-        List of `HorizontalLineData` drawing objects.
+        List of `LineData` drawing objects.
     """
     style = {'alpha': PULSE_STYLE['formatter.alpha.baseline'],
              'zorder': PULSE_STYLE['formatter.layer.baseline'],
@@ -326,10 +331,13 @@ def gen_baseline(channel_data: types.ChannelTuple) \
              'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
              'color': PULSE_STYLE['formatter.color.baseline']}
 
-    baseline = drawing_objects.HorizontalLineData(data_type=types.DrawingLine.BASELINE,
-                                                  channel=channel_data.channel,
-                                                  y0=0,
-                                                  styles=style)
+    baseline = drawing_objects.LineData(data_type=types.DrawingLine.BASELINE,
+                                        channel=channel_data.channel,
+                                        x=[types.AbstractCoordinate.LEFT,
+                                           types.AbstractCoordinate.RIGHT],
+                                        y=[0, 0],
+                                        fix_position=True,
+                                        styles=style)
 
     return [baseline]
 
@@ -351,15 +359,16 @@ def gen_latex_channel_name(channel_data: types.ChannelTuple) \
              'size': PULSE_STYLE['formatter.text_size.axis_label'],
              'va': 'center',
              'ha': 'right'}
-    latex_name = r'{}_{}'.format(channel_data.channel.prefix.upper(),
-                                 channel_data.channel.index)
+    latex_name = r'{}_{{{}}}'.format(channel_data.channel.prefix.upper(),
+                                     channel_data.channel.index)
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_NAME,
                                     channel=channel_data.channel,
-                                    x=0,
+                                    x=types.AbstractCoordinate.LEFT,
                                     y=0,
                                     text=channel_data.channel.name.upper(),
                                     latex=latex_name,
+                                    fix_position=True,
                                     styles=style)
 
     return [text]
@@ -384,15 +393,16 @@ def gen_scaling_info(channel_data: types.ChannelTuple) \
     style = {'zorder': PULSE_STYLE['formatter.layer.axis_label'],
              'color': PULSE_STYLE['formatter.color.axis_label'],
              'size': PULSE_STYLE['formatter.text_size.annotate'],
-             'va': 'center',
+             'va': 'top',
              'ha': 'right'}
     value = r'x{:.1f}'.format(channel_data.scaling)
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_SCALE,
                                     channel=channel_data.channel,
-                                    x=0,
+                                    x=types.AbstractCoordinate.LEFT,
                                     y=PULSE_STYLE['formatter.label_offset.scale_factor'],
                                     text=value,
+                                    fix_position=True,
                                     styles=style)
 
     return [text]
@@ -431,7 +441,7 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
     style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
              'color': PULSE_STYLE['formatter.color.frame_change'],
              'size': PULSE_STYLE['formatter.text_size.annotate'],
-             'va': 'center',
+             'va': 'bottom',
              'ha': 'center'}
 
     frac = Fraction(np.abs(frame_data.frame.phase) / np.pi)
@@ -455,6 +465,7 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
                                     y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=r'VZ({:.2f} rad.)'.format(-frame_data.frame.phase),
                                     latex=r'{{\rm VZ}}({}{})'.format(sign, angle),
+                                    fix_position=True,
                                     styles=style)
 
     return [text]
@@ -482,7 +493,7 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
     style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
              'color': PULSE_STYLE['formatter.color.frame_change'],
              'size': PULSE_STYLE['formatter.text_size.annotate'],
-             'va': 'center',
+             'va': 'bottom',
              'ha': 'center'}
 
     text_df = u'\u0394' + 'f={:.2f} MHz'.format(frame_data.frame.freq/1e6)
@@ -494,6 +505,7 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
                                     y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=text_df,
                                     latex=latex_df,
+                                    fix_position=True,
                                     styles=style)
 
     return [text]
@@ -521,7 +533,7 @@ def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
     style = {'zorder': PULSE_STYLE['formatter.layer.frame_change'],
              'color': PULSE_STYLE['formatter.color.frame_change'],
              'size': PULSE_STYLE['formatter.text_size.annotate'],
-             'va': 'center',
+             'va': 'bottom',
              'ha': 'center'}
 
     frame_info = '({:.2f}, {:.1e})'.format(frame_data.frame.phase, frame_data.frame.freq)
@@ -531,6 +543,7 @@ def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
                                     x=frame_data.t0,
                                     y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=frame_info,
+                                    fix_position=True,
                                     styles=style)
 
     return [text]
@@ -580,6 +593,7 @@ def gen_frame_symbol(frame_data: types.InstructionTuple) \
                                     y=0,
                                     text=uni_symbol,
                                     latex=latex,
+                                    fix_position=True,
                                     meta=meta,
                                     styles=style)
 
@@ -636,6 +650,7 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
                                            y=0,
                                            text=uni_symbol,
                                            latex=latex,
+                                           fix_position=True,
                                            meta=meta,
                                            styles=symbol_style)
 
@@ -644,13 +659,14 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
                                           x=misc_data.t0,
                                           y=PULSE_STYLE['formatter.label_offset.snapshot'],
                                           text=misc_data.inst.label,
+                                          fix_position=True,
                                           styles=label_style)
 
     return [symbol_text, label_text]
 
 
 def gen_barrier(misc_data: types.NonPulseTuple) \
-        -> List[drawing_objects.VerticalLineData]:
+        -> List[drawing_objects.LineData]:
     r"""Generate a barrier from provided relative barrier instruction..
 
     The `barrier` style is applied.
@@ -659,7 +675,7 @@ def gen_barrier(misc_data: types.NonPulseTuple) \
         misc_data: Snapshot instruction data to draw.
 
     Returns:
-        List of `VerticalLineData` drawing objects.
+        List of `LineData` drawing objects.
     """
 
     if not isinstance(misc_data.inst, pulse.instructions.RelativeBarrier):
@@ -673,10 +689,12 @@ def gen_barrier(misc_data: types.NonPulseTuple) \
 
     lines = []
     for chan in misc_data.inst.channels:
-        line = drawing_objects.VerticalLineData(data_type=types.DrawingLine.BARRIER,
-                                                channel=chan,
-                                                x0=misc_data.t0,
-                                                styles=style)
+        line = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
+                                        channel=chan,
+                                        x=[misc_data.t0, misc_data.t0],
+                                        y=[types.AbstractCoordinate.Y_MIN,
+                                           types.AbstractCoordinate.Y_MAX],
+                                        styles=style)
         lines.append(line)
 
     return lines

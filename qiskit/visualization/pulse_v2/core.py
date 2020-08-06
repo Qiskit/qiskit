@@ -99,6 +99,7 @@ class DrawDataContainer:
         self.c_los = dict()
         self.m_los = dict()
         self.channels = set()
+        self.active_channels = []
         self.chan_event_table = dict()
         self.axis_breaks = []
 
@@ -186,6 +187,8 @@ class DrawDataContainer:
                                             frame=types.PhaseFreqTuple(phase=0, freq=0),
                                             inst=pulse.Play(program, sample_channel))
 
+        self.set_time_range(0, program.duration)
+
         # generate waveform related elements
         for gen in PULSE_STYLE['generator.waveform']:
             for drawing in gen(inst_tuple):
@@ -198,13 +201,13 @@ class DrawDataContainer:
                  'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
                  'color': PULSE_STYLE['formatter.color.baseline']}
 
-        bline = drawing_objects.HorizontalLineData(data_type=types.DrawingLine.BASELINE,
-                                                   channel=sample_channel,
-                                                   y0=0,
-                                                   styles=style)
+        bline = drawing_objects.LineData(data_type=types.DrawingLine.BASELINE,
+                                         channel=sample_channel,
+                                         x=[types.AbstractCoordinate.LEFT,
+                                            types.AbstractCoordinate.RIGHT],
+                                         y=[0, 0],
+                                         styles=style)
         self._replace_drawing(bline)
-
-        self.set_time_range(0, program.duration)
 
         pulse_data = program if isinstance(program, pulse.Waveform) else program.get_waveform()
         max_v = max(*pulse_data.samples.real, *pulse_data.samples.imag)
@@ -340,7 +343,7 @@ class DrawDataContainer:
         scales = scales or dict()
 
         # arrange channels to show
-        ordered_channels = self._ordered_channels(visible_channels)
+        self.active_channels = self._ordered_channels(visible_channels)
 
         # new properties
         chan_visible = {chan: False for chan in self.channels}
@@ -351,7 +354,7 @@ class DrawDataContainer:
         time_range = (self.bbox_left, self.bbox_right)
         y0 = - PULSE_STYLE['formatter.margin.top']
         y0_interval = PULSE_STYLE['formatter.margin.between_channel']
-        for chan in ordered_channels:
+        for chan in self.active_channels:
             min_v, max_v = self.chan_event_table[chan].get_min_max(time_range)
 
             # calculate scaling
@@ -405,7 +408,10 @@ class DrawDataContainer:
                 if drawing.channel == chan:
                     drawing.visible = chan_visible.get(chan, False)
                     drawing.offset = chan_offset.get(chan, 0.0)
-                    drawing.scale = chan_scale.get(chan, 1.0)
+                    if drawing.fix_position:
+                        drawing.scale = 1.0
+                    else:
+                        drawing.scale = chan_scale.get(chan, 1.0)
 
         # update boundary box
         self.bbox_bottom = y0 - (PULSE_STYLE['formatter.margin.bottom'] - y0_interval)

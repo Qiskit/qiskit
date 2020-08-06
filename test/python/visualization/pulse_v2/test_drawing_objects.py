@@ -36,6 +36,7 @@ class TestDrawingObjects(QiskitTestCase):
                                                offset=0,
                                                scale=1,
                                                visible=True,
+                                               fix_position=True,
                                                styles={'color': 'red'})
 
         data2 = drawing_objects.FilledAreaData(data_type='waveform',
@@ -47,6 +48,7 @@ class TestDrawingObjects(QiskitTestCase):
                                                offset=1,
                                                scale=2,
                                                visible=False,
+                                               fix_position=False,
                                                styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
@@ -61,6 +63,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=0,
                                          scale=1,
                                          visible=True,
+                                         fix_position=True,
                                          styles={'color': 'red'})
 
         data2 = drawing_objects.LineData(data_type='baseline',
@@ -71,51 +74,8 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=1,
                                          scale=2,
                                          visible=False,
+                                         fix_position=False,
                                          styles={'color': 'blue'})
-
-        self.assertEqual(data1, data2)
-
-    def test_vertical_line_data(self):
-        """Test for VerticalLineData."""
-        data1 = drawing_objects.VerticalLineData(data_type='test_vline',
-                                                 channel=pulse.DriveChannel(0),
-                                                 x0=0,
-                                                 meta={'test_val': 0},
-                                                 offset=0,
-                                                 scale=1,
-                                                 visible=True,
-                                                 styles={'color': 'red'})
-
-        data2 = drawing_objects.VerticalLineData(data_type='test_vline',
-                                                 channel=pulse.DriveChannel(0),
-                                                 x0=0,
-                                                 meta={'test_val': 1},
-                                                 offset=1,
-                                                 scale=2,
-                                                 visible=False,
-                                                 styles={'color': 'blue'})
-
-        self.assertEqual(data1, data2)
-
-    def test_horizontal_line_data(self):
-        """Test for HorizontalLineData."""
-        data1 = drawing_objects.HorizontalLineData(data_type='test_hline',
-                                                   channel=pulse.DriveChannel(0),
-                                                   y0=0,
-                                                   meta={'test_val': 0},
-                                                   offset=0,
-                                                   scale=1,
-                                                   visible=True,
-                                                   styles={'color': 'red'})
-
-        data2 = drawing_objects.HorizontalLineData(data_type='test_hline',
-                                                   channel=pulse.DriveChannel(0),
-                                                   y0=0,
-                                                   meta={'test_val': 1},
-                                                   offset=1,
-                                                   scale=2,
-                                                   visible=False,
-                                                   styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
 
@@ -131,6 +91,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=0,
                                          scale=1,
                                          visible=True,
+                                         fix_position=True,
                                          styles={'color': 'red'})
 
         data2 = drawing_objects.TextData(data_type='pulse_label',
@@ -143,6 +104,43 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=1,
                                          scale=2,
                                          visible=False,
+                                         fix_position=False,
                                          styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
+
+    def test_filled_area_data_compression(self):
+        """Test for ndarray compression with filled area data."""
+        x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        y1 = np.array([0, 0, 1, 2, 3, 3, 3, 3, 4, 4, 5, 5, 5, 6])
+        y2 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+        data = drawing_objects.FilledAreaData(data_type='data',
+                                              channel=pulse.DriveChannel(0),
+                                              x=x,
+                                              y1=y1,
+                                              y2=y2)
+
+        ref_x = np.array([0, 1, 2, 3, 4, 7, 8, 9, 10, 12, 13])
+        ref_y1 = np.array([0, 0, 1, 2, 3, 3, 4, 4, 5, 5, 6])
+        ref_y2 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+        np.testing.assert_array_almost_equal(data.x, ref_x)
+        np.testing.assert_array_almost_equal(data.y1, ref_y1)
+        np.testing.assert_array_almost_equal(data.y2, ref_y2)
+
+    def test_line_data_compression(self):
+        """Test for ndarray compression with line data."""
+        x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        y = np.array([0, 0, 1, 2, 3, 3, 3, 3, 4, 4, 5, 5, 5, 6])
+
+        data = drawing_objects.LineData(data_type='data',
+                                        channel=pulse.DriveChannel(0),
+                                        x=x,
+                                        y=y)
+
+        ref_x = np.array([0, 1, 2, 3, 4, 7, 8, 9, 10, 12, 13])
+        ref_y = np.array([0, 0, 1, 2, 3, 3, 4, 4, 5, 5, 6])
+
+        np.testing.assert_array_almost_equal(data.x, ref_x)
+        np.testing.assert_array_almost_equal(data.y, ref_y)

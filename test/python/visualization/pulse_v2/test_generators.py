@@ -206,11 +206,13 @@ class TestGenerators(QiskitTestCase):
         obj = generators.gen_baseline(channel_info)[0]
 
         # type check
-        self.assertEqual(type(obj), drawing_objects.HorizontalLineData)
+        self.assertEqual(type(obj), drawing_objects.LineData)
 
         # data check
         self.assertEqual(obj.channel, pulse.DriveChannel(0))
-        self.assertEqual(obj.y0, 0)
+        self.assertListEqual(obj.x, [types.AbstractCoordinate.RIGHT,
+                                     types.AbstractCoordinate.LEFT])
+        self.assertListEqual(obj.y, [0, 0])
 
         # style check
         ref_style = {'alpha': self.style['formatter.alpha.baseline'],
@@ -417,13 +419,15 @@ class TestGenerators(QiskitTestCase):
         self.assertEqual(len(lines), 2)
 
         # type check
-        self.assertEqual(type(lines[0]), drawing_objects.VerticalLineData)
-        self.assertEqual(type(lines[1]), drawing_objects.VerticalLineData)
+        self.assertEqual(type(lines[0]), drawing_objects.LineData)
+        self.assertEqual(type(lines[1]), drawing_objects.LineData)
 
         # data check
         self.assertEqual(lines[0].channel, pulse.channels.DriveChannel(0))
         self.assertEqual(lines[1].channel, pulse.channels.ControlChannel(0))
-        self.assertEqual(lines[0].x0, 5)
+        self.assertListEqual(lines[0].x, [5, 5])
+        self.assertListEqual(lines[0].y, [types.AbstractCoordinate.Y_MIN,
+                                          types.AbstractCoordinate.Y_MAX])
 
         # style check
         ref_style = {'alpha': self.style['formatter.alpha.barrier'],
