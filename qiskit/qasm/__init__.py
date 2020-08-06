@@ -43,6 +43,8 @@ Pygments
 
 from numpy import pi
 
+from qiskit._unittester import UnitTester
+
 from .qasm import Qasm
 from .exceptions import QasmError
 try:
@@ -56,3 +58,6 @@ if HAS_PYGMENTS:
         from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
     except Exception:  # pylint: disable=broad-except
         HAS_PYGMENTS = False
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

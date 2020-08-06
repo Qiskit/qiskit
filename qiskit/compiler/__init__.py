@@ -31,6 +31,11 @@ Circuit and Pulse Compilation Functions
 
 """
 
+from qiskit._unittester import UnitTester
+
 from .assemble import assemble
 from .transpile import transpile
 from .schedule import schedule
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

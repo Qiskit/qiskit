@@ -33,6 +33,7 @@ Circuit Converters (:mod:`qiskit.converters`)
    dagdependency_to_dag
 """
 
+from qiskit._unittester import UnitTester
 from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
 from .circuit_to_instruction import circuit_to_instruction
@@ -64,3 +65,7 @@ def isinstancelist(obj):
         return True
     except TypeError:
         return False
+
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

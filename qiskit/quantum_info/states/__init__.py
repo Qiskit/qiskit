@@ -14,8 +14,13 @@
 
 """Quantum States."""
 
+from qiskit._unittester import UnitTester
+
 from .statevector import Statevector
 from .densitymatrix import DensityMatrix
 from .utils import partial_trace, shannon_entropy
 from .measures import (state_fidelity, purity, entropy, concurrence,
                        mutual_information, entanglement_of_formation)
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

@@ -64,6 +64,7 @@ Exceptions
    BasicAerError
 """
 
+from qiskit._unittester import UnitTester
 from .basicaerprovider import BasicAerProvider
 from .basicaerjob import BasicAerJob
 from .qasm_simulator import QasmSimulatorPy
@@ -73,3 +74,6 @@ from .exceptions import BasicAerError
 
 # Global instance to be used as the entry point for convenience.
 BasicAer = BasicAerProvider()  # pylint: disable=invalid-name
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

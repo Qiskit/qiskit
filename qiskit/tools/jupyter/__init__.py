@@ -94,6 +94,7 @@ Qiskit copyright
 import warnings
 
 from IPython import get_ipython          # pylint: disable=import-error
+from qiskit._unittester import UnitTester
 from qiskit.test.mock import FakeBackend
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
@@ -132,3 +133,6 @@ if _IP is not None:
             "visualization dependencies installed. You can run "
             "'!pip install qiskit-terra[visualization]' to install it from "
             "jupyter", RuntimeWarning)
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

@@ -118,6 +118,8 @@ Synthesis
    euler_angles_1q
 """
 
+from qiskit._unittester import UnitTester
+
 from .operators import Operator, ScalarOp
 from .operators.pauli import Pauli, pauli_group
 from .operators.quaternion import Quaternion
@@ -145,3 +147,6 @@ from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
                         two_qubit_cnot_decompose, euler_angles_1q)
 
 from .analysis import hellinger_fidelity
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

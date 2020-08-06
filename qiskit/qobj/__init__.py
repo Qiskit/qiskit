@@ -82,6 +82,8 @@ from qiskit.qobj.qasm_qobj import QobjExperimentHeader
 from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
 from qiskit.qobj.qasm_qobj import QobjHeader
 
+from qiskit._unittester import UnitTester
+
 from .utils import validate_qobj_against_schema
 
 
@@ -96,3 +98,7 @@ class Qobj(QasmQobj):
                       DeprecationWarning, stacklevel=2)
         super(Qobj, self).__init__(qobj_id=qobj_id, config=config,
                                    experiments=experiments, header=header)
+
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

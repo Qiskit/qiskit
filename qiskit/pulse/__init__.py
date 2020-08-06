@@ -474,3 +474,7 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule
+
+from qiskit._unittester import UnitTester
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

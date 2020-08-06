@@ -16,8 +16,13 @@
 Symplectic Operators
 """
 
+from qiskit._unittester import UnitTester
+
 from .pauli_table import PauliTable
 from .pauli_utils import pauli_basis
 from .stabilizer_table import StabilizerTable
 from .clifford import Clifford
 from .sparse_pauli_op import SparsePauliOp
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

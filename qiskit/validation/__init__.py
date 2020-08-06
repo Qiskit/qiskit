@@ -35,3 +35,7 @@ Exceptions
 
    jsonschema.SchemaValidationError
 """
+
+from qiskit._unittester import UnitTester
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

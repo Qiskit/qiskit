@@ -14,6 +14,8 @@
 
 """Quantum Operators."""
 
+from qiskit._unittester import UnitTester
+
 from .operator import Operator
 from .scalar_op import ScalarOp
 from .pauli import Pauli, pauli_group
@@ -25,3 +27,6 @@ from .measures import (process_fidelity,
                        diamond_norm)
 from .symplectic import (Clifford, SparsePauliOp, PauliTable, StabilizerTable)
 from .symplectic import pauli_basis
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

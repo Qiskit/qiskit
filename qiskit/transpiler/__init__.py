@@ -411,6 +411,8 @@ Exceptions
    TranspilerAccessError
 """
 
+from qiskit._unittester import UnitTester
+
 from .runningpassmanager import FlowController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
@@ -420,3 +422,6 @@ from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

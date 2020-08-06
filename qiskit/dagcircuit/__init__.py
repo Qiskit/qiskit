@@ -38,8 +38,13 @@ Exceptions
 
    DAGCircuitError
 """
+from qiskit._unittester import UnitTester
+
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 from .dagdependency import DAGDependency
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

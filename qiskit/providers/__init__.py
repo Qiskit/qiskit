@@ -51,6 +51,8 @@ Exceptions
 
 import pkgutil
 
+from qiskit._unittester import UnitTester
+
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
@@ -61,3 +63,6 @@ from .jobstatus import JobStatus
 
 # Allow extending this namespace.
 __path__ = pkgutil.extend_path(__path__, __name__)
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

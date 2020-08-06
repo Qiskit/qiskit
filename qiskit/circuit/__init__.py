@@ -213,6 +213,8 @@ Random Circuits
 
    random.random_circuit
 """
+from qiskit._unittester import UnitTester
+
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
@@ -228,3 +230,6 @@ from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

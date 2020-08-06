@@ -27,7 +27,12 @@ Experiment Results (:mod:`qiskit.result`)
    Counts
 """
 
+from qiskit._unittester import UnitTester
+
 from .result import Result
 from .exceptions import ResultError
 from .utils import marginal_counts
 from .counts import Counts
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

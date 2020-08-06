@@ -32,3 +32,7 @@ A circuit scheduler compiles a circuit program to a pulse program.
 from qiskit.scheduler import schedule_circuit
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.utils import measure, measure_all
+
+from qiskit._unittester import UnitTester
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

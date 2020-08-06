@@ -15,5 +15,10 @@
 """A module for monitoring jobs, backends, etc.
 """
 
+from qiskit._unittester import UnitTester
+
 from .job_monitor import job_monitor
 from .overview import backend_monitor, backend_overview
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

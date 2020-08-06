@@ -16,7 +16,11 @@
 Pulse visualization module.
 """
 
+from qiskit._unittester import UnitTester
 from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
 
 
 PULSE_STYLE = QiskitPulseStyle()
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

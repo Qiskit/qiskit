@@ -39,5 +39,10 @@ Monitoring
 
 """
 
+from qiskit._unittester import UnitTester
+
 from .parallel import parallel_map
 from .monitor import (job_monitor, backend_monitor, backend_overview)
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester

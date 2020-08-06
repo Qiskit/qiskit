@@ -17,6 +17,7 @@
 
 """Main Qiskit public functionality."""
 
+from qiskit._unittester import UnitTester
 import pkgutil
 import sys
 import warnings
@@ -57,7 +58,8 @@ _config = _user_config.get_config()
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
-    suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
+    suppress_warnings = os.environ.get(
+        'QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
     if suppress_warnings.upper() != 'Y':
         if not _config.get('suppress_packaging_warnings') or suppress_warnings.upper() == 'N':
             warnings.warn('Could not import the Aer provider from the qiskit-aer '
@@ -67,7 +69,8 @@ except ImportError:
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
-    suppress_warnings = os.environ.get('QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
+    suppress_warnings = os.environ.get(
+        'QISKIT_SUPPRESS_PACKAGING_WARNINGS', '')
     if suppress_warnings.upper() != 'Y':
         if not _config.get('suppress_packaging_warnings') or suppress_warnings.upper() == 'N':
             warnings.warn('Could not import the IBMQ provider from the '
@@ -92,3 +95,6 @@ if sys.version_info[0] == 3 and sys.version_info[1] == 5:
 
 
 __qiskit_version__ = _get_qiskit_versions()
+
+RUN_TESTS = UnitTester(__name__)
+del UnitTester
