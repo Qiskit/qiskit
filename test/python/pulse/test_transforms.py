@@ -31,8 +31,7 @@ from qiskit.pulse import (
     Constant,
 )
 from qiskit.pulse import transforms, instructions
-from qiskit.pulse.channels import MeasureChannel, MemorySlot, DriveChannel, AcquireChannel
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.channels import MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -40,7 +39,7 @@ from qiskit.test.mock import FakeOpenPulse2Q
 # pylint: disable=invalid-name
 
 
-class TestAutoMerge(QiskitTestCase):
+class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
     def setUp(self):
@@ -53,23 +52,36 @@ class TestAutoMerge(QiskitTestCase):
     def test_align_measures(self):
         """Test that one acquire is delayed to match the time of the later acquire."""
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
-        sched = sched.insert(1, Acquire(5, self.config.acquire(0), MemorySlot(0)))
-        sched = sched.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)))
-        sched = sched.insert(10, Play(self.short_pulse, self.config.measure(0)))
-        sched = sched.insert(10, Play(self.short_pulse, self.config.measure(1)))
-        sched = transforms.align_measures([sched], self.inst_map)[0]
-        self.assertEqual(sched.name, 'fake_experiment')
-        for time, inst in sched.instructions:
-            if isinstance(inst, Acquire):
-                self.assertEqual(time, 10)
-        sched = transforms.align_measures(
+        sched.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        sched.insert(1, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        sched.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+        sched.insert(10, Play(self.short_pulse, self.config.measure(0)), inplace=True)
+        sched.insert(11, Play(self.short_pulse, self.config.measure(0)), inplace=True)
+        sched.insert(10, Play(self.short_pulse, self.config.measure(1)), inplace=True)
+        aligned = transforms.align_measures([sched])[0]
+        self.assertEqual(aligned.name, 'fake_experiment')
+
+        ref = pulse.Schedule(name='fake_experiment')
+        ref.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        ref.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        ref.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+        ref.insert(19, Play(self.short_pulse, self.config.measure(0)), inplace=True)
+        ref.insert(20, Play(self.short_pulse, self.config.measure(0)), inplace=True)
+        ref.insert(10, Play(self.short_pulse, self.config.measure(1)), inplace=True)
+
+        self.assertEqual(aligned, ref)
+
+        aligned = transforms.align_measures(
             [sched], self.inst_map, align_time=20)[0]
-        for time, inst in sched.instructions:
-            if isinstance(inst, Acquire):
-                self.assertEqual(time, 20)
-            if isinstance(inst.channels[0], MeasureChannel):
-                self.assertEqual(time, 20)
+
+        ref = pulse.Schedule(name='fake_experiment')
+        ref.insert(10, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        ref.insert(20, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        ref.insert(20, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+        ref.insert(29, Play(self.short_pulse, self.config.measure(0)), inplace=True)
+        ref.insert(30, Play(self.short_pulse, self.config.measure(0)), inplace=True)
+        ref.insert(20, Play(self.short_pulse, self.config.measure(1)), inplace=True)
+        self.assertEqual(aligned, ref)
 
     def test_align_post_u3(self):
         """Test that acquires are scheduled no sooner than the duration of the longest X gate.
@@ -88,40 +100,37 @@ class TestAutoMerge(QiskitTestCase):
                 self.assertEqual(time, 10)
 
     def test_multi_acquire(self):
-        """Test that an error is raised if multiple acquires occur on the same channel."""
-        sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
-        sched = sched.insert(4, Acquire(5, self.config.acquire(0), MemorySlot(0)))
-        sched = sched.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)))
-        with self.assertRaises(PulseError):
-            transforms.align_measures([sched], self.inst_map)
-
-        # Test for measure channel
-        sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(10, Play(self.short_pulse, self.config.measure(0)))
-        sched = sched.insert(30, Play(self.short_pulse, self.config.measure(0)))
-        with self.assertRaises(PulseError):
-            transforms.align_measures([sched], self.inst_map)
-
-        # Test both using inst_map
+        """Test that the last acquire is aligned to if multiple acquires occur on the
+        same channel."""
         sched = pulse.Schedule()
-        sched += self.inst_map.get('measure', (0, 1))
-        transforms.align_measures([sched], align_time=50)
-        sched += self.inst_map.get('measure', (0, 1))
-        with self.assertRaises(PulseError):
-            transforms.align_measures([sched], align_time=50)
+        sched.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        sched.insert(4, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        sched.insert(20, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+        sched.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        aligned = transforms.align_measures([sched], self.inst_map)
 
-    def test_error_post_acquire_pulse(self):
-        """Test that an error is raised if a pulse occurs on a channel after an acquire."""
+        ref = pulse.Schedule()
+        ref.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        ref.insert(20, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        ref.insert(20, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+        ref.insert(26, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        self.assertEqual(aligned[0], ref)
+
+    def test_multiple_acquires(self):
+        """Test that multiple acquires are also aligned."""
         sched = pulse.Schedule(name='fake_experiment')
-        sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
-        sched = sched.insert(4, Acquire(5, self.config.acquire(0), MemorySlot(0)))
-        # No error with separate channel
-        sched = sched.insert(10, Play(self.short_pulse, self.config.drive(1)))
-        transforms.align_measures([sched], self.inst_map)
-        sched = sched.insert(10, Play(self.short_pulse, self.config.drive(0)))
-        with self.assertRaises(PulseError):
-            transforms.align_measures([sched], self.inst_map)
+        sched.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        sched.insert(5, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        sched.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+
+        ref = pulse.Schedule()
+        ref.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        ref.insert(15, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+        ref.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
+
+        aligned = transforms.align_measures([sched], self.inst_map)[0]
+
+        self.assertEqual(aligned, ref)
 
     def test_align_across_schedules(self):
         """Test that acquires are aligned together across multiple schedules."""
@@ -138,6 +147,53 @@ class TestAutoMerge(QiskitTestCase):
         for time, inst in schedules[0].instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 25)
+
+    def test_align_all(self):
+        """Test alignment of all instructions in a schedule."""
+        sched0 = pulse.Schedule()
+        sched0.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        sched0.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+
+        sched1 = pulse.Schedule()
+        sched1.insert(25, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        sched1.insert(25, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+
+        all_aligned = transforms.align_measures([sched0, sched1], self.inst_map, align_all=True)
+
+        ref1_aligned = pulse.Schedule()
+        ref1_aligned.insert(15, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        ref1_aligned.insert(25, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+
+        self.assertEqual(all_aligned[0], ref1_aligned)
+        self.assertEqual(all_aligned[1], sched1)
+
+        ref1_not_aligned = pulse.Schedule()
+        ref1_not_aligned.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
+        ref1_not_aligned.insert(25, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
+
+        all_not_aligned = transforms.align_measures(
+            [sched0, sched1],
+            self.inst_map,
+            align_all=False,
+        )
+        self.assertEqual(all_not_aligned[0], ref1_not_aligned)
+        self.assertEqual(all_not_aligned[1], sched1)
+
+    def test_measurement_at_zero(self):
+        """Test that acquire at t=0 works."""
+        sched1 = pulse.Schedule(name='fake_experiment')
+        sched1 = sched1.insert(0, Play(self.short_pulse, self.config.drive(0)))
+        sched1 = sched1.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
+        sched2 = pulse.Schedule(name='fake_experiment')
+        sched2 = sched2.insert(0, Play(self.short_pulse, self.config.drive(0)))
+        sched2 = sched2.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
+        schedules = transforms.align_measures([sched1, sched2], max_calibration_duration=0)
+        for time, inst in schedules[0].instructions:
+            if isinstance(inst, Acquire):
+                self.assertEqual(time, 0)
+        for time, inst in schedules[0].instructions:
+            if isinstance(inst, Acquire):
+                self.assertEqual(time, 0)
 
 
 class TestAddImplicitAcquires(QiskitTestCase):
