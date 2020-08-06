@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Allow passing in a Numpy random ``Generator`` object for the ``seed`` kwarg
+    in :class:`qiskit.circuit.library.QuantumVolume`.
