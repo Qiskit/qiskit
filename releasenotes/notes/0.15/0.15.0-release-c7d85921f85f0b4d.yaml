@@ -1,5 +1,5 @@
 ---
-prelude: >
+prelude: |
     The 0.15.0 release includes several new features and bug fixes. Some
     highlights for this release are:
 
