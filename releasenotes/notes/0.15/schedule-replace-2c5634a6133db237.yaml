@@ -1,10 +1,11 @@
 ---
 features:
   - |
-    Added the method :meth:`~qiskit.pulse.Schedule.replace` allowing a
+    Added the method :meth:`~qiskit.pulse.Schedule.replace` to the
+    :class:`qiskit.pulse.Schedule` class which allows a
     pulse instruction to be replaced with another. For example::
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       from qiskit import pulse
 
