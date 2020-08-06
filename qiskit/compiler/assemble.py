@@ -225,7 +225,7 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
             'Number of shots specified: %s exceeds max_shots property of the '
             'backend: %s.' % (shots, max_shots))
     elif not isinstance(shots, int):
-        raise TypeError('shots must be of type int')
+        raise TypeError('The attribute \'shots\' must be of type int')
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
