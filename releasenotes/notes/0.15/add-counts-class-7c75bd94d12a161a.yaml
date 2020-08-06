@@ -8,7 +8,7 @@ features:
     handles post processing and formatting of binary strings at object
     initialization. A :class:`~qiskit.result.Counts`  object can be created by
     passing a dictionary  of counts with the keys being either integers,
-    hexademical strings of the form ``'0x4a'``,  binary strings of the form
+    hexadecimal strings of the form ``'0x4a'``,  binary strings of the form
     ``'0b1101'``, a bit string formatted across register and memory slots
     (ie ``'00 10'``), or a dit string. For example::
 

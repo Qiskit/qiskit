@@ -22,7 +22,7 @@ upgrade:
     :class:`~qiskit.transpiler.passes.UnrollCustomDefinitions` and
     :class:`~qiskit.transpiler.passes.BasisTranslator` to handle basis changing
     instead of the previous default :class:`~qiskit.transpiler.passes.Unroller`.
-    This was done because the new passes are more flexible and allow targetting
+    This was done because the new passes are more flexible and allow targeting
     any basis set, however the output may differ. To use the previous default
     you can set the ``translation_method`` kwarg on
     :func:`~qiskit.compiler.transpile` to ``'unroller'``.

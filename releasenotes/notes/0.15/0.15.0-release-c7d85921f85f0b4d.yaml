@@ -5,7 +5,7 @@ prelude: |
 
     This release includes the introduction of arbitrary
     basis translation to the transpiler. This includes support for directly
-    targetting a broader range of device basis sets, e.g. backends
+    targeting a broader range of device basis sets, e.g. backends
     implementing RZ, RY, RZ, CZ or iSwap gates.
 
     The :class:`~qiskit.circuits.QuantumCircuit` class now tracks global
