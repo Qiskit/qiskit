@@ -116,13 +116,13 @@ class QuantumInstance:
         # setup run config
         if shots is not None:
             if self.is_statevector and shots != 1:
-                logger.info("statevector backend only works with shot=1, change "
+                logger.info("statevector backend only works with shot=1, changing "
                             "shots from %s to 1.", shots)
                 shots = 1
             max_shots = self._backend.configuration().max_shots
             if max_shots is not None and shots > max_shots:
-                raise AquaError('the maximum shots supported by the selected backend is {} '
-                                'but you specifiy {}'.format(max_shots, shots))
+                raise AquaError('The maximum shots supported by the selected backend is {} '
+                                'but you specified {}'.format(max_shots, shots))
 
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator:
@@ -157,7 +157,7 @@ class QuantumInstance:
                 self._noise_config = {'noise_model': noise_model}
             else:
                 raise AquaError("The noise model is not supported on the selected backend {} ({}) "
-                                "only certain backends, such as Aer qasm "
+                                "only certain backends, such as Aer qasm simulator "
                                 "support noise.".format(self.backend_name,
                                                         self._backend.provider()))
 
@@ -184,7 +184,7 @@ class QuantumInstance:
         self._meas_error_mitigation_shots = measurement_error_mitigation_shots
 
         if self._meas_error_mitigation_cls is not None:
-            logger.info("The measurement error mitigation is enable. "
+            logger.info("The measurement error mitigation is enabled. "
                         "It will automatically submit an additional job to help "
                         "calibrate the result of other jobs. "
                         "The current approach will submit a job with 2^N circuits "
@@ -196,8 +196,8 @@ class QuantumInstance:
         # setup others
         if is_ibmq_provider(self._backend):
             if skip_qobj_validation:
-                logger.warning("The skip Qobj validation does not work "
-                               "for IBMQ provider. Disable it.")
+                logger.info("skip_qobj_validation was set True but this setting is not "
+                            "supported by IBMQ provider and has been ignored.")
                 skip_qobj_validation = False
         self._skip_qobj_validation = skip_qobj_validation
         self._circuit_summary = False
@@ -391,7 +391,7 @@ class QuantumInstance:
                 self._backend_config[k] = v
             elif k in QuantumInstance.BACKEND_OPTIONS:
                 if not support_backend_options(self._backend):
-                    raise AquaError("backend_options can not be used with this backends "
+                    raise AquaError("backend_options can not be used with this backend "
                                     "{} ({}).".format(self.backend_name, self._backend.provider()))
 
                 if k in QuantumInstance.BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
