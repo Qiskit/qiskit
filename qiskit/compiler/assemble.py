@@ -220,10 +220,12 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif max_shots and max_shots < shots:
+    elif isinstance(shots, int) and max_shots and max_shots < shots:
         raise QiskitError(
             'Number of shots specified: %s exceeds max_shots property of the '
             'backend: %s.' % (shots, max_shots))
+    elif not isinstance(shots, int):
+        raise TypeError('shots must be of type int')
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
