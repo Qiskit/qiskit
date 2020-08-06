@@ -179,7 +179,7 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
         return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
+def plot_bloch_vector(bloch, mode="cartesian", title="", ax=None, figsize=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -190,6 +190,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
+        mode: Pass cartesian co-ordinates or spherical co-ordinates
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -205,22 +206,47 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed. To install, run '
-                          '"pip install matplotlib".')
-    if figsize is None:
-        figsize = (5, 5)
-    B = Bloch(axes=ax)
-    B.add_vectors(bloch)
-    B.render(title=title)
-    if ax is None:
-        fig = B.fig
-        fig.set_size_inches(figsize[0], figsize[1])
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
-            plt.close(fig)
-        return fig
-    return None
+
+    if mode == "spherical":
+        # bloch vector is a list [r, theta, phi]
+        r = bloch[0]
+        theta = bloch[1]
+        phi = bloch[2]
+        vec = [r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)]
+
+        if not HAS_MATPLOTLIB:
+            raise ImportError('Must have Matplotlib installed. To install, run '
+                              '"pip install matplotlib".')
+        if figsize is None:
+            figsize = (5, 5)
+        B = Bloch(axes=ax)
+        B.add_vectors(vec)
+        B.render(title=title)
+        if ax is None:
+            fig = B.fig
+            fig.set_size_inches(figsize[0], figsize[1])
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(fig)
+            return fig
+        return None
+    else:
+        if not HAS_MATPLOTLIB:
+            raise ImportError('Must have Matplotlib installed. To install, run '
+                              '"pip install matplotlib".')
+        if figsize is None:
+            figsize = (5, 5)
+        B = Bloch(axes=ax)
+        B.add_vectors(bloch)
+        B.render(title=title)
+        if ax is None:
+            fig = B.fig
+            fig.set_size_inches(figsize[0], figsize[1])
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(fig)
+            return fig
+        return None
 
 
 def plot_bloch_multivector(rho, title='', figsize=None):
