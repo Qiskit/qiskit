@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The ``get_sample_pulse`` method for
+    ``qiskit.pulse.library.ParametricPulse`` derived classes (for example
+    :class:`~qiskit.pulse.library.GaussianSquare`) has been deprecated and
+    will be removed in a future release. It has been replaced by the
+    ``get_waveform`` method (for example
+    :meth:`~qiskit.pulse.library.GaussianSquare.get_waveform`) which should
+    behave identically.
