@@ -19,6 +19,6 @@ other:
   - |
     The :class:`qiskit.result.Result` class which was previously constructed
     using the marshmallow library has been refactored to not depend on
-    marshmallow anymore. This new implementation should be a seemless transition
+    marshmallow anymore. This new implementation should be a seamless transition
     but some specific behavior that was previously inherited from marshmallow
     may not work. Please file issues for any incompatibilities found.
