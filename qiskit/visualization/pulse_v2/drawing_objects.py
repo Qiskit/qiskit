@@ -69,12 +69,15 @@ on top of the existing plotter API, it could be difficult to prevent bugs with t
 due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, Union, List, NewType
 
 import numpy as np
 
 from qiskit.pulse import channels
 from qiskit.visualization.pulse_v2 import types
+
+
+Coordinate = NewType('Coordinate', Union[int, float, types.AbstractCoordinate])
 
 
 class ElementaryData(ABC):
@@ -134,9 +137,9 @@ class FilledAreaData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
-                 x: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
-                 y1: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
-                 y2: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
+                 x: Union[np.ndarray, List[Coordinate]],
+                 y1: Union[np.ndarray, List[Coordinate]],
+                 y2: Union[np.ndarray, List[Coordinate]],
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
@@ -161,24 +164,11 @@ class FilledAreaData(ElementaryData):
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         # find consecutive elements in y1
-        if all(isinstance(val, np.number) for val in y1):
-            y1_consecutive_ind_l = np.insert(np.diff(y1).astype(bool), 0, True)
-            y1_consecutive_ind_r = np.insert(np.diff(y1).astype(bool), -1, True)
-            y1_inds = y1_consecutive_ind_l | y1_consecutive_ind_r
-        else:
-            y1_inds = np.ones(len(x)).astype(bool)
+        valid_inds = find_consecutive_index(y1) | find_consecutive_index(y2)
 
-        # find consecutive elements in y2
-        if all(isinstance(val, np.number) for val in y2):
-            y2_consecutive_ind_l = np.insert(np.diff(y2).astype(bool), 0, True)
-            y2_consecutive_ind_r = np.insert(np.diff(y2).astype(bool), -1, True)
-            y2_inds = y2_consecutive_ind_l | y2_consecutive_ind_r
-        else:
-            y2_inds = np.ones(len(x)).astype(bool)
-
-        self.x = np.array(x)[y1_inds | y2_inds]
-        self.y1 = np.array(y1)[y1_inds | y2_inds]
-        self.y2 = np.array(y2)[y1_inds | y2_inds]
+        self.x = np.array(x)[valid_inds]
+        self.y1 = np.array(y1)[valid_inds]
+        self.y2 = np.array(y2)[valid_inds]
 
         super().__init__(data_type=data_type,
                          channel=channel,
@@ -208,8 +198,8 @@ class LineData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  channel: channels.Channel,
-                 x: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
-                 y: Union[np.ndarray, List[Union[int, float, types.AbstractCoordinate]]],
+                 x: Union[np.ndarray, List[Coordinate]],
+                 y: Union[np.ndarray, List[Coordinate]],
                  meta: Optional[Dict[str, Any]] = None,
                  offset: float = 0,
                  scale: float = 1,
@@ -233,15 +223,9 @@ class LineData(ElementaryData):
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         # find consecutive elements in y
-        if all(isinstance(val, np.number) for val in y):
-            y_consecutive_ind_l = np.insert(np.diff(y).astype(bool), 0, True)
-            y_consecutive_ind_r = np.insert(np.diff(y).astype(bool), -1, True)
-            y_inds = y_consecutive_ind_l | y_consecutive_ind_r
-        else:
-            y_inds = np.ones(len(x)).astype(bool)
-
-        self.x = np.array(x)[y_inds]
-        self.y = np.array(y)[y_inds]
+        valid_inds = find_consecutive_index(y)
+        self.x = np.array(x)[valid_inds]
+        self.y = np.array(y)[valid_inds]
 
         super().__init__(data_type=data_type,
                          channel=channel,
@@ -318,3 +302,22 @@ class TextData(ElementaryData):
                          self.channel,
                          self.x,
                          self.y)))
+
+
+def find_consecutive_index(vector: Union[np.ndarray, List[Coordinate]]) -> np.ndarray:
+    """A helper function to return non-consecutive index from the given list.
+
+    This drastically reduces memory footprint to represent a drawing object,
+    especially for samples of very long flat-topped Gaussian pulses.
+
+    Args:
+        vector: The array of numbers.
+    """
+    if all(isinstance(val, np.number) for val in vector):
+        consecutive_ind_l = np.insert(np.diff(vector).astype(bool), 0, True)
+        consecutive_ind_r = np.insert(np.diff(vector).astype(bool), -1, True)
+        non_consecutive = consecutive_ind_l | consecutive_ind_r
+    else:
+        non_consecutive = np.ones_like(vector).astype(bool)
+
+    return non_consecutive
