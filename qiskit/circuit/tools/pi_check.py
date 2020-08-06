@@ -52,6 +52,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         return inpt
 
     def normalize(single_inpt):
+
         if abs(single_inpt) < 1e-14:
             return '0'
         val = single_inpt / np.pi
@@ -136,6 +137,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
 
     if real == '0' and imag != '0':
         return imag + 'j'
-    elif real != 0 and imag != '0':
+    elif real != 0 and imag > '0':
         return '{}+{}j'.format(real, imag)
+    elif real != 0 and imag < '0':
+        return '{}{}j'.format(real, imag)
     return real

@@ -287,7 +287,7 @@ class MatplotlibDrawer:
         param_parts = ', '.join(param_parts)
         # remove $'s since "${}$".format will add them back on the outside
         param_parts = param_parts.replace('$', '')
-        param_parts = param_parts.replace('-', u'\u02d7')
+        param_parts = param_parts.replace('-', u'\u2212')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
