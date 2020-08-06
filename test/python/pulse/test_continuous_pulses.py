@@ -166,11 +166,12 @@ class TestContinuousPulses(QiskitTestCase):
     def test_gaussian(self):
         """Test gaussian pulse."""
         amp = 0.5
-        center = 10
+        duration = 20
+        center = duration/2
         sigma = 2
-        times, dt = np.linspace(0, 20, 1001, retstep=True)
+        times, dt = np.linspace(0, duration, 1001, retstep=True)
         gaussian_arr = continuous.gaussian(times, amp, center, sigma)
-        gaussian_arr_zeroed = continuous.gaussian(np.array([-1, 10]), amp, center,
+        gaussian_arr_zeroed = continuous.gaussian(np.array([-1, center, duration+1]), amp, center,
                                                   sigma, zeroed_width=2*(center+1),
                                                   rescale_amp=True)
 
@@ -181,6 +182,7 @@ class TestContinuousPulses(QiskitTestCase):
         self.assertAlmostEqual(gaussian_arr[center_time], amp)
         self.assertAlmostEqual(gaussian_arr_zeroed[0], 0., places=6)
         self.assertAlmostEqual(gaussian_arr_zeroed[1], amp)
+        self.assertAlmostEqual(gaussian_arr_zeroed[2], 0., places=6)
         self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
 
     def test_gaussian_deriv(self):
@@ -203,11 +205,12 @@ class TestContinuousPulses(QiskitTestCase):
     def test_sech(self):
         """Test sech pulse."""
         amp = 0.5
-        center = 20
+        duration = 40
+        center = duration/2
         sigma = 2
-        times, dt = np.linspace(0, 40, 1001, retstep=True)
+        times, dt = np.linspace(0, duration, 1001, retstep=True)
         sech_arr = continuous.sech(times, amp, center, sigma)
-        sech_arr_zeroed = continuous.sech(np.array([-1, 20]), amp, center,
+        sech_arr_zeroed = continuous.sech(np.array([-1, center, duration+1]), amp, center,
                                           sigma)
 
         self.assertEqual(sech_arr.dtype, np.complex_)
@@ -217,6 +220,7 @@ class TestContinuousPulses(QiskitTestCase):
         self.assertAlmostEqual(sech_arr[center_time], amp)
         self.assertAlmostEqual(sech_arr_zeroed[0], 0., places=2)
         self.assertAlmostEqual(sech_arr_zeroed[1], amp)
+        self.assertAlmostEqual(sech_arr_zeroed[2], 0., places=2)
         self.assertAlmostEqual(np.sum(sech_arr*dt), amp*np.pi*sigma, places=3)
 
     def test_sech_deriv(self):
