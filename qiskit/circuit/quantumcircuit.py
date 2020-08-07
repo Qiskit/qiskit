@@ -792,6 +792,7 @@ class QuantumCircuit:
                 if not any([(instruction == item[1][0][0]) for item in param_items]):
                     instruction = copy.deepcopy(instruction)
 
+        # convert input to instruction
         if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
             if issubclass(instruction, Instruction):
                 raise CircuitError('Object is a subclass of Instruction, please add () to '
