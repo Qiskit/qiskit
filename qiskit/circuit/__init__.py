@@ -180,6 +180,8 @@ Quantum Circuit Construction
    Qubit
    ClassicalRegister
    Clbit
+   AncillaRegister
+   AncillaQubit
 
 Gates and Instructions
 ----------------------
