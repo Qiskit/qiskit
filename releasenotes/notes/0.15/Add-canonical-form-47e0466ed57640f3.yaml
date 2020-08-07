@@ -1,0 +1,35 @@
+---
+features:
+  - |
+    A new DAG class :class:`qiskit.dagcircuit.DAGDependency` for representing
+    the dependency form of circuit, In this DAG, the nodes are
+    operations (gates, measure, barrier, etc...) and the edges corresponds to
+    non-commutation between two operations.
+  - |
+    Four new functions are added to :mod:`qiskit.converters` for converting back and
+    forth to :class:`~qiskit.dagcircuit.DAGDependency`. These functions are:
+
+    * :func:`~qiskit.converters.circuit_to_dagdependency` to convert
+      from a :class:`~qiskit.circuit.QuantumCircuit` object to a
+      :class:`~qiskit.dagcircuit.DAGDependency` object.
+    * :func:`~qiskit.converters.dagdependency_to_circuit` to convert from a
+      :class:`~qiskit.dagcircuit.DAGDependency` object to a
+      :class:`~qiskit.circuit.QuantumCircuit` object.
+    * :func:`~qiskit.converters.dag_to_dagdependency` to convert from
+      a :class:`~qiskit.dagcircuit.DAGCircuit` object to a
+      :class:`~qiskit.dagcircuit.DAGDependency` object.
+    * :func:`~qiskit.converters.dagdependency_to_ciruit` to convert from
+      a :class:`~qiskit.dagcircuit.DAGDependency` object to a
+      :class:`~qiskit.dagcircuit.DAGCircuit` object.
+
+    For example::
+    
+      from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
+      from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+      circuit_in = QuantumCircuit(2)
+      circuit_in.h(qr[0])
+      circuit_in.h(qr[1])
+
+      dag_dependency = circuit_to_dagdependency(circuit_in)
+      circuit_out = dagdepency_to_circuit(dag_dependency)
