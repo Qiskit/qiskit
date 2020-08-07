@@ -310,6 +310,15 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         self.assertEqual(qc, qc1)
 
+    def test_no_kak_in_basis(self):
+        """Test that pass just returns the input dag without a KAK gate."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        dag = circuit_to_dag(qc)
+        consolidate_blocks_pass = ConsolidateBlocks(basis_gates=['u3'])
+        res = consolidate_blocks_pass.run(dag)
+        self.assertEqual(res, dag)
+
 
 if __name__ == '__main__':
     unittest.main()

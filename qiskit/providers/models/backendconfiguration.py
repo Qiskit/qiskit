@@ -317,7 +317,6 @@ class QasmBackendConfiguration:
             data (dict): A dictionary representing the GateConfig to create.
                          It will be in the same format as output by
                          :func:`to_dict`.
-
         Returns:
             GateConfig: The GateConfig from the input dictionary.
         """
@@ -352,7 +351,30 @@ class QasmBackendConfiguration:
                       'tags']:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
+
         out_dict.update(self._data)
+
+        if 'dt' in out_dict:
+            out_dict['dt'] *= 1e-9
+        if 'dtm' in out_dict:
+            out_dict['dtm'] *= 1e-9
+
+        if 'qubit_lo_range' in out_dict:
+            out_dict['qubit_lo_range'] = [
+                [min_range * 1e9, max_range * 1e9] for
+                (min_range, max_range) in out_dict['qubit_lo_range']
+            ]
+
+        if 'meas_lo_range' in out_dict:
+            out_dict['meas_lo_range'] = [
+                [min_range * 1e9, max_range * 1e9] for
+                (min_range, max_range) in out_dict['meas_lo_range']
+            ]
+
+        # convert rep_times from μs to sec
+        if 'rep_times' in out_dict:
+            out_dict['rep_times'] = [_rt * 1e-6 for _rt in out_dict['rep_times']]
+
         return out_dict
 
     @property
@@ -408,8 +430,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                  rep_times: List[float],
                  meas_kernels: List[str],
                  discriminators: List[str],
-                 rep_delays: List[float] = None,
                  dynamic_reprate_enabled: bool = False,
+                 rep_delay_range: List[float] = None,
+                 default_rep_delay: float = None,
                  hamiltonian: Dict[str, Any] = None,
                  channel_bandwidth=None,
                  acquisition_latency=None,
@@ -454,10 +477,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             rep_times: Supported repetition times (program execution time) for backend in μs.
             meas_kernels: Supported measurement kernels.
             discriminators: Supported discriminators.
-            rep_delays: Supported repetition delays (delay between programs) for backend in μs.
-                Optional, but will be specified when ``dynamic_reprate_enabled=True``.
             dynamic_reprate_enabled: whether delay between programs can be set dynamically
                 (ie via ``rep_delay``). Defaults to False.
+            rep_delay_range: 2d list defining supported range of repetition delays (delay
+                programs) for backend in μs. First entry is lower end of the range, second entry is
+                higher end of the range. Optional, but will be specified when
+                ``dynamic_reprate_enabled=True``.
+            default_rep_delay: Value of ``rep_delay`` if not specified by user and
+                ``dynamic_reprate_enabled=True``.
             hamiltonian: An optional dictionary with fields characterizing the system hamiltonian.
             channel_bandwidth (list): Bandwidth of all channels
                 (qubit, measurement, and U)
@@ -501,10 +528,11 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.dynamic_reprate_enabled = dynamic_reprate_enabled
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
-        # if ``rep_delays`` not specified, leave as None
-        self.rep_delays = None
-        if rep_delays:
-            self.rep_delays = [_rd * 1e-6 for _rd in rep_delays]  # convert to sec
+        if rep_delay_range:
+            self.rep_delay_range = [_rd * 1e-6 for _rd in rep_delay_range]  # convert to sec
+        if default_rep_delay:
+            self.default_rep_delay = default_rep_delay * 1e-6   # convert to sec
+
         self.dt = dt * 1e-9  # pylint: disable=invalid-name
         self.dtm = dtm * 1e-9
 
@@ -541,8 +569,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         Args:
             data (dict): A dictionary representing the GateConfig to create.
-                         It will be in the same format as output by
-                         :func:`to_dict`.
+                It will be in the same format as output by :func:`to_dict`.
 
         Returns:
             GateConfig: The GateConfig from the input dictionary.
@@ -582,11 +609,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             'rep_times': self.rep_times,
             'dt': self.dt,
             'dtm': self.dtm,
+            'dynamic_reprate_enabled': self.dynamic_reprate_enabled
         })
-        if hasattr(self, 'rep_delays'):
-            out_dict['rep_delays'] = self.rep_delays
-        if hasattr(self, 'dynamic_reprate_enabled'):
-            out_dict['dynamic_reprate_enabled'] = self.dynamic_reprate_enabled
+        if hasattr(self, 'rep_delay_range'):
+            out_dict['rep_delay_range'] = [_rd * 1e6 for _rd in self.rep_delay_range]
+        if hasattr(self, 'default_rep_delay'):
+            out_dict['default_rep_delay'] = self.default_rep_delay*1e6
         if hasattr(self, 'channel_bandwidth'):
             out_dict['channel_bandwidth'] = self.channel_bandwidth
         if hasattr(self, 'meas_map'):
@@ -599,6 +627,28 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             out_dict.pop('_qubit_channel_map')
             out_dict.pop('_channel_qubit_map')
             out_dict.pop('_control_channels')
+
+        if self.qubit_lo_range:
+            out_dict['qubit_lo_range'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.qubit_lo_range]
+
+        if self.meas_lo_range:
+            out_dict['meas_lo_range'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.meas_lo_range]
+
+        if self.rep_times:
+            out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
+
+        out_dict['dt'] = out_dict['dt'] * 1e9  # pylint: disable=invalid-name
+        out_dict['dtm'] = out_dict['dtm'] * 1e9
+
+        if hasattr(self, 'channel_bandwidth'):
+            out_dict['channel_bandwidth'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.channel_bandwidth]
+
         return out_dict
 
     def __eq__(self, other):
@@ -618,6 +668,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
 
         Raises:
             BackendConfigurationError: If the qubit is not a part of the system.
+
         Returns:
             Qubit drive channel.
         """
