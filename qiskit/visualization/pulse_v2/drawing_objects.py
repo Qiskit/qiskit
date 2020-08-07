@@ -145,8 +145,6 @@ class FilledAreaData(ElementaryData):
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
 
-        Consecutive elements in ``y1`` and ``y2`` are compressed.
-
         Args:
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
@@ -201,8 +199,6 @@ class LineData(ElementaryData):
                  fix_position: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
-
-        Consecutive elements in ``y2`` are compressed.
 
         Args:
             data_type: String representation of this drawing object.
