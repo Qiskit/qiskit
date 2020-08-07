@@ -749,10 +749,6 @@ class Schedule(ScheduleComponent):
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other, inplace=False)
 
-    def __iadd__(self, other: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
-        return self.append(other)
-
     def __or__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other, inplace=False)
