@@ -787,8 +787,8 @@ class QuantumCircuit:
         is_referenced = sys.getrefcount(instruction) > 4
         if is_gate and is_referenced:
             is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
-            param_items = self._parameter_table.items()
             if is_parameter:
+                param_items = self._parameter_table.items()
                 if not any([(instruction == item[1][0][0]) for item in param_items]):
                     instruction = copy.deepcopy(instruction)
 
