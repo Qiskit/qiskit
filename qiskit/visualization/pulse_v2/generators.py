@@ -65,6 +65,9 @@ def _find_consecutive_index(vector: np.ndarray) -> np.ndarray:
 
     Args:
         vector: The array of numbers.
+
+    Returns:
+        The compressed data array.
     """
     try:
         vector = np.asarray(vector, dtype=float)
