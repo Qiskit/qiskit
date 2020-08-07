@@ -27,6 +27,7 @@ from qiskit.util import is_main_process
 from qiskit.util import deprecate_arguments
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
@@ -781,7 +782,16 @@ class QuantumCircuit:
             CircuitError: if object passed is a subclass of Instruction
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
-        # Convert input to instruction
+        # make copy of parameterized gate instance if (possibly) used in another circuit
+        is_gate = isinstance(instruction, Gate)
+        is_referenced = sys.getrefcount(instruction) > 4
+        if is_gate and is_referenced:
+            is_parameter = any([isinstance(param, Parameter) for param in instruction.params])
+            param_items = self._parameter_table.items()
+            if is_parameter:
+                if not any([(instruction == item[1][0][0]) for item in param_items]):
+                    instruction = copy.deepcopy(instruction)
+
         if not isinstance(instruction, Instruction) and not hasattr(instruction, 'to_instruction'):
             if issubclass(instruction, Instruction):
                 raise CircuitError('Object is a subclass of Instruction, please add () to '
