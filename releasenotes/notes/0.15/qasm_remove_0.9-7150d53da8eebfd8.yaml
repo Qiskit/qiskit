@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The deprecated ``get_tokens`` methods for the :class:`qiskit.qasm.Qasm`
+    and :class:`qiskit.qasm.QasmParser` has been removed. These methods have
+    been deprecated since the 0.9.0 release. The
+    :meth:`qiskit.qasm.Qasm.generate_tokens` and
+    :meth:`qiskit.qasm.QasmParser.generate_tokens` methods should be used
+    instead.

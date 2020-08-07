@@ -1,0 +1,21 @@
+---
+
+fixes:
+  - |
+    The matplotlib (``'mpl'``) output backend for the
+    :class:`qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.draw` and the
+    :func:`qiskit.visualization.circuit_drawer` function was not properly
+    scaling when the kwarg ``scale`` was set. Fonts and line widths
+    did not scale with the rest of the image. This has been fixed and all
+    elements of the circuit diagram now scale properly. For example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.draw(output='mpl', scale=0.5)
+
+    Fixes `#4179 <https://github.com/Qiskit/qiskit-terra/issues/4179>`_.
