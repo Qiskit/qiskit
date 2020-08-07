@@ -154,7 +154,7 @@ class DrawingLine(str, Enum):
     BARRIER = 'Line.Barrier'
 
 
-class AbstractCoordinate(Enum):
+class AbstractCoordinate(str, Enum):
     r"""Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
@@ -162,10 +162,10 @@ class AbstractCoordinate(Enum):
     Y_MAX: The vertical coordinate at the top of the associated channel.
     Y_MIN: The vertical coordinate at the bottom of the associated channel.
     """
-    RIGHT = 0
-    LEFT = 1
-    Y_MAX = 2
-    Y_MIN = 3
+    RIGHT = 'RIGHT'
+    LEFT = 'LEFT'
+    Y_MAX = 'Y_MAX'
+    Y_MIN = 'Y_MIN'
 
 
 class WaveformChannel(pulse.channels.PulseChannel):

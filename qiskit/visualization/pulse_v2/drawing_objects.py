@@ -74,7 +74,7 @@ from typing import Dict, Any, Optional, Union, List, NewType
 import numpy as np
 
 from qiskit.pulse import channels
-from qiskit.visualization.pulse_v2 import types
+from qiskit.visualization.pulse_v2 import types, PULSE_STYLE
 
 
 Coordinate = NewType('Coordinate', Union[int, float, types.AbstractCoordinate])
@@ -313,11 +313,13 @@ def find_consecutive_index(vector: Union[np.ndarray, List[Coordinate]]) -> np.nd
     Args:
         vector: The array of numbers.
     """
-    if all(isinstance(val, np.number) for val in vector):
-        consecutive_ind_l = np.insert(np.diff(vector).astype(bool), 0, True)
-        consecutive_ind_r = np.insert(np.diff(vector).astype(bool), -1, True)
-        non_consecutive = consecutive_ind_l | consecutive_ind_r
-    else:
-        non_consecutive = np.ones_like(vector).astype(bool)
-
-    return non_consecutive
+    try:
+        vector = np.asarray(vector, dtype=float)
+        diff = np.diff(vector)
+        diff[np.where(diff < PULSE_STYLE['formatter.general.vertical_resolution'])] = 0
+        # keep the right and left edges
+        consecutive_ind_l = np.insert(diff.astype(bool), 0, True)
+        consecutive_ind_r = np.append(diff.astype(bool), True)
+        return consecutive_ind_l | consecutive_ind_r
+    except ValueError:
+        return np.ones_like(vector).astype(bool)

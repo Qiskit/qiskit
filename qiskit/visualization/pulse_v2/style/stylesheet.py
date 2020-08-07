@@ -162,6 +162,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.general.fig_width': 10,
         'formatter.general.fig_unit_height': 1,
         'formatter.general.dpi': 150,
+        'formatter.general.vertical_resolution': 1e-6,
         'formatter.color.fill_waveform_w': ['#648fff', '#002999'],
         'formatter.color.fill_waveform_d': ['#648fff', '#002999'],
         'formatter.color.fill_waveform_u': ['#ffb000', '#994A00'],

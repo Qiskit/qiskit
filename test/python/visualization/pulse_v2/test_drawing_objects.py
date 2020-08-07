@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects
+from qiskit.visualization.pulse_v2 import drawing_objects, types
 
 
 class TestDrawingObjects(QiskitTestCase):
@@ -108,6 +108,34 @@ class TestDrawingObjects(QiskitTestCase):
                                          styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
+
+    def test_consecutive_index_all_equal(self):
+        """Test for helper function to find consecutive index with identical numbers."""
+        vec = [1, 1, 1, 1, 1, 1]
+        ref_inds = np.array([True, False, False, False, False, True], dtype=bool)
+
+        inds = drawing_objects.find_consecutive_index(vec)
+
+        np.testing.assert_array_equal(inds, ref_inds)
+
+    def test_consecutive_index_abstract_coord(self):
+        """Test for helper function to find consecutive index with abstract coordinate."""
+        vec = [1, 1, 1, 1, types.AbstractCoordinate.RIGHT, 1]
+        ref_inds = np.array([True, True, True, True, True, True], dtype=bool)
+
+        inds = drawing_objects.find_consecutive_index(vec)
+
+        np.testing.assert_array_equal(inds, ref_inds)
+
+    def test_consecutive_index_tiny_diff(self):
+        """Test for helper function to find consecutive index with vector with tiny change."""
+        eps = 1e-10
+        vec = [0.5, 0.5+eps, 0.5-eps, 0.5+eps, 0.5-eps, 0.5]
+        ref_inds = np.array([True, False, False, False, False, True], dtype=bool)
+
+        inds = drawing_objects.find_consecutive_index(vec)
+
+        np.testing.assert_array_equal(inds, ref_inds)
 
     def test_filled_area_data_compression(self):
         """Test for ndarray compression with filled area data."""

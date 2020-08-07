@@ -36,6 +36,36 @@ class TestGenerators(QiskitTestCase):
         frame = types.PhaseFreqTuple(phase=phase, freq=freq)
         return types.InstructionTuple(t0=t0, dt=dt, frame=frame, inst=inst)
 
+    def test_parse_waveform(self):
+        """Test helper function that parse waveform with Waveform instance."""
+        test_pulse = pulse.library.gaussian(10, 0.1, 3)
+
+        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
+        inst_data = self.create_instruction(inst, 0, 0, 10, 0.1)
+
+        x, y, _ = generators._parse_waveform(inst_data)
+
+        x_ref = np.arange(10, 20)
+        y_ref = test_pulse.samples
+
+        np.testing.assert_array_equal(x, x_ref)
+        np.testing.assert_array_equal(y, y_ref)
+
+    def test_parse_waveform_parametric(self):
+        """Test helper function that parse waveform with ParametricPulse instance."""
+        test_pulse = pulse.library.Gaussian(10, 0.1, 3)
+
+        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
+        inst_data = self.create_instruction(inst, 0, 0, 10, 0.1)
+
+        x, y, _ = generators._parse_waveform(inst_data)
+
+        x_ref = np.arange(10, 20)
+        y_ref = test_pulse.get_waveform().samples
+
+        np.testing.assert_array_equal(x, x_ref)
+        np.testing.assert_array_equal(y, y_ref)
+
     def test_gen_filled_waveform_stepwise_play(self):
         """Test gen_filled_waveform_stepwise with play instruction."""
         my_pulse = pulse.Waveform(samples=[0, 0.5+0.5j, 0.5+0.5j, 0], name='my_pulse')

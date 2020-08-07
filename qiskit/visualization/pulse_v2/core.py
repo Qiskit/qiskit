@@ -218,7 +218,7 @@ class DrawDataContainer:
 
         # calculate scaling
         max_abs_val = max(abs(max_v), abs(min_v))
-        if max_abs_val < 1e-6:
+        if max_abs_val < PULSE_STYLE['formatter.general.vertical_resolution'] * 100:
             scale = 1.0
         else:
             scale = 1 / max_abs_val
@@ -364,7 +364,7 @@ class DrawDataContainer:
             elif PULSE_STYLE['formatter.control.auto_channel_scaling']:
                 # auto scaling is enabled
                 max_abs_val = max(abs(max_v), abs(min_v))
-                if max_abs_val < 1e-6:
+                if max_abs_val < PULSE_STYLE['formatter.general.vertical_resolution'] * 100:
                     scale = 1.0
                 else:
                     scale = 1 / max_abs_val
@@ -408,10 +408,7 @@ class DrawDataContainer:
                 if drawing.channel == chan:
                     drawing.visible = chan_visible.get(chan, False)
                     drawing.offset = chan_offset.get(chan, 0.0)
-                    if drawing.fix_position:
-                        drawing.scale = 1.0
-                    else:
-                        drawing.scale = chan_scale.get(chan, 1.0)
+                    drawing.scale = chan_scale.get(chan, 1.0)
 
         # update boundary box
         self.bbox_bottom = y0 - (PULSE_STYLE['formatter.margin.bottom'] - y0_interval)
