@@ -225,9 +225,9 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
-            pycodestyle --max-line-length=100 qiskit test
-            pylint -rn qiskit test
-            tools/verify_headers.py qiskit test
+            pycodestyle --max-line-length=100 qiskit
+            pylint -rn qiskit
+            tools/verify_headers.py qiskit
             reno lint
           displayName: 'Style and lint'
     - job: 'Docs'

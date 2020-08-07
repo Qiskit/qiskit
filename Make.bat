@@ -41,7 +41,7 @@ IF errorlevel 9009 GOTO :error
 GOTO :next
 
 :lint
-pylint qiskit test
+pylint qiskit
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
