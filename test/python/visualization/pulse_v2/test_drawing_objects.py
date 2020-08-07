@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects, types
+from qiskit.visualization.pulse_v2 import drawing_objects
 
 
 class TestDrawingObjects(QiskitTestCase):
@@ -108,67 +108,3 @@ class TestDrawingObjects(QiskitTestCase):
                                          styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
-
-    def test_consecutive_index_all_equal(self):
-        """Test for helper function to find consecutive index with identical numbers."""
-        vec = [1, 1, 1, 1, 1, 1]
-        ref_inds = np.array([True, False, False, False, False, True], dtype=bool)
-
-        inds = drawing_objects.find_consecutive_index(vec)
-
-        np.testing.assert_array_equal(inds, ref_inds)
-
-    def test_consecutive_index_abstract_coord(self):
-        """Test for helper function to find consecutive index with abstract coordinate."""
-        vec = [1, 1, 1, 1, types.AbstractCoordinate.RIGHT, 1]
-        ref_inds = np.array([True, True, True, True, True, True], dtype=bool)
-
-        inds = drawing_objects.find_consecutive_index(vec)
-
-        np.testing.assert_array_equal(inds, ref_inds)
-
-    def test_consecutive_index_tiny_diff(self):
-        """Test for helper function to find consecutive index with vector with tiny change."""
-        eps = 1e-10
-        vec = [0.5, 0.5+eps, 0.5-eps, 0.5+eps, 0.5-eps, 0.5]
-        ref_inds = np.array([True, False, False, False, False, True], dtype=bool)
-
-        inds = drawing_objects.find_consecutive_index(vec)
-
-        np.testing.assert_array_equal(inds, ref_inds)
-
-    def test_filled_area_data_compression(self):
-        """Test for ndarray compression with filled area data."""
-        x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
-        y1 = np.array([0, 0, 1, 2, 3, 3, 3, 3, 4, 4, 5, 5, 5, 6])
-        y2 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
-        data = drawing_objects.FilledAreaData(data_type='data',
-                                              channel=pulse.DriveChannel(0),
-                                              x=x,
-                                              y1=y1,
-                                              y2=y2)
-
-        ref_x = np.array([0, 1, 2, 3, 4, 7, 8, 9, 10, 12, 13])
-        ref_y1 = np.array([0, 0, 1, 2, 3, 3, 4, 4, 5, 5, 6])
-        ref_y2 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
-        np.testing.assert_array_almost_equal(data.x, ref_x)
-        np.testing.assert_array_almost_equal(data.y1, ref_y1)
-        np.testing.assert_array_almost_equal(data.y2, ref_y2)
-
-    def test_line_data_compression(self):
-        """Test for ndarray compression with line data."""
-        x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
-        y = np.array([0, 0, 1, 2, 3, 3, 3, 3, 4, 4, 5, 5, 5, 6])
-
-        data = drawing_objects.LineData(data_type='data',
-                                        channel=pulse.DriveChannel(0),
-                                        x=x,
-                                        y=y)
-
-        ref_x = np.array([0, 1, 2, 3, 4, 7, 8, 9, 10, 12, 13])
-        ref_y = np.array([0, 0, 1, 2, 3, 3, 4, 4, 5, 5, 6])
-
-        np.testing.assert_array_almost_equal(data.x, ref_x)
-        np.testing.assert_array_almost_equal(data.y, ref_y)

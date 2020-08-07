@@ -24,24 +24,43 @@ from qiskit.visualization.pulse_v2 import drawing_objects, generators, types
 from qiskit.visualization.pulse_v2.style import stylesheet
 
 
-class TestGenerators(QiskitTestCase):
-    """Tests for generators."""
+def create_instruction(inst, phase, freq, t0, dt):
+    """A helper function to create InstructionTuple."""
+    frame = types.PhaseFreqTuple(phase=phase, freq=freq)
+    return types.InstructionTuple(t0=t0, dt=dt, frame=frame, inst=inst)
+
+
+class TestWaveformGenerators(QiskitTestCase):
+    """Tests for waveform generators."""
 
     def setUp(self) -> None:
         self.style = stylesheet.QiskitPulseStyle()
 
-    @staticmethod
-    def create_instruction(inst, phase, freq, t0, dt):
-        """A helper function to create InstructionTuple."""
-        frame = types.PhaseFreqTuple(phase=phase, freq=freq)
-        return types.InstructionTuple(t0=t0, dt=dt, frame=frame, inst=inst)
+    def test_consecutive_index_all_equal(self):
+        """Test for helper function to find consecutive index with identical numbers."""
+        vec = np.array([1, 1, 1, 1, 1, 1])
+        ref_inds = np.array([True, False, False, False, False, True], dtype=bool)
+
+        inds = generators._find_consecutive_index(vec)
+
+        np.testing.assert_array_equal(inds, ref_inds)
+
+    def test_consecutive_index_tiny_diff(self):
+        """Test for helper function to find consecutive index with vector with tiny change."""
+        eps = 1e-10
+        vec = np.array([0.5, 0.5+eps, 0.5-eps, 0.5+eps, 0.5-eps, 0.5])
+        ref_inds = np.array([True, False, False, False, False, True], dtype=bool)
+
+        inds = generators._find_consecutive_index(vec)
+
+        np.testing.assert_array_equal(inds, ref_inds)
 
     def test_parse_waveform(self):
         """Test helper function that parse waveform with Waveform instance."""
         test_pulse = pulse.library.gaussian(10, 0.1, 3)
 
         inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
-        inst_data = self.create_instruction(inst, 0, 0, 10, 0.1)
+        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
 
         x, y, _ = generators._parse_waveform(inst_data)
 
@@ -56,7 +75,7 @@ class TestGenerators(QiskitTestCase):
         test_pulse = pulse.library.Gaussian(10, 0.1, 3)
 
         inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
-        inst_data = self.create_instruction(inst, 0, 0, 10, 0.1)
+        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
 
         x, y, _ = generators._parse_waveform(inst_data)
 
@@ -70,7 +89,8 @@ class TestGenerators(QiskitTestCase):
         """Test gen_filled_waveform_stepwise with play instruction."""
         my_pulse = pulse.Waveform(samples=[0, 0.5+0.5j, 0.5+0.5j, 0], name='my_pulse')
         play = pulse.Play(my_pulse, pulse.DriveChannel(0))
-        inst_data = self.create_instruction(play, np.pi/2, 5e9, 5, 0.1)
+        inst_data = create_instruction(play, np.pi/2, 5e9, 5, 0.1)
+
         objs = generators.gen_filled_waveform_stepwise(inst_data)
 
         self.assertEqual(len(objs), 2)
@@ -79,12 +99,12 @@ class TestGenerators(QiskitTestCase):
         self.assertEqual(type(objs[0]), drawing_objects.FilledAreaData)
         self.assertEqual(type(objs[1]), drawing_objects.FilledAreaData)
 
-        y1_ref = np.array([0, 0, -0.5, -0.5, -0.5, -0.5, 0, 0])
-        y2_ref = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+        y1_ref = np.array([0, 0, -0.5, -0.5, 0, 0])
+        y2_ref = np.array([0, 0, 0, 0, 0, 0])
 
         # data check
         self.assertEqual(objs[0].channel, pulse.DriveChannel(0))
-        self.assertListEqual(list(objs[0].x), [5, 6, 6, 7, 7, 8, 8, 9])
+        self.assertListEqual(list(objs[0].x), [5, 6, 6, 8, 8, 9])
         np.testing.assert_array_almost_equal(objs[0].y1, y1_ref)
         np.testing.assert_array_almost_equal(objs[0].y2, y2_ref)
 
@@ -114,7 +134,7 @@ class TestGenerators(QiskitTestCase):
                                 mem_slot=pulse.MemorySlot(0),
                                 discriminator=pulse.Discriminator(name='test_discr'),
                                 name='acquire')
-        inst_data = self.create_instruction(acquire, 0, 7e9, 5, 0.1)
+        inst_data = create_instruction(acquire, 0, 7e9, 5, 0.1)
 
         objs = generators.gen_filled_waveform_stepwise(inst_data)
 
@@ -124,12 +144,12 @@ class TestGenerators(QiskitTestCase):
         # type check
         self.assertEqual(type(objs[0]), drawing_objects.FilledAreaData)
 
-        y1_ref = np.array([1, 1, 1, 1, 1, 1, 1, 1])
-        y2_ref = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+        y1_ref = np.array([1, 1])
+        y2_ref = np.array([0, 0])
 
-        # data check
+        # data check - data is compressed
         self.assertEqual(objs[0].channel, pulse.AcquireChannel(0))
-        self.assertListEqual(list(objs[0].x), [5, 6, 6, 7, 7, 8, 8, 9])
+        self.assertListEqual(list(objs[0].x), [5, 9])
         np.testing.assert_array_almost_equal(objs[0].y1, y1_ref)
         np.testing.assert_array_almost_equal(objs[0].y2, y2_ref)
 
@@ -161,7 +181,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_iqx_latex_waveform_name with x90 waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name='X90p_d0_1234567')
         play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
-        inst_data = self.create_instruction(play, 0, 0, 0, 0.1)
+        inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
 
@@ -177,7 +197,7 @@ class TestGenerators(QiskitTestCase):
         ref_style = {'zorder': self.style['formatter.layer.annotate'],
                      'color': self.style['formatter.color.annotate'],
                      'size': self.style['formatter.text_size.annotate'],
-                     'va': 'center',
+                     'va': 'top',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -185,7 +205,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_iqx_latex_waveform_name with x180 waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name='Xp_d0_1234567')
         play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
-        inst_data = self.create_instruction(play, 0, 0, 0, 0.1)
+        inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
 
@@ -201,7 +221,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_iqx_latex_waveform_name with CR waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name='CR90p_u0_1234567')
         play = pulse.Play(iqx_pulse, pulse.ControlChannel(0))
-        inst_data = self.create_instruction(play, 0, 0, 0, 0.1)
+        inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
 
@@ -217,7 +237,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_iqx_latex_waveform_name with CR compensation waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name='CR90p_d0_u0_1234567')
         play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
-        inst_data = self.create_instruction(play, 0, 0, 0, 0.1)
+        inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
 
@@ -228,6 +248,13 @@ class TestGenerators(QiskitTestCase):
         self.assertEqual(obj.channel, pulse.DriveChannel(0))
         self.assertEqual(obj.text, 'CR90p_d0_u0_1234567')
         self.assertEqual(obj.latex, r'\overline{\rm CR}(\frac{\pi}{4})')
+
+
+class TestChannelGenerators(QiskitTestCase):
+    """Tests for channel info generators."""
+
+    def setUp(self) -> None:
+        self.style = stylesheet.QiskitPulseStyle()
 
     def test_gen_baseline(self):
         """Test gen_baseline."""
@@ -240,9 +267,12 @@ class TestGenerators(QiskitTestCase):
 
         # data check
         self.assertEqual(obj.channel, pulse.DriveChannel(0))
-        self.assertListEqual(obj.x, [types.AbstractCoordinate.RIGHT,
-                                     types.AbstractCoordinate.LEFT])
-        self.assertListEqual(obj.y, [0, 0])
+
+        ref_x = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
+        ref_y = [0, 0]
+
+        self.assertListEqual(list(obj.x), ref_x)
+        self.assertListEqual(list(obj.y), ref_y)
 
         # style check
         ref_style = {'alpha': self.style['formatter.alpha.baseline'],
@@ -263,7 +293,7 @@ class TestGenerators(QiskitTestCase):
 
         # data check
         self.assertEqual(obj.channel, pulse.DriveChannel(0))
-        self.assertEqual(obj.latex, 'D_0')
+        self.assertEqual(obj.latex, 'D_{0}')
         self.assertEqual(obj.text, 'D0')
 
         # style check
@@ -291,15 +321,22 @@ class TestGenerators(QiskitTestCase):
         ref_style = {'zorder': self.style['formatter.layer.axis_label'],
                      'color': self.style['formatter.color.axis_label'],
                      'size': self.style['formatter.text_size.annotate'],
-                     'va': 'center',
+                     'va': 'top',
                      'ha': 'right'}
         self.assertDictEqual(obj.styles, ref_style)
+
+
+class TestFrameGenerators(QiskitTestCase):
+    """Tests for frame info generators."""
+
+    def setUp(self) -> None:
+        self.style = stylesheet.QiskitPulseStyle()
 
     def test_gen_latex_vz_label(self):
         """Test gen_latex_vz_label."""
         fcs = [pulse.ShiftPhase(np.pi/2, pulse.DriveChannel(0)),
                pulse.ShiftFrequency(1e6, pulse.DriveChannel(0))]
-        inst_data = self.create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
+        inst_data = create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
 
         obj = generators.gen_latex_vz_label(inst_data)[0]
 
@@ -315,7 +352,7 @@ class TestGenerators(QiskitTestCase):
         ref_style = {'zorder': self.style['formatter.layer.frame_change'],
                      'color': self.style['formatter.color.frame_change'],
                      'size': self.style['formatter.text_size.annotate'],
-                     'va': 'center',
+                     'va': 'bottom',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -323,7 +360,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_latex_frequency_mhz_value."""
         fcs = [pulse.ShiftPhase(np.pi/2, pulse.DriveChannel(0)),
                pulse.ShiftFrequency(1e6, pulse.DriveChannel(0))]
-        inst_data = self.create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
+        inst_data = create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
 
         obj = generators.gen_latex_frequency_mhz_value(inst_data)[0]
 
@@ -339,7 +376,7 @@ class TestGenerators(QiskitTestCase):
         ref_style = {'zorder': self.style['formatter.layer.frame_change'],
                      'color': self.style['formatter.color.frame_change'],
                      'size': self.style['formatter.text_size.annotate'],
-                     'va': 'center',
+                     'va': 'bottom',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -347,7 +384,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_raw_frame_operand_values."""
         fcs = [pulse.ShiftPhase(np.pi/2, pulse.DriveChannel(0)),
                pulse.ShiftFrequency(1e6, pulse.DriveChannel(0))]
-        inst_data = self.create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
+        inst_data = create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
 
         obj = generators.gen_raw_frame_operand_values(inst_data)[0]
 
@@ -362,7 +399,7 @@ class TestGenerators(QiskitTestCase):
         ref_style = {'zorder': self.style['formatter.layer.frame_change'],
                      'color': self.style['formatter.color.frame_change'],
                      'size': self.style['formatter.text_size.annotate'],
-                     'va': 'center',
+                     'va': 'bottom',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -370,7 +407,7 @@ class TestGenerators(QiskitTestCase):
         """Test gen_frame_symbol."""
         fcs = [pulse.ShiftPhase(np.pi/2, pulse.DriveChannel(0)),
                pulse.ShiftFrequency(1e6, pulse.DriveChannel(0))]
-        inst_data = self.create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
+        inst_data = create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
 
         obj = generators.gen_frame_symbol(inst_data)[0]
 
@@ -399,6 +436,13 @@ class TestGenerators(QiskitTestCase):
                      'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
+
+
+class TestSnapshotGenerators(QiskitTestCase):
+    """Tests for snapshot generators."""
+
+    def setUp(self) -> None:
+        self.style = stylesheet.QiskitPulseStyle()
 
     def test_gen_snapshot_symbol(self):
         """Test gen_snapshot_symbol."""
@@ -439,6 +483,13 @@ class TestGenerators(QiskitTestCase):
                      'ha': 'center'}
         self.assertDictEqual(label.styles, ref_style)
 
+
+class TestBarrierGenerators(QiskitTestCase):
+    """Tests for barrier generators."""
+
+    def setUp(self) -> None:
+        self.style = stylesheet.QiskitPulseStyle()
+
     def test_gen_barrier(self):
         """Test gen_barrier."""
         barrier = pulse.instructions.RelativeBarrier(pulse.DriveChannel(0),
@@ -455,9 +506,12 @@ class TestGenerators(QiskitTestCase):
         # data check
         self.assertEqual(lines[0].channel, pulse.channels.DriveChannel(0))
         self.assertEqual(lines[1].channel, pulse.channels.ControlChannel(0))
-        self.assertListEqual(lines[0].x, [5, 5])
-        self.assertListEqual(lines[0].y, [types.AbstractCoordinate.Y_MIN,
-                                          types.AbstractCoordinate.Y_MAX])
+
+        ref_x = [5, 5]
+        ref_y = [types.AbstractCoordinate.Y_MIN, types.AbstractCoordinate.Y_MAX]
+
+        self.assertListEqual(list(lines[0].x), ref_x)
+        self.assertListEqual(list(lines[0].y), ref_y)
 
         # style check
         ref_style = {'alpha': self.style['formatter.alpha.barrier'],

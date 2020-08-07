@@ -57,6 +57,28 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, PULSE_STYLE
 # Waveform related information generation
 
 
+def _find_consecutive_index(vector: np.ndarray) -> np.ndarray:
+    """A helper function to return non-consecutive index from the given list.
+
+    This drastically reduces memory footprint to represent a drawing object,
+    especially for samples of very long flat-topped Gaussian pulses.
+
+    Args:
+        vector: The array of numbers.
+    """
+    try:
+        vector = np.asarray(vector, dtype=float)
+        diff = np.diff(vector)
+        diff[np.where(np.abs(diff) < PULSE_STYLE['formatter.general.vertical_resolution'])] = 0
+        # keep left and right edges
+        consecutive_l = np.insert(diff.astype(bool), 0, True)
+        consecutive_r = np.append(diff.astype(bool), True)
+        return consecutive_l | consecutive_r
+
+    except ValueError:
+        return np.ones_like(vector).astype(bool)
+
+
 def _parse_waveform(inst_data: types.InstructionTuple) \
         -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     r"""A helper function that generates sample data array of the waveform with
@@ -178,6 +200,10 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
     im_y = np.imag(ydata)
     time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
 
+    # data compression
+    re_valid_inds = _find_consecutive_index(re_y)
+    im_valid_inds = _find_consecutive_index(im_y)
+
     # setup style options
     channel = inst_data.inst.channel
 
@@ -193,11 +219,13 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
         re_style['color'] = color.real
         re_meta = meta.copy()
         re_meta['data'] = 'real'
+        re_xvals = time[re_valid_inds]
+        re_yvals = re_y[re_valid_inds]
         real = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.REAL,
                                               channel=channel,
-                                              x=time,
-                                              y1=re_y,
-                                              y2=np.zeros_like(time),
+                                              x=re_xvals,
+                                              y1=re_yvals,
+                                              y2=np.zeros_like(re_xvals),
                                               meta=re_meta,
                                               styles=re_style)
         fill_objs.append(real)
@@ -208,11 +236,13 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
         im_style['color'] = color.imaginary
         im_meta = meta.copy()
         im_meta['data'] = 'imaginary'
+        im_xvals = time[im_valid_inds]
+        im_yvals = re_y[im_valid_inds]
         imag = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.IMAG,
                                               channel=channel,
-                                              x=time,
-                                              y1=im_y,
-                                              y2=np.zeros_like(time),
+                                              x=im_xvals,
+                                              y1=im_yvals,
+                                              y2=np.zeros_like(im_xvals),
                                               meta=im_meta,
                                               styles=im_style)
         fill_objs.append(imag)

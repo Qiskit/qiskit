@@ -63,7 +63,7 @@ Special data types.
 """
 
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional
+from typing import NamedTuple, Union, List, Optional, NewType
 
 from qiskit import pulse
 
@@ -175,3 +175,6 @@ class WaveformChannel(pulse.channels.PulseChannel):
     def __init__(self):
         """Create new waveform channel."""
         super().__init__(0)
+
+
+Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
