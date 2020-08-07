@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Two new passes, :class:`~qiskit.transpiler.passes.SabreLayout` and
+    :class:`~qiskit.transpiler.passes.SabreSwap` for layout and routing have
+    been added to :mod:`qiskit.transpiler.passes`. These new passes are based
+    on the algorithm presented in Li et al., "Tackling the Qubit Mapping
+    Problem for NISQ-Era Quantum Devices", ASPLOS 2019. They can also be
+    selected when using the :func:`~qiskit.compiler.transpile` function by
+    setting the ``layout_method`` kwarg to ``'sabre'`` and/or the
+    ``routing_method`` to ``'sabre'`` to use
+    :class:`~qiskit.transpiler.passes.SabreLayout` and
+    :class:`~qiskit.transpiler.passes.SabreSwap` respectively.
