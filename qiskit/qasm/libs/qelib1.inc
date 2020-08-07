@@ -72,8 +72,8 @@ gate ccx a,b,c
 }
 gate dcx a, b 
 { 
-  cx a, b; 
-  cx a, b;
+  cx b, a; 
+  cx b, a;
 }
 // cswap (Fredkin)
 gate cswap a,b,c

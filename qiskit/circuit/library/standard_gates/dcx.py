@@ -52,7 +52,7 @@ class DCXGate(Gate):
 
     def _define(self):
         """
-        gate dcx a, b { cx a, b; cx a, b; }
+        gate dcx a, b { cx b, a; cx b, a; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
