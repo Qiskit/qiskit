@@ -72,7 +72,7 @@ class SPSA(Optimizer):
                  c2: float = 0.602,
                  c3: float = 0.101,
                  c4: float = 0,
-                 skip_calibration: float = False,
+                 skip_calibration: bool = False,
                  max_trials: Optional[int] = None) -> None:
         """
         Args:
