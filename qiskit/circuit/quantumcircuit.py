@@ -782,7 +782,7 @@ class QuantumCircuit:
             CircuitError: if object passed is a subclass of Instruction
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
-        # make copy of parameterized gate instance if (possibly) used in another circuit
+        # make copy of parameterized gate instance if used in another circuit
         is_gate = isinstance(instruction, Gate)
         is_referenced = sys.getrefcount(instruction) > 4
         if is_gate and is_referenced:
