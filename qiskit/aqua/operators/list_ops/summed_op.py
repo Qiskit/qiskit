@@ -15,6 +15,7 @@
 """ SummedOp Class """
 
 from typing import List, Union, cast
+import warnings
 
 import numpy as np
 
@@ -159,6 +160,19 @@ class SummedOp(ListOp):
             coeff = cast(float, self.coeff)
 
         return self.combo_fn(legacy_ops) * coeff
+
+    def print_details(self):
+        """
+        Print out the operator in details.
+        Returns:
+            str: a formatted string describes the operator.
+        """
+        warnings.warn("print_details() is deprecated and will be removed in "
+                      "a future release. Instead you can use .to_legacy_op() "
+                      "and call print_details() on it's output",
+                      DeprecationWarning)
+        ret = self.to_legacy_op().print_details()
+        return ret
 
     def equals(self, other: OperatorBase) -> bool:
         """Check if other is equal to self.
