@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The ``qiskit.pulse.pulse_lib`` module has been deprecated and will be
+    removed in a future release. It has been renamed to
+    :py:mod:`qiskit.pulse.library` which should be used instead.
