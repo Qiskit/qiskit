@@ -29,6 +29,7 @@ from qiskit.util import deprecate_arguments
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
+    import matplotlib as mpl
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
@@ -42,6 +43,7 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
     from qiskit.circuit.tools.pi_check import pi_check
+    from packaging import version
 
 
 if HAS_MATPLOTLIB:
@@ -713,6 +715,9 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.axes.set_zlim3d(-1.0, 1.0)
     ax.axes.grid(False)
     ax.view_init(elev=5, azim=275)
+
+    if version.parse(mpl.__version__) >= version.parse('3.3.0'):
+        ax.axes.set_box_aspect((4, 4, 4))
 
     # start the plotting
     # Plot semi-transparent sphere
