@@ -418,7 +418,7 @@ class Bloch():
             self.axes.set_zlim3d(-0.7, 0.7)
 
         if version.parse(mpl.__version__) >= version.parse('3.3.0'):
-            self.axes.set_box_aspect((4, 4, 4))
+            self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
         self.plot_back()

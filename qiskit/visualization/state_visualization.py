@@ -717,7 +717,7 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
     ax.view_init(elev=5, azim=275)
 
     if version.parse(mpl.__version__) >= version.parse('3.3.0'):
-        ax.axes.set_box_aspect((4, 4, 4))
+        ax.axes.set_box_aspect((1, 1, 1))
 
     # start the plotting
     # Plot semi-transparent sphere
