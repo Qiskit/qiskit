@@ -70,7 +70,7 @@ extensions = [
     'nbsphinx'
 ]
 
-nbsphinx_timeout = 60
+nbsphinx_timeout = 300
 nbsphinx_execute = os.getenv('QISKIT_DOCS_BUILD_TUTORIALS', 'never')
 nbsphinx_widgets_path = ''
 html_sourcelink_suffix = ''
