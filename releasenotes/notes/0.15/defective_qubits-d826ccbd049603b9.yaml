@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Support was added to the :func:`qiskit.compiler.transpile` function for handling backends that have qubits or
+    gates marked as defective in their :class:`~qiskit.providers.models.BackendProperties`. If a gate or qubit
+    parameter in the :class:`~qiskit.providers.models.BackendProperties` has an ``operational`` field and it
+    is set to ``False``, then the :func:`~qiskit.compiler.transpile` function will consider the maximum connected
+    subgraph of operational qubits as a coupling map and handle the process to avoid using non-operational
+    qubits/gates.

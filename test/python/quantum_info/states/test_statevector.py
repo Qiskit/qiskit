@@ -266,6 +266,17 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op_full.data, vec))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
 
+    def test_evolve_global_phase(self):
+        """Test evolve circuit with global phase."""
+        state_i = Statevector([1, 0])
+        qr = QuantumRegister(2)
+        phase = np.pi / 4
+        circ = QuantumCircuit(qr, global_phase=phase)
+        circ.x(0)
+        state_f = state_i.evolve(circ, qargs=[0])
+        target = Statevector([0, 1]) * np.exp(1j * phase)
+        self.assertEqual(state_f, target)
+
     def test_conjugate(self):
         """Test conjugate method."""
         for _ in range(10):

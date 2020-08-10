@@ -31,10 +31,13 @@ Standard Gates
    CCXGate
    DCXGate
    CHGate
+   CPhaseGate
    CRXGate
    CRYGate
    CRZGate
    CSwapGate
+   CSXGate
+   CUGate
    CU1Gate
    CU3Gate
    CXGate
@@ -42,8 +45,14 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    Measure
    MSGate
+   PhaseGate
    RCCXGate
    RC3XGate
    Reset
@@ -58,8 +67,11 @@ Standard Gates
    SdgGate
    SwapGate
    iSwapGate
+   SXGate
+   SXdgGate
    TGate
    TdgGate
+   UGate
    U1Gate
    U2Gate
    U3Gate
@@ -128,6 +140,14 @@ Comparators
 
    IntegerComparator
 
+Functions on binary variables
++++++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuadraticForm
+
 Particular Quantum Circuits
 ===========================
 
@@ -194,6 +214,7 @@ from .arithmetic import (
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
+    QuadraticForm,
 )
 from .n_local import (
     NLocal,

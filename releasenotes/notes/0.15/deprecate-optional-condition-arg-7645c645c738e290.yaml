@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The use of the optional ``condition`` argument on
+    :class:`qiskit.dagcircuit.DAGNode`,
+    :meth:`qiskit.dagcircuit.DAGCircuit.apply_operation_back`, and
+    :meth:`qiskit.dagcircuit.DAGCircuit.apply_operation_front` has been
+    deprecated and will be removed in a future release. Instead the
+    ``control`` set in :class:`qiskit.circuit.Instruction` instances being
+    added to a :class:`~qiskit.dagcircuit.DAGCircuit` should be used.
