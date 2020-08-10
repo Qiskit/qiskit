@@ -25,7 +25,7 @@ from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.circuit import Barrier as BarrierInstruction
-from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate
+from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
@@ -668,10 +668,14 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '{name}_{index} -> {physical} ' + initial_qubit_value
-                qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
-                                                 index=self.layout[bit.index].index,
-                                                 physical=bit.index))
+                if self.layout[bit.index]:
+                    label = '{name}_{index} -> {physical} ' + initial_qubit_value
+                    qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
+                                                     index=self.layout[bit.index].index,
+                                                     physical=bit.index))
+                else:
+                    qubit_labels.append('%s ' % bit.index + initial_qubit_value)
+
         clbit_labels = []
         previous_creg = None
         for bit in self.cregs:
@@ -772,7 +776,9 @@ class TextDrawing():
         labels = {IGate: 'I',
                   Initialize: 'initialize',
                   UnitaryGate: 'unitary',
-                  HamiltonianGate: 'Hamiltonian'}
+                  HamiltonianGate: 'Hamiltonian',
+                  SXGate: '√X',
+                  SXdgGate: '√XDG'}
         instruction_type = type(instruction)
         if instruction_type in {Gate, Instruction}:
             return instruction.name

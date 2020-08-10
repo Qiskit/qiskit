@@ -26,7 +26,7 @@ class U2Gate(Gate):
     Implemented using one X90 pulse on IBM Quantum systems:
 
     .. math::
-        U2(\phi, \lambda) = RZ(\phi+\pi/2).RX(\frac{\pi}{2}).RZ(\lambda-\pi/2)
+        U2(\phi, \lambda) = RZ(\phi).RY(\frac{\pi}{2}).RZ(\lambda)
 
     **Circuit symbol:**
 
@@ -51,7 +51,8 @@ class U2Gate(Gate):
     .. math::
 
         U2(0, \pi) = H
-
+        U2(0, 0) = RY(\pi/2)
+        U2(-\pi/2, \pi/2) = RX(\pi/2)
     .. seealso::
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:

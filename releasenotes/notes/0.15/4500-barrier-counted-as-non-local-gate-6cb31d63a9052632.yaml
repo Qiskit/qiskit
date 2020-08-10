@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The :class:`qiskit.circuit.QuantumCircuit` method
+    :attr:`~qiskit.circuit.QuantumCircuit.num_nonlocal_gates` previously
+    included multi-qubit :class:`qiskit.circuit.Instruction` objects
+    (for example, :class:`~qiskit.circuit.library.Barrier`) in its count of
+    non-local gates. This has been corrected so that only non-local
+    :class:`~qiskit.circuit.Gate` objects are counted.
+    Fixes `#4500 <https://github.com/Qiskit/qiskit-terra/issues/4500>`__
