@@ -554,7 +554,8 @@ class TextDrawing():
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
-        return "\n".join(self.lines())
+        import sys
+        return "\n".join(self.lines()).encode().decode(sys.stdout.encoding, errors='ignore')
 
     def dump(self, filename, encoding="utf8"):
         """Dumps the ascii art in the file.
