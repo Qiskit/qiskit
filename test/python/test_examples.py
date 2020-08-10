@@ -50,7 +50,7 @@ class TestPythonExamples(QiskitTestCase):
                 error_string = "Running example %s failed with return code %s\n" % (
                     example, run_example.returncode)
                 error_string += "stdout:%s\nstderr: %s" % (
-                    stdout.decode('utf8'), stderr.decode('utf8'))
+                    stdout, stderr)
                 self.assertEqual(run_example.returncode, 0, error_string)
 
     @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] == 8,
