@@ -175,7 +175,7 @@ class Bloch():
         self.zlpos = [1.2, -1.2]
         # ---font options---
         # Color of fonts, default = 'black'
-        self.font_color = 'black'
+        self.font_color = plt.rcParams['axes.labelcolor']
         # Size of fonts, default = 20
         self.font_size = 20
 
