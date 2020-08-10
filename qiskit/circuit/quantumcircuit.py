@@ -190,7 +190,8 @@ class QuantumCircuit:
         """
         return QuantumCircuitData(self)
 
-    def _get_calibrations(self):
+    @property
+    def calibrations(self):
         """Return calibration dictionary."""
         return dict(self._calibrations)
 
@@ -2278,18 +2279,17 @@ class QuantumCircuit:
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
-    def add_calibrations(self, gate, qubits, params, schedule):
+    def add_calibration(self, gate, qubits, schedule):
         """Add calibrations information to a calibration dictionary.
 
         Args:
             gate (Union[Gate, str]): Gate information.
             qubits (Union[int, Tuple[int]]): Qubits
-            params (List[Union[float, Parameter]]): Parameters
             schedule (Schedule): Schedule
         """
-        calibrations = dict()
-        calibrations[tuple(params)] = schedule
-        self._calibrations[gate.name][tuple(qubits)] = calibrations
+        calibration = dict()
+        calibration[tuple(gate.params)] = schedule
+        self._calibrations[gate.name][tuple(qubits)] = calibration
 
 
 def _circuit_from_qasm(qasm):
