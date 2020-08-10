@@ -185,7 +185,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         return circuits
 
     for circuit in circuits:
-        if len(circuit._get_calibrations()) != 0:
+        if len(circuit.calibrations) != 0:
             # TODO: do something here
             pass
 
