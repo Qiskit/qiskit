@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    In previous releases a :class:`~qiskit.transpiler.PassManager`
+    did not allow ``TransformationPass`` classes to modify the
+    :class:`~qiskit.transpiler.PropertySet`.  This restriction has been lifted
+    so a ``TransformationPass`` class now has read and write access to both
+    the :class:`~qiskit.transpiler.PropertySet` and
+    :class:`~qiskit.transpiler.DAGCircuit` during
+    :meth:`~qiskit.transpiler.PassManager.run`. This change was made to
+    more efficiently facilitate ``TransformationPass`` classes that have an
+    internal state which may be necessary for later passes in the
+    :class:`~qiskit.transpiler.PassManager`. Without this change a second
+    redundant ``AnalysisPass`` would have been necessary to recreate the
+    internal state, which could add significant overhead.
