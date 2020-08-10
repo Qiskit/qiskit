@@ -43,7 +43,7 @@ except ImportError:
     from qiskit.transpiler import transpile
 
 if not NO_KAK:
-    from qiskit.tools.qi.qi import random_unitary_matrix
+    from qiskit.quantum_info import random_unitary as random_unitary_matrix
 
 
 def build_model_circuit_kak(width, depth, seed=None):
