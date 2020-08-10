@@ -1,0 +1,32 @@
+features:
+  - |
+    A new attribute, :attr:`~qiskit.circuit.QuantumCircuit.global_phase`,
+    which is is used for tracking the global phase has been added to the
+    :class:`qiskit.circuit.QuantumCircuit` class. For example::
+
+      import math
+
+      from qiskit import QuantumCircuit
+
+      circ = QuantumCircuit(1, global_phase=math.pi)
+      circ.u1(0)
+
+    The global phase may also be changed or queried with
+    ``circ.global_phase`` in the above example. In either case the setting is
+    in radians. If the circuit is converted to an instruction or gate the
+    global phase is represented by two single qubit rotations on the first
+    qubit.
+
+    This allows for other methods and functions which consume a
+    :class:`~qiskit.circuit.QuantumCircuit` object to take global phase into
+    account. For example. with the
+    :attr:`~qiskit.circuit.QuantumCircuit.global_phase`
+    attribute the :meth:`~qiskit.circuit.Gate.to_matrix` method for a gate
+    can now exactly correspond to its decompositions instead of
+    just up to a global phase.
+
+    The same attribute has also been added to the
+    :class:`~qiskit.dagcircuit.DAGCircuit` class so that global phase
+    can be tracked when converting between
+    :class:`~qiskit.circuit.QuantumCircuit` and
+    :class:`~qiskit.dagcircuit.DAGCircuit`.
