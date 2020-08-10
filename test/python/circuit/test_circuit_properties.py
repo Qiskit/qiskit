@@ -18,7 +18,8 @@
 
 import unittest
 import numpy as np
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 # pylint: disable=unused-import
@@ -616,6 +617,30 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
         self.assertEqual(circ.num_qubits, 18)
 
+    def test_calibrations(self):
+        """Check if the calibrations provided are added correctly."""
+        circ = QuantumCircuit(2)
+        circ.rx(3.14, 0)
+        circ.ry(1.57, 1)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration(RXGate(3.14), [0], q0_x180)
+        circ.add_calibration(RYGate(1.57), [1], q1_y90)
+
+        self.assertEqual(set(circ.calibrations.keys()), {'rx', 'ry'})
+        self.assertEqual(set(circ.calibrations['rx'].keys()), {(0,)})
+        self.assertEqual(set(circ.calibrations['ry'].keys()), {(1,)})
+        self.assertEqual(set(circ.calibrations['rx'][(0,)].keys()), {(3.14,)})
+        self.assertEqual(set(circ.calibrations['ry'][(1,)].keys()), {(1.57,)})
+        self.assertEqual(circ.calibrations['rx'][(0,)][(3.14,)].instructions,
+                         q0_x180.instructions)
+        self.assertEqual(circ.calibrations['ry'][(1,)][(1.57,)].instructions,
+                         q1_y90.instructions)
 
 if __name__ == '__main__':
     unittest.main()
