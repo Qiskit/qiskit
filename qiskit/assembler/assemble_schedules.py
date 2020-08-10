@@ -177,7 +177,7 @@ def _assemble_instructions(
                 isinstance(instruction.pulse, library.ParametricPulse)):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
-                instruction = instructions.Play(instruction.pulse.get_sample_pulse(),
+                instruction = instructions.Play(instruction.pulse.get_waveform(),
                                                 instruction.channel,
                                                 name=instruction.name)
 
