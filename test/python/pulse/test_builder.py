@@ -685,6 +685,20 @@ class TestMacros(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_measure_multi_qubits(self):
+        """Test utility function - measure with multi qubits."""
+        with pulse.build(self.backend) as schedule:
+            regs = pulse.measure([0, 1])
+
+        self.assertListEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
+
+        reference = macros.measure(
+            qubits=[0, 1],
+            inst_map=self.inst_map,
+            meas_map=self.configuration.meas_map)
+
+        self.assertEqual(schedule, reference)
+
     def test_measure_all(self):
         """Test utility function - measure."""
         with pulse.build(self.backend) as schedule:

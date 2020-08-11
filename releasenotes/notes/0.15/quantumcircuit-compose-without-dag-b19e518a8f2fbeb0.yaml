@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    The :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.compose` has a new kwarg ``front``
+    which can be used for prepending the other circuit before the origin
+    circuit instead of appending. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circ1 = QuantumCircuit(2)
+      circ2 = QuantumCircuit(2)
+
+      circ2.h(0)
+      circ1.cx(0, 1)
+
+      circ1.compose(circ2, front=True).draw(output='mpl')
