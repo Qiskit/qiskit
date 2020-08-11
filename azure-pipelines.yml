@@ -557,7 +557,7 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
-            sudo apt install -y graphviz
+            sudo apt install -y graphviz pandoc
             pip check
           displayName: 'Install dependencies'
         - bash: |
