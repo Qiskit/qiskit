@@ -47,12 +47,13 @@ def circuit_to_dag(circuit):
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
+    dagcircuit.global_phase = circuit.global_phase
+
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
     for instruction, qargs, cargs in circuit.data:
-        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs,
-                                        instruction.condition)
+        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
     return dagcircuit

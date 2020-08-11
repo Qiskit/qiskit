@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM reset statement."""
+import warnings
 
 from .node import Node
 
@@ -27,6 +28,9 @@ class Reset(Node):
         """Create the reset node."""
         super().__init__('reset', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return "reset " + self.children[0].qasm(prec) + ";"
+        if prec is not None:
+            warnings.warn('Parameter \'Reset.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
+        return "reset " + self.children[0].qasm() + ";"

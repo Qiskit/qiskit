@@ -22,12 +22,14 @@ from .two_local import TwoLocal
 
 
 class RealAmplitudes(TwoLocal):
-    r"""The RealAmplitudes 2-local circuit.
+    r"""The real-amplitudes 2-local circuit.
 
     The ``RealAmplitudes`` circuit is a heuristic trial wave function used as Ansatz in chemistry
     applications or classification circuits in machine learning. The circuit consists of
     of alternating layers of :math:`Y` rotations and :math:`CX` entanglements. The entanglement
     pattern can be user-defined or selected from a predefined set.
+    It is called ``RealAmplitudes`` since the prepared quantum states will only have
+    real amplitudes, the complex part is always 0.
 
     For example a ``RealAmplitudes`` circuit with 2 repetitions on 3 qubits with ``'full'``
     entanglement is

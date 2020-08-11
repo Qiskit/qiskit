@@ -41,7 +41,8 @@ class QCircuitImage:
     """
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False):
+                 plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
+                 cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
 
         Args:
@@ -57,6 +58,8 @@ class QCircuitImage:
             layout (Layout or None): If present, the layout information will be
                included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
+            cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
+            global_phase (float): Optional, the global phase for the circuit.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -74,7 +77,7 @@ class QCircuitImage:
         self.ops = ops
 
         # image scaling
-        self.scale = scale
+        self.scale = 0.7 if scale is None else scale
 
         # Map of qregs to sizes
         self.qregs = {}
@@ -125,12 +128,17 @@ class QCircuitImage:
         self.clbit_list = clbits
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
-        self.img_width = len(self.img_regs)
+        if cregbundle:
+            self.img_width = len(qubits) + len(self.cregs)
+        else:
+            self.img_width = len(self.img_regs)
         self.wire_type = {}
         for bit in self.ordered_regs:
             self.wire_type[bit] = bit.register in self.cregs.keys()
+        self.cregbundle = cregbundle
+        self.global_phase = global_phase
 
-    def latex(self, aliases=None):
+    def latex(self):
         """Return LaTeX string representation of circuit.
 
         This method uses the LaTeX Qconfig package to create a graphical
@@ -139,8 +147,8 @@ class QCircuitImage:
         Returns:
             string: for writing to a LaTeX file.
         """
-        self._initialize_latex_array(aliases)
-        self._build_latex_array(aliases)
+        self._initialize_latex_array()
+        self._build_latex_array()
         header_1 = r"""% \documentclass[preview]{standalone}
 % If the image is too large to fit on this documentclass use
 \documentclass[draft]{beamer}
@@ -156,8 +164,9 @@ class QCircuitImage:
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
-\begin{equation*}"""
+"""
         qcircuit_line = r"""
+\begin{equation*}
     \Qcircuit @C=%.1fem @R=%.1fem @!R {
 """
         output = io.StringIO()
@@ -165,6 +174,9 @@ class QCircuitImage:
         output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
         output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
+        if self.global_phase:
+            output.write(r"""
+{\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
         for i in range(self.img_width):
@@ -192,8 +204,7 @@ class QCircuitImage:
         output.close()
         return contents
 
-    def _initialize_latex_array(self, aliases=None):
-        del aliases  # unused
+    def _initialize_latex_array(self):
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
@@ -208,10 +219,19 @@ class QCircuitImage:
              else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
+        if self.cregbundle:
+            offset = 0
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
-                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
-                                    "_{" + str(self.ordered_regs[i].index) + "}" + ": "
+                if self.cregbundle:
+                    self._latex[i][0] = \
+                        "\\lstick{" + self.ordered_regs[i + offset].register.name + ":"
+                    clbitsize = self.cregs[self.ordered_regs[i + offset].register]
+                    self._latex[i][1] = "{/_{_{" + str(clbitsize) + "}}} \\cw"
+                    offset += clbitsize - 1
+                else:
+                    self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
+                                            "_{" + str(self.ordered_regs[i].index) + "}:"
                 if self.initial_state:
                     self._latex[i][0] += "0"
                 self._latex[i][0] += "}"
@@ -220,10 +240,13 @@ class QCircuitImage:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                        self.layout[self.ordered_regs[i].index].register.name,
-                        self.layout[self.ordered_regs[i].index].index,
-                        self.ordered_regs[i].index)
+                    if self.layout[self.ordered_regs[i].index]:
+                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            self.layout[self.ordered_regs[i].index].register.name,
+                            self.layout[self.ordered_regs[i].index].index,
+                            self.ordered_regs[i].index)
+                    else:
+                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -276,6 +299,10 @@ class QCircuitImage:
 
         # wires in the beginning and end
         columns = 2
+
+        # add extra column if needed
+        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
+            columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
         # which take 2 columns
@@ -348,26 +375,17 @@ class QCircuitImage:
             return generate_latex_label(str(param))
         return pi_check(param, output='latex')
 
-    def _build_latex_array(self, aliases=None):
+    def _build_latex_array(self):
         """Returns an array of strings containing \\LaTeX for this circuit.
-
-        If aliases is not None, aliases contains a dict mapping
-        the current qubits in the circuit to new qubit names.
-        We will deduce the register names and sizes from aliases.
         """
 
+        qregdata = self.qregs
         # Rename qregs if necessary
-        if aliases:
-            qregdata = {}
-            for q in aliases.values():
-                if q[0] not in qregdata:
-                    qregdata[q[0]] = q[1] + 1
-                elif qregdata[q[0]] < q[1] + 1:
-                    qregdata[q[0]] = q[1] + 1
-        else:
-            qregdata = self.qregs
 
         column = 1
+        # Leave a column to display number of classical registers if needed
+        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
+            column += 1
         for layer in self.ops:
             num_cols_used = 1
 
@@ -402,8 +420,9 @@ class QCircuitImage:
                         temp.sort(key=int)
                         bottom = temp[len(pos_array) - 1]
                         gap = pos_cond - bottom
-                        for i in range(self.cregs[if_reg]):
-                            if if_value[i] == '1':
+                        creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                        for i in range(creg_rng):
+                            if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                 self._latex[pos_cond + i][column] = \
                                     "\\control \\cw \\cwx[-" + str(gap) + "]"
                                 gap = 1
@@ -474,8 +493,7 @@ class QCircuitImage:
                                      'save', 'noise']:
                     nm = generate_latex_label(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
-                    if aliases is not None:
-                        qarglist = map(lambda x: aliases[x], qarglist)
+
                     if len(qarglist) == 1:
                         pos_1 = self.img_regs[qarglist[0]]
 
@@ -530,8 +548,9 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                             gap = pos_2 - pos_1
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_2 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -602,8 +621,9 @@ class QCircuitImage:
                             bottom = temp[1]
 
                             gap = pos_3 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_3 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -810,8 +830,9 @@ class QCircuitImage:
                             bottom = temp[2]
 
                             gap = pos_4 - bottom
-                            for i in range(self.cregs[if_reg]):
-                                if if_value[i] == '1':
+                            creg_rng = 1 if self.cregbundle else self.cregs[if_reg]
+                            for i in range(creg_rng):
+                                if (if_value[i] == '1' or (self.cregbundle and int(if_value) > 0)):
                                     self._latex[pos_4 + i][column] = \
                                         "\\control \\cw \\cwx[-" + str(gap) + "]"
                                     gap = 1
@@ -911,18 +932,28 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    if aliases:
-                        newq = aliases[(qname, qindex)]
-                        qname = newq[0]
-                        qindex = newq[1]
-
                     pos_1 = self.img_regs[op.qargs[0]]
-                    pos_2 = self.img_regs[op.cargs[0]]
+                    if self.cregbundle:
+                        pos_2 = self.img_regs[self.clbit_list[0]]
+                        cregindex = self.img_regs[op.cargs[0]] - pos_2
+                        for creg_size in self.cregs.values():
+                            if cregindex >= creg_size:
+                                cregindex -= creg_size
+                                pos_2 += 1
+                            else:
+                                break
+                    else:
+                        pos_2 = self.img_regs[op.cargs[0]]
 
                     try:
                         self._latex[pos_1][column] = "\\meter"
-                        self._latex[pos_2][column] = \
-                            "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                        if self.cregbundle:
+                            self._latex[pos_2][column] = \
+                                "\\dstick{" + str(cregindex) + "} " + \
+                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
+                        else:
+                            self._latex[pos_2][column] = \
+                                "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                     except Exception as e:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
@@ -933,8 +964,6 @@ class QCircuitImage:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
                         indexes.sort()
-                        if aliases is not None:
-                            qarglist = map(lambda x: aliases[x], qarglist)
 
                         first = last = indexes[0]
                         for index in indexes[1:]:
