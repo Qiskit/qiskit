@@ -62,7 +62,7 @@ class Optimize1qGates(TransformationPass):
         for run in runs:
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
-
+            right_global_phase = 0
             for current_node in run:
                 left_name = current_node.name
                 if (current_node.condition is not None
@@ -79,6 +79,9 @@ class Optimize1qGates(TransformationPass):
                 else:
                     left_name = "u1"  # replace id with u1
                     left_parameters = (0, 0, 0)
+                if (current_node.op.definition is not None and
+                        current_node.op.definition.global_phase):
+                    right_global_phase += current_node.op.definition.global_phase
                 # If there are any sympy objects coming from the gate convert
                 # to numpy.
                 left_parameters = tuple([float(x) for x in left_parameters])
@@ -208,6 +211,9 @@ class Optimize1qGates(TransformationPass):
                 else:
                     raise TranspilerError('It was not possible to use the basis %s' % self.basis)
 
+            # safer to keep phase on op instead of dag (e.g. if removed)?
+            if new_op.definition is not None:
+                new_op.definition.global_phase = right_global_phase
             if right_name != 'nop':
                 dag.substitute_node(run[0], new_op, inplace=True)
 

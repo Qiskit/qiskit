@@ -643,6 +643,15 @@ class TestControlledGate(QiskitTestCase):
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertEqual(Operator(cugate), Operator(ref_mat))
 
+    def test_controlled_controlled_rz(self):
+        """Test that UnitaryGate with control returns params."""
+        qc = QuantumCircuit(1)
+        qc.rz(0.2, 0)
+        controlled = QuantumCircuit(2)
+        controlled.compose(qc.control(), inplace=True)
+        self.assertEqual(Operator(controlled), Operator(CRZGate(0.2)))
+        self.assertEqual(Operator(controlled), Operator(RZGate(0.2).control()))
+
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
         """test open controlled unitary matrix"""

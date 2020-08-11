@@ -82,6 +82,7 @@ class ConsolidateBlocks(TransformationPass):
             new_dag.add_qreg(qreg)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
+        new_dag._global_phase = dag._global_phase
 
         # compute ordered indices for the global circuit wires
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}

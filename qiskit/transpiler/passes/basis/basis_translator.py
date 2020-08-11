@@ -150,7 +150,10 @@ class BasisTranslator(TransformationPass):
 
                 if (len(bound_target_dag.op_nodes()) == 1
                         and len(bound_target_dag.op_nodes()[0].qargs) == len(node.qargs)):
-                    dag.substitute_node(node, bound_target_dag.op_nodes()[0].op, inplace=True)
+                    dag_op = bound_target_dag.op_nodes()[0].op
+                    if bound_target_dag.global_phase:
+                        dag_op.definition.global_phase = bound_target_dag.global_phase
+                    dag.substitute_node(node, dag_op, inplace=True)
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:

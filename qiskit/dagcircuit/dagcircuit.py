@@ -838,6 +838,9 @@ class DAGCircuit:
                 in_dag.apply_operation_back(replay_node.op, replay_node.qargs,
                                             replay_node.cargs)
 
+        if in_dag.global_phase:
+            self.global_phase += in_dag.global_phase
+
         if wires is None:
             wires = in_dag.wires
 
