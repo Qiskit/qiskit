@@ -1,9 +1,0 @@
----
-features:
-  - |
-    Added the ``UGate``, ``CUGate``, ``PhaseGate`` and ``CPhaseGate`` with 
-    the corresponding circuit methods, ``u()``, ``cu()``, ``p()`` and ``cp()``.
-    The U gate is the generic 3-qubit gate and the CU gate it's controlled 
-    version. CU has 4 parameters to account for a possible global phase of 
-    the U gate. The Phase and CPhase gates are the general Phase gate
-    at an arbitrary angle and it's controlled version.

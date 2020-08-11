@@ -446,7 +446,7 @@ class DAGDependency:
         """
         from qiskit.visualization.dag_visualization import dag_drawer
         return dag_drawer(dag=self, scale=scale, filename=filename,
-                          style=style, category='dependency')
+                          style=style)
 
 
 def merge_no_duplicates(*iterables):

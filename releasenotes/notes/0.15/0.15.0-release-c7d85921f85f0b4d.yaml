@@ -1,0 +1,14 @@
+---
+prelude: |
+    The 0.15.0 release includes several new features and bug fixes. Some
+    highlights for this release are:
+
+    This release includes the introduction of arbitrary
+    basis translation to the transpiler. This includes support for directly
+    targeting a broader range of device basis sets, e.g. backends
+    implementing RZ, RY, RZ, CZ or iSwap gates.
+
+    The :class:`~qiskit.circuit.QuantumCircuit` class now tracks global
+    phase. This means controlling a circuit which has global phase now
+    correctly adds a relative phase, and gate matrix definitions are now
+    exact rather than equal up to a global phase.
