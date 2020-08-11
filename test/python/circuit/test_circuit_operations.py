@@ -19,7 +19,6 @@ from ddt import ddt, data
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit import QiskitError
 from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
