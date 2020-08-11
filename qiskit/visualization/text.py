@@ -554,6 +554,9 @@ class TextDrawing():
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
+        if self.encoding in ['cp1252']:
+            raise TextDrawerCregBundle('The encoding %s has a limited charset. Consider a different'
+                                       ' encoding in your environment.' % self.encoding)
         return "\n".join(self.lines()).encode().decode(self.encoding, errors='ignore')
 
     def dump(self, filename, encoding="utf8"):
