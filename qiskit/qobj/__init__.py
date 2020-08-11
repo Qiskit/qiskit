@@ -40,6 +40,7 @@ Qasm
    QasmQobjExperimentConfig
    QasmQobjExperiment
    QasmQobjConfig
+   QasmExperimentCalibrations
    GateCalibration
 
 Pulse
@@ -67,6 +68,9 @@ Validation
 
 import warnings
 
+from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.qobj.common import QobjHeader
+
 from qiskit.qobj.pulse_qobj import PulseQobj
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
 from qiskit.qobj.pulse_qobj import PulseQobjExperimentConfig
@@ -76,13 +80,12 @@ from qiskit.qobj.pulse_qobj import QobjMeasurementOption
 from qiskit.qobj.pulse_qobj import PulseLibraryItem
 
 from qiskit.qobj.qasm_qobj import GateCalibration
+from qiskit.qobj.qasm_qobj import QasmExperimentCalibrations
 from qiskit.qobj.qasm_qobj import QasmQobj
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.qobj.qasm_qobj import QasmQobjExperiment
 from qiskit.qobj.qasm_qobj import QasmQobjConfig
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
 from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
-from qiskit.qobj.qasm_qobj import QobjHeader
 
 from .utils import validate_qobj_against_schema
 

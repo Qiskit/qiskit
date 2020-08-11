@@ -12,27 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Module providing definitions of QASM Qobj classes."""
 
-import os
+import copy
 import pprint
 from types import SimpleNamespace
 
-import json
-import fastjsonschema
-
 from qiskit.circuit.parameterexpression import ParameterExpression
-
-
-path_part = 'schemas/qobj_schema.json'
-path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    path_part)
-with open(path, 'r') as fd:
-    json_schema = json.loads(fd.read())
-validator = fastjsonschema.compile(json_schema)
+from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
+from qiskit.qobj.common import QobjDictField
+from qiskit.qobj.common import QobjHeader
+from qiskit.qobj.common import validator
 
 
 class QasmQobjInstruction:
@@ -298,7 +288,11 @@ class QasmQobjConfig(SimpleNamespace):
         Returns:
             dict: The dictionary form of the QasmQobjConfig.
         """
-        return self.__dict__
+        out_dict = copy.copy(self.__dict__)
+        if hasattr(self, 'pulse_library'):
+            out_dict['pulse_library'] = [
+                x.to_dict() for x in self.pulse_library]
+        return out_dict
 
     @classmethod
     def from_dict(cls, data):
@@ -310,57 +304,15 @@ class QasmQobjConfig(SimpleNamespace):
         Returns:
             QasmQobjConfig: The object from the input dictionary.
         """
+        if 'pulse_library' in data:
+            pulse_lib = data.pop('pulse_library')
+            pulse_lib_obj = [PulseLibraryItem.from_dict(x) for x in pulse_lib]
+            data['pulse_library'] = pulse_lib_obj
         return cls(**data)
 
     def __eq__(self, other):
         if isinstance(other, QasmQobjConfig):
             if self.to_dict() == other.to_dict():
-                return True
-        return False
-
-
-class QobjDictField(SimpleNamespace):
-    """A class used to represent a dictionary field in Qobj
-
-    Exists as a backwards compatibility shim around a dictionary for Qobjs
-    previously constructed using marshmallow.
-    """
-
-    def __init__(self, **kwargs):
-        """Instantiate a new Qobj dict field object.
-
-        Args:
-            kwargs: arbitrary keyword arguments that can be accessed as
-                attributes of the object.
-        """
-        self.__dict__.update(kwargs)
-
-    def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj.
-
-        Returns:
-            dict: The dictionary form of the QobjHeader.
-
-        """
-        return self.__dict__
-
-    @classmethod
-    def from_dict(cls, data):
-        """Create a new QobjHeader object from a dictionary.
-
-        Args:
-            data (dict): A dictionary representing the QobjHeader to create. It
-                will be in the same format as output by :func:`to_dict`.
-
-        Returns:
-            QobjDictFieldr: The QobjDictField from the input dictionary.
-        """
-
-        return cls(**data)
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            if self.__dict__ == other.__dict__:
                 return True
         return False
 
@@ -376,7 +328,7 @@ class QasmQobjExperimentConfig(QobjDictField):
     def __init__(self, calibrations=None, **kwargs):
         """
         Args:
-            calibrations (QasmQobjExperimentCalibrations): Information required for
+            calibrations (QasmExperimentCalibrations): Information required for
                                                            Pulse gates.
             kwargs: Additional free form key value fields to add to the
                 configuration.
@@ -385,8 +337,20 @@ class QasmQobjExperimentConfig(QobjDictField):
             self.calibrations = calibrations
         super().__init__(**kwargs)
 
+    def to_dict(self):
+        out_dict = copy.copy(self.__dict__)
+        out_dict['calibrations'] = self.calibrations.to_dict()
+        return out_dict
 
-class QasmQobjExperimentCalibrations:
+    @classmethod
+    def from_dict(cls, data):
+        if 'calibrations' in data:
+            calibrations = data.pop('calibrations')
+            data['calibrations'] = QasmExperimentCalibrations.from_dict(calibrations)
+        return cls(**data)
+
+
+class QasmExperimentCalibrations:
     """A container for any calibrations data. The gates attribute contains a list of
     GateCalibrations.
     """
@@ -407,20 +371,23 @@ class QasmQobjExperimentCalibrations:
             dict: The dictionary form of the GateCalibration.
 
         """
-        return self.__dict__
+        out_dict = copy.copy(self.__dict__)
+        out_dict['gates'] = [x.to_dict() for x in self.gates]
+        return out_dict
 
     @classmethod
     def from_dict(cls, data):
         """Create a new GateCalibration object from a dictionary.
 
         Args:
-            data (dict): A dictionary representing the QasmQobjExperimentCalibrations to
+            data (dict): A dictionary representing the QasmExperimentCalibrations to
                          create. It will be in the same format as output by :func:`to_dict`.
 
         Returns:
-            QasmQobjExperimentCalibrations: The QasmQobjExperimentCalibrations from the
-                                            input dictionary.
+            QasmExperimentCalibrations: The QasmExperimentCalibrations from the input dictionary.
         """
+        gates = data.pop('gates')
+        data['gates'] = [GateCalibration.from_dict(x) for x in gates]
         return cls(**data)
 
 
@@ -443,7 +410,7 @@ class GateCalibration:
         self.name = name
         self.qubits = qubits
         self.params = params
-        self.intructions = instructions
+        self.instructions = instructions
 
     def to_dict(self):
         """Return a dictionary format representation of the Gate Calibration.
@@ -452,7 +419,9 @@ class GateCalibration:
             dict: The dictionary form of the GateCalibration.
 
         """
-        return self.__dict__
+        out_dict = copy.copy(self.__dict__)
+        out_dict['instructions'] = [x.to_dict() for x in self.instructions]
+        return out_dict
 
     @classmethod
     def from_dict(cls, data):
@@ -465,17 +434,9 @@ class GateCalibration:
         Returns:
             GateCalibration: The GateCalibration from the input dictionary.
         """
+        instructions = data.pop('instructions')
+        data['instructions'] = [PulseQobjInstruction.from_dict(x) for x in instructions]
         return cls(**data)
-
-
-class QobjHeader(QobjDictField):
-    """A class used to represent a dictionary header in Qobj objects."""
-    pass
-
-
-class QobjExperimentHeader(QobjHeader):
-    """A class representing a header dictionary for a Qobj Experiment."""
-    pass
 
 
 class QasmQobj:
