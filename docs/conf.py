@@ -32,11 +32,9 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 from distutils import dir_util
-import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import warnings
 
@@ -48,6 +46,10 @@ author = 'Qiskit Development Team'
 version = ''
 # The full version, including alpha/beta/rc tags
 release = '0.20.0'
+
+rst_prolog = """
+.. |version| replace:: {0}
+""".format(release)
 
 # -- General configuration ---------------------------------------------------
 # If your documentation needs a minimal Sphinx version, state it here.

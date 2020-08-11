@@ -1,6 +1,6 @@
-####################
-Qiskit documentation
-####################
+##############################
+Qiskit |version| documentation
+##############################
 
 Qiskit is an open-source framework for working with quantum computers
 at the level of circuits, pulses, and algorithms.
