@@ -520,7 +520,7 @@ class QasmQobj:
             'qobj_id': self.qobj_id,
             'header': self.header.to_dict(),
             'config': self.config.to_dict(),
-            'schema_version': '1.2.0',
+            'schema_version': self.schema_version,
             'type': 'QASM',
             'experiments': [x.to_dict() for x in self.experiments]
         }
