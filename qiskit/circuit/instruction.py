@@ -246,9 +246,9 @@ class Instruction:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + '_reverse')
-        reverse_inst.definition.data = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.data.append((inst.reverse_ops(), qargs, cargs))
+        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return reverse_inst
 
     def inverse(self):
@@ -270,9 +270,9 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition.data = []
-        for inst, qargs, cargs in reversed(self._definition.data):
-            inverse_gate._definition.data.append((inst.inverse(), qargs, cargs))
+        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -385,6 +385,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            qc._data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction

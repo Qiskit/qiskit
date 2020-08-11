@@ -23,6 +23,7 @@ from qiskit.pulse import builder, exceptions, macros, transforms
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock.utils import ConfigurableFakeBackend as ConfigurableBackend
 from qiskit.pulse import library, instructions
 
 # pylint: disable=invalid-name
@@ -339,7 +340,7 @@ class TestInstructions(TestBuilder):
     def test_play_sample_pulse(self):
         """Test play instruction with sample pulse."""
         d0 = pulse.DriveChannel(0)
-        test_pulse = library.SamplePulse([0.0, 0.0])
+        test_pulse = library.Waveform([0.0, 0.0])
 
         with pulse.build() as schedule:
             pulse.play(test_pulse, d0)
@@ -358,7 +359,7 @@ class TestInstructions(TestBuilder):
             pulse.play(test_array, d0)
 
         reference = pulse.Schedule()
-        test_pulse = pulse.SamplePulse(test_array)
+        test_pulse = pulse.Waveform(test_array)
         reference += instructions.Play(test_pulse, d0)
 
         self.assertEqual(schedule, reference)
@@ -684,6 +685,20 @@ class TestMacros(TestBuilder):
 
         self.assertEqual(schedule, reference)
 
+    def test_measure_multi_qubits(self):
+        """Test utility function - measure with multi qubits."""
+        with pulse.build(self.backend) as schedule:
+            regs = pulse.measure([0, 1])
+
+        self.assertListEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
+
+        reference = macros.measure(
+            qubits=[0, 1],
+            inst_map=self.inst_map,
+            meas_map=self.configuration.meas_map)
+
+        self.assertEqual(schedule, reference)
+
     def test_measure_all(self):
         """Test utility function - measure."""
         with pulse.build(self.backend) as schedule:
@@ -691,6 +706,15 @@ class TestMacros(TestBuilder):
 
         self.assertEqual(regs, [pulse.MemorySlot(0), pulse.MemorySlot(1)])
         reference = macros.measure_all(self.backend)
+
+        self.assertEqual(schedule, reference)
+
+        backend_100q = ConfigurableBackend('100q', 100)
+        with pulse.build(backend_100q) as schedule:
+            regs = pulse.measure_all()
+
+        reference = backend_100q.defaults().instruction_schedule_map.\
+            get('measure', list(range(100)))
 
         self.assertEqual(schedule, reference)
 

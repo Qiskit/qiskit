@@ -90,7 +90,7 @@ class ControlledGate(Gate):
         self.base_gate = None
         if definition:
             self.definition = definition
-            if len(definition.data) == 1:
+            if len(definition) == 1:
                 base_gate = definition.data[0][0]
                 if isinstance(base_gate, ControlledGate):
                     self.base_gate = base_gate.base_gate
@@ -207,4 +207,5 @@ class ControlledGate(Gate):
 
     def inverse(self) -> 'ControlledGate':
         """Invert this gate by calling inverse on the base gate."""
-        return self.base_gate.inverse().control(self.num_ctrl_qubits)
+        return self.base_gate.inverse().control(self.num_ctrl_qubits,
+                                                ctrl_state=self.ctrl_state)

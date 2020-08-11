@@ -17,7 +17,6 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
-import warnings
 from typing import Union, Tuple, Optional
 
 import numpy as np
@@ -43,80 +42,41 @@ def zero(times: np.ndarray) -> np.ndarray:
     return constant(times, 0)
 
 
-def square(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
-           phase: float = 0) -> np.ndarray:
+def square(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
     """Continuous square wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency. units of 1/dt.
-        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
-    Raises:
-        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    if (freq is None) and (period is None):
-        raise ValueError('Both `freq` and `period` cannot be None')
-    if (freq is not None) and (period is not None):
-        raise ValueError('Both `freq` and `period` cannot be given')
-    if freq is None:
-        freq = 1./period
-        warnings.warn("The argument `period` is being deprecated."
-                      " Use `freq` for frequency instead",
-                      DeprecationWarning)
     x = times*freq+phase/np.pi
     return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1).astype(np.complex_)
 
 
-def sawtooth(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
-             phase: float = 0) -> np.ndarray:
+def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
     """Continuous sawtooth wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency. units of 1/dt.
-        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
-    Raises:
-        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    if (freq is None) and (period is None):
-        raise ValueError('Both `freq` and `period` cannot be None')
-    if (freq is not None) and (period is not None):
-        raise ValueError('Both `freq` and `period` cannot be given')
-    if freq is None:
-        freq = 1./period
-        warnings.warn("The argument `period` is being deprecated."
-                      " Use `freq` for frequency instead",
-                      DeprecationWarning)
     x = times*freq+phase/np.pi
     return amp*2*(x-np.floor(1/2+x)).astype(np.complex_)
 
 
-def triangle(times: np.ndarray, amp: complex, freq: float = None, period: float = None,
-             phase: float = 0) -> np.ndarray:
+def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
     """Continuous triangle wave.
 
     Args:
         times: Times to output wave for.
         amp: Pulse amplitude. Wave range is [-amp, amp].
         freq: Pulse frequency. units of 1/dt.
-        period: Pulse period. units of dt. (Deprecated, use freq instead)
         phase: Pulse phase.
-    Raises:
-        ValueError: If both `freq` and `period` are given, or if both are None
     """
-    if (freq is None) and (period is None):
-        raise ValueError('Both `freq` and `period` cannot be None')
-    if (freq is not None) and (period is not None):
-        raise ValueError('Both `freq` and `period` cannot be given')
-    if freq is None:
-        freq = 1./period
-        warnings.warn("The argument `period` is being deprecated."
-                      " Use `freq` for frequency instead",
-                      DeprecationWarning)
     return amp*(-2*np.abs(
         sawtooth(times, 1, freq, phase=(phase-np.pi/2)/2)) + 1).astype(np.complex_)
 
@@ -150,7 +110,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
                         ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
-    This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
 
     amp: Pulse amplitude at `center`.
     center: Center (mean) of pulse.
@@ -158,12 +118,12 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     zeroed_width: Subtract baseline from gaussian pulses to make sure
         $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
         large discontinuities at the start of a gaussian pulse. If unsupplied,
-        defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+        defaults to $2*(center + 1)$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*(center + 1))=0$.
     rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*center
+        zeroed_width = 2*(center + 1)
 
     zero_offset = gaussian(np.array([zeroed_width/2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
@@ -214,8 +174,9 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 
 def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
-                   ret_gaussian: bool = False) -> np.ndarray:
-    """Continuous unnormalized gaussian derivative pulse.
+                   ret_gaussian: bool = False, zeroed_width: Optional[float] = None,
+                   rescale_amp: bool = False) -> np.ndarray:
+    r"""Continuous unnormalized gaussian derivative pulse.
 
     Args:
         times: Times to output pulse for.
@@ -223,8 +184,14 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
         ret_gaussian: Return gaussian with which derivative was taken with.
+        zeroed_width: Subtract baseline of pulse to make sure
+            $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
+            large discontinuities at the start of a pulse.
+        rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
+            be rescaled so that $\Omega_g(center)=amp$.
     """
-    gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, ret_x=True)
+    gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, zeroed_width=zeroed_width,
+                        rescale_amp=rescale_amp, ret_x=True)
     gauss_deriv = -x / sigma * gauss
     if ret_gaussian:
         return gauss_deriv, gauss
@@ -236,7 +203,7 @@ def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
                     ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied sech pulse is zeroed at a specific width.
 
-    This is achieved by subtracting $\Omega_g(center \pm zeroed_width)$ from all samples.
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
 
     amp: Pulse amplitude at `center`.
     center: Center (mean) of pulse.
@@ -244,12 +211,12 @@ def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
     zeroed_width: Subtract baseline from sech pulses to make sure
         $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
         large discontinuities at the start of a sech pulse. If unsupplied,
-        defaults to $2*center$ such that $\Omega_g(0)=0$ and $\Omega_g(2*center)=0$.
+        defaults to $2*(center + 1)$ such that $\Omega_g(-1)=0$ and $\Omega_g(2*(center + 1))=0$.
     rescale_amp: If True the pulse will be rescaled so that $\Omega_g(center)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2*center
+        zeroed_width = 2*(center + 1)
 
     zero_offset = sech(np.array([zeroed_width/2]), amp, 0, sigma)
     sech_samples -= zero_offset
@@ -367,20 +334,15 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
             excited states and $\Delta_2$ is the detuning between the respective excited states.
-        zeroed_width: Subtract baseline of gaussian pulse to make sure
+        zeroed_width: Subtract baseline of drag pulse to make sure
             $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
-            large discontinuities at the start of a gaussian pulse.
+            large discontinuities at the start of a drag pulse.
         rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
             be rescaled so that $\Omega_g(center)=amp$.
 
     """
     gauss_deriv, gauss = gaussian_deriv(times, amp=amp, center=center, sigma=sigma,
-                                        ret_gaussian=True)
-    if zeroed_width is not None:
-        gauss, scale_factor = _fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
-                                                  zeroed_width=zeroed_width,
-                                                  rescale_amp=rescale_amp,
-                                                  ret_scale_factor=True)
-        gauss_deriv *= scale_factor
+                                        ret_gaussian=True, zeroed_width=zeroed_width,
+                                        rescale_amp=rescale_amp)
 
     return gauss + 1j*beta*gauss_deriv
