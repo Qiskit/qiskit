@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Added the method :meth:`~qiskit.pulse.Schedule.replace` to the
+    :class:`qiskit.pulse.Schedule` class which allows a
+    pulse instruction to be replaced with another. For example::
+
+    .. code-block:: python
+
+      from qiskit import pulse
+
+      d0 = pulse.DriveChannel(0)
+
+      sched = pulse.Schedule()
+
+      old = pulse.Play(pulse.Constant(100, 1.0), d0)
+      new = pulse.Play(pulse.Constant(100, 0.1), d0)
+
+      sched += old
+
+      sched = sched.replace(old, new)
+
+      assert sched == pulse.Schedule(new)
