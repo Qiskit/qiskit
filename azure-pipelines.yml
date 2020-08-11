@@ -582,7 +582,7 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            git clone https://github.com/Qiskit/qiskit-tutorials
+            git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
@@ -594,9 +594,9 @@ stages:
         - bash: |
             set -e
             cd qiskit-tutorials
-            rm -rf chemistry/*ipynb
-            rm -rf finance/*ipynb
-            rm -rf optimizations/*ipynb
+            rm -rf tutorials/chemistry/*ipynb
+            rm -rf tutorials/finance/*
+            rm -rf tutorials/optimizations/*
             sphinx-build -b html . _build/html
         - task: ArchiveFiles@2
           inputs:
