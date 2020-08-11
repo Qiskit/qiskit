@@ -143,17 +143,27 @@ def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_va
             job_id = job.job_id()
             break
         except QiskitError as ex:
-            logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id. "
-                           "Terra job error: %s ", ex)
-            if is_ibmq_provider(backend) and 'Error code: 3458' in str(ex):
-                # TODO Use IBMQBackendJobLimitError when new IBM Q provider is released.
-                oldest_running = backend.jobs(limit=1, descending=False,
-                                              status=['QUEUED', 'VALIDATING', 'RUNNING'])
-                if oldest_running:
-                    oldest_running = oldest_running[0]
-                    logger.warning("Job limit reached, waiting for job %s to finish "
-                                   "before submitting the next one.", oldest_running.job_id())
-                    oldest_running.wait_for_final_state(timeout=300)
+            failure_warn = True
+            if is_ibmq_provider(backend):
+                from qiskit.providers.ibmq import IBMQBackendJobLimitError
+                if isinstance(ex, IBMQBackendJobLimitError):
+
+                    oldest_running = backend.jobs(limit=1, descending=False,
+                                                  status=['QUEUED', 'VALIDATING', 'RUNNING'])
+                    if oldest_running:
+                        oldest_running = oldest_running[0]
+                        logger.warning("Job limit reached, waiting for job %s to finish "
+                                       "before submitting the next one.", oldest_running.job_id())
+                        failure_warn = False  # Don't issue a second warning.
+                        try:
+                            oldest_running.wait_for_final_state(timeout=300)
+                        except Exception:  # pylint: disable=broad-except
+                            # If the wait somehow fails or times out, we'll just re-try
+                            # the job submit and see if it works now.
+                            pass
+            if failure_warn:
+                logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id. "
+                               "Terra job error: %s ", ex)
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id."
                            "Error: %s ", ex)
