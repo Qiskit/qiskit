@@ -87,7 +87,7 @@ class StochasticSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('StochasticSwap runs on physical circuits only')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
+        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
@@ -265,7 +265,7 @@ class StochasticSwap(TransformationPass):
         for creg in layer_circuit.cregs.values():
             dagcircuit_output.add_creg(creg)
 
-        order = layout.reorder_bits(dagcircuit_output.qubits())
+        order = layout.reorder_bits(dagcircuit_output.qubits)
         dagcircuit_output.compose(layer_circuit, qubits=order)
 
         return dagcircuit_output

@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
-N, D = np.meshgrid(np.arange(1, 9), np.arange(1, 9))
+N, D = np.meshgrid(np.arange(1, 17), np.arange(1, 17))
 FRAC_MESH = N / D * np.pi
 
 
@@ -72,7 +72,10 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                 elif val == -1:
                     str_out = '-{}'.format(pi)
                 else:
-                    str_out = '{}{}'.format(val, pi)
+                    if output == 'qasm':
+                        str_out = '{}*{}'.format(val, pi)
+                    else:
+                        str_out = '{}{}'.format(val, pi)
                 return str_out
 
         val = np.pi / single_inpt

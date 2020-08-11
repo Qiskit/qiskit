@@ -77,7 +77,7 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
         q = QuantumRegister(self.num_qubits)
         diag_circuit = QuantumCircuit(q)
         diag_circuit.append(gate, q[:])
-        self.definition = diag_circuit.data
+        self.definition = diag_circuit
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex

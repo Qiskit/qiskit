@@ -47,7 +47,8 @@ def _assemble_circuit(circuit):
                                   clbit_labels=clbit_labels,
                                   memory_slots=memory_slots,
                                   creg_sizes=creg_sizes,
-                                  name=circuit.name)
+                                  name=circuit.name,
+                                  global_phase=circuit.global_phase)
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
 

@@ -66,3 +66,12 @@ class TestCircuitToGate(QiskitTestCase):
         gate = circ.to_gate()
         out_gate = gate.inverse()
         self.assertIsInstance(out_gate, Gate)
+
+    def test_to_gate_label(self):
+        """Test label setting."""
+        qr1 = QuantumRegister(2, 'qr1')
+        circ = QuantumCircuit(qr1, name='a circuit name')
+        circ.cx(qr1[1], qr1[0])
+        gate = circ.to_gate(label='a label')
+
+        self.assertEqual(gate.label, 'a label')
