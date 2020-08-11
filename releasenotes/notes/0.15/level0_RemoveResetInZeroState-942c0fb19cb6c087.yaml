@@ -8,7 +8,7 @@ upgrade:
     :func:`~qiskit.compiler.transpile` and :func:`~qiskit.execute.execute`
     functions. However,
     :class:`~qiskit.transpiler.passes.RemoveResetInZeroState` is an
-    optimization pass and should not have been included in optiimzation level
+    optimization pass and should not have been included in optimization level
     0 and was removed. If you need to run :func:`~qiskit.compiler.transpile`
     with :class:`~qiskit.transpiler.passes.RemoveResetInZeroState` either use
     a custom pass manager or ``optimization_level`` 1, 2, or 3.
