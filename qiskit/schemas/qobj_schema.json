@@ -907,7 +907,11 @@
                             "type": "object",
                             "properties": {
                                 "gates": {
-                                    "$ref": "#/definitions/calibration_entry"
+                                    "description": "A list of dicts which contain all the required information to lower a gate to waveforms.",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/calibration_entry"
+                                    }
                                 }
                             }
                         }
