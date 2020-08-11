@@ -8,7 +8,7 @@ prelude: |
     targeting a broader range of device basis sets, e.g. backends
     implementing RZ, RY, RZ, CZ or iSwap gates.
 
-    The :class:`~qiskit.circuits.QuantumCircuit` class now tracks global
+    The :class:`~qiskit.circuit.QuantumCircuit` class now tracks global
     phase. This means controlling a circuit which has global phase now
     correctly adds a relative phase, and gate matrix definitions are now
     exact rather than equal up to a global phase.
