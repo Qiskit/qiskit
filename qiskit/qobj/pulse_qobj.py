@@ -20,6 +20,7 @@
 import copy
 import json
 import pprint
+from typing import Union, List
 
 import numpy
 
@@ -220,6 +221,9 @@ class PulseQobjInstruction:
             discriminators_obj = [
                 QobjMeasurementOption.from_dict(x) for x in discriminators]
             data['discriminators'] = discriminators_obj
+        if 'parameters' in data and 'amp' in data['parameters']:
+            data['parameters']['amp'] = _to_complex(data['parameters']['amp'])
+
         return cls(name, t0, **data)
 
     def __eq__(self, other):
@@ -227,6 +231,23 @@ class PulseQobjInstruction:
             if self.to_dict() == other.to_dict():
                 return True
         return False
+
+
+def _to_complex(value: Union[List[float], complex]) -> complex:
+    """Convert the input value to type ``complex``.
+    Args:
+        value: Value to be converted.
+    Returns:
+        Input value in ``complex``.
+    Raises:
+        TypeError: If the input value is not in the expected format.
+    """
+    if isinstance(value, list) and len(value) == 2:
+        return complex(value[0], value[1])
+    elif isinstance(value, complex):
+        return value
+
+    raise TypeError("{} is not in a valid complex number format.".format(value))
 
 
 class PulseQobjConfig(QobjDictField):
@@ -250,11 +271,13 @@ class PulseQobjConfig(QobjDictField):
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
             rep_time (int): Time per program execution in sec. Must be from the list provided
-                by the backend (``backend.configuration().rep_times``).
+                by the backend (``backend.configuration().rep_times``). Defaults to the first entry
+                in ``backend.configuration().rep_times``.
             rep_delay (float): Delay between programs in sec. Only supported on certain
-                backends (``backend.configuration().dynamic_reprate_enabled``).
-                If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the
-                list provided by the backend (``backend.configuration().rep_delays``).
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+                ``rep_delay`` will be used instead of ``rep_time`` and must be from the range
+                supplied by the backend (``backend.configuration().rep_delay_range``). Default is
+                ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator

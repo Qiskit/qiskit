@@ -142,6 +142,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         _unroll = [UnrollCustomDefinitions(sel, basis_gates),
                    BasisTranslator(sel, basis_gates)]
+    elif translation_method == 'synthesis':
+        _unroll = [
+            Unroll3qOrMore(),
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=basis_gates),
+            UnitarySynthesis(basis_gates),
+        ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
@@ -183,6 +190,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
+    pm3.append(_unroll)
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if coupling_map and not coupling_map.is_symmetric:
         pm3.append(_direction_check)

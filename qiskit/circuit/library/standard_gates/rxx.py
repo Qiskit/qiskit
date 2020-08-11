@@ -77,16 +77,16 @@ class RXXGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        from .u1 import U1Gate
         from .h import HGate
+        from .rz import RZGate
+        theta = self.params[0]
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        theta = self.params[0]
         rules = [
             (HGate(), [q[0]], []),
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(theta), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
             (HGate(), [q[0]], []),
@@ -98,14 +98,14 @@ class RXXGate(Gate):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 
-    # NOTE: we should use the following as the canonical matrix
-    # definition but we don't include it yet since it differs from
-    # the circuit decomposition matrix by a global phase
-    # def to_matrix(self):
-    #   """Return a Numpy.array for the RXX gate."""
-    #    theta = float(self.params[0])
-    #    return np.array([
-    #        [np.cos(theta / 2), 0, 0, -1j * np.sin(theta / 2)],
-    #        [0, np.cos(theta / 2), -1j * np.sin(theta / 2), 0],
-    #        [0, -1j * np.sin(theta / 2), np.cos(theta / 2), 0],
-    #        [-1j * np.sin(theta / 2), 0, 0, np.cos(theta / 2)]], dtype=complex)
+    def to_matrix(self):
+        """Return a Numpy.array for the RXX gate."""
+        import numpy
+        theta2 = float(self.params[0]) / 2
+        cos = numpy.cos(theta2)
+        isin = 1j * numpy.sin(theta2)
+        return numpy.array([
+            [cos, 0, 0, -isin],
+            [0, cos, -isin, 0],
+            [0, -isin, cos, 0],
+            [-isin, 0, 0, cos]], dtype=complex)
