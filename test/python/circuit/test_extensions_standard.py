@@ -1354,7 +1354,7 @@ class TestStandardMethods(QiskitTestCase):
         definition."""
         from qiskit.circuit.library.standard_gates.ms import MSGate
 
-        params = [0.1 * i for i in range(10)]
+        params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
@@ -1385,6 +1385,48 @@ class TestStandardMethods(QiskitTestCase):
                               gate.name)
                 continue
             definition_unitary = execute([circ], simulator).result().get_unitary()
+
+            with self.subTest(gate_class):
+                # TODO check for exact equality once BasicAer can handle global phase
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
+                self.assertTrue(is_unitary_matrix(gate_matrix))
+
+    def test_to_matrix_op(self):
+        """test gates implementing to_matrix generate matrix which matches
+        definition using Operator."""
+        from qiskit.quantum_info import Operator
+        from qiskit.circuit.library.standard_gates.ms import MSGate
+
+        params = [0.1 * i for i in range(10)]
+        gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        for gate_class in gate_class_list:
+            sig = signature(gate_class)
+            if gate_class == MSGate:
+                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
+                # 3 arguments but really its only 2. This if can be removed once the deprecated
+                # n_qubits argument is no longer supported.
+                free_params = 2
+            else:
+                free_params = len(set(sig.parameters) - {'label'})
+            try:
+                gate = gate_class(*params[0:free_params])
+            except (CircuitError, QiskitError, AttributeError):
+                self.log.info(
+                    'Cannot init gate with params only. Skipping %s',
+                    gate_class)
+                continue
+            if gate.name in ['U', 'CX']:
+                continue
+            try:
+                gate_matrix = gate.to_matrix()
+            except CircuitError:
+                # gate doesn't implement to_matrix method: skip
+                self.log.info('to_matrix method FAILED for "%s" gate',
+                              gate.name)
+                continue
+            if not hasattr(gate, 'definition') or not gate.definition:
+                continue
+            definition_unitary = Operator(gate.definition).data
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
             self.assertTrue(is_unitary_matrix(gate_matrix))
 
