@@ -376,14 +376,52 @@ class QasmQobjExperimentConfig(QobjDictField):
     def __init__(self, calibrations=None, **kwargs):
         """
         Args:
-            calibrations (list(GateCalibration)): Information required for
-                                                  Pulse gates.
+            calibrations (QasmQobjExperimentCalibrations): Information required for
+                                                           Pulse gates.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
         if calibrations:
             self.calibrations = calibrations
         super().__init__(**kwargs)
+
+
+class QasmQobjExperimentCalibrations:
+    """A container for any calibrations data. The gates attribute contains a list of
+    GateCalibrations.
+    """
+
+    def __init__(self, gates):
+        """
+        Initialize a container for calibrations.
+
+        Args:
+            gates (list(GateCalibration))
+        """
+        self.gates = gates
+
+    def to_dict(self):
+        """Return a dictionary format representation of the calibrations.
+
+        Returns:
+            dict: The dictionary form of the GateCalibration.
+
+        """
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new GateCalibration object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the QasmQobjExperimentCalibrations to
+                         create. It will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            QasmQobjExperimentCalibrations: The QasmQobjExperimentCalibrations from the
+                                            input dictionary.
+        """
+        return cls(**data)
 
 
 class GateCalibration:
