@@ -26,7 +26,8 @@ class U3Gate(Gate):
     Implemented using two X90 pulses on IBM Quantum systems:
 
     .. math::
-        U2(\phi, \lambda) = RZ(\phi+\pi/2) RX(\frac{\pi}{2}) RZ(\lambda-\pi/2)
+        U3(\theta, \phi, \lambda) =
+            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
 
     **Circuit symbol:**
 
@@ -44,8 +45,8 @@ class U3Gate(Gate):
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & e^{-i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
+                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
+                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
             \end{pmatrix}
 
     **Examples:**
@@ -92,15 +93,11 @@ class U3Gate(Gate):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
         return numpy.array([
-            [
-                numpy.cos(theta / 2),
-                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
-            ],
-            [
-                numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
-            ]
+            [cos, -numpy.exp(1j * lam) * sin],
+            [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos]
         ], dtype=complex)
 
 
@@ -141,7 +138,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
             U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                   & 0 & 0 \\
-                0 & \cos(\th)           & 0 & e^{-i\lambda}\sin(\th) \\
+                0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
                 0 & 0                   & 1 & 0 \\
                 0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)\cos(\th)}
             \end{pmatrix}
@@ -168,7 +165,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                 \begin{pmatrix}
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
-                    0 & 0   & \cos(\th)          & e^{-i\lambda}\sin(\th) \\
+                    0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
                     0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)\cos(\th)}
                 \end{pmatrix}
     """
@@ -190,11 +187,13 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
           u3(theta/2,phi,0) t;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
             (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
@@ -202,9 +201,8 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         r"""Return inverted CU3 gate.
@@ -212,6 +210,27 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
+
+    def to_matrix(self):
+        """Return a numpy.array for the CU3 gate."""
+        theta, phi, lam = self.params
+        theta, phi, lam = float(theta), float(phi), float(lam)
+        cos = numpy.cos(theta / 2)
+        sin = numpy.sin(theta / 2)
+        if self.ctrl_state:
+            return numpy.array(
+                [[1, 0, 0, 0],
+                 [0, cos, 0, -numpy.exp(1j * lam) * sin],
+                 [0, 0, 1, 0],
+                 [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos]],
+                dtype=complex)
+        else:
+            return numpy.array(
+                [[cos, 0, -numpy.exp(1j * lam) * sin, 0],
+                 [0, 1, 0, 0],
+                 [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
+                 [0, 0, 0, 1]],
+                dtype=complex)
 
 
 class Cu3Gate(CU3Gate, metaclass=CU3Meta):

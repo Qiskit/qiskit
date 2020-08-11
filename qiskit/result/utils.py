@@ -16,7 +16,7 @@
 
 from functools import reduce
 from re import match
-from qiskit.validation.base import Obj
+
 from qiskit.exceptions import QiskitError
 
 
@@ -46,7 +46,7 @@ def marginal_counts(result, indices=None):
             new_counts_hex = {}
             for k, v in new_counts.items():
                 new_counts_hex[_bin_to_hex(k)] = v
-            experiment_result.data.counts = Obj(**new_counts_hex)
+            experiment_result.data.counts = new_counts_hex
             experiment_result.header.memory_slots = len(indices)
     else:
         counts = result

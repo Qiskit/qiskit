@@ -17,21 +17,22 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.pulse_lib import (SamplePulse, Constant, ConstantPulse, Gaussian,
-                                    GaussianSquare, Drag, gaussian)
+from qiskit.pulse.library import (Waveform, Constant, ConstantPulse, Gaussian, GaussianSquare, Drag,
+                                  gaussian, gaussian_square, drag as pl_drag)
+
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
 
 
-class TestSamplePulse(QiskitTestCase):
-    """SamplePulse tests."""
+class TestWaveform(QiskitTestCase):
+    """Waveform tests."""
 
     def test_sample_pulse(self):
         """Test pulse initialization."""
         n_samples = 100
         samples = np.linspace(0, 1., n_samples, dtype=np.complex128)
         name = 'test'
-        sample_pulse = SamplePulse(samples, name=name)
+        sample_pulse = Waveform(samples, name=name)
 
         self.assertEqual(sample_pulse.samples.dtype, np.complex128)
         np.testing.assert_almost_equal(sample_pulse.samples, samples)
@@ -44,17 +45,17 @@ class TestSamplePulse(QiskitTestCase):
         n_samples = 100
         samples_f64 = np.linspace(0, 1., n_samples, dtype=np.float64)
 
-        sample_pulse_f64 = SamplePulse(samples_f64)
+        sample_pulse_f64 = Waveform(samples_f64)
         self.assertEqual(sample_pulse_f64.samples.dtype, np.complex128)
 
         samples_c64 = np.linspace(0, 1., n_samples, dtype=np.complex64)
 
-        sample_pulse_c64 = SamplePulse(samples_c64)
+        sample_pulse_c64 = Waveform(samples_c64)
         self.assertEqual(sample_pulse_c64.samples.dtype, np.complex128)
 
         samples_list = np.linspace(0, 1., n_samples).tolist()
 
-        sample_pulse_list = SamplePulse(samples_list)
+        sample_pulse_list = Waveform(samples_list)
         self.assertEqual(sample_pulse_list.samples.dtype, np.complex128)
 
     def test_pulse_limits(self):
@@ -64,13 +65,13 @@ class TestSamplePulse(QiskitTestCase):
         unit_pulse_c128 = np.exp(1j*2*np.pi*np.linspace(0, 1, 1000), dtype=np.complex128)
         # test does not raise error
         try:
-            SamplePulse(unit_pulse_c128)
+            Waveform(unit_pulse_c128)
         except PulseError:
-            self.fail('SamplePulse incorrectly failed on approximately unit norm samples.')
+            self.fail('Waveform incorrectly failed on approximately unit norm samples.')
 
         invalid_const = 1.1
         with self.assertRaises(PulseError):
-            SamplePulse(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
+            Waveform(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
 
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
@@ -84,9 +85,9 @@ class TestSamplePulse(QiskitTestCase):
 
         # test does not raise error
         try:
-            SamplePulse(recombined_pulse)
+            Waveform(recombined_pulse)
         except PulseError:
-            self.fail('SamplePulse incorrectly failed to approximately unit norm samples.')
+            self.fail('Waveform incorrectly failed to approximately unit norm samples.')
 
 
 class TestParametricPulses(QiskitTestCase):
@@ -99,44 +100,23 @@ class TestParametricPulses(QiskitTestCase):
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
-    def test_sampled_pulse(self):
-        """Test that we can convert to a sampled pulse."""
+    def test_gaussian_pulse(self):
+        """Test that Gaussian sample pulse matches the pulse library."""
         gauss = Gaussian(duration=25, sigma=4, amp=0.5j)
-        sample_pulse = gauss.get_sample_pulse()
-        self.assertIsInstance(sample_pulse, SamplePulse)
-        pulse_lib_gaus = gaussian(duration=25, sigma=4,
-                                  amp=0.5j, zero_ends=False).samples
-        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gaus)
+        sample_pulse = gauss.get_waveform()
+        self.assertIsInstance(sample_pulse, Waveform)
+        pulse_lib_gauss = gaussian(duration=25, sigma=4,
+                                   amp=0.5j, zero_ends=True).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss)
 
-    def test_gauss_samples(self):
-        """Test that the gaussian samples match the formula."""
-        duration = 25
-        sigma = 4
-        amp = 0.5j
-        # formulaic
-        times = np.array(range(25), dtype=np.complex_)
-        times = times - (duration / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        # command
-        command = Gaussian(duration=duration, sigma=sigma, amp=amp)
-        samples = command.get_sample_pulse().samples
-        np.testing.assert_almost_equal(samples, gauss)
-
-    def test_gauss_square_samples(self):
-        """Test that the gaussian square samples match the formula."""
-        duration = 125
-        sigma = 4
-        amp = 0.5j
-        # formulaic
-        times = np.array(range(25), dtype=np.complex_)
-        times = times - (25 / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        # command
-        command = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=100)
-        samples = command.get_sample_pulse().samples
-        np.testing.assert_almost_equal(samples[50], amp)
-        np.testing.assert_almost_equal(samples[100], amp)
-        np.testing.assert_almost_equal(samples[:10], gauss[:10])
+    def test_gaussian_square_pulse(self):
+        """Test that GaussianSquare sample pulse matches the pulse library."""
+        gauss_sq = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        sample_pulse = gauss_sq.get_sample_pulse()
+        self.assertIsInstance(sample_pulse, Waveform)
+        pulse_lib_gauss_sq = gaussian_square(duration=125, sigma=4, amp=0.5j, width=100,
+                                             zero_ends=True).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss_sq)
 
     def test_gauss_square_extremes(self):
         """Test that the gaussian square pulse can build a gaussian."""
@@ -145,29 +125,20 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5j
         gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=0)
         gaus = Gaussian(duration=duration, sigma=sigma, amp=amp)
-        np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples,
-                                       gaus.get_sample_pulse().samples)
+        np.testing.assert_almost_equal(gaus_square.get_waveform().samples,
+                                       gaus.get_waveform().samples)
         gaus_square = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=121)
         const = Constant(duration=duration, amp=amp)
-        np.testing.assert_almost_equal(gaus_square.get_sample_pulse().samples[2:-2],
-                                       const.get_sample_pulse().samples[2:-2])
+        np.testing.assert_almost_equal(gaus_square.get_waveform().samples[2:-2],
+                                       const.get_waveform().samples[2:-2])
 
-    def test_drag_samples(self):
-        """Test that the drag samples match the formula."""
-        duration = 25
-        sigma = 4
-        amp = 0.5j
-        beta = 1
-        # formulaic
-        times = np.array(range(25), dtype=np.complex_)
-        times = times - (25 / 2) + 0.5
-        gauss = amp * np.exp(-(times / sigma)**2 / 2)
-        gauss_deriv = -(times / sigma**2) * gauss
-        drag = gauss + 1j * beta * gauss_deriv
-        # command
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = command.get_sample_pulse().samples
-        np.testing.assert_almost_equal(samples, drag)
+    def test_drag_pulse(self):
+        """Test that the Drag sample pulse matches the pulse library."""
+        drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)
+        sample_pulse = drag.get_sample_pulse()
+        self.assertIsInstance(sample_pulse, Waveform)
+        pulse_lib_drag = pl_drag(duration=25, sigma=4, amp=0.5j, beta=1, zero_ends=True).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_drag)
 
     def test_drag_validation(self):
         """Test drag parameter validation, specifically the beta validation."""
@@ -175,21 +146,21 @@ class TestParametricPulses(QiskitTestCase):
         sigma = 4
         amp = 0.5j
         beta = 1
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-        samples = command.get_sample_pulse().samples
+        wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        samples = wf.get_waveform().samples
         self.assertTrue(max(np.abs(samples)) <= 1)
         beta = sigma ** 2
         with self.assertRaises(PulseError):
-            command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+            wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         # If sigma is high enough, side peaks fall out of range and norm restriction is met
         sigma = 100
-        command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+        wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
 
     def test_drag_beta_validation(self):
         """Test drag beta parameter validation."""
         def check_drag(duration, sigma, amp, beta):
-            command = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
-            samples = command.get_sample_pulse().samples
+            wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
+            samples = wf.get_waveform().samples
             self.assertTrue(max(np.abs(samples)) <= 1)
         check_drag(duration=50, sigma=16, amp=1, beta=2)
         check_drag(duration=50, sigma=16, amp=1, beta=4)
@@ -206,8 +177,8 @@ class TestParametricPulses(QiskitTestCase):
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
         const = Constant(duration=150, amp=0.1 + 0.4j)
-        self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
-        self.assertEqual(len(const.get_sample_pulse().samples), 150)
+        self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
+        self.assertEqual(len(const.get_waveform().samples), 150)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`
@@ -251,15 +222,15 @@ class TestParametricPulses(QiskitTestCase):
         """Test deprecated parametric pulses."""
         with self.assertWarns(DeprecationWarning):
             const = ConstantPulse(duration=150, amp=0.1 + 0.4j)
-            self.assertEqual(const.get_sample_pulse().samples[0], 0.1 + 0.4j)
-            self.assertEqual(len(const.get_sample_pulse().samples), 150)
+            self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
+            self.assertEqual(len(const.get_waveform().samples), 150)
 
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
 
 
 class TestFunctionalPulse(QiskitTestCase):
-    """SamplePulse tests."""
+    """Waveform tests."""
 
     def test_gaussian(self):
         """Test gaussian pulse.
@@ -270,16 +241,16 @@ class TestFunctionalPulse(QiskitTestCase):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_command = local_gaussian(duration=10, amp=1, t0=5, sig=1, name='test_pulse')
+        pulse_wf_inst = local_gaussian(duration=10, amp=1, t0=5, sig=1, name='test_pulse')
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
-        self.assertListEqual(list(pulse_command.samples), list(_y))
+        self.assertListEqual(list(pulse_wf_inst.samples), list(_y))
 
         # check name
-        self.assertEqual(pulse_command.name, 'test_pulse')
+        self.assertEqual(pulse_wf_inst.name, 'test_pulse')
 
         # check duration
-        self.assertEqual(pulse_command.duration, 10)
+        self.assertEqual(pulse_wf_inst.duration, 10)
 
     def test_variable_duration(self):
         """Test generation of sample pulse with variable duration.
@@ -293,8 +264,8 @@ class TestFunctionalPulse(QiskitTestCase):
         _durations = np.arange(10, 15, 1)
 
         for _duration in _durations:
-            pulse_command = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
-            self.assertEqual(len(pulse_command.samples), _duration)
+            pulse_wf_inst = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
+            self.assertEqual(len(pulse_wf_inst.samples), _duration)
 
 
 if __name__ == '__main__':

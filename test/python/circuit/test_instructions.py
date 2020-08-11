@@ -23,10 +23,10 @@ from qiskit.circuit import Parameter
 from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.x import CXGate
-from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.t import TGate
+from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.x import CXGate
+from qiskit.circuit.library.standard_gates.s import SGate
+from qiskit.circuit.library.standard_gates.t import TGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 
@@ -158,27 +158,26 @@ class TestInstructions(QiskitTestCase):
         self.assertEqual(circ.data[0][0].name, 'my_inst')
         self.assertEqual(circ.decompose(), circ)
 
-    def test_mirror_gate(self):
-        """test mirroring a composite gate"""
+    def test_reverse_gate(self):
+        """test reversing a composite gate"""
         q = QuantumRegister(4)
-        c = ClassicalRegister(4)
-        circ = QuantumCircuit(q, c, name='circ')
+        circ = QuantumCircuit(q, name='circ')
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
         circ.i(q[1])
         circ.u3(0.1, 0.2, -0.2, q[0])
-        gate = circ.to_instruction()
+        gate = circ.to_gate()
 
-        circ = QuantumCircuit(q, c, name='circ')
+        circ = QuantumCircuit(q, name='circ')
         circ.u3(0.1, 0.2, -0.2, q[0])
         circ.i(q[1])
         circ.crz(0.1, q[0], q[1])
         circ.h(q[0])
-        gate_mirror = circ.to_instruction()
-        self.assertEqual(gate.mirror().definition, gate_mirror.definition)
+        gate_reverse = circ.to_gate()
+        self.assertEqual(gate.reverse_ops().definition, gate_reverse.definition)
 
-    def test_mirror_instruction(self):
-        """test mirroring an instruction with conditionals"""
+    def test_reverse_instruction(self):
+        """test reverseing an instruction with conditionals"""
         q = QuantumRegister(4)
         c = ClassicalRegister(4)
         circ = QuantumCircuit(q, c, name='circ')
@@ -195,15 +194,16 @@ class TestInstructions(QiskitTestCase):
         circ.barrier()
         circ.u3(0.1, 0.2, -0.2, q[0])
         circ.t(q[1])
-        inst_mirror = circ.to_instruction()
-        self.assertEqual(inst.mirror().definition, inst_mirror.definition)
+        inst_reverse = circ.to_instruction()
 
-    def test_mirror_opaque(self):
-        """test opaque gates mirror to themselves"""
+        self.assertEqual(inst.reverse_ops().definition, inst_reverse.definition)
+
+    def test_reverse_opaque(self):
+        """test opaque gates reverse to themselves"""
         opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
-        self.assertEqual(opaque_gate.mirror(), opaque_gate)
+        self.assertEqual(opaque_gate.reverse_ops(), opaque_gate)
         hgate = HGate()
-        self.assertEqual(hgate.mirror(), hgate)
+        self.assertEqual(hgate.reverse_ops(), hgate)
 
     def test_inverse_and_append(self):
         """test appending inverted gates to circuits"""
@@ -331,6 +331,15 @@ class TestInstructions(QiskitTestCase):
         cpy.params[1] = 7
 
         self.assertEqual(inst.params, [0, 1, 2])
+
+    def test_instance_of_instruction(self):
+        """Test correct error message is raised when invalid instruction
+        is passed to append"""
+
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        with self.assertRaises(CircuitError):
+            qc.append(HGate, qr[:], [])
 
 
 if __name__ == '__main__':

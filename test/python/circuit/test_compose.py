@@ -18,7 +18,7 @@
 
 import unittest
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
 
@@ -353,6 +353,60 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(circuit_composed, circuit_expected)
 
+    def test_compose_conditional(self):
+        """Composing on classical bits.
+
+                       ┌───┐                       ┌───┐ ┌─┐
+        lqr_1_0: |0>───┤ H ├───     rqr_0: ────────┤ H ├─┤M├───
+                       ├───┤                ┌───┐  └─┬─┘ └╥┘┌─┐
+        lqr_1_1: |0>───┤ X ├───     rqr_1: ─┤ X ├────┼────╫─┤M├
+                    ┌──┴───┴──┐             └─┬─┘    │    ║ └╥┘
+        lqr_1_2: |0>┤ U1(0.1) ├  +         ┌──┴──┐┌──┴──┐ ║  ║
+                    └─────────┘     rcr_0: ╡     ╞╡     ╞═╩══╬═
+        lqr_2_0: |0>─────■─────            │ = 3 ││ = 3 │    ║
+                       ┌─┴─┐        rcr_1: ╡     ╞╡     ╞════╩═
+        lqr_2_1: |0>───┤ X ├───            └─────┘└─────┘
+                       └───┘
+        lcr_0: 0 ══════════════
+
+        lcr_1: 0 ══════════════
+
+                    ┌───┐
+        lqr_1_0: ───┤ H ├───────────────────────
+                    ├───┤           ┌───┐    ┌─┐
+        lqr_1_1: ───┤ X ├───────────┤ H ├────┤M├
+                 ┌──┴───┴──┐        └─┬─┘    └╥┘
+        lqr_1_2: ┤ U1(0.1) ├──────────┼───────╫─
+                 └─────────┘          │       ║
+        lqr_2_0: ─────■───────────────┼───────╫─
+                    ┌─┴─┐    ┌───┐    │   ┌─┐ ║
+        lqr_2_1: ───┤ X ├────┤ X ├────┼───┤M├─╫─
+                    └───┘    └─┬─┘    │   └╥┘ ║
+                            ┌──┴──┐┌──┴──┐ ║  ║
+        lcr_0: ═════════════╡     ╞╡     ╞═╩══╬═
+                            │ = 3 ││ = 3 │    ║
+        lcr_1: ═════════════╡     ╞╡     ╞════╩═
+                            └─────┘└─────┘
+        """
+        qreg = QuantumRegister(2, 'rqr')
+        creg = ClassicalRegister(2, 'rcr')
+
+        circuit_right = QuantumCircuit(qreg, creg)
+        circuit_right.x(qreg[1]).c_if(creg, 3)
+        circuit_right.h(qreg[0]).c_if(creg, 3)
+        circuit_right.measure(qreg, creg)
+
+        # permuted subset of qubits and clbits
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.x(self.left_qubit4).c_if(*self.condition)
+        circuit_expected.h(self.left_qubit1).c_if(*self.condition)
+        circuit_expected.measure(self.left_qubit4, self.left_clbit0)
+        circuit_expected.measure(self.left_qubit1, self.left_clbit1)
+
+        self.assertEqual(circuit_composed, circuit_expected)
+
     def test_compose_gate(self):
         """Composing with a gate.
 
@@ -396,6 +450,78 @@ class TestCircuitCompose(QiskitTestCase):
         expected.rz(0.1, 1)
 
         self.assertEqual(circ, expected)
+
+    def test_compose_global_phase(self):
+        """Composing with global phase."""
+        circ1 = QuantumCircuit(1, global_phase=1)
+        circ1.rz(0.5, 0)
+        circ2 = QuantumCircuit(1, global_phase=2)
+        circ3 = QuantumCircuit(1, global_phase=3)
+        circ4 = circ1.compose(circ2).compose(circ3)
+        self.assertEqual(circ4.global_phase,
+                         circ1.global_phase + circ2.global_phase + circ3.global_phase)
+
+    def test_compose_front_circuit(self):
+        """Test composing a circuit at the front of a circuit.
+        """
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        other = QuantumCircuit(2)
+        other.cz(1, 0)
+        other.z(1)
+
+        output = qc.compose(other, front=True)
+
+        expected = QuantumCircuit(2)
+        expected.cz(1, 0)
+        expected.z(1)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(output, expected)
+
+    def test_compose_front_gate(self):
+        """Test composing a gate at the front of a circuit.
+        """
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        output = qc.compose(CXGate(), [1, 0], front=True)
+
+        expected = QuantumCircuit(2)
+        expected.cx(1, 0)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(output, expected)
+
+    def test_compose_adds_parameters(self):
+        """Test the composed circuit contains all parameters."""
+        a, b = Parameter('a'), Parameter('b')
+
+        qc_a = QuantumCircuit(1)
+        qc_a.rx(a, 0)
+
+        qc_b = QuantumCircuit(1)
+        qc_b.rx(b, 0)
+
+        with self.subTest('compose with other circuit out-of-place'):
+            qc_1 = qc_a.compose(qc_b)
+            self.assertEqual(qc_1.parameters, {a, b})
+
+        with self.subTest('compose with other instruction out-of-place'):
+            instr_b = qc_b.to_instruction()
+            qc_2 = qc_a.compose(instr_b, [0])
+            self.assertEqual(qc_2.parameters, {a, b})
+
+        with self.subTest('compose with other circuit in-place'):
+            qc_a.compose(qc_b, inplace=True)
+            self.assertEqual(qc_a.parameters, {a, b})
 
 
 if __name__ == '__main__':

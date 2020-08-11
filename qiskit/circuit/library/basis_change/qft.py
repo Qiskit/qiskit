@@ -130,7 +130,7 @@ class QFT(BlueprintCircuit):
             self._invalidate()
 
             if num_qubits:
-                self.qregs = [QuantumRegister(num_qubits)]
+                self.qregs = [QuantumRegister(num_qubits, name='q')]
             else:
                 self.qregs = []
 

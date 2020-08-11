@@ -21,11 +21,11 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
                          QobjMeasurementOption)
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
-from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Gaussian, GaussianSquare, Constant, Drag)
-from qiskit.pulse.instructions import ShiftPhase, SetFrequency, Play
+from qiskit.pulse.instructions import (SetPhase, ShiftPhase, SetFrequency, ShiftFrequency, Play,
+                                       Delay, Acquire, Snapshot)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel, AcquireChannel,
                                    MemorySlot, RegisterSlot)
+from qiskit.pulse.library import Waveform, Gaussian, GaussianSquare, Constant, Drag
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse import LoConfig, Kernel, Discriminator
 
@@ -33,25 +33,10 @@ from qiskit.pulse import LoConfig, Kernel, Discriminator
 class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
 
-    def test_deprecated_drive_instruction(self):
-        """Test converted qobj from PulseInstruction."""
-        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        command = SamplePulse(np.arange(0, 0.01), name='linear')
-        with self.assertWarns(DeprecationWarning):
-            instruction = command(DriveChannel(0))
-
-        valid_qobj = PulseQobjInstruction(
-            name='linear',
-            ch='d0',
-            t0=0
-        )
-
-        self.assertEqual(converter(0, instruction), valid_qobj)
-
     def test_drive_instruction(self):
         """Test converted qobj from Play."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(SamplePulse(np.arange(0, 0.01), name='linear'), DriveChannel(0))
+        instruction = Play(Waveform(np.arange(0, 0.01), name='linear'), DriveChannel(0))
         valid_qobj = PulseQobjInstruction(
             name='linear',
             ch='d0',
@@ -62,20 +47,6 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         instruction = Play(Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j), DriveChannel(0))
-        valid_qobj = PulseQobjInstruction(
-            name='parametric_pulse',
-            pulse_shape='gaussian',
-            ch='d0',
-            t0=0,
-            parameters={'duration': 25, 'sigma': 15, 'amp': -0.5 + 0.2j})
-        self.assertEqual(converter(0, instruction), valid_qobj)
-
-    def test_deprecated_gaussian_pulse_instruction(self):
-        """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
-        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        with self.assertWarns(DeprecationWarning):
-            instruction = Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j)(DriveChannel(0))
-
         valid_qobj = PulseQobjInstruction(
             name='parametric_pulse',
             pulse_shape='gaussian',
@@ -125,28 +96,35 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(converter(30, instruction), valid_qobj)
 
     def test_frame_change(self):
-        """Test converted qobj from FrameChangeInstruction."""
+        """Test converted qobj from ShiftPhase."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        with self.assertWarns(DeprecationWarning):
-            command = FrameChange(phase=0.1)
-        with self.assertWarns(DeprecationWarning):
-            instruction = command(DriveChannel(0))
-
         valid_qobj = PulseQobjInstruction(
             name='fc',
             ch='d0',
             t0=0,
             phase=0.1
         )
-
-        self.assertEqual(converter(0, instruction), valid_qobj)
         instruction = ShiftPhase(0.1, DriveChannel(0))
+        self.assertEqual(converter(0, instruction), valid_qobj)
+
+    def test_set_phase(self):
+        """Test converted qobj from ShiftPhase."""
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
+        instruction = SetPhase(3.14, DriveChannel(0))
+
+        valid_qobj = PulseQobjInstruction(
+            name='setp',
+            ch='d0',
+            t0=0,
+            phase=3.14
+        )
+
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_set_frequency(self):
         """Test converted qobj from SetFrequency."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = SetFrequency(8.0, DriveChannel(0))
+        instruction = SetFrequency(8.0e9, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
             name='setf',
@@ -157,55 +135,16 @@ class TestInstructionToQobjConverter(QiskitTestCase):
 
         self.assertEqual(converter(0, instruction), valid_qobj)
 
-    def test_persistent_value(self):
-        """Test converted qobj from PersistentValueInstruction."""
+    def test_shift_frequency(self):
+        """Test converted qobj from ShiftFrequency."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        with self.assertWarns(DeprecationWarning):
-            command = PersistentValue(value=0.1j)
-        with self.assertWarns(DeprecationWarning):
-            instruction = command(DriveChannel(0))
+        instruction = ShiftFrequency(8.0e9, DriveChannel(0))
 
         valid_qobj = PulseQobjInstruction(
-            name='pv',
+            name='shiftf',
             ch='d0',
             t0=0,
-            val=0.1j
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(converter(0, instruction), valid_qobj)
-
-    def test_deprecated_acquire(self):
-        """Test converted qobj from AcquireInstruction."""
-        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        with self.assertWarns(DeprecationWarning):
-            command = Acquire(duration=10)
-        with self.assertWarns(DeprecationWarning):
-            instruction = command(AcquireChannel(0),
-                                  MemorySlot(0),
-                                  RegisterSlot(0))
-
-        valid_qobj = PulseQobjInstruction(
-            name='acquire',
-            t0=0,
-            duration=10,
-            qubits=[0],
-            memory_slot=[0],
-            register_slot=[0]
-        )
-
-        self.assertEqual(converter(0, instruction), valid_qobj)
-
-        # test without register
-        with self.assertWarns(DeprecationWarning):
-            instruction = command(AcquireChannel(0), MemorySlot(0))
-
-        valid_qobj = PulseQobjInstruction(
-            name='acquire',
-            t0=0,
-            duration=10,
-            qubits=[0],
-            memory_slot=[0]
+            frequency=8.0
         )
 
         self.assertEqual(converter(0, instruction), valid_qobj)
@@ -252,7 +191,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
-        self.linear = SamplePulse(np.arange(0, 0.01), name='linear')
+        self.linear = Waveform(np.arange(0, 0.01), name='linear')
         self.pulse_library = [PulseLibraryItem(name=self.linear.name,
                                                samples=self.linear.samples.tolist())]
 
@@ -264,16 +203,6 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         instruction = Play(self.linear, DriveChannel(0))
         qobj = PulseQobjInstruction(name='linear', ch='d0', t0=10)
         converted_instruction = self.converter(qobj)
-        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
-
-    def test_deprecated_drive_instruction(self):
-        """Test converted qobj from PulseInstruction."""
-        with self.assertWarns(DeprecationWarning):
-            instruction = self.linear(DriveChannel(0))
-
-        qobj = PulseQobjInstruction(name='linear', ch='d0', t0=10)
-        converted_instruction = self.converter(qobj)
-
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_parametric_pulses(self):
@@ -291,7 +220,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_frame_change(self):
-        """Test converted qobj from FrameChangeInstruction."""
+        """Test converted qobj from ShiftPhase."""
         qobj = PulseQobjInstruction(name='fc', ch='m0', t0=0, phase=0.1)
         converted_instruction = self.converter(qobj)
 
@@ -300,9 +229,19 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.duration, 0)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
+    def test_set_phase(self):
+        """Test converted qobj from SetPhase."""
+        qobj = PulseQobjInstruction(name='setp', ch='m0', t0=0, phase=3.14)
+        converted_instruction = self.converter(qobj)
+
+        instruction = SetPhase(3.14, MeasureChannel(0))
+        self.assertEqual(converted_instruction.start_time, 0)
+        self.assertEqual(converted_instruction.duration, 0)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+
     def test_set_frequency(self):
-        """Test converted qobj from FrameChangeInstruction."""
-        instruction = SetFrequency(8.0, DriveChannel(0))
+        """Test converted qobj from SetFrequency."""
+        instruction = SetFrequency(8.0e9, DriveChannel(0))
 
         qobj = PulseQobjInstruction(name='setf', ch='d0', t0=0, frequency=8.0)
         converted_instruction = self.converter(qobj)
@@ -312,19 +251,27 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
         self.assertTrue('frequency' in qobj.to_dict())
 
-    def test_persistent_value(self):
-        """Test converted qobj from PersistentValueInstruction."""
-        with self.assertWarns(DeprecationWarning):
-            cmd = PersistentValue(value=0.1j)
-        with self.assertWarns(DeprecationWarning):
-            instruction = cmd(ControlChannel(1))
+    def test_shift_frequency(self):
+        """Test converted qobj from ShiftFrequency."""
+        instruction = ShiftFrequency(8.0e9, DriveChannel(0))
 
-        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=0, val=0.1j)
-        with self.assertWarns(DeprecationWarning):
-            converted_instruction = self.converter(qobj)
+        qobj = PulseQobjInstruction(name='shiftf', ch='d0', t0=0, frequency=8.0)
+        converted_instruction = self.converter(qobj)
 
         self.assertEqual(converted_instruction.start_time, 0)
         self.assertEqual(converted_instruction.duration, 0)
+        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+        self.assertTrue('frequency' in qobj.to_dict())
+
+    def test_delay(self):
+        """Test converted qobj from Delay."""
+        instruction = Delay(10, DriveChannel(0))
+
+        qobj = PulseQobjInstruction(name='delay', ch='d0', t0=0, duration=10)
+        converted_instruction = self.converter(qobj)
+
+        self.assertTrue('delay' in qobj.to_dict().values())
+        self.assertEqual(converted_instruction.duration, instruction.duration)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_acquire(self):
@@ -364,7 +311,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
 
     def test_parameterized_frame_change(self):
-        """Test converted qobj from FrameChangeInstruction."""
+        """Test converted qobj from ShiftPhase."""
         instruction = ShiftPhase(4., MeasureChannel(0))
         shifted = instruction << 10
 
@@ -378,25 +325,6 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(evaluated_instruction.start_time, shifted.start_time)
         self.assertEqual(evaluated_instruction.duration, shifted.duration)
         self.assertEqual(evaluated_instruction.instructions[0][-1], instruction)
-
-    def test_parameterized_persistent_value(self):
-        """Test converted qobj from PersistentValueInstruction."""
-        with self.assertWarns(DeprecationWarning):
-            cmd = PersistentValue(value=0.5+0.j)
-        with self.assertWarns(DeprecationWarning):
-            instruction = cmd(ControlChannel(1)) << 10
-
-        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P1*cos(np.pi*P2)')
-        converted_instruction = self.converter(qobj)
-
-        self.assertIsInstance(converted_instruction, ParameterizedSchedule)
-
-        with self.assertWarns(DeprecationWarning):
-            evaluated_instruction = converted_instruction.bind_parameters(P1=0.5, P2=0.)
-
-        self.assertEqual(evaluated_instruction.start_time, instruction.start_time)
-        self.assertEqual(evaluated_instruction.duration, instruction.duration)
-        self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
 
 
 class TestLoConverter(QiskitTestCase):

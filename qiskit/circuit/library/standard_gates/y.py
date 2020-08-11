@@ -16,10 +16,10 @@
 
 import numpy
 from qiskit.qasm import pi
+# pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 
 
 class YGate(Gate):
@@ -70,15 +70,16 @@ class YGate(Gate):
         super().__init__('y', 1, [], label=label)
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-Y gate.
@@ -172,6 +173,15 @@ class CYGate(ControlledGate, metaclass=CYMeta):
                 \end{pmatrix}
 
     """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array([[1, 0, 0, 0],
+                            [0, 0, 0, -1j],
+                            [0, 0, 1, 0],
+                            [0, 1j, 0, 0]], dtype=complex)
+    _matrix0 = numpy.array([[0, 0, -1j, 0],
+                            [0, 1, 0, 0],
+                            [1j, 0, 0, 0],
+                            [0, 0, 0, 1]], dtype=complex)
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
@@ -183,18 +193,19 @@ class CYGate(ControlledGate, metaclass=CYMeta):
         """
         gate cy a,b { sdg b; cx a,b; s b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .s import SGate, SdgGate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (SdgGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (SGate(), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverted CY gate (itself)."""
@@ -202,9 +213,10 @@ class CYGate(ControlledGate, metaclass=CYMeta):
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        if self.ctrl_state:
+            return self._matrix1
+        else:
+            return self._matrix0
 
 
 class CyGate(CYGate, metaclass=CYMeta):

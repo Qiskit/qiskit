@@ -73,12 +73,12 @@ class Clifford(BaseOperator):
     **Circuit Conversion**
 
     Clifford operators can be initialized from circuits containing *only* the
-    following Clifford gates: :class:`~qiskit.extensions.IGate`,
-    :class:`~qiskit.extensions.XGate`, :class:`~qiskit.extensions.YGate`,
-    :class:`~qiskit.extensions.ZGate`, :class:`~qiskit.extensions.HGate`,
-    :class:`~qiskit.extensions.SGate`, :class:`~qiskit.extensions.SdgGate`,
-    :class:`~qiskit.extensions.CXGate`, :class:`~qiskit.extensions.CZGate`,
-    :class:`~qiskit.extensions.SwapGate`.
+    following Clifford gates: :class:`~qiskit.circuit.library.IGate`,
+    :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
+    :class:`~qiskit.circuit.library.ZGate`, :class:`~qiskit.circuit.library.HGate`,
+    :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
+    :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
+    :class:`~qiskit.circuit.library.SwapGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -87,10 +87,10 @@ class Clifford(BaseOperator):
     .. note::
 
         A minimally generating set of gates for Clifford circuits is
-        the :class:`~qiskit.extensions.HGate` and
-        :class:`~qiskit.extensions.SGate` gate and *either* the
-        :class:`~qiskit.extensions.CXGate` or
-        :class:`~qiskit.extensions.CZGate` two-qubit gate.
+        the :class:`~qiskit.circuit.library.HGate` and
+        :class:`~qiskit.circuit.library.SGate` gate and *either* the
+        :class:`~qiskit.circuit.library.CXGate` or
+        :class:`~qiskit.circuit.library.CZGate` two-qubit gate.
 
     Clifford operators can also be converted to
     :class:`~qiskit.quantum_info.Operator` objects using the
