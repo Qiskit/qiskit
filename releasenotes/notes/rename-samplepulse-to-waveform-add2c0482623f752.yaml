@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    The ``SamplePulse`` class from :mod:`qiskit.pulse` has been renamed to
-    :py:class:`~qiskit.pulse.library.Waveform`. ``SamplePulse`` is deprecated.

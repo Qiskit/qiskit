@@ -2823,6 +2823,26 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(pqr)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_partial_layout(self):
+        """ With a partial layout.
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        expected = '\n'.join(["            ┌───┐",
+                              "v_0 -> 0 |0>┤ H ├",
+                              "            └───┘",
+                              "       1 |0>─────",
+                              "                 ",
+                              "       2 |0>─────",
+                              "            ┌───┐",
+                              "v_1 -> 3 |0>┤ H ├",
+                              "            └───┘"])
+        qr = QuantumRegister(2, 'v')
+        pqr = QuantumRegister(4, 'physical')
+        circuit = QuantumCircuit(pqr)
+        circuit.h(0)
+        circuit.h(3)
+        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_with_classical_regs(self):
         """ Involving classical registers"""
         expected = '\n'.join(["                    ",
