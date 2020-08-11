@@ -19,7 +19,8 @@ import os
 from contextlib import contextmanager
 from qiskit.test import QiskitTestCase
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
+from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
                                     MCXGate, YGate, HGate, ZGate,
@@ -327,11 +328,21 @@ class TestMatplotlibDrawer(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
         circuit = QuantumCircuit(5)
         circuit.unitary(random_unitary(2 ** 5), circuit.qubits)
-        circuit.draw('mpl')
 
         self.circuit_drawer(circuit, filename='scale_default.png')
         self.circuit_drawer(circuit, filename='scale_half.png', scale=0.5)
         self.circuit_drawer(circuit, filename='scale_double.png', scale=2)
+
+    def test_partial_layout(self):
+        """Tests partial_layout
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        circuit = QuantumCircuit(3)
+        circuit.h(1)
+        transpiled = transpile(circuit, backend=FakeTenerife(),
+                               optimization_level=0, initial_layout=list(range(5)),
+                               seed_transpiler=0)
+
+        self.circuit_drawer(transpiled, filename='partial_layout.png')
 
     def test_init_reset(self):
         """Test reset and initialize with 1 and 2 qubits"""

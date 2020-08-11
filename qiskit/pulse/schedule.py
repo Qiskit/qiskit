@@ -487,7 +487,7 @@ class Schedule(ScheduleComponent):
 
                 try:
                     interval = (interval[0] + time, interval[1] + time)
-                    index = _insertion_index(self._timeslots[channel], interval)
+                    index = _find_insertion_index(self._timeslots[channel], interval)
                     self._timeslots[channel].insert(index, interval)
                 except PulseError:
                     raise PulseError(
@@ -498,6 +498,134 @@ class Schedule(ScheduleComponent):
                                   ch=channel, t0=interval[0], tf=interval[1]))
 
         _check_nonnegative_timeslot(self._timeslots)
+
+    def _remove_timeslots(self, time: int, schedule: ScheduleComponent):
+        """Delete the timeslots if present for the respective schedule component.
+
+        Args:
+            time: The time to remove the timeslots for the ``schedule`` component.
+            schedule: The schedule to insert into self.
+
+        Raises:
+            PulseError: If timeslots overlap or an invalid start time is provided.
+        """
+        if not isinstance(time, int):
+            raise PulseError("Schedule start time must be an integer.")
+
+        for channel in schedule.channels:
+
+            if channel not in self._timeslots:
+                raise PulseError(
+                    'The channel {} is not present in the schedule'.format(channel))
+
+            channel_timeslots = self._timeslots[channel]
+            for interval in schedule._timeslots[channel]:
+                if channel_timeslots:
+                    interval = (interval[0] + time, interval[1] + time)
+                    index = _interval_index(channel_timeslots, interval)
+                    if channel_timeslots[index] == interval:
+                        channel_timeslots.pop(index)
+                        continue
+
+                raise PulseError(
+                    "Cannot find interval ({t0}, {tf}) to remove from "
+                    "channel {ch} in Schedule(name='{name}').".format(
+                        ch=channel, t0=interval[0], tf=interval[1], name=schedule.name))
+
+            if not channel_timeslots:
+                self._timeslots.pop(channel)
+
+    def _replace_timeslots(self,
+                           time: int,
+                           old: ScheduleComponent,
+                           new: ScheduleComponent):
+        """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
+
+        Args:
+            time: The time to remove the timeslots for the ``schedule`` component.
+            old: Instruction to replace.
+            new: Instruction to replace with.
+        """
+        self._remove_timeslots(time, old)
+        self._add_timeslots(time, new)
+
+    def replace(self,
+                old: ScheduleComponent,
+                new: ScheduleComponent,
+                inplace: bool = False,
+                ) -> 'Schedule':
+        """Return a schedule with the ``old`` instruction replaced with a ``new``
+        instruction.
+
+        The replacment matching is based on an instruction equality check.
+
+        .. jupyter-kernel:: python3
+          :id: replace
+
+        .. jupyter-execute::
+
+          from qiskit import pulse
+
+          d0 = pulse.DriveChannel(0)
+
+          sched = pulse.Schedule()
+
+          old = pulse.Play(pulse.Constant(100, 1.0), d0)
+          new = pulse.Play(pulse.Constant(100, 0.1), d0)
+
+          sched += old
+
+          sched = sched.replace(old, new)
+
+          assert sched == pulse.Schedule(new)
+
+        Only matches at the top-level of the schedule tree. If you wish to
+        perform this replacement over all instructions in the schedule tree.
+        Flatten the schedule prior to running::
+
+        .. jupyter-execute::
+
+          sched = pulse.Schedule()
+
+          sched += pulse.Schedule(old)
+
+          sched = sched.flatten()
+
+          sched = sched.replace(old, new)
+
+          assert sched == pulse.Schedule(new)
+
+        Args:
+          old: Instruction to replace.
+          new: Instruction to replace with.
+          inplace: Replace instruction by mutably modifying this ``Schedule``.
+
+        Returns:
+          The modified schedule with ``old`` replaced by ``new``.
+
+        Raises:
+            PulseError: If the ``Schedule`` after replacements will has a timing overlap.
+        """
+        new_children = []
+        for time, child in self._children:
+            if child == old:
+                new_children.append((time, new))
+                if inplace:
+                    self._replace_timeslots(time, old, new)
+            else:
+                new_children.append((time, child))
+
+        if inplace:
+            self.__children = new_children
+            return self
+        else:
+            try:
+                return Schedule(*new_children)
+            except PulseError as err:
+                raise PulseError(
+                    'Replacement of {old} with {new} results in '
+                    'overlapping instructions.'.format(
+                        old=old, new=new)) from err
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
@@ -700,14 +828,60 @@ class ParameterizedSchedule:
         return self.bind_parameters(*args, **kwargs)
 
 
-def _insertion_index(intervals: List[Interval], new_interval: Interval, index: int = 0) -> int:
+def _interval_index(intervals: List[Interval], interval: Interval) -> int:
+    """Find the index of an interval.
+
+    Args:
+        intervals: A sorted list of non-overlapping Intervals.
+        interval: The interval for which the index into intervals will be found.
+
+    Returns:
+        The index of the interval.
+
+    Raises:
+        PulseError: If the interval does not exist.
+    """
+    index = _locate_interval_index(intervals, interval)
+    found_interval = intervals[index]
+    if found_interval != interval:
+        raise PulseError('The interval: {} does not exist in intervals: {}'.format(
+            interval, intervals
+        ))
+    return index
+
+
+def _locate_interval_index(intervals: List[Interval],
+                           interval: Interval,
+                           index: int = 0) -> int:
+    """Using binary search on start times, find an interval.
+
+    Args:
+        intervals: A sorted list of non-overlapping Intervals.
+        interval: The interval for which the index into intervals will be found.
+        index: A running tally of the index, for recursion. The user should not pass a value.
+
+    Returns:
+        The index into intervals that new_interval would be inserted to maintain
+        a sorted list of intervals.
+    """
+    if not intervals or len(intervals) == 1:
+        return index
+
+    mid_idx = len(intervals) // 2
+    mid = intervals[mid_idx]
+    if interval[1] <= mid[0] and (interval != mid):
+        return _locate_interval_index(intervals[:mid_idx], interval, index=index)
+    else:
+        return _locate_interval_index(intervals[mid_idx:], interval, index=index + mid_idx)
+
+
+def _find_insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
     """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
 
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         new_interval: The interval for which the index into intervals will be found.
-        index: A running tally of the index, for recursion. The user should not pass a value.
 
     Returns:
         The index into intervals that new_interval should be inserted to maintain a sorted list
@@ -716,18 +890,12 @@ def _insertion_index(intervals: List[Interval], new_interval: Interval, index: i
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
-    if not intervals:
-        return index
-    if len(intervals) == 1:
-        if _overlaps(intervals[0], new_interval):
+    index = _locate_interval_index(intervals, new_interval)
+    if index < len(intervals):
+        if _overlaps(intervals[index], new_interval):
             raise PulseError("New interval overlaps with existing.")
-        return index if new_interval[1] <= intervals[0][0] else index + 1
-
-    mid_idx = len(intervals) // 2
-    if new_interval[1] <= intervals[mid_idx][0]:
-        return _insertion_index(intervals[:mid_idx], new_interval, index=index)
-    else:
-        return _insertion_index(intervals[mid_idx:], new_interval, index=index + mid_idx)
+        return index if new_interval[1] <= intervals[index][0] else index + 1
+    return index
 
 
 def _overlaps(first: Interval, second: Interval) -> bool:
