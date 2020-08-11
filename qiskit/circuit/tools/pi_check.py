@@ -76,7 +76,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             raise QiskitError('pi_check parameter output should be text, '
                               'latex, mpl, or qasm.')
 
-        negstr = '-' if single_inpt < 0 else ''
+        neg_str = '-' if single_inpt < 0 else ''
 
         # First check is for whole multiples of pi
         val = single_inpt / np.pi
@@ -84,12 +84,12 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             if abs(abs(val) - abs(round(val))) < eps:
                 val = int(abs(round(val)))
                 if abs(val) == 1:
-                    str_out = '{}{}'.format(negstr, pi)
+                    str_out = '{}{}'.format(neg_str, pi)
                 else:
                     if output == 'qasm':
-                        str_out = '{}{}*{}'.format(negstr, val, pi)
+                        str_out = '{}{}*{}'.format(neg_str, val, pi)
                     else:
-                        str_out = '{}{}{}'.format(negstr, val, pi)
+                        str_out = '{}{}{}'.format(neg_str, val, pi)
                 return str_out
 
         # Second is a check for powers of pi
@@ -99,11 +99,11 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                 if output == 'qasm':
                     str_out = '{:.{}g}'.format(single_inpt, ndigits)
                 elif output == 'latex':
-                    str_out = '{}{}^{}'.format(negstr, pi, power[0][0] + 2)
+                    str_out = '{}{}^{}'.format(neg_str, pi, power[0][0] + 2)
                 elif output == 'mpl':
-                    str_out = '{}{}$^{}$'.format(negstr, pi, power[0][0] + 2)
+                    str_out = '{}{}$^{}$'.format(neg_str, pi, power[0][0] + 2)
                 else:
-                    str_out = '{}{}**{}'.format(negstr, pi, power[0][0] + 2)
+                    str_out = '{}{}**{}'.format(neg_str, pi, power[0][0] + 2)
                 return str_out
 
         # Third is a check for a number larger than MAX_FRAC, since no
@@ -118,9 +118,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         if abs(abs(val) - abs(round(val))) < eps:
             val = int(abs(round(val)))
             if output == 'latex':
-                str_out = '\\frac{%s%s}{%s}' % (negstr, pi, val)
+                str_out = '\\frac{%s%s}{%s}' % (neg_str, pi, val)
             else:
-                str_out = '{}{}/{}'.format(negstr, pi, val)
+                str_out = '{}{}/{}'.format(neg_str, pi, val)
             return str_out
 
         # Finally check for fractions where the numer > 1*pi and numer
@@ -131,11 +131,11 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             numer = int(frac[1][0]) + 1
             denom = int(frac[0][0]) + 1
             if output == 'latex':
-                str_out = '\\frac{%s%s%s}{%s}' % (negstr, numer, pi, denom)
+                str_out = '\\frac{%s%s%s}{%s}' % (neg_str, numer, pi, denom)
             elif output == 'qasm':
-                str_out = '{}{}*{}/{}'.format(negstr, numer, pi, denom)
+                str_out = '{}{}*{}/{}'.format(neg_str, numer, pi, denom)
             else:
-                str_out = '{}{}{}/{}'.format(negstr, numer, pi, denom)
+                str_out = '{}{}{}/{}'.format(neg_str, numer, pi, denom)
             return str_out
 
         # Nothing found
@@ -145,12 +145,12 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     complex_inpt = complex(inpt)
     real, imag = map(normalize, [complex_inpt.real, complex_inpt.imag])
 
-    posstr = '+' if complex_inpt.imag >= 0 else ''
+    pos_str = '+' if complex_inpt.imag >= 0 else ''
     if output == 'mpl':
         real = real.replace('-', '$-$')
         imag = imag.replace('-', '$-$')
     if real == '0' and imag != '0':
         return imag + 'j'
     elif real != 0 and imag != '0':
-        return '{}{}{}j'.format(real, posstr, imag)
+        return '{}{}{}j'.format(real, pos_str, imag)
     return real

@@ -17,9 +17,9 @@ import unittest
 
 from test import combine
 from ddt import ddt
+from numpy import pi
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.tools.pi_check import pi_check
-from numpy import pi
 
 
 @ddt
@@ -50,7 +50,7 @@ class TestPiCheck(QiskitTestCase):
                    (6*pi/11, '6pi/11'),
                    (-6*pi/11, '-6pi/11'),
                    (6*pi/1, '6pi'),
-                   (-6*pi/1, '-6pi'), 
+                   (-6*pi/1, '-6pi'),
                    (6*pi/2, '3pi'),
                    (-6*pi/2, '-3pi'),
                    (6*pi/5+1j*3*pi/7, '6pi/5+3pi/7j'),
