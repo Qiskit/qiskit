@@ -77,7 +77,7 @@ class RGate(Gate):
         """Return a numpy.array for the R gate."""
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
-        sin = math.sin(phi / 2)
+        sin = math.sin(theta / 2)
         exp_m = numpy.exp(-1j * phi)
         exp_p = numpy.exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin],
