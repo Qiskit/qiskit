@@ -122,7 +122,7 @@ class TestQASMQobj(QiskitTestCase):
         expected_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.2.0',
+            'schema_version': '1.3.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
