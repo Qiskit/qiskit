@@ -46,7 +46,7 @@ from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
 
-from .gate_utils import _get_free_params
+from qiskit.tests.python.circuit.gate_utils import _get_free_params
 
 
 @ddt

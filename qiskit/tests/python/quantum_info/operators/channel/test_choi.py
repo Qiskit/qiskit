@@ -24,7 +24,7 @@ from numpy.testing import assert_allclose
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.channel import Choi
-from .channel_test_case import ChannelTestCase
+from qiskit.tests.python.quantum_info.operators.channel.channel_test_case import ChannelTestCase
 
 
 class TestChoi(ChannelTestCase):

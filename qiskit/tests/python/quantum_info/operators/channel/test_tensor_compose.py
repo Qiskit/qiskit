@@ -25,7 +25,7 @@ from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.stinespring import Stinespring
 from qiskit.quantum_info.operators.channel.ptm import PTM
 from qiskit.quantum_info.operators.channel.chi import Chi
-from .channel_test_case import ChannelTestCase
+from qiskit.tests.python.quantum_info.operators.channel.channel_test_case import ChannelTestCase
 
 
 class TestEquivalence(ChannelTestCase):

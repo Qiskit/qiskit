@@ -7,8 +7,9 @@ include qiskit/transpiler/passes/routing/cython/stochastic_swap/*.pxd
 recursive-include qiskit/test/mock/backends *.json
 
 # Include the tests files.
-recursive-include qiskit/tests *.py
 include qiskit/tests/python/pickles/*.pickle
 include qiskit/tests/python/qasm/*.qasm
 include qiskit/tests/python/visualization/references/*.png
+include qiskit/tests/python/visualization/references/*.txt
 include qiskit/tests/python/notebooks/*.ipynb
+include qiskit/schemas/examples/*.json

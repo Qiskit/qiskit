@@ -28,7 +28,7 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def setUp(self):
         self.qasm_file_name = 'entangled_registers.qasm'
-        self.qasm_file_path = self._get_resource_path('qasm/' + self.qasm_file_name, Path.EXAMPLES)
+        self.qasm_file_path = self._get_resource_path(self.qasm_file_name, Path.QASMS)
 
     def test_qasm_file(self):
         """

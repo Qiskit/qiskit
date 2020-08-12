@@ -19,7 +19,7 @@
 import numpy as np
 
 from qiskit.quantum_info.operators.channel import SuperOp
-from ..test_operator import OperatorTestCase
+from qiskit.tests.python.quantum_info.operators.test_operator import OperatorTestCase
 
 
 class ChannelTestCase(OperatorTestCase):
