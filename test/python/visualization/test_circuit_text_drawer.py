@@ -902,6 +902,38 @@ class TestTextDrawerLabels(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_rzz_on_wide_layer(self):
+        """ Test a labeled gate (RZZ) in a wide layer.
+        See https://github.com/Qiskit/qiskit-terra/issues/4838"""
+        expected = '\n'.join(["                                               ",
+                              "q_0: |0>───────────────■───────────────────────",
+                              "                       │zz(pi/2)               ",
+                              "q_1: |0>───────────────■───────────────────────",
+                              "        ┌─────────────────────────────────────┐",
+                              "q_2: |0>┤ This is a really long long long box ├",
+                              "        └─────────────────────────────────────┘"])
+        circuit = QuantumCircuit(3)
+        circuit.rzz(pi / 2, 0, 1)
+        circuit.x(2, label='This is a really long long long box')
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_cu1_on_wide_layer(self):
+        """ Test a labeled gate (CU1) in a wide layer.
+        See https://github.com/Qiskit/qiskit-terra/issues/4838"""
+        expected = '\n'.join(["                                               ",
+                              "q_0: |0>─────────────────■─────────────────────",
+                              "                         │pi/2                 ",
+                              "q_1: |0>─────────────────■─────────────────────",
+                              "        ┌─────────────────────────────────────┐",
+                              "q_2: |0>┤ This is a really long long long box ├",
+                              "        └─────────────────────────────────────┘"])
+        circuit = QuantumCircuit(3)
+        circuit.cu1(pi / 2, 0, 1)
+        circuit.x(2, label='This is a really long long long box')
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """ Gates implying multiple qubits."""
@@ -1934,6 +1966,26 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_all_2q_2c_cregbundle(self):
+        """ Test q0-q1-c0-c1 in q0-q1-c0-c1. Ignore cregbundle=True"""
+        expected = '\n'.join(["         ┌───────┐",
+                              "qr_0: |0>┤0      ├",
+                              "         │       │",
+                              "qr_1: |0>┤1      ├",
+                              "         │  name │",
+                              " cr_0: 0 ╡0      ╞",
+                              "         │       │",
+                              " cr_1: 0 ╡1      ╞",
+                              "         └───────┘"])
+
+        qr2 = QuantumRegister(2, 'qr')
+        cr2 = ClassicalRegister(2, 'cr')
+        inst = QuantumCircuit(qr2, cr2, name='name').to_instruction()
+        circuit = QuantumCircuit(qr2, cr2)
+        circuit.append(inst, qr2[:], cr2[:])
+        with self.assertWarns(RuntimeWarning):
+            self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+
     def test_text_4q_2c(self):
         """ Test q1-q2-q3-q4-c1-c2 in q0-q1-q2-q3-q4-q5-c0-c1-c2-c3-c4-c5"""
         expected = '\n'.join(["                 ",
@@ -2771,6 +2823,26 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(pqr)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_partial_layout(self):
+        """ With a partial layout.
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        expected = '\n'.join(["            ┌───┐",
+                              "v_0 -> 0 |0>┤ H ├",
+                              "            └───┘",
+                              "       1 |0>─────",
+                              "                 ",
+                              "       2 |0>─────",
+                              "            ┌───┐",
+                              "v_1 -> 3 |0>┤ H ├",
+                              "            └───┘"])
+        qr = QuantumRegister(2, 'v')
+        pqr = QuantumRegister(4, 'physical')
+        circuit = QuantumCircuit(pqr)
+        circuit.h(0)
+        circuit.h(3)
+        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_with_classical_regs(self):
         """ Involving classical registers"""
         expected = '\n'.join(["                    ",
@@ -2958,6 +3030,51 @@ class TestTextHamiltonianGate(QiskitTestCase):
         theta = Parameter('theta')
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
         circuit = circuit.bind_parameters({theta: 1})
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+
+class TestTextPhase(QiskitTestCase):
+    """Testing the draweing a circuit with phase"""
+
+    def test_bell(self):
+        """Text Bell state with phase."""
+        expected = '\n'.join(["global phase: pi/2",
+                              "     ┌───┐     ",
+                              "q_0: ┤ H ├──■──",
+                              "     └───┘┌─┴─┐",
+                              "q_1: ─────┤ X ├",
+                              "          └───┘"])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 3.141592653589793 / 2
+
+        circuit.h(0)
+        circuit.cx(0, 1)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_empty(self):
+        """Text empty circuit (two registers) with phase."""
+        expected = '\n'.join(["global phase: 3",
+                              "     ",
+                              "q_0: ",
+                              "     ",
+                              "q_1: ",
+                              "     "])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 3
+
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
+    def test_empty_noregs(self):
+        """Text empty circuit (no registers) with phase."""
+        expected = '\n'.join(["global phase: 4.21"])
+
+        circuit = QuantumCircuit()
+        circuit.global_phase = 4.21
+
         self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 

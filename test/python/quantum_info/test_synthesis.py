@@ -15,14 +15,17 @@
 """Tests for quantum synthesis methods."""
 
 import unittest
+from itertools import product
 
 import numpy as np
 import scipy.linalg as la
+
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (HGate, IGate, SdgGate, SGate, U3Gate,
-                                    XGate, YGate, ZGate, CXGate)
+                                    XGate, YGate, ZGate, CXGate, CZGate,
+                                    iSwapGate, RXXGate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
@@ -398,6 +401,43 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
                         a = Ud(aaa, aaa, ccc)
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
+    def test_random_unitary_fp_precision_error(self):
+        """Assert there are no fp precision sign flips."""
+        gate = CXGate()
+        self.check_two_qubit_weyl_decomposition(Operator(gate).data)
+        decomp = TwoQubitWeylDecomposition(Operator(gate).data)
+        expected_k1r = np.array([[-0.5+0.5j, -0.5+0.5j],
+                                 [0.5+0.5j, -0.5-0.5j]])
+        expected_k2l = np.array([[0.0+0.0j, -1.0+0.0j],
+                                 [1.0+0.0j, 0.0+0.0j]])
+        sqrt_2 = 1 / np.sqrt(2)
+        expected_k2r = np.array([[complex(0, sqrt_2), complex(0, sqrt_2)],
+                                 [complex(0, sqrt_2), complex(0, -sqrt_2)]])
+        expected_k1l = np.array([[complex(0, sqrt_2), complex(-sqrt_2, 0)],
+                                 [complex(sqrt_2, 0), complex(0, -sqrt_2)]])
+        np.allclose(decomp.K1r, expected_k1r)
+        np.allclose(decomp.K2r, expected_k2r)
+        np.allclose(decomp.K2l, expected_k2l)
+        np.allclose(decomp.K1l, expected_k1l)
+        # Assert approx 0s are not negative
+        # K2l
+        self.assertGreaterEqual(decomp.K2l[0][0].real, 0)
+        self.assertGreaterEqual(decomp.K2l[0][0].imag, 0)
+        self.assertGreaterEqual(decomp.K2l[0][1].imag, 0)
+        self.assertGreaterEqual(decomp.K2l[1][0].imag, 0)
+        self.assertGreaterEqual(decomp.K2l[1][1].real, 0)
+        self.assertGreaterEqual(decomp.K2l[1][1].imag, 0)
+        # K2r
+        self.assertGreaterEqual(decomp.K2r[0][0].real, 0)
+        self.assertGreaterEqual(decomp.K2r[0][1].real, 0)
+        self.assertGreaterEqual(decomp.K2r[1][0].real, 0)
+        self.assertGreaterEqual(decomp.K2r[1][1].real, 0)
+        # k1l
+        self.assertGreaterEqual(decomp.K2r[0][0].real, 0)
+        self.assertGreaterEqual(decomp.K2r[0][1].imag, 0)
+        self.assertGreaterEqual(decomp.K2r[1][0].imag, 0)
+        self.assertGreaterEqual(decomp.K2r[1][1].real, 0)
+
 
 class TestTwoQubitDecomposeExact(QiskitTestCase):
     """Test TwoQubitBasisDecomposer() for exact decompositions
@@ -568,6 +608,39 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/pull/3652"""
         unitary = random_unitary(4, seed=289)
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
+
+    def test_euler_basis_selection(self):
+        """Verify decomposition uses euler_basis for 1q gates."""
+
+        euler_bases = [
+            ('U3', ['u3']),
+            ('U1X', ['u1', 'rx']),
+            ('RR', ['r']),
+            ('ZYZ', ['rz', 'ry']),
+            ('ZXZ', ['rz', 'rx']),
+            ('XYX', ['rx', 'ry']),
+        ]
+
+        kak_gates = [
+            (CXGate(), 'cx'),
+            (CZGate(), 'cz'),
+            (iSwapGate(), 'iswap'),
+            (RXXGate(np.pi/2), 'rxx'),
+        ]
+
+        for basis in product(euler_bases, kak_gates):
+            (euler_basis, oneq_gates), (kak_gate, kak_gate_name) = basis
+
+            with self.subTest(euler_basis=euler_basis, kak_gate=kak_gate):
+                decomposer = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
+                unitary = random_unitary(4)
+                self.check_exact_decomposition(unitary.data, decomposer)
+
+                decomposition_basis = set(decomposer(unitary).count_ops())
+                requested_basis = set(oneq_gates + [kak_gate_name])
+                self.assertTrue(
+                    decomposition_basis.issubset(requested_basis))
+
 
 # FIXME: need to write tests for the approximate decompositions
 

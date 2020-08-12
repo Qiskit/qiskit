@@ -114,19 +114,31 @@ class TestGateSqrt(QiskitTestCase):
         """Test composite Gate.power(1/2) method.
         """
         circ = QuantumCircuit(1, name='my_gate')
-        circ.rz(0.1, 0)
-        circ.rx(0.2, 0)
+        import numpy as np
+        thetaz = 0.1
+        thetax = 0.2
+        circ.rz(thetaz, 0)
+        circ.rx(thetax, 0)
         gate = circ.to_gate()
 
-        expected = array([[0.99874948+6.25390559e-05j, 0.00374609-4.98542083e-02j],
-                          [-0.00124974-4.99791301e-02j, 0.99750443+4.98542083e-02j]])
-
         result = gate.power(1 / 2)
+
+        iden = Operator.from_label('I')
+        xgen = Operator.from_label('X')
+        zgen = Operator.from_label('Z')
+
+        def rzgate(theta):
+            return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen
+
+        def rxgate(theta):
+            return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * xgen
+
+        rxrz = rxgate(thetax) * rzgate(thetaz)
 
         self.assertEqual(result.label, 'my_gate^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        self.assertEqual(Operator(result), Operator(expected))
+        self.assertEqual(Operator(result) @ Operator(result), rxrz)
 
 
 @ddt

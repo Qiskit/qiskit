@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 def circuit_drawer(circuit,
-                   scale=0.7,
+                   scale=None,
                    filename=None,
                    style=None,
                    output=None,
@@ -65,7 +65,7 @@ def circuit_drawer(circuit,
                    fold=None,
                    ax=None,
                    initial_state=False,
-                   cregbundle=False):
+                   cregbundle=True):
     """Draw a quantum circuit to different formats (set by output parameter):
 
     **text**: ASCII art TextDrawing that can be printed in the console.
@@ -129,10 +129,10 @@ def circuit_drawer(circuit,
             when the ``output`` kwarg is set to use the ``mpl`` backend. It
             will be silently ignored with all other outputs.
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
-            Only used by the ``text``, ``latex`` and ``latex_source`` outputs.
             Default: ``False``.
-        cregbundle (bool): Optional. If set True bundle classical registers. Not used by
-            the ``matplotlib`` output. Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers.
+            Default: ``True``.
+
     Returns:
         :class:`PIL.Image` or :class:`matplotlib.figure` or :class:`str` or
         :class:`TextDrawing`:
@@ -313,7 +313,9 @@ def circuit_drawer(circuit,
                                            idle_wires=idle_wires,
                                            with_layout=with_layout,
                                            fold=fold,
-                                           ax=ax)
+                                           ax=ax,
+                                           initial_state=initial_state,
+                                           cregbundle=cregbundle)
     else:
         raise exceptions.VisualizationError(
             'Invalid output type %s selected. The only valid choices '
@@ -439,8 +441,9 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
         layout = circuit._layout
     else:
         layout = None
+    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
-                                     cregbundle=cregbundle)
+                                     cregbundle=cregbundle, global_phase=global_phase)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
@@ -584,11 +587,13 @@ def _generate_latex_source(circuit, filename=None,
     else:
         layout = None
 
+    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits, layout=layout,
                                  initial_state=initial_state,
-                                 cregbundle=cregbundle)
+                                 cregbundle=cregbundle,
+                                 global_phase=global_phase)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
@@ -603,7 +608,7 @@ def _generate_latex_source(circuit, filename=None,
 
 
 def _matplotlib_circuit_drawer(circuit,
-                               scale=0.7,
+                               scale=None,
                                filename=None,
                                style=None,
                                plot_barriers=True,
@@ -612,7 +617,10 @@ def _matplotlib_circuit_drawer(circuit,
                                idle_wires=True,
                                with_layout=True,
                                fold=None,
-                               ax=None):
+                               ax=None,
+                               initial_state=False,
+                               cregbundle=True):
+
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -636,6 +644,10 @@ def _matplotlib_circuit_drawer(circuit,
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        initial_state (bool): Optional. Adds |0> in the beginning of the line.
+            Default: `False`.
+        cregbundle (bool): Optional. If set True bundle classical registers.
+            Default: ``True``.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -654,8 +666,10 @@ def _matplotlib_circuit_drawer(circuit,
     if fold is None:
         fold = 25
 
+    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits, layout=layout,
-                                       fold=fold, ax=ax)
+                                       fold=fold, ax=ax, initial_state=initial_state,
+                                       cregbundle=cregbundle, global_phase=global_phase)
     return qcd.draw(filename)

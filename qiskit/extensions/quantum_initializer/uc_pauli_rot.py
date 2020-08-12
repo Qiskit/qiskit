@@ -75,7 +75,7 @@ class UCPauliRotGate(Gate):
         q = QuantumRegister(self.num_qubits)
         ucr_circuit = QuantumCircuit(q)
         ucr_circuit.append(gate, q[:])
-        self.definition = ucr_circuit.data
+        self.definition = ucr_circuit
 
     def _dec_ucrot(self):
         """

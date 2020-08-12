@@ -107,14 +107,17 @@ class UnitaryGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
+            qc = QuantumCircuit(q, name=self.name)
             theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
-            self.definition = [(U3Gate(theta, phi, lam), [q[0]], [])]
+            qc._append(U3Gate(theta, phi, lam), [q[0]], [])
+            self.definition = qc
         elif self.num_qubits == 2:
-            self.definition = two_qubit_cnot_decompose(self.to_matrix()).data
+            self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
             q = QuantumRegister(self.num_qubits, "q")
-            self.definition = [(isometry.Isometry(self.to_matrix(), 0, 0),
-                                q[:], [])]
+            qc = QuantumCircuit(q, name=self.name)
+            qc.append(isometry.Isometry(self.to_matrix(), 0, 0), qargs=q[:])
+            self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         r"""Return controlled version of gate
@@ -129,13 +132,26 @@ class UnitaryGate(Gate):
             UnitaryGate: controlled version of gate.
 
         Raises:
-            QiskitError: invalid ctrl_state
+            QiskitError: Invalid ctrl_state.
+            ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=ctrl_state)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
                                   definition=iso.definition, ctrl_state=ctrl_state)
+
+        from qiskit.quantum_info import Operator
+        # hack to correct global phase; should fix to prevent need for correction here
+        pmat = (Operator(iso.inverse()).data @ cmat)
+        diag = numpy.diag(pmat)
+        if not numpy.allclose(diag, diag[0]):
+            raise ExtensionError('controlled unitary generation failed')
+        phase = numpy.angle(diag[0])
+        if phase:
+            qreg = cunitary.definition.qregs[0]
+            cunitary.definition.u3(numpy.pi, phase, phase - numpy.pi, qreg[0])
+            cunitary.definition.u3(numpy.pi, 0, numpy.pi, qreg[0])
         cunitary.base_gate = self.copy()
         cunitary.base_gate.label = self.label
         return cunitary
@@ -166,7 +182,7 @@ class UnitaryGate(Gate):
         current_reg = 0
 
         gates_def = ""
-        for gate in self.definition:
+        for gate in self.definition.data:
 
             # add regs from this gate to the overall set of params
             for reg in gate[1] + gate[2]:

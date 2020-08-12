@@ -107,7 +107,7 @@ class UCGate(Gate):
 
     def _define(self):
         ucg_circuit, _ = self._dec_ucg()
-        self.definition = ucg_circuit.data
+        self.definition = ucg_circuit
 
     def _dec_ucg(self):
         """
