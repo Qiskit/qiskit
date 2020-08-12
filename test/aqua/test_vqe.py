@@ -15,7 +15,6 @@
 """ Test VQE """
 
 import unittest
-import warnings
 from test.aqua import QiskitAquaTestCase
 import numpy as np
 from ddt import ddt, unpack, data
@@ -26,7 +25,6 @@ from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
 from qiskit.aqua.operators import (WeightedPauliOperator, PrimitiveOp, X, Z, I,
                                    AerPauliExpectation, PauliExpectation,
                                    MatrixExpectation, ExpectationBase)
-from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA, SLSQP
 from qiskit.aqua.algorithms import VQE
 
@@ -80,15 +78,6 @@ class TestVQE(QiskitAquaTestCase):
 
         with self.subTest(msg='assert optimizer_time is set'):
             self.assertIsNotNone(result.optimizer_time)
-
-    def test_deprecated_variational_forms(self):
-        """Test running the VQE on a deprecated VariationalForm object."""
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-        wavefunction = RYRZ(2)
-        vqe = VQE(self.h2_op, wavefunction, L_BFGS_B())
-        warnings.filterwarnings('always', category=DeprecationWarning)
-        result = vqe.run(self.statevector_simulator)
-        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
 
     def test_circuit_input(self):
         """Test running the VQE on a plain QuantumCircuit object."""

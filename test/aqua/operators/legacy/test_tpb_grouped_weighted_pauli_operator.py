@@ -16,13 +16,12 @@
 
 import unittest
 import itertools
-import warnings
 from test.aqua import QiskitAquaTestCase
 import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit import BasicAer
+from qiskit.circuit.library import EfficientSU2
 from qiskit.aqua import aqua_globals, QuantumInstance
-from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.operators import (WeightedPauliOperator,
                                    TPBGroupedWeightedPauliOperator)
 from qiskit.aqua.operators.legacy import op_converter
@@ -41,9 +40,7 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
                   for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
         weights = aqua_globals.random.random(len(paulis))
         self.qubit_op = WeightedPauliOperator.from_list(paulis, weights)
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
-        self.var_form = RYRZ(self.qubit_op.num_qubits, 1)
-        warnings.filterwarnings('always', category=DeprecationWarning)
+        self.var_form = EfficientSU2(self.qubit_op.num_qubits, reps=1)
 
         qasm_simulator = BasicAer.get_backend('qasm_simulator')
         self.quantum_instance_qasm = QuantumInstance(qasm_simulator, shots=65536,
@@ -127,7 +124,7 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
 
     def test_evaluate_qasm_mode(self):
         """ evaluate qasm mode test """
-        wave_function = self.var_form.construct_circuit(
+        wave_function = self.var_form.assign_parameters(
             np.array(aqua_globals.random.standard_normal(self.var_form.num_parameters)))
         wave_fn_statevector = \
             self.quantum_instance_statevector.execute(wave_function).get_statevector(wave_function)
