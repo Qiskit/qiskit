@@ -86,10 +86,10 @@ class _Quaternion:
             return self._multiply_with_quaternion(b)
         elif isinstance(b, (list, tuple, np.ndarray)):
             if len(b) != 3:
-                raise Exception("Input vector has invalid length {0}".format(len(b)))
+                raise Exception("Input vector has invalid length {}".format(len(b)))
             return self._multiply_with_vector(b)
         else:
-            raise Exception("Multiplication with unknown type {0}".format(type(b)))
+            raise Exception("Multiplication with unknown type {}".format(type(b)))
 
     def _multiply_with_quaternion(self, q_2):
         """Multiplication of quaternion with quaternion"""
@@ -116,7 +116,7 @@ class _Quaternion:
 
     def __repr__(self):
         theta, v = self.get_axisangle()
-        return "(({0}; {1}, {2}, {3}))".format(theta, v[0], v[1], v[2])
+        return "(({}; {}, {}, {}))".format(theta, v[0], v[1], v[2])
 
     def get_axisangle(self):
         """Returns angle and vector of quaternion"""
@@ -204,7 +204,7 @@ def visualize_transition(circuit,
 
     for gate in circuit._data:
         if gate[0].name not in implemented_gates:
-            raise VisualizationError("Gate {0} is not supported".format(gate[0].name))
+            raise VisualizationError("Gate {} is not supported".format(gate[0].name))
         if gate[0].name in simple_gates:
             list_of_circuit_gates.append(gates[gate[0].name])
         else:

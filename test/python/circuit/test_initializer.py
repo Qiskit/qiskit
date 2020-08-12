@@ -45,7 +45,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_deterministic_state(self):
         """Initialize a computational-basis state |01> on 2 qubits."""
@@ -59,7 +59,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
@@ -73,7 +73,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_ghz_state(self):
         """Initialize a GHZ state on 3 qubits."""
@@ -87,7 +87,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_initialize_register(self):
         """Initialize one register out of two."""
@@ -102,7 +102,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, np.kron([1, 0, 0, 0], desired_vector))
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_initialize_one_by_one(self):
         """Initializing qubits individually into product state same as initializing the pair."""
@@ -123,7 +123,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector_a, statevector_b)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_single_qubit(self):
         """Initialize a single qubit to a weighted superposition state."""
@@ -137,7 +137,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_random_3qubit(self):
         """Initialize to a non-trivial 3-qubit state."""
@@ -159,7 +159,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_random_4qubit(self):
         """Initialize to a non-trivial 4-qubit state."""
@@ -189,7 +189,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_malformed_amplitudes(self):
         """Initializing to a vector with 3 amplitudes fails."""
@@ -278,7 +278,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_combiner(self):
         """Combining two circuits containing initialize."""
@@ -298,7 +298,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(quantum_state, desired_vector_2)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_equivalence(self):
         """Test two similar initialize instructions evaluate to equal."""
