@@ -84,7 +84,7 @@ class CommutativeCancellation(TransformationPass):
                     # it should be dealt with by optimized1qgate pass
                     elif num_qargs == 2 and node.qargs[0] == wire:
                         second_op_name = "{}[{}]".format(str(node.qargs[1].register.name),
-                                                           str(node.qargs[1].index))
+                                                         str(node.qargs[1].index))
                         q2_key = (node.name, wire_name, second_op_name, com_set_idx,
                                   self.property_set['commutation_set'][(node, second_op_name)])
                         cancellation_sets[q2_key].append(node)

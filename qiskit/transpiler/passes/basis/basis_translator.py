@@ -86,7 +86,7 @@ class BasisTranslator(TransformationPass):
 
         target_basis = set(self._target_basis).union(basic_instrs)
         source_basis = {(node.op.name, node.op.num_qubits)
-                           for node in dag.op_nodes()}
+                        for node in dag.op_nodes()}
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -248,7 +248,7 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
             basis_remain = current_basis - {(gate_name, gate_num_qubits)}
             neighbors = [
                 (frozenset(basis_remain | {(inst.name, inst.num_qubits)
-                                              for inst, qargs, cargs in equiv.data}),
+                                           for inst, qargs, cargs in equiv.data}),
                  params,
                  equiv)
                 for params, equiv in equivs]

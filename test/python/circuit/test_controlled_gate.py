@@ -1091,7 +1091,7 @@ class TestControlledStandardGates(QiskitTestCase):
 
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
             with self.subTest(i='{}, ctrl_state={}'.format(gate_class.__name__,
-                                                             ctrl_state)):
+                                                           ctrl_state)):
                 if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue

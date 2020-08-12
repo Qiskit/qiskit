@@ -199,7 +199,7 @@ class EquivalenceLibrary():
                 decomp_basis = frozenset('{}/{}'.format(name, num_qubits)
                                          for name, num_qubits in
                                          {(inst.name, inst.num_qubits)
-                                             for inst, _, __ in decomp.data})
+                                          for inst, _, __ in decomp.data})
 
                 graph.add_node(basis, label=str(set(basis)))
                 graph.add_node(decomp_basis, label=str(set(decomp_basis)))

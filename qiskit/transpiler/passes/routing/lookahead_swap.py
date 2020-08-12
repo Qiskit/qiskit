@@ -165,7 +165,7 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
     # Include symmetric 2q gates (e.g coupling maps with both [0,1] and [1,0])
     # as one available swap.
     possible_swaps = {tuple(sorted(edge))
-                         for edge in coupling_map.get_edges()}
+                      for edge in coupling_map.get_edges()}
 
     def _score_swap(swap):
         """Calculate the relative score for a given SWAP."""
