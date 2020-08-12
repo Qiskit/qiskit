@@ -163,7 +163,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     if real == '0' and imag != '0':
         str_out = imag + 'j'
     elif real != '0' and imag != '0':
-        if complex_inpt.imag < 0:
+        if complex_inpt.imag < 0 and output != 'latex':
             imag = imag.replace('-', '', 1)
             iop_str = '-'
         else:
