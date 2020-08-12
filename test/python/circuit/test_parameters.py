@@ -1215,8 +1215,6 @@ class TestParameterExpressions(QiskitTestCase):
 
         numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
-        # (Operator(bound_circuit).equal(gate.to_matrix()))
-
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
