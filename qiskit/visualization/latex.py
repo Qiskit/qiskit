@@ -28,7 +28,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.tools.latex.array import _vector_to_latex, _matrix_to_latex
+from qiskit.tools.latex.array import _matrix_to_latex
 from .utils import generate_latex_label
 
 
@@ -1082,11 +1082,7 @@ def array_to_latex(array, precision=5, pretext="", display=True, max_size=8):
         raise ValueError("""array_to_latex can only convert numpy arrays containing numerical data,
         or types that can be converted to such arrays""")
 
-    if array.ndim == 1:
-        if not isinstance(max_size, int):
-            max_size = max_size[0]
-        outstr = _vector_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
-    elif array.ndim == 2:
+    if array.ndim <= 2:
         if isinstance(max_size, int):
             max_size = (max_size, max_size)
         outstr = _matrix_to_latex(array, precision=precision, pretext=pretext, max_size=max_size)
