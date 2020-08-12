@@ -24,7 +24,6 @@ from qiskit.circuit import Instruction, ParameterExpression
 
 from ..operator_base import OperatorBase
 from ..list_ops.summed_op import SummedOp
-from ..list_ops.composed_op import ComposedOp
 from ..list_ops.tensored_op import TensoredOp
 from .primitive_op import PrimitiveOp
 
@@ -133,7 +132,7 @@ class CircuitOp(PrimitiveOp):
             else:
                 return CircuitOp(new_qc, coeff=self.coeff * other.coeff)
 
-        return ComposedOp([self, other])
+        return super(CircuitOp, self).compose(other)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         if self.num_qubits > 16 and not massive:

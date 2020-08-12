@@ -156,7 +156,15 @@ class PrimitiveOp(OperatorBase):
         return temp
 
     def compose(self, other: OperatorBase) -> OperatorBase:
-        raise NotImplementedError
+        from ..list_ops.composed_op import ComposedOp
+        if isinstance(other, ComposedOp):
+            comp_with_first = self.compose(other.oplist[0])
+            if not isinstance(comp_with_first, ComposedOp):
+                new_oplist = [comp_with_first] + other.oplist[1:]
+                return ComposedOp(new_oplist, coeff=other.coeff)
+            return ComposedOp([self] + other.oplist, coeff=other.coeff)  # type: ignore
+
+        return ComposedOp([self, other])
 
     def _check_zero_for_composition_and_expand(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:

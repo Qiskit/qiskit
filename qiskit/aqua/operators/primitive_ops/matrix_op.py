@@ -26,7 +26,6 @@ from qiskit.extensions.hamiltonian_gate import HamiltonianGate
 from ..operator_base import OperatorBase
 from ..primitive_ops.circuit_op import CircuitOp
 from ..list_ops.summed_op import SummedOp
-from ..list_ops.composed_op import ComposedOp
 from ..list_ops.tensored_op import TensoredOp
 from .primitive_op import PrimitiveOp
 from ..legacy.matrix_operator import MatrixOperator
@@ -122,7 +121,7 @@ class MatrixOp(PrimitiveOp):
             return MatrixOp(self.primitive.compose(other.primitive, front=True),  # type: ignore
                             coeff=self.coeff * other.coeff)
 
-        return ComposedOp([self, other])
+        return super(MatrixOp, self).compose(other)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         return self.primitive.data * self.coeff  # type: ignore
