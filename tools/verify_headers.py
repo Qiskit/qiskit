@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020
@@ -28,15 +26,13 @@ def discover_files(code_paths):
             for directory in os.walk(path):
                 dir_path = directory[0]
                 for subfile in directory[2]:
-                    if subfile.endswith('.py'):
+                    if subfile.endswith('.py') or subfile.endswith('.pyx'):
                         out_paths.append(os.path.join(dir_path, subfile))
     return out_paths
 
 
 def validate_header(file_path):
-    header = """# -*- coding: utf-8 -*-
-
-# This code is part of Qiskit.
+    header = """# This code is part of Qiskit.
 #
 """
     apache_text = """#
@@ -56,16 +52,16 @@ def validate_header(file_path):
         count += 1
         if count > 5:
             return (file_path, False, "Header not found in first 5 lines")
-        if line == "# -*- coding: utf-8 -*-\n":
+        if line == "# This code is part of Qiskit.\n":
             start = index
             break
-    if ''.join(lines[start:start + 4]) != header:
+    if ''.join(lines[start:start + 2]) != header:
         return (file_path, False,
                 "Header up to copyright line does not match: %s" % header)
-    if not lines[start + 4].startswith("# (C) Copyright IBM"):
+    if not lines[start + 2].startswith("# (C) Copyright IBM 20"):
         return (file_path, False,
                 "Header copyright line not found")
-    if ''.join(lines[start + 5:start + 13]) != apache_text:
+    if ''.join(lines[start + 3:start + 11]) != apache_text:
         return (file_path, False,
                 "Header apache text string doesn't match:\n %s" % apache_text)
     return (file_path, True, None)
