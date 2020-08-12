@@ -339,7 +339,8 @@ class QasmQobjExperimentConfig(QobjDictField):
 
     def to_dict(self):
         out_dict = copy.copy(self.__dict__)
-        out_dict['calibrations'] = self.calibrations.to_dict()
+        if hasattr(self, 'calibrations'):
+            out_dict['calibrations'] = self.calibrations.to_dict()
         return out_dict
 
     @classmethod
