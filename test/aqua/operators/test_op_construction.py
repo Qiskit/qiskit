@@ -27,7 +27,8 @@ from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.circuit.library import CZGate, ZGate
 
 from qiskit.aqua.operators import (
-    X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus, CircuitOp, MatrixOp, ListOp
+    X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus, CircuitOp, MatrixOp, ListOp,
+    ComposedOp
 )
 
 
@@ -343,6 +344,36 @@ class TestOpConstruction(QiskitAquaTestCase):
             self.assertEqual(sum_op.coeff, 1)
             self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [10, 2, 3])
+
+    def test_compose_consistency(self):
+        """Checks if PrimitiveOp @ ComposedOp is consistent with ComposedOp @ PrimitiveOp."""
+
+        # PauliOp
+        op1 = (X ^ Y ^ Z)
+        op2 = (X ^ Y ^ Z)
+        op3 = (X ^ Y ^ Z).to_circuit_op()
+
+        comp1 = op1 @ ComposedOp([op2, op3])
+        comp2 = ComposedOp([op3, op2]) @ op1
+        self.assertListEqual(comp1.oplist, list(reversed(comp2.oplist)))
+
+        # CircitOp
+        op1 = op1.to_circuit_op()
+        op2 = op2.to_circuit_op()
+        op3 = op3.to_matrix_op()
+
+        comp1 = op1 @ ComposedOp([op2, op3])
+        comp2 = ComposedOp([op3, op2]) @ op1
+        self.assertListEqual(comp1.oplist, list(reversed(comp2.oplist)))
+
+        # MatrixOp
+        op1 = op1.to_matrix_op()
+        op2 = op2.to_matrix_op()
+        op3 = op3.to_pauli_op()
+
+        comp1 = op1 @ ComposedOp([op2, op3])
+        comp2 = ComposedOp([op3, op2]) @ op1
+        self.assertListEqual(comp1.oplist, list(reversed(comp2.oplist)))
 
     def test_summed_op_equals(self):
         """Test corner cases of SummedOp's equals function."""
