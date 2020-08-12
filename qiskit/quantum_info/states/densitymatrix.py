@@ -20,6 +20,12 @@ import warnings
 from numbers import Number
 import numpy as np
 
+try:
+    from IPython.display import Math, Markdown, display
+    HAS_IPYTHON = True
+except ImportError:
+    HAS_IPYTHON = False
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -112,6 +118,12 @@ class DensityMatrix(QuantumState):
     def _repr_latex_(self):
         latex_str = _matrix_to_latex(self._data)
         return latex_str
+
+    def _ipython_display_(self):
+        if HAS_IPYTHON:
+            latex_str = _matrix_to_latex(self._data)
+            display(Markdown("DensityMatrix object: dims={}".format(self._dims)))
+            display(Math(latex_str))
 
     @property
     def data(self):

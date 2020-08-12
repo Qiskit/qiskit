@@ -23,13 +23,19 @@ from numbers import Number
 
 import numpy as np
 
+try:
+    from IPython.display import Math, Markdown, display
+    HAS_IPYTHON = True
+except ImportError:
+    HAS_IPYTHON = False
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.tools.latex.array import _vector_to_latex
+from qiskit.tools.latex.array import _matrix_to_latex
 
 
 class Statevector(QuantumState):
@@ -99,8 +105,15 @@ class Statevector(QuantumState):
             pad, self._dims)
 
     def _repr_latex_(self):
-        latex_str = _vector_to_latex(self._data)
+        latex_str = _matrix_to_latex(self._data)
         return latex_str
+
+    def _ipython_display_(self):
+        if HAS_IPYTHON:
+            ket = self._data.reshape(-1, 1)
+            latex_str = _matrix_to_latex(ket)
+            display(Markdown("Statevector object: dims={}".format(self._dims)))
+            display(Math(latex_str))
 
     @property
     def data(self):
