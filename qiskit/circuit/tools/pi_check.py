@@ -24,6 +24,7 @@ from qiskit.exceptions import QiskitError
 MAX_FRAC = 16
 N, D = np.meshgrid(np.arange(1, MAX_FRAC+1), np.arange(1, MAX_FRAC+1))
 FRAC_MESH = N / D * np.pi
+RECIP_MESH = N / D / np.pi
 POW_LIST = np.pi ** np.arange(2, 5)
 
 
@@ -138,6 +139,20 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                 str_out = '{}{}{}/{}'.format(neg_str, numer, pi, denom)
             return str_out
 
+        frac = np.where(np.abs(abs(single_inpt) - RECIP_MESH) < eps)
+        if frac[0].shape[0]:
+            numer = int(frac[1][0]) + 1
+            denom = int(frac[0][0]) + 1
+            if denom == 1:
+                denom = ''
+            if output == 'latex':
+                str_out = '\\frac{%s%s}{%s%s}' % (neg_str, numer, denom, pi)
+            elif output == 'qasm':
+                str_out = '{}{}/{}*{}'.format(neg_str, numer, denom, pi)
+            else:
+                str_out = '{}{}/{}{}'.format(neg_str, numer, denom, pi)
+            return str_out
+
         # Nothing found
         str_out = '{:.{}g}'.format(single_inpt, ndigits)
         return str_out
@@ -145,12 +160,17 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     complex_inpt = complex(inpt)
     real, imag = map(normalize, [complex_inpt.real, complex_inpt.imag])
 
-    pos_str = '+' if complex_inpt.imag >= 0 else ''
-    if output == 'mpl':
-        real = real.replace('-', '$-$')
-        imag = imag.replace('-', '$-$')
     if real == '0' and imag != '0':
-        return imag + 'j'
-    elif real != 0 and imag != '0':
-        return '{}{}{}j'.format(real, pos_str, imag)
-    return real
+        str_out = imag + 'j'
+    elif real != '0' and imag != '0':
+        if complex_inpt.imag < 0:
+            imag = imag.replace('-', '', 1)
+            iop_str = '-'
+        else:
+            iop_str = '+'
+        str_out = '{}{}{}j'.format(real, iop_str, imag)
+    else:
+        str_out = real
+    if output == 'mpl':
+        str_out = str_out.replace('-', '$-$')
+    return str_out
