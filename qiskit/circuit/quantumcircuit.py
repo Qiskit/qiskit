@@ -2279,17 +2279,24 @@ class QuantumCircuit:
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
 
-    def add_calibration(self, gate, qubits, schedule):
-        """Add calibrations information to a calibration dictionary.
+    def add_calibration(self, gate, qubits, schedule, params=None):
+        """Register a low-level, custom pulse definition for the given gate.
 
         Args:
             gate (Union[Gate, str]): Gate information.
-            qubits (Union[int, Tuple[int]]): Qubits
-            schedule (Schedule): Schedule
+            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
+            schedule (Schedule): Schedule information.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
         """
-        calibration = dict()
-        calibration[tuple(gate.params)] = schedule
-        self._calibrations[gate.name][tuple(qubits)] = calibration
+        if isinstance(gate, Gate):
+            self._calibrations[gate.name] = {}
+            self._calibrations[gate.name][tuple(qubits)] = {tuple(gate.params): schedule}
+        elif isinstance(gate, str) and params != None:
+            self._calibrations[gate] = {}
+            self._calibrations[gate][tuple(qubits)] = {tuple(params):schedule}
+        elif isinstance(gate, str) and params == None:
+            raise Exception("Params for the gate {} is not "
+                            "specified".format(gate))
 
 
 def _circuit_from_qasm(qasm):
