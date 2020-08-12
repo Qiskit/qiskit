@@ -115,53 +115,8 @@ def _num_to_latex(num, precision=5):
         return "{} {} {}i".format(realstring, operation, imagstring)
 
 
-def _vector_to_latex(vector, precision=5, pretext="", max_size=16):
-    """Latex representation of a complex numpy array (with dimension 1)
-
-        Args:
-            vector (ndarray): The vector to be converted to Latex, must have dimension 1.
-            precision (int): For numbers not close to integers, the number of decimal places
-            to round to.
-            pretext (str): Latex string to be prepended to the latex, intended for labels.
-            max_size (int): The maximum number of elements present in the output Latex
-                            (including the vertical dots character). If the vector is larger
-                            than this, the centre elements will be replaced with vertical dots.
-                            Must be greater than 3.
-
-        Returns:
-            str: Latex representation of the vector, wrapped in $$
-
-        Raises:
-            ValueError: If max_size < 3
-    """
-    if max_size < 3:
-        raise ValueError("""max_size must be greater than or equal to 3""")
-
-    out_string = "\n$$\n{}\n".format(pretext)
-    out_string += "\\begin{bmatrix}\n"
-
-    def _elements_to_latex(elements):
-        # Returns the latex representation of each numerical element, separated by "\\\\\n"
-        el_string = ""
-        for e in elements:
-            num_string = _num_to_latex(e, precision=precision)
-            el_string += num_string + " \\\\\n "
-        return el_string
-
-    if len(vector) <= max_size:
-        out_string += _elements_to_latex(vector)
-    else:
-        out_string += _elements_to_latex(vector[:max_size//2])
-        out_string += "\\vdots \\\\\n "
-        out_string += _elements_to_latex(vector[-max_size//2+1:])
-    if len(vector) != 0:
-        out_string = out_string[:-4] + "\n"  # remove trailing characters
-    out_string += "\\end{bmatrix}\n$$"
-    return out_string
-
-
 def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
-    """Latex representation of a complex numpy array (with dimension 2)
+    """Latex representation of a complex numpy array (with maximum dimension 2)
 
         Args:
             matrix (ndarray): The matrix to be converted to latex, must have dimension 2.
@@ -207,14 +162,22 @@ def _matrix_to_latex(matrix, precision=5, pretext="", max_size=(8, 8)):
         return row_string
 
     max_width, max_height = max_size
-    if len(matrix) > max_height:
+    if matrix.ndim == 1:
+        out_string += _rows_to_latex([matrix], max_width)
+
+    elif len(matrix) > max_height:
         out_string += _rows_to_latex(matrix[:max_height//2], max_width)
 
-        # number of vertical dots preceding and trailing the diagonal dots:
-        pre_vdots = max_width//2
-        post_vdots = max_width//2 + np.mod(max_width, 2) - 1
+        if max_width >= matrix.shape[1]:
+            out_string += "\\vdots & "*matrix.shape[1]
+        else:
+            # number of vertical dots preceding and trailing the diagonal dots
+            pre_vdots = max_width//2
+            post_vdots = max_width//2 + np.mod(max_width, 2) - 1
+            out_string += "\\vdots & "*pre_vdots
+            out_string += "\\ddots & "
+            out_string += "\\vdots & "*post_vdots
 
-        out_string += "\\vdots & "*pre_vdots + "\\ddots & " + "\\vdots & "*post_vdots
         out_string = out_string[:-2] + "\\\\\n "
         out_string += _rows_to_latex(matrix[-max_height//2+1:], max_width)
 
