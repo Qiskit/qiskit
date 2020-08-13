@@ -108,8 +108,7 @@ class Statevector(QuantumState):
 
     def _ipython_display_(self):
         if HAS_IPYTHON:
-            ket = self._data.reshape(-1, 1)
-            latex_str = _matrix_to_latex(ket)
+            latex_str = _matrix_to_latex(self._data)
             display(Markdown("Statevector object: dims={}".format(self._dims)))
             display(Math(latex_str))
 
