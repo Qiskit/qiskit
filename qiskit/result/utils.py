@@ -14,11 +14,14 @@
 
 from functools import reduce
 from re import match
+from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
+from qiskit.result.result import Result
+from qiskit.result.postprocess import _bin_to_hex
 
 
-def marginal_counts(result, indices=None):
+def marginal_counts(result, indices=None, in_place=False):
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
@@ -26,6 +29,9 @@ def marginal_counts(result, indices=None):
             (a Result object or a dict of counts).
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If None, do not marginalize at all.
+        in_place (boolean or False): Operates on the original result
+            argument if True. This can lead to loss of original
+            Job Result.
 
     Returns:
         Result or dict[str:int]: a dictionary with the observed counts,
@@ -35,8 +41,8 @@ def marginal_counts(result, indices=None):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
-    from qiskit.result.result import Result
-    from qiskit.result.postprocess import _bin_to_hex
+    if not in_place:
+        result = deepcopy(result)
     if isinstance(result, Result):
         for i, experiment_result in enumerate(result.results):
             counts = result.get_counts(i)
