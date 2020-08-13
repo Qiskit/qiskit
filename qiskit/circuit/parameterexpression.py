@@ -244,10 +244,7 @@ class ParameterExpression():
         return str(self._symbol_expr)
 
     def __float__(self):
-        if self.parameters:
-            raise TypeError('ParameterExpression with unbound parameters ({}) '
-                            'cannot be cast to a float.'.format(self.parameters))
-        return float(self._symbol_expr)
+        return float(self.to_native())
 
     def __copy__(self):
         return self
@@ -262,6 +259,10 @@ class ParameterExpression():
                 and srepr(self._symbol_expr) == srepr(other._symbol_expr))
 
     def to_native(self):
+        """Converts the ParameterExpression to a native type (int or float)."""
+        if self.parameters:
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot converted to native.'.format(self.parameters))
         if self._symbol_expr.is_Float or self._symbol_expr.is_Rational:
             return float(self)
         if self._symbol_expr.is_Integer:
