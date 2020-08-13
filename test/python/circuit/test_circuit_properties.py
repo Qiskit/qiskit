@@ -633,14 +633,13 @@ class TestCircuitProperties(QiskitTestCase):
         circ.add_calibration(RYGate(1.57), [1], q1_y90)
 
         self.assertEqual(set(circ.calibrations.keys()), {'rx', 'ry'})
-        self.assertEqual(set(circ.calibrations['rx'].keys()), {(0,)})
-        self.assertEqual(set(circ.calibrations['ry'].keys()), {(1,)})
-        self.assertEqual(set(circ.calibrations['rx'][(0,)].keys()), {(3.14,)})
-        self.assertEqual(set(circ.calibrations['ry'][(1,)].keys()), {(1.57,)})
-        self.assertEqual(circ.calibrations['rx'][(0,)][(3.14,)].instructions,
+        self.assertEqual(set(circ.calibrations['rx'].keys()), {((0,), (3.14,))})
+        self.assertEqual(set(circ.calibrations['ry'].keys()), {((1,), (1.57,))})
+        self.assertEqual(circ.calibrations['rx'][((0,), (3.14,))].instructions,
                          q0_x180.instructions)
-        self.assertEqual(circ.calibrations['ry'][(1,)][(1.57,)].instructions,
+        self.assertEqual(circ.calibrations['ry'][((1,), (1.57,))].instructions,
                          q1_y90.instructions)
+
 
 if __name__ == '__main__':
     unittest.main()
