@@ -65,22 +65,9 @@ from . import (
     CZGate,
 )
 
-from ../generalized_gates/ import GR
-
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
 
-
 # Import existing gate definitions
-
-# GRGate
-
-q = QuantumRegister(num_qubits, 'q')
-theta = Parameter('theta')
-phi = Parameter('phi')
-def_gr = QuantumCircuit(q)
-for i in range(num_qubits):
-    def_gr.append(RGate(theta, phi), q[i])
-_sel.add_equivalence(GRGate(num_qubits, theta, phi), def_gr)
 
 # HGate
 
