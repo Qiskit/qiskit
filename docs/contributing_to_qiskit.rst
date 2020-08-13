@@ -985,7 +985,7 @@ A list of common options depending on platform are:
 +--------+------------+----------------------+---------------------------------------------+
 | Linux  | CMake      | -DCMAKE_CXX_COMPILER | Used to specify a specific C++ compiler;    |
 |        |            |                      | this is often needed if your default g++ is |
-|        |            |                      | too.                                        |
+|        |            |                      | too old.                                    |
 +--------+------------+----------------------+---------------------------------------------+
 | OSX    | setuptools | --plat-name          | Used to specify the platform name in the    |
 |        |            |                      | output Python package.                      |
