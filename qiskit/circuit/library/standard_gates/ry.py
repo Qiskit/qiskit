@@ -185,7 +185,7 @@ class CRYGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CRY gate."""
-        half_theta = self.params[0] / 2
+        half_theta = float(self.params[0]) / 2
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)
         if self.ctrl_state:
