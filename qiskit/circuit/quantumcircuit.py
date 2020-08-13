@@ -192,7 +192,11 @@ class QuantumCircuit:
 
     @property
     def calibrations(self):
-        """Return calibration dictionary."""
+        """Return calibration dictionary.
+
+        The custom pulse definition of a given gate is of the form
+            {'gate_name': {(qubits, params): schedule}}
+        """
         return dict(self._calibrations)
 
     @data.setter
@@ -2282,9 +2286,6 @@ class QuantumCircuit:
     def add_calibration(self, gate, qubits, schedule, params=None):
         """Register a low-level, custom pulse definition for the given gate.
 
-        The custom pulse definition of a given gate is of the form
-            {'gate_name': {(qubits, params): schedule}}
-
         Args:
             gate (Union[Gate, str]): Gate information.
             qubits (Union[int, Tuple[int]]): List of qubits to be measured.
@@ -2296,11 +2297,8 @@ class QuantumCircuit:
         """
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
-        elif isinstance(gate, str) and params is not None:
+        else:
             self._calibrations[gate][(tuple(qubits), tuple(params))] = schedule
-        elif isinstance(gate, str) and params is None:
-            raise Exception("Params for the gate {} is not "
-                            "specified".format(gate))
 
 
 def _circuit_from_qasm(qasm):
