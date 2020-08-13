@@ -37,7 +37,7 @@ class Clifford(BaseOperator):
     from reference [1].
 
     * Rows 0 to *N-1* are the *destabilizer* group generators
-    * Rows *N-1* to *2N-1* are the *stabilizer* group generators.
+    * Rows *N* to *2N-1* are the *stabilizer* group generators.
 
     The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
     can be accessed using the :attr:`table` attribute. The destabilizer or
