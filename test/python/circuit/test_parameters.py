@@ -21,6 +21,7 @@ import numpy
 from ddt import ddt, data
 
 import qiskit
+import qiskit.circuit.library as circlib
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Instruction
@@ -31,6 +32,7 @@ from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
+from qiskit.quantum_info import Operator
 
 
 def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
@@ -1191,6 +1193,27 @@ class TestParameterExpressions(QiskitTestCase):
         """Test calling conjugate on a ParameterExpression."""
         x = Parameter('x')
         self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
+
+    @data(circlib.RGate, circlib.RXGate, circlib.RYGate, circlib.RZGate, circlib.RXXGate,
+          circlib.RYYGate, circlib.RZXGate, circlib.RZZGate, circlib.CRXGate, circlib.CRYGate,
+          circlib.CRZGate)
+    def test_bound_gate_to_matrix(self, gate_class):
+        """Test to_matrix works if previously free parameters are bound.
+
+        The conversion might fail, if trigonometric functions such as cos are called on the
+        parameters and the parameters are still of type ParameterExpression.
+        """
+        num_parameters = 2 if gate_class == circlib.RGate else 1
+        params = list(range(1, 1 + num_parameters))
+        free_params = ParameterVector('th', num_parameters)
+        gate = gate_class(*params)
+        num_qubits = gate.num_qubits
+
+        circuit = QuantumCircuit(num_qubits)
+        circuit.append(gate_class(*free_params), list(range(num_qubits)))
+        bound_circuit = circuit.assign_parameters({free_params: params})
+
+        numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
 
 class TestParameterEquality(QiskitTestCase):
