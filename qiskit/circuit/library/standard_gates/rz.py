@@ -102,7 +102,7 @@ class RZGate(Gate):
     def to_matrix(self):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
-        ilam2 = 0.5j * float(self.params[0])
+        ilam2 = 0.5j * self.params[0]
         return np.array([[np.exp(-ilam2), 0],
                          [0, np.exp(ilam2)]], dtype=complex)
 
@@ -203,7 +203,7 @@ class CRZGate(ControlledGate):
     def to_matrix(self):
         """Return a numpy.array for the CRZ gate."""
         import numpy
-        arg = 1j * float(self.params[0]) / 2
+        arg = 1j * self.params[0] / 2
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, numpy.exp(-arg), 0, 0],

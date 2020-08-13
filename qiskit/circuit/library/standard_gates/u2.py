@@ -83,7 +83,6 @@ class U2Gate(Gate):
         """Return a Numpy.array for the U2 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
-        phi, lam = float(phi), float(lam)
         return numpy.array([
             [
                 isqrt2,

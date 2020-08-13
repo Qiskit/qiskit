@@ -99,7 +99,7 @@ class RXXGate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the RXX gate."""
         import numpy
-        theta2 = float(self.params[0]) / 2
+        theta2 = self.params[0] / 2
         cos = numpy.cos(theta2)
         isin = 1j * numpy.sin(theta2)
         return numpy.array([

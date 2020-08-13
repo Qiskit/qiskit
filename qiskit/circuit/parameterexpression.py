@@ -260,3 +260,10 @@ class ParameterExpression():
         return (isinstance(other, ParameterExpression)
                 and self.parameters == other.parameters
                 and srepr(self._symbol_expr) == srepr(other._symbol_expr))
+
+    def to_native(self):
+        if self._symbol_expr.is_Float or self._symbol_expr.is_Rational:
+            return float(self)
+        if self._symbol_expr.is_Integer:
+            return int(self)
+        return NotImplemented
