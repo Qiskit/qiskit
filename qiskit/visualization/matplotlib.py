@@ -869,6 +869,8 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
+                    	
+                    	
                         self._gate(q_xy[0], wide=_iswide, text=disp,
                                    subtext=str(param))
                     else:
@@ -879,6 +881,7 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
+                    	
                         if self._style.dispcol['cx'] != '#ffffff':
                             add_width = self._style.colored_add_width
                         else:
@@ -930,10 +933,13 @@ class MatplotlibDrawer:
 
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         if param:
+                        	
+
                             self._gate(q_xy[1], wide=_iswide,
                                        text=disp,
                                        fc=color,
-                                       subtext='{}'.format(param))
+                                       
+                                       subtext='({})'.format(param))
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
                                        fc=color)

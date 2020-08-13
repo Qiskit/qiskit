@@ -50,7 +50,7 @@ gate cz a,b { h b; cx a,b; h b; }
 // controlled-Y
 gate cy a,b { sdg b; cx a,b; s b; }
 // swap
-gate swap a,b { cx a,b; cx b,a; cx a,b; }
+gate swap a,b { cx a,b; cx a,b; cx a,b; }
 // controlled-H
 gate ch a,b {
 h b; sdg b;
