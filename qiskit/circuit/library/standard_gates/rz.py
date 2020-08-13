@@ -213,7 +213,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
     def to_matrix(self):
         """Return a numpy.array for the CRZ gate."""
         import numpy
-        arg = 1j * self.params[0] / 2
+        arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, numpy.exp(-arg), 0, 0],
