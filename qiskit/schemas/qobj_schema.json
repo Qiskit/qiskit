@@ -1115,6 +1115,19 @@
                         },
                         "pulse_library": {
                             "$ref": "#/definitions/pulse_library"
+                        },
+                        "calibrations": {
+                            "description": "User-specified pulse-level calibrations for operations utilized across all experiments in this job.",
+                            "type": "object",
+                            "properties": {
+                                "gates": {
+                                    "description": "A list of dicts which contain all the required information to lower a gate to waveforms.",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/calibration_entry"
+                                    }
+                                }
+                            }
                         }
                     },
                     "title": "Qobj-level configuration",

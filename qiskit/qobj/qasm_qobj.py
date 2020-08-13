@@ -20,9 +20,7 @@ from types import SimpleNamespace
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
-from qiskit.qobj.common import QobjDictField
-from qiskit.qobj.common import QobjHeader
-from qiskit.qobj.common import validator
+from qiskit.qobj.common import QobjDictField, QobjHeader, validator
 
 
 class QasmQobjInstruction:
@@ -240,7 +238,7 @@ class QasmQobjConfig(SimpleNamespace):
 
     def __init__(self, shots=None, max_credits=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
-                 n_qubits=None, pulse_library=None, **kwargs):
+                 n_qubits=None, pulse_library=None, calibrations=None, **kwargs):
         """Model for RunConfig.
 
         Args:
@@ -252,6 +250,7 @@ class QasmQobjConfig(SimpleNamespace):
             memory_slots (int): The number of memory slots on the device
             n_qubits (int): The number of qubits on the device
             pulse_library (list): List of :class:`PulseLibraryItem`.
+            calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
@@ -279,6 +278,9 @@ class QasmQobjConfig(SimpleNamespace):
         if pulse_library is not None:
             self.pulse_library = pulse_library
 
+        if calibrations is not None:
+            self.calibrations = calibrations
+
         if kwargs:
             self.__dict__.update(kwargs)
 
@@ -290,8 +292,11 @@ class QasmQobjConfig(SimpleNamespace):
         """
         out_dict = copy.copy(self.__dict__)
         if hasattr(self, 'pulse_library'):
-            out_dict['pulse_library'] = [
-                x.to_dict() for x in self.pulse_library]
+            out_dict['pulse_library'] = [x.to_dict() for x in self.pulse_library]
+
+        if hasattr(self, 'calibrations'):
+            out_dict['calibrations'] = self.calibrations.to_dict()
+
         return out_dict
 
     @classmethod
@@ -308,6 +313,11 @@ class QasmQobjConfig(SimpleNamespace):
             pulse_lib = data.pop('pulse_library')
             pulse_lib_obj = [PulseLibraryItem.from_dict(x) for x in pulse_lib]
             data['pulse_library'] = pulse_lib_obj
+
+        if 'calibrations' in data:
+            calibrations = data.pop('calibrations')
+            data['calibrations'] = QasmExperimentCalibrations.from_dict(calibrations)
+
         return cls(**data)
 
     def __eq__(self, other):
@@ -328,8 +338,7 @@ class QasmQobjExperimentConfig(QobjDictField):
     def __init__(self, calibrations=None, **kwargs):
         """
         Args:
-            calibrations (QasmExperimentCalibrations): Information required for
-                                                           Pulse gates.
+            calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
