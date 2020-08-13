@@ -242,8 +242,8 @@ class TestInitialize(QiskitTestCase):
         qc.measure(qr, cr)
         # statevector simulator does not support reset
         shots = 2000
-        threshold = 0.04 * shots
-        job = execute(qc, BasicAer.get_backend('qasm_simulator'), shots=shots)
+        threshold = 0.005 * shots
+        job = execute(qc, BasicAer.get_backend('qasm_simulator'), shots=shots, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
         target = {'00': shots / 4, '01': shots / 4,
@@ -335,7 +335,7 @@ class TestInitialize(QiskitTestCase):
         circuit.initialize(vector, qr)
 
         b = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      optimization_level=_optimization_level)
+                      optimization_level=_optimization_level, seed_transpiler=42)
 
         number_cnots = b.count_ops()['cx']
         max_cnots = 2 ** (num_qubits + 1) - 2 * num_qubits
@@ -349,7 +349,7 @@ class TestInstructionParam(QiskitTestCase):
     def test_daig_(self):
         """Verify diagonal gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
-        diag = np.array([1+0j, 1+0j])
+        diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
         qc.diagonal(list(diag), [0])
 
@@ -368,7 +368,7 @@ class TestInstructionParam(QiskitTestCase):
         """Verify initialize gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/4151
         qc = QuantumCircuit(1)
-        vec = np.array([0, 0+1j])
+        vec = np.array([0, 0 + 1j])
         qc.initialize(vec, 0)
 
         params = qc.data[0][0].params
