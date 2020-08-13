@@ -28,7 +28,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -72,7 +72,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -95,16 +95,16 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
         - bash: |
@@ -349,8 +349,6 @@ stages:
       pool: {vmImage: 'vs2017-win2016'}
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
           Python36:
             python.version: '3.6'
           Python37:
@@ -423,8 +421,6 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python35:
-            python.version: '3.5'
           Python38:
             python.version: '3.8'
       variables:
@@ -494,8 +490,6 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python35:
-            python.version: '3.5'
           Python38:
             python.version: '3.8'
       variables:
