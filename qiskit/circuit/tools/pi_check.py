@@ -136,7 +136,14 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     real, imag = map(normalize, [complex_inpt.real, complex_inpt.imag])
 
     if real == '0' and imag != '0':
-        return imag + 'j'
-    elif real != 0 and imag != '0':
-        return '{}+{}j'.format(real, imag)
-    return real
+        str_out = imag + 'j'
+    elif real != '0' and imag != '0':
+        if complex_inpt.imag < 0 and output != 'latex':
+            imag = imag.replace('-', '', 1)
+            op_str = '-'
+        else:
+            op_str = '+'
+        str_out = '{}{}{}j'.format(real, op_str, imag)
+    else:
+        str_out = real
+    return str_out
