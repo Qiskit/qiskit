@@ -96,17 +96,7 @@ class RXGate(Gate):
                             [-1j * sin, cos]], dtype=complex)
 
 
-class CRXMeta(type):
-    """A metaclass to ensure that CrxGate and CRXGate are of the same type.
-
-    Can be removed when CrxGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRXGate, CrxGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRXGate(ControlledGate, metaclass=CRXMeta):
+class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
 
     **Circuit symbol:**
@@ -215,15 +205,3 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
                                 [-isin, 0, cos, 0],
                                 [0, 0, 0, 1]],
                                dtype=complex)
-
-
-class CrxGate(CRXGate, metaclass=CRXMeta):
-    """The deprecated CRXGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CrxGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)

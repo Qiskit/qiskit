@@ -96,17 +96,7 @@ class RYGate(Gate):
                             [sin, cos]], dtype=complex)
 
 
-class CRYMeta(type):
-    """A metaclass to ensure that CryGate and CRYGate are of the same type.
-
-    Can be removed when CryGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRYGate, CryGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRYGate(ControlledGate, metaclass=CRYMeta):
+class CRYGate(ControlledGate):
     r"""Controlled-RY gate.
 
     **Circuit symbol:**
@@ -210,15 +200,3 @@ class CRYGate(ControlledGate, metaclass=CRYMeta):
                                 [sin, 0, cos, 0],
                                 [0, 0, 0, 1]],
                                dtype=complex)
-
-
-class CryGate(CRYGate, metaclass=CRYMeta):
-    """The deprecated CRYGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CryGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRYGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
