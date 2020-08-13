@@ -264,7 +264,7 @@ class ParameterExpression():
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot converted to native.'.format(self.parameters))
         if self._symbol_expr.is_Float or self._symbol_expr.is_Rational:
-            return float(self)
+            return float(self._symbol_expr)
         if self._symbol_expr.is_Integer:
-            return int(self)
+            return int(self._symbol_expr)
         return NotImplemented
