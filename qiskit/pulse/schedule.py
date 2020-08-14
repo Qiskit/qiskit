@@ -71,7 +71,7 @@ class Schedule(ScheduleComponent):
                               "Schedules will be mutable by default in an upcoming release. You "
                               "can enable this behavior now by including ``inplace=True`` in your "
                               "Schedule initialization: ``my_sched = Schedule(name=name, "
-                              "inplace=True)``.", DeprecationWarning)
+                              "inplace=True)``.", DeprecationWarning, stacklevel=2)
                 Schedule._warn_about_inplace = False
 
         self._name = name
