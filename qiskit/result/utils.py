@@ -29,7 +29,7 @@ def marginal_counts(result, indices=None, in_place=False):
             (a Result object or a dict of counts).
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If None, do not marginalize at all.
-        in_place (boolean or False): Operates on the original result
+        in_place (bool): Default: False. Operates on the original result
             argument if True. This can lead to loss of original
             Job Result.
 
