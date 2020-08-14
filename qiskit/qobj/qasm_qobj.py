@@ -412,8 +412,7 @@ class GateCalibration:
             name (str): Gate name.
             qubits (list(int)): Qubits the gate applies to.
             params (list(complex)): Gate parameter values, if any.
-            instructions (list(PulseQobjInstruction)): The Pulse instructions which implement
-                                                       the gate.
+            instructions (list(PulseQobjInstruction)): The gate implementation.
         """
         self.name = name
         self.qubits = qubits
