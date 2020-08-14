@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -93,6 +91,10 @@ def _assemble_experiments(
                                     converters.InstructionToQobjConverter)
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
+
+    schedules = [
+        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
+    ]
     compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
@@ -173,7 +175,7 @@ def _assemble_instructions(
                 isinstance(instruction.pulse, library.ParametricPulse)):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
-                instruction = instructions.Play(instruction.pulse.get_sample_pulse(),
+                instruction = instructions.Play(instruction.pulse.get_waveform(),
                                                 instruction.channel,
                                                 name=instruction.name)
 
