@@ -601,7 +601,7 @@ class Schedule(ScheduleComponent):
 
           sched = sched.replace(old, new)
 
-          assert sched == pulse.Schedule(new)
+          assert sched == pulse.Schedule(new, inplace=True)
 
         Only matches at the top-level of the schedule tree. If you wish to
         perform this replacement over all instructions in the schedule tree.
@@ -609,7 +609,7 @@ class Schedule(ScheduleComponent):
 
         .. jupyter-execute::
 
-          sched = pulse.Schedule()
+          sched = pulse.Schedule(inplace=True)
 
           sched += pulse.Schedule(old)
 
@@ -617,7 +617,7 @@ class Schedule(ScheduleComponent):
 
           sched = sched.replace(old, new)
 
-          assert sched == pulse.Schedule(new)
+          assert sched == pulse.Schedule(new, inplace=True)
 
         Args:
           old: Instruction to replace.
