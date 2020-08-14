@@ -592,7 +592,7 @@ class Schedule(ScheduleComponent):
 
           d0 = pulse.DriveChannel(0)
 
-          sched = pulse.Schedule()
+          sched = pulse.Schedule(inplace=True)
 
           old = pulse.Play(pulse.Constant(100, 1.0), d0)
           new = pulse.Play(pulse.Constant(100, 0.1), d0)
