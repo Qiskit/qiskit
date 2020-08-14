@@ -594,9 +594,6 @@ stages:
         - bash: |
             set -e
             cd qiskit-tutorials
-            rm -rf tutorials/chemistry/*ipynb
-            rm -rf tutorials/finance/*
-            rm -rf tutorials/optimizations/*
             sphinx-build -b html . _build/html
         - task: ArchiveFiles@2
           inputs:
