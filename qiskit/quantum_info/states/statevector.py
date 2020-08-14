@@ -95,6 +95,27 @@ class Statevector(QuantumState):
                 self.data, separator=', ', prefix=prefix),
             pad, self._dims)
 
+    def __getitem__(self, key):
+        """Return Statevector item either by index or binary label
+        Args:
+            key (int, str): index or corresponding binary label, e.g. '01' = 1.
+
+        Raises:
+            QiskitError: if key is not valid.
+        """
+        if isinstance(key, str):
+            if re.match(r'^[01]+$', key) is None:
+                raise QiskitError('Key contains invalid characters.')
+            else:
+                key = int(key, 2)
+        if isinstance(key, int):
+            if key < self.dim:
+                return self._data[key]
+            else:
+                raise QiskitError("Key is greater than Statevector dimension.")
+        else:
+            raise QiskitError('Key must be int or a valid binary string.')
+
     @property
     def data(self):
         """Return data."""
@@ -692,7 +713,7 @@ class Statevector(QuantumState):
         if obj.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
         if not isinstance(obj.definition, QuantumCircuit):
-            raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
+            raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
                 obj.name, type(obj.definition)))
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * obj.definition.global_phase)

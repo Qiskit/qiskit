@@ -178,6 +178,15 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(Statevector(vec),
                              Statevector(vec.tolist()))
 
+    def test_getitem(self):
+        """Test __getitem__ method"""
+        for _ in range(10):
+            vec = self.rand_vec(4)
+            state = Statevector(vec)
+            for i in range(4):
+                self.assertEqual(state[i], vec[i])
+                self.assertEqual(state[format(i, 'b')], vec[i])
+
     def test_copy(self):
         """Test Statevector copy method"""
         for _ in range(5):
@@ -721,7 +730,7 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg='memory'):
             memory = state.sample_memory(shots)
             self.assertEqual(len(memory), shots)
-            self.assertEqual(set(memory), {'0', '2'})
+            self.assertEqual(set(memory), set(['0', '2']))
 
     def test_reset_2qubit(self):
         """Test reset method for 2-qubit state"""
