@@ -153,7 +153,7 @@ class TestResultOperations(QiskitTestCase):
 
         expected_marginal_counts = {'0': 27, '1': 27}
 
-        self.assertEqual(marginal_counts(result, [0], in_place=True).get_counts(0),
+        self.assertEqual(marginal_counts(result, [0], inplace=True).get_counts(0),
                          expected_marginal_counts)
         self.assertEqual(result.get_counts(0),
                          expected_marginal_counts)
