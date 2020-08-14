@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -1957,15 +1955,6 @@ class QuantumCircuit:
     @deprecate_arguments({'q': 'qubit'})
     def id(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.IGate`."""
-        return self.i(qubit)
-
-    @deprecate_arguments({'q': 'qubit'})
-    def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
-        """Deprecated identity gate."""
-        warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.i() method instead.',
-                      DeprecationWarning, stacklevel=2)
         return self.i(qubit)
 
     def ms(self, theta, qubits):  # pylint: disable=invalid-name
