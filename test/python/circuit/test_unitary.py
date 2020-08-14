@@ -42,7 +42,7 @@ class TestUnitaryGate(QiskitTestCase):
             UnitaryGate([[0, 1], [1, 0]])
         # pylint: disable=broad-except
         except Exception as err:
-            self.fail('unexpected exception in init of Unitary: {0}'.format(err))
+            self.fail('unexpected exception in init of Unitary: {}'.format(err))
 
     def test_set_matrix_raises(self):
         """test non-unitary"""
