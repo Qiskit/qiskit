@@ -79,7 +79,7 @@ class Results:
         self.missing = []
         datafilename = os.path.join(SWD, directory, 'result_test.json')
         if os.path.exists(datafilename):
-            with open(datafilename, 'r') as datafile:
+            with open(datafilename) as datafile:
                 self.data = json.load(datafile)
 
     @staticmethod
