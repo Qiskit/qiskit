@@ -16,14 +16,17 @@
 import re
 import copy
 import warnings
+import numbers
 from types import SimpleNamespace
 from typing import Dict, List, Any, Iterable, Union
 from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,
+#from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,
                                    ControlChannel, AcquireChannel)
+from qiskit.pulse.channels import (AcquireChannel, Channel, ControlChannel,
+                                    DriveChannel, MeasureChannel)
 
 
 class GateConfig:
