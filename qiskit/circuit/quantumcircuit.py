@@ -1957,15 +1957,6 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.IGate`."""
         return self.i(qubit)
 
-    @deprecate_arguments({'q': 'qubit'})
-    def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
-        """Deprecated identity gate."""
-        warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.i() method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.i(qubit)
-
     def ms(self, theta, qubits):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.MSGate`."""
         from .library.standard_gates.ms import MSGate

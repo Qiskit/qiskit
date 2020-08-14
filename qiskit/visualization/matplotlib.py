@@ -168,7 +168,7 @@ class MatplotlibDrawer:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style, 'r') as infile:
+                with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
 
@@ -506,7 +506,7 @@ class MatplotlibDrawer:
             top = min(qubits) > min_ctbit
 
         # display the control qubits as open or closed based on ctrl_state
-        cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        cstate = "{:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == '1' else self._style.bg
             text_top = None

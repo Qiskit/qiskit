@@ -707,7 +707,7 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg='memory'):
             memory = state.sample_memory(shots)
             self.assertEqual(len(memory), shots)
-            self.assertEqual(set(memory), set(['0', '2']))
+            self.assertEqual(set(memory), {'0', '2'})
 
     def test_reset_2qubit(self):
         """Test reset method for 2-qubit state"""
