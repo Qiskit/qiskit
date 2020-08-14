@@ -60,7 +60,10 @@ class TestPiCheck(QiskitTestCase):
                    (1/pi, '1/pi'),
                    (-1/pi, '-1/pi'),
                    (6/(5*pi), '6/5pi'),
-                   (-6/(5*pi), '-6/5pi')])
+                   (-6/(5*pi), '-6/5pi'),
+                   (-382578.0+.0234567j, '-3.8258e+05+0.023457j'),
+                   (-382578.0-.0234567j, '-3.8258e+05-0.023457j'),
+                   ])
     def test_default(self, case):
         """Default pi_check({case[0]})='{case[1]}'"""
         input_number = case[0]

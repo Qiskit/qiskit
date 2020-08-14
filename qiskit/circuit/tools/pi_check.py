@@ -161,12 +161,11 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     if real == '0' and imag != '0':
         str_out = imag + 'j'
     elif real != '0' and imag != '0':
-        if complex_inpt.imag < 0 and output != 'latex':
-            imag = imag.replace('-', '', 1)
-            iop_str = '-'
-        else:
-            iop_str = '+'
-        str_out = '{}{}{}j'.format(real, iop_str, imag)
+        op_str = '+'
+        # Remove + if imag negative except for latex fractions
+        if complex_inpt.imag < 0 and (output != 'latex' or '\\frac' not in imag):
+            op_str = ''
+        str_out = '{}{}{}j'.format(real, op_str, imag)
     else:
         str_out = real
     if output == 'mpl':
