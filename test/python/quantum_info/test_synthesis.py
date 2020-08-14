@@ -32,8 +32,7 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecom
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
                                                                two_qubit_cnot_decompose,
                                                                TwoQubitBasisDecomposer,
-                                                               Ud,
-                                                               euler_angles_1q)
+                                                               Ud)
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.test import QiskitTestCase
 
@@ -81,10 +80,10 @@ class CheckDecompositions(QiskitTestCase):
 
     def check_one_qubit_euler_angles(self, operator, basis=None, tolerance=1e-12,
                                      phase_equal=False):
-        """Check euler_angles_1q works for the given unitary"""
+        """Check OneQubitEulerDecomposer works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
-            angles = euler_angles_1q(target_unitary)
+            angles = OneQubitEulerDecomposer().angles(target_unitary)
             decomp_unitary = U3Gate(*angles).to_matrix()
         else:
             decomposer = OneQubitEulerDecomposer(basis)
