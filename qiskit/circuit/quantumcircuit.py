@@ -140,14 +140,14 @@ class QuantumCircuit:
     def __init__(self, *regs, name=None, global_phase=0):
         if any([not isinstance(reg, (QuantumRegister, ClassicalRegister)) for reg in regs]):
             try:
-                regs_int = tuple(int(reg) for reg in regs)
+                regs_int = tuple(int(round(reg)) for reg in regs)
             except Exception:
                 raise CircuitError("Circuit args must be Registers or be castable to an int. " +
                                    "(%s '%s' was provided)"
                                    % ([type(reg).__name__ for reg in regs], regs))
 
             if not all(np.isclose(regs, regs_int)):
-                raise CircuitError("Circuit args must be approximately integers. " +
+                raise CircuitError("Circuit args must be approximately positive integers. " +
                                    "(%s '%s' was provided)"
                                    % ([type(reg).__name__ for reg in regs], regs))
             regs = regs_int

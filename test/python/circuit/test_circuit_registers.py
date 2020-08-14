@@ -66,7 +66,8 @@ class TestCircuitRegisters(QiskitTestCase):
         """
         self.assertRaises(CircuitError, QuantumRegister, 2.2)
         # but an integer float should pass
-        QuantumRegister(2.0)
+        qr = QuantumRegister(2.0)
+        self.assertEqual(qr.size, 2)
 
     def test_qarg_numpy_int_size(self):
         """Test castable to integer size QuantumRegister.
