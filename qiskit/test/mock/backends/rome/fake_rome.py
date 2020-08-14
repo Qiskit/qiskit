@@ -27,7 +27,7 @@ class FakeRome(FakeBackend):
     def __init__(self):
         dirname = os.path.dirname(__file__)
         filename = "conf_rome.json"
-        with open(os.path.join(dirname, filename), "r") as f_conf:
+        with open(os.path.join(dirname, filename)) as f_conf:
             conf = json.load(f_conf)
 
         configuration = QasmBackendConfiguration.from_dict(conf)
@@ -41,7 +41,7 @@ class FakeRome(FakeBackend):
         if not self._properties:
             dirname = os.path.dirname(__file__)
             filename = "props_rome.json"
-            with open(os.path.join(dirname, filename), "r") as f_prop:
+            with open(os.path.join(dirname, filename)) as f_prop:
                 props = json.load(f_prop)
             self._properties = BackendProperties.from_dict(props)
         return self._properties
