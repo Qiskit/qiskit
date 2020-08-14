@@ -58,6 +58,6 @@ class FakeTenerife(FakeBackend):
         """
         dirname = os.path.dirname(__file__)
         filename = "props_tenerife.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
+        with open(os.path.join(dirname, filename)) as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
