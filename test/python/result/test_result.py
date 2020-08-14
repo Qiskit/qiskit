@@ -150,10 +150,10 @@ class TestResultOperations(QiskitTestCase):
                                                header=exp_result_header_2)
 
         result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
-        
+
         expected_marginal_counts = {'0': 27, '1': 27}
 
-        self.assertEqual(marginal_counts(result, [0], in_place = True).get_counts(0),
+        self.assertEqual(marginal_counts(result, [0], in_place=True).get_counts(0),
                          expected_marginal_counts)
         self.assertEqual(result.get_counts(0),
                          expected_marginal_counts)
