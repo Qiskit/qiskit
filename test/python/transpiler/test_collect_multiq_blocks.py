@@ -21,7 +21,7 @@ import unittest
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import AlternateCollect
+from qiskit.transpiler.passes import CollectMultiQBlocks
 from qiskit.test import QiskitTestCase
 
 
@@ -51,7 +51,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
 
-        pass_ = AlternateCollect()
+        pass_ = CollectMultiQBlocks()
         pass_.run(dag)
         self.assertTrue(pass_.property_set['block_list'], [block_1, block_2])
 
@@ -83,7 +83,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(1, 0)
 
         dag = circuit_to_dag(qc)
-        pass_ = AlternateCollect()
+        pass_ = CollectMultiQBlocks()
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
@@ -130,7 +130,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc = QuantumCircuit.from_qasm_str(qasmstr)
 
         pass_manager = PassManager()
-        pass_manager.append(AlternateCollect())
+        pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
 
@@ -175,7 +175,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(0, 1).c_if(cr, 1)
 
         pass_manager = PassManager()
-        pass_manager.append(AlternateCollect())
+        pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
         for block in pass_manager.property_set['block_list']:
@@ -198,7 +198,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(0, 1)
 
         pass_manager = PassManager()
-        pass_manager.append(AlternateCollect())
+        pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
         for block in pass_manager.property_set['block_list']:
@@ -227,7 +227,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.x(2)
 
         pass_manager = PassManager()
-        pass_manager.append(AlternateCollect())
+        pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
         self.assertTrue(len(pass_manager.property_set['block_list']) == 2)
@@ -254,7 +254,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.h(2)
 
         pass_manager = PassManager()
-        pass_manager.append(AlternateCollect(max_block_size=3))
+        pass_manager.append(CollectMultiQBlocks(max_block_size=3))
 
         pass_manager.run(qc)
         self.assertTrue(len(pass_manager.property_set['block_list']) == 1)
@@ -283,7 +283,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(3, 4)
 
         pass_manager = PassManager()
-        pass_manager.append(AlternateCollect(max_block_size=4))
+        pass_manager.append(CollectMultiQBlocks(max_block_size=4))
 
         pass_manager.run(qc)
 

@@ -783,6 +783,7 @@ class DAGCircuit:
     def topological_op_nodes(self, key=None):
         """
         Yield op nodes in topological order.
+        Allowed to pass in specific key to break ties in top order
 
         Returns:
             generator(DAGNode): op node in topological order
