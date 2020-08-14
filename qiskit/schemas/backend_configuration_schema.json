@@ -20,7 +20,7 @@
                 },
                 "vars": {
                     "type": "object",
-                    "description": "Variables in the h_str"},
+                    "description": "Variables in the h_str in Hz"},
                 "osc": {
                     "type": "object",
                     "description": "Number of levels for each oscillator mode"}

@@ -45,6 +45,14 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test the hamiltonian method."""
         self.assertEqual(self.config.hamiltonian['description'],
                          "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.")
+        self.assertEqual(self.config.hamiltonian['vars'], {
+            'v0': 5.0 * 1e9,
+            'v1': 5.1 * 1e9,
+            'j': 0.01 * 1e9,
+            'r': 0.02 * 1e9,
+            'alpha0': -0.33 * 1e9,
+            'alpha1': -0.33 * 1e9
+        })
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().hamiltonian, None)

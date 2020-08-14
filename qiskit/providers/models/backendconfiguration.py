@@ -14,6 +14,7 @@
 
 """Backend Configuration Classes."""
 import re
+import numbers
 import copy
 import warnings
 from typing import Dict, List, Any, Iterable, Union
@@ -21,8 +22,8 @@ from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,
-                                   ControlChannel, AcquireChannel)
+from qiskit.pulse.channels import (AcquireChannel, Channel, ControlChannel,
+                                   DriveChannel, MeasureChannel)
 
 
 class GateConfig:
@@ -497,6 +498,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
+        if hamiltonian is not None:
+            self.hamiltonian = dict(hamiltonian)
+            self.hamiltonian['vars'] = {
+                k: v * 1e9 if isinstance(v, numbers.Number) else v
+                for k, v in self.hamiltonian['vars'].items()
+            }
+        else:
+            self.hamiltonian = None
 
         self.dynamic_reprate_enabled = dynamic_reprate_enabled
 
