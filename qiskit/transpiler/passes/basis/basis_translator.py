@@ -85,8 +85,8 @@ class BasisTranslator(TransformationPass):
         basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
 
         target_basis = set(self._target_basis).union(basic_instrs)
-        source_basis = set((node.op.name, node.op.num_qubits)
-                           for node in dag.op_nodes())
+        source_basis = {(node.op.name, node.op.num_qubits)
+                        for node in dag.op_nodes()}
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -166,7 +166,7 @@ def _basis_heuristic(basis, target):
     elements in the symmetric difference of the circuit basis and the device
     basis.
     """
-    return len(set(gate_name for gate_name, gate_num_qubits in basis) ^ target)
+    return len({gate_name for gate_name, gate_num_qubits in basis} ^ target)
 
 
 def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
@@ -222,7 +222,7 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
             # so skip here.
             continue
 
-        if set(gate_name for gate_name, gate_num_qubits in current_basis).issubset(target_basis):
+        if {gate_name for gate_name, gate_num_qubits in current_basis}.issubset(target_basis):
             # Found target basis. Construct transform path.
             rtn = []
             last_basis = current_basis
@@ -247,8 +247,8 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
 
             basis_remain = current_basis - {(gate_name, gate_num_qubits)}
             neighbors = [
-                (frozenset(basis_remain | set((inst.name, inst.num_qubits)
-                                              for inst, qargs, cargs in equiv.data)),
+                (frozenset(basis_remain | {(inst.name, inst.num_qubits)
+                                           for inst, qargs, cargs in equiv.data}),
                  params,
                  equiv)
                 for params, equiv in equivs]
