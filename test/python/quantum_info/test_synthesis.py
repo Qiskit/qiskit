@@ -79,7 +79,7 @@ K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORD
 class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
-    def check_one_qubit_euler_angles(self, operator, basis=None, tolerance=1e-12,
+    def check_one_qubit_euler_angles(self, operator, basis='U3', tolerance=1e-12,
                                      phase_equal=False):
         """Check euler_angles_1q works for the given unitary"""
         target_unitary = operator.data
