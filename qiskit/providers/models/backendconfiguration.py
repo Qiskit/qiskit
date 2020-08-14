@@ -23,8 +23,7 @@ from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-#from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,
-                                   ControlChannel, AcquireChannel)
+#from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel,ControlChannel, AcquireChannel)
 from qiskit.pulse.channels import (AcquireChannel, Channel, ControlChannel,
                                     DriveChannel, MeasureChannel)
 
