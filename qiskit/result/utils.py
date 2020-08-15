@@ -29,10 +29,9 @@ def marginal_counts(result, indices=None, inplace=False):
             (a Result object or a dict of counts).
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If None, do not marginalize at all.
-        inplace (bool): Default: False. Operates on the original result
-            argument if True. This can lead to loss of original
-            Job Result.
-
+        inplace (bool): Default: False. Operates on the original Result
+            argument if True, leading to loss of original Job Result.
+            It has not effect if result is dict.
     Returns:
         Result or dict[str:int]: a dictionary with the observed counts,
             marginalized to only account for frequency of observations
@@ -41,9 +40,9 @@ def marginal_counts(result, indices=None, inplace=False):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
-    if not inplace:
-        result = deepcopy(result)
     if isinstance(result, Result):
+        if not inplace:
+            result = deepcopy(result)
         for i, experiment_result in enumerate(result.results):
             counts = result.get_counts(i)
             new_counts = _marginalize(counts, indices)
@@ -53,9 +52,7 @@ def marginal_counts(result, indices=None, inplace=False):
             experiment_result.data.counts = new_counts_hex
             experiment_result.header.memory_slots = len(indices)
     else:
-        counts = result
-        new_counts = _marginalize(counts, indices)
-        result = new_counts
+        result = _marginalize(result, indices)
 
     return result
 
