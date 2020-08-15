@@ -67,7 +67,7 @@ class QCircuitImage:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style, 'r') as infile:
+                with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
 
@@ -408,7 +408,7 @@ class QCircuitImage:
                         pos_array.append(self.img_regs[qarglist[ctrl]])
                     pos_qargs = pos_array[num_ctrl_qubits:]
                     ctrl_pos = pos_array[:num_ctrl_qubits]
-                    ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+                    ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
                     if op.condition:
                         mask = self._get_mask(op.condition[0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
@@ -814,7 +814,7 @@ class QCircuitImage:
 
                     elif len(qarglist) == 3:
                         if isinstance(op.op, ControlledGate):
-                            ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
+                            ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]
                         pos_1 = self.img_regs[qarglist[0]]
