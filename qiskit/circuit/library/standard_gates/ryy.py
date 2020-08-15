@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -102,7 +100,7 @@ class RYYGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the RYY gate."""
-        theta = self.params[0]
+        theta = float(self.params[0])
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)
         return np.array([
