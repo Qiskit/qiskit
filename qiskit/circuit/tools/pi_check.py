@@ -122,9 +122,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                 str_out = '{}{}/{}'.format(neg_str, pi, val)
             return str_out
 
-        # Finally check for fractions where the numer > 1*pi and numer
+        # Fifth check is for fractions where the numer > 1*pi and numer
         # is up to MAX_FRAC*pi and denom is up to MAX_FRAC and all
-        # fractions are reduced. Ex. 15pi/16, 2pi/5, 15pi/2, 8pi/3, 16pi/9.
+        # fractions are reduced. Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9.
         frac = np.where(np.abs(abs(single_inpt) - FRAC_MESH) < eps)
         if frac[0].shape[0]:
             numer = int(frac[1][0]) + 1
@@ -137,6 +137,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                 str_out = '{}{}{}/{}'.format(neg_str, numer, pi, denom)
             return str_out
 
+        # Sixth check is for fractions where the numer > 1 and numer
+        # is up to MAX_FRAC and denom is up to MAX_FRAC*pi and all
+        # fractions are reduced. Ex. 15/16pi, 2/5pi, 15/2pi, 16/9pi
         frac = np.where(np.abs(abs(single_inpt) - RECIP_MESH) < eps)
         if frac[0].shape[0]:
             numer = int(frac[1][0]) + 1
