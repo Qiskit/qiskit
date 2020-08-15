@@ -170,13 +170,13 @@ class Statevector(QuantumState):
         return Statevector(data, dims)
 
     def inner(self, other):
-        """Return the inner product of self with other.
+        """Return the inner product of self and other as :math:`\langle self| other\rangle`.
 
         Args:
             other (Statevector): a quantum state object.
 
         Returns:
-            Statevector: the inner product of self with other.
+            Statevector: the inner product of self and other, :math:`\langle self| other\rangle`.
 
         Raises:
             QiskitError: if other is not a quantum state or has differnt dimension.
