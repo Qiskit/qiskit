@@ -644,7 +644,7 @@ class Schedule(ScheduleComponent):
             return self
         else:
             try:
-                return Schedule(*new_children)
+                return Schedule(*new_children, inplace=True)
             except PulseError as err:
                 raise PulseError(
                     'Replacement of {old} with {new} results in '
