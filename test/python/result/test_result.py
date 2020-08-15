@@ -173,7 +173,8 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(marginal_counts(dict_counts_2, [0], inplace=True),
                          expected_marginal_counts_2)
         self.assertNotEqual(dict_counts_2, expected_marginal_counts_2)
-        self.assertRaises(AttributeError, marginal_counts(dict_counts_1, [0, 1]).get_counts(0))
+        self.assertRaises(AttributeError,
+                          lambda: marginal_counts(dict_counts_1, [0, 1]).get_counts(0))
 
     def test_memory_counts_no_header(self):
         """Test that memory bitstrings are extracted properly without header."""
