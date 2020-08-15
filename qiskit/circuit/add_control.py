@@ -112,30 +112,37 @@ def control(operation: Union[Gate, ControlledGate],
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
-        basis = ['u1', 'u3', 'x', 'rx', 'ry', 'rz', 'cx']
+        basis = ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'ccx', 'u1', 'u3', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         for gate, qreg, _ in unrolled_gate.definition.data:
             if gate.name == 'x':
-                controlled_circ.mct(q_control, q_target[qreg[0].index],
+                controlled_circ.mcx(q_control, q_target[qreg[0].index],
                                     q_ancillae)
             elif gate.name == 'rx':
-                controlled_circ.mcrx(gate.definition.data[0][0].params[0],
-                                     q_control, q_target[qreg[0].index],
-                                     use_basis_gates=True)
+                from qiskit.circuit.library.standard_gates import RXGate
+                theta = gate.params[0]
+                mcrx = RXGate(theta).control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mcrx, qargs=qubits)
             elif gate.name == 'ry':
-                controlled_circ.mcry(gate.definition.data[0][0].params[0],
-                                     q_control, q_target[qreg[0].index],
-                                     q_ancillae, mode='noancilla',
-                                     use_basis_gates=True)
+                from qiskit.circuit.library.standard_gates import RYGate
+                theta = gate.params[0]
+                mcry = RYGate(theta).control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mcry, qargs=qubits)
             elif gate.name == 'rz':
-                controlled_circ.mcrz(gate.definition.data[0][0].params[0],
-                                     q_control, q_target[qreg[0].index],
-                                     use_basis_gates=True)
+                from qiskit.circuit.library.standard_gates import RZGate
+                theta = gate.params[0]
+                mcrz = RZGate(theta).control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mcrz, qargs=qubits)
+                global_phase -= RZGate(theta).definition.global_phase
             elif gate.name == 'u1':
                 controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
-            elif gate.name == 'cx':
-                controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]],
-                                    q_target[qreg[1].index],
+            elif gate.name == 'cx' or gate.name == 'ccx':
+                additional_control_bits = [bit.index for bit in qreg[:-1]]
+                controlled_circ.mcx(q_control[:] + q_target[additional_control_bits],
+                                    q_target[qreg[-1].index],
                                     q_ancillae)
             elif gate.name == 'u3':
                 theta, phi, lamb = gate.params
@@ -155,6 +162,26 @@ def control(operation: Union[Gate, ControlledGate],
                                          q_ancillae, use_basis_gates=True)
                     controlled_circ.mcrz(phi, q_control, q_target[qreg[0].index],
                                          use_basis_gates=True)
+            elif gate.name == 'z':
+                from qiskit.circuit.library.standard_gates import ZGate
+                mcz = ZGate().control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mcz, qargs=qubits)
+            elif gate.name == 'y':
+                from qiskit.circuit.library.standard_gates import YGate
+                mcy = YGate().control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mcy, qargs=qubits)
+            elif gate.name == 'h':
+                from qiskit.circuit.library.standard_gates import HGate
+                mch = HGate().control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mch, qargs=qubits)
+            elif gate.name == 'swap':
+                from qiskit.circuit.library.standard_gates import SwapGate
+                mcswap = SwapGate().control(num_ctrl_qubits)
+                qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
+                controlled_circ.append(mcswap, qargs=qubits)
             else:
                 raise CircuitError('gate contains non-controllable instructions: {}'.format(
                     gate.name))
