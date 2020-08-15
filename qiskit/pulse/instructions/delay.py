@@ -26,7 +26,7 @@ class Delay(Instruction):
         To schedule an instruction at time = 10, on a channel assigned to the variable ``channel``,
         the following could be used::
 
-            sched = Schedule(name="Delay instruction example")
+            sched = Schedule(name="Delay instruction example", inplace=True)
             sched += Delay(10, channel)
             sched += Gaussian(duration, amp, sigma, channel)
 

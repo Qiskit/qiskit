@@ -18,7 +18,7 @@ For example::
 
     duration = 10
     channel = DriveChannel(0)
-    sched = Schedule()
+    sched = Schedule(inplace=True)
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 import warnings
