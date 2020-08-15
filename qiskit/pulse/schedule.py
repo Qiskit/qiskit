@@ -611,7 +611,7 @@ class Schedule(ScheduleComponent):
 
           sched = pulse.Schedule(inplace=True)
 
-          sched += pulse.Schedule(old)
+          sched += pulse.Schedule(old, inplace=True)
 
           sched = sched.flatten()
 
