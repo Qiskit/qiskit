@@ -98,7 +98,7 @@ class Statevector(QuantumState):
     def __getitem__(self, key):
         """Return Statevector item either by index or binary label
         Args:
-            key (int, str): index or corresponding binary label, e.g. '01' = 1.
+            key (int or str): index or corresponding binary label, e.g. '01' = 1.
 
         Raises:
             QiskitError: if key is not valid.
