@@ -14,9 +14,11 @@
 
 """The Grover operator."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit.library import Diagonal
+from qiskit.quantum_info import Statevector, Operator, DensityMatrix
 from .standard_gates import MCXGate
 
 
@@ -74,9 +76,9 @@ class GroverOperator(QuantumCircuit):
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
-    def __init__(self, oracle: QuantumCircuit,
+    def __init__(self, oracle: Union[QuantumCircuit, Statevector],
                  state_in: Optional[QuantumCircuit] = None,
-                 zero_reflection: Optional[QuantumCircuit] = None,
+                 zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
                  idle_qubits: Optional[List[int]] = None,
                  insert_barriers: bool = False,
                  mcx: str = 'noancilla',
@@ -96,9 +98,15 @@ class GroverOperator(QuantumCircuit):
         super().__init__(name=name)
 
         # store inputs
+        if isinstance(oracle, Statevector):
+            oracle = Diagonal((-1) ** oracle.data)
         self._oracle = oracle
-        self._state_in = state_in
+
+        if isinstance(zero_reflection, (Operator, DensityMatrix)):
+            zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection
+
+        self._state_in = state_in
         self._idle_qubits = idle_qubits
         self._insert_barriers = insert_barriers
         self._mcx = mcx

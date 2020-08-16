@@ -36,7 +36,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
                                     RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
-from qiskit.quantum_info import Statevector, Operator, Clifford
+from qiskit.quantum_info import Statevector, Operator, Clifford, DensityMatrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
@@ -1928,16 +1928,19 @@ class TestPhaseEstimation(QiskitTestCase):
 class TestGroverOperator(QiskitTestCase):
     """Test the Grover operator."""
 
-    def assertGroverOperatorIsCorrect(self, grover_op, oracle, state_in=None):
+    def assertGroverOperatorIsCorrect(self, grover_op, oracle, state_in=None, zero_reflection=None):
         """Test that ``grover_op`` implements the correct Grover operator."""
 
         oracle = Operator(oracle)
+
         if state_in is None:
             state_in = QuantumCircuit(oracle.num_qubits)
             state_in.h(state_in.qubits)
         state_in = Operator(state_in)
-        zero_reflection = np.eye(2 ** oracle.num_qubits)
-        zero_reflection[0][0] = -1
+
+        if zero_reflection is None:
+            zero_reflection = np.eye(2 ** oracle.num_qubits)
+            zero_reflection[0][0] = -1
         zero_reflection = Operator(zero_reflection)
 
         expected = state_in.dot(zero_reflection).dot(state_in.adjoint()).dot(oracle)
@@ -1959,6 +1962,15 @@ class TestGroverOperator(QiskitTestCase):
             oracle.z(3)
             grover_op = GroverOperator(oracle)
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
+
+    def test_quantum_info_input(self):
+        """Test passing quantum_info.Operator and Statevector as input."""
+        mark = Statevector.from_label('001')
+        diffuse = 2 * DensityMatrix.from_label('000') - Operator.from_label('III')
+        grover_op = GroverOperator(oracle=mark, zero_reflection=diffuse)
+        self.assertGroverOperatorIsCorrect(grover_op,
+                                           oracle=np.diag((-1) ** mark.data),
+                                           zero_reflection=diffuse.data)
 
     def test_idle_qubits(self):
         """Test setting idle qubits doesn't apply any operations on these qubits."""
