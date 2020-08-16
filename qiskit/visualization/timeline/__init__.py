@@ -45,12 +45,16 @@ class QiskitTimelineStyle(dict):
 def default_style() -> Dict[str, Any]:
     """Define default values of the timeline stylesheet."""
     return {
+        'formatter.general.fig_unit_height': 0.7,
+        'formatter.general.fig_width': 6,
         'formatter.margin.top': 0.5,
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.05,
         'formatter.margin.right_percent': 0.05,
         'formatter.margin.interval': 0.3,
         'formatter.margin.link_interval_dt': 100,
+        'formatter.time_bucket.edge_dt': 10,
+        'formatter.color.background': '#FFFFFF',
         'formatter.color.timeslot': '#DDDDDD',
         'formatter.color.gate_name': '#000000',
         'formatter.color.bit_name': '#000000',
