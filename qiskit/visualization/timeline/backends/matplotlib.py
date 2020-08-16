@@ -13,7 +13,21 @@
 # that they have been altered from the originals.
 
 r"""
+This module provides `MplPlotter` which is the timeline drawer API of matplotlib.
 
+The API is initialized with a data container and an optional axis object,
+and the axis is updated with drawing objects by calling `.draw` method:
+    ```python
+    ddc = DrawDataContainer()
+    ddc.load_program(sched_circuit, inst_durations)
+    ddc.update_preference()
+
+    plotter = MplPlotter(ddc)
+    plotter.draw()
+    ```
+
+If axis object is not provided the plotter internally initialize an axis object
+with the stylesheet preference.
 """
 
 from typing import Optional, Union, Tuple
@@ -28,10 +42,17 @@ from qiskit.visualization.timeline import drawer_style, core, types, drawing_obj
 
 
 class MplPlotter:
+    """API for matplotlib."""
 
     def __init__(self,
                  draw_data: core.DrawDataContainer,
                  axis: Optional[plt.Axes] = None):
+        """Create new canvas.
+
+        Args:
+            draw_data: Target data container to draw.
+            axis: Matplotlib axis.
+        """
 
         self.draw_data = draw_data
 
@@ -48,6 +69,7 @@ class MplPlotter:
         self.initialize_canvas()
 
     def initialize_canvas(self):
+        """Initialize axis."""
         self.ax.set_facecolor(drawer_style['formatter.color.background'])
 
         # axis labels
@@ -57,7 +79,8 @@ class MplPlotter:
         self.ax.set_xlim(self.draw_data.bbox_left, self.draw_data.bbox_right)
         self.ax.set_ylim(self.draw_data.bbox_bottom, self.draw_data.bbox_top)
 
-    def draw(self):
+    def draw(self) -> plt.Axes:
+        """Call matplotlib API and plot drawing objects."""
 
         for drawing in self.draw_data.drawings:
             if not drawing.visible:
@@ -75,10 +98,6 @@ class MplPlotter:
             else:
                 raise VisualizationError('Data type %s is not supported in matplotlib.' %
                                          drawing.__class__.__name__)
-
-        # format
-        self.ax.set_xlim(self.draw_data.bbox_left, self.draw_data.bbox_right)
-        self.ax.set_ylim(self.draw_data.bbox_bottom, self.draw_data.bbox_top)
 
         return self.ax
 

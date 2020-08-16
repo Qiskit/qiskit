@@ -273,8 +273,8 @@ def gen_bit_name(bit: types.Bits) -> List[drawing_objects.TextData]:
     }
 
     label_plain = '{name}'.format(name=bit.register.name)
-    label_latex = '{register}_{{{index}}}'.format(register=bit.register.prefix,
-                                                  index=bit.index)
+    label_latex = r'{{\rm {register}}}_{{{index}}}'.format(register=bit.register.prefix,
+                                                           index=bit.index)
 
     drawing = drawing_objects.TextData(data_type=types.DrawingLabel.BIT_NAME,
                                        bit=bit,

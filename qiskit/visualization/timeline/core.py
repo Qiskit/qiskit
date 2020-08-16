@@ -13,7 +13,34 @@
 # that they have been altered from the originals.
 
 r"""
+Core module of the timeline drawer.
 
+This module provides `DrawDataContainer` which is a collection of drawing objects
+with additional information to setup the drawer canvas.
+In addition, this instance performs the simple data processing such as arrangement of
+coordinates of bit and bit links when a program is loaded.
+
+The data container is initialized without arguments and then a program is loaded by method.
+    ```python
+    ddc = DrawDataContainer()
+    ddc.load_program(sched_circ, inst_durations)
+    ddc.update_preference(visible_bits=[qregs[0], qregs[1]])
+    ```
+
+This module is expected to be used by the timeline drawer interface and not exposed to users.
+The `DrawDataContainer` takes a scheduled circuit data and convert it into
+a set of drawing objects, then a plotter interface takes the drawing objects
+from the container to call the plotter's API. A set of drawing objects to generate can be
+customized with stylesheet. The generated drawing objects can be accessed from
+    ```python
+    ddc.drawings
+    ```
+This module can be commonly used among different plotters. If the plotter supports
+dynamic update of drawings, the channel data can be updated with new preference:
+    ```python
+    ddc.update_preference(visible_bits=[qregs[1]])
+    ```
+In this example, the Qubit1 will be removed from the output.
 """
 
 from typing import Optional, List
@@ -102,7 +129,14 @@ class DrawDataContainer:
 
     def update_preference(self,
                           visible_bits: Optional[List[types.Bits]] = None):
-        """"""
+        """Dynamically update drawing objects according to the user preference.
+
+        This method doesn't create new drawing objects, but updates
+        visible, bit offset coordinates, and bit link offsets.
+
+        Args:
+            visible_bits: List of bits to draw.
+        """
         active_bits = self._sort_bits(visible_bits)
         self.bit_offsets = {bit: 0 for bit in active_bits}
 
