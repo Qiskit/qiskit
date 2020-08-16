@@ -22,7 +22,7 @@ The `BitEvents` class is expected to be called by other programs (not by end-use
 
 The `BitEvents` class instance is created with the class method ``load_program``:
     ```python
-    event = BitEvents.load_program(sched_circuit, inst_durations, Qubit(0))
+    event = BitEvents.load_program(sched_circuit, inst_durations, QuantumRegister(1)[0])
     ```
 
 The `BitEvents` is created for a specific circuit bit either quantum or classical.
