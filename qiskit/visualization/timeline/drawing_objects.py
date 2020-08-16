@@ -12,8 +12,47 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Scheduled circuit visualization module.
+# pylint: disable=invalid-name
+
+r"""
+Drawing objects for timeline drawer.
+
+Drawing objects play two important roles:
+    - Allowing unittests of visualization module. Usually it is hard for image files to be tested.
+    - Removing program parser from each plotter interface. We can easily add new plotter.
+
+This module is based on the structure of matplotlib as it is the primary plotter
+of the timeline drawer. However this interface is agnostic to the actual plotter.
+
+Design concept
+~~~~~~~~~~~~~~
+When we think about dynamically updating drawing objects, it will be most efficient to
+update only the changed properties of drawings rather than regenerating entirely from scratch.
+Thus the core drawing function generates all possible drawings in the beginning and
+then updates the visibility and the offset coordinate of each item according to
+the end-user request.
+
+Data key
+~~~~~~~~
+In the abstract class ``ElementaryData`` common properties to represent a drawing object are
+specified. In addition, drawing objects have the `data_key` property that returns an
+unique hash of the object for comparison. This property should be defined in each sub-class by
+considering necessary properties to identify that object, i.e. `visible` should not
+be a part of the key, because any change on this property just sets the visibility of
+the same drawing object.
+
+To support not only `matplotlib` but also multiple plotters, those drawing objects should be
+universal and designed without strong dependency on modules in `matplotlib`.
+This means drawing objects that represent primitive geometries are preferred.
+It should be noted that there will be no unittest for a plotter interface, which takes
+drawing objects and output an image data, we should avoid adding a complicated data structure
+that has a context of the scheduled circuit program.
+
+Usually a drawing object is associated to the specific bit. `BitLinkData` is the
+exception of this framework because it takes multiple bits to connect.
+Position of the link is dynamically updated according to the user preference of bit to show.
+While other objects are general format to represent specific shapes, the `BitLinkData` is
+only used by the bit links and thus has no `data_type` input.
 """
 
 from abc import ABC, abstractmethod
@@ -216,6 +255,16 @@ class BitLinkData(ElementaryData):
                  offset: float = 0,
                  visible: bool = True,
                  styles: Dict[str, Any] = None):
+        """Create new bit link.
+
+        Args:
+            bits:
+            x: Horizontal coordinate of the link.
+            offset: Horizontal offset of bit link. If multiple links are overlapped,
+                the actual position of the link is automatically shifted by this argument.
+            visible: Set ``True`` to show the component on the canvas.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
+        """
         self.bits = tuple(bits)
         self.x = x
         self.offset = offset
