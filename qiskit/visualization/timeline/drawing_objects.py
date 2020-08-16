@@ -56,9 +56,8 @@ only used by the bit links and thus has no `data_type` input.
 """
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List
 
-from qiskit import circuit
 from qiskit.visualization.timeline import types
 
 
@@ -106,7 +105,7 @@ class LineData(ElementaryData):
     """Drawing object that represents line shape."""
     def __init__(self,
                  data_type: str,
-                 bit: Union[circuit.Qubit, circuit.Clbit],
+                 bit: types.Bits,
                  x: List[types.Coordinate],
                  y: List[types.Coordinate],
                  meta: Dict[str, Any] = None,
@@ -148,7 +147,7 @@ class BoxData(ElementaryData):
     """Drawing object that represents box shape."""
     def __init__(self,
                  data_type: str,
-                 bit: Union[circuit.Qubit, circuit.Clbit],
+                 bit: types.Bits,
                  x0: types.Coordinate,
                  y0: types.Coordinate,
                  x1: types.Coordinate,
@@ -198,7 +197,7 @@ class TextData(ElementaryData):
     """Drawing object that represents a text on canvas."""
     def __init__(self,
                  data_type: str,
-                 bit: Union[circuit.Qubit, circuit.Clbit],
+                 bit: types.Bits,
                  x: types.Coordinate,
                  y: types.Coordinate,
                  text: str,
@@ -251,7 +250,7 @@ class BitLinkData(ElementaryData):
     This may appear as a line on the canvas.
     """
     def __init__(self,
-                 bits: List[Union[circuit.Qubit, circuit.Clbit]],
+                 bits: List[types.Bits],
                  x: types.Coordinate,
                  offset: float = 0,
                  visible: bool = True,
@@ -271,7 +270,7 @@ class BitLinkData(ElementaryData):
         self.offset = offset
 
         super().__init__(
-            data_type='BitLink',
+            data_type=types.DrawingLine.BIT_LINK,
             meta=None,
             visible=visible,
             styles=styles
