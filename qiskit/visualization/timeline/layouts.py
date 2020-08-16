@@ -19,6 +19,12 @@ Those functions are assigned to the `layout` key of the stylesheet.
 User can change the layout of the output image by writing own function.
 """
 
+from typing import List
+
+from qiskit import circuit
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.timeline import types
+
 
 def default_color_table(gate_name: str) -> str:
     """Color table that returns color code associated with the gate name."""
@@ -82,3 +88,53 @@ def default_latex_gate_name(gate_name: str) -> str:
         'measure': r'{\rm Measure}'
     }
     return _latex_name_table.get(gate_name, r'{{\rm {name}}}'.format(name=gate_name))
+
+
+def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
+    """Sort bits by ascending order.
+
+    Bit order becomes Q0, Q1, ..., Cl0, Cl1, ...
+
+    Args:
+        bits: List of bits to sort.
+    """
+    qregs = []
+    cregs = []
+
+    for bit in bits:
+        if isinstance(bit, circuit.Qubit):
+            qregs.append(bit)
+        elif isinstance(bit, circuit.Clbit):
+            cregs.append(bit)
+        else:
+            VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
+
+    qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
+    cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
+
+    return qregs + cregs
+
+
+def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
+    """Sort bits by descending order.
+
+    Bit order becomes Q_N, Q_N-1, ..., Cl_N, Cl_N-1, ...
+
+    Args:
+        bits: List of bits to sort.
+    """
+    qregs = []
+    cregs = []
+
+    for bit in bits:
+        if isinstance(bit, circuit.Qubit):
+            qregs.append(bit)
+        elif isinstance(bit, circuit.Clbit):
+            cregs.append(bit)
+        else:
+            VisualizationError('Unknown bit {bit} is provided.'.format(bit=bit))
+
+    qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
+    cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
+
+    return qregs + cregs

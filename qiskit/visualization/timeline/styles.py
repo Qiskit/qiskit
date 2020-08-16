@@ -36,7 +36,8 @@ class IqxStandard(dict):
                  'generator.barriers': [generators.gen_barrier],
                  'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
-                 'layout.latex_gate_name': layouts.default_latex_gate_name}
+                 'layout.latex_gate_name': layouts.default_latex_gate_name,
+                 'layout.bit_arange': layouts.qreg_creg_ascending}
         style.update(**kwargs)
         self.update(style)
 
@@ -64,7 +65,8 @@ class IqxSimple(dict):
                  'generator.barriers': [generators.gen_barrier],
                  'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
-                 'layout.latex_gate_name': layouts.default_latex_gate_name}
+                 'layout.latex_gate_name': layouts.default_latex_gate_name,
+                 'layout.bit_arange': layouts.qreg_creg_ascending}
         style.update(**kwargs)
         self.update(style)
 
@@ -94,7 +96,8 @@ class IqxDebugging(dict):
                  'generator.barriers': [generators.gen_barrier],
                  'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
-                 'layout.latex_gate_name': layouts.default_latex_gate_name}
+                 'layout.latex_gate_name': layouts.default_latex_gate_name,
+                 'layout.bit_arange': layouts.qreg_creg_ascending}
         style.update(**kwargs)
         self.update(style)
 
