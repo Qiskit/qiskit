@@ -29,7 +29,7 @@ class ParameterTable(MutableMapping):
         """
         self._table = dict(*args, **kwargs)
         self._keys = set(self._table)
-        self._names = set(x.name for x in self._table)
+        self._names = {x.name for x in self._table}
 
     def __getitem__(self, key):
         return self._table[key]
@@ -78,4 +78,4 @@ class ParameterTable(MutableMapping):
         return len(self._table)
 
     def __repr__(self):
-        return 'ParameterTable({0})'.format(repr(self._table))
+        return 'ParameterTable({})'.format(repr(self._table))
