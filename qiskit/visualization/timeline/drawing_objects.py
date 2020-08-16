@@ -59,6 +59,7 @@ from abc import ABC, abstractmethod
 from typing import Union, Optional, Dict, Any, List
 
 from qiskit import circuit
+from qiskit.visualization.timeline import types
 
 
 class ElementaryData(ABC):
@@ -106,8 +107,8 @@ class LineData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  bit: Union[circuit.Qubit, circuit.Clbit],
-                 x: List[float],
-                 y: List[float],
+                 x: List[types.Coordinate],
+                 y: List[types.Coordinate],
                  meta: Dict[str, Any] = None,
                  visible: bool = True,
                  styles: Dict[str, Any] = None):
@@ -148,10 +149,10 @@ class BoxData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  bit: Union[circuit.Qubit, circuit.Clbit],
-                 x: float,
-                 y: float,
-                 width: float,
-                 height: float,
+                 x0: types.Coordinate,
+                 y0: types.Coordinate,
+                 x1: types.Coordinate,
+                 y1: types.Coordinate,
                  meta: Dict[str, Any] = None,
                  visible: bool = True,
                  styles: Dict[str, Any] = None):
@@ -160,19 +161,19 @@ class BoxData(ElementaryData):
         Args:
             data_type: String representation of this drawing object.
             bit: Bit associated to this object.
-            x: Left coordinate of this box.
-            y: Bottom coordinate of this box.
-            width: Width of this box.
-            height: Height of this box.
+            x0: Left coordinate of this box.
+            y0: Bottom coordinate of this box.
+            x1: Right coordinate of this box.
+            y1: Top coordinate of this box.
             meta: Meta data dictionary of the object.
             visible: Set ``True`` to show the component on the canvas.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.bit = bit
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
+        self.x0 = x0
+        self.y0 = y0
+        self.x1 = x1
+        self.y1 = y1
 
         super().__init__(
             data_type=data_type,
@@ -187,10 +188,10 @@ class BoxData(ElementaryData):
         return str(hash((self.__class__.__name__,
                          self.data_type,
                          self.bit,
-                         self.x,
-                         self.y,
-                         self.width,
-                         self.height)))
+                         self.x0,
+                         self.y0,
+                         self.x1,
+                         self.y1)))
 
 
 class TextData(ElementaryData):
@@ -198,8 +199,8 @@ class TextData(ElementaryData):
     def __init__(self,
                  data_type: str,
                  bit: Union[circuit.Qubit, circuit.Clbit],
-                 x: float,
-                 y: float,
+                 x: types.Coordinate,
+                 y: types.Coordinate,
                  text: str,
                  latex: Optional[str] = None,
                  meta: Dict[str, Any] = None,
@@ -251,7 +252,7 @@ class BitLinkData(ElementaryData):
     """
     def __init__(self,
                  bits: List[Union[circuit.Qubit, circuit.Clbit]],
-                 x: float,
+                 x: types.Coordinate,
                  offset: float = 0,
                  visible: bool = True,
                  styles: Dict[str, Any] = None):

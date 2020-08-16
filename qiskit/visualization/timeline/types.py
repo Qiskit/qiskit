@@ -25,10 +25,14 @@ Special data types.
     t0: Position where the link is placed.
     operand: Gate object associated with the instruction.
     bits: List of bit associated with the instruction.
+
+- Barrier:
+    t0: Position where the barrier is placed.
+    bits: List of bit associated with the instruction.
 """
 
 from enum import Enum
-from typing import NamedTuple, List, Union
+from typing import NamedTuple, List, Union, NewType
 
 from qiskit import circuit
 
@@ -46,15 +50,20 @@ GateLink = NamedTuple(
      ('operand', circuit.Gate),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
 
+Barrier = NamedTuple(
+    'Barrier',
+    [('t0', int),
+     ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+
 
 class DrawingBox(str, Enum):
     r"""Box data type.
 
     SCHED_GATE: Box that represents occupation time by gate.
-    TIME_LINE: Box that represents time slot of a bit.
+    TIMELINE: Box that represents time slot of a bit.
     """
     SCHED_GATE = 'Box.ScheduledGate'
-    TIME_LINE = 'Box.Timeline'
+    TIMELINE = 'Box.Timeline'
 
 
 class DrawingLine(str, Enum):
@@ -83,3 +92,20 @@ class DrawingLabel(str, Enum):
     GATE_NAME = 'Label.Gate.Name'
     GATE_PARAM = 'Label.Gate.Param'
     BIT_NAME = 'Label.Bit.Name'
+
+
+class AbstractCoordinate(str, Enum):
+    r"""Abstract coordinate that the exact value depends on the user preference.
+
+    RIGHT: The horizontal coordinate at t0 shifted by the left margin.
+    LEFT: The horizontal coordinate at tf shifted by the right margin.
+    TOP: The vertical coordinate at the top of the canvas.
+    BOTTOM: The vertical coordinate at the bottom of the canvas.
+    """
+    RIGHT = 'RIGHT'
+    LEFT = 'LEFT'
+    TOP = 'TOP'
+    BOTTOM = 'BOTTOM'
+
+
+Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
