@@ -190,7 +190,7 @@ class DrawDataContainer:
         Args:
             visible_bits: List of bits to draw.
         """
-        bit_arange = drawer_style['layout.bit_arange']
+        bit_arange = drawer_style['layout.bit_arrange']
 
         if visible_bits is None:
             bits = []

@@ -91,7 +91,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.control.show_delays': True,
         'layout.gate_color': None,
         'layout.latex_gate_name': None,
-        'layout.bit_arange': None,
+        'layout.bit_arrange': None,
         'generator.gates': [],
         'generator.bits': [],
         'generator.barriers': [],

@@ -66,8 +66,81 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
     Raises:
         VisualizationError: When invalid backend is specified.
 
-    Stylesheet:
-        todo: add stylesheet options
+    Stylesheet options:
+        formatter.general.fig_unit_height: Height of output image in inch per unit.
+        formatter.general.fig_width: Width of output image in inch.
+        formatter.general.dpi: DPI of image when it's saved.
+        formatter.margin.top: Top margin of output image.
+        formatter.margin.bottom: Bottom margin of output image.
+        formatter.margin.left_percent: Left margin of timeline.
+            Value is percentage of entire timeline length.
+        formatter.margin.right_percent: Right margin of timeline.
+            Value is percentage of entire timeline length.
+        formatter.margin.interval: Margin in between timelines.
+        formatter.margin.link_interval_dt: Minimum horizontal spacing of bit links.
+        formatter.time_bucket.edge_dt: Edge length of time buckets of gate instructions.
+        formatter.color.background: Background color.
+        formatter.color.timeslot: Face color of timeline.
+        formatter.color.gate_name: Text color of gate name annotation.
+        formatter.color.bit_name: Text color of bit label.
+        formatter.color.barrier: Line color of barriers.
+        formatter.box_height.gate: Height of time buckets of gate instructions.
+        formatter.box_height.timeslot: Height of timelines.
+        formatter.layer.gate: Layer index of time buckets of gate instructions.
+        formatter.layer.timeslot: Layer index of timeslines.
+        formatter.layer.gate_name: Layer index of gate name annotations.
+        formatter.layer.bit_name: Layer index of bit label.
+        formatter.layer.frame_change: Layer index of frame change symbol.
+        formatter.layer.barrier. Layer index of barrier lines.
+        formatter.layer.bit_link: Layer index of bit link lines.
+        formatter.alpha.gate: Transparency of time buckets of gate instructions.
+        formatter.alpha.timeslot: Transparency of timelines.
+        formatter.alpha.barrier: Transparency of barrier lines.
+        formatter.alpha.bit_link: Transparency of bit link lines.
+        formatter.line_width.gate: Edge line width of time buckets of gate instructions.
+        formatter.line_width.timeslot: Edge line width of timelines.
+        formatter.line_width.barrier: Line width of barrier lines.
+        formatter.line_width.bit_link: Line width of bit_link lines.
+        formatter.line_style.barrier: Line style of barrier lines.
+            The style syntax conforms to the matplotlib.
+        formatter.line_style.bit_link: Line style of bit_link lines.
+            The style syntax conforms to the matplotlib.
+        formatter.font_size.gate_name: Font size of gate name annotations.
+        formatter.font_size.bit_name: Font size of bit labels.
+        formatter.font_size.frame_change: Font size of frame_change symbols.
+        formatter.label_offset.frame_change: Vertical offset of frame change operand annotation
+            from the center of the symbol.
+        formatter.unicode_symbol.frame_change: Unicode representation of frame change symbol.
+        formatter.latex_symbol.frame_change: Latex representation of frame change symbol.
+        formatter.control.show_idle: Default control property to show idle bits.
+            Set `True` to show idle bits.
+        formatter.control.show_clbits: Default control property to show classical bits.
+            Set `True` to show classical bits.
+        formatter.control.show_barriers: Default control property to show barriers.
+            Set `True` to show barriers.
+        formatter.control.show_delays: Default control property to show delays.
+            Set `True` to show delays.
+        layout.gate_color: Layout callback function that takes gate name and
+            returns color code.
+            See :py:mod:`~qiskit.visualization.timeline.layouts` for details.
+        layout.latex_gate_name: Layout callback function that takes gate name and
+            convert it into latex format.
+            See :py:mod:`~qiskit.visualization.timeline.layouts` for details.
+        layout.bit_arrange: Layout callback function that takes list of bits and
+            sort by index or bit types.
+            See :py:mod:`~qiskit.visualization.timeline.layouts` for details.
+        generator.gates: List of generator callback function that takes
+            `ScheduledGate` object and returns drawing objects.
+            See :py:mod:`~qiskit.visualization.timeline.generators` for details.
+        generator.bits: List of generator callback function that takes
+            a bit object and returns drawing objects.
+            See :py:mod:`~qiskit.visualization.timeline.generators` for details.
+        generator.barriers: List of generator callback function that takes
+            `Barrier` object and returns drawing objects.
+            See :py:mod:`~qiskit.visualization.timeline.generators` for details.
+        generator.bit_links: List of generator callback function that takes
+            `GateLink` object and returns drawing objects.
+            See :py:mod:`~qiskit.visualization.timeline.generators` for details.
     """
     # update stylesheet
     drawer_style.update(stylesheet)
