@@ -63,6 +63,7 @@ class DrawingBox(str, Enum):
     TIMELINE: Box that represents time slot of a bit.
     """
     SCHED_GATE = 'Box.ScheduledGate'
+    DELAY_GATE = 'Box.DelayGate'
     TIMELINE = 'Box.Timeline'
 
 

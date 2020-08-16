@@ -47,6 +47,7 @@ def default_style() -> Dict[str, Any]:
     return {
         'formatter.general.fig_unit_height': 0.7,
         'formatter.general.fig_width': 6,
+        'formatter.general.dpi': 150,
         'formatter.margin.top': 0.5,
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.05,
@@ -86,6 +87,8 @@ def default_style() -> Dict[str, Any]:
         'formatter.latex_symbol.frame_change': r'\circlearrowleft',
         'formatter.control.show_idle': True,
         'formatter.control.show_clbits': True,
+        'formatter.control.show_barriers': True,
+        'formatter.control.show_delays': True,
         'layout.gate_color': None,
         'layout.latex_gate_name': None,
         'layout.bit_arange': None,

@@ -61,9 +61,10 @@ class MplPlotter:
             fig_h = drawer_style['formatter.general.fig_unit_height'] * fig_height
             fig_w = drawer_style['formatter.general.fig_width']
 
-            figure = plt.figure(figsize=(fig_w, fig_h))
-            self.ax = figure.add_subplot(1, 1, 1)
+            self.figure = plt.figure(figsize=(fig_w, fig_h))
+            self.ax = self.figure.add_subplot(1, 1, 1)
         else:
+            self.figure = axis.figure
             self.ax = axis
 
         self.initialize_canvas()
@@ -79,7 +80,7 @@ class MplPlotter:
         self.ax.set_xlim(self.draw_data.bbox_left, self.draw_data.bbox_right)
         self.ax.set_ylim(self.draw_data.bbox_bottom, self.draw_data.bbox_top)
 
-    def draw(self) -> plt.Axes:
+    def draw(self):
         """Call matplotlib API and plot drawing objects."""
 
         for drawing in self.draw_data.drawings:
@@ -98,8 +99,6 @@ class MplPlotter:
             else:
                 raise VisualizationError('Data type %s is not supported in matplotlib.' %
                                          drawing.__class__.__name__)
-
-        return self.ax
 
     def _draw_box(self,
                   draw_obj: drawing_objects.BoxData):

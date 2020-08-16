@@ -163,7 +163,16 @@ class DrawDataContainer:
             else:
                 # standard bit associated object
                 if drawing.bit in active_bits:
-                    drawing.visible = True
+                    if drawing.data_type == types.DrawingLine.BARRIER and \
+                            not drawer_style['formatter.control.show_barriers']:
+                        # remove barrier
+                        drawing.visible = False
+                    elif drawing.data_type == types.DrawingBox.DELAY_GATE and \
+                            not drawer_style['formatter.control.show_delays']:
+                        # remove delay
+                        drawing.visible = False
+                    else:
+                        drawing.visible = True
                 else:
                     drawing.visible = False
 
