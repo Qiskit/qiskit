@@ -72,6 +72,7 @@ class DrawingLine(str, Enum):
     BARRIER: Line that represents barrier instruction.
     """
     BARRIER = 'Line.Barrier'
+    BIT_LINK = 'Line.BitLink'
 
 
 class DrawingSymbol(str, Enum):
@@ -109,3 +110,4 @@ class AbstractCoordinate(str, Enum):
 
 
 Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
+Bits = NewType(('Bits', Union[circuit.Qubit, circuit.Clbit]))

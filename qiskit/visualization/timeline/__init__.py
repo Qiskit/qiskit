@@ -45,6 +45,12 @@ class QiskitTimelineStyle(dict):
 def default_style() -> Dict[str, Any]:
     """Define default values of the timeline stylesheet."""
     return {
+        'formatter.margin.top': 0.5,
+        'formatter.margin.bottom': 0.5,
+        'formatter.margin.left_percent': 0.05,
+        'formatter.margin.right_percent': 0.05,
+        'formatter.margin.interval': 0.3,
+        'formatter.margin.link_interval_dt': 100,
         'formatter.color.timeslot': '#DDDDDD',
         'formatter.color.gate_name': '#000000',
         'formatter.color.bit_name': '#000000',
@@ -74,12 +80,15 @@ def default_style() -> Dict[str, Any]:
         'formatter.label_offset.frame_change': 0.25,
         'formatter.unicode_symbol.frame_change': u'\u21BA',
         'formatter.latex_symbol.frame_change': r'\circlearrowleft',
+        'formatter.control.show_idle': True,
+        'formatter.control.show_clbits': True,
         'layout.gate_color': None,
         'layout.latex_gate_name': None,
-        'generator.gate': [],
+        'layout.bit_arange': None,
+        'generator.gates': [],
         'generator.bits': [],
-        'generator.barrier': [],
-        'generator.bit_link': []}
+        'generator.barriers': [],
+        'generator.bit_links': []}
 
 
 drawer_style = QiskitTimelineStyle()
