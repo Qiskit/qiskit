@@ -16,9 +16,9 @@ r"""
 Bit event manager for scheduled circuits.
 
 This module provides a `BitEvents` class that manages a series of instructions for a
-circuit bit. Bit-wise filtering of the circuit program makes
-the arrangement of bit easier in the core drawer function.
-The `BitEvents` class is expected to be called by other programs (not by end-users).
+circuit bit. Bit-wise filtering of the circuit program makes the arrangement of bit
+easier in the core drawer function. The `BitEvents` class is expected to be called
+by other programs (not by end-users).
 
 The `BitEvents` class instance is created with the class method ``load_program``:
     ```python
@@ -26,13 +26,14 @@ The `BitEvents` class instance is created with the class method ``load_program``
     ```
 
 The `BitEvents` is created for a specific circuit bit either quantum or classical.
-The gate types specified in `BitEvents._filter` are omitted even they are associated with the bit.
-A parsed instruction is saved as ``ScheduledGate``, a collection of operand, associated time, and
-bits. If the instruction is associated with multiple bits and the target bit of the instance is
+A parsed instruction is saved as ``ScheduledGate``, which is a collection of operand,
+associated time, and bits. All parsed gate instructions are returned with `gates` method.
+Instruction types specified in `BitEvents._non_gates` are not considered as gates.
+If the instruction is associated with multiple bits and the target bit of the instance is
 the primary bit of the instruction, the `BitEvents` instance also generates a ``BitLink`` object
 that shows a relationship between bits during the multi-bit gates.
 """
-from typing import Union, List
+from typing import List
 
 from qiskit import circuit
 from qiskit.converters import circuit_to_dag
@@ -52,11 +53,11 @@ class InstructionDurations:
 
 class BitEvents:
     """Bit event table."""
-    _filter = (circuit.Barrier, )
+    _non_gates = (circuit.Barrier, )
 
     def __init__(self,
-                 bit: Union[circuit.Qubit, circuit.Clbit],
-                 gates: List[types.ScheduledGate]):
+                 bit: types.Bits,
+                 instructions: List[types.ScheduledGate]):
         """Create new event for the specified bit.
 
         Args:
@@ -64,13 +65,13 @@ class BitEvents:
             gates: List of scheduled gate object.
         """
         self.bit = bit
-        self.gates = gates
+        self.instructions = instructions
 
     @classmethod
     def load_program(cls,
                      scheduled_circuit: circuit.QuantumCircuit,
                      inst_durations: InstructionDurations,
-                     bit: Union[circuit.Qubit, circuit.Clbit]):
+                     bit: types.Bits):
         """Build new RegisterEvents from scheduled circuit.
 
         Args:
@@ -85,10 +86,10 @@ class BitEvents:
         nodes = list(dag.topological_op_nodes())
 
         t0 = 0
-        gates = []
+        instructions = []
         for node in nodes:
             associated_bits = [qarg for qarg in node.qargs] + [carg for carg in node.cargs]
-            if bit not in associated_bits or isinstance(node.op, cls._filter):
+            if bit not in associated_bits:
                 continue
 
             try:
@@ -97,23 +98,48 @@ class BitEvents:
                 duration = inst_durations.get(inst_name=node.op.name,
                                               qubits=node.qargs)
 
-            gates.append(types.ScheduledGate(t0=t0,
-                                             operand=node.op,
-                                             duration=duration,
-                                             bits=associated_bits))
+            instructions.append(types.ScheduledGate(t0=t0,
+                                                    operand=node.op,
+                                                    duration=duration,
+                                                    bits=associated_bits))
             t0 += duration
 
-        return BitEvents(bit, gates)
+        return BitEvents(bit, instructions)
+
+    def is_empty(self) -> bool:
+        """Return if there is any gate associated with this bit."""
+        if any(not isinstance(inst, self._non_gates) for inst in self.instructions):
+            return False
+        else:
+            return True
+
+    def gates(self) -> List[types.ScheduledGate]:
+        """Return scheduled gates."""
+        gates = []
+        for inst in self.instructions:
+            if not isinstance(inst.operand, self._non_gates):
+                gates.append(inst)
+        return gates
+
+    def barriers(self) -> List[types.Barrier]:
+        """Return barriers."""
+        barriers = []
+        for inst in self.instructions:
+            if isinstance(inst.operand, circuit.Barrier):
+                barrier = types.Barrier(t0=inst.t0,
+                                        bits=inst.bits)
+                barriers.append(barrier)
+        return barriers
 
     def bit_links(self) -> List[types.GateLink]:
         """Return link between multi-bit gates."""
         links = []
-        for gate in self.gates:
+        for inst in self.instructions:
             # generate link iff this is the primary bit.
-            if len(gate.bits) > 1 and gate.bits.index(self.bit) == 0:
-                t0 = gate.t0 + 0.5 * gate.duration
+            if len(inst.bits) > 1 and inst.bits.index(self.bit) == 0:
+                t0 = inst.t0 + 0.5 * inst.duration
                 link = types.GateLink(t0=t0,
-                                      operand=gate.operand,
-                                      bits=gate.bits)
+                                      operand=inst.operand,
+                                      bits=inst.bits)
                 links.append(link)
         return links

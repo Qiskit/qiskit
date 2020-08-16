@@ -22,14 +22,19 @@ class IqxStandard(dict):
     - Show only operand name.
     - Show bit name.
     - Show bit link.
+    - Remove idle bits.
     """
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'generator.gate': [generators.gen_sched_gate,
-                                    generators.gen_short_gate_name],
+        style = {'formatter.control.show_idle': False,
+                 'formatter.control.show_clbits': True,
+                 'formatter.control.show_barriers': False,
+                 'formatter.control.show_delays': False,
+                 'generator.gates': [generators.gen_sched_gate,
+                                     generators.gen_short_gate_name],
                  'generator.bits': [generators.gen_bit_name],
-                 'generator.barrier': [],
-                 'generator.bit_link': [generators.gen_bit_link],
+                 'generator.barriers': [generators.gen_barrier],
+                 'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
                  'layout.latex_gate_name': layouts.default_latex_gate_name}
         style.update(**kwargs)
@@ -45,13 +50,19 @@ class IqxSimple(dict):
     - Show time buckets.
     - Show bit name.
     - Show bit link.
+    - Remove idle bits.
+    - Remove classical bits.
     """
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'generator.gate': [generators.gen_sched_gate],
+        style = {'formatter.control.show_idle': False,
+                 'formatter.control.show_clbits': False,
+                 'formatter.control.show_barriers': False,
+                 'formatter.control.show_delays': False,
+                 'generator.gates': [generators.gen_sched_gate],
                  'generator.bits': [generators.gen_bit_name],
-                 'generator.barrier': [],
-                 'generator.bit_link': [generators.gen_bit_link],
+                 'generator.barriers': [generators.gen_barrier],
+                 'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
                  'layout.latex_gate_name': layouts.default_latex_gate_name}
         style.update(**kwargs)
@@ -67,16 +78,21 @@ class IqxDebugging(dict):
     - Show time buckets.
     - Show operand name, qubits, and parameters.
     - Show barriers.
+    - Show delays.
     - Show bit name.
     - Show bit link.
     """
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'generator.gate': [generators.gen_sched_gate,
-                                    generators.gen_full_gate_name],
+        style = {'formatter.control.show_idle': True,
+                 'formatter.control.show_clbits': True,
+                 'formatter.control.show_barriers': True,
+                 'formatter.control.show_delays': True,
+                 'generator.gates': [generators.gen_sched_gate,
+                                     generators.gen_full_gate_name],
                  'generator.bits': [generators.gen_bit_name],
-                 'generator.barrier': [generators.gen_barrier],
-                 'generator.bit_link': [generators.gen_bit_link],
+                 'generator.barriers': [generators.gen_barrier],
+                 'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
                  'layout.latex_gate_name': layouts.default_latex_gate_name}
         style.update(**kwargs)

@@ -38,12 +38,11 @@ Adding a custom generator:
 
 from typing import List, Union
 
-from qiskit.visualization.timeline import drawer_style, types, drawing_objects
 from qiskit.circuit.exceptions import CircuitError
-from qiskit import circuit
+from qiskit.visualization.timeline import drawer_style, types, drawing_objects
 
 
-def gen_sched_gate(bit: Union[circuit.Qubit, circuit.Clbit],
+def gen_sched_gate(bit: types.Bits,
                    gate: types.ScheduledGate) \
         -> List[Union[drawing_objects.TextData, drawing_objects.BoxData]]:
     r"""Generate time bucket or symbol of scheduled gate.
@@ -122,7 +121,7 @@ def gen_sched_gate(bit: Union[circuit.Qubit, circuit.Clbit],
     return [drawing]
 
 
-def gen_full_gate_name(bit: Union[circuit.Qubit, circuit.Clbit],
+def gen_full_gate_name(bit: types.Bits,
                        gate: types.ScheduledGate) -> List[drawing_objects.TextData]:
     r"""Generate gate name.
 
@@ -182,7 +181,7 @@ def gen_full_gate_name(bit: Union[circuit.Qubit, circuit.Clbit],
     return [drawing]
 
 
-def gen_short_gate_name(bit: Union[circuit.Qubit, circuit.Clbit],
+def gen_short_gate_name(bit: types.Bits,
                         gate: types.ScheduledGate) -> List[drawing_objects.TextData]:
     r"""Generate gate name.
 
@@ -229,7 +228,7 @@ def gen_short_gate_name(bit: Union[circuit.Qubit, circuit.Clbit],
     return [drawing]
 
 
-def gen_timeslot(bit: Union[circuit.Qubit, circuit.Clbit]) -> List[drawing_objects.BoxData]:
+def gen_timeslot(bit: types.Bits) -> List[drawing_objects.BoxData]:
     r"""Generate time slot of associated bit.
 
     Args:
@@ -256,7 +255,7 @@ def gen_timeslot(bit: Union[circuit.Qubit, circuit.Clbit]) -> List[drawing_objec
     return [drawing]
 
 
-def gen_bit_name(bit: Union[circuit.Qubit, circuit.Clbit]) -> List[drawing_objects.TextData]:
+def gen_bit_name(bit: types.Bits) -> List[drawing_objects.TextData]:
     r"""Generate bit label.
 
     Args:
@@ -274,8 +273,8 @@ def gen_bit_name(bit: Union[circuit.Qubit, circuit.Clbit]) -> List[drawing_objec
     }
 
     label_plain = '{name}'.format(name=bit.register.name)
-    label_latex = '{register}_{{{index}}}'.format(register=bit.register.prefix,
-                                                  index=bit.index)
+    label_latex = r'{{\rm {register}}}_{{{index}}}'.format(register=bit.register.prefix,
+                                                           index=bit.index)
 
     drawing = drawing_objects.TextData(data_type=types.DrawingLabel.BIT_NAME,
                                        bit=bit,
@@ -288,10 +287,12 @@ def gen_bit_name(bit: Union[circuit.Qubit, circuit.Clbit]) -> List[drawing_objec
     return [drawing]
 
 
-def gen_barrier(barrier: types.Barrier) -> List[drawing_objects.LineData]:
+def gen_barrier(bit: types.Bits,
+                barrier: types.Barrier) -> List[drawing_objects.LineData]:
     r"""Generate barrier line.
 
     Args:
+        bit: Bit object associated to this drawing.
         barrier: Barrier instruction.
 
     Stylesheet:
@@ -305,16 +306,13 @@ def gen_barrier(barrier: types.Barrier) -> List[drawing_objects.LineData]:
         'color': drawer_style['formatter.color.barrier']
     }
 
-    drawings = []
-    for bit in barrier.bits:
-        drawing = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
-                                           bit=bit,
-                                           x=[barrier.t0, barrier.t0],
-                                           y=[-0.5, 0.5],
-                                           styles=styles)
-        drawings.append(drawing)
+    drawing = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
+                                       bit=bit,
+                                       x=[barrier.t0, barrier.t0],
+                                       y=[-0.5, 0.5],
+                                       styles=styles)
 
-    return drawings
+    return [drawing]
 
 
 def gen_bit_link(link: types.GateLink) -> List[drawing_objects.BitLinkData]:
