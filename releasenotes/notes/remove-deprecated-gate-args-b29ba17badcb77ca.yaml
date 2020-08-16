@@ -1,5 +1,5 @@
 ---
-deprecations:
+upgrade:
   - |
     The deprecated keyword arguments for the circuit gates ``q``,
     ``ctl*`` and ``tgt*`` have been removed. Instead, only the names
