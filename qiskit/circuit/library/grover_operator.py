@@ -17,7 +17,6 @@
 from typing import List, Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import Diagonal
 from qiskit.quantum_info import Statevector, Operator, DensityMatrix
 from .standard_gates import MCXGate
 
@@ -99,10 +98,12 @@ class GroverOperator(QuantumCircuit):
 
         # store inputs
         if isinstance(oracle, Statevector):
+            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
             oracle = Diagonal((-1) ** oracle.data)
         self._oracle = oracle
 
         if isinstance(zero_reflection, (Operator, DensityMatrix)):
+            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
             zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection
 
