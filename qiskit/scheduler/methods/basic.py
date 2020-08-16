@@ -170,7 +170,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
             if (len(inst_qubits) != 1 and len(clbits) != 1):
-                raise QiskitError("Qubit '{0}' or classical bit '{1}' errored because the "
+                raise QiskitError("Qubit '{}' or classical bit '{}' errored because the "
                                   "circuit Measure instruction only takes one of "
                                   "each.".format(inst_qubits, clbits))
             qubit_mem_slots[inst_qubits[0]] = clbits[0].index
@@ -180,7 +180,7 @@ def translate_gates_to_pulse_defs(circuit: QuantumCircuit,
                     CircuitPulseDef(schedule=inst_map.get(inst.name, inst_qubits, *inst.params),
                                     qubits=inst_qubits))
             except PulseError:
-                raise QiskitError("Operation '{0}' on qubit(s) {1} not supported by the backend "
+                raise QiskitError("Operation '{}' on qubit(s) {} not supported by the backend "
                                   "command definition. Did you remember to transpile your input "
                                   "circuit for the same backend?".format(inst.name, inst_qubits))
     if qubit_mem_slots:

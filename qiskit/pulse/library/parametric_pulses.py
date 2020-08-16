@@ -445,5 +445,5 @@ class ConstantPulse(Constant):
             amp: The amplitude of the constant square pulse.
             name: Display name for this pulse envelope.
         """
-        super(ConstantPulse, self).__init__(duration, amp, name)
+        super().__init__(duration, amp, name)
         warnings.warn("The ConstantPulse is deprecated. Use Constant instead", DeprecationWarning)
