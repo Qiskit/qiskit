@@ -87,7 +87,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             sched = Schedule(name=inst.name)
             for qubit in inst_qubits:
                 for channel in [DriveChannel]:
-                    sched += pulse_inst.Delay(duration=inst.duration, channel=channel(qubit))
+                    sched += pulse_inst.Delay(duration=getattr(inst, "duration"),
+                                              channel=channel(qubit))
             circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
 
         elif isinstance(inst, Measure):
