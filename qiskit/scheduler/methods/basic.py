@@ -21,7 +21,7 @@ from qiskit.circuit.barrier import Barrier
 from qiskit.pulse.schedule import Schedule
 
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.methods.lowering import lower_gates
+from qiskit.scheduler.lowering import lower_gates
 
 
 def as_soon_as_possible(circuit: QuantumCircuit,

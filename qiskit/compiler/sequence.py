@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import BaseBackend
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.scheduler import ScheduleConfig
-from qiskit.scheduler.methods import sequence as _sequence
+from qiskit.scheduler.sequence import sequence as _sequence
 
 
 def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],

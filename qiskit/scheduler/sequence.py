@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.transforms import pad
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.methods.lowering import lower_gates
+from qiskit.scheduler.lowering import lower_gates
 
 
 def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Schedule:
