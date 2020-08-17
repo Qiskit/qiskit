@@ -63,7 +63,7 @@ class DrawingBox(str, Enum):
     TIMELINE: Box that represents time slot of a bit.
     """
     SCHED_GATE = 'Box.ScheduledGate'
-    DELAY_GATE = 'Box.DelayGate'
+    DELAY = 'Box.Delay'
     TIMELINE = 'Box.Timeline'
 
 
@@ -92,6 +92,7 @@ class DrawingLabel(str, Enum):
     BIT_NAME: Label that represents name of bit.
     """
     GATE_NAME = 'Label.Gate.Name'
+    DELAY = 'Label.Delay'
     GATE_PARAM = 'Label.Gate.Param'
     BIT_NAME = 'Label.Bit.Name'
 
@@ -111,4 +112,4 @@ class AbstractCoordinate(str, Enum):
 
 
 Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
-Bits = NewType(('Bits', Union[circuit.Qubit, circuit.Clbit]))
+Bits = NewType('Bits', Union[circuit.Qubit, circuit.Clbit])

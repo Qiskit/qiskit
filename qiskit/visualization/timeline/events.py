@@ -37,18 +37,8 @@ from typing import List
 
 from qiskit import circuit
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.visualization.timeline import types
-
-
-class InstructionDurations:
-    # Mock class to detach this PR from Itoko's PR #4555
-    # TODO : replace this class
-    @staticmethod
-    def get(inst_name, qubits):
-        if inst_name == 'h':
-            return 160
-        if inst_name == 'cx':
-            return 512
 
 
 class BitEvents:
@@ -62,7 +52,7 @@ class BitEvents:
 
         Args:
             bit: Bit object associated with this event table.
-            gates: List of scheduled gate object.
+            instructions: List of scheduled gate object.
         """
         self.bit = bit
         self.instructions = instructions

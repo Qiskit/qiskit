@@ -23,16 +23,18 @@ class IqxStandard(dict):
     - Show bit name.
     - Show bit link.
     - Remove idle bits.
+    - Remove classical bits.
     """
     def __init__(self, **kwargs):
         super().__init__()
         style = {'formatter.control.show_idle': False,
-                 'formatter.control.show_clbits': True,
+                 'formatter.control.show_clbits': False,
                  'formatter.control.show_barriers': False,
                  'formatter.control.show_delays': False,
                  'generator.gates': [generators.gen_sched_gate,
                                      generators.gen_short_gate_name],
-                 'generator.bits': [generators.gen_bit_name],
+                 'generator.bits': [generators.gen_bit_name,
+                                    generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
                  'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
@@ -61,7 +63,8 @@ class IqxSimple(dict):
                  'formatter.control.show_barriers': False,
                  'formatter.control.show_delays': False,
                  'generator.gates': [generators.gen_sched_gate],
-                 'generator.bits': [generators.gen_bit_name],
+                 'generator.bits': [generators.gen_bit_name,
+                                    generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
                  'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
@@ -92,7 +95,8 @@ class IqxDebugging(dict):
                  'formatter.control.show_delays': True,
                  'generator.gates': [generators.gen_sched_gate,
                                      generators.gen_full_gate_name],
-                 'generator.bits': [generators.gen_bit_name],
+                 'generator.bits': [generators.gen_bit_name,
+                                    generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
                  'generator.bit_links': [generators.gen_bit_link],
                  'layout.gate_color': layouts.default_color_table,
