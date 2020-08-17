@@ -171,7 +171,7 @@ class _LayerSpooler(list):
 
     def __init__(self, dag, justification):
         """Create spool"""
-        super(_LayerSpooler, self).__init__()
+        super().__init__()
         self.dag = dag
         self.qregs = dag.qubits
         self.justification = justification

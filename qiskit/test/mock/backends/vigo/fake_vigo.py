@@ -32,7 +32,7 @@ class FakeVigo(FakeBackend):
         """
         dirname = os.path.dirname(__file__)
         filename = "conf_vigo.json"
-        with open(os.path.join(dirname, filename), "r") as f_conf:
+        with open(os.path.join(dirname, filename)) as f_conf:
             conf = json.load(f_conf)
         configuration = QasmBackendConfiguration.from_dict(conf)
         configuration.backend_name = 'fake_vigo'
@@ -42,6 +42,6 @@ class FakeVigo(FakeBackend):
         """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_vigo.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
+        with open(os.path.join(dirname, filename)) as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
