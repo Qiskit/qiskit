@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -103,6 +101,10 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
         with self.assertRaises(BackendPropertyError):
             self.properties._apply_prefix(71.9500421005539, 'ws')
+
+    def test_operational(self):
+        """Test operation status of a given qubit."""
+        self.assertTrue(self.properties.is_qubit_operational(0))
 
     def test_deepcopy(self):
         """Test that deepcopy creates an identical object."""

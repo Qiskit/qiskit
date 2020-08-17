@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Parametric pulses from :mod:`qiskit.pulse.library.discrete`
+    now have zero ends of parametric pulses by default. The endpoints are
+    defined such that for a function :math:`f(x)` then
+    :math:`f(-1) = f(duration + 1) = 0`.
+    Fixes `#4317 <https://github.com/Qiskit/qiskit-terra/issues/4317>`__

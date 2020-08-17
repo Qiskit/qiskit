@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -400,6 +398,43 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
                         k2 = np.kron(k2l.data, k2r.data)
                         a = Ud(aaa, aaa, ccc)
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_random_unitary_fp_precision_error(self):
+        """Assert there are no fp precision sign flips."""
+        gate = CXGate()
+        self.check_two_qubit_weyl_decomposition(Operator(gate).data)
+        decomp = TwoQubitWeylDecomposition(Operator(gate).data)
+        expected_k1r = np.array([[-0.5+0.5j, -0.5+0.5j],
+                                 [0.5+0.5j, -0.5-0.5j]])
+        expected_k2l = np.array([[0.0+0.0j, -1.0+0.0j],
+                                 [1.0+0.0j, 0.0+0.0j]])
+        sqrt_2 = 1 / np.sqrt(2)
+        expected_k2r = np.array([[complex(0, sqrt_2), complex(0, sqrt_2)],
+                                 [complex(0, sqrt_2), complex(0, -sqrt_2)]])
+        expected_k1l = np.array([[complex(0, sqrt_2), complex(-sqrt_2, 0)],
+                                 [complex(sqrt_2, 0), complex(0, -sqrt_2)]])
+        np.allclose(decomp.K1r, expected_k1r)
+        np.allclose(decomp.K2r, expected_k2r)
+        np.allclose(decomp.K2l, expected_k2l)
+        np.allclose(decomp.K1l, expected_k1l)
+        # Assert approx 0s are not negative
+        # K2l
+        self.assertGreaterEqual(decomp.K2l[0][0].real, 0)
+        self.assertGreaterEqual(decomp.K2l[0][0].imag, 0)
+        self.assertGreaterEqual(decomp.K2l[0][1].imag, 0)
+        self.assertGreaterEqual(decomp.K2l[1][0].imag, 0)
+        self.assertGreaterEqual(decomp.K2l[1][1].real, 0)
+        self.assertGreaterEqual(decomp.K2l[1][1].imag, 0)
+        # K2r
+        self.assertGreaterEqual(decomp.K2r[0][0].real, 0)
+        self.assertGreaterEqual(decomp.K2r[0][1].real, 0)
+        self.assertGreaterEqual(decomp.K2r[1][0].real, 0)
+        self.assertGreaterEqual(decomp.K2r[1][1].real, 0)
+        # k1l
+        self.assertGreaterEqual(decomp.K2r[0][0].real, 0)
+        self.assertGreaterEqual(decomp.K2r[0][1].imag, 0)
+        self.assertGreaterEqual(decomp.K2r[1][0].imag, 0)
+        self.assertGreaterEqual(decomp.K2r[1][1].real, 0)
 
 
 class TestTwoQubitDecomposeExact(QiskitTestCase):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -1586,6 +1584,18 @@ class QuantumCircuit:
             new_creg = ClassicalRegister(length, name)
         return new_creg
 
+    def _create_qreg(self, length, name):
+        """ Creates a qreg, checking if QuantumRegister with same name exists
+        """
+        if name in [qreg.name for qreg in self.qregs]:
+            save_prefix = QuantumRegister.prefix
+            QuantumRegister.prefix = name
+            new_qreg = QuantumRegister(length)
+            QuantumRegister.prefix = save_prefix
+        else:
+            new_qreg = QuantumRegister(length, name)
+        return new_qreg
+
     def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
         a size equal to the number of non-idle qubits being measured.
@@ -1957,19 +1967,21 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.IGate`."""
         return self.i(qubit)
 
-    @deprecate_arguments({'q': 'qubit'})
-    def iden(self, qubit, *, q=None):  # pylint: disable=unused-argument
-        """Deprecated identity gate."""
-        warnings.warn('The QuantumCircuit.iden() method is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.i() method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.i(qubit)
-
     def ms(self, theta, qubits):  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.MSGate`."""
         from .library.standard_gates.ms import MSGate
         return self.append(MSGate(len(qubits), theta), qubits)
+
+    def p(self, theta, qubit):
+        """Apply :class:`~qiskit.circuit.library.PhaseGate`."""
+        from .library.standard_gates.p import PhaseGate
+        return self.append(PhaseGate(theta), [qubit], [])
+
+    def cp(self, theta, control_qubit, target_qubit, label=None, ctrl_state=None):
+        """Apply :class:`~qiskit.circuit.library.CPhaseGate`."""
+        from .library.standard_gates.p import CPhaseGate
+        return self.append(CPhaseGate(theta, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
     def r(self, theta, phi, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
@@ -2095,6 +2107,22 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.CSwapGate`."""
         return self.cswap(control_qubit, target_qubit1, target_qubit2)
 
+    def sx(self, qubit):
+        """Apply :class:`~qiskit.circuit.library.SXGate`."""
+        from .library.standard_gates.sx import SXGate
+        return self.append(SXGate(), [qubit], [])
+
+    def sxdg(self, qubit):
+        """Apply :class:`~qiskit.circuit.library.SXdgGate`."""
+        from .library.standard_gates.sx import SXdgGate
+        return self.append(SXdgGate(), [qubit], [])
+
+    def csx(self, control_qubit, target_qubit, label=None, ctrl_state=None):
+        """Apply :class:`~qiskit.circuit.library.CSXGate`."""
+        from .library.standard_gates.sx import CSXGate
+        return self.append(CSXGate(label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
+
     @deprecate_arguments({'q': 'qubit'})
     def t(self, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument
         """Apply :class:`~qiskit.circuit.library.TGate`."""
@@ -2106,6 +2134,17 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.TdgGate`."""
         from .library.standard_gates.t import TdgGate
         return self.append(TdgGate(), [qubit], [])
+
+    def u(self, theta, phi, lam, qubit):
+        """Apply :class:`~qiskit.circuit.library.UGate`."""
+        from .library.standard_gates.u import UGate
+        return self.append(UGate(theta, phi, lam), [qubit], [])
+
+    def cu(self, theta, phi, lam, gamma, control_qubit, target_qubit, label=None, ctrl_state=None):
+        """Apply :class:`~qiskit.circuit.library.CUGate`."""
+        from .library.standard_gates.u import CUGate
+        return self.append(CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
+                           [control_qubit, target_qubit], [])
 
     @deprecate_arguments({'q': 'qubit'})
     def u1(self, theta, qubit, *, q=None):  # pylint: disable=invalid-name,unused-argument

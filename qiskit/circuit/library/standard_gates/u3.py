@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -27,7 +25,7 @@ class U3Gate(Gate):
 
     .. math::
         U3(\theta, \phi, \lambda) =
-            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
+            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
 
     **Circuit symbol:**
 
@@ -101,17 +99,7 @@ class U3Gate(Gate):
         ], dtype=complex)
 
 
-class CU3Meta(type):
-    """A metaclass to ensure that Cu3Gate and CU3Gate are of the same type.
-
-    Can be removed when Cu3Gate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CU3Gate, Cu3Gate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CU3Gate(ControlledGate, metaclass=CU3Meta):
+class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
 
     This is a controlled version of the U3 gate (generic single qubit rotation).
@@ -212,7 +200,7 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
         return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
 
     def to_matrix(self):
-        """Return a numpy.array for the CRY gate."""
+        """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = numpy.cos(theta / 2)
@@ -231,18 +219,6 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
                  [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi+lam)) * cos, 0],
                  [0, 0, 0, 1]],
                 dtype=complex)
-
-
-class Cu3Gate(CU3Gate, metaclass=CU3Meta):
-    """The deprecated CU3Gate class."""
-
-    def __init__(self, theta, phi, lam):
-        import warnings
-        warnings.warn('The class Cu3Gate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CU3Gate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta, phi, lam)
 
 
 def _generate_gray_code(num_bits):

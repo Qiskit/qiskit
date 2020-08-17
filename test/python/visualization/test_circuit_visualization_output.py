@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -52,6 +50,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.sdg(qr[0])
         circuit.t(qr[0])
         circuit.tdg(qr[0])
+        circuit.sx(qr[0])
+        circuit.sxdg(qr[0])
         circuit.i(qr[0])
         circuit.reset(qr[0])
         circuit.rx(pi, qr[0])
@@ -102,12 +102,12 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         qc = self.sample_circuit()
         output = circuit_drawer(qc, filename=filename, output="text", fold=-1, initial_state=True,
                                 cregbundle=False)
-        self.assertFilesAreEqual(filename, self.text_reference)
-        os.remove(filename)
         try:
             encode(str(output), encoding='cp437')
         except UnicodeEncodeError:
             self.fail("_text_circuit_drawer() should only use extended ascii (aka code page 437).")
+        self.assertFilesAreEqual(filename, self.text_reference)
+        os.remove(filename)
 
 
 if __name__ == '__main__':
