@@ -2089,7 +2089,7 @@ class QuantumCircuit:
         from .library.standard_gates.t import TGate
         return self.append(TGate(), [qubit], [])
 
-    def tdg(self, qubit):  # pylint: disable=unused-argument
+    def tdg(self, qubit):
         """Apply :class:`~qiskit.circuit.library.TdgGate`."""
         from .library.standard_gates.t import TdgGate
         return self.append(TdgGate(), [qubit], [])
