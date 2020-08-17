@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -47,7 +45,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_deterministic_state(self):
         """Initialize a computational-basis state |01> on 2 qubits."""
@@ -61,7 +59,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
@@ -75,7 +73,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_ghz_state(self):
         """Initialize a GHZ state on 3 qubits."""
@@ -89,7 +87,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_initialize_register(self):
         """Initialize one register out of two."""
@@ -104,7 +102,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, np.kron([1, 0, 0, 0], desired_vector))
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_initialize_one_by_one(self):
         """Initializing qubits individually into product state same as initializing the pair."""
@@ -125,7 +123,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector_a, statevector_b)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_single_qubit(self):
         """Initialize a single qubit to a weighted superposition state."""
@@ -139,7 +137,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_random_3qubit(self):
         """Initialize to a non-trivial 3-qubit state."""
@@ -161,7 +159,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_random_4qubit(self):
         """Initialize to a non-trivial 4-qubit state."""
@@ -191,7 +189,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_malformed_amplitudes(self):
         """Initializing to a vector with 3 amplitudes fails."""
@@ -244,8 +242,8 @@ class TestInitialize(QiskitTestCase):
         qc.measure(qr, cr)
         # statevector simulator does not support reset
         shots = 2000
-        threshold = 0.04 * shots
-        job = execute(qc, BasicAer.get_backend('qasm_simulator'), shots=shots)
+        threshold = 0.005 * shots
+        job = execute(qc, BasicAer.get_backend('qasm_simulator'), shots=shots, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
         target = {'00': shots / 4, '01': shots / 4,
@@ -280,7 +278,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_combiner(self):
         """Combining two circuits containing initialize."""
@@ -300,7 +298,7 @@ class TestInitialize(QiskitTestCase):
         fidelity = state_fidelity(quantum_state, desired_vector_2)
         self.assertGreater(
             fidelity, self._desired_fidelity,
-            "Initializer has low fidelity {0:.2g}.".format(fidelity))
+            "Initializer has low fidelity {:.2g}.".format(fidelity))
 
     def test_equivalence(self):
         """Test two similar initialize instructions evaluate to equal."""
@@ -337,7 +335,7 @@ class TestInitialize(QiskitTestCase):
         circuit.initialize(vector, qr)
 
         b = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      optimization_level=_optimization_level)
+                      optimization_level=_optimization_level, seed_transpiler=42)
 
         number_cnots = b.count_ops()['cx']
         max_cnots = 2 ** (num_qubits + 1) - 2 * num_qubits
@@ -351,7 +349,7 @@ class TestInstructionParam(QiskitTestCase):
     def test_daig_(self):
         """Verify diagonal gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
-        diag = np.array([1+0j, 1+0j])
+        diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
         qc.diagonal(list(diag), [0])
 
@@ -370,7 +368,7 @@ class TestInstructionParam(QiskitTestCase):
         """Verify initialize gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/4151
         qc = QuantumCircuit(1)
-        vec = np.array([0, 0+1j])
+        vec = np.array([0, 0 + 1j])
         qc.initialize(vec, 0)
 
         params = qc.data[0][0].params

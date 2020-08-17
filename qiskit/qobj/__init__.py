@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -94,5 +92,5 @@ class Qobj(QasmQobj):
         warnings.warn('qiskit.qobj.Qobj is deprecated use either QasmQobj or '
                       'PulseQobj depending on your application instead.',
                       DeprecationWarning, stacklevel=2)
-        super(Qobj, self).__init__(qobj_id=qobj_id, config=config,
-                                   experiments=experiments, header=header)
+        super().__init__(qobj_id=qobj_id, config=config,
+                         experiments=experiments, header=header)
