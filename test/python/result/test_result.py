@@ -133,9 +133,8 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(marginal_counts(result, [0]).get_counts(1),
                          expected_marginal_counts_2)
 
-    def test_marginal_counts_in_place_result(self):
-        """Test that a Result object containing counts marginalizes correctly
-            when in_place = True.
+    def test_marginal_counts_inplace_true(self):
+        """Test marginal_counts(Result, inplace = True)
         """
         raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
         data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
