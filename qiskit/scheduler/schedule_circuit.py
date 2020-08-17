@@ -18,7 +18,7 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible, sequence
+from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
 
 
 def schedule_circuit(circuit: QuantumCircuit,
@@ -35,8 +35,6 @@ def schedule_circuit(circuit: QuantumCircuit,
           qubit resource. alias: ``'asap'``)
         * ``'as_late_as_possible'``: Schedule pulses late-- keep qubits in the ground state when
           possible. (alias: ``'alap'``)
-        * ``sequence``: Schedule trivially in an ASAP fashion, but use gate durations provided by
-                        the input schedule.
 
     Args:
         circuit: The quantum circuit to translate.
@@ -53,8 +51,7 @@ def schedule_circuit(circuit: QuantumCircuit,
         'as_soon_as_possible': as_soon_as_possible,
         'asap': as_soon_as_possible,
         'as_late_as_possible': as_late_as_possible,
-        'alap': as_late_as_possible,
-        'sequence': sequence
+        'alap': as_late_as_possible
     }
     if method is None:
         method = 'as_late_as_possible'
