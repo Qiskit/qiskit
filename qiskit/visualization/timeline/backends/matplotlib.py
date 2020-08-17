@@ -73,8 +73,16 @@ class MplPlotter:
         """Initialize axis."""
         self.ax.set_facecolor(drawer_style['formatter.color.background'])
 
+        # axis lines
+        self.ax.spines['right'].set_color("none")
+        self.ax.spines['left'].set_color("none")
+        self.ax.spines['top'].set_color("none")
+        self.ax.spines['bottom'].set_color("none")
+
         # axis labels
-        self.ax.set_yticklabels([])
+        self.ax.set_yticks([])
+        self.ax.tick_params(axis='x',
+                            labelsize=drawer_style['formatter.font_size.horizontal_axis'])
 
         # boundary
         self.ax.set_xlim(self.draw_data.bbox_left, self.draw_data.bbox_right)
@@ -116,6 +124,10 @@ class MplPlotter:
                                              x1=draw_obj.x1,
                                              y1=draw_obj.y1)
 
+            # do not draw when out of plot range
+            if self._out_of_range(x):
+                return
+
             self.ax.fill_between(x=x, y1=y1+y_offset, y2=y2+y_offset, **draw_obj.styles)
         else:
             # draw general rectangle
@@ -123,6 +135,10 @@ class MplPlotter:
             y0 = self._get_coordinate(draw_obj.y0) + y_offset
             x1 = self._get_coordinate(draw_obj.x1)
             y1 = self._get_coordinate(draw_obj.y1) + y_offset
+
+            # do not draw when out of plot range
+            if self._out_of_range([x0, x1]):
+                return
 
             rect = Rectangle(xy=(x0, y0), width=x1 - x0, height=y1 - y0)
             pc = PatchCollection([rect], **draw_obj.styles)
@@ -140,6 +156,10 @@ class MplPlotter:
         xs = list(map(self._get_coordinate, draw_obj.x))
         ys = np.array(list(map(self._get_coordinate, draw_obj.y))) + y_offset
 
+        # do not draw when out of plot range
+        if self._out_of_range(xs):
+            return
+
         self.ax.plot(xs, ys, **draw_obj.styles)
 
     def _draw_text(self,
@@ -154,12 +174,16 @@ class MplPlotter:
         x = self._get_coordinate(draw_obj.x)
         y = self._get_coordinate(draw_obj.y) + y_offset
 
+        # do not draw when out of plot range
+        if self._out_of_range(x):
+            return
+
         if draw_obj.latex is not None:
             s = r'${latex}$'.format(latex=draw_obj.latex)
         else:
             s = draw_obj.text
 
-        self.ax.text(x=x, y=y + y_offset, s=s, **draw_obj.styles)
+        self.ax.text(x=x, y=y, s=s, **draw_obj.styles)
 
     def _draw_bit_link(self,
                        draw_obj: drawing_objects.BitLinkData):
@@ -169,13 +193,21 @@ class MplPlotter:
             draw_obj: drawing object.
         """
         ys = np.array([self.draw_data.bit_offsets.get(bit, None) for bit in draw_obj.bits])
+        x = draw_obj.x + draw_obj.offset
 
-        x_pos = draw_obj.x + draw_obj.offset
+        # do not draw when out of plot range
+        if self._out_of_range(x):
+            return
 
-        self.ax.plot([x_pos, x_pos], [np.nanmin(ys), np.nanmax(ys)], **draw_obj.styles)
+        self.ax.plot([x, x], [np.nanmin(ys), np.nanmax(ys)], **draw_obj.styles)
 
     def _get_coordinate(self,
                         value: types.Coordinate) -> Union[int, float]:
+        """Substitute real coordinate to abstract coordinate.
+
+        Args:
+            value: Coordinate expression.
+        """
 
         if not isinstance(value, types.AbstractCoordinate):
             return value
@@ -190,6 +222,20 @@ class MplPlotter:
         else:
             raise VisualizationError('Invalid coordinate %s is specified.' % value)
 
+    def _out_of_range(self, xs: Union[float, np.ndarray, list]) -> bool:
+        """Check if coordinate is in the plot range.
+
+        Args:
+            xs: Horizontal position.
+        """
+        if np.isscalar(xs):
+            xs = [xs]
+
+        if np.min(xs) > self.draw_data.bbox_right or np.max(xs) < self.draw_data.bbox_left:
+            return True
+        else:
+            return False
+
 
 def _time_bucket_outline(x0: int,
                          y0: int,
@@ -203,9 +249,10 @@ def _time_bucket_outline(x0: int,
         x1: Right coordinate.
         y1: Top coordinate.
     """
-    ew = drawer_style['formatter.time_bucket.edge_dt']
+    width = x1 - x0
     y_mid = 0.5 * (y0 + y1)
 
+    ew = int(min(drawer_style['formatter.time_bucket.edge_dt'], max(width/2-2, 0)))
     edge = np.sin(np.pi / 2 * np.arange(0, ew) / ew)
 
     xs = np.concatenate([np.arange(x0, x0+ew),

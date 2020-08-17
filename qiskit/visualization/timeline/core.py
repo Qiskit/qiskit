@@ -44,10 +44,12 @@ In this example, the Qubit1 will be removed from the output.
 """
 
 from typing import Optional, List
+from itertools import chain
 
 import numpy as np
 
 from qiskit import circuit
+from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.visualization.timeline import drawer_style, drawing_objects, events, types
 
 
@@ -77,7 +79,7 @@ class DrawDataContainer:
 
     def load_program(self,
                      scheduled_circuit: circuit.QuantumCircuit,
-                     inst_durations: events.InstructionDurations):
+                     inst_durations: InstructionDurations):
         """Load quantum circuit and create drawing object..
 
         Args:
@@ -94,23 +96,32 @@ class DrawDataContainer:
         self.set_time_range(0, scheduled_circuit.duration)
 
         # generate drawing objects associated with the events
-        for bit, bit_events in self.events.items():
+        for bit, event in self.events.items():
             # create objects associated with gates
+            insts = event.gates()
             for gen in drawer_style['generator.gates']:
-                for drawing in sum(list(map(gen, bit_events.gates())), []):
+                drawings = list(chain.from_iterable(gen(bit, inst) for inst in insts))
+                for drawing in drawings:
                     self._add_drawing(drawing)
+
             # create objects associated with barriers
+            insts = event.barriers()
             for gen in drawer_style['generator.barriers']:
-                for drawing in sum(list(map(gen, bit_events.barriers())), []):
+                drawings = list(chain.from_iterable(gen(bit, inst) for inst in insts))
+                for drawing in drawings:
                     self._add_drawing(drawing)
+
             # create objects associated with bit links
+            insts = event.bit_links()
             for gen in drawer_style['generator.bit_links']:
-                for drawing in sum(list(map(gen, bit_events.bit_links())), []):
+                drawings = list(chain.from_iterable(gen(inst) for inst in insts))
+                for drawing in drawings:
                     self._add_drawing(drawing)
 
         # create objects associated with bits
         for gen in drawer_style['generator.bits']:
-            for drawing in sum(list(map(gen, self.bits)), []):
+            drawings = list(chain.from_iterable(gen(bit) for bit in self.bits))
+            for drawing in drawings:
                 self._add_drawing(drawing)
 
     def set_time_range(self,
@@ -162,12 +173,14 @@ class DrawDataContainer:
                     drawing.visible = False
             else:
                 # standard bit associated object
+                _barrier_data = [types.DrawingLine.BARRIER]
+                _delay_data = [types.DrawingBox.DELAY, types.DrawingLabel.DELAY]
                 if drawing.bit in active_bits:
-                    if drawing.data_type == types.DrawingLine.BARRIER and \
+                    if drawing.data_type in _barrier_data and \
                             not drawer_style['formatter.control.show_barriers']:
                         # remove barrier
                         drawing.visible = False
-                    elif drawing.data_type == types.DrawingBox.DELAY_GATE and \
+                    elif drawing.data_type in _delay_data and \
                             not drawer_style['formatter.control.show_delays']:
                         # remove delay
                         drawing.visible = False
@@ -255,7 +268,7 @@ class DrawDataContainer:
 
                 # sort link by y position
                 sorted_links = sorted(overlaps,
-                                      key=lambda x: np.nanmin(y_coords(x)))
+                                      key=lambda x: np.nanmax(y_coords(x)))
                 x0 = xpos_mean - 0.5 * allowed_overlap * (len(overlaps) - 1)
                 for ind, link in enumerate(sorted_links):
                     new_x = x0 + ind * allowed_overlap

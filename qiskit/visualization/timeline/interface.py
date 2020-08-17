@@ -12,20 +12,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from qiskit import circuit
-from qiskit.visualization.timeline.events import InstructionDurations
-from qiskit.visualization.timeline import drawer_style, types, core, styles
-from qiskit.visualization.exceptions import VisualizationError
+from typing import Optional, Dict, Any, List, Tuple
 
-from typing import Optional, Dict, Any, List
+from qiskit import circuit
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.timeline import drawer_style, types, core, styles
 
 
 def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
                     inst_durations: InstructionDurations,
-                    stylesheet: Optional[Dict[str, Any]] = styles.IqxStandard,
+                    stylesheet: Optional[Dict[str, Any]] = None,
                     backend: Optional[str] = 'mpl',
                     filename: Optional[str] = None,
                     bits: Optional[List[types.Bits]] = None,
+                    plot_range: Tuple[int, int] = None,
                     show_idle: Optional[bool] = None,
                     show_clbits: Optional[bool] = None,
                     show_barriers:  Optional[bool] = None,
@@ -45,6 +46,7 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
         filename: If provided the output image is dumped into a file under the filename.
         bits: List of bits to draw.
             Timelines of unspecified bits are removed if provided.
+        plot_range: Tuple of numbers (t0, t1) that specify a time range to show.
         show_idle: A control property to show idle timeline.
             Set `True` to show timeline without gate instructions.
         show_clbits: A control property to show classical bits.
@@ -143,7 +145,7 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
     """
     # update stylesheet
-    drawer_style.update(stylesheet)
+    drawer_style.update(stylesheet or styles.IqxStandard())
     drawer_style.current_stylesheet = stylesheet.__class__.__name__
 
     # update control properties
@@ -160,6 +162,12 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
     ddc = core.DrawDataContainer()
     ddc.load_program(scheduled_circuit=scheduled_circuit,
                      inst_durations=inst_durations)
+
+    # set time range
+    if plot_range:
+        ddc.set_time_range(t_start=plot_range[0], t_end=plot_range[1])
+
+    # update objects
     ddc.update_preference(visible_bits=bits)
 
     # draw
@@ -173,7 +181,7 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
                                      'Try pip install matplotlib to use this format.')
 
         plotter = MplPlotter(draw_data=ddc, axis=ax)
-        plotter.draw_data()
+        plotter.draw()
 
         if ax is None:
             if filename:
