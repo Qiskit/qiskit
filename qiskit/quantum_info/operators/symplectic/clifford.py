@@ -111,7 +111,7 @@ class Clifford(BaseOperator):
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
-            if not data.is_unitary() or set(data._input_dims) != set([2]):
+            if not data.is_unitary() or set(data._input_dims) != {2}:
                 raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
             self._table = StabilizerTable(
                 np.eye(2 * len(data._input_dims), dtype=np.bool))
