@@ -135,17 +135,44 @@ def _assemble_pulse_gates(circuit, run_config):
     calibrations = []
     pulse_library = {}
     for gate, cals in circuit.calibrations.items():
-        for qubits, cal in cals.items():
-            for params, schedule in cal.items():
-                qobj_instructions, _ = assemble_schedule(
-                    schedule,
-                    converters.InstructionToQobjConverter(PulseQobjInstruction),
-                    run_config,
-                    pulse_library)
-                calibrations.append(
-                    GateCalibration(str(gate), list(qubits), list(params),
-                                    qobj_instructions))
+        for qubits_params, schedule in cals.items():
+            qobj_instructions, _ = assemble_schedule(
+                schedule,
+                converters.InstructionToQobjConverter(PulseQobjInstruction),
+                run_config,
+                pulse_library)
+            calibrations.append(
+                GateCalibration(str(gate), list(qubits_params[0]), list(qubits_params[1]),
+                                qobj_instructions))
     return QasmExperimentCalibrations(gates=calibrations), pulse_library
+
+
+def _extract_common_calibrations(experiments):
+    """
+    """
+    if not (experiments and all(hasattr(exp.config, 'calibrations') for exp in experiments)):
+        return experiments, None
+
+    common_calibrations = []
+    from collections import defaultdict
+    gate_hash_map = defaultdict(list)
+    for exp_idx, exp in enumerate(experiments):
+        for gate_idx, gate_cal in enumerate(exp.config.calibrations.gates):
+            gate_hash_map[str(gate_cal.to_dict())].append((exp_idx, gate_idx, gate_cal))
+
+    # Collect common cals, remove from respective experiments
+    for gate_cal, exps_w_cal in gate_hash_map.items():
+        if len(exps_w_cal) == len(experiments):
+            common_calibrations.append(exps_w_cal[0][2])
+            for exp_idx, gate_idx, _ in exps_w_cal:
+                experiments[exp_idx].config.calibrations.gates.remove(exps_w_cal[exp_idx][2])
+
+    for exp in experiments:
+        if not exp.config.calibrations.gates:
+            del exp.config.calibrations
+
+    # import ipdb; ipdb.set_trace()
+    return experiments, QasmExperimentCalibrations(gates=common_calibrations)
 
 
 def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
@@ -187,6 +214,9 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
     if pulse_library:
         qobj_config.pulse_library = [PulseLibraryItem(name=name, samples=samples)
                                      for name, samples in pulse_library.items()]
+    experiments, calibrations = _extract_common_calibrations(experiments)
+    if calibrations and calibrations.gates:
+        qobj_config.calibrations = calibrations
 
     return QasmQobj(qobj_id=qobj_id,
                     config=qobj_config,
