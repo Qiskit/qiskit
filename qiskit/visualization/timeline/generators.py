@@ -60,7 +60,7 @@ def gen_sched_gate(bit: types.Bits,
     """
     try:
         unitary = str(gate.operand.to_matrix())
-    except CircuitError:
+    except (AttributeError, CircuitError):
         unitary = 'n/a'
 
     try:
@@ -87,10 +87,16 @@ def gen_sched_gate(bit: types.Bits,
             'zorder': drawer_style['formatter.layer.gate'],
             'alpha': drawer_style['formatter.alpha.gate'],
             'linewidth': drawer_style['formatter.line_width.gate'],
-            'color': color_finder(gate.operand.name)
+            'facecolor': color_finder(gate.operand.name)
         }
 
-        drawing = drawing_objects.BoxData(data_type=types.DrawingBox.SCHED_GATE,
+        # assign special name for delay for filtering
+        if gate.operand.name == 'delay':
+            data_type = types.DrawingBox.DELAY
+        else:
+            data_type = types.DrawingBox.SCHED_GATE
+
+        drawing = drawing_objects.BoxData(data_type=data_type,
                                           bit=bit,
                                           x0=gate.t0,
                                           y0=-0.5 * drawer_style['formatter.box_height.gate'],
@@ -170,7 +176,13 @@ def gen_full_gate_name(bit: types.Bits,
         label_latex = r'{name}_{{\rm {qubits}}}'.format(name=latex_name,
                                                         qubits=qubits_str)
 
-    drawing = drawing_objects.TextData(data_type=types.DrawingLabel.GATE_NAME,
+    # assign special name for delay to filtering
+    if gate.operand.name == 'delay':
+        data_type = types.DrawingLabel.DELAY
+    else:
+        data_type = types.DrawingLabel.GATE_NAME
+
+    drawing = drawing_objects.TextData(data_type=data_type,
                                        bit=bit,
                                        x=gate.t0 + 0.5 * gate.duration,
                                        y=v_pos,
@@ -217,7 +229,13 @@ def gen_short_gate_name(bit: types.Bits,
     label_plain = '{name}'.format(name=gate.operand.name)
     label_latex = '{name}'.format(name=name_converter(gate.operand.name))
 
-    drawing = drawing_objects.TextData(data_type=types.DrawingLabel.GATE_NAME,
+    # assign special name for delay to filtering
+    if gate.operand.name == 'delay':
+        data_type = types.DrawingLabel.DELAY
+    else:
+        data_type = types.DrawingLabel.GATE_NAME
+
+    drawing = drawing_objects.TextData(data_type=data_type,
                                        bit=bit,
                                        x=gate.t0 + 0.5 * gate.duration,
                                        y=v_pos,
@@ -241,7 +259,7 @@ def gen_timeslot(bit: types.Bits) -> List[drawing_objects.BoxData]:
         'zorder': drawer_style['formatter.layer.timeslot'],
         'alpha': drawer_style['formatter.alpha.timeslot'],
         'linewidth': drawer_style['formatter.line_width.timeslot'],
-        'color': drawer_style['formatter.line_width.timeslot']
+        'facecolor': drawer_style['formatter.color.timeslot']
     }
 
     drawing = drawing_objects.BoxData(data_type=types.DrawingBox.TIMELINE,

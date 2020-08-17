@@ -30,7 +30,7 @@ def default_color_table(gate_name: str) -> str:
     """Color table that returns color code associated with the gate name."""
     _color_code_name_table = {
         'u0': '#FA74A6',
-        'u1': '#FA74A6',
+        'u1': '#000000',
         'u2': '#FA74A6',
         'u3': '#FA74A6',
         'id': '#05BAB6',
@@ -52,8 +52,8 @@ def default_color_table(gate_name: str) -> str:
         'rx': '#BB8BFF',
         'ry': '#BB8BFF',
         'rz': '#BB8BFF',
-        'reset': '#000000',
-        'measure': '#000000'
+        'reset': '#808080',
+        'measure': '#808080'
     }
     return _color_code_name_table.get(gate_name, '#BB8BFF')
 
