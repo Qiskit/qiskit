@@ -10,11 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=method-hidden,arguments-differ
+
 """Module providing definitions of QASM Qobj classes."""
 
 import copy
 import pprint
+import json
 from types import SimpleNamespace
+
+import numpy
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
@@ -472,6 +477,19 @@ class QasmQobj:
         self.type = 'QASM'
         self.schema_version = '1.3.0'
 
+    def _validate_json_schema(self, out_dict):
+        class QobjEncoder(json.JSONEncoder):
+            """A json encoder for qobj"""
+            def default(self, obj):
+                if isinstance(obj, numpy.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, complex):
+                    return (obj.real, obj.imag)
+                return json.JSONEncoder.default(self, obj)
+
+        json_str = json.dumps(out_dict, cls=QobjEncoder)
+        validator(json.loads(json_str))
+
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = '[' + ', '.join(experiments_str) + ']'
@@ -532,7 +550,7 @@ class QasmQobj:
             'experiments': [x.to_dict() for x in self.experiments]
         }
         if validate:
-            validator(out_dict)
+            self._validate_json_schema(out_dict)
         return out_dict
 
     @classmethod
