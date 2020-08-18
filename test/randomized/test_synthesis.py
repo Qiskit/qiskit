@@ -41,6 +41,7 @@ class TestSynthesis(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary, 'ZYZ')
         self.check_one_qubit_euler_angles(unitary, 'ZXZ')
         self.check_one_qubit_euler_angles(unitary, 'XYX')
+        self.check_one_qubit_euler_angles(unitary, 'RR')
 
     @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
     def test_2q_random(self, seed):
