@@ -21,14 +21,14 @@ import itertools
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter, ParameterVector
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.circuit.library import CZGate, ZGate
 
 from qiskit.aqua.operators import (
     X, Y, Z, I, CX, T, H, PrimitiveOp, SummedOp, PauliOp, Minus, CircuitOp, MatrixOp, ListOp,
-    ComposedOp
+    ComposedOp, StateFn
 )
 
 
@@ -446,6 +446,59 @@ class TestOpConstruction(QiskitAquaTestCase):
             indented_str[len(op.INDENTATION):]
         ).split("\n{}".format(op.INDENTATION))
         self.assertListEqual(indented_str_content, initial_str.split("\n"))
+
+    def test_op_parameters(self):
+        """Test that Parameters are stored correctly"""
+        phi = Parameter('φ')
+        theta = ParameterVector(name='θ',
+                                length=2)
+
+        qc = QuantumCircuit(2)
+        qc.rz(phi, 0)
+        qc.rz(phi, 1)
+        for i in range(2):
+            qc.rx(theta[i], i)
+        qc.h(0)
+        qc.x(1)
+
+        l = Parameter('λ')
+        op = PrimitiveOp(qc,
+                         coeff=l)
+
+        params = set([phi, l, *theta.params])
+
+        self.assertEqual(params, op.parameters)
+        self.assertEqual(params, StateFn(op).parameters)
+        self.assertEqual(params, StateFn(qc, coeff=l).parameters)
+
+    def test_list_op_parameters(self):
+        """Test that Parameters are stored correctly in a List Operator"""
+        lam = Parameter('λ')
+        phi = Parameter('φ')
+        omega = Parameter('ω')
+
+        mat_op = PrimitiveOp([[0, 1],
+                              [1, 0]],
+                             coeff=omega)
+
+        qc = QuantumCircuit(1)
+        qc.rx(phi, 0)
+        qc_op = PrimitiveOp(qc)
+
+        op1 = SummedOp([mat_op, qc_op])
+
+        params = [phi, omega]
+        self.assertEqual(op1.parameters, set(params))
+
+        # check list nesting case
+        op2 = PrimitiveOp([[1, 0],
+                           [0, -1]],
+                          coeff=lam)
+
+        list_op = ListOp([op1, op2])
+
+        params.append(lam)
+        self.assertEqual(list_op.parameters, set(params))
 
 
 class TestListOpComboFn(QiskitAquaTestCase):
