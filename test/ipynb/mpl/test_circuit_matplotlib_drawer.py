@@ -38,7 +38,7 @@ RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 def save_data(image_filename, testname):
     datafilename = 'result_test.json'
     if os.path.exists(datafilename):
-        with open(datafilename, 'r') as datafile:
+        with open(datafilename) as datafile:
             data = json.load(datafile)
     else:
         data = {}
