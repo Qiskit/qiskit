@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -1092,8 +1090,8 @@ class TestControlledStandardGates(QiskitTestCase):
         gate = gate_class(*args)
 
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
-            with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
-                                                             ctrl_state)):
+            with self.subTest(i='{}, ctrl_state={}'.format(gate_class.__name__,
+                                                           ctrl_state)):
                 if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
@@ -1112,70 +1110,6 @@ class TestControlledStandardGates(QiskitTestCase):
                 target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits,
                                                      ctrl_state=ctrl_state)
                 self.assertEqual(Operator(cgate), Operator(target_mat))
-
-
-@ddt
-class TestDeprecatedGates(QiskitTestCase):
-    """Test controlled of deprecated gates."""
-
-    import qiskit.extensions as ext
-
-    import qiskit.circuit.library.standard_gates.i as i
-    import qiskit.circuit.library.standard_gates.rx as rx
-    import qiskit.circuit.library.standard_gates.ry as ry
-    import qiskit.circuit.library.standard_gates.rz as rz
-    import qiskit.circuit.library.standard_gates.swap as swap
-    import qiskit.circuit.library.standard_gates.u1 as u1
-    import qiskit.circuit.library.standard_gates.u3 as u3
-    import qiskit.circuit.library.standard_gates.x as x
-    import qiskit.circuit.library.standard_gates.y as y
-    import qiskit.circuit.library.standard_gates.z as z
-
-    import qiskit.extensions.quantum_initializer.diagonal as diagonal
-    import qiskit.extensions.quantum_initializer.uc as uc
-    import qiskit.extensions.quantum_initializer.uc_pauli_rot as uc_pauli_rot
-    import qiskit.extensions.quantum_initializer.ucrx as ucrx
-    import qiskit.extensions.quantum_initializer.ucry as ucry
-    import qiskit.extensions.quantum_initializer.ucrz as ucrz
-
-    @data((diagonal.DiagonalGate, diagonal.DiagGate, [[1, 1]]),
-          (i.IGate, i.IdGate, []),
-          (rx.CRXGate, rx.CrxGate, [0.1]),
-          (ry.CRYGate, ry.CryGate, [0.1]),
-          (rz.CRZGate, rz.CrzGate, [0.1]),
-          (swap.CSwapGate, swap.FredkinGate, []),
-          (u1.CU1Gate, u1.Cu1Gate, [0.1]),
-          (u3.CU3Gate, u3.Cu3Gate, [0.1, 0.2, 0.3]),
-          (uc.UCGate, uc.UCG, [[np.array([[1, 0], [0, 1]])]]),
-          (uc_pauli_rot.UCPauliRotGate, uc_pauli_rot.UCRot, [[0.1], 'X']),
-          (ucrx.UCRXGate, ucrx.UCX, [[0.1]]),
-          (ucry.UCRYGate, ucry.UCY, [[0.1]]),
-          (ucrz.UCRZGate, ucrz.UCZ, [[0.1]]),
-          (x.CXGate, x.CnotGate, []),
-          (x.CCXGate, x.ToffoliGate, []),
-          (y.CYGate, y.CyGate, []),
-          (z.CZGate, z.CzGate, []),
-          (i.IGate, ext.IdGate, []),
-          (rx.CRXGate, ext.CrxGate, [0.1]),
-          (ry.CRYGate, ext.CryGate, [0.1]),
-          (rz.CRZGate, ext.CrzGate, [0.1]),
-          (swap.CSwapGate, ext.FredkinGate, []),
-          (u1.CU1Gate, ext.Cu1Gate, [0.1]),
-          (u3.CU3Gate, ext.Cu3Gate, [0.1, 0.2, 0.3]),
-          (x.CXGate, ext.CnotGate, []),
-          (x.CCXGate, ext.ToffoliGate, []),
-          (y.CYGate, ext.CyGate, []),
-          (z.CZGate, ext.CzGate, []))
-    @unpack
-    def test_deprecated_gates(self, new, old, params):
-        """Test types of the deprecated gate classes."""
-        # assert old gate class derives from new
-        self.assertTrue(issubclass(old, new))
-
-        # assert both are representatives of one another
-        self.assertTrue(isinstance(new(*params), old))
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(isinstance(old(*params), new))
 
 
 @ddt

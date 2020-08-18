@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -50,7 +48,7 @@ class FakeOurenseFaultyCX01(FakeOurense):
         """
         props = super().properties().to_dict()
         for gate in props['gates']:
-            if gate['gate'] == 'cx' and set(gate['qubits']) == set([0, 1]):
+            if gate['gate'] == 'cx' and set(gate['qubits']) == {0, 1}:
                 gate['parameters'].append({"date": "2000-01-01 00:00:00Z",
                                            "name": "operational",
                                            "unit": "",
@@ -71,7 +69,7 @@ class FakeOurenseFaultyCX13(FakeOurense):
         """
         props = super().properties().to_dict()
         for gate in props['gates']:
-            if gate['gate'] == 'cx' and set(gate['qubits']) == set([3, 1]):
+            if gate['gate'] == 'cx' and set(gate['qubits']) == {3, 1}:
                 gate['parameters'].append({"date": "2000-01-01 00:00:00Z",
                                            "name": "operational",
                                            "unit": "",
