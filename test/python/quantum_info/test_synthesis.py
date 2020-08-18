@@ -159,6 +159,7 @@ class TestEulerAngles1Q(CheckDecompositions):
 @ddt
 class TestOneQubitEulerDecomposer(CheckDecompositions):
     """Test OneQubitEulerDecomposer"""
+
     def check_one_qubit_euler_angles(self, operator, basis='U3',
                                      tolerance=1e-12,
                                      phase_equal=False):
@@ -192,18 +193,20 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         for clifford in ONEQ_CLIFFORDS:
             self.check_one_qubit_euler_angles(clifford, 'U1X')
 
-    def test_one_qubit_hard_thetas_u1x_basis(self):
-        """Verify for u1, x90 basis and close-to-degenerate theta."""
-        # We lower tolerance for this test since decomposition is
-        # less numerically accurate. This is due to it having 5 matrix
-        # multiplications and the X90 gates
+    @combine(basis_tolerance=[('XYX', 1e-12), ('ZYZ', 1e-12), ('U1X', 1e-7)],
+             name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
+    def test_one_qubit_hard_thetas_basis(self, basis_tolerance):
+        """Verify for {basis_tolerance[0]} basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'U1X', 1e-7)
+            self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
+                                              basis_tolerance[1])
 
-    def test_one_qubit_hard_thetas_zyz_basis(self):
-        """Verify for rz, ry, rz basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'ZYZ', 1e-12)
+    @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
+             name='test_one_qubit_random_{basis}_basis_{seed}')
+    def test_one_qubit_random_rr_basis(self, basis, seed):
+        """Verify for {basis} basis and random_unitary (seed={seed})."""
+        unitary = random_unitary(2, seed=seed)
+        self.check_one_qubit_euler_angles(unitary, basis)
 
     # Rz, Ry, Rz basis
     def test_one_qubit_clifford_zyz_basis(self):
@@ -227,41 +230,6 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         """Verify for rx, ry, rx basis and all Cliffords."""
         for clifford in ONEQ_CLIFFORDS:
             self.check_one_qubit_euler_angles(clifford, 'XYX')
-
-    def test_one_qubit_hard_thetas_xyx_basis(self):
-        """Verify for rx, ry, rx basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'XYX')
-
-    @combine(seed=range(50), name='test_one_qubit_random_u3_basis_{seed}')
-    def test_one_qubit_random_u3_basis(self, seed):
-        """Verify for u3 basis and random_unitary (seed={seed})."""
-        unitary = random_unitary(2, seed=seed)
-        self.check_one_qubit_euler_angles(unitary, 'U3')
-
-    @combine(seed=range(50), name='test_one_qubit_random_u1x_basis_{seed}')
-    def test_one_qubit_random_u1x_basis(self, seed):
-        """Verify for u1, x90 basis and random_unitary (seed={seed})."""
-        unitary = random_unitary(2, seed=seed)
-        self.check_one_qubit_euler_angles(unitary, 'U1X')
-
-    @combine(seed=range(50), name='test_one_qubit_random_zyz_basis_{seed}')
-    def test_one_qubit_random_zyz_basis(self, seed):
-        """Verify for rz, ry, rz basis and random_unitary (seed={seed})."""
-        unitary = random_unitary(2, seed=seed)
-        self.check_one_qubit_euler_angles(unitary, 'ZYZ')
-
-    @combine(seed=range(50), name='test_one_qubit_random_zxz_basis_{seed}')
-    def test_one_qubit_random_zxz_basis(self, seed):
-        """Verify for rz, rx, rz basis and random_unitary (seed={seed})."""
-        unitary = random_unitary(2, seed=seed)
-        self.check_one_qubit_euler_angles(unitary, 'ZXZ')
-
-    @combine(seed=range(50), name='test_one_qubit_random_xyx_basis_{seed}')
-    def test_one_qubit_random_xyx_basis(self, seed):
-        """Verify for rx, ry, rx basis and random_unitary (seed={seed})."""
-        unitary = random_unitary(2, seed=seed)
-        self.check_one_qubit_euler_angles(unitary, 'XYX')
 
     # R, R basis
     def test_one_qubit_clifford_rr_basis(self):
@@ -430,10 +398,10 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
         gate = CXGate()
         self.check_two_qubit_weyl_decomposition(Operator(gate).data)
         decomp = TwoQubitWeylDecomposition(Operator(gate).data)
-        expected_k1r = np.array([[-0.5+0.5j, -0.5+0.5j],
-                                 [0.5+0.5j, -0.5-0.5j]])
-        expected_k2l = np.array([[0.0+0.0j, -1.0+0.0j],
-                                 [1.0+0.0j, 0.0+0.0j]])
+        expected_k1r = np.array([[-0.5 + 0.5j, -0.5 + 0.5j],
+                                 [0.5 + 0.5j, -0.5 - 0.5j]])
+        expected_k2l = np.array([[0.0 + 0.0j, -1.0 + 0.0j],
+                                 [1.0 + 0.0j, 0.0 + 0.0j]])
         sqrt_2 = 1 / np.sqrt(2)
         expected_k2r = np.array([[complex(0, sqrt_2), complex(0, sqrt_2)],
                                  [complex(0, sqrt_2), complex(0, -sqrt_2)]])
@@ -611,7 +579,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
              euler_bases=[('U3', ['u3']), ('U1X', ['u1', 'rx']), ('RR', ['r']),
                           ('ZYZ', ['rz', 'ry']), ('ZXZ', ['rz', 'rx']), ('XYX', ['rx', 'ry'])],
              kak_gates=[(CXGate(), 'cx'), (CZGate(), 'cz'), (iSwapGate(), 'iswap'),
-                        (RXXGate(np.pi/2), 'rxx')],
+                        (RXXGate(np.pi / 2), 'rxx')],
              name='test_euler_basis_selection_{seed}_{euler_bases[0]}_{kak_gates[1]}')
     def test_euler_basis_selection(self, euler_bases, kak_gates, seed):
         """Verify decomposition uses euler_basis for 1q gates."""
@@ -627,6 +595,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(
                 decomposition_basis.issubset(requested_basis))
+
 
 # FIXME: need to write tests for the approximate decompositions
 
