@@ -50,7 +50,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
             return pi_check(float(inpt), eps=eps, output=output, ndigits=ndigits)
         except (ValueError, TypeError):
             param_str = str(inpt)
-            nums = re.findall(r"([0-9]*\.[0-9]+|[0-9]+)", param_str)
+            nums = re.findall(r'\d*\.\d+|\d+', param_str)
             for num in nums:
                 pi = pi_check(float(num), eps=eps, output=output, ndigits=ndigits)
                 try:
