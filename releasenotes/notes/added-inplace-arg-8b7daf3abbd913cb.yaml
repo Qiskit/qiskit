@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    ``qiskit.result.utils.marginal_counts()`` now has a third argument
+    ``inplace`` which is ``False`` by default. Changing ``inplace=True`` 
+    operates on the original argument which can change the ``Result`` object 
+    passed to ``marginal_counts()``. This behaviour is limited
+    to ``Result`` object and does not affect if a dictionary is passed
+    as argument.
