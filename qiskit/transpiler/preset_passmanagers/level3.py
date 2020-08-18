@@ -181,8 +181,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
-        from qiskit.transpiler.passes import DelayInDt
-        _scheduling = [DelayInDt(instruction_durations.schedule_dt)]
+        _scheduling = []
         if scheduling_method in {'alap', 'as_late_as_possible'}:
             from qiskit.transpiler.passes import ALAPSchedule
             _scheduling += [ALAPSchedule(instruction_durations)]

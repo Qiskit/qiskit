@@ -463,7 +463,11 @@ def _parse_transpile_args(circuits, backend,
     durations = None
     if scheduling_method is not None:
         from qiskit.transpiler.instruction_durations import InstructionDurations
-        durations = InstructionDurations.from_backend(backend).update(instruction_durations)
+        if backend:
+            durations = InstructionDurations.from_backend(backend)
+            durations = durations.update(instruction_durations, unit='s')
+        else:
+            durations = InstructionDurations(instruction_durations)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     durations = _parse_instruction_durations(durations, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)

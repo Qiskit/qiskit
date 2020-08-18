@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import List
 
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.duration import Duration
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -60,14 +61,17 @@ class ASAPSchedule(TransformationPass):
             for q in qubits:
                 if qubit_time_available[q] < until:
                     idle_duration = until - qubit_time_available[q]
+                    idle_duration = Duration(idle_duration, unit=self.durations.unit)
                     new_dag.apply_operation_back(Delay(idle_duration), [q])
 
         for node in dag.topological_op_nodes():
             start_time = max(qubit_time_available[q] for q in node.qargs)
             pad_with_delays(node.qargs, until=start_time)
 
-            new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+            new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
             duration = self.durations.get(node.op, node.qargs)
+            # set duration for each instruction (tricky but necessary)
+            new_node.op.duration = Duration(duration, unit=self.durations.unit)
 
             stop_time = start_time + duration
             # update time table
@@ -80,5 +84,4 @@ class ASAPSchedule(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.duration = circuit_duration
-        new_dag.instruction_durations = self.durations
         return new_dag

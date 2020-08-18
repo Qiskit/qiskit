@@ -27,7 +27,6 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.pulse.schedule import Schedule
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.transpiler.passes.scheduling.delayindt import delay_in_dt
 
 CircuitPulseDef = namedtuple('CircuitPulseDef', [
     'schedule',  # The schedule which implements the quantum circuit command
@@ -59,9 +58,6 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
-    # convert the unit of durations of delays into dt
-    circuit = delay_in_dt(circuit, dt_in_sec=schedule_config.dt)
-
     def get_measure_schedule() -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
@@ -87,7 +83,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             sched = Schedule(name=inst.name)
             for qubit in inst_qubits:
                 for channel in [DriveChannel]:
-                    sched += pulse_inst.Delay(duration=getattr(inst, "duration"),
+                    # convert the unit of durations into dt
+                    sched += pulse_inst.Delay(duration=inst.duration.in_dt(schedule_config.dt),
                                               channel=channel(qubit))
             circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
 
