@@ -292,6 +292,15 @@ class StateFn(OperatorBase):
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
         raise NotImplementedError
 
+    @property
+    def parameters(self):
+        params = set()
+        if isinstance(self.primitive, (OperatorBase, QuantumCircuit)):
+            params.update(self.primitive.parameters)
+        if isinstance(self.coeff, ParameterExpression):
+            params.update(self.coeff.parameters)
+        return params
+
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
         if isinstance(self.coeff, ParameterExpression):

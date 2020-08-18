@@ -327,6 +327,15 @@ class ListOp(OperatorBase):
                                                      self.coeff,
                                                      self.abelian)
 
+    @property
+    def parameters(self):
+        params = set()
+        for op in self.oplist:
+            params.update(op.parameters)
+        if isinstance(self.coeff, ParameterExpression):
+            params.update(self.coeff.parameters)
+        return params
+
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
         if isinstance(self.coeff, ParameterExpression):

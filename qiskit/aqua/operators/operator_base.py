@@ -414,6 +414,13 @@ class OperatorBase(ABC):
         """
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def parameters(self):
+        r""" Return a set of Parameter objects contained in the Operator.
+        """
+        raise NotImplementedError
+
     # Utility functions for parameter binding
 
     @abstractmethod
