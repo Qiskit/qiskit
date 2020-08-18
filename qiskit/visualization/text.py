@@ -36,6 +36,11 @@ class TextDrawerCregBundle(VisualizationError):
     pass
 
 
+class TextDrawerEncodingError(VisualizationError):
+    """A problem with encoding"""
+    pass
+
+
 class DrawElement():
     """ An element is an instruction or an operation that need to be drawn."""
 
@@ -551,10 +556,12 @@ class TextDrawing():
 
         Returns:
             str: The lines joined by a newline (``\\n``)
+        Raises:
+            TextDrawerEncodingError: If there is an encoding error.
         """
         if self.encoding in ['cp1252']:
-            raise TextDrawerCregBundle('The encoding %s has a limited charset. Consider a different'
-                                       ' encoding in your environment.' % self.encoding)
+            raise TextDrawerEncodingError('The encoding %s has a limited charset. Consider a '
+                                          'different encoding in your environment.' % self.encoding)
         return "\n".join(self.lines()).encode().decode(self.encoding, errors='ignore')
 
     def dump(self, filename, encoding="utf8"):
