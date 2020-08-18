@@ -70,7 +70,7 @@ test_ci:
 	stestr run --concurrency $(CONCURRENCY)
 
 test_randomized:
-	python3 -m unittest discover -s test/randomized -v
+	python3 -m unittest discover -s test/randomized -t . -v
 
 coverage:
 	coverage3 run --source qiskit -m unittest discover -s test/python -q
