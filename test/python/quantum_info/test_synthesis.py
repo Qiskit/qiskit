@@ -176,24 +176,19 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    # U3 basis
-    def test_one_qubit_clifford_u3_basis(self):
-        """Verify for u3 basis and all Cliffords."""
+    @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'],
+             name='test_one_qubit_clifford_{basis}_basis')
+    def test_one_qubit_clifford_all_basis(self, basis):
+        """Verify for {basis} basis and all Cliffords."""
         for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'U3')
+            self.check_one_qubit_euler_angles(clifford, basis)
 
-    def test_one_qubit_hard_thetas_u3_basis(self):
-        """Verify for u3 basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'U3')
-
-    # U1, X90 basis
-    def test_one_qubit_clifford_u1x_basis(self):
-        """Verify for u1, x90 basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'U1X')
-
-    @combine(basis_tolerance=[('XYX', 1e-12), ('ZYZ', 1e-12), ('U1X', 1e-7)],
+    @combine(basis_tolerance=[('U3', 1e-12),
+                              ('XYX', 1e-12),
+                              ('ZXZ', 1e-12),
+                              ('ZYZ', 1e-12)
+                              ('U1X', 1e-7),
+                              ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
     def test_one_qubit_hard_thetas_basis(self, basis_tolerance):
         """Verify for {basis_tolerance[0]} basis and close-to-degenerate theta."""
@@ -207,40 +202,6 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, basis)
-
-    # Rz, Ry, Rz basis
-    def test_one_qubit_clifford_zyz_basis(self):
-        """Verify for rz, ry, rz basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'ZYZ')
-
-    # Rz, Rx, Rz basis
-    def test_one_qubit_clifford_zxz_basis(self):
-        """Verify for rz, rx, rz basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'ZXZ')
-
-    def test_one_qubit_hard_thetas_zxz_basis(self):
-        """Verify for rz, rx, rz basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'ZXZ', 1e-12)
-
-    # Rx, Ry, Rx basis
-    def test_one_qubit_clifford_xyx_basis(self):
-        """Verify for rx, ry, rx basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'XYX')
-
-    # R, R basis
-    def test_one_qubit_clifford_rr_basis(self):
-        """Verify for r, r basis and all Cliffords."""
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford, 'RR')
-
-    def test_one_qubit_hard_thetas_rr_basis(self):
-        """Verify for r, r basis and close-to-degenerate theta."""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate), 'RR')
 
     def test_one_qubit_random_rr_basis(self, nsamples=50):
         """Verify for r, r basis and random unitaries."""
