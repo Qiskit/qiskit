@@ -265,6 +265,37 @@ class TestGMSLibrary(QiskitTestCase):
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
 
+@ddt
+class TestGlobalRLibrary(QiskitTestCase):
+    """Test library of global R gates."""
+
+    def test_GR_equivalence(self):
+        """Test global R gate is same as 3 individual R gates."""
+        circuit = GR(num_qubits=3, theta=np.pi/3, phi=2*np.pi/3)
+        expected = QuantumCircuit(num_qubits=3, name="gr")
+        for i in range(3):
+            expected.append(RGate(theta=np.pi/3, phi=2*np.pi/3), [i])
+        self.assertTrue(expected.equiv(simulated))
+
+    def test_GRx_equivalence(self):
+        """Test global Rx gates is same as 3 individual Rx gates."""
+        circuit = GRx(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=0)
+        self.assertTrue(expected.equiv(simulated)) 
+
+    def test_GRy_equivalence(self):
+        """Test global Ry gates is same as 3 individual Ry gates."""
+        circuit = GRy(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=np.pi/2)
+        self.assertTrue(expected.equiv(simulated)) 
+
+    def test_GRz_equivalence(self):
+        """Test global Rz gate is same as 3 individual Rz gates."""
+        circuit = GRz(num_qubits=3, phi=2*np.pi/3)
+        expected = QuantumCircuit(num_qubits=3, name="grz")
+        for i in range(3):
+            expected.append(RzGate(phi=2*np.pi/3), [i])
+        self.assertTrue(expected.equiv(simulated))
 
 @ddt
 class TestQuantumVolumeLibrary(QiskitTestCase):
