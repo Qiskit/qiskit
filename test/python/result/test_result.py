@@ -158,8 +158,7 @@ class TestResultOperations(QiskitTestCase):
                          expected_marginal_counts)
 
     def test_marginal_counts_inplace_false(self):
-        """Test marginal_counts(Result, inplace = False)
-        """
+        """Test marginal_counts(Result, inplace=False) """
         raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
         data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
         exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
