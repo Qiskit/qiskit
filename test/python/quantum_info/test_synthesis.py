@@ -190,6 +190,9 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                               ('U1X', 1e-7),
                               ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
+    # Lower tolerance for U1X test since decomposition since it is
+    # less numerically accurate. This is due to it having 5 matrix
+    # multiplications and the X90 gates
     def test_one_qubit_hard_thetas_all_basis(self, basis_tolerance):
         """Verify for {basis_tolerance[0]} basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
