@@ -429,7 +429,6 @@ class GateCalibration:
 
         Returns:
             dict: The dictionary form of the GateCalibration.
-
         """
         out_dict = copy.copy(self.__dict__)
         out_dict['instructions'] = [x.to_dict() for x in self.instructions]

@@ -49,7 +49,6 @@ class QobjDictField(SimpleNamespace):
 
         Returns:
             dict: The dictionary form of the QobjHeader.
-
         """
         return self.__dict__
 
