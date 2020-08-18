@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.util import apply_prefix
 
 
 class Delay(Instruction):
@@ -27,8 +28,12 @@ class Delay(Instruction):
         if not isinstance(duration, (float, int, ParameterExpression)):
             raise CircuitError('Invalid duration type.')
 
-        if unit not in {'dt', 's', 'ms', 'us', 'µs', 'ns', 'ps'}:
-            raise CircuitError('Unknown unit is specified.')
+        if unit in {'ms', 'us', 'µs', 'ns', 'ps'}:
+            duration = apply_prefix(duration, unit)
+            unit = 's'
+
+        if unit not in {'dt', 's'}:
+            raise CircuitError('Unknown unit %s is specified.' % unit)
 
         super().__init__("delay", 1, 0, params=[duration])
         self.unit = unit

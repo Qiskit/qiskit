@@ -83,5 +83,5 @@ class ASAPSchedule(TransformationPass):
         pad_with_delays(new_dag.qubits, until=circuit_duration)
 
         new_dag.name = dag.name
-        new_dag.duration = circuit_duration
+        new_dag.duration = Duration(circuit_duration, unit=self.durations.unit)
         return new_dag
