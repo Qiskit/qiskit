@@ -55,7 +55,7 @@ style:
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -s test/python -v
+	python3 -m unittest discover -s test/python -t . -v
 
 # Use pytest to run tests
 pytest:
