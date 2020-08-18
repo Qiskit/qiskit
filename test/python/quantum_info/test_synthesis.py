@@ -186,7 +186,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
     @combine(basis_tolerance=[('U3', 1e-12),
                               ('XYX', 1e-12),
                               ('ZXZ', 1e-12),
-                              ('ZYZ', 1e-12)
+                              ('ZYZ', 1e-12),
                               ('U1X', 1e-7),
                               ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
