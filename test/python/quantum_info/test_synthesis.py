@@ -190,7 +190,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
                               ('U1X', 1e-7),
                               ('RR', 1e-12)],
              name='test_one_qubit_hard_thetas_{basis_tolerance[0]}_basis')
-    def test_one_qubit_hard_thetas_basis(self, basis_tolerance):
+    def test_one_qubit_hard_thetas_all_basis(self, basis_tolerance):
         """Verify for {basis_tolerance[0]} basis and close-to-degenerate theta."""
         for gate in HARD_THETA_ONEQS:
             self.check_one_qubit_euler_angles(Operator(gate), basis_tolerance[0],
@@ -198,16 +198,10 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
 
     @combine(basis=['U3', 'U1X', 'ZYZ', 'ZXZ', 'XYX', 'RR'], seed=range(50),
              name='test_one_qubit_random_{basis}_basis_{seed}')
-    def test_one_qubit_random_rr_basis(self, basis, seed):
+    def test_one_qubit_random_all_basis(self, basis, seed):
         """Verify for {basis} basis and random_unitary (seed={seed})."""
         unitary = random_unitary(2, seed=seed)
         self.check_one_qubit_euler_angles(unitary, basis)
-
-    def test_one_qubit_random_rr_basis(self, nsamples=50):
-        """Verify for r, r basis and random unitaries."""
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
-            self.check_one_qubit_euler_angles(unitary, 'RR')
 
 
 # FIXME: streamline the set of test cases
