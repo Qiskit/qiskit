@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -54,7 +52,7 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._basis_gates is None:
             return dag
 
-        basic_insts = set(('measure', 'reset', 'barrier', 'snapshot'))
+        basic_insts = {'measure', 'reset', 'barrier', 'snapshot'}
         device_insts = basic_insts | set(self._basis_gates)
 
         for node in dag.op_nodes():

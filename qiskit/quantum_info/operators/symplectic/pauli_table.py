@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020
@@ -960,7 +958,7 @@ class PauliTable(BaseOperator):
                 paulis[num_qubits - 1 - i] = 'Z'
             else:
                 paulis[num_qubits - 1 - i] = 'Y'
-        return str().join(paulis)
+        return ''.join(paulis)
 
     @staticmethod
     def _to_matrix(pauli, sparse=False, real_valued=False):
