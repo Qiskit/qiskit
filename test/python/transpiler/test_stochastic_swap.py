@@ -485,7 +485,7 @@ class TestStochasticSwap(QiskitTestCase):
         pass_ = StochasticSwap(coupling, 20, 5)
         after = pass_.run(dag)
 
-        valid_couplings = [set([qr[a], qr[b]])
+        valid_couplings = [{qr[a], qr[b]}
                            for (a, b) in coupling.get_edges()]
 
         for _2q_gate in after.two_qubit_ops():
