@@ -31,7 +31,10 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (two_qubit_cnot_de
 class TestSynthesis(CheckDecompositions):
     """Test synthesis"""
 
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
+    seed = strategies.integers(min_value=0, max_value=2 ** 32 - 1)
+    rotation = strategies.floats(min_value=-np.pi*10, max_value=np.pi*10)
+
+    @given(seed)
     def test_1q_random(self, seed):
         """Checks one qubit decompositions"""
         unitary = random_unitary(2, seed=seed)
@@ -43,17 +46,13 @@ class TestSynthesis(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary, 'XYX')
         self.check_one_qubit_euler_angles(unitary, 'RR')
 
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1))
+    @given(seed)
     def test_2q_random(self, seed):
         """Checks two qubit decompositions"""
         unitary = random_unitary(4, seed=seed)
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
-    @given(strategies.tuples(strategies.integers(min_value=0, max_value=2 ** 32 - 1),
-                             strategies.integers(min_value=0, max_value=2 ** 32 - 1),
-                             strategies.integers(min_value=0, max_value=2 ** 32 - 1),
-                             strategies.integers(min_value=0, max_value=2 ** 32 - 1),
-                             strategies.integers(min_value=0, max_value=2 ** 32 - 1)))
+    @given(strategies.tuples(*[seed] * 5))
     def test_exact_supercontrolled_decompose_random(self, seeds):
         """Exact decomposition for random supercontrolled basis and random target"""
         # pylint: disable=invalid-name
@@ -62,9 +61,6 @@ class TestSynthesis(CheckDecompositions):
         basis_unitary = k1 @ Ud(np.pi / 4, 0, 0) @ k2
         decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
         self.check_exact_decomposition(random_unitary(4, seed=seeds[4]).data, decomposer)
-
-    rotation = strategies.floats(min_value=-np.pi*10, max_value=np.pi*10)
-    seed = strategies.integers(min_value=0, max_value=2 ** 32 - 1)
 
     @given(strategies.tuples(*[rotation] * 6), seed)
     def test_cx_equivalence_0cx_random(self, rnd, seed):
