@@ -307,6 +307,7 @@ def _bloch_multivector_data(state):
     pauli_singles = PauliTable.from_labels(['X', 'Y', 'Z'])
     bloch_data = []
     for i in range(num):
+        # Have to create some code when num = 1 as otherwise np.zeroes would give us an empty list
         paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=np.bool)).insert(
             i, pauli_singles, qubit=True)
         bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]
