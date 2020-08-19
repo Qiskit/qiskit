@@ -65,6 +65,43 @@ class GroverOperator(QuantumCircuit):
         state_0: ┤ Z ├┤ RY(-0.2) ├┤ X ├┤ Z ├┤ X ├┤ RY(0.2) ├
                  └───┘└──────────┘└───┘└───┘└───┘└─────────┘
 
+        >>> oracle = QuantumCircuit(4)
+        >>> oracle.z(3)
+        >>> reflection_qubits = [0]
+        >>> state_in = QuantumCircuit(4)
+        >>> state_in.cry(0.1, 0, 3)
+        >>> state_in.ry(0.5, 3)
+        >>> grover_op = GroverOperator(oracle, state_in, reflection_qubits=reflection_qubits)
+        >>> grover_op.draw()
+                                              ┌───┐          ┌───┐
+        state_0: ──────────────────────■──────┤ X ├───────■──┤ X ├──────────■────────────────
+                                       │      └───┘       │  └───┘          │
+        state_1: ──────────────────────┼──────────────────┼─────────────────┼────────────────
+                                       │                  │                 │
+        state_2: ──────────────────────┼──────────────────┼─────────────────┼────────────────
+                 ┌───┐┌──────────┐┌────┴─────┐┌───┐┌───┐┌─┴─┐┌───┐┌───┐┌────┴────┐┌─────────┐
+        state_3: ┤ Z ├┤ RY(-0.5) ├┤ RY(-0.1) ├┤ X ├┤ H ├┤ X ├┤ H ├┤ X ├┤ RY(0.1) ├┤ RY(0.5) ├
+                 └───┘└──────────┘└──────────┘└───┘└───┘└───┘└───┘└───┘└─────────┘└─────────┘
+
+        >>> mark_state = Statevector.from_label('011')
+        >>> diffuse_operator = 2 * DensityMatrix.from_label('000') - Operator.from_label('III')
+        >>> grover_op = GroverOperator(oracle=mark_state, zero_reflection=diffuse_operator)
+        >>> grover_op.draw(fold=70)
+                 ┌─────────────────┐      ┌───┐                          »
+        state_0: ┤0                ├──────┤ H ├──────────────────────────»
+                 │                 │┌─────┴───┴─────┐     ┌───┐          »
+        state_1: ┤1 UCRZ(0,pi,0,0) ├┤0              ├─────┤ H ├──────────»
+                 │                 ││  UCRZ(pi/2,0) │┌────┴───┴────┐┌───┐»
+        state_2: ┤2                ├┤1              ├┤ UCRZ(-pi/4) ├┤ H ├»
+                 └─────────────────┘└───────────────┘└─────────────┘└───┘»
+        «         ┌─────────────────┐      ┌───┐
+        «state_0: ┤0                ├──────┤ H ├─────────────────────────
+        «         │                 │┌─────┴───┴─────┐    ┌───┐
+        «state_1: ┤1 UCRZ(pi,0,0,0) ├┤0              ├────┤ H ├──────────
+        «         │                 ││  UCRZ(pi/2,0) │┌───┴───┴────┐┌───┐
+        «state_2: ┤2                ├┤1              ├┤ UCRZ(pi/4) ├┤ H ├
+        «         └─────────────────┘└───────────────┘└────────────┘└───┘
+
     References:
         [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
             `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
@@ -78,7 +115,7 @@ class GroverOperator(QuantumCircuit):
     def __init__(self, oracle: Union[QuantumCircuit, Statevector],
                  state_in: Optional[QuantumCircuit] = None,
                  zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
-                 idle_qubits: Optional[List[int]] = None,
+                 reflection_qubits: Optional[List[int]] = None,
                  insert_barriers: bool = False,
                  mcx: str = 'noancilla',
                  name: str = 'Q') -> None:
@@ -89,7 +126,7 @@ class GroverOperator(QuantumCircuit):
                 this is a n-qubit Hadamard gate and for Amplitude Amplification or Estimation
                 the operator A.
             zero_reflection: The reflection about the zero state.
-            idle_qubits: Qubits that are ignored in the reflection about zero.
+            reflection_qubits: Qubits on which the the zero reflection act on.
             insert_barriers: Whether barriers should be inserted between the reflections and A.
             mcx: The mode to use for building the default zero reflection.
             name: The name of the circuit.
@@ -107,8 +144,8 @@ class GroverOperator(QuantumCircuit):
             zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection
 
+        self._reflection_qubits = reflection_qubits
         self._state_in = state_in
-        self._idle_qubits = idle_qubits
         self._insert_barriers = insert_barriers
         self._mcx = mcx
 
@@ -116,11 +153,15 @@ class GroverOperator(QuantumCircuit):
         self._build()
 
     @property
-    def idle_qubits(self):
-        """Idle qubits, on which S0 is not applied."""
-        if self._idle_qubits is None:
-            return []
-        return self._idle_qubits
+    def reflection_qubits(self):
+        """Reflection qubits, on which S0 is applied (if S0 is not user-specified)."""
+        num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
+
+        if self._reflection_qubits is not None:
+            return list(set(self._reflection_qubits + [num_state_qubits - 1]))
+
+        return list(range(num_state_qubits))
+
 
     @property
     def zero_reflection(self) -> QuantumCircuit:
@@ -129,19 +170,19 @@ class GroverOperator(QuantumCircuit):
             return self._zero_reflection
 
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        qubits = [i for i in range(num_state_qubits) if i not in self.idle_qubits]
+        qubits = self.reflection_qubits
         return _zero_reflection(num_state_qubits, qubits, self._mcx)
 
     @property
     def state_in(self) -> QuantumCircuit:
         """The subcircuit implementing the A operator or Hadamards."""
-        if self._state_in:
+        if self._state_in is not None:
             return self._state_in
 
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        qubits = [i for i in range(num_state_qubits) if i not in self.idle_qubits]
         hadamards = QuantumCircuit(num_state_qubits, name='H')
-        hadamards.h(qubits)
+        # apply Hadamards only on reflection qubits, rest will cancel out
+        hadamards.h(self.reflection_qubits)
         return hadamards
 
     @property

@@ -1972,11 +1972,11 @@ class TestGroverOperator(QiskitTestCase):
                                            oracle=np.diag((-1) ** mark.data),
                                            zero_reflection=diffuse.data)
 
-    def test_idle_qubits(self):
+    def test_reflection_qubits(self):
         """Test setting idle qubits doesn't apply any operations on these qubits."""
         oracle = QuantumCircuit(4)
         oracle.z(3)
-        grover_op = GroverOperator(oracle, idle_qubits=[1, 2])
+        grover_op = GroverOperator(oracle, reflection_qubits=[0])
         dag = circuit_to_dag(grover_op)
         self.assertEqual(set(wire.index for wire in dag.idle_wires()), {1, 2})
 
