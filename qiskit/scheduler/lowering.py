@@ -68,11 +68,26 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                qubits=[chan.index for chan in sched.channels
                                        if isinstance(chan, AcquireChannel)])
 
+    if Measure().name in circuit.calibrations.keys():
+        # TOOD
+        raise NotImplementedError
+
     for inst, qubits, clbits in circuit.data:
         inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
+
         if any(q in qubit_mem_slots for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
             circ_pulse_defs.append(get_measure_schedule())
+
+        if circuit.calibrations:
+            try:
+                gate_cals = circuit.calibrations[inst.name]
+                schedule = gate_cals[(tuple(inst_qubits), tuple(float(p) for p in inst.params))]
+                circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
+                continue
+            except KeyError:
+                pass
+
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
         elif isinstance(inst, Measure):
