@@ -13,11 +13,11 @@
 # that they have been altered from the originals.
 
 r"""
-A collection of functions that decide layout of figure.
+A collection of functions that decide the layout of a figure.
 
 Currently this module provides functions to arrange the order of channels.
 
-An end-user can write arbitrary functions with the following function signature:
+An end-user can write their own layouts with by providing a function with the signature:
 
     ```python
     def my_channel_layout(channels: List[Channel]) -> List[Channel]:
