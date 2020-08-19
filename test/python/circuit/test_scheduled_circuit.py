@@ -92,28 +92,6 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled.h(0)
         self.assertEqual(scheduled.duration, None)
 
-    def test_accept_bound_parameter_for_duration_of_delay(self):
-        param_duration = Parameter("T")
-        qc = QuantumCircuit(1)
-        qc.h(0)
-        qc.delay(param_duration, 0)
-        qc.h(0)
-        qc = qc.bind_parameters({param_duration: 500})
-        scheduled = transpile(qc, scheduling_method='alap',
-                              basis_gates=['u2'], instruction_durations=[('u2', 0, 200)])
-        self.assertEqual(scheduled.duration, 900)
-
-    def test_reject_unbound_parameter_for_duration_of_delay(self):
-        param_duration = Parameter("T")
-        qc = QuantumCircuit(1)
-        qc.h(0)
-        qc.delay(param_duration, 0)
-        qc.h(0)
-        # not bind parameter
-        with self.assertRaises(TranspilerError):
-            transpile(qc, scheduling_method='alap',
-                      basis_gates=['u2'], instruction_durations=[('u2', 0, 200)])
-
     def test_instruction_durations_option_in_transpile(self):
         qc = QuantumCircuit(2)
         qc.h(0)
