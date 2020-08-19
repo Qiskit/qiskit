@@ -246,7 +246,7 @@ class ChannelEvents:
         """Calculate current frame from previous frame.
 
         Args:
-            frame_changes: List of frame change instructions at certain time.
+            frame_changes: List of frame change instructions at a specific time.
             phase: Phase of previous frame.
             frequency: Frequency of previous frame.
 
