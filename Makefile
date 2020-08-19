@@ -46,7 +46,7 @@ env:
 # Ignoring generated ones with .py extension.
 lint:
 	pylint -rn qiskit test
-	tools/verify_headers.py qiskit test
+	tools/verify_headers.py qiskit test tools
 	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
 
 style:
