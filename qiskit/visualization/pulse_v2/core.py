@@ -120,7 +120,7 @@ class DrawDataContainer:
         if drive_los is not None:
             self.d_los.update(drive_los)
 
-        if control_los is not None:
+        if control_los:
             self.c_los.update(control_los)
 
         if measure_los:
