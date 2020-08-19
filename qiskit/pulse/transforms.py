@@ -14,18 +14,17 @@
 (and possibly some arguments) and return new schedules.
 """
 import warnings
-
-from typing import List, Optional, Iterable, Callable
 from collections import defaultdict
+from typing import Callable
 from typing import List, Optional, Iterable
 
 import numpy as np
 
 from qiskit.pulse import channels as chans, exceptions, instructions, interfaces
-from qiskit.pulse.instructions import directives
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instructions import directives
+from qiskit.pulse.schedule import Schedule
 
 
 def align_measures(schedules: Iterable[interfaces.ScheduleComponent],
