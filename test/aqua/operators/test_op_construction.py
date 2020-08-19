@@ -447,6 +447,13 @@ class TestOpConstruction(QiskitAquaTestCase):
         ).split("\n{}".format(op.INDENTATION))
         self.assertListEqual(indented_str_content, initial_str.split("\n"))
 
+    def test_composed_op_immutable_under_eval(self):
+        """Test ``ComposedOp.eval`` does not change the operator instance."""
+        op = 2 * ComposedOp([X])
+        _ = op.eval()
+        # previous bug: after op.eval(), op was 2 * ComposedOp([2 * X])
+        self.assertEqual(op, 2 * ComposedOp([X]))
+
     def test_op_parameters(self):
         """Test that Parameters are stored correctly"""
         phi = Parameter('φ')
