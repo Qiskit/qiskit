@@ -171,7 +171,7 @@ class ChannelEvents:
         """Get minimum and maximum waveform value in this channel.
 
         Args:
-            trange: Time range to find min and max.
+            time_range: Time range to find min and max.
 
         Returns:
             Minimum and maximum waveform value within the specified time range.
