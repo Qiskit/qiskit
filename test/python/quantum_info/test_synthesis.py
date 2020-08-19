@@ -448,7 +448,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
-        self.assertTrue(Operator(two_qubit_cnot_decompose).equiv(unitary))
+        self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
     def test_cx_equivalence_1cx(self, seed=1):
         """Check circuits with  1 cx gates locally equivalent to a cx
@@ -470,7 +470,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
-        self.assertTrue(Operator(two_qubit_cnot_decompose).equiv(unitary))
+        self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
     def test_cx_equivalence_2cx(self, seed=2):
         """Check circuits with  2 cx gates locally equivalent to some circuit with 2 cx.
@@ -497,7 +497,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
-        self.assertTrue(Operator(two_qubit_cnot_decompose).equiv(unitary))
+        self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
     def test_cx_equivalence_3cx(self, seed=3):
         """Check circuits with 3 cx gates are outside the 0, 1, and 2 qubit regions.
@@ -529,7 +529,7 @@ class TestTwoQubitDecomposeExact(CheckDecompositions):
         sim = UnitarySimulatorPy()
         unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
-        self.assertTrue(Operator(two_qubit_cnot_decompose).equiv(unitary))
+        self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
     def test_seed_289(self):
         """This specific case failed when PR #3585 was applied
