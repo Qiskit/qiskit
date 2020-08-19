@@ -36,10 +36,10 @@ the time in units of system cycle time `dt` and the frequencies are initialized 
 
 This module is expected to be used by the pulse drawer interface and not exposed to users.
 
-The `DrawDataContainer` takes a schedule or pusle waveform data and convert it into
+The `DrawDataContainer` takes a schedule of pulse waveform data and converts it into
 a set of drawing objects, then a plotter interface takes the drawing objects
-from the container to call the plotter's API. A type of drawing object to generate can be
-customized with stylesheet. The generated drawing objects can be accessed from
+from the container to call the plotter's API. The visualization of drawing objects can be
+customized with the stylesheet. The generated drawing objects can be accessed from
 
     ```python
     ddc.drawings
