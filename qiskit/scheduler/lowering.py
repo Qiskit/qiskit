@@ -33,7 +33,8 @@ CircuitPulseDef = namedtuple('CircuitPulseDef', [
 
 def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> List[CircuitPulseDef]:
     """
-    Return a list of Schedules and the qubits they operate on, for each element encountered in th
+    Return a list of Schedules and the qubits they operate on, for each element encountered in the
+``
     input circuit.
 
     Without concern for the final schedule, extract and return a list of Schedules and the qubits
