@@ -138,6 +138,8 @@ class TestDrawingObjects(QiskitTestCase):
                                         bit=self.qubits[0],
                                         x=0,
                                         y=0,
+                                        text='test',
+                                        latex='test',
                                         meta=self.meta1,
                                         visible=True,
                                         styles=self.style1)
@@ -146,6 +148,8 @@ class TestDrawingObjects(QiskitTestCase):
                                         bit=self.qubits[0],
                                         x=0,
                                         y=0,
+                                        text='test',
+                                        latex='test',
                                         meta=self.meta2,
                                         visible=False,
                                         styles=self.style2)
@@ -158,6 +162,8 @@ class TestDrawingObjects(QiskitTestCase):
                                         bit=self.qubits[0],
                                         x=types.AbstractCoordinate.LEFT,
                                         y=types.AbstractCoordinate.BOTTOM,
+                                        text='test',
+                                        latex='test',
                                         meta=self.meta1,
                                         visible=True,
                                         styles=self.style1)
@@ -166,6 +172,8 @@ class TestDrawingObjects(QiskitTestCase):
                                         bit=self.qubits[0],
                                         x=types.AbstractCoordinate.LEFT,
                                         y=types.AbstractCoordinate.BOTTOM,
+                                        text='test',
+                                        latex='test',
                                         meta=self.meta2,
                                         visible=False,
                                         styles=self.style2)

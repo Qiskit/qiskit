@@ -16,21 +16,20 @@ r"""
 Bit event manager for scheduled circuits.
 
 This module provides a `BitEvents` class that manages a series of instructions for a
-circuit bit. Bit-wise filtering of the circuit program makes the arrangement of bit
+specific circuit bit. Bit-wise filtering of the circuit program makes the arrangement of bit
 easier in the core drawer function. The `BitEvents` class is expected to be called
 by other programs (not by end-users).
 
 The `BitEvents` class instance is created with the class method ``load_program``:
     ```python
-    event = BitEvents.load_program(sched_circuit, inst_durations, QuantumRegister(1)[0])
+    event = BitEvents.load_program(sched_circuit, qregs[0])
     ```
 
-The `BitEvents` is created for a specific circuit bit either quantum or classical.
-A parsed instruction is saved as ``ScheduledGate``, which is a collection of operand,
-associated time, and bits. All parsed gate instructions are returned with `gates` method.
+Loaded circuit instructions are saved as ``ScheduledGate``, which is a collection of instruction,
+associated time, and bits. All gate instructions are returned by `gates` method.
 Instruction types specified in `BitEvents._non_gates` are not considered as gates.
-If the instruction is associated with multiple bits and the target bit of the instance is
-the primary bit of the instruction, the `BitEvents` instance also generates a ``BitLink`` object
+If the instruction is associated with multiple bits and the target bit of the class instance is
+the primary bit of the instruction, the instance also generates a ``GateLink`` object
 that shows a relationship between bits during the multi-bit gates.
 """
 from typing import List
@@ -61,14 +60,17 @@ class BitEvents:
     def load_program(cls,
                      scheduled_circuit: circuit.QuantumCircuit,
                      bit: types.Bits):
-        """Build new RegisterEvents from scheduled circuit.
+        """Build new BitEvents from scheduled circuit.
 
         Args:
             scheduled_circuit: Scheduled circuit object to draw.
             bit: Target bit object.
 
         Returns:
-            New `RegisterEvents` object.
+            BitEvents: New `BitEvents` object.
+
+        Raises:
+            VisualizationError: When the circuit is not properly transpiled.
         """
         dag = circuit_to_dag(scheduled_circuit)
         nodes = list(dag.topological_op_nodes())
@@ -76,7 +78,7 @@ class BitEvents:
         t0 = 0
         instructions = []
         for node in nodes:
-            associated_bits = [qarg for qarg in node.qargs] + [carg for carg in node.cargs]
+            associated_bits = node.qargs + node.cargs
             if bit not in associated_bits:
                 continue
 

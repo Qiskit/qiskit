@@ -258,7 +258,7 @@ class BitLinkData(ElementaryData):
         """Create new bit link.
 
         Args:
-            bits:
+            bits: List of all bits associated with this link.
             x: Horizontal coordinate of the link.
             offset: Horizontal offset of bit link. If multiple links are overlapped,
                 the actual position of the link is automatically shifted by this argument.
