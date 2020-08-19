@@ -214,7 +214,7 @@ class DrawDataContainer:
         min_v = min(*pulse_data.samples.real, *pulse_data.samples.imag)
 
         # calculate offset coordinate
-        offset = - PULSE_STYLE['formatter.margin.top'] - max_v
+        offset = -PULSE_STYLE['formatter.margin.top'] - max_v
 
         # calculate scaling
         max_abs_val = max(abs(max_v), abs(min_v))
