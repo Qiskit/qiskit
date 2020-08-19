@@ -37,8 +37,8 @@ from typing import List
 
 from qiskit import circuit
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.visualization.timeline import types
+from qiskit.visualization.exceptions import VisualizationError
 
 
 class BitEvents:
@@ -60,13 +60,11 @@ class BitEvents:
     @classmethod
     def load_program(cls,
                      scheduled_circuit: circuit.QuantumCircuit,
-                     inst_durations: InstructionDurations,
                      bit: types.Bits):
         """Build new RegisterEvents from scheduled circuit.
 
         Args:
             scheduled_circuit: Scheduled circuit object to draw.
-            inst_durations: Table of gate lengths.
             bit: Target bit object.
 
         Returns:
@@ -85,8 +83,9 @@ class BitEvents:
             try:
                 duration = node.op.duration
             except AttributeError:
-                duration = inst_durations.get(inst_name=node.op.name,
-                                              qubits=node.qargs)
+                raise VisualizationError('Instruction {oper} has no duration. '
+                                         'You need to transpile the Quantum Circuit into '
+                                         'Scheduled Circuit.'.format(oper=node.op))
 
             instructions.append(types.ScheduledGate(t0=t0,
                                                     operand=node.op,
