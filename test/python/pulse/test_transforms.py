@@ -341,7 +341,10 @@ class TestPad(QiskitTestCase):
         delay = 10
         sched = (Delay(delay, DriveChannel(0)).shift(10) +
                  Delay(delay, DriveChannel(0)))
-        ref_sched = (sched | pulse.Delay(10, DriveChannel(0)))
+
+        ref_sched = (Delay(delay, DriveChannel(0)) +
+                     Delay(delay, DriveChannel(0)) +
+                     Delay(delay, DriveChannel(0)))
 
         self.assertEqual(transforms.pad(sched, until=30, inplace=True), ref_sched)
 
