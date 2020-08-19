@@ -65,7 +65,7 @@ from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_
 class DrawDataContainer:
     """Data container for drawing objects."""
 
-    _draw_channels = tuple((pulse.DriveChannel,
+    DEFAULT_DRAW_CHANNELS = tuple((pulse.DriveChannel,
                             pulse.ControlChannel,
                             pulse.MeasureChannel,
                             pulse.AcquireChannel))
