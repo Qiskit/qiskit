@@ -22,16 +22,16 @@ from qiskit.util import apply_prefix
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
-    def __init__(self, duration, unit='dt'):
+    def __init__(self, duration, unit=None):
         """Create new delay instruction."""
         if not isinstance(duration, (float, int)):
             raise CircuitError('Invalid duration type.')
 
-        if unit in {'ms', 'us', 'µs', 'ns', 'ps'}:
+        if unit and unit in {'ms', 'us', 'µs', 'ns', 'ps'}:
             duration = apply_prefix(duration, unit)
             unit = 's'
 
-        if unit not in {'dt', 's'}:
+        if unit and unit not in {'dt', 's'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
         super().__init__("delay", 1, 0, params=[duration])

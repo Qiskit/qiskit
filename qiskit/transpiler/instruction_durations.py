@@ -24,7 +24,7 @@ class InstructionDurations:
 
     def __init__(self,
                  instruction_durations: Optional['InstructionDurationsType'] = None,
-                 unit: str = 'dt'):
+                 unit: str = None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
         self.unit = unit
@@ -34,9 +34,6 @@ class InstructionDurations:
     @classmethod
     def from_backend(cls, backend: BaseBackend):
         """Construct the instruction durations from the backend."""
-        if backend is None:
-            return InstructionDurations()
-
         instruction_durations = []
         # backend.properties._gates -> instruction_durations
         for gate, insts in backend.properties()._gates.items():
@@ -59,25 +56,28 @@ class InstructionDurations:
         return InstructionDurations(instruction_durations, unit='s')
 
     def update(self,
-               instruction_durations: Optional['InstructionDurationsType'] = None,
-               unit: str = 'dt'):
+               inst_durations: Optional['InstructionDurationsType'],
+               unit: str = None):
         """Merge/extend self with instruction_durations."""
-        if self.unit != unit:
+        if inst_durations is None:
+            return self
+
+        if (not isinstance(inst_durations, InstructionDurations) and self.unit != unit) or \
+           (isinstance(inst_durations, InstructionDurations) and self.unit != inst_durations.unit):
             raise TranspilerError("unit must be '%s', the same as original" % self.unit)
 
-        if instruction_durations:
-            if isinstance(instruction_durations, InstructionDurations):
-                self.duration_by_name.update(instruction_durations.duration_by_name)
-                self.duration_by_name_qubits.update(instruction_durations.duration_by_name_qubits)
-            else:
-                for name, qubits, duration in instruction_durations:
-                    if isinstance(qubits, int):
-                        qubits = [qubits]
+        if isinstance(inst_durations, InstructionDurations):
+            self.duration_by_name.update(inst_durations.duration_by_name)
+            self.duration_by_name_qubits.update(inst_durations.duration_by_name_qubits)
+        else:
+            for name, qubits, duration in inst_durations:
+                if isinstance(qubits, int):
+                    qubits = [qubits]
 
-                    if qubits is None:
-                        self.duration_by_name[name] = duration
-                    else:
-                        self.duration_by_name_qubits[(name, tuple(qubits))] = duration
+                if qubits is None:
+                    self.duration_by_name[name] = duration
+                else:
+                    self.duration_by_name_qubits[(name, tuple(qubits))] = duration
 
         return self
 
