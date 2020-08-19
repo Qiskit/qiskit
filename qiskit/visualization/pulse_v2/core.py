@@ -113,7 +113,7 @@ class DrawDataContainer:
         self.bbox_right = 0
 
         # load default settings
-        if backend is not None:
+        if backend:
             self._load_iqx_backend(backend)
 
         # overwrite default values
