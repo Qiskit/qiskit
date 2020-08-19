@@ -295,7 +295,7 @@ class DrawDataContainer:
                        t_end: Union[int, float]):
         """Set time range to draw.
 
-        The update to time range is applied after py:method`update_channel_property` is called.
+        The update to time range is applied after :py:method:`update_channel_property` is called.
 
         Args:
             t_start: Left boundary of drawing in units of cycle time or real time.
