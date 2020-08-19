@@ -117,7 +117,7 @@ class DrawDataContainer:
             self._load_iqx_backend(backend)
 
         # overwrite default values
-        if drive_los is not None:
+        if drive_los:
             self.d_los.update(drive_los)
 
         if control_los:
