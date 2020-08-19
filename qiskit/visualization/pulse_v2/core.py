@@ -17,7 +17,7 @@
 r"""
 Core module of the pulse drawer.
 
-This module provides `DrawDataContainer` which is a collection of drawing objects
+This module provides the `DrawDataContainer` which is a collection of drawing objects
 with additional information such as the modulation frequency and the time resolution.
 In addition, this instance performs the simple data processing such as channel arrangement,
 auto scaling of channels, and truncation of long pulses when a program is loaded.
