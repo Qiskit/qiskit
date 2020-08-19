@@ -105,8 +105,8 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                     str_out = '{}{}**{}'.format(neg_str, pi, power[0][0] + 2)
                 return str_out
 
-        # Third is a check for a number larger than MAX_FRAC, since no
-        # fractions will exceed that value
+        # Third is a check for a number larger than MAX_FRAC not a multiple
+        # or power of pi, since no fractions will exceed MAX_FRAC
         if abs(single_inpt) >= MAX_FRAC:
             str_out = '{:.{}g}'.format(single_inpt, ndigits)
             return str_out
@@ -144,12 +144,12 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         if frac[0].shape[0]:
             numer = int(frac[1][0]) + 1
             denom = int(frac[0][0]) + 1
-            if denom == 1:
+            if denom == 1 and output != 'qasm':
                 denom = ''
             if output == 'latex':
                 str_out = '\\frac{%s%s}{%s%s}' % (neg_str, numer, denom, pi)
             elif output == 'qasm':
-                str_out = '{}{}/{}*{}'.format(neg_str, numer, denom, pi)
+                str_out = '{}{}/({}*{})'.format(neg_str, numer, denom, pi)
             else:
                 str_out = '{}{}/{}{}'.format(neg_str, numer, denom, pi)
             return str_out
