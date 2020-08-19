@@ -31,22 +31,22 @@ class TestBitEvents(QiskitTestCase):
         self.clbits = list(qiskit.ClassicalRegister(2))
 
         self.instructions = [
-            types.ScheduledGate(t0=0, operand=library.U1Gate,
+            types.ScheduledGate(t0=0, operand=library.U1Gate(0),
                                 duration=0, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=0, operand=library.U2Gate,
+            types.ScheduledGate(t0=0, operand=library.U2Gate(0, 0),
                                 duration=10, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=10, operand=library.CXGate,
+            types.ScheduledGate(t0=10, operand=library.CXGate(),
                                 duration=50, bits=[self.qubits[0], self.qubits[1]]),
-            types.ScheduledGate(t0=100, operand=library.U3Gate,
+            types.ScheduledGate(t0=100, operand=library.U3Gate(0, 0, 0),
                                 duration=20, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=120, operand=library.Barrier,
+            types.ScheduledGate(t0=120, operand=library.Barrier(2),
                                 duration=0, bits=[self.qubits[0], self.qubits[1]]),
-            types.ScheduledGate(t0=120, operand=library.CXGate,
+            types.ScheduledGate(t0=120, operand=library.CXGate(),
                                 duration=50, bits=[self.qubits[1], self.qubits[0]]),
-            types.ScheduledGate(t0=200, operand=library.Barrier,
+            types.ScheduledGate(t0=200, operand=library.Barrier(1),
                                 duration=0, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=200, operand=library.Measure,
-                                duration=100, bits=[self.qubits[1], self.clbits[0]]),
+            types.ScheduledGate(t0=200, operand=library.Measure(),
+                                duration=100, bits=[self.qubits[0], self.clbits[0]]),
         ]
 
     def test_gate_output(self):
@@ -55,18 +55,18 @@ class TestBitEvents(QiskitTestCase):
 
         gates = bit_event.gates()
         ref_list = [
-            types.ScheduledGate(t0=0, operand=library.U1Gate,
+            types.ScheduledGate(t0=0, operand=library.U1Gate(0),
                                 duration=0, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=0, operand=library.U2Gate,
+            types.ScheduledGate(t0=0, operand=library.U2Gate(0, 0),
                                 duration=10, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=10, operand=library.CXGate,
+            types.ScheduledGate(t0=10, operand=library.CXGate(),
                                 duration=50, bits=[self.qubits[0], self.qubits[1]]),
-            types.ScheduledGate(t0=100, operand=library.U3Gate,
+            types.ScheduledGate(t0=100, operand=library.U3Gate(0, 0, 0),
                                 duration=20, bits=[self.qubits[0]]),
-            types.ScheduledGate(t0=120, operand=library.CXGate,
+            types.ScheduledGate(t0=120, operand=library.CXGate(),
                                 duration=50, bits=[self.qubits[1], self.qubits[0]]),
-            types.ScheduledGate(t0=200, operand=library.Measure,
-                                duration=100, bits=[self.qubits[1], self.clbits[0]])
+            types.ScheduledGate(t0=200, operand=library.Measure(),
+                                duration=100, bits=[self.qubits[0], self.clbits[0]])
         ]
 
         self.assertListEqual(gates, ref_list)
@@ -89,7 +89,10 @@ class TestBitEvents(QiskitTestCase):
 
         links = bit_event.bit_links()
         ref_list = [
-            types.GateLink(t0=10, operand=library.CXGate, bits=[self.qubits[0], self.qubits[1]])
+            types.GateLink(t0=35.0, operand=library.CXGate(),
+                           bits=[self.qubits[0], self.qubits[1]]),
+            types.GateLink(t0=250.0, operand=library.Measure(),
+                           bits=[self.qubits[0], self.clbits[0]])
         ]
 
         self.assertListEqual(links, ref_list)

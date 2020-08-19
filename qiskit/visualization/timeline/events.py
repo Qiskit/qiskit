@@ -107,6 +107,7 @@ class BitEvents:
     def gates(self) -> List[types.ScheduledGate]:
         """Return scheduled gates."""
         gates = []
+
         for inst in self.instructions:
             if not isinstance(inst.operand, self._non_gates):
                 gates.append(inst)
@@ -125,7 +126,7 @@ class BitEvents:
     def bit_links(self) -> List[types.GateLink]:
         """Return link between multi-bit gates."""
         links = []
-        for inst in self.instructions:
+        for inst in self.gates():
             # generate link iff this is the primary bit.
             if len(inst.bits) > 1 and inst.bits.index(self.bit) == 0:
                 t0 = inst.t0 + 0.5 * inst.duration
