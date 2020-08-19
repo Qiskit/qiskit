@@ -1192,6 +1192,38 @@ class TestControlledStandardGates(QiskitTestCase):
                                                      ctrl_state=ctrl_state)
                 self.assertEqual(Operator(cgate), Operator(target_mat))
 
+    @combine(num_ctrl_qubits=[1,2,3],
+             gate_class=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)])
+    def test_controlled_circuit_equal_controlled_gate(self, num_ctrl_qubits, gate_class):
+        """Test controlling a gate in a circuit is equivalent to controlling the gate itself."""
+        theta = pi / 5
+
+        numargs = len(_get_free_params(gate_class))
+        args = [theta] * numargs
+        if gate_class in [MSGate, Barrier]:
+            args[0] = 2
+        elif gate_class in [MCU1Gate, MCPhaseGate]:
+            args[1] = 2
+        elif issubclass(gate_class, MCXGate):
+            args = [5]
+
+        gate = gate_class(*args)
+
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, list(range(gate.num_qubits)))
+
+        if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
+            # skip matrices that include ancilla qubits
+            return
+        try:
+            cgate = gate.control(num_ctrl_qubits)
+            cqc = qc.control(num_ctrl_qubits)
+        except (AttributeError, QiskitError):
+            # 'object has no attribute "control"'
+            # skipping Id and Barrier
+            return
+
+        self.assertTrue(Operator(cqc).equiv(Operator(cgate)))
 
 @ddt
 class TestParameterCtrlState(QiskitTestCase):

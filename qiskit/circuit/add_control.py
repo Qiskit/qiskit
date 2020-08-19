@@ -53,11 +53,8 @@ def add_control(operation: Union[Gate, ControlledGate],
     import qiskit.circuit.library.standard_gates as standard
     if ctrl_state is None:
         ctrl_state = 2**num_ctrl_qubits - 1
-    if isinstance(operation, standard.RZGate) or operation.name == 'rz':
+    if isinstance(operation, standard.RZGate):
         # num_ctrl_qubits > 1
-        # the condition matching 'name' above is to catch a test case,
-        # 'TestControlledGate.test_rotation_gates', where the rz gate
-        # gets converted to a circuit before becoming a generic Gate object.
         cgate = standard.CRZGate(*operation.params)
         cngate = cgate.control(num_ctrl_qubits - 1)
         cngate.ctrl_state = ctrl_state
@@ -104,13 +101,10 @@ def control(operation: Union[Gate, ControlledGate],
     q_ancillae = None  # TODO: add
     controlled_circ = QuantumCircuit(q_control, q_target,
                                      name='c_{}'.format(operation.name))
-    global_phase = 0
     if operation.name == 'x' or (
             isinstance(operation, controlledgate.ControlledGate) and
             operation.base_gate.name == 'x'):
         controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
-        if operation.definition is not None and operation.definition.global_phase:
-            global_phase += operation.definition.global_phase
     else:
         basis = ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'swap', 'ccx', 'u1', 'u3', 'cx']
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
@@ -136,7 +130,6 @@ def control(operation: Union[Gate, ControlledGate],
                 mcrz = RZGate(theta).control(num_ctrl_qubits)
                 qubits = q_control[:] + q_target[[bit.index for bit in qreg]]
                 controlled_circ.append(mcrz, qargs=qubits)
-                global_phase -= RZGate(theta).definition.global_phase
             elif gate.name == 'u1':
                 controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
             elif gate.name == 'cx' or gate.name == 'ccx':
@@ -185,15 +178,14 @@ def control(operation: Union[Gate, ControlledGate],
             else:
                 raise CircuitError('gate contains non-controllable instructions: {}'.format(
                     gate.name))
-            if gate.definition is not None and gate.definition.global_phase:
-                global_phase += gate.definition.global_phase
-    # apply controlled global phase
-    if ((operation.definition is not None and operation.definition.global_phase) or global_phase):
-        if len(q_control) < 2:
-            controlled_circ.u1(operation.definition.global_phase + global_phase, q_control)
-        else:
-            controlled_circ.mcu1(operation.definition.global_phase + global_phase,
-                                 q_control[:-1], q_control[-1])
+        # apply controlled global phase
+        if unrolled_gate.definition is not None and unrolled_gate.definition.global_phase:
+            if len(q_control) < 2:
+                controlled_circ.u1(unrolled_gate.definition.global_phase, q_control)
+            else:
+                controlled_circ.mcu1(unrolled_gate.definition.global_phase,
+                                     q_control[:-1], q_control[-1])
+
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
