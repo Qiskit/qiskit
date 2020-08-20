@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -1006,8 +1004,7 @@ class DAGCircuit:
         Yield:
             node: the node.
         """
-        for node in self._multi_graph.nodes():
-            yield node
+        yield from self._multi_graph.nodes()
 
     def edges(self, nodes=None):
         """Iterator for edge values and source and dest node
@@ -1137,15 +1134,15 @@ class DAGCircuit:
 
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
-        return set(
+        return {
             self._multi_graph.get_node_data(x) for x in rx.ancestors(
-                self._multi_graph, node._node_id))
+                self._multi_graph, node._node_id)}
 
     def descendants(self, node):
         """Returns set of the descendants of a node as DAGNodes."""
-        return set(
+        return {
             self._multi_graph.get_node_data(x) for x in rx.descendants(
-                self._multi_graph, node._node_id))
+                self._multi_graph, node._node_id)}
 
     def bfs_successors(self, node):
         """
