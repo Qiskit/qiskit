@@ -162,7 +162,6 @@ class GroverOperator(QuantumCircuit):
 
         return list(range(num_state_qubits))
 
-
     @property
     def zero_reflection(self) -> QuantumCircuit:
         """The subcircuit implementing the reflection about 0."""
