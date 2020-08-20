@@ -18,7 +18,6 @@ from typing import List
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.duration import duration_in_dt
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
