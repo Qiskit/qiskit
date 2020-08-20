@@ -20,7 +20,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class InstructionDurations:
-    """Helper class to provide integer durations for safe scheduling."""
+    """Helper class to provide durations for scheduling."""
 
     def __init__(self,
                  instruction_durations: Optional['InstructionDurationsType'] = None,
@@ -84,14 +84,14 @@ class InstructionDurations:
     def get(self,
             inst_name: Union[str, Instruction],
             qubits: Union[int, List[int], Qubit, List[Qubit]]) -> float:
-        """Get the duration [dt] of the instruction with the name and the qubits.
+        """Get the duration of the instruction with the name and the qubits.
 
         Args:
             inst_name: an instruction or its name to be queried.
             qubits: qubits or its indices that the instruction acts on.
 
         Returns:
-            float: The duration [dt] of the instruction on the qubits.
+            float: The duration of the instruction on the qubits.
 
         Raises:
             TranspilerError: No duration is defined for the instruction.
@@ -99,6 +99,9 @@ class InstructionDurations:
         if isinstance(inst_name, Barrier):
             return 0
         elif isinstance(inst_name, Delay):
+            if inst_name.unit != self.unit:
+                raise TranspilerError("unit of delay (currently %s) must be '%s', consistent "
+                                      "with other instructions" % (inst_name.unit, self.unit))
             return inst_name.duration
 
         if isinstance(inst_name, Instruction):
