@@ -63,7 +63,7 @@ from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_
 from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
 
 
-class DrawingSlot:
+class Graph:
 
     def __init__(self, index):
         self.index = index
@@ -98,7 +98,7 @@ class DrawDataContainer:
         self.stylesheet = stylesheet
         self.device = device or device_info.OpenPulseBackendInfo()
 
-        self.draw_slots = []
+        self.graphs = []
 
         self.global_time = None
 
