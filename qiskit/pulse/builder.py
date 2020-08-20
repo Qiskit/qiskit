@@ -968,7 +968,7 @@ def align_func(duration: int,
 
         with pulse.build() as udd_sched:
             pulse.play(x90, d0)
-            with pulse.align_func(duration=150, func=udd10_pos):
+            with pulse.align_func(duration=300, func=udd10_pos):
                 for _ in range(10):
                     pulse.play(x180, d0)
             pulse.play(x90, d0)
