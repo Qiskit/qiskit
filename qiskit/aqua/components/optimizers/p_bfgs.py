@@ -24,14 +24,12 @@ from scipy import optimize as sciopt
 
 from qiskit.aqua import aqua_globals
 from qiskit.aqua.utils.validation import validate_min
-from .optimizer import Optimizer
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=invalid-name
 
-
-class P_BFGS(Optimizer):
+class P_BFGS(Optimizer):  # pylint: disable=invalid-name
     """
     Parallelized Limited-memory BFGS optimizer.
 
@@ -82,9 +80,9 @@ class P_BFGS(Optimizer):
     def get_support_level(self):
         """ return support level dictionary """
         return {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
+            'gradient': OptimizerSupportLevel.supported,
+            'bounds': OptimizerSupportLevel.supported,
+            'initial_point': OptimizerSupportLevel.required
         }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
@@ -126,9 +124,9 @@ class P_BFGS(Optimizer):
         processes = []
         for _ in range(num_procs):
             i_pt = aqua_globals.random.uniform(low, high)  # Another random point in bounds
-            p = multiprocessing.Process(target=optimize_runner, args=(queue, i_pt))
-            processes.append(p)
-            p.start()
+            proc = multiprocessing.Process(target=optimize_runner, args=(queue, i_pt))
+            processes.append(proc)
+            proc.start()
 
         # While the one _optimize in this process below runs the other processes will
         # be running to. This one runs
@@ -136,10 +134,10 @@ class P_BFGS(Optimizer):
         sol, opt, nfev = self._optimize(num_vars, objective_function,
                                         gradient_function, variable_bounds, initial_point)
 
-        for p in processes:
+        for proc in processes:
             # For each other process we wait now for it to finish and see if it has
             # a better result than above
-            p.join()
+            proc.join()
             p_sol, p_opt, p_nfev = queue.get()
             if p_opt < opt:
                 sol, opt = p_sol, p_opt

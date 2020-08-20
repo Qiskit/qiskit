@@ -18,11 +18,9 @@ import logging
 from copy import deepcopy
 from numpy import pi, absolute, array, zeros
 from qiskit.aqua.utils.validation import validate_range_exclusive_max
-from .optimizer import Optimizer
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
-
-# pylint: disable=invalid-name
 
 
 class AQGD(Optimizer):
@@ -78,9 +76,9 @@ class AQGD(Optimizer):
     def get_support_level(self):
         """ Return support level dictionary """
         return {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
+            'gradient': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.ignored,
+            'initial_point': OptimizerSupportLevel.required
         }
 
     def deriv(self, j, params, obj):
@@ -160,17 +158,17 @@ class AQGD(Optimizer):
                          variable_bounds, initial_point)
 
         params = array(initial_point)
-        it = 0
+        iter_count = 0
         momentum = zeros(shape=(num_vars,))
         objval = objective_function(params)
 
         if self._disp:
-            print("Iteration: " + str(it) + " \t| Energy: " + str(objval))
+            print("Iteration: " + str(iter_count) + " \t| Energy: " + str(objval))
 
         minobj = objval
         minparams = params
 
-        while it < self._maxiter and not self.converged(objval):
+        while iter_count < self._maxiter and not self.converged(objval):
             for j in range(num_vars):
                 # update parameters in order based on quantum gradient
                 derivative = self.deriv(j, params, objective_function)
@@ -185,8 +183,8 @@ class AQGD(Optimizer):
                 minparams = params
 
             # update the iteration count
-            it += 1
+            iter_count += 1
             if self._disp:
-                print("Iteration: " + str(it) + " \t| Energy: " + str(objval))
+                print("Iteration: " + str(iter_count) + " \t| Energy: " + str(objval))
 
-        return minparams, minobj, it
+        return minparams, minobj, iter_count

@@ -22,7 +22,7 @@ import numpy as np
 
 from qiskit.aqua import aqua_globals
 from qiskit.aqua.utils.validation import validate_min
-from .optimizer import Optimizer
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +107,9 @@ class SPSA(Optimizer):
     def get_support_level(self):
         """ return support level dictionary """
         return {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.ignored,
-            'initial_point': Optimizer.SupportLevel.required
+            'gradient': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.ignored,
+            'initial_point': OptimizerSupportLevel.required
         }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,

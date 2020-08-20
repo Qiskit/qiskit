@@ -21,18 +21,17 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=invalid-name
+
+class OptimizerSupportLevel(IntEnum):
+    """ Support Level enum for features such as bounds, gradient and initial point """
+    not_supported = 0  # Does not support the corresponding parameter in optimize()
+    ignored = 1  # Feature can be passed as non None but will be ignored
+    supported = 2  # Feature is supported
+    required = 3  # Feature is required and must be given, None is invalid
 
 
 class Optimizer(ABC):
     """Base class for optimization algorithm."""
-
-    class SupportLevel(IntEnum):
-        """ Support Level enum """
-        not_supported = 0  # Does not support the corresponding parameter in optimize()
-        ignored = 1        # Feature can be passed as non None but will be ignored
-        supported = 2      # Feature is supported
-        required = 3       # Feature is required and must be given, None is invalid
 
     @abstractmethod
     def __init__(self):
@@ -68,6 +67,7 @@ class Optimizer(ABC):
             self._options[name] = value
         logger.debug('options: %s', self._options)
 
+    # pylint: disable=invalid-name
     @staticmethod
     def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
         """
@@ -211,17 +211,17 @@ class Optimizer(ABC):
     @property
     def is_gradient_ignored(self):
         """ Returns is gradient ignored """
-        return self._gradient_support_level == self.SupportLevel.ignored
+        return self._gradient_support_level == OptimizerSupportLevel.ignored
 
     @property
     def is_gradient_supported(self):
         """ Returns is gradient supported """
-        return self._gradient_support_level != self.SupportLevel.not_supported
+        return self._gradient_support_level != OptimizerSupportLevel.not_supported
 
     @property
     def is_gradient_required(self):
         """ Returns is gradient required """
-        return self._gradient_support_level == self.SupportLevel.required
+        return self._gradient_support_level == OptimizerSupportLevel.required
 
     @property
     def bounds_support_level(self):
@@ -231,17 +231,17 @@ class Optimizer(ABC):
     @property
     def is_bounds_ignored(self):
         """ Returns is bounds ignored """
-        return self._bounds_support_level == self.SupportLevel.ignored
+        return self._bounds_support_level == OptimizerSupportLevel.ignored
 
     @property
     def is_bounds_supported(self):
         """ Returns is bounds supported """
-        return self._bounds_support_level != self.SupportLevel.not_supported
+        return self._bounds_support_level != OptimizerSupportLevel.not_supported
 
     @property
     def is_bounds_required(self):
         """ Returns is bounds required """
-        return self._bounds_support_level == self.SupportLevel.required
+        return self._bounds_support_level == OptimizerSupportLevel.required
 
     @property
     def initial_point_support_level(self):
@@ -251,17 +251,17 @@ class Optimizer(ABC):
     @property
     def is_initial_point_ignored(self):
         """ Returns is initial point ignored """
-        return self._initial_point_support_level == self.SupportLevel.ignored
+        return self._initial_point_support_level == OptimizerSupportLevel.ignored
 
     @property
     def is_initial_point_supported(self):
         """ Returns is initial point supported """
-        return self._initial_point_support_level != self.SupportLevel.not_supported
+        return self._initial_point_support_level != OptimizerSupportLevel.not_supported
 
     @property
     def is_initial_point_required(self):
         """ Returns is initial point required """
-        return self._initial_point_support_level == self.SupportLevel.required
+        return self._initial_point_support_level == OptimizerSupportLevel.required
 
     def print_options(self):
         """Print algorithm-specific options."""

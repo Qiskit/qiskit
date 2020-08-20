@@ -20,7 +20,7 @@ from abc import abstractmethod
 import logging
 import numpy as np
 from qiskit.aqua import MissingOptionalLibraryError
-from qiskit.aqua.components.optimizers import Optimizer
+from ..optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 
@@ -86,9 +86,9 @@ class NLoptOptimizer(Optimizer):
     def get_support_level(self):
         """ return support level dictionary """
         return {
-            'gradient': Optimizer.SupportLevel.ignored,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
+            'gradient': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.supported,
+            'initial_point': OptimizerSupportLevel.required
         }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,

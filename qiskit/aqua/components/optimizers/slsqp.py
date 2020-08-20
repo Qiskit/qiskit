@@ -18,7 +18,7 @@ from typing import Optional
 import logging
 
 from scipy.optimize import minimize
-from .optimizer import Optimizer
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +66,9 @@ class SLSQP(Optimizer):
     def get_support_level(self):
         """ Return support level dictionary """
         return {
-            'gradient': Optimizer.SupportLevel.supported,
-            'bounds': Optimizer.SupportLevel.supported,
-            'initial_point': Optimizer.SupportLevel.required
+            'gradient': OptimizerSupportLevel.supported,
+            'bounds': OptimizerSupportLevel.supported,
+            'initial_point': OptimizerSupportLevel.required
         }
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
