@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -134,6 +132,14 @@ class CouplingMap:
         except nx.exception.NetworkXException:
             return False
 
+    def neighbors(self, physical_qubit):
+        """Return the nearest neighbors of a physical qubit.
+
+        Directionality matters, i.e. a neighbor must be reachable
+        by going one hop in the direction of an edge.
+        """
+        return self.graph.neighbors(physical_qubit)
+
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
 
@@ -200,6 +206,17 @@ class CouplingMap:
         if self._is_symmetric is None:
             self._is_symmetric = self._check_symmetry()
         return self._is_symmetric
+
+    def make_symmetric(self):
+        """
+        Convert uni-directional edges into bi-directional.
+        """
+        edges = self.get_edges()
+        for src, dest in edges:
+            if (dest, src) not in edges:
+                self.add_edge(dest, src)
+        self._dist_matrix = None  # invalidate
+        self._is_symmetric = None  # invalidate
 
     def _check_symmetry(self):
         """
@@ -307,6 +324,10 @@ class CouplingMap:
                 if right is not None:
                     cmap.add_edge(node, right)
         return cmap
+
+    def largest_connected_component(self):
+        """Return a set of qubits in the largest connected component."""
+        return max(nx.strongly_connected_components(self.graph), key=len)
 
     def __str__(self):
         """Return a string representation of the coupling graph."""

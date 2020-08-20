@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -58,10 +56,10 @@ class OneQubitEulerDecomposer:
           - :math:`e^{i\gamma} R_X(\phi).R_Y(\theta).R_X(\lambda)`
         * - 'U3'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i\gamma}{2}\right)\right)} U_3(\theta,\phi,\lambda)`
+          - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
         * - 'U1X'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
-          - :math:`e^{i \gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
+          - :math:`e^{i\gamma} U_1(\phi+\pi).R_X\left(\frac{\pi}{2}\right).`
             :math:`U_1(\theta+\pi).R_X\left(\frac{\pi}{2}\right).U_1(\lambda)`
         * - 'RR'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`

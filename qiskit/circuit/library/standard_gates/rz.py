@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -64,15 +62,17 @@ class RZGate(Gate):
         """
         gate rz(phi) a { u1(phi) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
-            (U1Gate(self.params[0]), [q[0]], [])
+        theta = self.params[0]
+        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
+        rules = [
+            (U1Gate(theta), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (mutli-)controlled-RZ gate.
@@ -99,26 +99,15 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    # TODO: this is the correct matrix however the control mechanism
-    # cannot distinguish U1 and RZ yet.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZ gate."""
-    #    lam = float(self.params[0])
-    #    return np.array([[np.exp(-1j * lam / 2), 0],
-    #                     [0, np.exp(1j * lam / 2)]], dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the RZ gate."""
+        import numpy as np
+        ilam2 = 0.5j * float(self.params[0])
+        return np.array([[np.exp(-ilam2), 0],
+                         [0, np.exp(ilam2)]], dtype=complex)
 
 
-class CRZMeta(type):
-    """A metaclass to ensure that CrzGate and CRZGate are of the same type.
-
-    Can be removed when CrzGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRZGate, CrzGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRZGate(ControlledGate, metaclass=CRZMeta):
+class CRZGate(ControlledGate):
     r"""Controlled-RZ gate.
 
     This is a diagonal but non-symmetric gate that induces a
@@ -192,32 +181,38 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
           u1(-lambda/2) b; cx a,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U1Gate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0])
 
-
-class CrzGate(CRZGate, metaclass=CRZMeta):
-    """The deprecated CRZGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CrzGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRZGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
+    def to_matrix(self):
+        """Return a numpy.array for the CRZ gate."""
+        import numpy
+        arg = 1j * float(self.params[0]) / 2
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, numpy.exp(-arg), 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, numpy.exp(arg)]],
+                               dtype=complex)
+        else:
+            return numpy.array([[numpy.exp(-arg), 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, numpy.exp(arg), 0],
+                                [0, 0, 0, 1]],
+                               dtype=complex)

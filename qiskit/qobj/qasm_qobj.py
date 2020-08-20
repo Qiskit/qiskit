@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -30,7 +28,7 @@ path_part = 'schemas/qobj_schema.json'
 path = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     path_part)
-with open(path, 'r') as fd:
+with open(path) as fd:
     json_schema = json.loads(fd.read())
 validator = fastjsonschema.compile(json_schema)
 
@@ -405,7 +403,7 @@ class QasmQobj:
         self.experiments = experiments or []
         self.qobj_id = qobj_id
         self.type = 'QASM'
-        self.schema_version = '1.1.0'
+        self.schema_version = '1.2.0'
 
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
@@ -462,7 +460,7 @@ class QasmQobj:
             'qobj_id': self.qobj_id,
             'header': self.header.to_dict(),
             'config': self.config.to_dict(),
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'type': 'QASM',
             'experiments': [x.to_dict() for x in self.experiments]
         }

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -31,13 +29,14 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     WeightedAdder, Diagonal, NLocal, TwoLocal, RealAmplitudes,
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
-                                    HiddenLinearFunction)
+                                    HiddenLinearFunction, GraphState, PhaseEstimation,
+                                    QuadraticForm)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
                                     RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
-from qiskit.quantum_info import Statevector, Operator
+from qiskit.quantum_info import Statevector, Operator, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
@@ -185,6 +184,51 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
             HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
 
 
+@ddt
+class TestGraphStateLibrary(QiskitTestCase):
+    """Test the graph state circuit."""
+
+    def assertGraphStateIsCorrect(self, adjacency_matrix, graph_state):
+        """Check the stabilizers of the graph state against the expected stabilizers.
+        Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
+        """
+
+        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
+
+        expected_stabilizers = []  # keep track of all expected stabilizers
+        num_vertices = len(adjacency_matrix)
+        for vertex_a in range(num_vertices):
+            stabilizer = [None] * num_vertices  # Paulis must be put into right place
+            for vertex_b in range(num_vertices):
+                if vertex_a == vertex_b:  # self-connection --> 'X'
+                    stabilizer[vertex_a] = 'X'
+                elif adjacency_matrix[vertex_a][vertex_b] != 0:  # vertices connected --> 'Z'
+                    stabilizer[vertex_b] = 'Z'
+                else:  # else --> 'I'
+                    stabilizer[vertex_b] = 'I'
+
+            # need to reverse for Qiskit's tensoring order
+            expected_stabilizers.append(''.join(stabilizer)[::-1])
+
+        self.assertListEqual(expected_stabilizers, stabilizers)
+
+    @data(
+        [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
+    )
+    def test_graph_state(self, adjacency_matrix):
+        """Verify the GraphState by checking if the circuit has the expected stabilizers."""
+        graph_state = GraphState(adjacency_matrix)
+        self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
+
+    @data(
+        [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
+    )
+    def test_non_symmetric_raises(self, adjacency_matrix):
+        """Test that adjacency matrix is required to be symmetric."""
+        with self.assertRaises(CircuitError):
+            GraphState(adjacency_matrix)
+
+
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
 
@@ -228,11 +272,20 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
     def test_qv(self):
         """Test qv circuit."""
-        circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
+        seed = 10203
+        rng1 = np.random.default_rng(seed)
+        rng2 = np.random.default_rng(seed)
+
+        depth = 2
+        width = 1
+        circuit = QuantumVolume(2, depth, seed=rng1, classical_permutation=False)
+
         expected = QuantumCircuit(2)
-        expected.swap(0, 1)
-        expected.append(random_unitary(4, seed=837), [0, 1])
-        expected.append(random_unitary(4, seed=262), [0, 1])
+        unitary_seeds = rng2.integers(low=1, high=1000, size=[depth, width])
+        for d in range(depth):
+            if rng2.permutation([0, 1]).tolist() == [1, 0]:
+                expected.swap(0, 1)
+            expected.append(random_unitary(4, seed=unitary_seeds[d][0]), [0, 1])
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
@@ -654,7 +707,7 @@ class TestIntegerComparator(QiskitTestCase):
             if prob > 1e-6:
                 # equal superposition
                 self.assertEqual(True, np.isclose(1.0, prob * 2.0**num_state_qubits))
-                b_value = '{0:b}'.format(i).rjust(qc.width(), '0')
+                b_value = '{:b}'.format(i).rjust(qc.width(), '0')
                 x = int(b_value[(-num_state_qubits):], 2)
                 comp_result = int(b_value[-num_state_qubits-1], 2)
                 if geq:
@@ -1184,7 +1237,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1207,7 +1260,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1256,7 +1309,7 @@ class TestNLocal(QiskitTestCase):
                 nlocal = NLocal(num_qubits, rotation_blocks=XGate(), entanglement_blocks=CCXGate(),
                                 entanglement=entanglement, reps=3, skip_unentangled_qubits=True)
 
-                skipped_set = set(nlocal.qubits[i] for i in skipped)
+                skipped_set = {nlocal.qubits[i] for i in skipped}
                 dag = circuit_to_dag(nlocal)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
@@ -1419,7 +1472,7 @@ class TestTwoLocal(QiskitTestCase):
         """Test different possibilities to set parameters."""
         two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
         params = [0, 1, 2, Parameter('x'), Parameter('y'), Parameter('z'), 6, 7, 0]
-        params_set = set(param for param in params if isinstance(param, Parameter))
+        params_set = {param for param in params if isinstance(param, Parameter)}
 
         with self.subTest(msg='dict assign and copy'):
             ordered = two.ordered_parameters
@@ -1755,6 +1808,259 @@ class TestDiagonalGate(QiskitTestCase):
         ref_diag = Statevector(diag)
 
         self.assertTrue(simulated_diag.equiv(ref_diag))
+
+
+@ddt
+class TestPhaseEstimation(QiskitTestCase):
+    """Test the phase estimation circuit."""
+
+    def assertPhaseEstimationIsCorrect(self, pec: QuantumCircuit, eigenstate: QuantumCircuit,
+                                       phase_as_binary: str):
+        r"""Assert that the phase estimation circuit implements the correct transformation.
+
+        Applying the phase estimation circuit on a target register which holds the eigenstate
+        :math:`|u\rangle` (say the last register), the final state should be
+
+        .. math::
+
+            |\phi_1\rangle \cdots |\phi_t\rangle |u\rangle
+
+        where the eigenvalue is written as :math:`e^{2\pi i \phi}` and the angle is represented
+        in binary fraction, i.e. :math:`\phi = 0.\phi_1 \ldots \phi_t`.
+
+        Args:
+            pec: The circuit implementing the phase estimation circuit.
+            eigenstate: The eigenstate as circuit.
+            phase_as_binary: The phase of the eigenvalue in a binary fraction. E.g. if the
+                phase is 0.25, the binary fraction is '01' as 0.01 = 0 * 0.5 + 1 * 0.25 = 0.25.
+        """
+
+        # the target state
+        eigenstate_as_vector = Statevector.from_instruction(eigenstate).data
+        reference = eigenstate_as_vector
+
+        zero, one = [1, 0], [0, 1]
+        for qubit in phase_as_binary[::-1]:
+            reference = np.kron(reference, zero if qubit == '0' else one)
+
+        # the simulated state
+        circuit = QuantumCircuit(pec.num_qubits)
+        circuit.compose(eigenstate,
+                        list(range(pec.num_qubits - eigenstate.num_qubits, pec.num_qubits)),
+                        inplace=True)
+        circuit.compose(pec, inplace=True)
+        # TODO use Statevector for simulation once Qiskit/qiskit-terra#4681 is resolved
+        # actual = Statevector.from_instruction(circuit).data
+        backend = BasicAer.get_backend('statevector_simulator')
+        actual = execute(circuit, backend).result().get_statevector()
+
+        np.testing.assert_almost_equal(reference, actual)
+
+    def test_phase_estimation(self):
+        """Test the standard phase estimation circuit."""
+        with self.subTest('U=S, psi=|1>'):
+            unitary = QuantumCircuit(1)
+            unitary.s(0)
+
+            eigenstate = QuantumCircuit(1)
+            eigenstate.x(0)
+
+            # eigenvalue is 1j = exp(2j pi 0.25) thus phi = 0.25 = 0.010 = '010'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = '0100'
+
+            pec = PhaseEstimation(4, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest('U=SZ, psi=|11>'):
+            unitary = QuantumCircuit(2)
+            unitary.z(0)
+            unitary.s(1)
+
+            eigenstate = QuantumCircuit(2)
+            eigenstate.x([0, 1])
+
+            # eigenvalue is -1j = exp(2j pi 0.75) thus phi = 0.75 = 0.110 = '110'
+            # using three digits as 3 evaluation qubits are used
+            phase_as_binary = '110'
+
+            pec = PhaseEstimation(3, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+        with self.subTest('a 3-q unitary'):
+            unitary = QuantumCircuit(3)
+            unitary.x([0, 1, 2])
+            unitary.cz(0, 1)
+            unitary.h(2)
+            unitary.ccx(0, 1, 2)
+            unitary.h(2)
+
+            eigenstate = QuantumCircuit(3)
+            eigenstate.h(0)
+            eigenstate.cx(0, 1)
+            eigenstate.cx(0, 2)
+
+            # the unitary acts as identity on the eigenstate, thus the phase is 0
+            phase_as_binary = '00'
+
+            pec = PhaseEstimation(2, unitary)
+
+            self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
+
+    def test_phase_estimation_iqft_setting(self):
+        """Test default and custom setting of the QFT circuit."""
+        unitary = QuantumCircuit(1)
+        unitary.s(0)
+
+        with self.subTest('default QFT'):
+            pec = PhaseEstimation(3, unitary)
+            expected_qft = QFT(3, inverse=True, do_swaps=False)
+            self.assertEqual(pec.data[-1][0].definition, expected_qft)
+
+        with self.subTest('custom QFT'):
+            iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
+            pec = PhaseEstimation(3, unitary, iqft=iqft)
+            self.assertEqual(pec.data[-1][0].definition, iqft)
+
+
+@ddt
+class TestQuadraticForm(QiskitTestCase):
+    """Test the QuadraticForm circuit."""
+
+    def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
+        """Assert ``circuit`` implements the quadratic form correctly."""
+        def q_form(x, num_bits):
+            x = np.array([int(val) for val in reversed(x)])
+            res = x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset
+            # compute 2s complement
+            res = (2**num_bits + int(res)) % 2**num_bits
+            twos = bin(res)[2:].zfill(num_bits)
+            return twos
+
+        n = len(quadratic)  # number of value qubits
+        ref = np.zeros(2 ** (n + m), dtype=complex)
+        for x in range(2 ** n):
+            x_bin = bin(x)[2:].zfill(n)
+            index = q_form(x_bin, m) + x_bin
+            index = int(index, 2)
+            ref[index] = 1 / np.sqrt(2 ** n)
+
+        actual = QuantumCircuit(circuit.num_qubits)
+        actual.h(list(range(n)))
+        actual.compose(circuit, inplace=True)
+        self.assertTrue(Statevector.from_instruction(actual).equiv(ref))
+
+    @data(True, False)
+    def test_endian(self, little_endian):
+        """Test the outcome for different endianness."""
+        qform = QuadraticForm(2, linear=[0, 1], little_endian=little_endian)
+        circuit = QuantumCircuit(4)
+        circuit.x(1)
+        circuit.compose(qform, inplace=True)
+
+        # the result is x_0 linear_0 + x_1 linear_1 = 1 = '0b01'
+        result = '01'
+
+        # the state is encoded as |q(x)>|x>, |x> = |x_1 x_0> = |10>
+        index = (result if little_endian else result[::-1]) + '10'
+        ref = np.zeros(2 ** 4, dtype=complex)
+        ref[int(index, 2)] = 1
+
+        self.assertTrue(Statevector.from_instruction(circuit).equiv(ref))
+
+    def test_required_result_qubits(self):
+        """Test getting the number of required result qubits."""
+
+        with self.subTest('positive bound'):
+            quadratic = [[1, -50], [100, 0]]
+            linear = [-5, 5]
+            offset = 0
+            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(106 + 1))))
+
+        with self.subTest('negative bound'):
+            quadratic = [[1, -50], [10, 0]]
+            linear = [-5, 5]
+            offset = 0
+            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(55))))
+
+        with self.subTest('empty'):
+            num_result_qubits = QuadraticForm.required_result_qubits([[]], [], 0)
+            self.assertEqual(num_result_qubits, 1)
+
+    def test_quadratic_form(self):
+        """Test the quadratic form circuit."""
+
+        with self.subTest('empty'):
+            circuit = QuadraticForm()
+            self.assertQuadraticFormIsCorrect(1, [[0]], [0], 0, circuit)
+
+        with self.subTest('1d case'):
+            quadratic = np.array([[1]])
+            linear = np.array([2])
+            offset = -1
+
+            circuit = QuadraticForm(quadratic=quadratic, linear=linear, offset=offset)
+
+            self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
+
+        with self.subTest('negative'):
+            quadratic = np.array([[-2]])
+            linear = np.array([0])
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, linear, offset)
+
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing quadratic'):
+            quadratic = np.zeros((3, 3))
+            linear = np.array([-2, 0, 1])
+            offset = -1
+
+            circuit = QuadraticForm(linear=linear, offset=offset)
+            self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing linear'):
+            quadratic = np.array([[1, 2, 3], [3, 1, 2], [2, 3, 1]])
+            linear = np.zeros(3)
+            offset = -1
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, None, offset)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+        with self.subTest('missing offset'):
+            quadratic = np.array([[2, 1], [-1, -2]])
+            linear = np.array([2, 0])
+            offset = 0
+            m = 2
+
+            circuit = QuadraticForm(m, quadratic, linear)
+            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+
+    def test_quadratic_form_parameterized(self):
+        """Test the quadratic form circuit with parameters."""
+        theta = ParameterVector('th', 7)
+
+        p_quadratic = [[theta[0], theta[1]], [theta[2], theta[3]]]
+        p_linear = [theta[4], theta[5]]
+        p_offset = theta[6]
+
+        quadratic = np.array([[2, 1], [-1, -2]])
+        linear = np.array([2, 0])
+        offset = 0
+        m = 2
+
+        circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
+        param_dict = dict(zip(theta, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
+        circuit.assign_parameters(param_dict, inplace=True)
+
+        self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
 
 if __name__ == '__main__':

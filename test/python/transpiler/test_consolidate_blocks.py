@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -25,6 +23,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.execute import execute
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.providers.basicaer import UnitarySimulatorPy
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
@@ -53,7 +52,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         result = execute(qc, sim).result()
         unitary = UnitaryGate(result.get_unitary())
         self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
+        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_wire_order(self):
@@ -71,10 +70,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(new_node.qargs, [qr[0], qr[1]])
         # the canonical CNOT matrix occurs when the control is more
         # significant than target, which is the case here
-        fidelity = process_fidelity(new_node.op.to_matrix(), np.array([[1, 0, 0, 0],
-                                                                       [0, 1, 0, 0],
-                                                                       [0, 0, 0, 1],
-                                                                       [0, 0, 1, 0]]))
+        fidelity = process_fidelity(Operator(new_node.op), np.array([[1, 0, 0, 0],
+                                                                     [0, 1, 0, 0],
+                                                                     [0, 0, 0, 1],
+                                                                     [0, 0, 1, 0]]))
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_topological_order_preserved(self):
@@ -124,7 +123,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         result = execute(qc, sim).result()
         unitary = UnitaryGate(result.get_unitary())
         self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
+        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs(self):
@@ -145,7 +144,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         result = execute(qc, sim).result()
         unitary = UnitaryGate(result.get_unitary())
         self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
+        fidelity = process_fidelity(Operator(new_dag.op_nodes()[0].op), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs_different_index(self):
@@ -308,6 +307,15 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
+
+    def test_no_kak_in_basis(self):
+        """Test that pass just returns the input dag without a KAK gate."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        dag = circuit_to_dag(qc)
+        consolidate_blocks_pass = ConsolidateBlocks(basis_gates=['u3'])
+        res = consolidate_blocks_pass.run(dag)
+        self.assertEqual(res, dag)
 
 
 if __name__ == '__main__':

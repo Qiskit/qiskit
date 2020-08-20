@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -200,8 +198,8 @@ class EquivalenceLibrary():
             for params, decomp in equivalences:
                 decomp_basis = frozenset('{}/{}'.format(name, num_qubits)
                                          for name, num_qubits in
-                                         set((inst.name, inst.num_qubits)
-                                             for inst, _, __ in decomp.data))
+                                         {(inst.name, inst.num_qubits)
+                                          for inst, _, __ in decomp.data})
 
                 graph.add_node(basis, label=str(set(basis)))
                 graph.add_node(decomp_basis, label=str(set(decomp_basis)))
@@ -258,7 +256,6 @@ def _raise_if_shape_mismatch(gate, circuit):
 
 def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
-
     param_map = dict(zip(equiv_params, query_params))
     equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
 

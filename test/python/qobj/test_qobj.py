@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -55,7 +53,7 @@ class TestQASMQobj(QiskitTestCase):
         self.valid_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -122,7 +120,7 @@ class TestQASMQobj(QiskitTestCase):
         expected_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -157,7 +155,7 @@ class TestQASMQobj(QiskitTestCase):
         qobj_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -229,8 +227,7 @@ class TestPulseQobj(QiskitTestCase):
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=0.),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
-                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
-                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val='P1'),
+                    PulseQobjInstruction(name='setp', t0=10, ch='d0', phase=3.14),
                     PulseQobjInstruction(name='setf', t0=10, ch='d0', frequency=8.0),
                     PulseQobjInstruction(name='shiftf', t0=10, ch='d0', frequency=4.0),
                     PulseQobjInstruction(name='acquire', t0=15, duration=5,
@@ -246,7 +243,7 @@ class TestPulseQobj(QiskitTestCase):
         self.valid_dict = {
             'qobj_id': '12345',
             'type': 'PULSE',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024,
                        'meas_level': 1,
@@ -264,8 +261,7 @@ class TestPulseQobj(QiskitTestCase):
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 1.57},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 0},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
-                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 0.1+0j},
-                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
+                    {'name': 'setp', 't0': 10, 'ch': 'd0', 'phase': 3.14},
                     {'name': 'setf', 't0': 10, 'ch': 'd0', 'frequency': 8.0},
                     {'name': 'shiftf', 't0': 10, 'ch': 'd0', 'frequency': 4.0},
                     {'name': 'acquire', 't0': 15, 'duration': 5,

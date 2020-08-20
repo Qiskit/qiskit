@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -31,6 +29,7 @@ from qiskit.exceptions import QiskitError
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit import AncillaRegister
 from qiskit.circuit import QuantumCircuit
 
 # user config

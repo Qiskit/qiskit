@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -107,7 +105,9 @@ class HamiltonianGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         q = QuantumRegister(self.num_qubits, 'q')
-        self.definition = [(UnitaryGate(self.to_matrix()), q[:], [])]
+        qc = QuantumCircuit(q, name=self.name)
+        qc._append(UnitaryGate(self.to_matrix()), q[:], [])
+        self.definition = qc
 
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""

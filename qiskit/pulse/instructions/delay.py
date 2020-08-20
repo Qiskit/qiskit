@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -13,12 +11,9 @@
 # that they have been altered from the originals.
 
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
-import warnings
-
 from typing import Optional
 
 from ..channels import Channel
-from ..exceptions import PulseError
 from .instruction import Instruction
 
 
@@ -39,7 +34,7 @@ class Delay(Instruction):
     """
 
     def __init__(self, duration: int,
-                 channel: Optional[Channel] = None,
+                 channel: Channel,
                  name: Optional[str] = None):
         """Create a new delay instruction.
 
@@ -50,10 +45,6 @@ class Delay(Instruction):
             channel: The channel that will have the delay.
             name: Name of the delay for display purposes.
         """
-        if channel is None:
-            warnings.warn("Usage of Delay without specifying a channel is deprecated. For "
-                          "example, Delay(5)(DriveChannel(0)) should be replaced by "
-                          "Delay(5, DriveChannel(0)).", DeprecationWarning)
         self._channel = channel
         super().__init__((duration, channel), duration, (channel,), name=name)
 
@@ -63,21 +54,3 @@ class Delay(Instruction):
         scheduled on.
         """
         return self._channel
-
-    def __call__(self, channel: Channel) -> 'Delay':
-        """Return new ``Delay`` that is fully instantiated with both ``duration`` and a ``channel``.
-
-        Args:
-            channel: The channel that will have the delay.
-
-        Return:
-            Complete and ready to schedule ``Delay``.
-
-        Raises:
-            PulseError: If ``channel`` has already been set.
-        """
-        warnings.warn("Calling Delay with a channel is deprecated. Instantiate the delay with "
-                      "a channel instead.", DeprecationWarning)
-        if self._channel is not None:
-            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
-        return Delay(self.duration, channel)

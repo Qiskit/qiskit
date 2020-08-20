@@ -148,7 +148,9 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -158,6 +160,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -176,6 +179,7 @@ stages:
             artifactName: 'drop_linux'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -210,7 +214,9 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -218,8 +224,10 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
+            tools/verify_headers.py qiskit test
             reno lint
           displayName: 'Style and lint'
     - job: 'Docs'
@@ -293,7 +301,9 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -302,6 +312,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -320,6 +331,7 @@ stages:
             artifactName: 'drop_macos'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -364,7 +376,9 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/Scripts/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -373,6 +387,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/Scripts/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -391,6 +406,7 @@ stages:
             artifactName: 'drop_windows'
         - bash: |
             set -e
+            source test-job/Scripts/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
@@ -430,7 +446,9 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
@@ -440,6 +458,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
@@ -458,6 +477,7 @@ stages:
             artifactName: 'drop_linux'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
@@ -497,7 +517,9 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" -c constraints.txt
@@ -506,6 +528,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            source test-job/bin/activate
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run --concurrency 2
@@ -524,6 +547,7 @@ stages:
             artifactName: 'drop_macos'
         - bash: |
             set -e
+            source test-job/bin/activate
             pip install -U junitxml
             mkdir -p junit
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml

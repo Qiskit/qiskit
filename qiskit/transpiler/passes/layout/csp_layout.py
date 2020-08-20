@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -74,8 +72,8 @@ class CSPLayout(AnalysisPass):
                  time_limit=10):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
-        If not possible, does not set the layout property. In all the cases, the property
-        :meth:`qiskit.transpiler.passes.CSPLayout_stop_reason` will be added with one of the
+        If not possible, does not set the layout property. In all the cases,
+        the property `CSPLayout_stop_reason` will be added with one of the
         following values:
 
         * solution found: If a perfect layout was found.

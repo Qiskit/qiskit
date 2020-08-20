@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -20,6 +18,7 @@
 import copy
 import json
 import pprint
+from typing import Union, List
 
 import numpy
 
@@ -220,6 +219,9 @@ class PulseQobjInstruction:
             discriminators_obj = [
                 QobjMeasurementOption.from_dict(x) for x in discriminators]
             data['discriminators'] = discriminators_obj
+        if 'parameters' in data and 'amp' in data['parameters']:
+            data['parameters']['amp'] = _to_complex(data['parameters']['amp'])
+
         return cls(name, t0, **data)
 
     def __eq__(self, other):
@@ -229,12 +231,29 @@ class PulseQobjInstruction:
         return False
 
 
+def _to_complex(value: Union[List[float], complex]) -> complex:
+    """Convert the input value to type ``complex``.
+    Args:
+        value: Value to be converted.
+    Returns:
+        Input value in ``complex``.
+    Raises:
+        TypeError: If the input value is not in the expected format.
+    """
+    if isinstance(value, list) and len(value) == 2:
+        return complex(value[0], value[1])
+    elif isinstance(value, complex):
+        return value
+
+    raise TypeError("{} is not in a valid complex number format.".format(value))
+
+
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
     def __init__(self, meas_level, meas_return, pulse_library,
                  qubit_lo_freq, meas_lo_freq, memory_slot_size=None,
-                 rep_time=None, shots=None, max_credits=None,
+                 rep_time=None, rep_delay=None, shots=None, max_credits=None,
                  seed_simulator=None, memory_slots=None, **kwargs):
         """Instantiate a PulseQobjConfig object.
 
@@ -249,7 +268,14 @@ class PulseQobjConfig(QobjDictField):
                 measurement driver LO's in GHz.
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
-            rep_time (int): Repetition time of the experiment in μs
+            rep_time (int): Time per program execution in sec. Must be from the list provided
+                by the backend (``backend.configuration().rep_times``). Defaults to the first entry
+                in ``backend.configuration().rep_times``.
+            rep_delay (float): Delay between programs in sec. Only supported on certain
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+                ``rep_delay`` will be used instead of ``rep_time`` and must be from the range
+                supplied by the backend (``backend.configuration().rep_delay_range``). Default is
+                ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
@@ -265,7 +291,9 @@ class PulseQobjConfig(QobjDictField):
         if memory_slot_size is not None:
             self.memory_slot_size = memory_slot_size
         if rep_time is not None:
-            self.rep_time = rep_time or []
+            self.rep_time = rep_time
+        if rep_delay is not None:
+            self.rep_delay = rep_delay
         if shots is not None:
             self.shots = int(shots)
 
@@ -505,7 +533,7 @@ class PulseQobj:
         self.header = header or QobjHeader()
         self.experiments = experiments
         self.type = 'PULSE'
-        self.schema_version = '1.1.0'
+        self.schema_version = '1.2.0'
 
     def _validate_json_schema(self, out_dict):
         class PulseQobjEncoder(json.JSONEncoder):
@@ -568,7 +596,7 @@ class PulseQobj:
                 against the jsonschema for qobj spec.
 
         Returns:
-            dict: A dictionary representation of the QasmQobj object
+            dict: A dictionary representation of the PulseQobj object
         """
         out_dict = {
             'qobj_id': self.qobj_id,

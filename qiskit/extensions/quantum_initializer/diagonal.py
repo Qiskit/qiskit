@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -33,17 +31,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
-class DiagonalMeta(type):
-    """A metaclass to ensure that DiagonalGate and DiagGate are of the same type.
-
-    Can be removed when DiagGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {DiagonalGate, DiagGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class DiagonalGate(Gate, metaclass=DiagonalMeta):
+class DiagonalGate(Gate):
     """
     diag (list, ndarray): iterable of the 2^k diagonal entries (for a diagonal gate on k qubits).
        Must contain at least two entries.
@@ -70,7 +58,7 @@ class DiagonalGate(Gate, metaclass=DiagonalMeta):
         q = QuantumRegister(self.num_qubits)
         diag_circuit = QuantumCircuit(q)
         diag_circuit.append(gate, q[:])
-        self.definition = diag_circuit.data
+        self.definition = diag_circuit
 
     def _dec_diag(self):
         """
@@ -141,18 +129,6 @@ def diagonal(self, diag, qubit):
         raise QiskitError("The number of diagonal entries does not correspond to"
                           " the number of qubits.")
     return self.append(DiagonalGate(diag), qubit)
-
-
-class DiagGate(DiagonalGate, metaclass=DiagonalMeta):
-    """The deprecated DiagonalGate class."""
-
-    def __init__(self, diag):
-        import warnings
-        warnings.warn('The class DiagGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class DiagonalGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(diag)
 
 
 def diag_gate(self, diag, qubit):
