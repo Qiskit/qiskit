@@ -172,6 +172,4 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         str_out = '{}{}{}{}'.format(real, op_str, imag, jstr)
     else:
         str_out = real
-    if output == 'mpl':
-        str_out = str_out.replace('-', '$-$')
     return str_out
