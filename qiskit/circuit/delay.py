@@ -27,11 +27,11 @@ class Delay(Instruction):
         if not isinstance(duration, (float, int)):
             raise CircuitError('Invalid duration type.')
 
-        if unit and unit in {'ms', 'us', 'µs', 'ns', 'ps'}:
+        if unit and unit in {'ms', 'us', 'ns', 'ps'}:
             duration = apply_prefix(duration, unit)
             unit = 's'
 
-        if unit and unit not in {'dt', 's'}:
+        if unit and unit != 's':
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
         super().__init__("delay", 1, 0, params=[duration])

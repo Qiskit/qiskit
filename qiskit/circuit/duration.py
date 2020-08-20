@@ -11,26 +11,16 @@
 # that they have been altered from the originals.
 
 """
-Duration of a circuit instruction.
+Utilities for handling duration of a circuit instruction.
 """
 import warnings
 
 
-class Duration(float):
-
-    def __new__(self, duration: float, unit: str = None):
-        return float.__new__(self, duration)
-
-    def __init__(self, duration: float, unit: str = None):
-        float.__init__(duration)
-        self.unit = unit
-
-    def in_dt(self, dt: float) -> int:
-        res = round(self / dt)
-        rounding_error = abs(self - res * dt)
-        if rounding_error > 1e-15:
-            warnings.warn("Duration is rounded to %d dt = %e [s] from %e [s]"
-                          % (res, res * dt, self),
-                          UserWarning)
-            print("dt=", dt)
-        return res
+def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
+    res = round(duration_in_sec / dt_in_sec)
+    rounding_error = abs(duration_in_sec - res * dt_in_sec)
+    if rounding_error > 1e-15:
+        warnings.warn("Duration is rounded to %d [dt] = %e [s] from %e [s]"
+                      % (res, res * dt_in_sec, duration_in_sec),
+                      UserWarning)
+    return res

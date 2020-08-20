@@ -1916,6 +1916,43 @@ class QuantumCircuit:
                             op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
 
+    def convert_durations_in_dt(self, dt_in_sec, inplace=True):
+        """Convert all the durations in seconds into those in dt.
+
+        Returns a new circuit if `inplace=False`.
+
+        Parameters:
+            dt_in_sec (float): duration of dt in seconds used for conversion.
+            inplace (bool): All durations are converted inplace or return new circuit.
+
+        Returns:
+            QuantumCircuit: Returns converted circuit when `inplace = False`.
+
+        Raises:
+            CircuitError: if fail to convert durations.
+        """
+        if inplace:
+            circ = self
+        else:
+            circ = self.copy()
+
+        from qiskit.circuit.duration import duration_in_dt
+        from qiskit.circuit.delay import Delay
+        for inst, _, _ in circ.data:
+            if isinstance(inst, Delay) and inst.unit != 's':
+                raise CircuitError("Unable to convert unit '{0}' to 'dt'".format(inst.unit))
+
+            if inst.duration is not None:
+                inst.duration = duration_in_dt(inst.duration, dt_in_sec)
+
+        if circ.duration is not None:
+            circ.duration = duration_in_dt(circ.duration, dt_in_sec)
+
+        if not inplace:
+            return circ
+        else:
+            return None
+
     def barrier(self, *qargs):
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is None, applies to all."""
         from .barrier import Barrier
@@ -1940,16 +1977,15 @@ class QuantumCircuit:
 
         return self.append(Barrier(len(qubits)), qubits, [])
 
-    def delay(self, duration, qarg=None, unit='dt'):
+    def delay(self, duration, qarg=None, unit=None):
         """Apply :class:`~qiskit.circuit.Delay`. If qarg is None, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
-            duration (int or float or ParameterExpression): duration. Integer type indicates
-                duration is unitless, i.e. use dt of backend.
-                In the case of float, its `unit` must be specified.
+            duration (int or float): duration of the delay.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Default unit is ``dt``, which depends on backend.
+            unit (str): unit of the duration. Default unit is ``None``, i.e. unitless.
+                Supported units: 's', 'ms', 'us', 'ns', 'ps'.
 
         Returns:
             qiskit.Instruction: the attached delay instruction.
