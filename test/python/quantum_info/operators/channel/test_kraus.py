@@ -109,7 +109,7 @@ class TestKraus(ChannelTestCase):
         self.assertTrue(Kraus(self.UX).is_cptp())
         # Non-CPTP should return false
         self.assertFalse(Kraus(([self.UI], [self.UX])).is_cptp())
-        self.assertFalse(Kraus(([self.UI, self.UX])).is_cptp())
+        self.assertFalse(Kraus([self.UI, self.UX]).is_cptp())
 
     def test_conjugate(self):
         """Test conjugate method."""
