@@ -54,54 +54,23 @@ dynamic update of drawings, the channel data can be updated with new preference:
 In this example, `DriveChannel(1)` will be removed from the output.
 """
 
+import numpy as np
 from typing import Union, Optional, Dict, List
 
 from qiskit import pulse
-from qiskit.providers import BaseBackend
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_STYLE
-
+from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_STYLE, device_info
+from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
 
 
 class DrawingSlot:
 
     def __init__(self, index):
         self.index = index
-
-
-class VirtualCanvas:
-
-    def __init__(self, size: int):
-        try:
-            size = int(size)
-        except Exception:
-            raise VisualizationError('')
-
-        self._size = size
-        self._slots = [DrawingSlot(idx) for idx in range(size)]
-        self._axis_breaks = []
-        self._tmin = 0
-        self._tmax = 0
-
-    def _axis_map(self, t):
-        pointer = 0
-        prev_t = 0
-        for t0, t1 in self._axis_breaks:
-            if t0 < t < t1:
-                return None
-            elif t0 > t:
-                delta_t = t - prev_t
-                return pointer + delta_t
-            else:
-                delta_t = t0 - prev_t
-                pointer += delta_t + 1
-
-            prev_t = t1
-
-    def axis_map2(self, ts, vs):
-        new = ts[np.where]
-        new =- delta_t
-
+        self.cha
+        self.scale = 1.0
+        self.vmax = 0
+        self.vmin = 0
 
 
 
@@ -117,33 +86,22 @@ class DrawDataContainer:
                                    pulse.AcquireChannel))
 
     def __init__(self,
-                 dt: Optional[int] = None,
-                 drive_los: Optional[Dict[int, float]] = None,
-                 control_los: Optional[Dict[int, float]] = None,
-                 measure_los: Optional[Dict[int, float]] = None,
-                 backend: Optional[BaseBackend] = None):
+                 stylesheet: QiskitPulseStyle,
+                 device: Optional[device_info.DrawerBackendInfo] = None):
         """Create new data container with backend system information.
 
         Args:
-            dt: Time resolution of this system in units of sec. If this is provided along
-                with the `backend`, the extracted property is overwritten by this input.
-            drive_los: Dictionary of local oscillator (modulation) frequencies
-                of drive channels. If this is provided along with the `backend`,
-                the extracted property is overwritten by this input.
-            control_los: Dictionary of local oscillator (modulation) frequencies
-                of control channels. If this is provided along with the `backend`,
-                the extracted property is overwritten by this input.
-            measure_los: Dictionary of local oscillator (modulation) frequencies
-                of measure channels. If this is provided along with the `backend`,
-                the extracted property is overwritten by this input.
-            backend: Backend object to play the schedule. If this is provided,
-                the time resolution and frequencies are automatically extracted.
+            stylesheet: Stylesheet to decide appearance of output image.
+            device: Backend information to run the program.
         """
 
-        self.dt = None
-        self.d_los = dict()
-        self.c_los = dict()
-        self.m_los = dict()
+        self.stylesheet = stylesheet
+        self.device = device or device_info.OpenPulseBackendInfo()
+
+        self.draw_slots = []
+
+        self.global_time = None
+
         self.channels = set()
         self.active_channels = []
         self.chan_event_table = dict()
@@ -157,51 +115,6 @@ class DrawDataContainer:
         self.bbox_bottom = 0
         self.bbox_left = 0
         self.bbox_right = 0
-
-        # load default settings
-        if backend:
-            self._load_ibm_backend(backend)
-
-        # overwrite default values
-        if drive_los:
-            self.d_los.update(drive_los)
-
-        if control_los:
-            self.c_los.update(control_los)
-
-        if measure_los:
-            self.m_los.update(measure_los)
-
-        if dt is not None:
-            self.dt = dt
-
-    def _load_ibm_backend(self,
-                          backend: BaseBackend):
-        """A helper function to extract system property from IBM Quantum backend instance.
-
-        Notes:
-            The modulation frequencies of control channels should be defined in terms of
-            the modulation frequencies of drive channels. This is the syntax of
-            IQX backends. If the backend is provided by a third party provider,
-            this function may crash or may return wrong frequency values.
-
-        Args:
-            backend: Backend object to play the schedule.
-        """
-        configuration = backend.configuration()
-        defaults = backend.defaults()
-
-        self.dt = configuration.dt
-
-        self.d_los = dict(enumerate(defaults.qubit_freq_est))
-        self.m_los = dict(enumerate(defaults.meas_freq_est))
-        self.c_los = dict()
-
-        for ind, u_lo_mappers in enumerate(configuration.u_channel_lo):
-            temp_val = 0
-            for u_lo_mapper in u_lo_mappers:
-                temp_val = self.d_los[u_lo_mapper.q] * complex(*u_lo_mapper.scale)
-            self.c_los[ind] = temp_val.real
 
     def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
         """Load a program to draw.
@@ -229,7 +142,7 @@ class DrawDataContainer:
         """
         sample_channel = types.WaveformChannel()
         inst_tuple = types.InstructionTuple(t0=0,
-                                            dt=self.dt,
+                                            dt=self.device.dt,
                                             frame=types.PhaseFreqTuple(phase=0, freq=0),
                                             inst=pulse.Play(program, sample_channel))
 
@@ -289,15 +202,7 @@ class DrawDataContainer:
         for chan in program.channels:
             if isinstance(chan, self.DEFAULT_DRAW_CHANNELS):
                 chan_event = events.ChannelEvents.load_program(program, chan)
-                if isinstance(chan, pulse.DriveChannel):
-                    lo_freq = self.d_los.get(chan.index, 0)
-                elif isinstance(chan, pulse.ControlChannel):
-                    lo_freq = self.c_los.get(chan.index, 0)
-                elif isinstance(chan, pulse.MeasureChannel):
-                    lo_freq = self.m_los.get(chan.index, 0)
-                else:
-                    lo_freq = 0
-                chan_event.config(self.dt, lo_freq, 0)
+                chan_event.config(self.device.dt, self.device.get_channel_frequency(chan), 0)
                 self.chan_event_table[chan] = chan_event
                 self.channels.add(chan)
 
@@ -354,17 +259,36 @@ class DrawDataContainer:
         """
         # convert into nearest cycle time
         if seconds:
-            if self.dt is not None:
-                t_start = int(t_start / self.dt)
-                t_end = int(t_end / self.dt)
+            if self.device.dt is not None:
+                t_start = int(np.round(t_start / self.device.dt))
+                t_end = int(np.round(t_end / self.device.dt))
             else:
                 raise VisualizationError('Setting time range with SI units requires '
                                          'backend `dt` information.')
 
-        duration = t_end - t_start
+        self.global_time = np.arange(t_start, t_end + 1)
 
-        self.bbox_left = t_start - int(duration * PULSE_STYLE['formatter.margin.left'])
-        self.bbox_right = t_end + int(duration * PULSE_STYLE['formatter.margin.right'])
+    def set_axis_break(self):
+        global_waveform_edges = set()
+
+        for drawing in self.drawings:
+            if drawing.data_type in [types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG] \
+                    and drawing.visible:
+                global_waveform_edges.add(drawing.x[0])
+                global_waveform_edges.add(drawing.x[-1])
+
+        global_waveform_edges = sorted(global_waveform_edges)
+
+        event_slacks = []
+        for ind in range(1, len(global_waveform_edges)):
+            event_slacks.append((global_waveform_edges[ind-1], global_waveform_edges[ind]))
+
+        for event_slack in event_slacks:
+            duration = event_slack[1] - event_slack[0]
+            if duration > PULSE_STYLE['formatter.axis_break.length']:
+                t0 = int(event_slack[0] + 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
+                t1 = int(event_slack[1] - 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
+                self._remove_time(t0, t1)
 
     def update_channel_property(self,
                                 visible_channels: Optional[List[pulse.channels.Channel]] = None,
@@ -567,3 +491,13 @@ class DrawDataContainer:
                 t0 = int(event_slack[0] + 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
                 t1 = int(event_slack[1] - 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
                 self.axis_breaks.append((t0, t1))
+
+    def _remove_time(self, t0: int, t1: int):
+        """Remove specific time range from global time.
+
+        Args:
+            t0: First time to remove in dt.
+            t1: Last time to remove in dt.
+        """
+        conditions = (self.global_time > t0) & (self.global_time < t1)
+        self.global_time = np.delete(self.global_time, np.where(conditions))
