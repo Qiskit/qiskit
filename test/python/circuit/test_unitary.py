@@ -149,6 +149,30 @@ class TestUnitaryCircuit(QiskitTestCase):
             self.assertIn(qubit.index, [0, 1, 3])
         assert_allclose(dnode.op.to_matrix(), matrix)
 
+    def test_1q_unitary_int_qargs(self):
+        """test single qubit unitary matrix with 'int' and 'list of ints' qubits argument"""
+        matrix = numpy.array([[1, 0], [0, 1]])
+
+        for num_q, qubits in enumerate([0, [0, 1]], 1):
+            qc = QuantumCircuit(num_q)
+            qc.x(qubits)
+            qc.unitary(matrix, qubits)
+
+            # test of qasm output
+            self.log.info(qc.qasm())
+            # test of text drawer
+            self.log.info(qc)
+            dag = circuit_to_dag(qc)
+            dag_nodes = dag.named_nodes('unitary')
+            self.assertTrue(len(dag_nodes) == num_q)
+            dnode = dag_nodes[0]
+            self.assertIsInstance(dnode.op, UnitaryGate)
+            for dnode in dag_nodes:
+                self.assertIsInstance(dnode.op, UnitaryGate)
+                for qubit in dnode.qargs:
+                    self.assertIn(qubit.index, range(num_q))
+                assert_allclose(dnode.op.to_matrix(), matrix)
+
     def test_qobj_with_unitary_matrix(self):
         """test qobj output with unitary matrix"""
         qr = QuantumRegister(4)
