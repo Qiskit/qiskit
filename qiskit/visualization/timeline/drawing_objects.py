@@ -15,14 +15,14 @@
 # pylint: disable=invalid-name
 
 r"""
-Drawing objects for timeline drawer.
+Drawing objects for the timeline drawer.
 
 Drawing objects play two important roles:
-    - Allowing unittests of visualization module. Usually it is hard for image files to be tested.
-    - Removing program parser from each plotter interface. We can easily add new plotter.
+    - Enabling unittests of the visualization module.
+    - Removing program parser from each plotter interface. We can now easily add new plotters.
 
 This module is based on the structure of matplotlib as it is the primary plotter
-of the timeline drawer. However this interface is agnostic to the actual plotter.
+of the timeline drawer. However this interface is agnostic to the actual plotter implementation.
 
 Design concept
 ~~~~~~~~~~~~~~
@@ -34,14 +34,14 @@ the end-user request.
 
 Data key
 ~~~~~~~~
-In the abstract class ``ElementaryData`` common properties to represent a drawing object are
-specified. In addition, drawing objects have the `data_key` property that returns an
+In the abstract class ``ElementaryData`` common properties that represent a drawing object are
+specified. In addition, drawing objects have the `data_key` property that returns a
 unique hash of the object for comparison. This property should be defined in each sub-class by
 considering necessary properties to identify that object, i.e. `visible` should not
 be a part of the key, because any change on this property just sets the visibility of
 the same drawing object.
 
-To support not only `matplotlib` but also multiple plotters, those drawing objects should be
+To support other plotters than matplotlib, drawing objects should be
 universal and designed without strong dependency on modules in `matplotlib`.
 This means drawing objects that represent primitive geometries are preferred.
 It should be noted that there will be no unittest for a plotter interface, which takes
