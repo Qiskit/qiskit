@@ -240,7 +240,7 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
         im_meta = meta.copy()
         im_meta['data'] = 'imaginary'
         im_xvals = time[im_valid_inds]
-        im_yvals = re_y[im_valid_inds]
+        im_yvals = im_y[im_valid_inds]
         imag = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.IMAG,
                                               channel=channel,
                                               x=im_xvals,
@@ -337,7 +337,7 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
                                     y=PULSE_STYLE['formatter.label_offset.pulse_name'],
                                     text=systematic_name,
                                     latex=latex_name,
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     styles=style)
 
     return [text]
@@ -369,7 +369,7 @@ def gen_baseline(channel_data: types.ChannelTuple) \
                                         x=[types.AbstractCoordinate.LEFT,
                                            types.AbstractCoordinate.RIGHT],
                                         y=[0, 0],
-                                        fix_position=True,
+                                        ignore_scaling=True,
                                         styles=style)
 
     return [baseline]
@@ -401,7 +401,7 @@ def gen_latex_channel_name(channel_data: types.ChannelTuple) \
                                     y=0,
                                     text=channel_data.channel.name.upper(),
                                     latex=latex_name,
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     styles=style)
 
     return [text]
@@ -435,7 +435,7 @@ def gen_scaling_info(channel_data: types.ChannelTuple) \
                                     x=types.AbstractCoordinate.LEFT,
                                     y=PULSE_STYLE['formatter.label_offset.scale_factor'],
                                     text=value,
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     styles=style)
 
     return [text]
@@ -498,7 +498,7 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
                                     y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=r'VZ({:.2f} rad.)'.format(-frame_data.frame.phase),
                                     latex=r'{{\rm VZ}}({}{})'.format(sign, angle),
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     styles=style)
 
     return [text]
@@ -538,7 +538,7 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
                                     y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=text_df,
                                     latex=latex_df,
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     styles=style)
 
     return [text]
@@ -576,7 +576,7 @@ def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
                                     x=frame_data.t0,
                                     y=PULSE_STYLE['formatter.label_offset.frame_change'],
                                     text=frame_info,
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     styles=style)
 
     return [text]
@@ -626,7 +626,7 @@ def gen_frame_symbol(frame_data: types.InstructionTuple) \
                                     y=0,
                                     text=uni_symbol,
                                     latex=latex,
-                                    fix_position=True,
+                                    ignore_scaling=True,
                                     meta=meta,
                                     styles=style)
 
@@ -683,7 +683,7 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
                                            y=0,
                                            text=uni_symbol,
                                            latex=latex,
-                                           fix_position=True,
+                                           ignore_scaling=True,
                                            meta=meta,
                                            styles=symbol_style)
 
@@ -692,7 +692,7 @@ def gen_snapshot_symbol(misc_data: types.NonPulseTuple) \
                                           x=misc_data.t0,
                                           y=PULSE_STYLE['formatter.label_offset.snapshot'],
                                           text=misc_data.inst.label,
-                                          fix_position=True,
+                                          ignore_scaling=True,
                                           styles=label_style)
 
     return [symbol_text, label_text]

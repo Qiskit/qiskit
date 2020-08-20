@@ -36,7 +36,7 @@ class TestDrawingObjects(QiskitTestCase):
                                                offset=0,
                                                scale=1,
                                                visible=True,
-                                               fix_position=True,
+                                               ignore_scaling=True,
                                                styles={'color': 'red'})
 
         data2 = drawing_objects.FilledAreaData(data_type='waveform',
@@ -48,7 +48,7 @@ class TestDrawingObjects(QiskitTestCase):
                                                offset=1,
                                                scale=2,
                                                visible=False,
-                                               fix_position=False,
+                                               ignore_scaling=False,
                                                styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
@@ -63,7 +63,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=0,
                                          scale=1,
                                          visible=True,
-                                         fix_position=True,
+                                         ignore_scaling=True,
                                          styles={'color': 'red'})
 
         data2 = drawing_objects.LineData(data_type='baseline',
@@ -74,7 +74,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=1,
                                          scale=2,
                                          visible=False,
-                                         fix_position=False,
+                                         ignore_scaling=False,
                                          styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)
@@ -91,7 +91,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=0,
                                          scale=1,
                                          visible=True,
-                                         fix_position=True,
+                                         ignore_scaling=True,
                                          styles={'color': 'red'})
 
         data2 = drawing_objects.TextData(data_type='pulse_label',
@@ -104,7 +104,7 @@ class TestDrawingObjects(QiskitTestCase):
                                          offset=1,
                                          scale=2,
                                          visible=False,
-                                         fix_position=False,
+                                         ignore_scaling=False,
                                          styles={'color': 'blue'})
 
         self.assertEqual(data1, data2)

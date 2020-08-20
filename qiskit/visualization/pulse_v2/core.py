@@ -62,13 +62,59 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_STYLE
 
 
+
+class DrawingSlot:
+
+    def __init__(self, index):
+        self.index = index
+
+
+class VirtualCanvas:
+
+    def __init__(self, size: int):
+        try:
+            size = int(size)
+        except Exception:
+            raise VisualizationError('')
+
+        self._size = size
+        self._slots = [DrawingSlot(idx) for idx in range(size)]
+        self._axis_breaks = []
+        self._tmin = 0
+        self._tmax = 0
+
+    def _axis_map(self, t):
+        pointer = 0
+        prev_t = 0
+        for t0, t1 in self._axis_breaks:
+            if t0 < t < t1:
+                return None
+            elif t0 > t:
+                delta_t = t - prev_t
+                return pointer + delta_t
+            else:
+                delta_t = t0 - prev_t
+                pointer += delta_t + 1
+
+            prev_t = t1
+
+    def axis_map2(self, ts, vs):
+        new = ts[np.where]
+        new =- delta_t
+
+
+
+
+
+
+
 class DrawDataContainer:
     """Data container for drawing objects."""
 
     DEFAULT_DRAW_CHANNELS = tuple((pulse.DriveChannel,
-                            pulse.ControlChannel,
-                            pulse.MeasureChannel,
-                            pulse.AcquireChannel))
+                                   pulse.ControlChannel,
+                                   pulse.MeasureChannel,
+                                   pulse.AcquireChannel))
 
     def __init__(self,
                  dt: Optional[int] = None,
@@ -114,7 +160,7 @@ class DrawDataContainer:
 
         # load default settings
         if backend:
-            self._load_iqx_backend(backend)
+            self._load_ibm_backend(backend)
 
         # overwrite default values
         if drive_los:
@@ -129,9 +175,9 @@ class DrawDataContainer:
         if dt is not None:
             self.dt = dt
 
-    def _load_iqx_backend(self,
+    def _load_ibm_backend(self,
                           backend: BaseBackend):
-        """A helper function to extract system property from IQX backend instance.
+        """A helper function to extract system property from IBM Quantum backend instance.
 
         Notes:
             The modulation frequencies of control channels should be defined in terms of
@@ -241,7 +287,7 @@ class DrawDataContainer:
         """
         # load program by channel
         for chan in program.channels:
-            if isinstance(chan, self._draw_channels):
+            if isinstance(chan, self.DEFAULT_DRAW_CHANNELS):
                 chan_event = events.ChannelEvents.load_program(program, chan)
                 if isinstance(chan, pulse.DriveChannel):
                     lo_freq = self.d_los.get(chan.index, 0)
@@ -292,7 +338,8 @@ class DrawDataContainer:
 
     def set_time_range(self,
                        t_start: Union[int, float],
-                       t_end: Union[int, float]):
+                       t_end: Union[int, float],
+                       seconds: bool = True):
         """Set time range to draw.
 
         The update to time range is applied after :py:method:`update_channel_property` is called.
@@ -300,24 +347,19 @@ class DrawDataContainer:
         Args:
             t_start: Left boundary of drawing in units of cycle time or real time.
             t_end: Right boundary of drawing in units of cycle time or real time.
+            seconds: Set `True` if times are given in SI unit rather than dt.
 
         Raises:
             VisualizationError: When times are given in float without specifying dt.
         """
         # convert into nearest cycle time
-        if isinstance(t_start, float):
+        if seconds:
             if self.dt is not None:
                 t_start = int(t_start / self.dt)
-            else:
-                raise VisualizationError('Floating valued start time %f seems to be in '
-                                         'units of sec but dt is not specified.' % t_start)
-        # convert into nearest cycle time
-        if isinstance(t_end, float):
-            if self.dt is not None:
                 t_end = int(t_end / self.dt)
             else:
-                raise VisualizationError('Floating valued end time %f seems to be in '
-                                         'units of sec but dt is not specified.' % t_end)
+                raise VisualizationError('Setting time range with SI units requires '
+                                         'backend `dt` information.')
 
         duration = t_end - t_start
 
@@ -416,6 +458,40 @@ class DrawDataContainer:
         # update axis break
         if PULSE_STYLE['formatter.control.axis_break']:
             self._horizontal_axis_break()
+
+    def _update_channel_property(self,
+                                 chan: pulse.channels.Channel,
+                                 default_scale: Optional[float] = None):
+        """
+        """
+
+        if default_scale is not None:
+            # user preference
+            scale = default_scale
+        else:
+            if PULSE_STYLE['formatter.control.auto_channel_scaling']:
+                # auto scale
+                time_range = (self.bbox_left, self.bbox_right)
+                max_abs_val = max(map(abs, self.chan_event_table[chan].get_min_max(time_range)))
+
+                if max_abs_val < PULSE_STYLE['formatter.general.vertical_resolution'] * 100:
+                    scale = 1.0
+                else:
+                    scale = 1 / max_abs_val
+            else:
+                # default channel scale
+                if isinstance(chan, pulse.DriveChannel):
+                    scale = PULSE_STYLE['formatter.channel_scaling.drive']
+                elif isinstance(chan, pulse.ControlChannel):
+                    scale = PULSE_STYLE['formatter.channel_scaling.control']
+                elif isinstance(chan, pulse.MeasureChannel):
+                    scale = PULSE_STYLE['formatter.channel_scaling.measure']
+                elif isinstance(chan, pulse.AcquireChannel):
+                    scale = PULSE_STYLE['formatter.channel_scaling.acquire']
+                else:
+                    scale = 1.0
+
+        return types.ChannelProperty(scale=scale, visible=True)
 
     def _ordered_channels(self,
                           visible_channels: Optional[List[pulse.channels.Channel]] = None) \

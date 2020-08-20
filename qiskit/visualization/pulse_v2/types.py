@@ -104,6 +104,12 @@ ComplexColors = NamedTuple(
      ('imaginary', str)])
 
 
+ChannelProperty = NamedTuple(
+    'ChannelProperty',
+    [('scale', float),
+     ('visible', bool)])
+
+
 class DrawingWaveform(str, Enum):
     r"""
     Waveform data type.

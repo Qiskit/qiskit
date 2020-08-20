@@ -85,10 +85,8 @@ class ElementaryData(ABC):
                  data_type: str,
                  channel: channels.Channel,
                  meta: Optional[Dict[str, Any]],
-                 offset: float,
-                 scale: float,
                  visible: bool,
-                 fix_position: bool,
+                 ignore_scaling: bool,
                  styles: Optional[Dict[str, Any]]):
         """Create new drawing object.
 
@@ -96,19 +94,15 @@ class ElementaryData(ABC):
             data_type: String representation of this drawing object.
             channel: Pulse channel object bound to this drawing.
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
-            fix_position: Set ``True`` to disable scaling.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.data_type = data_type
         self.channel = channel
         self.meta = meta or dict()
-        self.scale = scale
-        self.offset = offset
         self.visible = visible
-        self.fix_position = fix_position
+        self.ignore_scaling = ignore_scaling
         self.styles = styles or dict()
 
     @property
@@ -138,10 +132,8 @@ class FilledAreaData(ElementaryData):
                  y1: Union[np.ndarray, List[types.Coordinate]],
                  y2: Union[np.ndarray, List[types.Coordinate]],
                  meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
                  visible: bool = True,
-                 fix_position: bool = False,
+                 ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
 
@@ -152,10 +144,8 @@ class FilledAreaData(ElementaryData):
             y1: Series of vertical coordinate of upper boundary of filling area.
             y2: Series of vertical coordinate of lower boundary of filling area.
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
-            fix_position: Set ``True`` to disable scaling.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
@@ -165,10 +155,8 @@ class FilledAreaData(ElementaryData):
         super().__init__(data_type=data_type,
                          channel=channel,
                          meta=meta,
-                         offset=offset,
-                         scale=scale,
                          visible=visible,
-                         fix_position=fix_position,
+                         ignore_scaling=ignore_scaling,
                          styles=styles)
 
     @property
@@ -193,10 +181,8 @@ class LineData(ElementaryData):
                  x: Union[np.ndarray, List[types.Coordinate]],
                  y: Union[np.ndarray, List[types.Coordinate]],
                  meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
                  visible: bool = True,
-                 fix_position: bool = False,
+                 ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
 
@@ -206,10 +192,8 @@ class LineData(ElementaryData):
             x: Series of horizontal coordinate that the object is drawn.
             y: Series of vertical coordinate that the object is drawn.
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
-            fix_position: Set ``True`` to disable scaling.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
@@ -218,10 +202,8 @@ class LineData(ElementaryData):
         super().__init__(data_type=data_type,
                          channel=channel,
                          meta=meta,
-                         offset=offset,
-                         scale=scale,
                          visible=visible,
-                         fix_position=fix_position,
+                         ignore_scaling=ignore_scaling,
                          styles=styles)
 
     @property
@@ -247,10 +229,8 @@ class TextData(ElementaryData):
                  text: str,
                  latex: Optional[str] = None,
                  meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
                  visible: bool = True,
-                 fix_position: bool = False,
+                 ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of text data.
 
@@ -262,10 +242,8 @@ class TextData(ElementaryData):
             text: String to show in the canvas.
             latex: Latex representation of the text (if backend supports latex drawing).
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
             visible: Set ``True`` to show the component on the canvas.
-            fix_position: Set ``True`` to disable scaling.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.x = x
@@ -276,10 +254,8 @@ class TextData(ElementaryData):
         super().__init__(data_type=data_type,
                          channel=channel,
                          meta=meta,
-                         offset=offset,
-                         scale=scale,
                          visible=visible,
-                         fix_position=fix_position,
+                         ignore_scaling=ignore_scaling,
                          styles=styles)
 
     @property
