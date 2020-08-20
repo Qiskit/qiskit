@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -104,7 +102,7 @@ class TdgGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label='T_dg'):
+    def __init__(self, label=None):
         """Create new Tdg gate."""
         super().__init__('tdg', 1, [], label=label)
 

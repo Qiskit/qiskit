@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -598,7 +596,7 @@ class PulseQobj:
                 against the jsonschema for qobj spec.
 
         Returns:
-            dict: A dictionary representation of the QasmQobj object
+            dict: A dictionary representation of the PulseQobj object
         """
         out_dict = {
             'qobj_id': self.qobj_id,

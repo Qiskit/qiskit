@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -430,7 +428,7 @@ class BaseOperator(metaclass=AbstractTolerancesMeta):
         self._output_dim = np.product(output_dims)
         # Check if an N-qubit operator
         if (self._input_dims == self._output_dims and
-                set(self._input_dims) == set([2])):
+                set(self._input_dims) == {2}):
             # If so set the number of qubits
             self._num_qubits = len(self._input_dims)
         else:
