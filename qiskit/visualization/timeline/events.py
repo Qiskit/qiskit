@@ -16,7 +16,7 @@ r"""
 Bit event manager for scheduled circuits.
 
 This module provides a `BitEvents` class that manages a series of instructions for a
-specific circuit bit. Bit-wise filtering of the circuit program makes the arrangement of bit
+specific circuit bit. Bit-wise filtering of the circuit program makes the arrangement of bits
 easier in the core drawer function. The `BitEvents` class is expected to be called
 by other programs (not by end-users).
 
@@ -26,11 +26,11 @@ The `BitEvents` class instance is created with the class method ``load_program``
     ```
 
 Loaded circuit instructions are saved as ``ScheduledGate``, which is a collection of instruction,
-associated time, and bits. All gate instructions are returned by `gates` method.
+associated time, and bits. All gate instructions are returned by the `gates` method.
 Instruction types specified in `BitEvents._non_gates` are not considered as gates.
 If the instruction is associated with multiple bits and the target bit of the class instance is
 the primary bit of the instruction, the instance also generates a ``GateLink`` object
-that shows a relationship between bits during the multi-bit gates.
+that shows the relationship between bits during multi-bit gates.
 """
 from typing import List
 
