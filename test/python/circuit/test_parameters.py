@@ -27,6 +27,7 @@ from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
+from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
@@ -307,6 +308,46 @@ class TestParameters(QiskitTestCase):
                 self.assertEqual(len(qc2._parameter_table), 0)
                 for gate, _, _ in qc2.data:
                     self.assertEqual(float(gate.params[0]), 1.0)
+
+    def test_calibration_assignment(self):
+        """That that calibration mapping and the schedules they map are assigned together."""
+        theta = Parameter('theta')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [theta]), [0])
+        circ.measure(0, 0)
+
+        rxt_q0 = pulse.Schedule(pulse.Play(
+            pulse.library.Gaussian(duration=128, sigma=16, amp=0.2*theta/3.14),
+            pulse.DriveChannel(0)))
+
+        circ.add_calibration('rxt', [0], rxt_q0, [theta])
+        circ = circ.assign_parameters({theta: 3.14})
+
+        self.assertTrue(((0,), (3.14,)) in circ.calibrations['rxt'])
+        sched = circ.calibrations['rxt'][((0,), (3.14,))]
+        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
+
+    def test_calibration_assignment_w_expressions(self):
+        """That calibrations with multiple parameters and more expressions."""
+        theta = Parameter('theta')
+        sigma = Parameter('sigma')
+        circ = QuantumCircuit(3, 3)
+        circ.append(Gate('rxt', 1, [theta, sigma]), [0])
+        circ.measure(0, 0)
+
+        rxt_q0 = pulse.Schedule(pulse.Play(
+            pulse.library.Gaussian(duration=128, sigma=4*sigma, amp=0.2*theta/3.14),
+            pulse.DriveChannel(0)))
+
+        circ.add_calibration('rxt', [0], rxt_q0, [theta/2, sigma])
+        circ = circ.assign_parameters(
+            {theta: 3.14, sigma: 4}
+        )
+
+        self.assertTrue(((0,), (3.14/2, 4)) in circ.calibrations['rxt'])
+        sched = circ.calibrations['rxt'][((0,), (3.14/2, 4))]
+        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
