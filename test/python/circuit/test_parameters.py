@@ -1232,7 +1232,7 @@ class TestParameterExpressions(QiskitTestCase):
         """Test calling conjugate on a ParameterExpression."""
         x = Parameter('x')
         self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
-        
+
         from sympy import I
         x = I * x
         conj = -1 * x
