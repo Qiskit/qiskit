@@ -36,7 +36,8 @@ $ python
 >>> qc.cx(0, 1)
 >>> qc.measure([0,1], [0,1])
 >>> backend_sim = BasicAer.get_backend('qasm_simulator')
->>> result = backend_sim.run(assemble(qc)).result()
+>>> transpiled_qc = transpile(qc, backend_sim)
+>>> result = backend_sim.run(assemble(transpiled_qc)).result()
 >>> print(result.get_counts(qc))
 ```
 
