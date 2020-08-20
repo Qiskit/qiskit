@@ -14,7 +14,7 @@
 
 # pylint: disable=invalid-name
 
-r"""
+"""
 Drawing objects for the timeline drawer.
 
 Drawing objects play two important roles:

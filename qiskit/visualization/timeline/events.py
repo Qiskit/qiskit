@@ -12,15 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+"""
 Bit event manager for scheduled circuits.
 
-This module provides a `BitEvents` class that manages a series of instructions for a
+This module provides a :py:class:`BitEvents` class that manages a series of instructions for a
 specific circuit bit. Bit-wise filtering of the circuit program makes the arrangement of bits
 easier in the core drawer function. The `BitEvents` class is expected to be called
 by other programs (not by end-users).
 
-The `BitEvents` class instance is created with the class method ``load_program``:
+The :py:class:`BitEvents` class instance is created with the class method ``load_program``:
     ```python
     event = BitEvents.load_program(sched_circuit, qregs[0])
     ```

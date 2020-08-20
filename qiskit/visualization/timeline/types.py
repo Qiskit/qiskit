@@ -12,23 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+"""
 Special data types.
-
-- ScheduledGate:
-    t0: Time when the instruction is issued.
-    operand: Gate object associated with the instruction.
-    duration: Time duration of the instruction.
-    bits:
-
-- GateLink:
-    t0: Position where the link is placed.
-    operand: Gate object associated with the instruction.
-    bits: List of bit associated with the instruction.
-
-- Barrier:
-    t0: Position where the barrier is placed.
-    bits: List of bit associated with the instruction.
 """
 
 from enum import Enum
@@ -43,17 +28,31 @@ ScheduledGate = NamedTuple(
      ('operand', circuit.Gate),
      ('duration', int),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+ScheduledGate.__doc__ = 'A gate instruction with embedded time.'
+ScheduledGate.t0.__doc__ = 'Time when the instruction is issued.'
+ScheduledGate.operand.__doc__ = 'Gate object associated with the instruction.'
+ScheduledGate.duration.__doc__ = 'Time duration of the instruction.'
+ScheduledGate.bits.__doc__ = 'List of bit associated with the instruction.'
+
 
 GateLink = NamedTuple(
     'GateLink',
     [('t0', int),
      ('operand', circuit.Gate),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+GateLink.__doc__ = 'Dedicated object to represent a relationship between instructions.'
+GateLink.t0.__doc__ = 'A position where the link is placed.'
+GateLink.operand.__doc__ = 'Gate object associated with the link.'
+GateLink.bits.__doc__ = 'List of bit associated with the instruction.'
+
 
 Barrier = NamedTuple(
     'Barrier',
     [('t0', int),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+Barrier.__doc__ = 'Dedicated object to represent a barrier instruction.'
+Barrier.t0.__doc__ = 'A position where the barrier is placed.'
+Barrier.bits.__doc__ = 'List of bit associated with the instruction.'
 
 
 class DrawingBox(str, Enum):
