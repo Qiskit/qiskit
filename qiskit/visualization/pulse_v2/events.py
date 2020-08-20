@@ -57,11 +57,11 @@ the set type instruction will be converted into the relevant shift amount for vi
 Note that these instructions are not interchangeable and the order should be kept.
 For example:
     ```python
-    sched1 = Schedule()
+    sched1 = Schedule(inplace=True)
     sched1 = sched1.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     sched1 = sched1.insert(0, SetPhase(3.14, DriveChannel(0))
 
-    sched2 = Schedule()
+    sched2 = Schedule(inplace=True)
     sched2 = sched2.insert(0, SetPhase(3.14, DriveChannel(0))
     sched2 = sched2.insert(0, ShiftPhase(-1.57, DriveChannel(0))
     ```

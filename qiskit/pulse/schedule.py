@@ -71,7 +71,7 @@ class Schedule(ScheduleComponent):
                               "Schedules will be mutable by default in an upcoming release. You "
                               "can enable this behavior now by including ``inplace=True`` in your "
                               "Schedule initialization: ``my_sched = Schedule(name=name, "
-                              "inplace=True)``.", DeprecationWarning)
+                              "inplace=True)``.", DeprecationWarning, stacklevel=2)
                 Schedule._warn_about_inplace = False
 
         self._name = name
@@ -592,7 +592,7 @@ class Schedule(ScheduleComponent):
 
           d0 = pulse.DriveChannel(0)
 
-          sched = pulse.Schedule()
+          sched = pulse.Schedule(inplace=True)
 
           old = pulse.Play(pulse.Constant(100, 1.0), d0)
           new = pulse.Play(pulse.Constant(100, 0.1), d0)
@@ -601,7 +601,7 @@ class Schedule(ScheduleComponent):
 
           sched = sched.replace(old, new)
 
-          assert sched == pulse.Schedule(new)
+          assert sched == pulse.Schedule(new, inplace=True)
 
         Only matches at the top-level of the schedule tree. If you wish to
         perform this replacement over all instructions in the schedule tree.
@@ -609,15 +609,15 @@ class Schedule(ScheduleComponent):
 
         .. jupyter-execute::
 
-          sched = pulse.Schedule()
+          sched = pulse.Schedule(inplace=True)
 
-          sched += pulse.Schedule(old)
+          sched += pulse.Schedule(old, inplace=True)
 
           sched = sched.flatten()
 
           sched = sched.replace(old, new)
 
-          assert sched == pulse.Schedule(new)
+          assert sched == pulse.Schedule(new, inplace=True)
 
         Args:
           old: Instruction to replace.
@@ -644,7 +644,7 @@ class Schedule(ScheduleComponent):
             return self
         else:
             try:
-                return Schedule(*new_children)
+                return Schedule(*new_children, inplace=self.inplace)
             except PulseError as err:
                 raise PulseError(
                     'Replacement of {old} with {new} results in '
