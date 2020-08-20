@@ -18,12 +18,14 @@ from ddt import ddt, data
 from qiskit.circuit.oracle.compile_oracle import compile_oracle
 from qiskit.test import QiskitTestCase
 from .utils import get_truthtable_from_function, example_list
-
+from .examples import identity, bit_and
+example_list = [identity, bit_and]
 
 @ddt
 class TestSimulate(QiskitTestCase):
     """Tests LogicNetwork.simulate method"""
-    @data(*example_list())
+    # @data(*example_list())
+    @data(*example_list)
     def test_(self, a_callable):
         """Tests LogicSimulate.simulate() on all the examples"""
         network = compile_oracle(a_callable)

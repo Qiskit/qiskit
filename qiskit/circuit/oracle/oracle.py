@@ -15,45 +15,44 @@
 """Oracle class"""
 
 import ast
-try:
-    from tweedledum import synthesize_xag, simulate  # pylint: disable=no-name-in-module
-    HAS_TWEEDLEDUM = True
-except Exception:  # pylint: disable=broad-except
-    HAS_TWEEDLEDUM = False
+
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler.oracle_synthesis.utils import tweedledum2qiskit
+from qiskit.transpiler.oracle_synthesis.tweedledum import Tweedledum
 from .oracle_visitor import OracleVisitor
 
 
 class Oracle(Gate):
     """An oracle object represents an oracle function and its logic network."""
 
-    def __init__(self, source):
+    def __init__(self, source, synthesizer=None):
         """Creates a ``Oracle`` from Python source code in ``source``. The code should be
         a single function with types.
 
         Args:
             source (str): Python code with type hints.
-
+            synthesizer(Synthesizer): TODO default: Tweedledum
         Raises:
             ImportError: If tweedledum is not installed.
             QiskitError: If source is not a string.
         """
         if not isinstance(source, str):
             raise QiskitError('Oracle needs a source code as a string.')
-        if not HAS_TWEEDLEDUM:
-            raise ImportError("To use the oracle compiler, tweedledum "
-                              "must be installed. To install tweedledum run "
-                              '"pip install tweedledum".')
         _oracle_visitor = OracleVisitor()
-        _oracle_visitor.visit(ast.parse(source))
-        self._network = _oracle_visitor._network
+        self.ast = _oracle_visitor.visit(ast.parse(source))
+        self.synthesizer = synthesizer if synthesizer else Tweedledum
+        self._synth_instance = None
         self.scopes = _oracle_visitor.scopes
         self.args = _oracle_visitor.args
         self.name = _oracle_visitor.name
         super().__init__(self.name, num_qubits=sum([qreg.size for qreg in self.qregs]), params=[])
+
+    @property
+    def synth_instance(self):
+        if self._synth_instance is None:
+            self._synth_instance = self.synthesizer(self.ast)
+        return self._synth_instance
 
     @property
     def types(self):
@@ -69,7 +68,7 @@ class Oracle(Gate):
 
     def simulate(self):
         """Runs ``tweedledum.simulate`` on the logic network."""
-        return simulate(self._network)
+        return self.synth_instance.simulate()
 
     def synth(self, arg_regs=False) -> QuantumCircuit:
         """Synthesis the logic network into a ``QuantumCircuit``.
@@ -85,7 +84,7 @@ class Oracle(Gate):
             qregs = self.qregs
         else:
             qregs = None
-        return tweedledum2qiskit(synthesize_xag(self._network), name=self.name, qregs=qregs)
+        return self.synth_instance.synth(name=self.name, qregs=qregs)
 
     def _define(self):
         """The definition of the oracle is its synthesis"""
