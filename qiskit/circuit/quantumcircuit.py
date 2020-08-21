@@ -1916,7 +1916,7 @@ class QuantumCircuit:
                             op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
 
-    def convert_durations_in_dt(self, dt_in_sec, inplace=True):
+    def convert_durations_to_dt(self, dt_in_sec, inplace=True):
         """Convert all the durations in seconds into those in dt.
 
         Returns a new circuit if `inplace=False`.
