@@ -135,8 +135,15 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     complex_inpt = complex(inpt)
     real, imag = map(normalize, [complex_inpt.real, complex_inpt.imag])
 
+    jstr = '\\jmath' if output == 'latex' else 'j'
     if real == '0' and imag != '0':
-        return imag + 'j'
-    elif real != 0 and imag != '0':
-        return '{}+{}j'.format(real, imag)
-    return real
+        str_out = imag + jstr
+    elif real != '0' and imag != '0':
+        op_str = '+'
+        # Remove + if imag negative except for latex fractions
+        if complex_inpt.imag < 0 and (output != 'latex' or '\\frac' not in imag):
+            op_str = ''
+        str_out = '{}{}{}{}'.format(real, op_str, imag, jstr)
+    else:
+        str_out = real
+    return str_out
