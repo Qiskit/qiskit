@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -21,7 +19,8 @@ import math
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
+from test import combine  # pylint: disable=wrong-import-order
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -454,7 +453,6 @@ class TestTranspile(QiskitTestCase):
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
@@ -473,7 +471,6 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):
@@ -718,6 +715,47 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
 
         self.assertLessEqual(out.count_ops()[twoq_gate], 2)
+
+    @unpack
+    @data(
+        (['u3', 'cx'], {'u3': 1, 'cx': 1}),
+        (['rx', 'rz', 'iswap'], {'rx': 6, 'rz': 12, 'iswap': 2}),
+        (['rx', 'ry', 'rxx'], {'rx': 6, 'ry': 5, 'rxx': 1}),
+    )
+    def test_block_collection_reduces_1q_gate(self, basis_gates, gate_counts):
+        """For synthesis to non-U3 bases, verify we minimize 1q gates."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+        for basis_gate in basis_gates:
+            self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        basis_gates=[
+            ['u3', 'cx'],
+            ['rx', 'rz', 'iswap'],
+            ['rx', 'ry', 'rxx'],
+        ],
+    )
+    def test_translation_method_synthesis(self, optimization_level, basis_gates):
+        """Verify translation_method='synthesis' gets to the basis."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, translation_method='synthesis',
+                        basis_gates=basis_gates,
+                        optimization_level=optimization_level)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
 
 class StreamHandlerRaiseException(StreamHandler):

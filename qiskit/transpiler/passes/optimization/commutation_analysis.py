@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -56,7 +54,7 @@ class CommutationAnalysis(AnalysisPass):
         # commutation set that contains node.
 
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
+            wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
@@ -68,7 +66,7 @@ class CommutationAnalysis(AnalysisPass):
 
         # Construct the commutation set
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
+            wire_name = "{}[{}]".format(str(wire.register.name), str(wire.index))
 
             for current_gate in dag.nodes_on_wire(wire):
 

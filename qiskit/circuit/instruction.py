@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -160,8 +158,8 @@ class Instruction:
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
             else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+                raise CircuitError("invalid param type {} in instruction "
+                                   "{}".format(type(single_param), self.name))
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
@@ -246,9 +244,9 @@ class Instruction:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + '_reverse')
-        reverse_inst.definition.data = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.data.append((inst.reverse_ops(), qargs, cargs))
+        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return reverse_inst
 
     def inverse(self):
@@ -270,9 +268,9 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition.data = []
-        for inst, qargs, cargs in reversed(self._definition.data):
-            inverse_gate._definition.data.append((inst.inverse(), qargs, cargs))
+        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -385,6 +383,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            qc._data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction

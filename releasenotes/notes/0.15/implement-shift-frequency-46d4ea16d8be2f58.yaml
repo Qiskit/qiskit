@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new pulse instruction :class:`~qiskit.pulse.ShiftFrequency` has been
+    added to :mod:`qiskit.pulse.instructions`. This instruction enables
+    shifting the frequency of a channel from its set frequency. For example::
+
+      from qiskit.pulse import DriveChannel
+      from qiskit.pulse import Schedule
+      from qiskit.pulse import ShiftFrequency
+
+      sched = Schedule()
+      sched += ShiftFrequency(-340e6, DriveChannel(0))
+
+    In this example all the pulses applied to ``DriveChannel(0)`` after the
+    :class:`~qiskit.pulse.ShiftFrequency` command will have the envelope a
+    frequency decremented by 340MHz.

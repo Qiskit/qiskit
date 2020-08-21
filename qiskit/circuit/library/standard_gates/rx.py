@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -62,7 +60,7 @@ class RXGate(Gate):
         rules = [
             (RGate(self.params[0], 0), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -98,17 +96,7 @@ class RXGate(Gate):
                             [-1j * sin, cos]], dtype=complex)
 
 
-class CRXMeta(type):
-    """A metaclass to ensure that CrxGate and CRXGate are of the same type.
-
-    Can be removed when CrxGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRXGate, CrxGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRXGate(ControlledGate, metaclass=CRXMeta):
+class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
 
     **Circuit symbol:**
@@ -193,34 +181,27 @@ class CRXGate(ControlledGate, metaclass=CRXMeta):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):
         """Return inverse RX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CRX gate."""
-    #    half_theta = self.params[0] / 2
-    #    cos = numpy.cos(half_theta)
-    #    isin = 1j * numpy.sin(half_theta)
-    #    return numpy.array([[1,     0, 0,     0],
-    #                        [0,   cos, 0, -isin],
-    #                        [0,     0, 1,     0],
-    #                        [0, -isin, 0,   cos]],
-    #                       dtype=complex)
-
-
-class CrxGate(CRXGate, metaclass=CRXMeta):
-    """The deprecated CRXGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CrxGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
+    def to_matrix(self):
+        """Return a numpy.array for the CRX gate."""
+        half_theta = float(self.params[0]) / 2
+        cos = numpy.cos(half_theta)
+        isin = 1j * numpy.sin(half_theta)
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, cos, 0, -isin],
+                                [0, 0, 1, 0],
+                                [0, -isin, 0, cos]],
+                               dtype=complex)
+        else:
+            return numpy.array([[cos, 0, -isin, 0],
+                                [0, 1, 0, 0],
+                                [-isin, 0, cos, 0],
+                                [0, 0, 0, 1]],
+                               dtype=complex)

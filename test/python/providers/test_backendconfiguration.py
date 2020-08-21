@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -15,6 +13,8 @@
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
 import collections
+import copy
+
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 
@@ -104,6 +104,21 @@ class TestBackendConfiguration(QiskitTestCase):
         for rep_time in self.config.to_dict()['rep_times']:
             self.assertGreater(rep_time, 0)
 
+    def test_get_default_rep_delay_and_range(self):
+        """Test whether rep time property is the right size"""
+        _rep_delay_range_us = [100, 1000]
+        _rep_delay_range_s = [_rd * 1.e-6 for _rd in _rep_delay_range_us]
+        _default_rep_delay_us = 500
+        _default_rep_delay_s = 500 * 1.e-6
+
+        setattr(self.config, 'rep_delay_range', _rep_delay_range_s)
+        setattr(self.config, 'default_rep_delay', _default_rep_delay_s)
+
+        config_dict = self.config.to_dict()
+        for i, rd in enumerate(config_dict['rep_delay_range']):
+            self.assertAlmostEqual(rd, _rep_delay_range_us[i], delta=1e-8)
+        self.assertEqual(config_dict['default_rep_delay'], _default_rep_delay_us)
+
     def test_get_channel_prefix_index(self):
         """Test private method to get channel and index."""
         self.assertEqual(self.config._get_channel_prefix_index('acquire0'), ('acquire', 0))
@@ -113,3 +128,11 @@ class TestBackendConfiguration(QiskitTestCase):
     def _test_lists_equal(self, actual, expected):
         """Test if 2 lists are equal. It returns ``True`` is lists are equal."""
         return collections.Counter(actual) == collections.Counter(expected)
+
+    def test_deepcopy(self):
+        """Ensure that a deepcopy succeeds and results in an identical object."""
+        copy_config = copy.deepcopy(self.config)
+        print(copy_config.to_dict())
+        print("Original:")
+        print(self.config.to_dict())
+        self.assertEqual(copy_config, self.config)

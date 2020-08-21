@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -65,7 +63,7 @@ class HGate(Gate):
         rules = [
             (U2Gate(0, pi), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -195,7 +193,7 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

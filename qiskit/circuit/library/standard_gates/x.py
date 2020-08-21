@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -86,7 +84,7 @@ class XGate(Gate):
         rules = [
             (U3Gate(pi, 0, pi), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -117,17 +115,7 @@ class XGate(Gate):
                             [1, 0]], dtype=complex)
 
 
-class CXMeta(type):
-    """A metaclass to ensure that CnotGate and CXGate are of the same type.
-
-    Can be removed when CnotGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CnotGate, CXGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CXGate(ControlledGate, metaclass=CXMeta):
+class CXGate(ControlledGate):
     r"""Controlled-X gate.
 
     **Circuit symbol:**
@@ -227,29 +215,7 @@ class CXGate(ControlledGate, metaclass=CXMeta):
                                 [0, 0, 0, 1]], dtype=complex)
 
 
-class CnotGate(CXGate, metaclass=CXMeta):
-    """The deprecated CXGate class."""
-
-    def __init__(self, label=None, ctrl_state=None):
-        import warnings
-        warnings.warn('The class CnotGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(label=label, ctrl_state=ctrl_state)
-
-
-class CCXMeta(type):
-    """A metaclass to ensure that CCXGate and ToffoliGate are of the same type.
-
-    Can be removed when ToffoliGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CCXGate, ToffoliGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CCXGate(ControlledGate, metaclass=CCXMeta):
+class CCXGate(ControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
     **Circuit symbol:**
@@ -348,7 +314,7 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
             (TdgGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -378,18 +344,6 @@ class CCXGate(ControlledGate, metaclass=CCXMeta):
         return _compute_control_matrix(self.base_gate.to_matrix(),
                                        self.num_ctrl_qubits,
                                        ctrl_state=self.ctrl_state)
-
-
-class ToffoliGate(CCXGate, metaclass=CCXMeta):
-    """The deprecated CCXGate class."""
-
-    def __init__(self):
-        import warnings
-        warnings.warn('The class ToffoliGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CCXGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()
 
 
 class RCCXGate(Gate):
@@ -438,7 +392,7 @@ class RCCXGate(Gate):
             (U1Gate(-pi / 4), [q[2]], []),  # inverse T gate
             (U2Gate(0, pi), [q[2]], []),  # H gate
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def to_matrix(self):
@@ -530,7 +484,7 @@ class C3XGate(ControlledGate):
             (HGate(), [q[3]], [])
         ]
         qc = QuantumCircuit(q)
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -638,7 +592,7 @@ class RC3XGate(Gate):
             (U1Gate(-pi / 4), [q[3]], []),
             (U2Gate(0, pi), [q[3]], []),
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def to_matrix(self):
@@ -719,7 +673,7 @@ class C4XGate(ControlledGate):
             (C3XGate(), [q[0], q[1], q[2], q[3]], []),
             (C3XGate(numpy.pi / 8), [q[0], q[1], q[2], q[4]], []),
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -743,6 +697,12 @@ class C4XGate(ControlledGate):
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate()
+
+    def to_matrix(self):
+        """Return a numpy.array for the C4X gate."""
+        return _compute_control_matrix(self.base_gate.to_matrix(),
+                                       self.num_ctrl_qubits,
+                                       ctrl_state=self.ctrl_state)
 
 
 class MCXGate(ControlledGate):
@@ -796,7 +756,7 @@ class MCXGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q)
-        qc.append(MCXGrayCode(self.num_ctrl_qubits), qargs=q[:])
+        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
         self.definition = qc
 
     @property
@@ -841,9 +801,9 @@ class MCXGrayCode(MCXGate):
         from .u1 import MCU1Gate
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
-        qc.h(q[-1])
-        qc.append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), qargs=q[:])
-        qc.h(q[-1])
+        qc._append(HGate(), [q[-1]], [])
+        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
+        qc._append(HGate(), [q[-1]], [])
         self.definition = qc
 
 
@@ -870,14 +830,14 @@ class MCXRecursive(MCXGate):
         q = QuantumRegister(self.num_qubits, name='q')
         qc = QuantumCircuit(q, name=self.name)
         if self.num_qubits == 4:
-            qc.append(C3XGate(), qargs=q[:])
+            qc._append(C3XGate(), q[:], [])
             self.definition = qc
         elif self.num_qubits == 5:
-            qc.append(C4XGate(), qargs=q[:])
+            qc._append(C4XGate(), q[:], [])
             self.definition = qc
         else:
             self.definition = qc
-            self.definition.data = self._recurse(q[:-1], q_ancilla=q[-1])
+            self.definition._data = self._recurse(q[:-1], q_ancilla=q[-1])
 
     def _recurse(self, q, q_ancilla=None):
         # recursion stop
@@ -989,5 +949,5 @@ class MCXVChain(MCXGate):
                 definition.append(
                     (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
 
-        qc.data = definition
+        qc._data = definition
         self.definition = qc

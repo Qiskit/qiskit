@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -25,16 +23,18 @@ This module can easily be extended to describe more pulse shapes. The new class 
   - have a descriptive name
   - be a well known and/or well described formula (include the formula in the class docstring)
   - take some parameters (at least `duration`) and validate them, if necessary
-  - implement a `get_sample_pulse` method which returns a corresponding Waveform in the
-    case that it is assembled for a backend which does not support it.
+  - implement a ``get_sample_pulse`` method which returns a corresponding Waveform in the case that
+    it is assembled for a backend which does not support it. Ends are zeroed to avoid steep jumps at
+    pulse edges. By default, the ends are defined such that ``f(-1), f(duration+1) = 0``.
 
 The new pulse must then be registered by the assembler in
 `qiskit/qobj/converters/pulse_instruction.py:ParametricPulseShapes`
 by following the existing pattern:
+
     class ParametricPulseShapes(Enum):
-        gaussian = commands.Gaussian
+        gaussian = pulse_lib.Gaussian
         ...
-        new_supported_pulse_name = commands.YourPulseCommandClass
+        new_supported_pulse_name = pulse_lib.YourPulseWaveformClass
 """
 import warnings
 from abc import abstractmethod
@@ -64,11 +64,17 @@ class ParametricPulse(Pulse):
         self.validate_parameters()
 
     @abstractmethod
-    def get_sample_pulse(self) -> Waveform:
+    def get_waveform(self) -> Waveform:
         """Return a Waveform with samples filled according to the formula that the pulse
         represents and the parameter values it contains.
         """
         raise NotImplementedError
+
+    def get_sample_pulse(self) -> Waveform:
+        """Deprecated."""
+        warnings.warn('`get_sample_pulse` has been deprecated. '
+                      ' Use `get_waveform` instead.', DeprecationWarning)
+        return self.get_waveform()
 
     @abstractmethod
     def validate_parameters(self) -> None:
@@ -90,8 +96,7 @@ class ParametricPulse(Pulse):
              style=None,
              filename: Optional[str] = None,
              interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False,
-             scaling: float = None):
+             scale: float = 1, interactive: bool = False):
         """Plot the pulse.
 
         Args:
@@ -102,14 +107,13 @@ class ParametricPulse(Pulse):
             scale: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
-            scaling: Deprecated, see `scale`
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
-        return self.get_sample_pulse().draw(dt=dt, style=style, filename=filename,
-                                            interp_method=interp_method, scale=scale,
-                                            interactive=interactive)
+        return self.get_waveform().draw(dt=dt, style=style, filename=filename,
+                                        interp_method=interp_method, scale=scale,
+                                        interactive=interactive)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
@@ -155,9 +159,9 @@ class Gaussian(ParametricPulse):
         """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
-    def get_sample_pulse(self) -> Waveform:
+    def get_waveform(self) -> Waveform:
         return gaussian(duration=self.duration, amp=self.amp,
-                        sigma=self.sigma, zero_ends=False)
+                        sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -232,10 +236,10 @@ class GaussianSquare(ParametricPulse):
         """The width of the square portion of the pulse."""
         return self._width
 
-    def get_sample_pulse(self) -> Waveform:
+    def get_waveform(self) -> Waveform:
         return gaussian_square(duration=self.duration, amp=self.amp,
                                width=self.width, sigma=self.sigma,
-                               zero_ends=False)
+                               zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -327,9 +331,9 @@ class Drag(ParametricPulse):
         """The weighing factor for the Gaussian derivative component of the waveform."""
         return self._beta
 
-    def get_sample_pulse(self) -> Waveform:
+    def get_waveform(self) -> Waveform:
         return drag(duration=self.duration, amp=self.amp, sigma=self.sigma,
-                    beta=self.beta, zero_ends=False)
+                    beta=self.beta, zero_ends=True)
 
     def validate_parameters(self) -> None:
         if abs(self.amp) > 1.:
@@ -401,7 +405,7 @@ class Constant(ParametricPulse):
         """The constant value amplitude."""
         return self._amp
 
-    def get_sample_pulse(self) -> Waveform:
+    def get_waveform(self) -> Waveform:
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
@@ -441,5 +445,5 @@ class ConstantPulse(Constant):
             amp: The amplitude of the constant square pulse.
             name: Display name for this pulse envelope.
         """
-        super(ConstantPulse, self).__init__(duration, amp, name)
+        super().__init__(duration, amp, name)
         warnings.warn("The ConstantPulse is deprecated. Use Constant instead", DeprecationWarning)

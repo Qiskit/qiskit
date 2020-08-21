@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -396,7 +394,7 @@ class SuperOp(QuantumChannel):
                 raise QiskitError('Cannot apply Instruction: {}'.format(
                     obj.name))
             if not isinstance(obj.definition, QuantumCircuit):
-                raise QiskitError('{0} instruction definition is {1}; '
+                raise QiskitError('{} instruction definition is {}; '
                                   'expected QuantumCircuit'.format(
                                       obj.name, type(obj.definition)))
             for instr, qregs, cregs in obj.definition.data:

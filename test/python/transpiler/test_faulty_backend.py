@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -20,9 +18,9 @@ from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
-from qiskit.extensions.standard import CnotGate
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler import TranspilerError
-from ..providers.faulty_backends import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01,\
+from ..providers.faulty_backends import FakeOurenseFaultyQ1, FakeOurenseFaultyCX01, \
     FakeOurenseFaultyCX13
 
 
@@ -60,7 +58,7 @@ class TestFaultyCX01(TestFaultyBackendCase):
     def assertIdleCX01(self, circuit):
         """Asserts the CX(0, 1) (and symmetric) is not used in the circuit"""
         physical_qubits = QuantumRegister(5, 'q')
-        cx_nodes = circuit_to_dag(circuit).op_nodes(CnotGate)
+        cx_nodes = circuit_to_dag(circuit).op_nodes(CXGate)
         for node in cx_nodes:
             if set(node.qargs) == {physical_qubits[0], physical_qubits[1]}:
                 raise AssertionError('Faulty CX(Q0, Q1) (or symmetric) is being used.')
@@ -127,7 +125,7 @@ class TestFaultyCX13(TestFaultyBackendCase):
     def assertIdleCX13(self, circuit):
         """Asserts the CX(1, 3) (and symmetric) is not used in the circuit"""
         physical_qubits = QuantumRegister(5, 'q')
-        cx_nodes = circuit_to_dag(circuit).op_nodes(CnotGate)
+        cx_nodes = circuit_to_dag(circuit).op_nodes(CXGate)
         for node in cx_nodes:
             if set(node.qargs) == {physical_qubits[1], physical_qubits[3]}:
                 raise AssertionError('Faulty CX(Q1, Q3) (or symmetric) is being used.')
@@ -245,3 +243,27 @@ class TestFaultyQ1(TestFaultyBackendCase):
                       seed_transpiler=42)
 
         self.assertEqual(context.exception.message, message)
+
+
+class TestFaultyQ1Unpickable(TestFaultyBackendCase):
+    """See:
+      https://github.com/Qiskit/qiskit-terra/pull/4723
+      https://github.com/Qiskit/qiskit-terra/pull/4782
+    """
+
+    def setUp(self):
+        """Creates a FakeBackend that is unpickable"""
+        backend = FakeOurenseFaultyQ1()
+        backend.unpickable_prop = (lambda x: x)
+        self.unpickable_backend = backend
+
+    def test_unpickable_backend(self):
+        """Test Ourense unpickable backend with a faulty Q1 in parallel """
+        circuit = QuantumCircuit(QuantumRegister(2, 'qr'))
+        circuit.h(range(2))
+        circuit.cz(0, 1)
+        circuit.measure_all()
+        result = transpile([circuit, circuit], backend=self.unpickable_backend,
+                           optimization_level=1, seed_transpiler=42)
+        self.assertEqualCount(circuit, result[0])
+        self.assertEqualCount(circuit, result[1])

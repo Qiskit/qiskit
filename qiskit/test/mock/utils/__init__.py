@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -16,4 +14,4 @@
 Utils for test backends.
 """
 
-from .configurable_backend import ConfigurableBackend
+from .configurable_backend import ConfigurableFakeBackend
