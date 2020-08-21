@@ -51,8 +51,9 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                   ``backend``\'s ``instruction_schedule_map``
         meas_map: List of sets of qubits that must be measured together. If ``None``, defaults to
                   the ``backend``\'s ``meas_map``
-        dt: For scheduled circuits which contain time information, dt is required. If not provided,
-            it will be obtained from the backend configuration
+        dt: The output sample rate of backend control electronics. For scheduled circuits
+            which contain time information, dt is required. If not provided, it will be
+            obtained from the backend configuration
         method: Optionally specify a particular scheduling method
 
     Returns:

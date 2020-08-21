@@ -58,8 +58,7 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (int or float): instruction's duration. Its type indicates its unit:
-                integer means unitless (dt of backend) and float means seconds.
+            duration (float): instruction's duration in seconds.
 
         Raises:
             CircuitError: when the register is not in the correct format.
