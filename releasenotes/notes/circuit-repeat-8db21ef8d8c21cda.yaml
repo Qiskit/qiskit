@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add a ``QuantumCircuit.repeat`` method, which returns a new circuit object containing
-    a specified number of repetitions of the original circuit. The parameters are copied by
-    reference.
