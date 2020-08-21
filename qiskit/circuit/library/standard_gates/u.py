@@ -98,6 +98,7 @@ class UGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the U gate."""
+        import ipdb;ipdb.set_trace()
         theta, phi, lam = [float(param) for param in self.params]
         return numpy.array([
             [
@@ -172,8 +173,8 @@ class CUGate(ControlledGate):
     def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
         """Create new CU gate."""
         super().__init__('cu', 2, [theta, phi, lam, gamma], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state)
-        self.base_gate = UGate(theta, phi, lam)
+                         label=label, ctrl_state=ctrl_state,
+                         base_gate=UGate(theta, phi, lam))
 
     def _define(self):
         """
