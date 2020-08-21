@@ -15,6 +15,7 @@ import unittest
 
 from test import combine
 from ddt import ddt
+from numpy import pi
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -29,7 +30,14 @@ class TestPiCheck(QiskitTestCase):
                    (2.99, '2.99'),
                    (2.999999999999999, '3'),
                    (0.99, '0.99'),
-                   (0.999999999999999, '1')])
+                   (0.999999999999999, '1'),
+                   (6*pi/5+1j*3*pi/7, '6pi/5+3pi/7j'),
+                   (-6*pi/5+1j*3*pi/7, '-6pi/5+3pi/7j'),
+                   (6*pi/5-1j*3*pi/7, '6pi/5-3pi/7j'),
+                   (-6*pi/5-1j*3*pi/7, '-6pi/5-3pi/7j'),
+                   (-382578.0+.0234567j, '-3.8258e+05+0.023457j'),
+                   (-382578.0-.0234567j, '-3.8258e+05-0.023457j'),
+                   ])
     def test_default(self, case):
         """Default pi_check({case[0]})='{case[1]}'"""
         input_number = case[0]
