@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -25,7 +23,7 @@ from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
 from qiskit.circuit import Barrier as BarrierInstruction
-from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate
+from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
@@ -776,7 +774,9 @@ class TextDrawing():
         labels = {IGate: 'I',
                   Initialize: 'initialize',
                   UnitaryGate: 'unitary',
-                  HamiltonianGate: 'Hamiltonian'}
+                  HamiltonianGate: 'Hamiltonian',
+                  SXGate: '√X',
+                  SXdgGate: '√XDG'}
         instruction_type = type(instruction)
         if instruction_type in {Gate, Instruction}:
             return instruction.name
@@ -888,7 +888,7 @@ class TextDrawing():
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
         args_qubits = instruction.qargs[num_ctrl_qubits:]
-        ctrl_state = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        ctrl_state = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
 
         in_box = list()
         top_box = list()
@@ -912,7 +912,7 @@ class TextDrawing():
         gates = []
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
-        cstate = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        cstate = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(len(ctrl_qubits)):
             if cstate[i] == '1':
                 gates.append(Bullet(conditional=conditional, label=ctrl_label,
