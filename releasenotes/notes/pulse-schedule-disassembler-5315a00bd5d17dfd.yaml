@@ -28,5 +28,3 @@ features:
 
       qobj = assemble(sched, backend=backend, shots=2000)
       scheds, _, _ = disassemble(qobj)
-
-      scheds[0].draw()
