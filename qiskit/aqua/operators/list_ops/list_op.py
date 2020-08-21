@@ -129,7 +129,10 @@ class ListOp(OperatorBase):
 
     @property
     def num_qubits(self) -> int:
-        return self.oplist[0].num_qubits
+        num_qubits0 = self.oplist[0].num_qubits
+        if not all(num_qubits0 == op.num_qubits for op in self.oplist):
+            raise ValueError('Operators in ListOp have differing numbers of qubits.')
+        return num_qubits0
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if self == other:
