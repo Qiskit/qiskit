@@ -19,6 +19,7 @@
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -617,8 +618,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
         self.assertEqual(circ.num_qubits, 18)
 
-    def test_calibrations(self):
-        """Check if the calibrations provided are added correctly."""
+    def test_calibrations_basis_gates(self):
+        """Check if the calibrations for basis gates provided are added correctly."""
         circ = QuantumCircuit(2)
         circ.rx(3.14, 0)
         circ.ry(1.57, 1)
@@ -639,6 +640,30 @@ class TestCircuitProperties(QiskitTestCase):
                          q0_x180.instructions)
         self.assertEqual(circ.calibrations['ry'][((1,), (1.57,))].instructions,
                          q1_y90.instructions)
+
+    def test_calibrations_custom_gates(self):
+        """Check if the calibrations for custom gates with params provided are added correctly."""
+        class RxGate(Gate):
+            def __init__(self, theta):
+                super().__init__('rxt', 1, [theta])
+
+        circ = QuantumCircuit(3)
+        circ.append(RxGate(1.57), [0])
+        circ.append(RxGate(1.57), [0])
+
+        theta = Parameter('theta')
+        circ.append(RxGate(2*theta), [1])
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibrations
+        circ.add_calibration('rxt', [0], q0_x180, params=(1.57,))
+
+        self.assertEqual(set(circ.calibrations.keys()), {'rxt'})
+        self.assertEqual(set(circ.calibrations['rxt'].keys()), {((0,), (1.57,))})
+        self.assertEqual(circ.calibrations['rxt'][((0,), (1.57,))].instructions,
+                         q0_x180.instructions)
 
 
 if __name__ == '__main__':
