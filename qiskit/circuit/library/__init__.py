@@ -88,6 +88,10 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   GR
+   GRx
+   GRy
+   GRz
 
 Boolean Logic Circuits
 ======================
