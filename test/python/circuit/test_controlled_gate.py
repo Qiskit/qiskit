@@ -885,7 +885,7 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(i=repr(gate_class)):
                 num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
                 free_params = [0.1 * i for i in range(num_free_params)]
-                if gate_class in [MCU1Gate]:
+                if gate_class in [MCU1Gate, MCPhaseGate]:
                     free_params[1] = 3
                 elif gate_class in [MCXGate]:
                     free_params[0] = 3

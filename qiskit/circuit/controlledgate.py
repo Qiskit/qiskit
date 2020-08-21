@@ -182,7 +182,7 @@ class ControlledGate(Gate):
         if self.base_gate:
             return self.base_gate.params
         else:
-            raise CircuitError('Controlled gate does not define base gate for '
+            raise CircuitError('Controlled gate does not define base gate '
                                'for extracting params')
 
     @params.setter
