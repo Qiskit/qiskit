@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -74,8 +72,7 @@ class TestSchemaExamples(QiskitTestCase):
                 for example_schema in examples:
                     with self.subTest(example=example_schema):
                         with open(os.path.join(self.examples_base_path,
-                                               example_schema),
-                                  'r') as example_file:
+                                               example_schema)) as example_file:
                             example = json.load(example_file)
                             msg = 'JSON failed validation of {}.'\
                                   'Set Qiskit log level to DEBUG'\
