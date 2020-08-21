@@ -252,10 +252,10 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                 try:
                     self.var_form.num_qubits = self.operator.num_qubits
                     self._var_form_params = sorted(self.var_form.parameters, key=lambda p: p.name)
-                except AttributeError:
+                except AttributeError as ex:
                     raise AquaError("The number of qubits of the variational form does not match "
                                     "the operator, and the variational form does not allow setting "
-                                    "the number of qubits using `num_qubits`.")
+                                    "the number of qubits using `num_qubits`.") from ex
 
     @VQAlgorithm.optimizer.setter  # type: ignore
     def optimizer(self, optimizer: Optimizer):
