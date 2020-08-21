@@ -17,7 +17,6 @@
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
-from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -639,16 +638,12 @@ class TestCircuitProperties(QiskitTestCase):
 
     def test_calibrations_custom_gates(self):
         """Check if the calibrations for custom gates with params provided are added correctly."""
-        class RxGate(Gate):
-            def __init__(self, theta):
-                super().__init__('rxt', 1, [theta])
-
         circ = QuantumCircuit(3)
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        # Add calibrations
+        # Add calibrations with a custom gate 'rxt'
         circ.add_calibration('rxt', [0], q0_x180, params=[1.57, 3.14, 4.71])
 
         self.assertEqual(set(circ.calibrations.keys()), {'rxt'})
