@@ -184,7 +184,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     for circuit in circuits:
         if len(circuit.calibrations) != 0:
-            warnings.warn("Transpiling with calibrations aren't supported currently. ")
+            warnings.warn("Transpiling with calibrations are not supported currently. ",
+                          UserWarning)
             pass
 
     if pass_manager is not None:

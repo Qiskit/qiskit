@@ -619,8 +619,6 @@ class TestCircuitProperties(QiskitTestCase):
     def test_calibrations_basis_gates(self):
         """Check if the calibrations for basis gates provided are added correctly."""
         circ = QuantumCircuit(2)
-        circ.rx(3.14, 0)
-        circ.ry(1.57, 1)
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
@@ -646,21 +644,16 @@ class TestCircuitProperties(QiskitTestCase):
                 super().__init__('rxt', 1, [theta])
 
         circ = QuantumCircuit(3)
-        circ.append(RxGate(1.57), [0])
-        circ.append(RxGate(1.57), [0])
-
-        theta = Parameter('theta')
-        circ.append(RxGate(2*theta), [1])
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
         # Add calibrations
-        circ.add_calibration('rxt', [0], q0_x180, params=(1.57,))
+        circ.add_calibration('rxt', [0], q0_x180, params=[1.57, 3.14, 4.71])
 
         self.assertEqual(set(circ.calibrations.keys()), {'rxt'})
-        self.assertEqual(set(circ.calibrations['rxt'].keys()), {((0,), (1.57,))})
-        self.assertEqual(circ.calibrations['rxt'][((0,), (1.57,))].instructions,
+        self.assertEqual(set(circ.calibrations['rxt'].keys()), {((0,), (1.57, 3.14, 4.71))})
+        self.assertEqual(circ.calibrations['rxt'][((0,), (1.57, 3.14, 4.71))].instructions,
                          q0_x180.instructions)
 
 
