@@ -98,7 +98,6 @@ class UGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the U gate."""
-        import ipdb;ipdb.set_trace()
         theta, phi, lam = [float(param) for param in self.params]
         return numpy.array([
             [
