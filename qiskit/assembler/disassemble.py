@@ -25,6 +25,50 @@ from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.qobj.converters import QobjToInstructionConverter
 
 
+CircuitModule = NewType(
+    'CircuitModule',
+    Tuple[
+        List[QuantumCircuit],
+        Dict[str, Any],
+        Dict[str, Any]
+    ]
+)
+
+
+PulseModule = NewType(
+    'PulseModule',
+    Tuple[
+        List[pulse.Schedule],
+        Dict[str, Any],
+        Dict[str, Any]
+    ]
+)
+
+
+def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
+    """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
+
+    Args:
+        qobj (Qobj): The input qobj object to disassemble
+
+    Returns:
+        The disassembled program which consists of:
+            * programs: A list of quantum circuits or pulse schedules
+            * run_config: The dict of the run config
+            * user_qobj_header: The dict of any user headers in the qobj
+    """
+    if qobj.type == 'PULSE':
+        return _disassemble_pulse_schedule(qobj)
+    else:
+        return _disassemble_circuit(qobj)
+
+
+def _disassemble_circuit(qobj) -> CircuitModule:
+    run_config = qobj.config.to_dict()
+    user_qobj_header = qobj.header.to_dict()
+    return _experiments_to_circuits(qobj), run_config, user_qobj_header
+
+
 def _experiments_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj.
 
@@ -127,32 +171,6 @@ def _experiments_to_circuits(qobj):
     return None
 
 
-CircuitModule = NewType(
-    'CircuitModule',
-    Tuple[
-        List[QuantumCircuit],
-        Dict[str, Any],
-        Dict[str, Any]
-    ]
-)
-
-
-def _disassemble_circuit(qobj) -> CircuitModule:
-    run_config = qobj.config.to_dict()
-    user_qobj_header = qobj.header.to_dict()
-    return _experiments_to_circuits(qobj), run_config, user_qobj_header
-
-
-PulseModule = NewType(
-    'PulseModule',
-    Tuple[
-        List[pulse.Schedule],
-        Dict[str, Any],
-        Dict[str, Any]
-    ]
-)
-
-
 def _disassemble_pulse_schedule(qobj) -> PulseModule:
     run_config = qobj.config.to_dict()
     run_config.pop('pulse_library')
@@ -215,21 +233,3 @@ def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
         schedule = pulse.Schedule(*insts)
         schedules.append(schedule)
     return schedules
-
-
-def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
-    """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
-
-    Args:
-        qobj (Qobj): The input qobj object to disassemble
-
-    Returns:
-        The disassembled program which consists of:
-            * programs: A list of quantum circuits or pulse schedules
-            * run_config: The dict of the run config
-            * user_qobj_header: The dict of any user headers in the qobj
-    """
-    if qobj.type == 'PULSE':
-        return _disassemble_pulse_schedule(qobj)
-    else:
-        return _disassemble_circuit(qobj)
