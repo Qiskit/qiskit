@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -709,7 +707,7 @@ class TestIntegerComparator(QiskitTestCase):
             if prob > 1e-6:
                 # equal superposition
                 self.assertEqual(True, np.isclose(1.0, prob * 2.0**num_state_qubits))
-                b_value = '{0:b}'.format(i).rjust(qc.width(), '0')
+                b_value = '{:b}'.format(i).rjust(qc.width(), '0')
                 x = int(b_value[(-num_state_qubits):], 2)
                 comp_result = int(b_value[-num_state_qubits-1], 2)
                 if geq:
@@ -1239,7 +1237,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1262,7 +1260,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1311,7 +1309,7 @@ class TestNLocal(QiskitTestCase):
                 nlocal = NLocal(num_qubits, rotation_blocks=XGate(), entanglement_blocks=CCXGate(),
                                 entanglement=entanglement, reps=3, skip_unentangled_qubits=True)
 
-                skipped_set = set(nlocal.qubits[i] for i in skipped)
+                skipped_set = {nlocal.qubits[i] for i in skipped}
                 dag = circuit_to_dag(nlocal)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
@@ -1474,7 +1472,7 @@ class TestTwoLocal(QiskitTestCase):
         """Test different possibilities to set parameters."""
         two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
         params = [0, 1, 2, Parameter('x'), Parameter('y'), Parameter('z'), 6, 7, 0]
-        params_set = set(param for param in params if isinstance(param, Parameter))
+        params_set = {param for param in params if isinstance(param, Parameter)}
 
         with self.subTest(msg='dict assign and copy'):
             ordered = two.ordered_parameters
