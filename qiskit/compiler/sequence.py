@@ -52,16 +52,16 @@ def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     """
     if inst_map is None:
         if backend is None:
-            raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
-                              "scheduling passes.")
+            raise QiskitError("Must supply either a backend or inst_map for sequencing.")
         inst_map = backend.defaults().instruction_schedule_map
     if meas_map is None:
         if backend is None:
-            raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
+            raise QiskitError("Must supply either a backend or a meas_map for sequencing.")
         meas_map = backend.configuration().meas_map
     if dt is None:
-        if backend is not None:
-            dt = backend.configuration().dt
+        if backend is None:
+            raise QiskitError("Must supply either a backend or a dt for sequencing.")
+        dt = backend.configuration().dt
 
     schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
