@@ -727,7 +727,6 @@ class Schedule(ScheduleComponent):
         """
         channels = set(self.channels)
         other_channels = set(other.channels)
-
         # first check channels are the same
         if channels != other_channels:
             return False
@@ -736,12 +735,11 @@ class Schedule(ScheduleComponent):
         instructions = self.timed_instructions()
         if isinstance(other, Schedule):
             other_instructions = other.timed_instructions()
+        # Otherwise "other" is an instruction.
         else:
-            other_instructions = other.timed_instructions()
-
+            other_instructions = [(0, other)]
         if len(instructions) != len(other_instructions):
             return False
-
         # finally check each instruction in `other` is in this schedule
         for idx, inst in enumerate(other_instructions):
             # check assumes `Schedule.timed_instructions()` is sorted consistently
