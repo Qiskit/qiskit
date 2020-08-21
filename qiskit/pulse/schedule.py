@@ -650,7 +650,7 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands.
             label: Label individual instructions.
             framechange: Add framechange indicators.
-            channels: A list of channel names to plot.
+            channels: A list of Channels to plot.
             show_framechange_channels: Plot channels with only framechanges.
 
         Additional Information:
