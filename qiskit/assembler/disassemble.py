@@ -24,7 +24,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.qobj.converters import QobjToInstructionConverter
 
-
+# A ``CircuitModule`` is a representation of a circuit execution on the backend.
+# It is currently a list of quantum circuits to execute, a run Qobj dictionary
+# and a header dictionary.
 CircuitModule = NewType(
     'CircuitModule',
     Tuple[
@@ -34,7 +36,9 @@ CircuitModule = NewType(
     ]
 )
 
-
+# A ``PulseModule`` is a representation of a pulse execution on the backend.
+# It is currently a list of pulse schedules to execute, a run Qobj dictionary
+# and a header dictionary.
 PulseModule = NewType(
     'PulseModule',
     Tuple[
@@ -66,7 +70,7 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
 def _disassemble_circuit(qobj) -> CircuitModule:
     run_config = qobj.config.to_dict()
     user_qobj_header = qobj.header.to_dict()
-    return _experiments_to_circuits(qobj), run_config, user_qobj_header
+    return CircuitModule(_experiments_to_circuits(qobj), run_config, user_qobj_header)
 
 
 def _experiments_to_circuits(qobj):
@@ -203,7 +207,7 @@ def _disassemble_pulse_schedule(qobj) -> PulseModule:
     if any(schedule_los):
         run_config['schedule_los'] = schedule_los
 
-    return _experiments_to_schedules(qobj), run_config, user_qobj_header
+    return PulseModule(_experiments_to_schedules(qobj), run_config, user_qobj_header)
 
 
 def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
