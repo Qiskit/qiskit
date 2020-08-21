@@ -121,7 +121,7 @@ class MatrixOp(PrimitiveOp):
             return MatrixOp(self.primitive.compose(other.primitive, front=True),  # type: ignore
                             coeff=self.coeff * other.coeff)
 
-        return super(MatrixOp, self).compose(other)
+        return super().compose(other)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         return self.primitive.data * self.coeff  # type: ignore

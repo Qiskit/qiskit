@@ -153,9 +153,9 @@ class SummedOp(ListOp):
         if isinstance(self.coeff, ParameterExpression):
             try:
                 coeff = float(self.coeff)
-            except TypeError:
+            except TypeError as ex:
                 raise TypeError('Cannot convert Operator with unbound parameter {} to Legacy '
-                                'Operator'.format(self.coeff))
+                                'Operator'.format(self.coeff)) from ex
         else:
             coeff = cast(float, self.coeff)
 
