@@ -508,6 +508,24 @@ class TestOpConstruction(QiskitAquaTestCase):
         self.assertEqual(list_op.parameters, set(params))
 
 
+class TestOpMethods(QiskitAquaTestCase):
+    """Basic method tests."""
+
+    def test_listop_num_qubits(self):
+        """Test that ListOp.num_qubits checks that all operators have the same number of qubits."""
+        op = ListOp([X ^ Y, Y ^ Z])
+        with self.subTest('All operators have the same numbers of qubits'):
+            self.assertEqual(op.num_qubits, 2)
+
+        op = ListOp([X ^ Y, Y])
+        with self.subTest('Operators have different numbers of qubits'):
+            with self.assertRaises(ValueError):
+                op.num_qubits  # pylint: disable=pointless-statement
+
+            with self.assertRaises(ValueError):
+                X @ op  # pylint: disable=pointless-statement
+
+
 class TestListOpComboFn(QiskitAquaTestCase):
     """Test combo fn is propagated."""
 
