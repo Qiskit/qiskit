@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -57,8 +55,8 @@ class DefaultStyle:
             'h': 'H',
             's': 'S',
             'sdg': '$\\mathrm{S}^\\dagger$',
-            'sx': '$\\sqrt{X}$',
-            'sxdg': '$\\sqrt{X}^\\dagger$',
+            'sx': '$\\sqrt{\\mathrm{X}}$',
+            'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
             't': 'T',
             'tdg': '$\\mathrm{T}^\\dagger$',
             'iswap': 'Iswap',

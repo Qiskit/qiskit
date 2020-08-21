@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -206,8 +204,8 @@ def default_style() -> Dict[str, Any]:
         'formatter.control.show_snapshot_channel': True,
         'formatter.control.show_acquire_channel': True,
         'formatter.control.show_empty_channel': True,
-        'formatter.unicode_symbol.frame_change': u'\u21BA',
-        'formatter.unicode_symbol.snapshot': u'\u21AF',
+        'formatter.unicode_symbol.frame_change': '\u21BA',
+        'formatter.unicode_symbol.snapshot': '\u21AF',
         'formatter.latex_symbol.frame_change': r'\circlearrowleft',
         'formatter.latex_symbol.snapshot': '',
         'generator.waveform': [],

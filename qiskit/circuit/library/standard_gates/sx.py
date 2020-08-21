@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -56,7 +54,7 @@ class SXGate(Gate):
 
     """
 
-    def __init__(self, label='√X'):
+    def __init__(self, label=None):
         """Create new SX gate."""
         super().__init__('sx', 1, [], label=label)
 
@@ -130,7 +128,7 @@ class SXdgGate(Gate):
 
     """
 
-    def __init__(self, label='√X_dg'):
+    def __init__(self, label=None):
         """Create new SXdg gate."""
         super().__init__('sxdg', 1, [], label=label)
 
