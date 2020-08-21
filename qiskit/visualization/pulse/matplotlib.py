@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -558,7 +556,7 @@ class ScheduleDrawer:
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
+                    ax.annotate(s="\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax,

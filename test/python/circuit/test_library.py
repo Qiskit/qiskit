@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -274,11 +272,20 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
     def test_qv(self):
         """Test qv circuit."""
-        circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
+        seed = 10203
+        rng1 = np.random.default_rng(seed)
+        rng2 = np.random.default_rng(seed)
+
+        depth = 2
+        width = 1
+        circuit = QuantumVolume(2, depth, seed=rng1, classical_permutation=False)
+
         expected = QuantumCircuit(2)
-        expected.swap(0, 1)
-        expected.append(random_unitary(4, seed=837), [0, 1])
-        expected.append(random_unitary(4, seed=262), [0, 1])
+        unitary_seeds = rng2.integers(low=1, high=1000, size=[depth, width])
+        for d in range(depth):
+            if rng2.permutation([0, 1]).tolist() == [1, 0]:
+                expected.swap(0, 1)
+            expected.append(random_unitary(4, seed=unitary_seeds[d][0]), [0, 1])
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
@@ -700,7 +707,7 @@ class TestIntegerComparator(QiskitTestCase):
             if prob > 1e-6:
                 # equal superposition
                 self.assertEqual(True, np.isclose(1.0, prob * 2.0**num_state_qubits))
-                b_value = '{0:b}'.format(i).rjust(qc.width(), '0')
+                b_value = '{:b}'.format(i).rjust(qc.width(), '0')
                 x = int(b_value[(-num_state_qubits):], 2)
                 comp_result = int(b_value[-num_state_qubits-1], 2)
                 if geq:
@@ -1230,7 +1237,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1253,7 +1260,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1302,7 +1309,7 @@ class TestNLocal(QiskitTestCase):
                 nlocal = NLocal(num_qubits, rotation_blocks=XGate(), entanglement_blocks=CCXGate(),
                                 entanglement=entanglement, reps=3, skip_unentangled_qubits=True)
 
-                skipped_set = set(nlocal.qubits[i] for i in skipped)
+                skipped_set = {nlocal.qubits[i] for i in skipped}
                 dag = circuit_to_dag(nlocal)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
@@ -1465,7 +1472,7 @@ class TestTwoLocal(QiskitTestCase):
         """Test different possibilities to set parameters."""
         two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
         params = [0, 1, 2, Parameter('x'), Parameter('y'), Parameter('z'), 6, 7, 0]
-        params_set = set(param for param in params if isinstance(param, Parameter))
+        params_set = {param for param in params if isinstance(param, Parameter)}
 
         with self.subTest(msg='dict assign and copy'):
             ordered = two.ordered_parameters
@@ -1918,39 +1925,91 @@ class TestPhaseEstimation(QiskitTestCase):
             self.assertEqual(pec.data[-1][0].definition, iqft)
 
 
+@ddt
 class TestQuadraticForm(QiskitTestCase):
     """Test the QuadraticForm circuit."""
 
     def assertQuadraticFormIsCorrect(self, m, quadratic, linear, offset, circuit):
         """Assert ``circuit`` implements the quadratic form correctly."""
-        def q_form(x):
-            x = np.array([int(val) for val in x])
-            return int(x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset)
+        def q_form(x, num_bits):
+            x = np.array([int(val) for val in reversed(x)])
+            res = x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset
+            # compute 2s complement
+            res = (2**num_bits + int(res)) % 2**num_bits
+            twos = bin(res)[2:].zfill(num_bits)
+            return twos
 
         n = len(quadratic)  # number of value qubits
         ref = np.zeros(2 ** (n + m), dtype=complex)
         for x in range(2 ** n):
-            x_bin = bin(x)[2:].zfill(n)[::-1]
-            index = x_bin + bin(q_form(x_bin) % 2 ** m)[2:].zfill(m)[::-1]
-            index = int(index[::-1], 2)
+            x_bin = bin(x)[2:].zfill(n)
+            index = q_form(x_bin, m) + x_bin
+            index = int(index, 2)
             ref[index] = 1 / np.sqrt(2 ** n)
 
         actual = QuantumCircuit(circuit.num_qubits)
-        actual.h(actual.qubits)
+        actual.h(list(range(n)))
         actual.compose(circuit, inplace=True)
         self.assertTrue(Statevector.from_instruction(actual).equiv(ref))
+
+    @data(True, False)
+    def test_endian(self, little_endian):
+        """Test the outcome for different endianness."""
+        qform = QuadraticForm(2, linear=[0, 1], little_endian=little_endian)
+        circuit = QuantumCircuit(4)
+        circuit.x(1)
+        circuit.compose(qform, inplace=True)
+
+        # the result is x_0 linear_0 + x_1 linear_1 = 1 = '0b01'
+        result = '01'
+
+        # the state is encoded as |q(x)>|x>, |x> = |x_1 x_0> = |10>
+        index = (result if little_endian else result[::-1]) + '10'
+        ref = np.zeros(2 ** 4, dtype=complex)
+        ref[int(index, 2)] = 1
+
+        self.assertTrue(Statevector.from_instruction(circuit).equiv(ref))
+
+    def test_required_result_qubits(self):
+        """Test getting the number of required result qubits."""
+
+        with self.subTest('positive bound'):
+            quadratic = [[1, -50], [100, 0]]
+            linear = [-5, 5]
+            offset = 0
+            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(106 + 1))))
+
+        with self.subTest('negative bound'):
+            quadratic = [[1, -50], [10, 0]]
+            linear = [-5, 5]
+            offset = 0
+            num_result_qubits = QuadraticForm.required_result_qubits(quadratic, linear, offset)
+            self.assertEqual(num_result_qubits, 1 + int(np.ceil(np.log2(55))))
+
+        with self.subTest('empty'):
+            num_result_qubits = QuadraticForm.required_result_qubits([[]], [], 0)
+            self.assertEqual(num_result_qubits, 1)
 
     def test_quadratic_form(self):
         """Test the quadratic form circuit."""
 
         with self.subTest('empty'):
-            m = 1
-            circuit = QuadraticForm(m)
-            self.assertQuadraticFormIsCorrect(m, [[0]], [0], 0, circuit)
+            circuit = QuadraticForm()
+            self.assertQuadraticFormIsCorrect(1, [[0]], [0], 0, circuit)
 
         with self.subTest('1d case'):
             quadratic = np.array([[1]])
             linear = np.array([2])
+            offset = -1
+
+            circuit = QuadraticForm(quadratic=quadratic, linear=linear, offset=offset)
+
+            self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
+
+        with self.subTest('negative'):
+            quadratic = np.array([[-2]])
+            linear = np.array([0])
             offset = -1
             m = 2
 
@@ -1960,12 +2019,11 @@ class TestQuadraticForm(QiskitTestCase):
 
         with self.subTest('missing quadratic'):
             quadratic = np.zeros((3, 3))
-            linear = np.array([2, 0, 1])
+            linear = np.array([-2, 0, 1])
             offset = -1
-            m = 2
 
-            circuit = QuadraticForm(m, None, linear, offset)
-            self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
+            circuit = QuadraticForm(linear=linear, offset=offset)
+            self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
 
         with self.subTest('missing linear'):
             quadratic = np.array([[1, 2, 3], [3, 1, 2], [2, 3, 1]])

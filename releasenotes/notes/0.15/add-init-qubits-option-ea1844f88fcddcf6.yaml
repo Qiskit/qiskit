@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    A new kwarg for ``init_qubits`` has been added to
+    :func:`~qiskit.compiler.assemble` and :func:`~qiskit.execute.execute`.
+    For backends that support this feature ``init_qubits`` can be used to
+    control whether the backend executing the circuits inserts any
+    initialization sequences at the start of each shot. By default this is set
+    to ``True`` meaning that all qubits can assumed to be in the ground state
+    at the start of each shot. However, when ``init_qubits`` is  set to
+    ``False`` qubits will be uninitialized at the start of each
+    experiment and between shots. Note, that the backend running the circuits
+    has to support this feature for this flag to have any effect.
