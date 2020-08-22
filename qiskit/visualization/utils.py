@@ -312,8 +312,6 @@ def _bloch_multivector_data(state):
                 i, pauli_singles, qubit=True)
         else:
             paulis = pauli_singles
-        paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=np.bool)).insert(
-            i, pauli_singles, qubit=True)
         bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]
         bloch_data.append(bloch_state)
     return bloch_data
