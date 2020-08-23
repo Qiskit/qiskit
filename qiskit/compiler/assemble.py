@@ -131,6 +131,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
+        NotImplementedError: if circuit.calibrations is not empty.
     """
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
@@ -141,6 +142,15 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
+        # calibrate circuits to schedules (if any)
+        for exp in experiments:
+            if len(exp.calibrations) != 0:
+                # TODO: Do something here to schedule the circuits
+                # Raise an error - NotImplementedError" or try to schedule by adding
+                # cals to inst_map and call schedule.
+                # if scheduled, raise a warning - "Let the user know whats happening"
+                raise NotImplementedError
+
         run_config = _parse_circuit_args(parameter_binds, **run_config_common_dict)
 
         # If circuits are parameterized, bind parameters and remove from run_config
