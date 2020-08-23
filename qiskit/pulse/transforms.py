@@ -466,7 +466,7 @@ def align_equispaced(schedule: Schedule,
     # Calculate pre schedule delay
     delay, mod = np.divmod(mod, 2)
 
-    aligned = Schedule()
+    aligned = Schedule(inplace=schedule.inplace)
     # Insert sub-schedules with interval
     _t0 = int(aligned.stop_time + delay + mod)
     for _, child in schedule._children:
@@ -501,7 +501,7 @@ def align_func(schedule: Schedule,
     if duration < schedule.duration:
         return schedule
 
-    aligned = Schedule()
+    aligned = Schedule(inplace=schedule.inplace)
     for ind, (_, child) in enumerate(schedule._children):
         _t_center = duration * func(ind + 1)
         _t0 = int(_t_center - 0.5 * child.duration)
