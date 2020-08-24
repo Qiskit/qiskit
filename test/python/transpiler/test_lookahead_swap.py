@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -120,9 +118,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_measure_qargs = set(op.qargs[0] for op in mapped_dag.named_nodes('measure'))
+        mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes('measure')}
 
-        self.assertIn(mapped_measure_qargs, [set((qr[0], qr[1])), set((qr[1], qr[2]))])
+        self.assertIn(mapped_measure_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
 
     def test_lookahead_swap_maps_barriers(self):
         """Verify barrier nodes are updated to re-mapped qregs.
@@ -149,7 +147,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_barrier_qargs = [set(op.qargs) for op in mapped_dag.named_nodes('barrier')][0]
 
-        self.assertIn(mapped_barrier_qargs, [set((qr[0], qr[1])), set((qr[1], qr[2]))])
+        self.assertIn(mapped_barrier_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
 
     def test_lookahead_swap_higher_depth_width_is_better(self):
         """Test that lookahead swap finds better circuit with increasing search space.

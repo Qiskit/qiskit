@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -139,7 +137,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         pass_.run(dag)
         after_layout = pass_.property_set['layout']
 
-        qregs = set(v.register for v in after_layout.get_virtual_bits().keys())
+        qregs = {v.register for v in after_layout.get_virtual_bits().keys()}
         self.assertEqual(2, len(qregs))
         self.assertIn(qr_ancilla, qregs)
         qregs.remove(qr_ancilla)
