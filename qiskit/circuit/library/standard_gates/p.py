@@ -154,7 +154,7 @@ class CPhaseGate(ControlledGate):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CPhase gate."""
         super().__init__('cp', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate = PhaseGate(theta))
+                         ctrl_state=ctrl_state, base_gate=PhaseGate(theta))
 
     def _define(self):
         """
