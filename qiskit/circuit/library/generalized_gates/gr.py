@@ -47,7 +47,7 @@ class GR(QuantumCircuit):
         %circuit_library_info circuit.decompose()
 
     The global R gate is native to atomic systems (ion traps, cold neutrals). The global R
-    can be applied to multiple ions to entangle multiple qubits simultaneously.
+    can be applied to multiple qubits simultaneously.
 
     In the one-qubit case, this is equivalent to an R(theta, phi) interaction,
     and is thus reduced to the RGate. The global R gate is a sum of Rs
