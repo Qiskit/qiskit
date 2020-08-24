@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,15 +12,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""XY4 DD Pass"""
+"""XY4 is a DD sequence that consist of pulses rotating around two axes. 
+   The XY4 was created to correct the pulse correcting errors from the CPMG 
+   due to the fact that CPMG can only mitigate a subspace of coupling errors. 
+   The XY4 is the most basic sequence that takes into account all three 
+   components of the system-environment interaction term. The sequence is 
+   comprised of an X gate followed by a Y gate, X gate, and Y gate with a 
+   fixed delay after each pulse.
+"""
+
 from qiskit.circuit.library.standard_gates import XGate, YGate
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-
+from qiskit.transpiler.passes.basis.unroller import Unroller
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 
 class XY4Pass(TransformationPass):
-    """XY4 DD Pass"""
+    """The pass that when called upon, will insert XY4 sequences into a 
+    scheduled circuit where large enough Delay operations originally exist.
+    """
 
     def __init__(self, backend_properties, dt_in_sec, tau_step=10e-9):
         """XY4Pass initializer.
@@ -39,11 +50,36 @@ class XY4Pass(TransformationPass):
         self.tau_step_dt = int(tau_step / self.dt)
         self.tau_cs = {}
 
-        u3_props = self.backend_properties._gates['u3']
-        for qubit, props in u3_props.items():
-            if 'gate_length' in props:
-                gate_length = props['gate_length'][0]
-                self.tau_cs[qubit[0]] = 4 * (self.tau_step_dt + round(gate_length / self.dt))
+        basis = backend_properties._gates.keys()
+        qubits = len(backend_properties.qubits)
+
+        for qubit in range(qubits):
+            xgate_dag = DAGCircuit()
+            xgate_qreg = QuantumRegister(qubits, 'q')
+            xgate_dag.add_qreg(xgate_qreg)
+
+            xgate_qubit = Qubit(xgate_qreg, qubit)
+            xgate_dag.apply_operation_back(XGate(), [xgate_qubit])
+
+            gate_duration = 0
+            self.xgate_unroll = Unroller(basis).run(xgate_dag)
+
+            for node in self.xgate_unroll.topological_op_nodes():
+                gate_duration += self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
+
+            ygate_dag = DAGCircuit()
+            ygate_qreg = QuantumRegister(qubits, 'q')
+            ygate_dag.add_qreg(ygate_qreg)
+            ygate_qubit = Qubit(ygate_qreg, qubit)
+            ygate_dag.apply_operation_back(YGate(), [ygate_qubit])
+
+            self.ygate_unroll = Unroller(basis).run(ygate_dag)
+
+            for node in self.ygate_unroll.topological_op_nodes():
+                gate_duration += self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
+
+            self.tau_cs[qubit] = 4 * self.tau_step_dt + 2 * round(gate_duration / self.dt)
+
 
     def run(self, dag):
         """Run the XY4 pass on `dag`.
@@ -52,8 +88,7 @@ class XY4Pass(TransformationPass):
             dag (DAGCircuit): DAG to new DAG.
 
         Returns:
-            DAGCircuit: A new DAG with XY4 DD Sequences inserted in large 
-                        enough delays.
+            DAGCircuit: A new DAG with XY4 DD Sequences inserted in large enough delays.
         """
         new_dag = DAGCircuit()
 
@@ -64,7 +99,7 @@ class XY4Pass(TransformationPass):
             new_dag.add_qreg(qreg)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
-            
+
         for node in dag.topological_op_nodes():
 
             if not isinstance(node.op, Delay):
@@ -82,17 +117,25 @@ class XY4Pass(TransformationPass):
             count = int(delay_duration // tau_c)
             new_delay = int((delay_duration - count * tau_c + self.tau_step_dt) / 2)
 
-            new_dag.apply_operation_back(Delay(new_delay - self.tau_step_dt), qargs=node.qargs)
+            new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+
+            first = True
 
             for _ in range(count):
+                if not first:
+                    new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                for basis_node in self.xgate_unroll.topological_op_nodes():
+                    new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                 new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                new_dag.apply_operation_back(XGate().definition.data[0][0], qargs=node.qargs)
+                for basis_node in self.ygate_unroll.topological_op_nodes():
+                    new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                 new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
+                for basis_node in self.xgate_unroll.topological_op_nodes():
+                    new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                 new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                new_dag.apply_operation_back(XGate().definition.data[0][0], qargs=node.qargs)
-                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
+                for basis_node in self.ygate_unroll.topological_op_nodes():
+                    new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
+                first = False
 
             parity = 1 if (delay_duration - count * tau_c + self.tau_step_dt) % 2 else 0
             new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)

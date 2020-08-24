@@ -16,4 +16,4 @@
 technique that attempts to cancel out system-environment interations by
 sending a sequence of pulses."""
 
-from .xy4pass import XY4Pass
+from .xy4 import XY4Pass

@@ -139,11 +139,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
             Durations defined in ``backend.properties`` are used as default and
             they are overwritten with the instruction_durations.
-        dynamical_decoupling: The name of the dynamical decoupling sequence to insert into times 
-            when the qubit(s) is/are idling for durations longer than the duration of the specified
-            DD sequence. The circuit will need to be converted to a scheduled circuit before DD 
-            sequences can be inserted. If no scheduling method is provided, 'alap' will be provided
-            automatically as the scheduling method.
+        dynamical_decoupling: The name of the dynamical decoupling sequence to insert. Requires
+            scheduling the circuit; if ``scheduling_method`` is not provided, it will default to
+           ``'as_late_as_possible'``.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -376,10 +374,10 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             from qiskit.transpiler.passes import XY4Pass
             pass_manager.append(
                 XY4Pass(pass_manager_config.backend_properties,
-                                        pass_manager_config.instruction_durations.schedule_dt))
+                        pass_manager_config.instruction_durations.schedule_dt))
         else:
-            raise TranspilerError("Invalid dynamical decoupling sequence %s."
-                                                                        % dynamical_decoupling)
+            raise TranspilerError("Invalid dynamical decoupling sequence {}."
+                                  "".format(dynamical_decoupling))
 
     return pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])

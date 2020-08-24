@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests XY4 DD Pass"""
+"""Tests XY4 Dynamical Decoupling Pass"""
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler import PassManager
@@ -30,9 +30,7 @@ class TestXY4(QiskitTestCase):
         self.backend_prop = self.backend.properties()
 
     def test_xy4_simple(self):
-        """Test the XY4 DD pass.
-
-        It should replace large enough delay blocks with XY4 DD sequences.
+        """Test that the pass replaces large enough delay blocks with XY4 DD sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
@@ -60,9 +58,7 @@ class TestXY4(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_xy4_multiple(self):
-        """Test the XY4 DD pass.
-
-        It should replace very large enough delay blocks with multiple XY4 DD sequences.
+        """Test that the pass replaces large enough delay blocks with multiple XY4 DD sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
@@ -90,11 +86,9 @@ class TestXY4(QiskitTestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_cpmg_not_first(self):
-        """Test the XY4 DD pass.
-
-        It should replace large enough delay blocks with XY4 DD sequences
-        except for the first delay block.
+    def test_xy4_not_first(self):
+        """Test that the pass replaces large enough delay blocks with XY4 DD sequences except 
+        for the first delay block.
         """
         circuit = QuantumCircuit(1)
         circuit.delay(2000)
@@ -122,4 +116,3 @@ class TestXY4(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(actual, expected)
-
