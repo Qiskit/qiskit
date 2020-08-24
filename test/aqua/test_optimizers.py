@@ -64,7 +64,7 @@ class TestOptimizers(QiskitAquaTestCase):
 
     def test_p_bfgs(self):
         """ parallel l_bfgs_b test """
-        optimizer = P_BFGS(maxfun=1000)
+        optimizer = P_BFGS(maxfun=1000, max_processes=4)
         res = self._optimize(optimizer)
         self.assertLessEqual(res[2], 10000)
 
