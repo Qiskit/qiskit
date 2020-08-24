@@ -12,7 +12,6 @@
 
 """Assemble function for converting a list of circuits into a qobj."""
 from qiskit.assembler.assemble_schedules import _assemble_instructions as assemble_schedule
-from qiskit.assembler.run_config import RunConfig
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig, QasmExperimentCalibrations, GateCalibration,
@@ -124,6 +123,7 @@ def _assemble_pulse_gates(circuit, run_config):
 
     Args:
         circuit (QuantumCircuit): circuit which may have pulse calibrations
+        run_config (RunConfig): configuration of the runtime environment
 
     Returns:
         tuple(QasmExperimentCalibrations, dict(str, array)): The calibrations and pulse library.
@@ -153,9 +153,9 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
 
     Args:
         circuits (list[QuantumCircuit]): circuit(s) to assemble
+        run_config (RunConfig): configuration of the runtime environment
         qobj_id (int): identifier for the generated qobj
         qobj_header (QobjHeader): header to pass to the results
-        run_config (RunConfig): configuration of the runtime environment
 
     Returns:
         QasmQobj: the qobj to be run on the backends
@@ -182,7 +182,8 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
     pulse_library = {}
     for exp, lib in experiments_and_pulse_libs:
         experiments.append(exp)
-        pulse_library.update(lib)
+        if lib:
+            pulse_library.update(lib)
     if pulse_library:
         qobj_config.pulse_library = [PulseLibraryItem(name=name, samples=samples)
                                      for name, samples in pulse_library.items()]
