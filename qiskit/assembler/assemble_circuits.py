@@ -117,8 +117,7 @@ def _assemble_circuit(circuit, run_config):
 
 
 def _assemble_pulse_gates(circuit, run_config):
-    """
-    Assemble and return the circuit calibrations and associated pulse library, if there are any.
+    """Assemble and return the circuit calibrations and associated pulse library, if there are any.
     The calibrations themselves may reference the pulse library which is returned as a dict.
 
     Args:
