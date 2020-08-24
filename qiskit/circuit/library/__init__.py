@@ -200,7 +200,11 @@ from .generalized_gates import (
     MCMT,
     MCMTVChain,
     Permutation,
-    GMS
+    GMS,
+    GR,
+    GRx,
+    GRy,
+    GRz
 )
 from .boolean_logic import (
     AND,
