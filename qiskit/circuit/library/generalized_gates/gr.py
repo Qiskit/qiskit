@@ -17,7 +17,7 @@ Global R gates.
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import RGate
+from qiskit.circuit.library.standard_gates import RGate, RZGate
 
 
 class GR(QuantumCircuit):
@@ -86,7 +86,7 @@ class GRx(GR):
             num_qubits: number of qubits.
             theta: rotation angle about x-axis
         """
-        super().__init__(name='grx', num_qubits, theta, phi=0)
+        super().__init__(num_qubits, theta, phi=0, name='grx')
 
 class GRy(GR):
     def __init__(self, 
@@ -98,7 +98,7 @@ class GRy(GR):
             num_qubits: number of qubits.
             theta: rotation angle about y-axis
         """
-        super().__init__(name='gry', num_qubits, theta, phi=np.pi/2)
+        super().__init__(num_qubits, theta, phi=np.pi/2, name='gry',)
 
 class GRz(QuantumCircuit):
     def __init__(self,
