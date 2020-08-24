@@ -34,3 +34,6 @@ features:
         # Register the schedule to the gate
         circ.add_calibration('h', [0], custom_h_schedule)  # or gate.name string to register
         circ.add_calibration(RxGate(3.14), [0], q1_x180)   # Can accept gate
+
+    Circuits with pulse gates may still be lowered to the Pulse Schedule representation by using
+    the :py:mod:`qiskit.scheduler`.
