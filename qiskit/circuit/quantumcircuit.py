@@ -18,7 +18,7 @@ import sys
 import warnings
 import numbers
 import multiprocessing as mp
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
@@ -164,6 +164,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
         self._ancillas = []
+        self._calibrations = defaultdict(dict)
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -185,6 +186,15 @@ class QuantumCircuit:
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
+
+    @property
+    def calibrations(self):
+        """Return calibration dictionary.
+
+        The custom pulse definition of a given gate is of the form
+            {'gate_name': {(qubits, params): schedule}}
+        """
+        return dict(self._calibrations)
 
     @data.setter
     def data(self, data_input):
@@ -2252,6 +2262,23 @@ class QuantumCircuit:
         from .library.standard_gates.z import CZGate
         return self.append(CZGate(label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
+
+    def add_calibration(self, gate, qubits, schedule, params=None):
+        """Register a low-level, custom pulse definition for the given gate.
+
+        Args:
+            gate (Union[Gate, str]): Gate information.
+            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
+            schedule (Schedule): Schedule information.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
+
+        Raises:
+            Exception: if the gate is of type string and params is None.
+        """
+        if isinstance(gate, Gate):
+            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+        else:
+            self._calibrations[gate][(tuple(qubits), tuple(params))] = schedule
 
 
 def _circuit_from_qasm(qasm):
