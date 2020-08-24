@@ -14,7 +14,7 @@
 
 """ CircuitOp Class """
 
-from typing import Union, Optional, Set, List, cast
+from typing import Union, Optional, Set, List, Dict, cast
 import logging
 import numpy as np
 
@@ -186,8 +186,8 @@ class CircuitOp(PrimitiveOp):
         return self.__class__(qc, coeff=param_value)
 
     def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+             ) -> Union[OperatorBase, float, complex]:
         # pylint: disable=import-outside-toplevel
         from ..state_fns import CircuitStateFn
         from ..list_ops import ListOp

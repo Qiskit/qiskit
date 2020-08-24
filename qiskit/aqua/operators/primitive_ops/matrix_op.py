@@ -14,7 +14,7 @@
 
 """ MatrixOp Class """
 
-from typing import Union, Optional, Set
+from typing import Union, Optional, Set, Dict
 import logging
 import numpy as np
 from scipy.sparse import spmatrix
@@ -134,8 +134,8 @@ class MatrixOp(PrimitiveOp):
             return "{} * {}".format(self.coeff, prim_str)
 
     def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+             ) -> Union[OperatorBase, float, complex]:
         # For other ops' eval we return self.to_matrix_op() here, but that's unnecessary here.
         if front is None:
             return self

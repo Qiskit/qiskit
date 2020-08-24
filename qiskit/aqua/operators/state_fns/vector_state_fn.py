@@ -15,7 +15,7 @@
 """ VectorStateFn Class """
 
 
-from typing import Union, Set
+from typing import Union, Set, Optional, Dict
 import numpy as np
 
 from qiskit.quantum_info import Statevector
@@ -128,8 +128,11 @@ class VectorStateFn(StateFn):
 
     # pylint: disable=too-many-return-statements
     def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+             ) -> Union[OperatorBase, float, complex]:
+        if front is None:  # this object is already a VectorStateFn
+            return self
+
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
                 'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '

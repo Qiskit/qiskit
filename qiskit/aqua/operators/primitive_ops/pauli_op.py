@@ -14,7 +14,7 @@
 
 """ PauliOp Class """
 
-from typing import Union, Set, Dict, cast
+from typing import Union, Set, Dict, Optional, cast
 import logging
 import numpy as np
 from scipy.sparse import spmatrix
@@ -145,8 +145,8 @@ class PauliOp(PrimitiveOp):
             return "{} * {}".format(self.coeff, prim_str)
 
     def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+             ) -> Union[OperatorBase, float, complex]:
         if front is None:
             return self.to_matrix_op()
 

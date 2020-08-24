@@ -21,6 +21,7 @@ from qiskit.circuit import ParameterExpression
 
 from ..operator_base import OperatorBase
 from .state_fn import StateFn
+from .vector_state_fn import VectorStateFn
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 
@@ -181,6 +182,10 @@ class OperatorStateFn(StateFn):
     def eval(self,
              front: Union[str, dict, np.ndarray,
                           OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+        if front is None:
+            matrix = self.primitive.to_matrix_op().primitive.data
+            return VectorStateFn(matrix[0, :])
+
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
                 'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '

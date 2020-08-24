@@ -15,7 +15,7 @@
 """ CircuitStateFn Class """
 
 
-from typing import Union, Set, List, cast
+from typing import Union, Set, List, Optional, Dict, cast
 import numpy as np
 
 from qiskit import QuantumCircuit, BasicAer, execute, ClassicalRegister
@@ -275,8 +275,13 @@ class CircuitStateFn(StateFn):
         return self.__class__(qc, coeff=param_value, is_measurement=self.is_measurement)
 
     def eval(self,
-             front: Union[str, dict, np.ndarray,
-                          OperatorBase] = None) -> Union[OperatorBase, float, complex]:
+             front: Optional[Union[str, Dict[str, complex], np.ndarray, OperatorBase]] = None
+             ) -> Union[OperatorBase, float, complex]:
+        if front is None:
+            vector_state_fn = self.to_matrix_op().eval()
+            vector_state_fn = cast(OperatorBase, vector_state_fn)
+            return vector_state_fn
+
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
                 'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '
