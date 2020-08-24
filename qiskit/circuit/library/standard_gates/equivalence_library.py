@@ -65,7 +65,9 @@ from . import (
     CZGate,
 )
 
+
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
+
 
 # Import existing gate definitions
 
