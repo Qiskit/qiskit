@@ -42,6 +42,7 @@ class RGate(Gate):
                 -i e^{i \phi} \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
+
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
         super().__init__('r', 1, [theta, phi])
@@ -72,9 +73,10 @@ class RGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the R gate."""
-        cos = math.cos(self.params[0] / 2)
-        sin = math.sin(self.params[0] / 2)
-        exp_m = numpy.exp(-1j * self.params[1])
-        exp_p = numpy.exp(1j * self.params[1])
+        theta, phi = float(self.params[0]), float(self.params[1])
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
+        exp_m = numpy.exp(-1j * phi)
+        exp_p = numpy.exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin],
                             [-1j * exp_p * sin, cos]], dtype=complex)
