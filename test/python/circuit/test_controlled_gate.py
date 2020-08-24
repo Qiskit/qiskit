@@ -644,7 +644,7 @@ class TestControlledGate(QiskitTestCase):
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[None])
+    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
         """Test that UnitaryGate with control returns params."""
         umat = np.array([[1, 0], [0, -1]])
@@ -652,6 +652,17 @@ class TestControlledGate(QiskitTestCase):
         cugate = ugate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertEqual(Operator(cugate), Operator(ref_mat))
+
+    def test_controlled_controlled_unitary(self):
+        """Test that global phase in iso decomposition of unitary is handled."""
+        umat = np.array([[1, 0], [0, -1]])
+        ugate = UnitaryGate(umat)
+        cugate = ugate.control()
+        ccugate = cugate.control()
+        ccugate2 = ugate.control(2)
+        ref_mat = _compute_control_matrix(umat, 2)
+        self.assertTrue(Operator(ccugate2).equiv(Operator(ref_mat)))
+        self.assertTrue(Operator(ccugate).equiv(Operator(ccugate2)))
 
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
