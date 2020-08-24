@@ -135,20 +135,21 @@ def _assemble_pulse_gates(circuit, run_config):
     calibrations = []
     pulse_library = {}
     for gate, cals in circuit.calibrations.items():
-        for qubits_params, schedule in cals.items():
+        for (qubits, params), schedule in cals.items():
             qobj_instructions, _ = assemble_schedule(
                 schedule,
                 converters.InstructionToQobjConverter(PulseQobjInstruction),
                 run_config,
                 pulse_library)
             calibrations.append(
-                GateCalibration(str(gate), list(qubits_params[0]), list(qubits_params[1]),
-                                qobj_instructions))
+                GateCalibration(str(gate), list(qubits), list(params), qobj_instructions))
     return QasmExperimentCalibrations(gates=calibrations), pulse_library
 
 
 def _extract_common_calibrations(experiments):
-    """
+    """Given a list of ``QasmQobjExperiment``s, each of which may have calibrations in their
+    ``config``, collect common calibrations into a global ``QasmExperimentCalibrations``
+    and delete them from their local experiments.
     """
     if not (experiments and all(hasattr(exp.config, 'calibrations') for exp in experiments)):
         return experiments, None
@@ -171,7 +172,6 @@ def _extract_common_calibrations(experiments):
         if not exp.config.calibrations.gates:
             del exp.config.calibrations
 
-    # import ipdb; ipdb.set_trace()
     return experiments, QasmExperimentCalibrations(gates=common_calibrations)
 
 
