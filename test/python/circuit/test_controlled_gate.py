@@ -776,7 +776,6 @@ class TestControlledGate(QiskitTestCase):
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
-        #import ipdb;ipdb.set_trace()
         self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     @data(*[gate for name, gate in allGates.__dict__.items() if isinstance(gate, type)])

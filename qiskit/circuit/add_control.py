@@ -193,8 +193,6 @@ def control(operation: Union[Gate, ControlledGate],
                                           definition=controlled_circ,
                                           ctrl_state=new_ctrl_state,
                                           base_gate=base_gate)
-    # if operation.name == 'cu':
-    #     import ipdb;ipdb.set_trace()
     return cgate
 
 
