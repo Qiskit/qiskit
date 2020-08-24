@@ -424,9 +424,6 @@ class GateCalibration:
         self.params = params
         self.instructions = instructions
 
-    def __hash__(self):
-        return hash((self.name, tuple(self.qubits), tuple(self.params), tuple([str(inst.to_dict()) for inst in self.instructions])))
-
     def to_dict(self):
         """Return a dictionary format representation of the Gate Calibration.
 
