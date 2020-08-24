@@ -149,8 +149,8 @@ class TestVQE(QiskitAquaTestCase):
         result = vqe.run(self.qasm_simulator)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
-    def test_statevector_snapshot_mode(self):
-        """Test the VQE using Aer's statevector_simulator snapshot mode."""
+    def test_with_aer_statevector(self):
+        """Test VQE with Aer's statevector_simulator."""
         try:
             # pylint: disable=import-outside-toplevel
             from qiskit import Aer
@@ -169,7 +169,27 @@ class TestVQE(QiskitAquaTestCase):
         result = vqe.run(quantum_instance)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
-    def test_qasm_snapshot_mode(self):
+    def test_with_aer_qasm(self):
+        """Test VQE with Aer's qasm_simulator."""
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+        backend = Aer.get_backend('qasm_simulator')
+        optimizer = SPSA(maxiter=200, last_avg=5)
+        wavefunction = self.ry_wavefunction
+
+        vqe = VQE(self.h2_op, wavefunction, optimizer, expectation=PauliExpectation())
+
+        quantum_instance = QuantumInstance(backend,
+                                           seed_simulator=aqua_globals.random_seed,
+                                           seed_transpiler=aqua_globals.random_seed)
+        result = vqe.run(quantum_instance)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86305, places=2)
+
+    def test_with_aer_qasm_snapshot_mode(self):
         """Test the VQE using Aer's qasm_simulator snapshot mode."""
         try:
             # pylint: disable=import-outside-toplevel
@@ -181,8 +201,7 @@ class TestVQE(QiskitAquaTestCase):
         optimizer = L_BFGS_B()
         wavefunction = self.ry_wavefunction
 
-        vqe = VQE(self.h2_op, wavefunction, optimizer,
-                  expectation=AerPauliExpectation(), max_evals_grouped=1)
+        vqe = VQE(self.h2_op, wavefunction, optimizer, expectation=AerPauliExpectation())
 
         quantum_instance = QuantumInstance(backend, shots=1,
                                            seed_simulator=aqua_globals.random_seed,

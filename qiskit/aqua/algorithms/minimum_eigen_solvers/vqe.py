@@ -34,6 +34,7 @@ from qiskit.aqua.operators import (OperatorBase, ExpectationBase, ExpectationFac
 from qiskit.aqua.components.optimizers import Optimizer, SLSQP
 from qiskit.aqua.components.variational_forms import VariationalForm
 from qiskit.aqua.utils.validation import validate_min
+from qiskit.aqua.utils.backend_utils import is_aer_provider
 from ..vq_algorithm import VQAlgorithm, VQResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
@@ -205,7 +206,10 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         """ set quantum_instance """
         super(VQE, self.__class__).quantum_instance.__set__(self, quantum_instance)
 
-        self._circuit_sampler = CircuitSampler(self._quantum_instance)
+        self._circuit_sampler = CircuitSampler(
+            self._quantum_instance,
+            param_qobj=is_aer_provider(self._quantum_instance.backend))
+
         # Expectation was not passed by user, try to create one
         if not self._user_valid_expectation:
             self._try_set_expectation_value_from_factory()
