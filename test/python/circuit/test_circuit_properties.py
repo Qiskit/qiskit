@@ -651,6 +651,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(circ.calibrations['rxt'][((0,), (1.57, 3.14, 4.71))].instructions,
                          q0_x180.instructions)
 
+    def test_calibrations_no_params(self):
+        """Check calibrations if the no params is provided with just gate name."""
+        circ = QuantumCircuit(3)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        circ.add_calibration('h', [0], q0_x180)
+
+        self.assertEqual(set(circ.calibrations.keys()), {'h'})
+        self.assertEqual(set(circ.calibrations['h'].keys()), {((0,), ())})
+        self.assertEqual(circ.calibrations['h'][((0,), ())].instructions,
+                         q0_x180.instructions)
+
 
 if __name__ == '__main__':
     unittest.main()
