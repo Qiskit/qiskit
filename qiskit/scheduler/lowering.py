@@ -96,7 +96,6 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                qubits=[chan.index for chan in sched.channels
                                        if isinstance(chan, AcquireChannel)])
 
-
     for inst, qubits, clbits in circuit.data:
         inst_qubits = [qubit.index for qubit in qubits]  # We want only the indices of the qubits
 
