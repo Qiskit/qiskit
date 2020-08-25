@@ -6,7 +6,7 @@ features:
     similar way to the GR gates. The global R gates are defined on a number of
     qubits simultaneously, and act as a direct sum of R gates on each qubit.
 
-   -| 
+  - | 
     The global R gates are defined in ``qiskit.circuit.library.generalized_gates``
     in ``gr.py``. The global R gates will perform an approprate R gate on each qubit.
     For example::
