@@ -12,6 +12,7 @@
 
 """Convert a circuit in ``U3, CX`` to ``Rx, Ry, Rxx`` without unrolling or simplification."""
 
+import warnings
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 
@@ -29,11 +30,16 @@ class MSBasisDecomposer(TransformationPass):
     supported_input_gates = (U3Gate, CXGate)
 
     def __init__(self, basis_gates):
-        """MSBasisDecomposer initializer.
+        """Deprecated
+        MSBasisDecomposer initializer.
 
         Args:
             basis_gates (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx', 'ms']` .
         """
+        warnings.warn("MSBasisDecomposer has been deprecated and will be removed "
+                      "in a future release. You can use "
+                      "qiskit.transpiler.passes.basis.BasisTranslator in place "
+                      "of this class.", DeprecationWarning)
         super().__init__()
 
         self.basis_gates = basis_gates
