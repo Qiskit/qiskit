@@ -790,9 +790,9 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     @combine(
-        gate = [gate for gate in allGates.__dict__.values() if isinstance(gate, type)],
-        num_ctrl_qubits = [1, 2],
-        ctrl_state = [None, 0, 1],
+        gate=[gate for gate in allGates.__dict__.values() if isinstance(gate, type)],
+        num_ctrl_qubits=[1, 2],
+        ctrl_state=[None, 0, 1],
     )
     def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
         """Test all gates in standard extensions except those that cannot be controlled
