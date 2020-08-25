@@ -113,8 +113,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         actual = result.get_statevector(self.circuit)
         expected = np.exp(1j * 0.6) * np.repeat([[0], [1]], [n_qubits**2-1, 1])
         self.assertTrue(np.allclose(actual, expected))
-        
-        
-                
+
+
 if __name__ == '__main__':
     unittest.main()
