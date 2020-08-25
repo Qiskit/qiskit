@@ -300,13 +300,11 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
                 if inst.pulse in existing_pulses:
                     idx = existing_pulses.index(inst.pulse)
                     identical_pulse = existing_pulses[idx]
-                    new_schedule.insert(
-                        time,
-                        instructions.Play(
-                            identical_pulse, inst.channel, inst.name
-                        ),
-                        inplace=True,
-                    )
+                    new_schedule.insert(time,
+                                        instructions.Play(identical_pulse,
+                                                          inst.channel,
+                                                          inst.name),
+                                        inplace=True)
                 else:
                     existing_pulses.append(inst.pulse)
                     new_schedule.insert(time, inst, inplace=True)
