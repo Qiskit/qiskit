@@ -215,15 +215,15 @@ def add_implicit_acquires(schedule: interfaces.ScheduleComponent,
                                                      chans.AcquireChannel(i),
                                                      mem_slot=chans.MemorySlot(i),
                                                      kernel=inst.kernel,
-                                                     discriminator=inst.discriminator) << time
+                                                     discriminator=inst.discriminator)
                 if time not in acquire_map:
-                    new_schedule |= explicit_inst
+                    new_schedule.insert(time, explicit_inst, inplace=True)
                     acquire_map = {time: {i}}
                 elif i not in acquire_map[time]:
-                    new_schedule |= explicit_inst
+                    new_schedule.insert(time, explicit_inst, inplace=True)
                     acquire_map[time].add(i)
         else:
-            new_schedule |= inst << time
+            new_schedule.insert(time, inst, inplace=True)
 
     return new_schedule
 
@@ -297,13 +297,16 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
                 if inst.pulse in existing_pulses:
                     idx = existing_pulses.index(inst.pulse)
                     identical_pulse = existing_pulses[idx]
-                    new_schedule |= instructions.Play(
-                        identical_pulse, inst.channel, inst.name) << time
+                    new_schedule.insert(time,
+                                        instructions.Play(identical_pulse,
+                                                          inst.channel,
+                                                          inst.name),
+                                        inplace=True)
                 else:
                     existing_pulses.append(inst.pulse)
-                    new_schedule |= inst << time
+                    new_schedule.insert(time, inst, inplace=True)
             else:
-                new_schedule |= inst << time
+                new_schedule.insert(time, inst, inplace=True)
 
         new_schedules.append(new_schedule)
 
