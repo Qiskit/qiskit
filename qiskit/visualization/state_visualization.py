@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -761,8 +759,8 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
                 angle = (float(weight) / d) * (np.pi * 2) + \
                         (weight_order * 2 * (np.pi / number_of_divisions))
 
-                if (weight > d / 2) or (((weight == d / 2) and
-                                         (weight_order >= number_of_divisions / 2))):
+                if (weight > d / 2) or ((weight == d / 2) and
+                                        (weight_order >= number_of_divisions / 2)):
                     angle = np.pi - angle - (2 * np.pi / number_of_divisions)
 
                 xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)

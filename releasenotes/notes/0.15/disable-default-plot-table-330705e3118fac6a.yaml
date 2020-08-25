@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    :class:`~qiskit.pulse.Schedule` plotting with
+    :py:meth:`qiskit.pulse.Schedule.draw` and
+    :func:`qiskit.visualization.pulse_drawer` will no
+    longer display the event table by default. This can be reenabled by setting
+    the ``table`` kwarg to ``True``.

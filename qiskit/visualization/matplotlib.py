@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -170,7 +168,7 @@ class MatplotlibDrawer:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style, 'r') as infile:
+                with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
 
@@ -302,11 +300,7 @@ class MatplotlibDrawer:
                 param_parts[i] = pi_check(e, output='mpl', ndigits=3)
             except TypeError:
                 param_parts[i] = str(e)
-
-            if param_parts[i].startswith('-'):
-                param_parts[i] = '$-$' + param_parts[i][1:]
-
-        param_parts = ', '.join(param_parts)
+        param_parts = ', '.join(param_parts).replace('-', '$-$')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
@@ -508,7 +502,7 @@ class MatplotlibDrawer:
             top = min(qubits) > min_ctbit
 
         # display the control qubits as open or closed based on ctrl_state
-        cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        cstate = "{:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == '1' else self._style.bg
             text_top = None
@@ -623,9 +617,12 @@ class MatplotlibDrawer:
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
-                    label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
-                        name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index, physical=reg.index)
+                    if self.layout[reg.index]:
+                        label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
+                            name=self.layout[reg.index].register.name,
+                            index=self.layout[reg.index].index, physical=reg.index)
+                    else:
+                        label = '${{{physical}}}$'.format(physical=reg.index)
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
@@ -718,7 +715,7 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         _standard_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset']
+                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx', 'sxdg']
         _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 

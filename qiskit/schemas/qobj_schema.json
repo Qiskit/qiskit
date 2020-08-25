@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "definitions": {
         "bfunc": {
             "properties": {
@@ -847,6 +847,41 @@
             },
             "type": "array"
         },
+        "calibration_entry": {
+            "description": "The instruction description of each calibrated gate.",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Gate name",
+                    "type": "string"
+                },
+                "qubits": {
+                    "items": {
+                        "minimum": 0,
+                        "type": "integer"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                },
+                "params": {
+                    "description": "Gate parameters",
+                    "type": "array"
+                },
+                "instructions": {
+                    "description": "Pulse instructions implementing the given gate.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/qobjinstructions"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "qubits",
+                "params",
+                "instructions"
+            ]
+        },
         "qobjexp": {
             "description": "Quantum experiment",
             "properties": {
@@ -866,6 +901,19 @@
                         "init_qubits": {
                             "description": "Whether to initialize the qubits in the ground state before each shot.",
                             "type": "boolean"
+                        },
+                        "calibrations": {
+                            "description": "User-specified pulse-level calibrations for operations utilized in this experiment.",
+                            "type": "object",
+                            "properties": {
+                                "gates": {
+                                    "description": "A list of dicts which contain all the required information to lower a gate to waveforms.",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/calibration_entry"
+                                    }
+                                }
+                            }
                         }
                     },
                     "title": "Experiment level configuration",
@@ -1062,6 +1110,22 @@
                             "patternProperties": {
                                 "^q[0-9]+$": {
                                     "$ref": "#/definitions/discriminator"
+                                }
+                            }
+                        },
+                        "pulse_library": {
+                            "$ref": "#/definitions/pulse_library"
+                        },
+                        "calibrations": {
+                            "description": "User-specified pulse-level calibrations for operations utilized across all experiments in this job.",
+                            "type": "object",
+                            "properties": {
+                                "gates": {
+                                    "description": "A list of dicts which contain all the required information to lower a gate to waveforms.",
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/calibration_entry"
+                                    }
                                 }
                             }
                         }
