@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -23,6 +21,7 @@ from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -108,7 +107,7 @@ class UnitaryGate(Gate):
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
             theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
-            qc.u3(theta, phi, lam, q[0])
+            qc._append(U3Gate(theta, phi, lam), [q[0]], [])
             self.definition = qc
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
@@ -131,13 +130,25 @@ class UnitaryGate(Gate):
             UnitaryGate: controlled version of gate.
 
         Raises:
-            QiskitError: invalid ctrl_state
+            QiskitError: Invalid ctrl_state.
+            ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
                                   definition=iso.definition, ctrl_state=ctrl_state)
+
+        from qiskit.quantum_info import Operator
+        # hack to correct global phase; should fix to prevent need for correction here
+        pmat = (Operator(iso.inverse()).data @ cmat)
+        diag = numpy.diag(pmat)
+        if not numpy.allclose(diag, diag[0]):
+            raise ExtensionError('controlled unitary generation failed')
+        phase = numpy.angle(diag[0])
+        if phase:
+            # need to apply to _definition since open controls creates temporary definition
+            cunitary._definition.global_phase = phase
         cunitary.base_gate = self.copy()
         cunitary.base_gate.label = self.label
         return cunitary

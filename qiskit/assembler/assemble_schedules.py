@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -93,6 +91,10 @@ def _assemble_experiments(
                                     converters.InstructionToQobjConverter)
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
+
+    schedules = [
+        sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
+    ]
     compressed_schedules = transforms.compress_pulses(schedules)
 
     user_pulselib = {}
@@ -173,7 +175,7 @@ def _assemble_instructions(
                 isinstance(instruction.pulse, library.ParametricPulse)):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:
-                instruction = instructions.Play(instruction.pulse.get_sample_pulse(),
+                instruction = instructions.Play(instruction.pulse.get_waveform(),
                                                 instruction.channel,
                                                 name=instruction.name)
 
@@ -204,11 +206,12 @@ def _assemble_instructions(
         if hasattr(run_config, 'meas_map'):
             _validate_meas_map(acquire_instruction_map, run_config.meas_map)
         for (time, _), instrs in acquire_instruction_map.items():
-            qubits, mem_slots, reg_slots = _bundle_channel_indices(instrs)
             qobj_instructions.append(
-                instruction_converter.convert_single_acquires(
-                    time, instrs[0],
-                    qubits=qubits, memory_slot=mem_slots, register_slot=reg_slots))
+                instruction_converter.convert_bundled_acquires(
+                    time,
+                    instrs
+                ),
+            )
 
     return qobj_instructions, max_memory_slot
 
@@ -237,32 +240,8 @@ def _validate_meas_map(instruction_map: Dict[Tuple[int, instructions.Acquire],
         for meas_set in meas_map_sets:
             intersection = measured_qubits.intersection(meas_set)
             if intersection and intersection != meas_set:
-                raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
-                                  'in measurement map: {1}'.format(measured_qubits, meas_set))
-
-
-def _bundle_channel_indices(
-        instrs: List[instructions.Acquire]
-) -> Tuple[List[int], List[int], List[int]]:
-    """From the list of AcquireInstructions, bundle the indices of the acquire channels,
-    memory slots, and register slots into a 3-tuple of lists.
-
-    Args:
-        instrs: A list of Acquire instructions to be bundled.
-
-    Returns:
-        The qubit indices, the memory slot indices, and register slot indices from instructions.
-    """
-    qubits = []
-    mem_slots = []
-    reg_slots = []
-    for inst in instrs:
-        qubits.append(inst.channel.index)
-        if inst.mem_slot:
-            mem_slots.append(inst.mem_slot.index)
-        if inst.reg_slot:
-            reg_slots.append(inst.reg_slot.index)
-    return qubits, mem_slots, reg_slots
+                raise QiskitError('Qubits to be acquired: {} do not satisfy required qubits '
+                                  'in measurement map: {}'.format(measured_qubits, meas_set))
 
 
 def _assemble_config(lo_converter: converters.LoConfigConverter,

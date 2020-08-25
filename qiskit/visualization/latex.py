@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -42,7 +40,7 @@ class QCircuitImage:
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False, layout=None, initial_state=False,
-                 cregbundle=False):
+                 cregbundle=False, global_phase=None):
         """QCircuitImage initializer.
 
         Args:
@@ -59,6 +57,7 @@ class QCircuitImage:
                included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
+            global_phase (float): Optional, the global phase for the circuit.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -68,7 +67,7 @@ class QCircuitImage:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style, 'r') as infile:
+                with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
 
@@ -135,6 +134,7 @@ class QCircuitImage:
         for bit in self.ordered_regs:
             self.wire_type[bit] = bit.register in self.cregs.keys()
         self.cregbundle = cregbundle
+        self.global_phase = global_phase
 
     def latex(self):
         """Return LaTeX string representation of circuit.
@@ -162,8 +162,9 @@ class QCircuitImage:
 % \usepackage[landscape]{geometry}
 % Comment out the above line if using the beamer documentclass.
 \begin{document}
-\begin{equation*}"""
+"""
         qcircuit_line = r"""
+\begin{equation*}
     \Qcircuit @C=%.1fem @R=%.1fem @!R {
 """
         output = io.StringIO()
@@ -171,6 +172,9 @@ class QCircuitImage:
         output.write('%% img_width = %d, img_depth = %d\n' % (self.img_width, self.img_depth))
         output.write(beamer_line % self._get_beamer_page())
         output.write(header_2)
+        if self.global_phase:
+            output.write(r"""
+{\small Global Phase: $%s$}""" % pi_check(self.global_phase, output='latex'))
         output.write(qcircuit_line %
                      (self.column_separation, self.row_separation))
         for i in range(self.img_width):
@@ -234,10 +238,13 @@ class QCircuitImage:
                     label = "\\lstick{{ {{{}}}_{{{}}} : ".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                        self.layout[self.ordered_regs[i].index].register.name,
-                        self.layout[self.ordered_regs[i].index].index,
-                        self.ordered_regs[i].index)
+                    if self.layout[self.ordered_regs[i].index]:
+                        label = "\\lstick{{ {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
+                            self.layout[self.ordered_regs[i].index].register.name,
+                            self.layout[self.ordered_regs[i].index].index,
+                            self.ordered_regs[i].index)
+                    else:
+                        label = "\\lstick{{ {{{}}} : ".format(self.ordered_regs[i].index)
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
@@ -401,7 +408,7 @@ class QCircuitImage:
                         pos_array.append(self.img_regs[qarglist[ctrl]])
                     pos_qargs = pos_array[num_ctrl_qubits:]
                     ctrl_pos = pos_array[:num_ctrl_qubits]
-                    ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+                    ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
                     if op.condition:
                         mask = self._get_mask(op.condition[0])
                         cl_reg = self.clbit_list[self._ffs(mask)]
@@ -807,7 +814,7 @@ class QCircuitImage:
 
                     elif len(qarglist) == 3:
                         if isinstance(op.op, ControlledGate):
-                            ctrl_state = "{0:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
+                            ctrl_state = "{:b}".format(op.op.ctrl_state).rjust(2, '0')[::-1]
                             cond_1 = ctrl_state[0]
                             cond_2 = ctrl_state[1]
                         pos_1 = self.img_regs[qarglist[0]]

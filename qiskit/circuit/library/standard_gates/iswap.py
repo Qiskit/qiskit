@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -107,7 +105,7 @@ class iSwapGate(Gate):
             (CXGate(), [q[1], q[0]], []),
             (HGate(), [q[1]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def to_matrix(self):

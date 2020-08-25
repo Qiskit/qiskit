@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -63,7 +61,7 @@ class SGate(Gate):
         rules = [
             (U1Gate(pi / 2), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):
@@ -119,7 +117,7 @@ class SdgGate(Gate):
         rules = [
             (U1Gate(-pi / 2), [q[0]], [])
         ]
-        qc.data = rules
+        qc._data = rules
         self.definition = qc
 
     def inverse(self):

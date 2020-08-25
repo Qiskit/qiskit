@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -40,6 +38,9 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import UnitarySynthesis
 
 from qiskit.transpiler import TranspilerError
 
@@ -124,6 +125,13 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         _unroll = [UnrollCustomDefinitions(sel, basis_gates),
                    BasisTranslator(sel, basis_gates)]
+    elif translation_method == 'synthesis':
+        _unroll = [
+            Unroll3qOrMore(),
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=basis_gates),
+            UnitarySynthesis(basis_gates),
+        ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 

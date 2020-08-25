@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -675,9 +673,11 @@ class Statevector(QuantumState):
         if obj.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
         if not isinstance(obj.definition, QuantumCircuit):
-            raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
+            raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
                 obj.name, type(obj.definition)))
-        for instr, qregs, cregs in obj.definition.data:
+        if obj.definition.global_phase:
+            statevec._data *= np.exp(1j * obj.definition.global_phase)
+        for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
                     'Cannot apply instruction with classical registers: {}'.format(

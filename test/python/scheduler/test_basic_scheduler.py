@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -16,10 +14,11 @@
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate
+from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play)
 
-from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
+from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
 
 
@@ -29,6 +28,14 @@ class TestBasicSchedule(QiskitTestCase):
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
+
+    def test_unavailable_defaults(self):
+        """Test backend with unavailable defaults."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        backend = FakeBackend(None)
+        backend.defaults = backend.configuration
+        self.assertRaises(QiskitError, lambda: schedule(qc, backend))
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""

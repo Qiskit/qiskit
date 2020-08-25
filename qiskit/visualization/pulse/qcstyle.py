@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -178,7 +176,7 @@ class PulseStyle:
                 If the output is ``matplotlib``, the default
                 parameter is ``rcParams['figure.titlesize']``.
             wave_color: Color code or name of colors for
-                the real and imaginary parts of SamplePulse waveform.
+                the real and imaginary parts of the waveform.
             bg_color: Color code or name of color for pulse canvas background.
             num_points: Number of points for interpolation.
             dpi: Resolution in the unit of dot per inch to save image.

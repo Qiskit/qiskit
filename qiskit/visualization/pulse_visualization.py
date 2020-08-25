@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -17,7 +15,6 @@
 """
 matplotlib pulse visualization.
 """
-import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
 from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform, ScheduleComponent
@@ -47,7 +44,6 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
                  label: bool = False,
                  framechange: bool = True,
                  channels: List[Channel] = None,
-                 scaling: float = None,
                  show_framechange_channels: bool = True
                  ):
     """Plot the interpolated envelope of pulse and schedule.
@@ -73,7 +69,6 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
         table: When set `True` draw event table for supported commands.
         label: When set `True` draw label for individual instructions.
         framechange: When set `True` draw framechange indicators.
-        scaling: Deprecated, see `scale`.
         channels: A list of channel names to plot.
             All non-empty channels are shown if not provided.
         show_framechange_channels: When set `True` plot channels
@@ -147,15 +142,10 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
         VisualizationError: when invalid data is given
         ImportError: when matplotlib is not installed
     """
-    if scaling is not None:
-        warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                      DeprecationWarning, 3)
-        scale = scaling
-
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, (SamplePulse, Waveform)):
-        drawer = _matplotlib.SamplePulseDrawer(style=style)
+        drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
