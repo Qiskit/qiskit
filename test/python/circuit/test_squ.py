@@ -56,6 +56,5 @@ class TestSingleQubitUnitary(QiskitTestCase):
                 unitary_desired = u
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
-
 if __name__ == '__main__':
     unittest.main()
