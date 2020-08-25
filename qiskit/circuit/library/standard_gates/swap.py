@@ -222,7 +222,7 @@ class CSwapGate(ControlledGate):
 
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
-        return CSwapGate()  # self-inverse
+        return CSwapGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
