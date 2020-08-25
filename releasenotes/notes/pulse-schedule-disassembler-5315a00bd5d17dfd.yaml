@@ -21,4 +21,5 @@ features:
               pulse.measure_all()
 
       qobj = assemble(sched, backend=backend, shots=512)
-      scheds, _, _ = disassemble(qobj)
+      scheds, run_config, header = disassemble(qobj)
+      
