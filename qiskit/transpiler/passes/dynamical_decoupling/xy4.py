@@ -65,7 +65,8 @@ class XY4Pass(TransformationPass):
             self.xgate_unroll = Unroller(basis).run(xgate_dag)
 
             for node in self.xgate_unroll.topological_op_nodes():
-                gate_duration += self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
+                gate_duration += \
+                    self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
 
             ygate_dag = DAGCircuit()
             ygate_qreg = QuantumRegister(qubits, 'q')
@@ -76,7 +77,8 @@ class XY4Pass(TransformationPass):
             self.ygate_unroll = Unroller(basis).run(ygate_dag)
 
             for node in self.ygate_unroll.topological_op_nodes():
-                gate_duration += self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
+                gate_duration += \
+                    self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
 
             self.tau_cs[qubit] = 4 * self.tau_step_dt + 2 * round(gate_duration / self.dt)
 
