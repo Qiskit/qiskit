@@ -26,7 +26,8 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
                          PulseQobjConfig, QobjMeasurementOption,
                          PulseLibraryItem, QasmQobjInstruction,
-                         QasmQobjExperiment, QasmQobjConfig)
+                         QasmQobjExperiment, QasmQobjConfig,
+                         QasmExperimentCalibrations, GateCalibration)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
@@ -120,7 +121,7 @@ class TestQASMQobj(QiskitTestCase):
         expected_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.2.0',
+            'schema_version': '1.3.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -199,6 +200,52 @@ class TestQASMQobj(QiskitTestCase):
         self.assertTrue(qobj1.experiments[0].config.shots == 50)
         self.assertTrue(qobj1.experiments[1].config.shots == 1)
         self.assertTrue(qobj1.config.shots == 1024)
+
+    def test_gate_calibrations_to_dict(self):
+        """Test gate calibrations to dict."""
+
+        pulse_library = [PulseLibraryItem(name='test', samples=[1j, 1j])]
+        valid_qobj = QasmQobj(
+            qobj_id='12345',
+            header=QobjHeader(),
+            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10,
+                                  pulse_library=pulse_library),
+            experiments=[
+                QasmQobjExperiment(
+                    instructions=[
+                        QasmQobjInstruction(name='u1', qubits=[1], params=[0.4])
+                    ],
+                    config=QasmQobjConfig(
+                        calibrations=QasmExperimentCalibrations(
+                            gates=[
+                                GateCalibration(name='u1', qubits=[1],
+                                                params=[0.4], instructions=[])
+                            ]
+                        )
+                    )
+                )
+            ]
+        )
+        res = valid_qobj.to_dict(validate=True)
+        expected_dict = {
+            'qobj_id': '12345',
+            'type': 'QASM',
+            'schema_version': '1.3.0',
+            'header': {},
+            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024,
+                       'pulse_library': [{'name': 'test', 'samples': [1j, 1j]}]},
+            'experiments': [
+                {'instructions': [
+                    {'name': 'u1', 'params': [0.4], 'qubits': [1]}
+                ],
+                 'config': {
+                     'calibrations': {
+                         'gates': [{'name': 'u1', 'qubits': [1],
+                                    'params': [0.4], 'instructions': []}]}},
+                 'header': {}}
+            ],
+        }
+        self.assertEqual(expected_dict, res)
 
 
 class TestPulseQobj(QiskitTestCase):

@@ -16,7 +16,8 @@
 
 import unittest
 import numpy as np
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 # pylint: disable=unused-import
@@ -613,6 +614,56 @@ class TestCircuitProperties(QiskitTestCase):
         q_reg3 = QuantumRegister(7)
         circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
         self.assertEqual(circ.num_qubits, 18)
+
+    def test_calibrations_basis_gates(self):
+        """Check if the calibrations for basis gates provided are added correctly."""
+        circ = QuantumCircuit(2)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration(RXGate(3.14), [0], q0_x180)
+        circ.add_calibration(RYGate(1.57), [1], q1_y90)
+
+        self.assertEqual(set(circ.calibrations.keys()), {'rx', 'ry'})
+        self.assertEqual(set(circ.calibrations['rx'].keys()), {((0,), (3.14,))})
+        self.assertEqual(set(circ.calibrations['ry'].keys()), {((1,), (1.57,))})
+        self.assertEqual(circ.calibrations['rx'][((0,), (3.14,))].instructions,
+                         q0_x180.instructions)
+        self.assertEqual(circ.calibrations['ry'][((1,), (1.57,))].instructions,
+                         q1_y90.instructions)
+
+    def test_calibrations_custom_gates(self):
+        """Check if the calibrations for custom gates with params provided are added correctly."""
+        circ = QuantumCircuit(3)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibrations with a custom gate 'rxt'
+        circ.add_calibration('rxt', [0], q0_x180, params=[1.57, 3.14, 4.71])
+
+        self.assertEqual(set(circ.calibrations.keys()), {'rxt'})
+        self.assertEqual(set(circ.calibrations['rxt'].keys()), {((0,), (1.57, 3.14, 4.71))})
+        self.assertEqual(circ.calibrations['rxt'][((0,), (1.57, 3.14, 4.71))].instructions,
+                         q0_x180.instructions)
+
+    def test_calibrations_no_params(self):
+        """Check calibrations if the no params is provided with just gate name."""
+        circ = QuantumCircuit(3)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        circ.add_calibration('h', [0], q0_x180)
+
+        self.assertEqual(set(circ.calibrations.keys()), {'h'})
+        self.assertEqual(set(circ.calibrations['h'].keys()), {((0,), ())})
+        self.assertEqual(circ.calibrations['h'][((0,), ())].instructions,
+                         q0_x180.instructions)
 
 
 if __name__ == '__main__':
