@@ -556,13 +556,8 @@ class TextDrawing():
 
         Returns:
             str: The lines joined by a newline (``\\n``)
-        Raises:
-            TextDrawerEncodingError: If there is an encoding error.
         """
-        if self.encoding in ['cp1252']:
-            raise TextDrawerEncodingError('The encoding %s has a limited charset. Consider a '
-                                          'different encoding in your environment.' % self.encoding)
-        return "\n".join(self.lines()).encode().decode(self.encoding, errors='ignore')
+        return "\n".join(self.lines()).encode().decode(self.encoding)
 
     def dump(self, filename, encoding="utf8"):
         """Dumps the ascii art in the file.
