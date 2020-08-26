@@ -449,7 +449,9 @@ class TestCircuitAssembler(QiskitTestCase):
         # Identical pulses are only added once
         self.assertEqual(len(qobj.config.pulse_library), 1)
         # Identical calibrations are only added once
-        self.assertEqual(len(qobj.config.calibrations.gates), 1)
+        self.assertEqual(qobj.config.calibrations.gates[0].name, 'rxtheta')
+        self.assertEqual(qobj.config.calibrations.gates[0].params, [3.14])
+        self.assertEqual(qobj.config.calibrations.gates[0].qubits, [1])
         self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 1)
         self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
 

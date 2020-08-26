@@ -182,22 +182,41 @@ def _extract_common_calibrations(
         The input experiments with modified calibrations, and common calibrations, if there
         are any
     """
+    def index_calibrations() -> Dict[int, List[Tuple[int, GateCalibration]]]:
+        """Map each calibration to all experiments that contain it."""
+        exp_indices = defaultdict(list)
+        for exp_idx, exp in enumerate(experiments):
+            for gate_cal in exp.config.calibrations.gates:
+                # They must be keyed on the hash or identical cals will be indexed separately
+                exp_indices[hash(gate_cal)].append((exp_idx, gate_cal))
+        return exp_indices
+
+    def collect_common_calibrations() -> List[GateCalibration]:
+        """If a gate calibration appears in all experiments, collect it."""
+        common_calibrations = []
+        for _, exps_w_cal in exp_indices.items():
+            if len(exps_w_cal) == len(experiments):
+                _, gate_cal = exps_w_cal[0]
+                common_calibrations.append(gate_cal)
+        return common_calibrations
+
+    def remove_common_gate_calibrations() -> None:
+        """For calibrations that appear in all experiments, remove them from the individual
+        experiment's ``config.calibrations``."""
+        for _, exps_w_cal in exp_indices.items():
+            if len(exps_w_cal) == len(experiments):
+                for exp_idx, gate_cal in exps_w_cal:
+                    experiments[exp_idx].config.calibrations.gates.remove(gate_cal)
+
     if not (experiments and all(hasattr(exp.config, 'calibrations') for exp in experiments)):
+        # No common calibrations
         return experiments, None
 
-    common_calibrations = []
-    gate_hash_map = defaultdict(list)
-    for exp_idx, exp in enumerate(experiments):
-        for gate_idx, gate_cal in enumerate(exp.config.calibrations.gates):
-            gate_hash_map[str(gate_cal.to_dict())].append((exp_idx, gate_idx, gate_cal))
+    exp_indices = index_calibrations()
+    common_calibrations = collect_common_calibrations()
+    remove_common_gate_calibrations()
 
-    # Collect common cals, remove from respective experiments
-    for gate_cal, exps_w_cal in gate_hash_map.items():
-        if len(exps_w_cal) == len(experiments):
-            common_calibrations.append(exps_w_cal[0][2])
-            for exp_idx, gate_idx, _ in exps_w_cal:
-                experiments[exp_idx].config.calibrations.gates.remove(exps_w_cal[exp_idx][2])
-
+    # Remove the ``calibrations`` attribute if it's now empty
     for exp in experiments:
         if not exp.config.calibrations.gates:
             del exp.config.calibrations
