@@ -411,6 +411,26 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertTrue(hasattr(qobj.config, 'calibrations'))
 
     def test_pulse_gates_multiple_circuits(self):
+        """Test one circuit with cals and another without."""
+        with pulse.build() as dummy_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [1])
+        circ.add_calibration('h', [0], dummy_sched)
+        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        circ2 = QuantumCircuit(2)
+        circ2.h(0)
+
+        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        self.assertEqual(len(qobj.config.pulse_library), 1)
+        self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 2)
+        self.assertFalse(hasattr(qobj.config, 'calibrations'))
+        self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
+
+    def test_pulse_gates_common_cals(self):
         """Test that common calibrations are added at the top level."""
         with pulse.build() as dummy_sched:
             pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))

@@ -11,16 +11,36 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
-from qiskit.assembler.assemble_schedules import _assemble_instructions as assemble_schedule
+from collections import defaultdict
+from typing import Dict, List, Optional, Tuple
+
+from qiskit.assembler.run_config import RunConfig
+from qiskit.assembler.assemble_schedules import _assemble_instructions as _assemble_schedule
+from qiskit.circuit import QuantumCircuit
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig, QasmExperimentCalibrations, GateCalibration,
-                         PulseQobjInstruction, PulseLibraryItem, converters)
+                         PulseQobjInstruction, PulseLibraryItem, converters, QobjHeader)
 from qiskit.tools.parallel import parallel_map
 
 
-def _assemble_circuit(circuit, run_config):
-    # header stuff
+PulseLibrary = Dict[str, List[complex]]
+
+
+def _assemble_circuit(
+        circuit: QuantumCircuit,
+        run_config: RunConfig
+) -> Tuple[QasmQobjExperiment, Optional[PulseLibrary]]:
+    """Assemble one circuit.
+
+    Args:
+        circuit: circuit to assemble
+        run_config: configuration of the runtime environment
+
+    Returns:
+        One experiment for the QasmQobj, and pulse library for pulse gates (which could be None)
+    """
+    # header data
     num_qubits = 0
     memory_slots = 0
     qubit_labels = []
@@ -116,16 +136,19 @@ def _assemble_circuit(circuit, run_config):
             pulse_library)
 
 
-def _assemble_pulse_gates(circuit, run_config):
+def _assemble_pulse_gates(
+        circuit: QuantumCircuit,
+        run_config: RunConfig
+) -> Tuple[Optional[QasmExperimentCalibrations], Optional[PulseLibrary]]:
     """Assemble and return the circuit calibrations and associated pulse library, if there are any.
     The calibrations themselves may reference the pulse library which is returned as a dict.
 
     Args:
-        circuit (QuantumCircuit): circuit which may have pulse calibrations
-        run_config (RunConfig): configuration of the runtime environment
+        circuit: circuit which may have pulse calibrations
+        run_config: configuration of the runtime environment
 
     Returns:
-        tuple(QasmExperimentCalibrations, dict(str, array)): The calibrations and pulse library.
+        The calibrations and pulse library, if there are any
     """
     if not circuit.calibrations:
         return None, None
@@ -135,7 +158,7 @@ def _assemble_pulse_gates(circuit, run_config):
     pulse_library = {}
     for gate, cals in circuit.calibrations.items():
         for (qubits, params), schedule in cals.items():
-            qobj_instructions, _ = assemble_schedule(
+            qobj_instructions, _ = _assemble_schedule(
                 schedule,
                 converters.InstructionToQobjConverter(PulseQobjInstruction),
                 run_config,
@@ -145,16 +168,24 @@ def _assemble_pulse_gates(circuit, run_config):
     return QasmExperimentCalibrations(gates=calibrations), pulse_library
 
 
-def _extract_common_calibrations(experiments):
+def _extract_common_calibrations(
+        experiments: List[QasmQobjExperiment]
+) -> Tuple[List[QasmQobjExperiment], Optional[QasmExperimentCalibrations]]:
     """Given a list of ``QasmQobjExperiment``s, each of which may have calibrations in their
     ``config``, collect common calibrations into a global ``QasmExperimentCalibrations``
     and delete them from their local experiments.
+
+    Args:
+        experiments: The list of Qasm experiments that are being assembled into one qobj
+
+    Returns:
+        The input experiments with modified calibrations, and common calibrations, if there
+        are any
     """
     if not (experiments and all(hasattr(exp.config, 'calibrations') for exp in experiments)):
         return experiments, None
 
     common_calibrations = []
-    from collections import defaultdict
     gate_hash_map = defaultdict(list)
     for exp_idx, exp in enumerate(experiments):
         for gate_idx, gate_cal in enumerate(exp.config.calibrations.gates):
@@ -174,17 +205,20 @@ def _extract_common_calibrations(experiments):
     return experiments, QasmExperimentCalibrations(gates=common_calibrations)
 
 
-def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
+def assemble_circuits(circuits: List[QuantumCircuit],
+                      run_config: RunConfig,
+                      qobj_id: int,
+                      qobj_header: QobjHeader) -> QasmQobj:
     """Assembles a list of circuits into a qobj that can be run on the backend.
 
     Args:
-        circuits (list[QuantumCircuit]): circuit(s) to assemble
-        run_config (RunConfig): configuration of the runtime environment
-        qobj_id (int): identifier for the generated qobj
-        qobj_header (QobjHeader): header to pass to the results
+        circuits: circuit(s) to assemble
+        run_config: configuration of the runtime environment
+        qobj_id: identifier for the generated qobj
+        qobj_header: header to pass to the results
 
     Returns:
-        QasmQobj: the qobj to be run on the backends
+        The qobj to be run on the backends
     """
     qobj_config = QasmQobjConfig()
     if run_config:
