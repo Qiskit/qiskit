@@ -30,8 +30,6 @@ ibmq_examples_dir = os.path.join(examples_dir, 'ibmq')
 class TestPythonExamples(QiskitTestCase):
     """Test example scripts"""
 
-    @unittest.skipIf(sys.stdout.encoding in ['cp1252'],
-                     'Skip until https://github.com/mtreinish/stestr/issues/295')
     @unittest.skipIf(sys.platform == 'darwin' and sys.version_info[1] == 8,
                      "Multiprocess spawn fails on macOS python 3.8 without "
                      "__name__ == '__main__' guard")
