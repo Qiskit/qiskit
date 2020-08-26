@@ -62,7 +62,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
         # Exclude acquisition on these qubits, since they are handled by the user calibrations
-        acquire_excludes = []
+        acquire_excludes = {}
         if Measure().name in circuit.calibrations.keys():
             qubits = tuple(sorted([*qubit_mem_slots]))
             params = ()
@@ -77,18 +77,18 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                        "the requested classical bits")
                     sched |= meas_q
                     del qubit_mem_slots[qubit]
-                    acquire_excludes.append((qubit, mem_slot_index))
+                    acquire_excludes[qubit] = mem_slot_index
                 except KeyError:
                     pass
 
         if qubit_mem_slots:
             qubits = list(qubit_mem_slots.keys())
-            qubit_mem_slots.update({qubit: mem_slot for qubit, mem_slot in acquire_excludes})
+            qubit_mem_slots.update(acquire_excludes)
             meas_sched = measure(qubits=qubits,
                                  inst_map=inst_map,
                                  meas_map=schedule_config.meas_map,
                                  qubit_mem_slots=qubit_mem_slots)
-            meas_sched = meas_sched.exclude(channels=[AcquireChannel(qubit_slot[0]) for qubit_slot
+            meas_sched = meas_sched.exclude(channels=[AcquireChannel(qubit) for qubit
                                                       in acquire_excludes])
             sched |= meas_sched
         qubit_mem_slots.clear()
