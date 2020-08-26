@@ -426,8 +426,9 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
                     `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
         initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
-        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-            the ``text`` output. Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Default: ``False``.
+        encoding (str): Optional. Sets the encoding preference of the output.
+                   Default: ``sys.stdout.encoding``.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
