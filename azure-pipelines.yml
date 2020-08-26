@@ -98,7 +98,6 @@ stages:
         CIBW_SKIP: cp27-* cp34-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
-        PYTHONIOENCODING: "utf8"
       steps:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
