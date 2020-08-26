@@ -67,10 +67,6 @@ class ExperimentResultData:
         out = "ExperimentResultData(%s)" % ', '.join(string_list)
         return out
 
-
-        out += ")"
-        return out
-
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResultData
 
@@ -170,11 +166,6 @@ class ExperimentResult:
             out += ", %s=%s" % (key, value_str)
         out += ')'
         return out
-
-
-        out += ")"
-        return out
-
 
     def __getattr__(self, name):
         try:
