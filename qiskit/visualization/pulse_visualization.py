@@ -88,7 +88,6 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
             import qiskit
             from qiskit import pulse
             from qiskit.test.mock.backends.almaden import FakeAlmaden
-            from qiskit.visualization import pulse_drawer
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 
@@ -99,11 +98,11 @@ def pulse_drawer(data: Union[Waveform, ScheduleComponent],
             channels = [pulse.DriveChannel(0), pulse.MeasureChannel(0)]
             scales = {pulse.DriveChannel(0): 10}
 
-            pulse_drawer(sched,
-                         channels=channels,
-                         plot_range=(0, 1000),
-                         label=True,
-                         channel_scales=scales)
+            qiskit.visualization.pulse_drawer(sched,
+                                              channels=channels,
+                                              plot_range=(0, 1000),
+                                              label=True,
+                                              channel_scales=scales)
 
         You are also able to call visualization module from the instance method::
 
