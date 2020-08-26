@@ -300,11 +300,7 @@ class MatplotlibDrawer:
                 param_parts[i] = pi_check(e, output='mpl', ndigits=3)
             except TypeError:
                 param_parts[i] = str(e)
-
-            if param_parts[i].startswith('-'):
-                param_parts[i] = '$-$' + param_parts[i][1:]
-
-        param_parts = ', '.join(param_parts)
+        param_parts = ', '.join(param_parts).replace('-', '$-$')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
