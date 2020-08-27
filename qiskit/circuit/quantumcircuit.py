@@ -2278,7 +2278,7 @@ class QuantumCircuit:
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params))] = schedule
+            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
 
 def _circuit_from_qasm(qasm):
