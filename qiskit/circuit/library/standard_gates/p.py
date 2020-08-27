@@ -104,9 +104,9 @@ class PhaseGate(Gate):
         gate.base_gate.label = self.label
         return gate
 
-    def inverse(self, label=None):
+    def inverse(self):
         r"""Return inverted Phase gate (:math:`Phase(\lambda){\dagger} = Phase(-\lambda)`)"""
-        return PhaseGate(-self.params[0], label=label)
+        return PhaseGate(-self.params[0])
 
     def to_matrix(self):
         """Return a numpy.array for the Phase gate."""
@@ -194,9 +194,9 @@ class CPhaseGate(ControlledGate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self, label=None):
+    def inverse(self):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
-        return CPhaseGate(-self.params[0], label=label, ctrl_state=self.ctrl_state)
+        return CPhaseGate(-self.params[0], label=self.label, ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CPhase gate."""
@@ -283,6 +283,6 @@ class MCPhaseGate(ControlledGate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self, label=None):
+    def inverse(self):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
-        return MCPhaseGate(-self.params[0], self.num_ctrl_qubits, label=label)
+        return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)

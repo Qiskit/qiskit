@@ -81,12 +81,12 @@ class RYGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self, label=None):
+    def inverse(self):
         r"""Return inverted RY gate.
 
         :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
-        return RYGate(-self.params[0], label=label)
+        return RYGate(-self.params[0])
 
     def to_matrix(self):
         """Return a numpy.array for the RY gate."""
@@ -179,9 +179,9 @@ class CRYGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
-        return CRYGate(-self.params[0], label=label, ctrl_state=self.ctrl_state)
+        return CRYGate(-self.params[0], label=self.label, ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRY gate."""

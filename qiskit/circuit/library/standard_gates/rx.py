@@ -81,12 +81,12 @@ class RXGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self, label=None):
+    def inverse(self):
         r"""Return inverted RX gate.
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
         """
-        return RXGate(-self.params[0], label=label)
+        return RXGate(-self.params[0])
 
     def to_matrix(self):
         """Return a numpy.array for the RX gate."""
@@ -184,9 +184,9 @@ class CRXGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Return inverse CRX gate (i.e. with the negative rotation angle)."""
-        return CRXGate(-self.params[0], label=label, ctrl_state=self.ctrl_state)
+        return CRXGate(-self.params[0], label=self.label, ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRX gate."""

@@ -98,9 +98,9 @@ class ZGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Return inverted Z gate (itself)."""
-        return ZGate(label=label)  # self-inverse
+        return ZGate()  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the Z gate."""
@@ -162,9 +162,9 @@ class CZGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Return inverted CZ gate (itself)."""
-        return CZGate(label=label, ctrl_state=self.ctrl_state)  # self-inverse
+        return CZGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CZ gate."""

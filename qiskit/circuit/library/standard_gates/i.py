@@ -43,9 +43,9 @@ class IGate(Gate):
         """Create new Identity gate."""
         super().__init__('id', 1, [], label=label)
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Invert this gate."""
-        return IGate(label=label)  # self-inverse
+        return IGate()  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the identity gate."""

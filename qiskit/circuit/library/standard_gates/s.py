@@ -64,9 +64,9 @@ class SGate(Gate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Return inverse of S (SdgGate)."""
-        return SdgGate(label=label)
+        return SdgGate()
 
     def to_matrix(self):
         """Return a numpy.array for the S gate."""
@@ -120,9 +120,9 @@ class SdgGate(Gate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self, label=None):
+    def inverse(self):
         """Return inverse of Sdg (SGate)."""
-        return SGate(label=label)
+        return SGate()
 
     def to_matrix(self):
         """Return a numpy.array for the Sdg gate."""
