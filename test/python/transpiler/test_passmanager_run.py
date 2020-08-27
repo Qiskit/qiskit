@@ -117,7 +117,6 @@ class TestPassManagerRun(QiskitTestCase):
     def test_passmanager_rerun(self):
         """Test if warning is raised or not after rerunning PassManager instance
         """
-
         qr = QuantumRegister(4, 'qr')
         circuit1 = QuantumCircuit(qr)
         circuit1.h(qr[0])
@@ -140,9 +139,7 @@ class TestPassManagerRun(QiskitTestCase):
             initial_layout=Layout.from_qubit_list(initial_layout),
             seed_transpiler=42))
 
-        circuits = [circuit1, circuit2]
-
+        pass_manager.run(circuit1)
         with self.assertWarns(UserWarning, msg="Reusing a PassManager instance might lead to"
                                                " unexpected results."):
-            for circuit in circuits:
-                pass_manager.run(circuit)
+            pass_manager.run(circuit2)
