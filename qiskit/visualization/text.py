@@ -562,7 +562,8 @@ class TextDrawing():
         except UnicodeDecodeError:
             warn('The encoding %s has a limited charset. Consider a different encoding in your '
                  'environment. UTF-8 is being used instead' % self.encoding, RuntimeWarning)
-            ret = "\n".join(self.lines()).encode().decode('utf8')
+            self.encoding = 'utf-8'
+            ret = "\n".join(self.lines())
         return ret
 
     def dump(self, filename, encoding=None):
