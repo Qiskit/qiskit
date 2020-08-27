@@ -28,7 +28,6 @@
         "config": {"shots": 512},
         "instructions": [
             {"name": "pulse1", "ch": "d0", "t0": 0},
-            {"name": "pv", "ch": "d0", "t0": 0, "val": [1,2]},
             {"name": "setp", "ch": "u0", "t0": 10, "phase": 3.14},
             {"name": "setf", "ch": "d0", "t0": 10, "frequency": 8.0},
             {"name": "acquire", "t0": 10, "duration": 90, "qubits": [0,1,2], "register_slot": [0,1,2], "memory_slot": [0,1,2]},
@@ -42,4 +41,3 @@
         }
         ]
 }
-
