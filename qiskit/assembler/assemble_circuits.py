@@ -200,13 +200,13 @@ def _extract_common_calibrations(
                 common_calibrations.append(gate_cal)
         return common_calibrations
 
-    def remove_common_gate_calibrations() -> None:
+    def remove_common_gate_calibrations(exps: List[QasmQobjExperiment]) -> None:
         """For calibrations that appear in all experiments, remove them from the individual
         experiment's ``config.calibrations``."""
         for _, exps_w_cal in exp_indices.items():
-            if len(exps_w_cal) == len(experiments):
+            if len(exps_w_cal) == len(exps):
                 for exp_idx, gate_cal in exps_w_cal:
-                    experiments[exp_idx].config.calibrations.gates.remove(gate_cal)
+                    exps[exp_idx].config.calibrations.gates.remove(gate_cal)
 
     if not (experiments and all(hasattr(exp.config, 'calibrations') for exp in experiments)):
         # No common calibrations
@@ -214,7 +214,7 @@ def _extract_common_calibrations(
 
     exp_indices = index_calibrations()
     common_calibrations = collect_common_calibrations()
-    remove_common_gate_calibrations()
+    remove_common_gate_calibrations(experiments)
 
     # Remove the ``calibrations`` attribute if it's now empty
     for exp in experiments:
