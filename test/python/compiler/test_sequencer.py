@@ -49,3 +49,14 @@ class TestSequence(QiskitTestCase):
         actual = sequence(sc, self.backend)
         expected = schedule(qc.decompose(), self.backend)
         self.assertEqual(actual, pad(expected))
+
+    def test_transpile_and_sequence_agree_with_schedule_for_circuit_with_delay(self):
+        qc = QuantumCircuit(1, 1, name="t2")
+        qc.h(0)
+        qc.delay(500, 0, unit='ns')
+        qc.h(0)
+        qc.measure(0, 0)
+        sc = transpile(qc, self.backend, scheduling_method='alap')
+        actual = sequence(sc, self.backend)
+        expected = schedule(qc.decompose(), self.backend)
+        self.assertEqual(actual, pad(expected))

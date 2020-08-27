@@ -55,19 +55,21 @@ class ASAPSchedule(TransformationPass):
 
         qubit_time_available = defaultdict(int)
 
-        def pad_with_delays(qubits: List[int], until) -> None:
-            """Pad idle time-slots in ``qubits`` with delays until ``until``."""
+        def pad_with_delays(qubits: List[int], until, unit) -> None:
+            """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
             for q in qubits:
                 if qubit_time_available[q] < until:
                     idle_duration = until - qubit_time_available[q]
-                    new_dag.apply_operation_back(Delay(idle_duration), [q])
+                    new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
 
         for node in dag.topological_op_nodes():
             start_time = max(qubit_time_available[q] for q in node.qargs)
-            pad_with_delays(node.qargs, until=start_time)
+            pad_with_delays(node.qargs, until=start_time, unit=self.durations.unit)
 
-            new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+            new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
             duration = self.durations.get(node.op, node.qargs)
+            # set duration for each instruction (tricky but necessary)
+            new_node.op.duration = duration
 
             stop_time = start_time + duration
             # update time table
@@ -76,9 +78,8 @@ class ASAPSchedule(TransformationPass):
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration)
+        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=self.durations.unit)
 
         new_dag.name = dag.name
         new_dag.duration = circuit_duration
-        new_dag.instruction_durations = self.durations
         return new_dag

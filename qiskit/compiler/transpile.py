@@ -460,12 +460,9 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
-    durations = None
-    if scheduling_method is not None:
-        from qiskit.transpiler.instruction_durations import InstructionDurations
-        durations = InstructionDurations.from_backend(backend).update(instruction_durations)
+    durations = _parse_instruction_durations(backend, instruction_durations,
+                                             scheduling_method, num_circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
-    durations = _parse_instruction_durations(durations, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -668,10 +665,19 @@ def _parse_scheduling_method(scheduling_method, num_circuits):
     return scheduling_method
 
 
-def _parse_instruction_durations(instruction_durations, num_circuits):
-    if not isinstance(instruction_durations, list):
-        instruction_durations = [instruction_durations] * num_circuits
-    return instruction_durations
+def _parse_instruction_durations(backend, instruction_durations, scheduling_method, num_circuits):
+    durations = None
+    if scheduling_method is not None:
+        from qiskit.transpiler.instruction_durations import InstructionDurations
+        if backend:
+            durations = InstructionDurations.from_backend(backend)
+            durations = durations.update(instruction_durations, unit='s')
+        else:
+            durations = InstructionDurations(instruction_durations)
+
+    if not isinstance(durations, list):
+        durations = [durations] * num_circuits
+    return durations
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):

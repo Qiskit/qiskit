@@ -16,22 +16,23 @@ Delay instruction (for circuit module).
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.util import apply_prefix
 
 
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
-    def __init__(self, duration, unit='dt'):
+    def __init__(self, duration, unit=None):
         """Create new delay instruction."""
-        if isinstance(duration, float):
-            if unit == 'dt':
-                raise CircuitError('Duration in dt must be an integer.')
-        elif not isinstance(duration, (int, ParameterExpression)):
+        if not isinstance(duration, (float, int)):
             raise CircuitError('Invalid duration type.')
 
-        if unit not in {'dt', 's', 'ms', 'us', 'µs', 'ns', 'ps'}:
-            raise CircuitError('Unknown unit is specified.')
+        if unit and unit in {'ms', 'us', 'ns', 'ps'}:
+            duration = apply_prefix(duration, unit)
+            unit = 's'
+
+        if unit and unit != 's':
+            raise CircuitError('Unknown unit %s is specified.' % unit)
 
         super().__init__("delay", 1, 0, params=[duration])
         self.unit = unit

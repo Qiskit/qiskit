@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
-import warnings
 from typing import Optional, List, Tuple, Union, Iterable
 
 from qiskit.circuit import Barrier, Delay
@@ -21,87 +20,78 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class InstructionDurations:
-    """Helper class to provide integer durations for safe scheduling."""
+    """Helper class to provide durations for scheduling."""
 
     def __init__(self,
                  instruction_durations: Optional['InstructionDurationsType'] = None,
-                 schedule_dt=None):
+                 unit: str = None):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
-        self.schedule_dt = schedule_dt
+        self.unit = unit
         if instruction_durations:
-            self.update(instruction_durations, schedule_dt)
+            self.update(instruction_durations, unit)
 
     @classmethod
     def from_backend(cls, backend: BaseBackend):
         """Construct the instruction durations from the backend."""
-        if backend is None:
-            return InstructionDurations()
-        # TODO: backend.properties() should tell us all about instruction durations
-        if not backend.configuration().open_pulse:
-            raise TranspilerError("No backend.configuration().dt in the backend")
-
-        dt = backend.configuration().dt  # pylint: disable=invalid-name
         instruction_durations = []
         # backend.properties._gates -> instruction_durations
         for gate, insts in backend.properties()._gates.items():
             for qubits, props in insts.items():
                 if 'gate_length' in props:
                     gate_length = props['gate_length'][0]  # Throw away datetime at index 1
-                    duration = round(gate_length / dt)
-                    rounding_error = abs(gate_length - duration * dt)
-                    if rounding_error > 1e-15:
-                        warnings.warn("Duration of %s is rounded to %d dt = %e s from %e"
-                                      % (gate, duration, duration * dt, gate_length),
-                                      UserWarning)
-                    instruction_durations.append((gate, qubits, duration))
+                    instruction_durations.append((gate, qubits, gate_length))
+
+        # TODO: backend.properties() should tell us all about instruction durations
+        if not backend.configuration().open_pulse:
+            raise TranspilerError("No backend.configuration().dt in the backend")
         # To know duration of measures, to be removed
+        dt = backend.configuration().dt  # pylint: disable=invalid-name
         inst_map = backend.defaults().instruction_schedule_map
         all_qubits = tuple(range(backend.configuration().num_qubits))
         meas_duration = inst_map.get('measure', all_qubits).duration
         for q in all_qubits:
-            instruction_durations.append(('measure', [q], meas_duration))
-        return InstructionDurations(instruction_durations, dt)
+            instruction_durations.append(('measure', [q], meas_duration * dt))
+
+        return InstructionDurations(instruction_durations, unit='s')
 
     def update(self,
-               instruction_durations: Optional['InstructionDurationsType'] = None,
-               dt=None):
+               inst_durations: Optional['InstructionDurationsType'],
+               unit: str = None):
         """Merge/extend self with instruction_durations."""
-        if self.schedule_dt and dt and self.schedule_dt != dt:
-            raise TranspilerError("dt must be the same to update")
+        if inst_durations is None:
+            return self
 
-        self.schedule_dt = dt or self.schedule_dt
+        if (not isinstance(inst_durations, InstructionDurations) and self.unit != unit) or \
+           (isinstance(inst_durations, InstructionDurations) and self.unit != inst_durations.unit):
+            raise TranspilerError("unit must be '%s', the same as original" % self.unit)
 
-        if instruction_durations:
-            if isinstance(instruction_durations, InstructionDurations):
-                self.duration_by_name.update(instruction_durations.duration_by_name)
-                self.duration_by_name_qubits.update(instruction_durations.duration_by_name_qubits)
-            else:
-                for name, qubits, duration in instruction_durations:
-                    if not isinstance(duration, int):
-                        raise TranspilerError("duration value must be integer.")
+        if isinstance(inst_durations, InstructionDurations):
+            self.duration_by_name.update(inst_durations.duration_by_name)
+            self.duration_by_name_qubits.update(inst_durations.duration_by_name_qubits)
+        else:
+            for name, qubits, duration in inst_durations:
+                if isinstance(qubits, int):
+                    qubits = [qubits]
 
-                    if isinstance(qubits, int):
-                        qubits = [qubits]
-
-                    if qubits is None:
-                        self.duration_by_name[name] = duration
-                    else:
-                        self.duration_by_name_qubits[(name, tuple(qubits))] = duration
+                if qubits is None:
+                    self.duration_by_name[name] = duration
+                else:
+                    self.duration_by_name_qubits[(name, tuple(qubits))] = duration
 
         return self
 
     def get(self,
             inst_name: Union[str, Instruction],
-            qubits: Union[int, List[int], Qubit, List[Qubit]]) -> int:
-        """Get the duration [dt] of the instruction with the name and the qubits.
+            qubits: Union[int, List[int], Qubit, List[Qubit]]) -> float:
+        """Get the duration of the instruction with the name and the qubits.
 
         Args:
             inst_name: an instruction or its name to be queried.
             qubits: qubits or its indices that the instruction acts on.
 
         Returns:
-            int: The duration [dt] of the instruction on the qubits.
+            float: The duration of the instruction on the qubits.
 
         Raises:
             TranspilerError: No duration is defined for the instruction.
@@ -109,6 +99,9 @@ class InstructionDurations:
         if isinstance(inst_name, Barrier):
             return 0
         elif isinstance(inst_name, Delay):
+            if inst_name.unit != self.unit:
+                raise TranspilerError("unit of delay (currently %s) must be '%s', consistent "
+                                      "with other instructions" % (inst_name.unit, self.unit))
             return inst_name.duration
 
         if isinstance(inst_name, Instruction):
@@ -140,6 +133,6 @@ class InstructionDurations:
         raise TranspilerError("No value is found for key={}".format(key))
 
 
-InstructionDurationsType = Union[List[Tuple[str, Optional[Iterable[int]], int]],
+InstructionDurationsType = Union[List[Tuple[str, Optional[Iterable[int]], float]],
                                  InstructionDurations]
 """List of tuples representing (instruction name, qubits indices, duration)."""

@@ -15,9 +15,10 @@
 """Test scheduled circuit (quantum circuit with duration)."""
 
 from qiskit import QuantumCircuit, transpile, execute, QiskitError
-from qiskit.circuit import Parameter
+from qiskit.circuit.duration import duration_in_dt
 from qiskit.test.mock.backends import FakeParis
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
 
 from qiskit.test.base import QiskitTestCase
 
@@ -26,6 +27,7 @@ class TestScheduledCircuit(QiskitTestCase):
     """Test scheduled circuit (quantum circuit with duration)."""
     def setUp(self):
         self.backend = FakeParis()
+        self.dt = self.backend.configuration().dt
 
     def test_cannot_execute_delay_circuit_when_schedule_circuit_off(self):
         qc = QuantumCircuit(2)
@@ -37,19 +39,21 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def test_transpile_t1_circuit(self):
         qc = QuantumCircuit(1)
-        qc.x(0)  # 320
-        qc.delay(1000, 0)
-        qc.measure_all()  # 19200
+        qc.x(0)  # 320 [dt]
+        qc.delay(1000, 0, unit='ns')  # 4500 [dt]
+        qc.measure_all()  # 19200 [dt]
         scheduled = transpile(qc, backend=self.backend, scheduling_method='alap')
-        self.assertEqual(scheduled.duration, 20520)
+        duration = duration_in_dt(scheduled.duration, self.dt)
+        self.assertEqual(duration, 24020)
 
     def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)
         qc.h(0)
-        qc.delay(500, 1)
-        qc.cx(0, 1)
+        qc.delay(100, 1, unit='ns')  # 450 [dt]
+        qc.cx(0, 1)  # 1408 [dt]
         scheduled = transpile(qc, backend=self.backend, scheduling_method='alap')
-        self.assertEqual(scheduled.duration, 1908)
+        duration = duration_in_dt(scheduled.duration, self.dt)
+        self.assertEqual(duration, 1858)
 
     def test_transpile_delays_circuit_without_backend(self):
         qc = QuantumCircuit(2)
@@ -82,7 +86,7 @@ class TestScheduledCircuit(QiskitTestCase):
     def test_invalidate_schedule_circuit_if_new_instruction_is_appended(self):
         qc = QuantumCircuit(2)
         qc.h(0)
-        qc.delay(500, 1)
+        qc.delay(500*self.dt, 1, 's')
         qc.cx(0, 1)
         scheduled = transpile(qc,
                               backend=self.backend,
@@ -91,40 +95,11 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled.h(0)
         self.assertEqual(scheduled.duration, None)
 
-    def test_accept_bound_parameter_for_duration_of_delay(self):
-        param_duration = Parameter("T")
-        qc = QuantumCircuit(1)
-        qc.h(0)
-        qc.delay(param_duration, 0)
-        qc.h(0)
-        qc = qc.bind_parameters({param_duration: 500})
-        scheduled = transpile(qc, scheduling_method='alap',
-                              basis_gates=['u2'], instruction_durations=[('u2', 0, 200)])
-        self.assertEqual(scheduled.duration, 900)
-
-    def test_reject_unbound_parameter_for_duration_of_delay(self):
-        param_duration = Parameter("T")
-        qc = QuantumCircuit(1)
-        qc.h(0)
-        qc.delay(param_duration, 0)
-        qc.h(0)
-        # not bind parameter
-        with self.assertRaises(TranspilerError):
-            transpile(qc, scheduling_method='alap',
-                      basis_gates=['u2'], instruction_durations=[('u2', 0, 200)])
-
-    def test_instruction_durations_option_in_transpile(self):
+    def test_unit_None_for_my_own_duration_users(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        # overwrite backend's durations
-        scheduled = transpile(qc,
-                              backend=self.backend,
-                              scheduling_method='alap',
-                              instruction_durations=[('cx', [0, 1], 1000)]
-                              )
-        self.assertEqual(scheduled.duration, 1500)
         # accept None for qubits
         scheduled = transpile(qc,
                               basis_gates=['h', 'cx', 'delay'],
@@ -142,3 +117,45 @@ class TestScheduledCircuit(QiskitTestCase):
                                                      ('cx', [0, 1], 800)]
                               )
         self.assertEqual(scheduled.duration, 1300)
+
+    def test_unit_seconds_for_users_who_uses_durations_given_by_backend(self):
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500*self.dt, 1, 's')  # unit='s'
+        qc.cx(0, 1)
+        # usual case
+        scheduled = transpile(qc,
+                              backend=self.backend,  # unit='s'
+                              scheduling_method='alap'
+                              )
+        duration = duration_in_dt(scheduled.duration, self.dt)
+        self.assertEqual(duration, 1908)
+
+        # update durations
+        scheduled = transpile(qc,
+                              backend=self.backend,  # unit='s'
+                              scheduling_method='alap',
+                              instruction_durations=[('cx', [0, 1], 1000*self.dt)]  # implicit 's'
+                              )
+        duration = duration_in_dt(scheduled.duration, self.dt)
+        self.assertEqual(duration, 1500)
+
+        my_own_durations = InstructionDurations([('cx', [0, 1], 1000*self.dt)], unit='s')
+        scheduled = transpile(qc,
+                              backend=self.backend,  # unit='s'
+                              scheduling_method='alap',
+                              instruction_durations=my_own_durations  # explicit unit='s'
+                              )
+        duration = duration_in_dt(scheduled.duration, self.dt)
+        self.assertEqual(duration, 1500)
+
+    def test_error_if_units_of_durations_are_not_consistent(self):
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500*self.dt, 1)  # unit=None
+        qc.cx(0, 1)
+        with self.assertRaises(TranspilerError):
+            transpile(qc,
+                      backend=self.backend,  # unit='s'
+                      scheduling_method='alap',
+                      )

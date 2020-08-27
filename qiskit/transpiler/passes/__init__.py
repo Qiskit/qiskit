@@ -81,7 +81,6 @@ Scheduling
 
    ALAPSchedule
    ASAPSchedule
-   DelayInDt
 
 Circuit Analysis
 ================
@@ -176,7 +175,6 @@ from .synthesis import UnitarySynthesis
 # circuit scheduling
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import DelayInDt
 
 # additional utility passes
 from .utils import CheckMap
