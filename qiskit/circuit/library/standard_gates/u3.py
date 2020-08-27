@@ -201,7 +201,6 @@ class CU3Gate(ControlledGate):
             -self.params[0],
             -self.params[2],
             -self.params[1],
-            label=self.label,
             ctrl_state=self.ctrl_state
         )
 

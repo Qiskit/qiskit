@@ -210,7 +210,6 @@ class CUGate(ControlledGate):
             -self.params[2],
             -self.params[1],
             -self.params[3],
-            label=self.label,
             ctrl_state=self.ctrl_state
         )
 

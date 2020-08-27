@@ -186,7 +186,7 @@ class CRXGate(ControlledGate):
 
     def inverse(self):
         """Return inverse CRX gate (i.e. with the negative rotation angle)."""
-        return CRXGate(-self.params[0], label=self.label, ctrl_state=self.ctrl_state)
+        return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRX gate."""
