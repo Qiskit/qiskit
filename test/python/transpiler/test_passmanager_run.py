@@ -118,36 +118,31 @@ class TestPassManagerRun(QiskitTestCase):
         """Test if warning is raised or not after rerunning PassManager instance
         """
 
-        with warnings.catch_warnings(record=True) as w:
+        qr = QuantumRegister(4, 'qr')
+        circuit1 = QuantumCircuit(qr)
+        circuit1.h(qr[0])
+        circuit1.cx(qr[0], qr[1])
+        circuit1.cx(qr[1], qr[2])
+        circuit1.cx(qr[2], qr[3])
 
-            qr = QuantumRegister(4, 'qr')
-            circuit1 = QuantumCircuit(qr)
-            circuit1.h(qr[0])
-            circuit1.cx(qr[0], qr[1])
-            circuit1.cx(qr[1], qr[2])
-            circuit1.cx(qr[2], qr[3])
+        circuit2 = QuantumCircuit(qr)
+        circuit2.cx(qr[1], qr[2])
+        circuit2.cx(qr[0], qr[1])
+        circuit2.cx(qr[2], qr[3])
 
-            circuit2 = QuantumCircuit(qr)
-            circuit2.cx(qr[1], qr[2])
-            circuit2.cx(qr[0], qr[1])
-            circuit2.cx(qr[2], qr[3])
+        coupling_map = FakeMelbourne().configuration().coupling_map
+        basis_gates = FakeMelbourne().configuration().basis_gates
+        initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-            coupling_map = FakeMelbourne().configuration().coupling_map
-            basis_gates = FakeMelbourne().configuration().basis_gates
-            initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
+        pass_manager = level_1_pass_manager(PassManagerConfig(
+            basis_gates=basis_gates,
+            coupling_map=CouplingMap(coupling_map),
+            initial_layout=Layout.from_qubit_list(initial_layout),
+            seed_transpiler=42))
 
-            pass_manager = level_1_pass_manager(PassManagerConfig(
-                basis_gates=basis_gates,
-                coupling_map=CouplingMap(coupling_map),
-                initial_layout=Layout.from_qubit_list(initial_layout),
-                seed_transpiler=42))
+        circuits = [circuit1, circuit2]
 
-            circuits = [circuit1, circuit2]
-
+        with self.assertWarns(UserWarning, msg="Reusing a PassManager instance might lead to"
+                                               " unexpected results."):
             for circuit in circuits:
                 pass_manager.run(circuit)
-
-            self.assertEqual(len(w), 1)
-            self.assertEqual(
-                str(w[-1].message),
-                "Reusing a PassManager instance might lead to unexpected results.")
