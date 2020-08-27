@@ -63,6 +63,9 @@ class PassManager:
         self.max_iteration = max_iteration
         self.property_set = None
 
+        # A flag to raise warning whenever a PassManager instance is used more than once.
+        self._reuse_flag = False
+
     def append(
             self,
             passes: Union[BasePass, List[BasePass]],
@@ -207,7 +210,12 @@ class PassManager:
 
         Returns:
             The transformed circuit(s).
-        """
+        """   
+        # Checking if the same PassManager instance being used.
+        if self._reuse_flag:
+            warnings.warn("Reusing a PassManager instance might lead to unexpected results.")
+        self._reuse_flag = True
+
         if isinstance(circuits, QuantumCircuit):
             return self._run_single_circuit(circuits, output_name, callback)
         elif len(circuits) == 1:
