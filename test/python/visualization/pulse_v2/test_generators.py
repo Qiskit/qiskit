@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -304,7 +302,7 @@ class TestGenerators(QiskitTestCase):
         # data check
         self.assertEqual(obj.channel, pulse.DriveChannel(0))
         self.assertEqual(obj.latex, r'\Delta f = 1.00 ~{\rm MHz}')
-        self.assertEqual(obj.text, u'\u0394' + 'f=1.00 MHz')
+        self.assertEqual(obj.text, '\u0394' + 'f=1.00 MHz')
 
         # style check
         ref_style = {'zorder': self.style['formatter.layer.frame_change'],
