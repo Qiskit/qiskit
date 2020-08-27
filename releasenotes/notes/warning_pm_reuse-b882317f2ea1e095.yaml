@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The :class:`~qiskit.transpiler.passmanager.PassManager` instances might result in unexpected results when they are reused.
+    The :meth:`~qiskit.transpiler.passmanager.PassManager.run` now triggers a warning if it is called more than once.
