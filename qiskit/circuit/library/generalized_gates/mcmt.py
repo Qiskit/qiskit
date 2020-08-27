@@ -153,9 +153,9 @@ class MCMT(QuantumCircuit):
                         label)
         return super().control(num_ctrl_qubits, label, ctrl_state)
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return the inverse MCMT circuit, which is itself."""
-        return MCMT(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
+        return MCMT(self.gate, self.num_ctrl_qubits, self.num_target_qubits, label=label)
 
 
 class MCMTVChain(MCMT):
@@ -252,8 +252,8 @@ class MCMTVChain(MCMT):
                 self.ccx(control_qubits[j], ancilla_qubits[i], ancilla_qubits[i + 1])
             self.ccx(control_qubits[0], control_qubits[1], ancilla_qubits[0])
 
-    def inverse(self):
-        return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
+    def inverse(self, label=None):
+        return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits, label=label)
 
 
 # pylint:disable=unused-argument

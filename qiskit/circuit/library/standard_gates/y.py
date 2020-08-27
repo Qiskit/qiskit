@@ -99,9 +99,9 @@ class YGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self):
+    def inverse(self, label=None):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
-        return YGate()  # self-inverse
+        return YGate(label=label)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the Y gate."""
@@ -195,9 +195,9 @@ class CYGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverted CY gate (itself)."""
-        return CYGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
+        return CYGate(label=label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""

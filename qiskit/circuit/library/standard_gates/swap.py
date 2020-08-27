@@ -91,9 +91,9 @@ class SwapGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverse Swap gate (itself)."""
-        return SwapGate()  # self-inverse
+        return SwapGate(label=label)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the SWAP gate."""
@@ -220,9 +220,9 @@ class CSwapGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverse CSwap gate (itself)."""
-        return CSwapGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
+        return CSwapGate(label=label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""

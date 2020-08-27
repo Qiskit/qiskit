@@ -105,9 +105,9 @@ class XGate(Gate):
         gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
+    def inverse(self, label=None):
         r"""Return inverted X gate (itself)."""
-        return XGate()  # self-inverse
+        return XGate(label=label)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the X gate."""
@@ -199,9 +199,9 @@ class CXGate(ControlledGate):
         gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverted CX gate (itself)."""
-        return CXGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
+        return CXGate(label=label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CX gate."""
@@ -339,9 +339,9 @@ class CCXGate(ControlledGate):
         gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return an inverted CCX gate (also a CCX)."""
-        return CCXGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
+        return CCXGate(label=label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CCX gate."""
@@ -509,9 +509,9 @@ class C3XGate(ControlledGate):
         gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Invert this gate. The C3X is its own inverse."""
-        return C3XGate(angle=self._angle, label=self.label, ctrl_state=self.ctrl_state)
+        return C3XGate(angle=self._angle, label=label, ctrl_state=self.ctrl_state)
 
     # This matrix is only correct if the angle is pi/4
     # def to_matrix(self):
@@ -699,9 +699,9 @@ class C4XGate(ControlledGate):
         gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Invert this gate. The C4X is its own inverse."""
-        return C4XGate(label=self.label, ctrl_state=self.ctrl_state)
+        return C4XGate(label=label, ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the C4X gate."""

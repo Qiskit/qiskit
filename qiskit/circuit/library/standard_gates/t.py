@@ -65,9 +65,9 @@ class TGate(Gate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverse T gate (i.e. Tdg)."""
-        return TdgGate()
+        return TdgGate(label=label)
 
     def to_matrix(self):
         """Return a numpy.array for the T gate."""
@@ -121,9 +121,9 @@ class TdgGate(Gate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverse Tdg gate (i.e. T)."""
-        return TGate()
+        return TGate(label=label)
 
     def to_matrix(self):
         """Return a numpy.array for the inverse T gate."""

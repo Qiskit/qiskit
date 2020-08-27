@@ -92,12 +92,12 @@ class RZGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def inverse(self):
+    def inverse(self, label=None):
         r"""Return inverted RZ gate
 
         :math:`RZ(\lambda){\dagger} = RZ(-\lambda)`
         """
-        return RZGate(-self.params[0])
+        return RZGate(-self.params[0], label=label)
 
     def to_matrix(self):
         """Return a numpy.array for the RZ gate."""
@@ -196,9 +196,9 @@ class CRZGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
-        return CRZGate(-self.params[0], label=self.label, ctrl_state=self.ctrl_state)
+        return CRZGate(-self.params[0], label=label, ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRZ gate."""

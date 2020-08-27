@@ -87,9 +87,9 @@ class HGate(Gate):
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                ctrl_state=ctrl_state)
 
-    def inverse(self):
+    def inverse(self, label=None):
         r"""Return inverted H gate (itself)."""
-        return HGate()  # self-inverse
+        return HGate(label=label)  # self-inverse
 
     def to_matrix(self):
         """Return a Numpy.array for the H gate."""
@@ -197,9 +197,9 @@ class CHGate(ControlledGate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         """Return inverted CH gate (itself)."""
-        return CHGate(label=self.label, ctrl_state=self.ctrl_state)  # self-inverse
+        return CHGate(label=label, ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""

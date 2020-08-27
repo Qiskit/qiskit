@@ -72,12 +72,12 @@ class U2Gate(Gate):
         qc._data = rules
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, label=None):
         r"""Return inverted U2 gate.
 
         :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
         """
-        return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
+        return U2Gate(-self.params[1] - pi, -self.params[0] + pi, label=label)
 
     def to_matrix(self):
         """Return a Numpy.array for the U2 gate."""
