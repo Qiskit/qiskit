@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -214,8 +212,7 @@ class FlowController():
         self.options = options
 
     def __iter__(self):
-        for pass_ in self.passes:
-            yield pass_
+        yield from self.passes
 
     def dump_passes(self):
         """Fetches the passes added to this flow controller.
@@ -303,8 +300,7 @@ class DoWhileController(FlowController):
 
     def __iter__(self):
         for _ in range(self.max_iteration):
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
             if not self.do_while():
                 return
@@ -322,8 +318,7 @@ class ConditionalController(FlowController):
 
     def __iter__(self):
         if self.condition():
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
 
 # Default controllers

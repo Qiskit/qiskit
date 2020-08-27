@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -77,11 +75,7 @@ class MergeAdjacentBarriers(TransformationPass):
                     new_dag.apply_operation_back(Barrier(len(qubits)), qargs=list(qubits))
             else:
                 # copy the condition over too
-                if node.condition:
-                    new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs,
-                                                 condition=node.condition)
-                else:
-                    new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
+                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
         return new_dag
 
     @staticmethod

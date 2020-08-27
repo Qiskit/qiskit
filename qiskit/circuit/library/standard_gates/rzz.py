@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -89,30 +87,30 @@ class RZZGate(Gate):
         """
         gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
         """
-        from .u1 import U1Gate
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        definition = []
+        from .rz import RZGate
         q = QuantumRegister(2, 'q')
-        rule = [
+        theta = self.params[0]
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0]), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
         return RZZGate(-self.params[0])
 
-    # TODO: this is the correct matrix and is equal to the definition above,
-    # however the control mechanism cannot distinguish U1 and RZ yet.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZZ gate."""
-    #    import numpy
-    #    theta = float(self.params[0])
-    #    return numpy.array([[numpy.exp(-1j*theta/2), 0, 0, 0],
-    #                     [0, numpy.exp(1j*theta/2), 0, 0],
-    #                     [0, 0, numpy.exp(1j*theta/2), 0],
-    #                     [0, 0, 0, numpy.exp(-1j*theta/2)]], dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the RZZ gate."""
+        import numpy
+        itheta2 = 1j * float(self.params[0]) / 2
+        return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
+                            [0, numpy.exp(itheta2), 0, 0],
+                            [0, 0, numpy.exp(itheta2), 0],
+                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=complex)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -92,11 +90,11 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         eq_lib = EquivalenceLibrary()
 
         gate = TestCompositeGate()
-
         q = QuantumRegister(1, 'q')
-        gate.definition = [(TestGate(), [q[0]], [])]
+        gate.definition = QuantumCircuit(q)
+        gate.definition.data = [(TestGate(), [q[0]], [])]
 
-        qc = QuantumCircuit(1)
+        qc = QuantumCircuit(q)
         qc.append(gate, [0])
 
         dag = circuit_to_dag(qc)
@@ -121,7 +119,8 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         gate = TestCompositeGate()
 
         q = QuantumRegister(1, 'q')
-        gate.definition = [(TestGate(), [q[0]], [])]
+        gate.definition = QuantumCircuit(q)
+        gate.definition.data = [(TestGate(), [q[0]], [])]
 
         qc = QuantumCircuit(1)
         qc.append(gate, [0])

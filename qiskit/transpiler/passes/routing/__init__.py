@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -18,3 +16,4 @@ from .basic_swap import BasicSwap
 from .layout_transformation import LayoutTransformation
 from .lookahead_swap import LookaheadSwap
 from .stochastic_swap import StochasticSwap
+from .sabre_swap import SabreSwap

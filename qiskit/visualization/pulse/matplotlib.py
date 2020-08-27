@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -17,7 +15,6 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-import warnings
 from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
@@ -33,8 +30,7 @@ from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel, Channel)
-from qiskit.pulse.commands import FrameChangeInstruction
-from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Play,
+from qiskit.pulse import (Waveform, SamplePulse, Snapshot, Play,
                           Acquire, PulseError, ParametricPulse, SetFrequency, ShiftPhase,
                           Instruction, ScheduleComponent, ShiftFrequency, SetPhase)
 
@@ -71,9 +67,7 @@ class EventsOutputChannels:
             start_time: Starting time of instruction
             instruction: Instruction object to be added
         """
-        if instruction.command is not None:
-            pulse = instruction.command
-        elif isinstance(instruction, Play):
+        if isinstance(instruction, Play):
             pulse = instruction.pulse
         else:
             pulse = instruction
@@ -91,7 +85,7 @@ class EventsOutputChannels:
         return self._waveform[self.t0:self.tf]
 
     @property
-    def framechanges(self) -> Dict[int, FrameChangeInstruction]:
+    def framechanges(self) -> Dict[int, ShiftPhase]:
         """Get frame changes."""
         if self._framechanges is None:
             self._build_waveform()
@@ -139,7 +133,7 @@ class EventsOutputChannels:
         return self._trim(self._snapshots)
 
     @property
-    def labels(self) -> Dict[int, Union[SamplePulse, Acquire]]:
+    def labels(self) -> Dict[int, Union[Waveform, Acquire]]:
         """Get labels."""
         if self._labels is None:
             self._build_waveform()
@@ -205,7 +199,6 @@ class EventsOutputChannels:
         fc = 0
         pv = np.zeros(self.tf + 1, dtype=np.complex128)
         wf = np.zeros(self.tf + 1, dtype=np.complex128)
-        last_pv = None
         for time, commands in sorted(self.pulses.items()):
             if time > self.tf:
                 break
@@ -213,7 +206,7 @@ class EventsOutputChannels:
             tmp_set_phase = 0
             tmp_sf = None
             for command in commands:
-                if isinstance(command, (FrameChange, ShiftPhase)):
+                if isinstance(command, ShiftPhase):
                     tmp_fc += command.phase
                     pv[time:] = 0
                 elif isinstance(command, SetPhase):
@@ -233,25 +226,16 @@ class EventsOutputChannels:
                 fc = tmp_set_phase
             if tmp_sf is not None:
                 self._frequencychanges[time] = tmp_sf
-            for command in commands:
-                if isinstance(command, PersistentValue):
-                    pv[time:] = np.exp(1j*fc) * command.value
-                    last_pv = (time, command)
-                    break
 
             for command in commands:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
                 if isinstance(command, ParametricPulse):
-                    command = command.get_sample_pulse()
-                if isinstance(command, SamplePulse):
+                    command = command.get_waveform()
+                if isinstance(command, (Waveform, SamplePulse)):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
                     self._labels[time] = (tf, command)
-                    if last_pv is not None:
-                        pv_cmd = last_pv[1]
-                        self._labels[last_pv[0]] = (time, pv_cmd)
-                        last_pv = None
 
                 elif isinstance(command, Acquire):
                     wf[time:tf] = np.ones(tf - time)
@@ -276,7 +260,7 @@ class EventsOutputChannels:
         return events_in_time_range
 
 
-class SamplePulseDrawer:
+class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
     def __init__(self, style: PulseStyle):
@@ -287,31 +271,27 @@ class SamplePulseDrawer:
         """
         self.style = style or PulseStyle()
 
-    def draw(self, pulse: SamplePulse,
+    def draw(self, pulse: Waveform,
              dt: float = 1.0,
              interp_method: Callable = None,
-             scale: float = 1, scaling: float = None):
+             scale: float = 1):
         """Draw figure.
 
         Args:
-            pulse: SamplePulse to draw.
+            pulse: Waveform to draw.
             dt: time interval.
             interp_method: interpolation function.
             scale: Relative visual scaling of waveform amplitudes.
-            scaling: Deprecated, see `scale`.
 
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
-        figure = plt.figure()
+        # If these self.style.dpi or self.style.figsize are None, they will
+        # revert back to their default rcParam keys.
+        figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
 
-        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
 
@@ -339,7 +319,10 @@ class SamplePulseDrawer:
 
         bbox = ax.get_position()
 
-        if self.style.title_font_size > 0:
+        # This check is here for backwards compatibility. Before, the check was around
+        # the suptitle line, however since the font style can take on a type of None
+        # we need to unfortunately check both the type and the value of the object.
+        if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
             figure.suptitle(str(pulse.name),
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,
@@ -373,7 +356,7 @@ class ScheduleDrawer:
             channels: Channels to plot.
             t0: Start time of plot.
             tf: End time of plot.
-            show_framechange_channels: Plot channels only with FrameChanges.
+            show_framechange_channels: Plot channels only with FrameChanges (ShiftPhase).
 
         Returns:
             channels: All channels.
@@ -392,7 +375,7 @@ class ScheduleDrawer:
         # take channels that do not only contain framechanges
         else:
             for start_time, instruction in schedule.instructions:
-                if not isinstance(instruction, (FrameChangeInstruction, ShiftPhase, SetPhase)):
+                if not isinstance(instruction, (ShiftPhase, SetPhase)):
                     _channels.update(instruction.channels)
 
         _channels.update(channels)
@@ -516,14 +499,14 @@ class ScheduleDrawer:
             # table area size
             ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-            max_size = self.style.max_table_ratio * self.style.figsize[1]
+            max_size = self.style.max_table_ratio * figure.get_size_inches()[1]
             max_rows = np.floor(max_size/self.style.fig_unit_h_table/ncols)
             nrows = int(min(nrows, max_rows))
             # don't overflow plot with table data
             table_data = table_data[:int(nrows*ncols)]
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
-            h_waves = (self.style.figsize[1] - h_table)
+            h_waves = (figure.get_size_inches()[1] - h_table)
 
             # create subplots
             gs = gridspec.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
@@ -556,8 +539,6 @@ class ScheduleDrawer:
             tb = None
             ax = figure.add_subplot(111)
 
-        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
-
         return tb, ax
 
     @staticmethod
@@ -575,11 +556,11 @@ class ScheduleDrawer:
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
+                    ax.annotate(s="\u25D8", xy=(time, y0), xytext=(time, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax,
-                           fcs: Dict[int, FrameChangeInstruction],
+                           fcs: Dict[int, ShiftPhase],
                            y0: float) -> bool:
         """Draw frame change of given channel to given mpl axis.
 
@@ -631,7 +612,7 @@ class ScheduleDrawer:
         return color
 
     @staticmethod
-    def _prev_label_at_time(prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
+    def _prev_label_at_time(prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                             time: int) -> bool:
         """Check overlap of pulses with pervious channels.
 
@@ -649,8 +630,8 @@ class ScheduleDrawer:
         return False
 
     def _draw_labels(self, ax,
-                     labels: Dict[int, Union[SamplePulse, Acquire]],
-                     prev_labels: List[Dict[int, Union[SamplePulse, Acquire]]],
+                     labels: Dict[int, Union[Waveform, Acquire]],
+                     prev_labels: List[Dict[int, Union[Waveform, Acquire]]],
                      y0: float) -> None:
         """Draw label of pulse instructions on given mpl axis.
 
@@ -661,9 +642,7 @@ class ScheduleDrawer:
             y0: vertical position to draw the labels.
         """
         for t0, (tf, cmd) in labels.items():
-            if isinstance(cmd, PersistentValue):
-                name = cmd.name if cmd.name else 'pv'
-            elif isinstance(cmd, Acquire):
+            if isinstance(cmd, Acquire):
                 name = cmd.name if cmd.name else 'acquire'
             else:
                 name = cmd.name
@@ -781,9 +760,9 @@ class ScheduleDrawer:
              plot_range: Tuple[Union[int, float], Union[int, float]],
              scale: float = None,
              channel_scales: Dict[Channel, float] = None,
-             plot_all: bool = True, table: bool = True,
+             plot_all: bool = True, table: bool = False,
              label: bool = False, framechange: bool = True,
-             scaling: float = None, channels: List[Channel] = None,
+             channels: List[Channel] = None,
              show_framechange_channels: bool = True):
         """Draw figure.
 
@@ -803,7 +782,6 @@ class ScheduleDrawer:
             table: When set `True` draw event table for supported commands.
             label: When set `True` draw label for individual instructions.
             framechange: When set `True` draw framechange indicators.
-            scaling: Deprecated, see `scale`.
             channels: A list of channel names to plot.
                 All non-empty channels are shown if not provided.
             show_framechange_channels: When set `True` plot channels
@@ -815,11 +793,7 @@ class ScheduleDrawer:
         Raises:
             VisualizationError: When schedule cannot be drawn
         """
-        if scaling is not None:
-            warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                          DeprecationWarning, 3)
-            scale = scaling
-        figure = plt.figure()
+        figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         if channels is None:
             channels = []
@@ -849,7 +823,6 @@ class ScheduleDrawer:
                                                    show_framechange_channels)
 
         # count numbers of valid waveform
-
         scale_dict = self._scale_channels(output_channels,
                                           scale=scale,
                                           channel_scales=channel_scales,
@@ -861,7 +834,6 @@ class ScheduleDrawer:
         else:
             tb = None
             ax = figure.add_subplot(111)
-            figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         ax.set_facecolor(self.style.bg_color)
 
@@ -887,7 +859,10 @@ class ScheduleDrawer:
         else:
             bbox = ax.get_position()
 
-        if self.style.title_font_size > 0:
+        # This check is here for backwards compatibility. Before, the check was around
+        # the suptitle line, however since the font style can take on a type of None
+        # we need to unfortunately check both the type and the value of the object.
+        if isinstance(self.style.title_font_size, int) and self.style.title_font_size > 0:
             figure.suptitle(str(schedule.name),
                             fontsize=self.style.title_font_size,
                             y=bbox.y1 + 0.02,

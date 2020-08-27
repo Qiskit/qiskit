@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -27,3 +25,11 @@ class PulseError(QiskitError):
     def __str__(self):
         """Return the message."""
         return repr(self.message)
+
+
+class BackendNotSet(PulseError):
+    """Raised if the builder context does not have a backend."""
+
+
+class NoActiveBuilder(PulseError):
+    """Raised if no builder context is active."""

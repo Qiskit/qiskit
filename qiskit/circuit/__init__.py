@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -180,6 +178,8 @@ Quantum Circuit Construction
    Qubit
    ClassicalRegister
    Clbit
+   AncillaRegister
+   AncillaQubit
 
 Gates and Instructions
 ----------------------
@@ -215,7 +215,7 @@ Random Circuits
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate

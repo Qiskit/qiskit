@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,9 +13,9 @@
 """Unroll a circuit to a given basis."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import ControlledGate
+from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
 class Unroller(TransformationPass):
@@ -52,7 +50,6 @@ class Unroller(TransformationPass):
         """
         if self.basis is None:
             return dag
-
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
@@ -66,10 +63,9 @@ class Unroller(TransformationPass):
                     pass
                 else:
                     continue
-
             # TODO: allow choosing other possible decompositions
             try:
-                rule = node.op.definition
+                rule = node.op.definition.data
             except TypeError as err:
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
@@ -79,11 +75,13 @@ class Unroller(TransformationPass):
             # different that the width of the node.
             while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
                 if rule[0][0].name in self.basis:
+                    if node.op.definition and node.op.definition.global_phase:
+                        dag.global_phase += node.op.definition.global_phase
                     dag.substitute_node(node, rule[0][0], inplace=True)
                     break
                 try:
-                    rule = rule[0][0].definition
-                except TypeError as err:
+                    rule = rule[0][0].definition.data
+                except (TypeError, AttributeError) as err:
                     raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
             else:
@@ -95,20 +93,12 @@ class Unroller(TransformationPass):
                     raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
                                       "No rule to expand instruction %s." %
                                       (str(self.basis), node.op.name))
-
-                # hacky way to build a dag on the same register as the rule is defined
-                # TODO: need anonymous rules to address wires by index
-                decomposition = DAGCircuit()
-                qregs = {qb.register for inst in rule for qb in inst[1]}
-                cregs = {cb.register for inst in rule for cb in inst[2]}
-                for qreg in qregs:
-                    decomposition.add_qreg(qreg)
-                for creg in cregs:
-                    decomposition.add_creg(creg)
-                for inst in rule:
-                    decomposition.apply_operation_back(*inst)
-
+                decomposition = circuit_to_dag(node.op.definition)
                 unrolled_dag = self.run(decomposition)  # recursively unroll ops
+                if node.op.definition and node.op.definition.global_phase:
+                    dag.global_phase += node.op.definition.global_phase
+                if unrolled_dag.global_phase:
+                    dag.global_phase += unrolled_dag.global_phase
+                    unrolled_dag.global_phase = 0
                 dag.substitute_node_with_dag(node, unrolled_dag)
-
         return dag

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -60,17 +58,18 @@ class SwapGate(Gate):
         """
         gate swap a,b { cx a,b; cx b,a; cx a,b; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SWAP gate.
@@ -104,17 +103,7 @@ class SwapGate(Gate):
                             [0, 0, 0, 1]], dtype=complex)
 
 
-class CSwapMeta(type):
-    """A Metaclass to ensure that CSwapGate and FredkinGate are of the same type.
-
-    Can be removed when FredkinGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CSwapGate, FredkinGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CSwapGate(ControlledGate, metaclass=CSwapMeta):
+class CSwapGate(ControlledGate):
     r"""Controlled-X gate.
 
     **Circuit symbol:**
@@ -218,17 +207,18 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
           cx c,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate, CCXGate
-        definition = []
         q = QuantumRegister(3, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (CXGate(), [q[2], q[1]], []),
             (CCXGate(), [q[0], q[1], q[2]], []),
             (CXGate(), [q[2], q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
@@ -240,15 +230,3 @@ class CSwapGate(ControlledGate, metaclass=CSwapMeta):
             return self._matrix1
         else:
             return self._matrix0
-
-
-class FredkinGate(CSwapGate, metaclass=CSwapMeta):
-    """The deprecated CSwapGate class."""
-
-    def __init__(self):
-        import warnings
-        warnings.warn('The class FredkinGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CSwapGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__()

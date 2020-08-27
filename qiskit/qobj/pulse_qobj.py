@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -20,13 +18,14 @@
 import copy
 import json
 import pprint
+from typing import Union, List
 
 import numpy
 
-from qiskit.qobj.qasm_qobj import QobjDictField
-from qiskit.qobj.qasm_qobj import QobjHeader
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
-from qiskit.qobj.qasm_qobj import validator
+from qiskit.qobj.common import QobjDictField
+from qiskit.qobj.common import QobjHeader
+from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.qobj.common import validator
 
 
 class QobjMeasurementOption:
@@ -177,8 +176,8 @@ class PulseQobjInstruction:
 
     def __repr__(self):
         out = "PulseQobjInstruction(name='%s', t0=%s" % (self.name, self.t0)
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
+        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
+                     'duration', 'qubits', 'memory_slot', 'register_slot',
                      'label', 'type', 'pulse_shape', 'parameters']:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
@@ -192,8 +191,8 @@ class PulseQobjInstruction:
     def __str__(self):
         out = "Instruction: %s\n" % self.name
         out += "\t\tt0: %s\n" % self.t0
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
+        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
+                     'duration', 'qubits', 'memory_slot', 'register_slot',
                      'label', 'type', 'pulse_shape', 'parameters']:
             if hasattr(self, attr):
                 out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
@@ -220,6 +219,9 @@ class PulseQobjInstruction:
             discriminators_obj = [
                 QobjMeasurementOption.from_dict(x) for x in discriminators]
             data['discriminators'] = discriminators_obj
+        if 'parameters' in data and 'amp' in data['parameters']:
+            data['parameters']['amp'] = _to_complex(data['parameters']['amp'])
+
         return cls(name, t0, **data)
 
     def __eq__(self, other):
@@ -227,6 +229,23 @@ class PulseQobjInstruction:
             if self.to_dict() == other.to_dict():
                 return True
         return False
+
+
+def _to_complex(value: Union[List[float], complex]) -> complex:
+    """Convert the input value to type ``complex``.
+    Args:
+        value: Value to be converted.
+    Returns:
+        Input value in ``complex``.
+    Raises:
+        TypeError: If the input value is not in the expected format.
+    """
+    if isinstance(value, list) and len(value) == 2:
+        return complex(value[0], value[1])
+    elif isinstance(value, complex):
+        return value
+
+    raise TypeError("{} is not in a valid complex number format.".format(value))
 
 
 class PulseQobjConfig(QobjDictField):
@@ -249,12 +268,14 @@ class PulseQobjConfig(QobjDictField):
                 measurement driver LO's in GHz.
             memory_slot_size (int): Size of each memory slot if the output is
                 Level 0.
-            rep_time (float): Time per program execution in sec. Must be from the list provided
-                by the backend (``backend.configuration().rep_times``).
+            rep_time (int): Time per program execution in sec. Must be from the list provided
+                by the backend (``backend.configuration().rep_times``). Defaults to the first entry
+                in ``backend.configuration().rep_times``.
             rep_delay (float): Delay between programs in sec. Only supported on certain
-                backends (``backend.configuration().dynamic_reprate_enabled``).
-                If supported, ``rep_delay`` will be used instead of ``rep_time``. Must be from the
-                list provided by the backend (``backend.configuration().rep_delays``).
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+                ``rep_delay`` will be used instead of ``rep_time`` and must be from the range
+                supplied by the backend (``backend.configuration().rep_delay_range``). Default is
+                ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
             max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
@@ -512,7 +533,7 @@ class PulseQobj:
         self.header = header or QobjHeader()
         self.experiments = experiments
         self.type = 'PULSE'
-        self.schema_version = '1.1.0'
+        self.schema_version = '1.2.0'
 
     def _validate_json_schema(self, out_dict):
         class PulseQobjEncoder(json.JSONEncoder):
@@ -575,7 +596,7 @@ class PulseQobj:
                 against the jsonschema for qobj spec.
 
         Returns:
-            dict: A dictionary representation of the QasmQobj object
+            dict: A dictionary representation of the PulseQobj object
         """
         out_dict = {
             'qobj_id': self.qobj_id,

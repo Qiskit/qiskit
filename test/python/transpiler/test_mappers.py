@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -77,7 +75,8 @@ import os
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SetLayout
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
+from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
@@ -281,6 +280,12 @@ class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
 class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using StochasticSwap."""
     pass_class = StochasticSwap
+    additional_args = {'seed': 0}
+
+
+class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using SabreSwap."""
+    pass_class = SabreSwap
     additional_args = {'seed': 0}
 
 

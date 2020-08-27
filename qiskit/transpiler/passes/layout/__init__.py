@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -18,6 +16,7 @@ from .set_layout import SetLayout
 from .trivial_layout import TrivialLayout
 from .dense_layout import DenseLayout
 from .noise_adaptive_layout import NoiseAdaptiveLayout
+from .sabre_layout import SabreLayout
 from .csp_layout import CSPLayout
 from .apply_layout import ApplyLayout
 from .layout_2q_distance import Layout2qDistance

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -41,6 +39,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._data = None
         self._qregs = []
         self._cregs = []
+        self._qubits = []
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -82,6 +81,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def qregs(self, qregs):
         """Set the quantum registers associated with the circuit."""
         self._qregs = qregs
+        self._qubits = [qbit for qreg in qregs for qbit in qreg]
         self._invalidate()
 
     @property

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -44,6 +42,10 @@ class ParameterExpression():
     def parameters(self):
         """Returns a set of the unbound Parameters in the expression."""
         return set(self._parameter_symbols.keys())
+
+    def conjugate(self):
+        """Return the conjugate, which is the ParameterExpression itself, since it is real."""
+        return self
 
     def bind(self, parameter_values):
         """Binds the provided set of parameters to their corresponding values.
