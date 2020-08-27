@@ -224,10 +224,12 @@ def _extract_common_calibrations(
     return experiments, QasmExperimentCalibrations(gates=common_calibrations)
 
 
-def assemble_circuits(circuits: List[QuantumCircuit],
-                      run_config: RunConfig,
-                      qobj_id: int,
-                      qobj_header: QobjHeader) -> QasmQobj:
+def assemble_circuits(
+        circuits: List[QuantumCircuit],
+        run_config: RunConfig,
+        qobj_id: int,
+        qobj_header: QobjHeader
+) -> QasmQobj:
     """Assembles a list of circuits into a qobj that can be run on the backend.
 
     Args:
