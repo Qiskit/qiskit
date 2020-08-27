@@ -361,7 +361,6 @@ class TestBasicSchedule(QiskitTestCase):
 
     def test_clbits_of_calibrated_measurements(self):
         """Test that calibrated measurements are only used when the classical bits also match."""
-        # TODO
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
