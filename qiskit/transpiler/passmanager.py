@@ -210,7 +210,7 @@ class PassManager:
 
         Returns:
             The transformed circuit(s).
-        """   
+        """
         # Checking if the same PassManager instance being used.
         if self._reuse_flag:
             warnings.warn("Reusing a PassManager instance might lead to unexpected results.")
