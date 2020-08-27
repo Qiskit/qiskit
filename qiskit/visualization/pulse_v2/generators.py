@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -529,7 +527,7 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
              'va': 'bottom',
              'ha': 'center'}
 
-    text_df = u'\u0394' + 'f={:.2f} MHz'.format(frame_data.frame.freq/1e6)
+    text_df = '\u0394' + 'f={:.2f} MHz'.format(frame_data.frame.freq/1e6)
     latex_df = r'\Delta f = {:.2f} ~{{\rm MHz}}'.format(frame_data.frame.freq/1e6)
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,11 +14,14 @@
 
 from functools import reduce
 from re import match
+from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
+from qiskit.result.result import Result
+from qiskit.result.postprocess import _bin_to_hex
 
 
-def marginal_counts(result, indices=None):
+def marginal_counts(result, indices=None, inplace=False):
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
@@ -28,7 +29,9 @@ def marginal_counts(result, indices=None):
             (a Result object or a dict of counts).
         indices (list(int) or None): The bit positions of interest
             to marginalize over. If None, do not marginalize at all.
-
+        inplace (bool): Default: False. Operates on the original Result
+            argument if True, leading to loss of original Job Result.
+            It has not effect if result is dict.
     Returns:
         Result or dict[str:int]: a dictionary with the observed counts,
             marginalized to only account for frequency of observations
@@ -37,9 +40,9 @@ def marginal_counts(result, indices=None):
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
     """
-    from qiskit.result.result import Result
-    from qiskit.result.postprocess import _bin_to_hex
     if isinstance(result, Result):
+        if not inplace:
+            result = deepcopy(result)
         for i, experiment_result in enumerate(result.results):
             counts = result.get_counts(i)
             new_counts = _marginalize(counts, indices)
@@ -49,9 +52,7 @@ def marginal_counts(result, indices=None):
             experiment_result.data.counts = new_counts_hex
             experiment_result.header.memory_slots = len(indices)
     else:
-        counts = result
-        new_counts = _marginalize(counts, indices)
-        result = new_counts
+        result = _marginalize(result, indices)
 
     return result
 
@@ -77,7 +78,7 @@ def _marginalize(counts, indices=None):
         return ret
 
     if not set(indices).issubset(set(range(num_clbits))):
-        raise QiskitError('indices must be in range [0, {0}].'.format(num_clbits-1))
+        raise QiskitError('indices must be in range [0, {}].'.format(num_clbits-1))
 
     # Sort the indices to keep in decending order
     # Since bitstrings have qubit-0 as least significant bit

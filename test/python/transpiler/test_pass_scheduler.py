@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -417,8 +415,7 @@ class DoXTimesController(FlowController):
 
     def __iter__(self):
         for _ in range(self.do_x_times):
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
 
 class TestControlFlowPlugin(SchedulerTestCase):
