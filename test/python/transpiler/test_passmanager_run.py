@@ -12,8 +12,6 @@
 
 """Tests PassManager.run()"""
 
-import warnings
-
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
