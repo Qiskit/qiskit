@@ -10,27 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=method-hidden,arguments-differ
 
 """Module providing definitions of QASM Qobj classes."""
 
-import os
+import copy
 import pprint
+import json
 from types import SimpleNamespace
 
-import json
-import fastjsonschema
+import numpy
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-
-
-path_part = 'schemas/qobj_schema.json'
-path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    path_part)
-with open(path) as fd:
-    json_schema = json.loads(fd.read())
-validator = fastjsonschema.compile(json_schema)
+from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
+from qiskit.qobj.common import QobjDictField, QobjHeader, validator
 
 
 class QasmQobjInstruction:
@@ -248,7 +241,7 @@ class QasmQobjConfig(SimpleNamespace):
 
     def __init__(self, shots=None, max_credits=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
-                 n_qubits=None, **kwargs):
+                 n_qubits=None, pulse_library=None, calibrations=None, **kwargs):
         """Model for RunConfig.
 
         Args:
@@ -259,6 +252,8 @@ class QasmQobjConfig(SimpleNamespace):
             parameter_binds (list[dict]): List of parameter bindings
             memory_slots (int): The number of memory slots on the device
             n_qubits (int): The number of qubits on the device
+            pulse_library (list): List of :class:`PulseLibraryItem`.
+            calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
@@ -283,6 +278,12 @@ class QasmQobjConfig(SimpleNamespace):
         if n_qubits is not None:
             self.n_qubits = n_qubits
 
+        if pulse_library is not None:
+            self.pulse_library = pulse_library
+
+        if calibrations is not None:
+            self.calibrations = calibrations
+
         if kwargs:
             self.__dict__.update(kwargs)
 
@@ -292,7 +293,14 @@ class QasmQobjConfig(SimpleNamespace):
         Returns:
             dict: The dictionary form of the QasmQobjConfig.
         """
-        return self.__dict__
+        out_dict = copy.copy(self.__dict__)
+        if hasattr(self, 'pulse_library'):
+            out_dict['pulse_library'] = [x.to_dict() for x in self.pulse_library]
+
+        if hasattr(self, 'calibrations'):
+            out_dict['calibrations'] = self.calibrations.to_dict()
+
+        return out_dict
 
     @classmethod
     def from_dict(cls, data):
@@ -304,57 +312,20 @@ class QasmQobjConfig(SimpleNamespace):
         Returns:
             QasmQobjConfig: The object from the input dictionary.
         """
+        if 'pulse_library' in data:
+            pulse_lib = data.pop('pulse_library')
+            pulse_lib_obj = [PulseLibraryItem.from_dict(x) for x in pulse_lib]
+            data['pulse_library'] = pulse_lib_obj
+
+        if 'calibrations' in data:
+            calibrations = data.pop('calibrations')
+            data['calibrations'] = QasmExperimentCalibrations.from_dict(calibrations)
+
         return cls(**data)
 
     def __eq__(self, other):
         if isinstance(other, QasmQobjConfig):
             if self.to_dict() == other.to_dict():
-                return True
-        return False
-
-
-class QobjDictField(SimpleNamespace):
-    """A class used to represent a dictionary field in Qobj
-
-    Exists as a backwards compatibility shim around a dictionary for Qobjs
-    previously constructed using marshmallow.
-    """
-
-    def __init__(self, **kwargs):
-        """Instantiate a new Qobj dict field object.
-
-        Args:
-            kwargs: arbitrary keyword arguments that can be accessed as
-                attributes of the object.
-        """
-        self.__dict__.update(kwargs)
-
-    def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj.
-
-        Returns:
-            dict: The dictionary form of the QobjHeader.
-
-        """
-        return self.__dict__
-
-    @classmethod
-    def from_dict(cls, data):
-        """Create a new QobjHeader object from a dictionary.
-
-        Args:
-            data (dict): A dictionary representing the QobjHeader to create. It
-                will be in the same format as output by :func:`to_dict`.
-
-        Returns:
-            QobjDictFieldr: The QobjDictField from the input dictionary.
-        """
-
-        return cls(**data)
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            if self.__dict__ == other.__dict__:
                 return True
         return False
 
@@ -366,17 +337,121 @@ class QasmQobjExperimentHeader(QobjDictField):
 
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single QASM experiment in the qobj."""
-    pass
+
+    def __init__(self, calibrations=None, **kwargs):
+        """
+        Args:
+            calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
+            kwargs: Additional free form key value fields to add to the
+                configuration.
+        """
+        if calibrations:
+            self.calibrations = calibrations
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        out_dict = copy.copy(self.__dict__)
+        if hasattr(self, 'calibrations'):
+            out_dict['calibrations'] = self.calibrations.to_dict()
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        if 'calibrations' in data:
+            calibrations = data.pop('calibrations')
+            data['calibrations'] = QasmExperimentCalibrations.from_dict(calibrations)
+        return cls(**data)
 
 
-class QobjHeader(QobjDictField):
-    """A class used to represent a dictionary header in Qobj objects."""
-    pass
+class QasmExperimentCalibrations:
+    """A container for any calibrations data. The gates attribute contains a list of
+    GateCalibrations.
+    """
+
+    def __init__(self, gates):
+        """
+        Initialize a container for calibrations.
+
+        Args:
+            gates (list(GateCalibration))
+        """
+        self.gates = gates
+
+    def to_dict(self):
+        """Return a dictionary format representation of the calibrations.
+
+        Returns:
+            dict: The dictionary form of the GateCalibration.
+
+        """
+        out_dict = copy.copy(self.__dict__)
+        out_dict['gates'] = [x.to_dict() for x in self.gates]
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new GateCalibration object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the QasmExperimentCalibrations to
+                         create. It will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            QasmExperimentCalibrations: The QasmExperimentCalibrations from the input dictionary.
+        """
+        gates = data.pop('gates')
+        data['gates'] = [GateCalibration.from_dict(x) for x in gates]
+        return cls(**data)
 
 
-class QobjExperimentHeader(QobjHeader):
-    """A class representing a header dictionary for a Qobj Experiment."""
-    pass
+class GateCalibration:
+    """Each calibration specifies a unique gate by name, qubits and params, and
+    contains the Pulse instructions to implement it."""
+
+    def __init__(self, name, qubits, params, instructions):
+        """
+        Initialize a single gate calibration. Instructions may reference waveforms which should be
+        made available in the pulse_library.
+
+        Args:
+            name (str): Gate name.
+            qubits (list(int)): Qubits the gate applies to.
+            params (list(complex)): Gate parameter values, if any.
+            instructions (list(PulseQobjInstruction)): The gate implementation.
+        """
+        self.name = name
+        self.qubits = qubits
+        self.params = params
+        self.instructions = instructions
+
+    def __hash__(self):
+        return hash((self.name, tuple(self.qubits), tuple(self.params),
+                     tuple(str(inst) for inst in self.instructions)))
+
+    def to_dict(self):
+        """Return a dictionary format representation of the Gate Calibration.
+
+        Returns:
+            dict: The dictionary form of the GateCalibration.
+        """
+        out_dict = copy.copy(self.__dict__)
+        out_dict['instructions'] = [x.to_dict() for x in self.instructions]
+        return out_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new GateCalibration object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the GateCalibration to create. It
+                will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            GateCalibration: The GateCalibration from the input dictionary.
+        """
+        instructions = data.pop('instructions')
+        data['instructions'] = [PulseQobjInstruction.from_dict(x) for x in instructions]
+        return cls(**data)
 
 
 class QasmQobj:
@@ -403,7 +478,20 @@ class QasmQobj:
         self.experiments = experiments or []
         self.qobj_id = qobj_id
         self.type = 'QASM'
-        self.schema_version = '1.2.0'
+        self.schema_version = '1.3.0'
+
+    def _validate_json_schema(self, out_dict):
+        class QobjEncoder(json.JSONEncoder):
+            """A json encoder for qobj"""
+            def default(self, obj):
+                if isinstance(obj, numpy.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, complex):
+                    return (obj.real, obj.imag)
+                return json.JSONEncoder.default(self, obj)
+
+        json_str = json.dumps(out_dict, cls=QobjEncoder)
+        validator(json.loads(json_str))
 
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
@@ -460,12 +548,12 @@ class QasmQobj:
             'qobj_id': self.qobj_id,
             'header': self.header.to_dict(),
             'config': self.config.to_dict(),
-            'schema_version': '1.2.0',
+            'schema_version': self.schema_version,
             'type': 'QASM',
             'experiments': [x.to_dict() for x in self.experiments]
         }
         if validate:
-            validator(out_dict)
+            self._validate_json_schema(out_dict)
         return out_dict
 
     @classmethod

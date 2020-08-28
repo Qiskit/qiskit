@@ -280,6 +280,8 @@ be used to align all pulses as late as possible in a pulse program.
 .. autosummary::
     :toctree: ../stubs/
 
+    ~qiskit.pulse.builder.align_equispaced
+    ~qiskit.pulse.builder.align_func
     ~qiskit.pulse.builder.align_left
     ~qiskit.pulse.builder.align_right
     ~qiskit.pulse.builder.align_sequential
@@ -412,6 +414,8 @@ from qiskit.pulse.builder import (
     drive_channel,
     measure_channel,
     # Contexts.
+    align_equispaced,
+    align_func,
     align_left,
     align_right,
     align_sequential,
