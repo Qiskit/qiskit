@@ -14,50 +14,6 @@
 
 """
 Special data types.
-
-
-- PhaseFreqTuple:
-    Data set to represent a pair of floating values associated with a
-    phase and frequency of the frame of channel.
-
-    phase: Floating value associated with phase.
-    freq: Floating value associated with frequency.
-
-- InstructionTuple:
-    Type for representing instruction objects to draw.
-
-    Waveform and Frame type instructions are internally converted into this data format and
-    fed to the object generators.
-
-    t0: The time when this instruction is issued. This value is in units of cycle time dt.
-    dt: Time resolution of this system.
-    frame: `PhaseFreqTuple` object to represent the frame of this instruction.
-    inst: Pulse instruction object.
-
-- NonPulseTuple:
-    Data set to generate drawing objects.
-
-    Special instructions such as snapshot and relative barriers are internally converted
-    into this data format and fed to the object generators.
-
-    t0: The time when this instruction is issued. This value is in units of cycle time dt.
-    dt: Time resolution of this system.
-    inst: Pulse instruction object.
-
-- ChannelTuple:
-    Data set to generate drawing objects.
-
-    Channel information is internally represented in this data format.
-
-    channel: Pulse channel object.
-    scaling: Vertical scaling factor of the channel.
-
-- ComplexColors:
-    Data set to represent a pair of color code associated with a real and
-    an imaginary part of filled waveform colors.
-
-    real: Color code for the real part of waveform.
-    imaginary: Color code for the imaginary part of waveform.
 """
 
 from enum import Enum
@@ -66,13 +22,13 @@ from typing import NamedTuple, Union, List, Optional, NewType
 from qiskit import pulse
 
 
-# TODO: replace with dataclass when py3.5 support is removed.
-
-
 PhaseFreqTuple = NamedTuple(
     'PhaseFreqTuple',
     [('phase', float),
      ('freq', float)])
+PhaseFreqTuple.__doc__ = 'Data to represent a set of frequency and phase values.'
+PhaseFreqTuple.phase.__doc__ = 'Phase value in rad.'
+PhaseFreqTuple.freq.__doc__ = 'Frequency value in Hz.'
 
 
 InstructionTuple = NamedTuple(
@@ -81,31 +37,52 @@ InstructionTuple = NamedTuple(
      ('dt', Optional[float]),
      ('frame', PhaseFreqTuple),
      ('inst', Union[pulse.Instruction, List[pulse.Instruction]])])
+InstructionTuple.__doc__ = 'Data to represent pulse instruction for visualization.'
+InstructionTuple.t0.__doc__ = 'A time when the instruction is issued.'
+InstructionTuple.dt.__doc__ = 'System cycle time.'
+InstructionTuple.frame.__doc__ = 'A reference frame to run instruction.'
+InstructionTuple.inst.__doc__ = 'Pulse instruction.'
 
 
-NonPulseTuple = NamedTuple(
-    'NonPulseTuple',
+Barrier = NamedTuple(
+    'Barrier',
     [('t0', int),
      ('dt', Optional[float]),
-     ('inst', Union[pulse.Instruction, List[pulse.Instruction]])])
+     ('channels', List[pulse.channels.Channel])]
+)
+Barrier.__doc__ = 'Data to represent special pulse instruction of barrier.'
+Barrier.t0.__doc__ = 'A time when the instruction is issued.'
+Barrier.dt.__doc__ = 'System cycle time.'
+Barrier.channels.__doc__ = 'A list of channel associated with this barrier.'
 
 
-ChannelTuple = NamedTuple(
-    'ChannelTuple',
-    [('channel', pulse.channels.Channel),
-     ('scaling', float)])
+Snapshots = NamedTuple(
+    'Snapshots',
+    [('t0', int),
+     ('dt', Optional[float]),
+     ('channels', List[pulse.channels.SnapshotChannel])]
+)
+Snapshots.__doc__ = 'Data to represent special pulse instruction of snapshot.'
+Snapshots.t0.__doc__ = 'A time when the instruction is issued.'
+Snapshots.dt.__doc__ = 'System cycle time.'
+Snapshots.channels.__doc__ = 'A list of channel associated with this snapshot.'
+
+
+ChartAxis = NamedTuple(
+    'ChartHeader',
+    [('name', str)]
+)
+ChartAxis.__doc__ = 'Data to represent an axis information of chart object'
+ChartAxis.name.__doc__ = 'Name of this chart.'
 
 
 ComplexColors = NamedTuple(
     'ComplexColors',
     [('real', str),
      ('imaginary', str)])
-
-
-ChannelProperty = NamedTuple(
-    'ChannelProperty',
-    [('scale', float),
-     ('visible', bool)])
+ComplexColors.__doc__ = 'Data to represent a set of color codes for real and imaginary part.'
+ComplexColors.real.__doc__ = 'Color code of real part.'
+ComplexColors.imaginary.__doc__ = 'Color code of imaginary part.'
 
 
 class DrawingWaveform(str, Enum):
@@ -163,17 +140,13 @@ class AbstractCoordinate(str, Enum):
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
     LEFT: The horizontal coordinate at tf shifted by the right margin.
-    Y_MAX: The vertical coordinate at the top of the associated channel.
-    Y_MIN: The vertical coordinate at the bottom of the associated channel.
     """
     RIGHT = 'RIGHT'
     LEFT = 'LEFT'
-    Y_MAX = 'Y_MAX'
-    Y_MIN = 'Y_MIN'
 
 
 class WaveformChannel(pulse.channels.PulseChannel):
-    r"""Dummy channel to visualize a waveform."""
+    r"""Dummy channel that doesn't belong to specific pulse channel."""
     prefix = 'w'
 
     def __init__(self):
@@ -181,4 +154,8 @@ class WaveformChannel(pulse.channels.PulseChannel):
         super().__init__(0)
 
 
+# convenient type to represent union of drawing data
+DataTypes = NewType('DataType', Union[DrawingWaveform, DrawingLabel, DrawingLine, DrawingSymbol])
+
+# convenient type to represent union of values to represent a coordinate
 Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])

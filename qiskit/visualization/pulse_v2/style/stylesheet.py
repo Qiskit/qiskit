@@ -155,6 +155,33 @@ class QiskitPulseStyle(dict):
             else:
                 self.__setitem__(key, value)
 
+    @property
+    def formatter(self):
+        sub_dict = dict()
+        for key, value in self.items():
+            sub_keys = key.split('.')
+            if sub_keys[0] == 'formatter':
+                sub_dict['.'.join(sub_keys[1:])] = value
+        return sub_dict
+
+    @property
+    def generator(self):
+        sub_dict = dict()
+        for key, value in self.items():
+            sub_keys = key.split('.')
+            if sub_keys[0] == 'generator':
+                sub_dict['.'.join(sub_keys[1:])] = value
+        return sub_dict
+
+    @property
+    def layout(self):
+        sub_dict = dict()
+        for key, value in self.items():
+            sub_keys = key.split('.')
+            if sub_keys[0] == 'layout':
+                sub_dict['.'.join(sub_keys[1:])] = value
+        return sub_dict
+
 
 def default_style() -> Dict[str, Any]:
     """Define default values of the pulse stylesheet."""
@@ -217,7 +244,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.control.show_snapshot_channel': True,
         'formatter.control.show_acquire_channel': True,
         'formatter.control.show_empty_channel': True,
-        'formatter.control.auto_channel_scaling': True,
+        'formatter.control.auto_chart_scaling': True,
         'formatter.control.axis_break': True,
         'formatter.unicode_symbol.frame_change': u'\u21BA',
         'formatter.unicode_symbol.snapshot': u'\u21AF',

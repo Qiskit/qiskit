@@ -71,7 +71,7 @@ from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
 
-from qiskit.pulse import channels
+from qiskit import pulse
 from qiskit.visualization.pulse_v2 import types
 
 
@@ -81,33 +81,45 @@ class ElementaryData(ABC):
 
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
+                 channels: Optional[List[pulse.channels.Channel]],
                  meta: Optional[Dict[str, Any]],
-                 visible: bool,
                  ignore_scaling: bool,
                  styles: Optional[Dict[str, Any]]):
         """Create new drawing object.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channels: Pulse channel object bound to this drawing.
             meta: Meta data dictionary of the object.
-            visible: Set ``True`` to show the component on the canvas.
             ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
+        if channels and isinstance(channels, pulse.channels.Channel):
+            channels = List[channels]
+
         self.data_type = data_type
-        self.channel = channel
+        self.channels = channels or []
         self.meta = meta or dict()
-        self.visible = visible
         self.ignore_scaling = ignore_scaling
         self.styles = styles or dict()
 
     @property
     @abstractmethod
+    def vmax(self):
+        """Return maximum vertical value in this object."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def vmin(self):
+        """Return minimum vertical value in this object."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def data_key(self):
         """Return unique hash of this object."""
-        pass
+        raise NotImplementedError
 
     def __repr__(self):
         return "{}(type={}, key={})".format(self.__class__.__name__,
@@ -125,24 +137,22 @@ class FilledAreaData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
                  x: Union[np.ndarray, List[types.Coordinate]],
                  y1: Union[np.ndarray, List[types.Coordinate]],
                  y2: Union[np.ndarray, List[types.Coordinate]],
+                 channels: Optional[List[pulse.channels.Channel]] = None,
                  meta: Optional[Dict[str, Any]] = None,
-                 visible: bool = True,
                  ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of filled area.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channels: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
             y1: Series of vertical coordinate of upper boundary of filling area.
             y2: Series of vertical coordinate of lower boundary of filling area.
             meta: Meta data dictionary of the object.
-            visible: Set ``True`` to show the component on the canvas.
             ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
@@ -151,18 +161,27 @@ class FilledAreaData(ElementaryData):
         self.y2 = y2
 
         super().__init__(data_type=data_type,
-                         channel=channel,
+                         channels=channels,
                          meta=meta,
-                         visible=visible,
                          ignore_scaling=ignore_scaling,
                          styles=styles)
+
+    @property
+    def vmax(self):
+        """Return maximum vertical value in this object."""
+        return max(*self.y1, *self.y2)
+
+    @property
+    def vmin(self):
+        """Return minimum vertical value in this object."""
+        return min(*self.y1, *self.y2)
+
 
     @property
     def data_key(self):
         """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
-                         self.channel,
                          tuple(self.x),
                          tuple(self.y1),
                          tuple(self.y2))))
@@ -175,22 +194,20 @@ class LineData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
                  x: Union[np.ndarray, List[types.Coordinate]],
                  y: Union[np.ndarray, List[types.Coordinate]],
+                 channels: Optional[List[pulse.channels.Channel]] = None,
                  meta: Optional[Dict[str, Any]] = None,
-                 visible: bool = True,
                  ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of line data.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channels: Pulse channel object bound to this drawing.
             x: Series of horizontal coordinate that the object is drawn.
             y: Series of vertical coordinate that the object is drawn.
             meta: Meta data dictionary of the object.
-            visible: Set ``True`` to show the component on the canvas.
             ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
@@ -198,18 +215,26 @@ class LineData(ElementaryData):
         self.y = y
 
         super().__init__(data_type=data_type,
-                         channel=channel,
+                         channels=channels,
                          meta=meta,
-                         visible=visible,
                          ignore_scaling=ignore_scaling,
                          styles=styles)
+
+    @property
+    def vmax(self):
+        """Return maximum vertical value in this object."""
+        return max(self.y)
+
+    @property
+    def vmin(self):
+        """Return minimum vertical value in this object."""
+        return min(self.y)
 
     @property
     def data_key(self):
         """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
-                         self.channel,
                          tuple(self.x),
                          tuple(self.y))))
 
@@ -221,26 +246,24 @@ class TextData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
                  x: types.Coordinate,
                  y: types.Coordinate,
                  text: str,
                  latex: Optional[str] = None,
+                 channels: Optional[List[pulse.channels.Channel]] = None,
                  meta: Optional[Dict[str, Any]] = None,
-                 visible: bool = True,
                  ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object of text data.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            channels: Pulse channel object bound to this drawing.
             x: A horizontal coordinate that the object is drawn.
             y: A vertical coordinate that the object is drawn.
             text: String to show in the canvas.
             latex: Latex representation of the text (if backend supports latex drawing).
             meta: Meta data dictionary of the object.
-            visible: Set ``True`` to show the component on the canvas.
             ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
@@ -250,17 +273,25 @@ class TextData(ElementaryData):
         self.latex = latex or ''
 
         super().__init__(data_type=data_type,
-                         channel=channel,
+                         channels=channels,
                          meta=meta,
-                         visible=visible,
                          ignore_scaling=ignore_scaling,
                          styles=styles)
+
+    @property
+    def vmax(self):
+        """Return maximum vertical value in this object."""
+        return self.y
+
+    @property
+    def vmin(self):
+        """Return minimum vertical value in this object."""
+        return self.y
 
     @property
     def data_key(self):
         """Return unique hash of this object."""
         return str(hash((self.__class__.__name__,
                          self.data_type,
-                         self.channel,
                          self.x,
                          self.y)))

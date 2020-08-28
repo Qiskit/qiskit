@@ -142,13 +142,6 @@ class ChannelEvents:
 
         return ChannelEvents(waveforms, frames, channel)
 
-    def is_empty(self):
-        """Check if there is any nonzero waveforms in this channel."""
-        for waveform in self._waveforms.values():
-            if isinstance(waveform, (pulse.instructions.Play, pulse.instructions.Acquire)):
-                return False
-        return True
-
     def config(self,
                dt: float,
                init_frequency: float,
@@ -163,49 +156,6 @@ class ChannelEvents:
         self._dt = dt
         self._init_frequency = init_frequency
         self._init_phase = init_phase
-
-    def get_min_max(self,
-                    trange: Tuple[int, int]) -> Tuple[float, float]:
-        """Get minimum and maximum waveform value in this channel.
-
-        Args:
-            time_range: Time range to find min and max.
-
-        Returns:
-            Minimum and maximum waveform value within the specified time range.
-        """
-
-        if isinstance(self.channel, pulse.AcquireChannel):
-            # the min and max value of acquire channel is trivial
-            return 0, 1
-
-        sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
-        sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
-
-        # bind phase and frequency with instruction
-        phase = self._init_phase
-        min_val = 0
-        max_val = 0
-        for t0, inst in sorted_waveforms:
-            while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
-                _, frame_changes = sorted_frame_changes.pop()
-                phase, _ = self._calculate_current_frame(frame_changes, phase, 0)
-            if t0 not in range(*trange):
-                # ignore waveform if it is not in the requested time range
-                continue
-            # get sample value
-            if isinstance(inst, pulse.instructions.Play):
-                pulse_data = inst.pulse
-                if isinstance(pulse_data, pulse.ParametricPulse):
-                    pulse_data = pulse_data.get_waveform()
-                samples = np.array(pulse_data.samples, dtype=np.complex)
-                # apply phase modulation
-                if PULSE_STYLE['formatter.control.apply_phase_modulation']:
-                    samples *= np.exp(1j * phase)
-                max_val = max(*samples.real, *samples.imag, max_val)
-                min_val = min(*samples.real, *samples.imag, min_val)
-
-        return min_val, max_val
 
     def get_waveforms(self) -> Iterator[InstructionTuple]:
         """Return waveform type instructions with frame."""

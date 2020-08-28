@@ -54,40 +54,33 @@ dynamic update of drawings, the channel data can be updated with new preference:
 In this example, `DriveChannel(1)` will be removed from the output.
 """
 
+from copy import deepcopy
+from functools import partial
+from itertools import chain
+from typing import Union, List, Tuple, Iterator
+
 import numpy as np
-from typing import Union, Optional, Dict, List
 
 from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import events, types, drawing_objects, PULSE_STYLE, device_info
+from qiskit.visualization.pulse_v2 import events, types, drawing_objects, device_info
 from qiskit.visualization.pulse_v2.style.stylesheet import QiskitPulseStyle
 
 
-class Graph:
+class DrawerCanvas:
+    """Collection of `Chart` and configuration data.
 
-    def __init__(self, index):
-        self.index = index
-        self.cha
-        self.scale = 1.0
-        self.vmax = 0
-        self.vmin = 0
+    Pulse channels are associated with some `Chart` instance and
+    drawing data object is stored in the `Chart` instance.
 
-
-
-
-
-
-class DrawDataContainer:
-    """Data container for drawing objects."""
-
-    DEFAULT_DRAW_CHANNELS = tuple((pulse.DriveChannel,
-                                   pulse.ControlChannel,
-                                   pulse.MeasureChannel,
-                                   pulse.AcquireChannel))
+    Device, stylesheet, and some user preferences are stored in the `DrawingCanvas`
+    and the `Chart` instances are also attached to the `DrawerCanvas` as children.
+    Global configurations are accessed by those children to modify appearance of `Chart` output.
+    """
 
     def __init__(self,
                  stylesheet: QiskitPulseStyle,
-                 device: Optional[device_info.DrawerBackendInfo] = None):
+                 device: device_info.DrawerBackendInfo):
         """Create new data container with backend system information.
 
         Args:
@@ -95,26 +88,39 @@ class DrawDataContainer:
             device: Backend information to run the program.
         """
 
-        self.stylesheet = stylesheet
-        self.device = device or device_info.OpenPulseBackendInfo()
+        # stylesheet
+        self.formatter = stylesheet.formatter
+        self.generator = stylesheet.generator
+        self.layout = stylesheet.layout
 
-        self.graphs = []
+        # device info
+        self.device = device
 
-        self.global_time = None
+        # chart
+        self.charts = []
 
-        self.channels = set()
-        self.active_channels = []
-        self.chan_event_table = dict()
-        self.axis_breaks = []
+        # visible controls
+        self.disable_chans = set()
+        self.disable_types = set()
 
-        # drawing objects
-        self.drawings = []
+        # data scaling
+        self.chan_scales = dict()
 
-        # boundary box
-        self.bbox_top = 0
-        self.bbox_bottom = 0
-        self.bbox_left = 0
-        self.bbox_right = 0
+        # global time
+        self._time_range = (0, 0)
+        self._time_breaks = []
+
+    @property
+    def time_range(self):
+        """Return current time range to draw."""
+        return self._time_range
+
+    @time_range.setter
+    def time_range(self, new_range: Tuple[int, int]):
+        """Update time range to draw and update child charts."""
+        self._time_range = new_range
+        for chart in self.charts:
+            chart.update()
 
     def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
         """Load a program to draw.
@@ -132,6 +138,9 @@ class DrawDataContainer:
         else:
             raise VisualizationError('Data type %s is not supported.' % type(program))
 
+        # update time range
+        self.set_time_range(0, program.duration)
+
     def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
         """Load Waveform instance.
 
@@ -140,55 +149,33 @@ class DrawDataContainer:
         Args:
             program: `Waveform` to draw.
         """
+        chart_name = ''
+
+        chart = Chart(parent=self, name=chart_name)
+
+        # add waveform data
         sample_channel = types.WaveformChannel()
-        inst_tuple = types.InstructionTuple(t0=0,
-                                            dt=self.device.dt,
-                                            frame=types.PhaseFreqTuple(phase=0, freq=0),
-                                            inst=pulse.Play(program, sample_channel))
+        inst_data = types.InstructionTuple(t0=0,
+                                           dt=self.device.dt,
+                                           frame=types.PhaseFreqTuple(phase=0, freq=0),
+                                           inst=pulse.Play(program, sample_channel))
+        for gen in self.generator['waveform']:
+            obj_generator = partial(func=gen,
+                                    formatter=self.formatter,
+                                    device=self.device)
+            for data in obj_generator(inst_data):
+                chart.add_data(data)
 
-        self.set_time_range(0, program.duration)
+        # add chart axis
+        chart_header = types.ChartAxis(name=chart_name)
+        for gen in self.generator['chart']:
+            obj_generator = partial(func=gen,
+                                    formatter=self.formatter,
+                                    device=self.device)
+            for data in obj_generator(chart_header):
+                chart.add_data(data)
 
-        # generate waveform related elements
-        for gen in PULSE_STYLE['generator.waveform']:
-            for drawing in gen(inst_tuple):
-                self._replace_drawing(drawing)
-
-        # baseline
-        style = {'alpha': PULSE_STYLE['formatter.alpha.baseline'],
-                 'zorder': PULSE_STYLE['formatter.layer.baseline'],
-                 'linewidth': PULSE_STYLE['formatter.line_width.baseline'],
-                 'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
-                 'color': PULSE_STYLE['formatter.color.baseline']}
-
-        bline = drawing_objects.LineData(data_type=types.DrawingLine.BASELINE,
-                                         channel=sample_channel,
-                                         x=[types.AbstractCoordinate.LEFT,
-                                            types.AbstractCoordinate.RIGHT],
-                                         y=[0, 0],
-                                         styles=style)
-        self._replace_drawing(bline)
-
-        pulse_data = program if isinstance(program, pulse.Waveform) else program.get_waveform()
-        max_v = max(*pulse_data.samples.real, *pulse_data.samples.imag)
-        min_v = min(*pulse_data.samples.real, *pulse_data.samples.imag)
-
-        # calculate offset coordinate
-        offset = -PULSE_STYLE['formatter.margin.top'] - max_v
-
-        # calculate scaling
-        max_abs_val = max(abs(max_v), abs(min_v))
-        if max_abs_val < PULSE_STYLE['formatter.general.vertical_resolution'] * 100:
-            scale = 1.0
-        else:
-            scale = 1 / max_abs_val
-
-        for drawing in self.drawings:
-            drawing.visible = True
-            drawing.offset = offset
-            drawing.scale = scale
-
-        # update boundary box
-        self.bbox_bottom = offset - min_v - (PULSE_STYLE['formatter.margin.bottom'])
+        self.charts.append(chart)
 
     def _schedule_loader(self, program: pulse.Schedule):
         """Load Schedule instance.
@@ -198,48 +185,82 @@ class DrawDataContainer:
         Args:
             program: `Schedule` to draw.
         """
-        # load program by channel
-        for chan in program.channels:
-            if isinstance(chan, self.DEFAULT_DRAW_CHANNELS):
-                chan_event = events.ChannelEvents.load_program(program, chan)
-                chan_event.config(self.device.dt, self.device.get_channel_frequency(chan), 0)
-                self.chan_event_table[chan] = chan_event
-                self.channels.add(chan)
+        # initialize scale values
+        self.chan_scales = {chan: 1.0 for chan in program.channels}
 
-        # update time range
-        self.set_time_range(0, program.duration)
+        # create charts
+        mapper = self.layout['chart_channel_map']
+        for name, chans in mapper(channels=program.channels,
+                                  formatter=self.formatter,
+                                  device=self.device):
+            chart = Chart(parent=self, name=name)
 
-        # generate drawing objects
-        for chan, chan_event in self.chan_event_table.items():
-            # create drawing objects for waveform
-            for gen in PULSE_STYLE['generator.waveform']:
-                for drawing in sum(list(map(gen, chan_event.get_waveforms())), []):
-                    self._replace_drawing(drawing)
-            # create drawing objects for frame change
-            for gen in PULSE_STYLE['generator.frame']:
-                for drawing in sum(list(map(gen, chan_event.get_frame_changes())), []):
-                    self._replace_drawing(drawing)
-            # create channel info
-            chan_info = types.ChannelTuple(chan, 1.0)
-            for gen in PULSE_STYLE['generator.channel']:
-                for drawing in gen(chan_info):
-                    self._replace_drawing(drawing)
+            # add standard pulse instructions
+            for chan in chans:
+                chart.load_program(program=program, chan=chan)
 
-        # create snapshot
+            # add barriers
+            barrier_sched = program.filter(instruction_types=[pulse.instructions.RelativeBarrier],
+                                           channels=chans)
+            for t0, _ in barrier_sched.instructions:
+                inst_data = types.Barrier(t0, self.device.dt, chans)
+                for gen in self.generator['barrier']:
+                    obj_generator = partial(func=gen,
+                                            formatter=self.formatter,
+                                            device=self.device)
+                    for data in obj_generator(inst_data):
+                        chart.add_data(data)
+
+            # add chart axis
+            chart_header = types.ChartAxis(name=name)
+            for gen in self.generator['chart']:
+                obj_generator = partial(func=gen,
+                                        formatter=self.formatter,
+                                        device=self.device)
+                for data in obj_generator(chart_header):
+                    chart.add_data(data)
+
+            self.charts.append(chart)
+
+        # create snapshot chart
+        snapshot_chart = Chart(parent=self, name='snapshot')
+
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.Snapshot])
         for t0, inst in snapshot_sched.instructions:
-            inst_data = types.NonPulseTuple(t0, self.dt, inst)
-            for gen in PULSE_STYLE['generator.snapshot']:
-                for drawing in gen(inst_data):
-                    self._replace_drawing(drawing)
+            inst_data = types.Snapshots(t0, self.device.dt, inst.channels)
+            for gen in self.generator['snapshot']:
+                obj_generator = partial(func=gen,
+                                        formatter=self.formatter,
+                                        device=self.device)
+                for data in obj_generator(inst_data):
+                    snapshot_chart.add_data(data)
+        self.charts.append(snapshot_chart)
 
-        # create barrier
-        snapshot_sched = program.filter(instruction_types=[pulse.instructions.RelativeBarrier])
-        for t0, inst in snapshot_sched.instructions:
-            inst_data = types.NonPulseTuple(t0, self.dt, inst)
-            for gen in PULSE_STYLE['generator.barrier']:
-                for drawing in gen(inst_data):
-                    self._replace_drawing(drawing)
+        # calculate axis break
+        self._time_breaks = self._calculate_axis_break(program)
+
+    def _calculate_axis_break(self, program: pulse.Schedule) -> List[Tuple[int, int]]:
+        """A helper function to calculate axis break of long pulse sequence.
+
+        Args:
+            program: A schedule to calculate axis break.
+        """
+        axis_breaks = []
+
+        edges = set()
+        for t0, t1 in chain.from_iterable(program.timeslots.values()):
+            if t1 - t0 > 0:
+                edges.add(t0)
+                edges.add(t1)
+        edges = sorted(edges)
+
+        for t0, t1 in zip(edges[:-1], edges[1:]):
+            if t1 - t0 > self.formatter['axis_break.length']:
+                t_l = t0 + 0.5 * self.formatter['axis_break.max_length']
+                t_r = t1 - 0.5 * self.formatter['axis_break.max_length']
+                axis_breaks.append((t_l, t_r))
+
+        return axis_breaks
 
     def set_time_range(self,
                        t_start: Union[int, float],
@@ -247,7 +268,7 @@ class DrawDataContainer:
                        seconds: bool = True):
         """Set time range to draw.
 
-        The update to time range is applied after :py:method:`update_channel_property` is called.
+        All child chart instances are updated when time range is updated.
 
         Args:
             t_start: Left boundary of drawing in units of cycle time or real time.
@@ -265,239 +286,222 @@ class DrawDataContainer:
             else:
                 raise VisualizationError('Setting time range with SI units requires '
                                          'backend `dt` information.')
+        self.time_range = (t_start, t_end)
 
-        self.global_time = np.arange(t_start, t_end + 1)
+    def set_disable_channel(self,
+                            channel: pulse.channels.Channel,
+                            remove: bool = True):
+        """Interface method to control visibility of pulse channels.
 
-    def set_axis_break(self):
-        global_waveform_edges = set()
-
-        for drawing in self.drawings:
-            if drawing.data_type in [types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG] \
-                    and drawing.visible:
-                global_waveform_edges.add(drawing.x[0])
-                global_waveform_edges.add(drawing.x[-1])
-
-        global_waveform_edges = sorted(global_waveform_edges)
-
-        event_slacks = []
-        for ind in range(1, len(global_waveform_edges)):
-            event_slacks.append((global_waveform_edges[ind-1], global_waveform_edges[ind]))
-
-        for event_slack in event_slacks:
-            duration = event_slack[1] - event_slack[0]
-            if duration > PULSE_STYLE['formatter.axis_break.length']:
-                t0 = int(event_slack[0] + 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
-                t1 = int(event_slack[1] - 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
-                self._remove_time(t0, t1)
-
-    def update_channel_property(self,
-                                visible_channels: Optional[List[pulse.channels.Channel]] = None,
-                                scales: Optional[Dict[pulse.channels.Channel, float]] = None):
-        """Update channel properties.
-
-        This function updates the visibility and scaling of each channel.
-        Drawing objects generated by `generator.channel` are regenerated and replaced
-        according to the input channel preferences.
-        The `visible`, `scale` and `offset` attributes of each drawing object are also updated.
-
-        This function enables a plotter to dynamically update the appearance of the output image.
+        Specified object in the blocked list will not be shown.
 
         Args:
-            visible_channels: List of channels to show.
-            scales: Dictionary of scaling factors for channels.
+            channel: A pulse channel object to disable.
+            remove: Set `True` to disable, set `False` to enable.
         """
-        scales = scales or dict()
-
-        # arrange channels to show
-        self.active_channels = self._ordered_channels(visible_channels)
-
-        # new properties
-        chan_visible = {chan: False for chan in self.channels}
-        chan_offset = {chan: 0.0 for chan in self.channels}
-        chan_scale = {chan: 1.0 for chan in self.channels}
-
-        # update channel property
-        time_range = (self.bbox_left, self.bbox_right)
-        y0 = - PULSE_STYLE['formatter.margin.top']
-        y0_interval = PULSE_STYLE['formatter.margin.between_channel']
-        for chan in self.active_channels:
-            min_v, max_v = self.chan_event_table[chan].get_min_max(time_range)
-
-            # calculate scaling
-            if chan in scales:
-                # channel scale factor is specified by user
-                scale = scales[chan]
-            elif PULSE_STYLE['formatter.control.auto_channel_scaling']:
-                # auto scaling is enabled
-                max_abs_val = max(abs(max_v), abs(min_v))
-                if max_abs_val < PULSE_STYLE['formatter.general.vertical_resolution'] * 100:
-                    scale = 1.0
-                else:
-                    scale = 1 / max_abs_val
-            else:
-                # not specified by user, no auto scale, then apply default scaling
-                if isinstance(chan, pulse.DriveChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.drive']
-                elif isinstance(chan, pulse.ControlChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.control']
-                elif isinstance(chan, pulse.MeasureChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.measure']
-                elif isinstance(chan, pulse.AcquireChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.acquire']
-                else:
-                    scale = 1.0
-
-            # keep minimum space
-            _min_v = min(PULSE_STYLE['formatter.channel_scaling.min_height'], scale * min_v)
-            _max_v = max(PULSE_STYLE['formatter.channel_scaling.max_height'], scale * max_v)
-
-            # calculate offset coordinate
-            offset = y0 - _max_v
-
-            # update properties
-            chan_visible[chan] = True
-            chan_offset[chan] = offset
-            chan_scale[chan] = scale
-
-            y0 = offset - (abs(_min_v) + y0_interval)
-
-        # update drawing objects
-        for chan in self.channels:
-            # update channel info to replace scaling factor
-            chan_info = types.ChannelTuple(chan, chan_scale.get(chan, 1.0))
-            for gen in PULSE_STYLE['generator.channel']:
-                for drawing in gen(chan_info):
-                    self._replace_drawing(drawing)
-
-            # update existing drawings
-            for drawing in self.drawings:
-                if drawing.channel == chan:
-                    drawing.visible = chan_visible.get(chan, False)
-                    drawing.offset = chan_offset.get(chan, 0.0)
-                    drawing.scale = chan_scale.get(chan, 1.0)
-
-        # update boundary box
-        self.bbox_bottom = y0 - (PULSE_STYLE['formatter.margin.bottom'] - y0_interval)
-
-        # update axis break
-        if PULSE_STYLE['formatter.control.axis_break']:
-            self._horizontal_axis_break()
-
-    def _update_channel_property(self,
-                                 chan: pulse.channels.Channel,
-                                 default_scale: Optional[float] = None):
-        """
-        """
-
-        if default_scale is not None:
-            # user preference
-            scale = default_scale
+        if remove:
+            self.disable_chans.add(channel)
         else:
-            if PULSE_STYLE['formatter.control.auto_channel_scaling']:
-                # auto scale
-                time_range = (self.bbox_left, self.bbox_right)
-                max_abs_val = max(map(abs, self.chan_event_table[chan].get_min_max(time_range)))
+            self.disable_chans.discard(channel)
 
-                if max_abs_val < PULSE_STYLE['formatter.general.vertical_resolution'] * 100:
-                    scale = 1.0
-                else:
-                    scale = 1 / max_abs_val
-            else:
-                # default channel scale
-                if isinstance(chan, pulse.DriveChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.drive']
-                elif isinstance(chan, pulse.ControlChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.control']
-                elif isinstance(chan, pulse.MeasureChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.measure']
-                elif isinstance(chan, pulse.AcquireChannel):
-                    scale = PULSE_STYLE['formatter.channel_scaling.acquire']
-                else:
-                    scale = 1.0
+    def set_disable_type(self,
+                         data_type: types.DataTypes,
+                         remove: bool = True):
+        """Interface method to control visibility of data types.
 
-        return types.ChannelProperty(scale=scale, visible=True)
-
-    def _ordered_channels(self,
-                          visible_channels: Optional[List[pulse.channels.Channel]] = None) \
-            -> List[pulse.channels.Channel]:
-        """A helper function to create a list of channels to show.
+        Specified object in the blocked list will not be shown.
 
         Args:
-            visible_channels: List of channels to show.
-                If not provided, the default channel list is created from the
-                stylesheet preference.
-
-        Returns:
-            List of ordered channels to show.
+            data_type: A drawing object data type to disable.
+            remove: Set `True` to disable, set `False` to enable.
         """
+        if remove:
+            self.disable_types.add(data_type)
+        else:
+            self.disable_types.discard(data_type)
 
-        if visible_channels is None:
-            channels = []
-            for chan in self.channels:
-                # remove acquire
-                if not PULSE_STYLE['formatter.control.show_acquire_channel'] and \
-                        isinstance(chan, pulse.AcquireChannel):
+
+class Chart:
+    """A collection of drawing object to be shown in the same line.
+
+    Multiple pulse channels can be assigned to a single `Chart`.
+    The parent `DrawerCanvas` should be specified to refer to the current user preference.
+
+    The vertical value of each `Chart` should be in the range [-1, 1].
+    This truncation should be performed in the plotter interface.
+    """
+    WAVEFORMS = (types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG)
+
+    # unique index of chart
+    chart_index = 0
+
+    def __init__(self, parent: DrawerCanvas, name: str):
+        """Create new chart.
+
+        Args:
+            parent: `DrawerCanvas` that this `Chart` instance belongs to.
+            name: Name of this `Chart` instance.
+        """
+        self._parent = parent
+        self._collections = []
+
+        self.index = self._cls_index()
+        self.name = name
+
+        self.vmax = 0
+        self.vmin = 0
+        self.scale = 1.0
+
+        self._increment_cls_index()
+
+    def add_data(self, data: drawing_objects.ElementaryData):
+        """Add drawing object to collections.
+
+        If the given object already exists in the collections,
+        this interface replaces the old object instead of adding new entry.
+
+        Args:
+            data: New drawing object to add.
+        """
+        if data in self._collections:
+            ind = self._collections.index(data)
+            self._collections[ind] = data
+        else:
+            self._collections.append(data)
+
+    def load_program(self,
+                     program: pulse.Schedule,
+                     chan: pulse.channels.Channel):
+        """Load pulse schedule.
+
+        This method internally generates `ChannelEvents` to parse the program
+        for the specified pulse channel. This method is called once
+
+        Args:
+            program: Pulse schedule to load.
+            chan: A pulse channels associated with this instance.
+        """
+        chan_events = events.ChannelEvents.load_program(program, chan)
+        chan_events.config(dt=self._parent.device.dt,
+                           init_frequency=self._parent.device.get_channel_frequency(chan),
+                           init_phase=0)
+
+        # create objects associated with waveform
+        waveforms = chan_events.get_waveforms()
+        for gen in self._parent.generator['waveform']:
+            obj_generator = partial(func=gen,
+                                    formatter=self._parent.formatter,
+                                    device=self._parent.device)
+            drawings = [obj_generator(waveform) for waveform in waveforms]
+            for data in list(chain.from_iterable(drawings)):
+                self.add_data(data)
+
+        # create objects associated with frame change
+        frames = chan_events.get_frame_changes()
+        for gen in self._parent.generator['frame']:
+            obj_generator = partial(func=gen,
+                                    formatter=self._parent.formatter,
+                                    device=self._parent.device)
+            drawings = [obj_generator(frame) for frame in frames]
+            for data in list(chain.from_iterable(drawings)):
+                self.add_data(data)
+
+    def update(self):
+        """Update vertical data range and scaling factor of this chart.
+
+        Those parameters are updated based on current time range in the parent canvas.
+        """
+        for _, data in self.collections:
+            if data.data_type in Chart.WAVEFORMS:
+                scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
+                self.vmax = max(scale * data.vmax, self.vmax)
+                self.vmin = max(scale * data.vmin, self.vmin)
+
+        if self._parent.formatter['control.auto_chart_scaling']:
+            max_scaling = self._parent.formatter['general.vertical_resolution']
+            self.scale = 1.0 / (max(abs(self.vmax), abs(self.vmin), max_scaling))
+        else:
+            self.scale = 1.0
+
+    @property
+    def is_active(self):
+        """Check if there is any active waveform data in this entry."""
+        for _, data in self.collections:
+            if data.data_type in Chart.WAVEFORMS:
+                return True
+        return False
+
+    @property
+    def collections(self) -> Iterator[Tuple[str, drawing_objects.ElementaryData]]:
+        """Return currently active entries from drawing data collection.
+
+        The object is returned with unique name as a key of an object handler.
+        When the horizontal coordinate contains `AbstractCoordinate`,
+        the value is substituted by current time range preference.
+        """
+        t0, t1 = self._parent.time_range
+
+        for data in self._collections:
+            # prepare unique name
+            data_name = 'chart{ind:d}_{key}'.format(ind=self.index, key=data.data_key)
+
+            is_active_type = data.data_type in self._parent.disable_types
+            is_active_chan = any(chan not in self._parent.disable_chans for chan in data.channels)
+
+            # skip the entry if channel or data type are in the blocked list.
+            if not (is_active_type and is_active_chan):
+                continue
+
+            # skip the entry if location is out of time range.
+            try:
+                if isinstance(data.x, types.Coordinate):
+                    # single entry
+                    x_arr = self._bind_coordinate([data.x])
+                    new_x = x_arr[0]
+                else:
+                    # iterator
+                    x_arr = self._bind_coordinate(data.x)
+                    new_x = x_arr
+
+                if not any(np.where((x_arr >= t0) & (x_arr <= t1), True, False)):
                     continue
-                # remove empty
-                if not PULSE_STYLE['formatter.control.show_empty_channel'] and \
-                        self.chan_event_table[chan].is_empty():
-                    continue
-                channels.append(chan)
-        else:
-            channels = visible_channels
 
-        # callback function to arrange channels
-        if len(channels) > 1:
-            return PULSE_STYLE['layout.channel'](channels)
-        else:
-            return channels
+                # prepare new entry which doesn't contain abstract coordinate.
+                # this substitution changes the data key, thus object is deep copied
+                # to avoid duplication of the same entry in the collection.
+                new_data = deepcopy(data)
+                new_data.x = new_x
 
-    def _replace_drawing(self,
-                         drawing: drawing_objects.ElementaryData):
-        """A helper function to add drawing object.
+                yield data_name, new_data
 
-        If the given drawing object exists in the data container,
-        this function just replaces the existing object with the given object
-        instead of adding it to the list.
+            except AttributeError:
+                # data has no x attribute. likely no dependence on time range.
+                yield data_name, data
+
+    def _bind_coordinate(self, xvals: Iterator[types.Coordinate]) -> np.ndarray:
+        """A helper function to bind actual coordinate to `AbstractCoordinate`.
 
         Args:
-            drawing: Drawing object to add to the container.
+            xvals: Arbitrary coordinate object associated with a drawing object.
         """
-        if drawing in self.drawings:
-            ind = self.drawings.index(drawing)
-            self.drawings[ind] = drawing
-        else:
-            self.drawings.append(drawing)
+        def substitute(xval: types.Coordinate):
+            if xval == types.AbstractCoordinate.LEFT:
+                return self._parent.time_range[0]
+            if xval == types.AbstractCoordinate.RIGHT:
+                return self._parent.time_range[1]
+            return xval
 
-    def _horizontal_axis_break(self):
-        """Generate intervals that are removed from visualization."""
-        global_waveform_edges = set()
+        try:
+            return np.asarray(xvals, dtype=float)
+        except ValueError:
+            return np.asarray(list(map(substitute, xvals)), dtype=float)
 
-        for drawing in self.drawings:
-            if drawing.data_type in [types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG] \
-                    and drawing.visible:
-                global_waveform_edges.add(drawing.x[0])
-                global_waveform_edges.add(drawing.x[-1])
+    @classmethod
+    def _increment_cls_index(cls):
+        """Increment counter of the chart."""
+        cls.chart_index += 1
 
-        global_waveform_edges = sorted(global_waveform_edges)
-
-        event_slacks = []
-        for ind in range(1, len(global_waveform_edges)):
-            event_slacks.append((global_waveform_edges[ind-1], global_waveform_edges[ind]))
-
-        for event_slack in event_slacks:
-            duration = event_slack[1] - event_slack[0]
-            if duration > PULSE_STYLE['formatter.axis_break.length']:
-                t0 = int(event_slack[0] + 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
-                t1 = int(event_slack[1] - 0.5 * PULSE_STYLE['formatter.axis_break.max_length'])
-                self.axis_breaks.append((t0, t1))
-
-    def _remove_time(self, t0: int, t1: int):
-        """Remove specific time range from global time.
-
-        Args:
-            t0: First time to remove in dt.
-            t1: Last time to remove in dt.
-        """
-        conditions = (self.global_time > t0) & (self.global_time < t1)
-        self.global_time = np.delete(self.global_time, np.where(conditions))
+    @classmethod
+    def _cls_index(cls):
+        """Return counter index of the chart."""
+        return cls.chart_index
