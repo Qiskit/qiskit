@@ -58,7 +58,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
-    def get_measure_schedule() -> CircuitPulseDef:
+    def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
         # Exclude acquisition on these qubits, since they are handled by the user calibrations
@@ -101,7 +101,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
 
         if any(q in qubit_mem_slots for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
-            circ_pulse_defs.append(get_measure_schedule())
+            circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))
 
         if isinstance(inst, Barrier):
             circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
@@ -130,6 +130,6 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                                   "circuit for the same backend?".format(inst.name, inst_qubits))
 
     if qubit_mem_slots:
-        circ_pulse_defs.append(get_measure_schedule())
+        circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))
 
     return circ_pulse_defs
