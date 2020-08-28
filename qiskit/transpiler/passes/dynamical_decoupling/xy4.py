@@ -119,7 +119,8 @@ class XY4Pass(TransformationPass):
             count = int(delay_duration // tau_c)
             new_delay = int((delay_duration - count * tau_c + self.tau_step_dt) / 2)
 
-            new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+            if new_delay != 0:
+                new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
 
             first = True
 
@@ -140,6 +141,8 @@ class XY4Pass(TransformationPass):
                 first = False
 
             parity = 1 if (delay_duration - count * tau_c + self.tau_step_dt) % 2 else 0
-            new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+
+            if new_delay != 0 or parity != 0:
+                new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
         return new_dag
