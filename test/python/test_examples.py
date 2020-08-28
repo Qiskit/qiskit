@@ -71,7 +71,8 @@ class TestPythonExamples(QiskitTestCase):
                 example_path = os.path.join(ibmq_examples_dir, example)
                 cmd = [sys.executable, example_path]
                 run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE)
+                                               stderr=subprocess.PIPE,
+                                               env={**os.environ, "PYTHONIOENCODING": "utf8"})
                 stdout, stderr = run_example.communicate()
                 error_string = "Running example %s failed with return code %s\n" % (
                     example, run_example.returncode)
