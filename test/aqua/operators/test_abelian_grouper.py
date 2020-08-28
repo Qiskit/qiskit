@@ -19,9 +19,10 @@ import unittest
 from itertools import combinations
 from test.aqua import QiskitAquaTestCase
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
-from qiskit.aqua.operators import (X, Y, Z, I, AbelianGrouper)
+from qiskit.aqua import AquaError
+from qiskit.aqua.operators import (X, Y, Z, I, Zero, Plus, AbelianGrouper)
 
 
 @ddt
@@ -52,12 +53,16 @@ class TestAbelianGrouper(QiskitAquaTestCase):
             for op_1, op_2 in combinations(group, 2):
                 self.assertTrue(op_1.commutes(op_2))
 
-    @data((True, True), (True, False), (False, True), (False, False))
-    @unpack
-    def test_group_subops(self, fast, use_nx):
+    def test_ablian_grouper_no_commute(self):
+        """Abelian grouper test when non-PauliOp is given"""
+        ops = Zero ^ Plus + X ^ Y
+        with self.assertRaises(AquaError):
+            _ = AbelianGrouper.group_subops(ops)
+
+    def test_group_subops(self):
         """grouper subroutine test"""
         paulis = (I ^ X) + (2 * X ^ X) + (3 * Z ^ Y)
-        grouped_sum = AbelianGrouper.group_subops(paulis, fast=fast, use_nx=use_nx)
+        grouped_sum = AbelianGrouper.group_subops(paulis)
         with self.subTest('test group subops 1'):
             self.assertEqual(len(grouped_sum), 2)
             self.assertListEqual([str(op.primitive) for op in grouped_sum[0]], ['IX', 'XX'])
@@ -66,7 +71,7 @@ class TestAbelianGrouper(QiskitAquaTestCase):
             self.assertListEqual([op.coeff for op in grouped_sum[1]], [3])
 
         paulis = X + (2 * Y) + (3 * Z)
-        grouped_sum = AbelianGrouper.group_subops(paulis, fast=fast, use_nx=use_nx)
+        grouped_sum = AbelianGrouper.group_subops(paulis)
         with self.subTest('test group subops 2'):
             self.assertEqual(len(grouped_sum), 3)
             self.assertListEqual([str(op[0].primitive) for op in grouped_sum], ['X', 'Y', 'Z'])
