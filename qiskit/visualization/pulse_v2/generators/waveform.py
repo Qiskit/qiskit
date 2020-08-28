@@ -146,9 +146,9 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
     return fill_objs
 
 
-def gen_iqx_latex_waveform_name(data: types.PulseInstruction,
-                                formatter: Dict[str, Any],
-                                device: device_info.DrawerBackendInfo) \
+def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
+                                 formatter: Dict[str, Any],
+                                 device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     """Generate formatted instruction name associated with the waveform.
 

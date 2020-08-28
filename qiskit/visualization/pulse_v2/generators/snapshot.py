@@ -42,17 +42,49 @@ from typing import Dict, Any, List
 from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 
+def gen_snapshot_name(data: types.SnapshotInstruction,
+                      formatter: Dict[str, Any],
+                      device: device_info.DrawerBackendInfo) \
+        -> List[drawing_objects.TextData]:
+    """Generate a snapshot name labels.
+
+    Stylesheets:
+        - The `snapshot` style is applied for snapshot symbol.
+        - The `annotate` style is applied for label font size.
+
+    Args:
+        data: Snapshot instruction data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
+
+    Returns:
+        List of `TextData` drawing objects.
+    """
+    style = {'zorder': formatter['layer.snapshot'],
+             'color': formatter['color.snapshot'],
+             'size': formatter['text_size.annotate'],
+             'va': 'bottom',
+             'ha': 'center'}
+
+    text = drawing_objects.TextData(data_type=types.DrawingLabel.SNAPSHOT,
+                                    channels=data.inst.channel,
+                                    x=data.t0,
+                                    y=formatter['label_offset.snapshot'],
+                                    text=data.inst.name,
+                                    ignore_scaling=True,
+                                    styles=style)
+
+    return [text]
+
+
 def gen_snapshot_symbol(data: types.SnapshotInstruction,
                         formatter: Dict[str, Any],
                         device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     """Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 
-    The snapshot symbol is capped by the snapshot label.
-
     Stylesheets:
         - The `snapshot` style is applied for snapshot symbol.
-        - The `annotate` style is applied for label font size.
         - The symbol type in unicode is specified in `formatter.unicode_symbol.snapshot`.
         - The symbol type in latex is specified in `formatter.latex_symbol.snapshot`.
 
@@ -64,17 +96,11 @@ def gen_snapshot_symbol(data: types.SnapshotInstruction,
     Returns:
         List of `TextData` drawing objects.
     """
-    symbol_style = {'zorder': formatter['layer.snapshot'],
-                    'color': formatter['color.snapshot'],
-                    'size': formatter['text_size.snapshot'],
-                    'va': 'bottom',
-                    'ha': 'center'}
-
-    label_style = {'zorder': formatter['layer.snapshot'],
-                   'color': formatter['color.snapshot'],
-                   'size': formatter['text_size.annotate'],
-                   'va': 'bottom',
-                   'ha': 'center'}
+    style = {'zorder': formatter['layer.snapshot'],
+             'color': formatter['color.snapshot'],
+             'size': formatter['text_size.snapshot'],
+             'va': 'bottom',
+             'ha': 'center'}
 
     meta = {'snapshot type': data.inst.type,
             't0 (cycle time)': data.t0,
@@ -82,22 +108,14 @@ def gen_snapshot_symbol(data: types.SnapshotInstruction,
             'name': data.inst.name,
             'label': data.inst.label}
 
-    symbol_text = drawing_objects.TextData(data_type=types.DrawingSymbol.SNAPSHOT,
-                                           channels=data.inst.channel,
-                                           x=data.t0,
-                                           y=0,
-                                           text=formatter['unicode_symbol.snapshot'],
-                                           latex=formatter['latex_symbol.snapshot'],
-                                           ignore_scaling=True,
-                                           meta=meta,
-                                           styles=symbol_style)
+    text = drawing_objects.TextData(data_type=types.DrawingSymbol.SNAPSHOT,
+                                    channels=data.inst.channel,
+                                    x=data.t0,
+                                    y=0,
+                                    text=formatter['unicode_symbol.snapshot'],
+                                    latex=formatter['latex_symbol.snapshot'],
+                                    ignore_scaling=True,
+                                    meta=meta,
+                                    styles=style)
 
-    label_text = drawing_objects.TextData(data_type=types.DrawingLabel.SNAPSHOT,
-                                          channels=data.inst.channel,
-                                          x=data.t0,
-                                          y=formatter['label_offset.snapshot'],
-                                          text=data.inst.name,
-                                          ignore_scaling=True,
-                                          styles=label_style)
-
-    return [symbol_text, label_text]
+    return [text]
