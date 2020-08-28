@@ -18,6 +18,7 @@ from ddt import ddt
 from numpy import pi
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.circuit import Parameter
 
 
 @ddt
@@ -62,12 +63,23 @@ class TestPiCheck(QiskitTestCase):
                    (6/(5*pi), '6/5pi'),
                    (-6/(5*pi), '-6/5pi'),
                    (-382578.0+.0234567j, '-3.8258e+05+0.023457j'),
-                   (-382578.0-.0234567j, '-3.8258e+05-0.023457j'),
+                   (-382578.0-.0234567j, '-3.8258e+05-0.023457j')
                    ])
     def test_default(self, case):
         """Default pi_check({case[0]})='{case[1]}'"""
         input_number = case[0]
         expected_string = case[1]
+        result = pi_check(input_number)
+        self.assertEqual(result, expected_string)
+
+    def test_params(self):
+        """Test pi_check with Parameters"""
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+        pcase = (pi**3 * x + 3/(4*pi) * y - 13*pi/2 * z, 'pi**3*x + 3/4pi*y - 13pi/2*z')
+        input_number = pcase[0]
+        expected_string = pcase[1]
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
 
