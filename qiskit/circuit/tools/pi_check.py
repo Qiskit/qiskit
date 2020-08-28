@@ -14,7 +14,6 @@
 """Check if number close to values of PI
 """
 
-import re
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
@@ -46,18 +45,21 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         QiskitError: if output is not a valid option.
     """
     if isinstance(inpt, ParameterExpression):
-        try:
-            return pi_check(float(inpt), eps=eps, output=output, ndigits=ndigits)
-        except (ValueError, TypeError):
-            param_str = str(inpt)
-            nums = re.findall(r'\d*\.\d+|\d+', param_str)
-            for num in nums:
-                pi = pi_check(float(num), eps=eps, output=output, ndigits=ndigits)
-                try:
-                    _ = float(pi)
-                except (ValueError, TypeError):
-                    param_str = param_str.replace(num, pi, 1)
-            return param_str
+        param_str = str(inpt)
+        syms = inpt._symbol_expr.expr_free_symbols
+        for sym in syms:
+            if not sym.is_number:
+                continue
+            pi = pi_check(float(sym), eps=eps, output=output, ndigits=ndigits)
+            try:
+                _ = float(pi)
+            except (ValueError, TypeError):
+                # Strip leading '-' from pi since must replace with abs(sym)
+                # in order to preserve spacing around minuses in expression
+                if pi[0] == '-':
+                    pi = pi[1:]
+                param_str = param_str.replace(str(abs(sym)), pi)
+        return param_str
     elif isinstance(inpt, str):
         return inpt
 
