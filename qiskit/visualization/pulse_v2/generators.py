@@ -46,73 +46,76 @@ from fractions import Fraction
 from typing import Dict, Tuple, Any, List
 
 import numpy as np
+
 from qiskit import pulse
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawing_objects, types, PULSE_STYLE
+from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 
 # Waveform related information generation
 
 
-def _find_consecutive_index(vector: np.ndarray) -> np.ndarray:
+def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.ndarray:
     """A helper function to return non-consecutive index from the given list.
 
     This drastically reduces memory footprint to represent a drawing object,
     especially for samples of very long flat-topped Gaussian pulses.
+    Tiny value fluctuation smaller than `resolution` threshold is removed.
 
     Args:
-        vector: The array of numbers.
+        data_array: The array of numbers.
+        resolution: Minimum resolution of sample values.
 
     Returns:
         The compressed data array.
     """
     try:
-        vector = np.asarray(vector, dtype=float)
+        vector = np.asarray(data_array, dtype=float)
         diff = np.diff(vector)
-        diff[np.where(np.abs(diff) < PULSE_STYLE['formatter.general.vertical_resolution'])] = 0
+        diff[np.where(np.abs(diff) < resolution)] = 0
         # keep left and right edges
         consecutive_l = np.insert(diff.astype(bool), 0, True)
         consecutive_r = np.append(diff.astype(bool), True)
         return consecutive_l | consecutive_r
 
     except ValueError:
-        return np.ones_like(vector).astype(bool)
+        return np.ones_like(data_array).astype(bool)
 
 
-def _parse_waveform(inst_data: types.InstructionTuple) \
-        -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
-    r"""A helper function that generates sample data array of the waveform with
+def _parse_waveform(data: types.PulseInstruction) -> types.ParsedInstruction:
+    """A helper function that generates sample data array of the waveform with
     instruction meta data.
 
     Args:
-        inst_data: Instruction data set
+        data: Instruction data set
 
     Raises:
         VisualizationError: When invalid instruction type is loaded.
 
     Returns:
-        A tuple of xy data and metadata dictionary.
+        A data source to generate a drawing object.
     """
-    inst = inst_data.inst
+    inst = data.inst
 
     meta = dict()
     if isinstance(inst, instructions.Play):
         # pulse
-        if isinstance(inst.pulse, pulse.ParametricPulse):
-            pulse_data = inst.pulse.get_waveform()
-            meta.update(inst.pulse.parameters)
+        operand = inst.pulse
+        if isinstance(operand, pulse.ParametricPulse):
+            pulse_data = operand.get_waveform()
+            meta.update(operand.parameters)
         else:
-            pulse_data = inst.pulse
-        xdata = np.arange(pulse_data.duration) + inst_data.t0
+            pulse_data = operand
+        xdata = np.arange(pulse_data.duration) + data.t0
         ydata = pulse_data.samples
     elif isinstance(inst, instructions.Delay):
         # delay
-        xdata = np.arange(inst.duration) + inst_data.t0
+        xdata = np.arange(inst.duration) + data.t0
         ydata = np.zeros(inst.duration)
     elif isinstance(inst, instructions.Acquire):
         # acquire
-        xdata = np.arange(inst.duration) + inst_data.t0
+        xdata = np.arange(inst.duration) + data.t0
         ydata = np.ones(inst.duration)
         acq_data = {'memory slot': inst.mem_slot.name,
                     'register slot': inst.reg_slot.name if inst.reg_slot else 'N/A',
@@ -120,22 +123,22 @@ def _parse_waveform(inst_data: types.InstructionTuple) \
                     'kernel': inst.kernel.name if inst.kernel else 'N/A'}
         meta.update(acq_data)
     else:
-        raise VisualizationError('Instruction %s cannot be drawn by filled envelope.' % type(inst))
+        raise VisualizationError('Unsupported instruction {inst} by '
+                                 'filled envelope.'.format(inst=inst.__class__.__name__))
 
     meta.update({'duration (cycle time)': inst.duration,
-                 'duration (sec)': inst.duration * inst_data.dt if inst_data.dt else 'N/A',
-                 't0 (cycle time)': inst_data.t0,
-                 't0 (sec)': inst_data.t0 * inst_data.dt if inst_data.dt else 'N/A',
-                 'phase': inst_data.frame.phase,
-                 'frequency': inst_data.frame.freq,
+                 'duration (sec)': inst.duration * data.dt if data.dt else 'N/A',
+                 't0 (cycle time)': data.t0,
+                 't0 (sec)': data.t0 * data.dt if data.dt else 'N/A',
+                 'phase': data.frame.phase,
+                 'frequency': data.frame.freq,
                  'name': inst.name})
 
-    return xdata, ydata, meta
+    return types.ParsedInstruction(xdata, ydata, meta)
 
 
-def _fill_waveform_color(channel: pulse.channels.Channel) \
-        -> types.ComplexColors:
-    r"""A helper function that returns color code of the fill waveform.
+def _fill_waveform_color(channel: pulse.channels.Channel) -> str:
+    """A helper function that returns formatter key of the color code.
 
     Args:
         channel: Pulse channel object associated with the fill waveform.
@@ -147,43 +150,36 @@ def _fill_waveform_color(channel: pulse.channels.Channel) \
         A color code of real and imaginary part of the waveform.
     """
     if isinstance(channel, pulse.DriveChannel):
-        colors = PULSE_STYLE['formatter.color.fill_waveform_d']
-        if isinstance(colors, (tuple, list)):
-            colors = types.ComplexColors(*colors)
-        return colors
+        return 'color.fill_waveform_d'
+
     if isinstance(channel, pulse.ControlChannel):
-        colors = PULSE_STYLE['formatter.color.fill_waveform_u']
-        if isinstance(colors, (tuple, list)):
-            colors = types.ComplexColors(*colors)
-        return colors
+        return 'color.fill_waveform_u'
+
     if isinstance(channel, pulse.MeasureChannel):
-        colors = PULSE_STYLE['formatter.color.fill_waveform_m']
-        if isinstance(colors, (tuple, list)):
-            colors = types.ComplexColors(*colors)
-        return colors
+        return 'color.fill_waveform_m'
+
     if isinstance(channel, pulse.AcquireChannel):
-        colors = PULSE_STYLE['formatter.color.fill_waveform_a']
-        if isinstance(colors, (tuple, list)):
-            colors = types.ComplexColors(*colors)
-        return colors
+        return 'color.fill_waveform_a'
+
     if isinstance(channel, types.WaveformChannel):
-        colors = PULSE_STYLE['formatter.color.fill_waveform_w']
-        if isinstance(colors, (tuple, list)):
-            colors = types.ComplexColors(*colors)
-        return colors
+        return 'color.fill_waveform_w'
 
     raise VisualizationError('Channel type %s is not supported.' % type(channel))
 
 
-def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
+def gen_filled_waveform_stepwise(data: types.PulseInstruction,
+                                 formatter: Dict[str, Any],
+                                 device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.FilledAreaData]:
-    r"""Generate filled area object of waveform envelope.
+    """Generate filled area object of waveform envelope.
 
     The curve of envelope is not interpolated and presented as stepwise function.
     The `fill_waveform` style is applied.
 
     Args:
-        inst_data: Waveform instruction data to draw.
+        data: Waveform instruction data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
 
     Returns:
         List of `FilledAreaData` drawing objects.
@@ -191,39 +187,48 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
     fill_objs = []
 
     # generate waveform data
-    xdata, ydata, meta = _parse_waveform(inst_data)
+    parsed = _parse_waveform(data)
+    channel = data.inst.channel
+    resolution = formatter['general.vertical_resolution']
 
-    if PULSE_STYLE['formatter.control.apply_phase_modulation']:
-        ydata = np.array(ydata, dtype=np.complex) * np.exp(1j * inst_data.frame.phase)
-    xdata = np.concatenate((xdata, [xdata[-1] + 1]))
+    # phase modulation
+    if formatter['control.apply_phase_modulation']:
+        ydata = np.asarray(parsed.yvals, dtype=np.complex) * np.exp(1j * data.frame.phase)
+    else:
+        ydata = np.asarray(parsed.yvals, dtype=np.complex)
+
+    # stepwise interpolation
+    xdata = np.concatenate((parsed.xvals, [parsed.xvals[-1] + 1]))
     ydata = np.repeat(ydata, 2)
     re_y = np.real(ydata)
     im_y = np.imag(ydata)
     time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
 
-    # data compression
-    re_valid_inds = _find_consecutive_index(re_y)
-    im_valid_inds = _find_consecutive_index(im_y)
-
     # setup style options
-    channel = inst_data.inst.channel
+    style = {'alpha': formatter['alpha.fill_waveform'],
+             'zorder': formatter['layer.fill_waveform'],
+             'linewidth': formatter['line_width.fill_waveform'],
+             'linestyle': formatter['line_style.fill_waveform']}
 
-    style = {'alpha': PULSE_STYLE['formatter.alpha.fill_waveform'],
-             'zorder': PULSE_STYLE['formatter.layer.fill_waveform'],
-             'linewidth': PULSE_STYLE['formatter.line_width.fill_waveform'],
-             'linestyle': PULSE_STYLE['formatter.line_style.fill_waveform']}
-    color = _fill_waveform_color(channel)
+    color_code = types.ComplexColors(*formatter[_fill_waveform_color(channel)])
 
     # create real part
     if np.any(re_y):
-        re_style = style.copy()
-        re_style['color'] = color.real
-        re_meta = meta.copy()
-        re_meta['data'] = 'real'
+        # data compression
+        re_valid_inds = _find_consecutive_index(re_y, resolution)
+        # stylesheet
+        re_style = {'color': color_code.real}
+        re_style.update(style)
+        # metadata
+        re_meta = {'data': 'real', 'qubit': device.get_qubit_index(channel) or 'N/A'}
+        re_meta.update(parsed.meta)
+        # active xy data
         re_xvals = time[re_valid_inds]
         re_yvals = re_y[re_valid_inds]
+
+        # object
         real = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.REAL,
-                                              channel=channel,
+                                              channels=channel,
                                               x=re_xvals,
                                               y1=re_yvals,
                                               y2=np.zeros_like(re_xvals),
@@ -233,14 +238,21 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
 
     # create imaginary part
     if np.any(im_y):
-        im_style = style.copy()
-        im_style['color'] = color.imaginary
-        im_meta = meta.copy()
-        im_meta['data'] = 'imaginary'
+        # data compression
+        im_valid_inds = _find_consecutive_index(im_y, resolution)
+        # stylesheet
+        im_style = {'color': color_code.imaginary}
+        im_style.update(style)
+        # metadata
+        im_meta = {'data': 'imag', 'qubit': device.get_qubit_index(channel) or 'N/A'}
+        im_meta.update(parsed.meta)
+        # active xy data
         im_xvals = time[im_valid_inds]
         im_yvals = im_y[im_valid_inds]
+
+        # object
         imag = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.IMAG,
-                                              channel=channel,
+                                              channels=channel,
                                               x=im_xvals,
                                               y1=im_yvals,
                                               y2=np.zeros_like(im_xvals),
@@ -251,9 +263,11 @@ def gen_filled_waveform_stepwise(inst_data: types.InstructionTuple) \
     return fill_objs
 
 
-def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
+def gen_iqx_latex_waveform_name(data: types.PulseInstruction,
+                                formatter: Dict[str, Any],
+                                device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
-    r"""Generate formatted instruction name associated with the waveform.
+    """Generate formatted instruction name associated with the waveform.
 
     Channel name and id are removed and the rotation angle is expressed in units of pi.
     CR pulse name is also converted with the controlled rotation angle divided by 2.
@@ -274,26 +288,27 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
         the generator output may be the as-is pulse name.
 
     Args:
-        inst_data: Waveform instruction data to draw.
+        data: Waveform instruction data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
 
     Returns:
         List of `TextData` drawing objects.
     """
-
-    style = {'zorder': PULSE_STYLE['formatter.layer.annotate'],
-             'color': PULSE_STYLE['formatter.color.annotate'],
-             'size': PULSE_STYLE['formatter.text_size.annotate'],
+    style = {'zorder': formatter['layer.annotate'],
+             'color': formatter['color.annotate'],
+             'size': formatter['text_size.annotate'],
              'va': 'top',
              'ha': 'center'}
 
-    if isinstance(inst_data.inst, pulse.instructions.Acquire):
+    if isinstance(data.inst, pulse.instructions.Acquire):
         systematic_name = 'Acquire'
         latex_name = None
-    elif isinstance(inst_data.inst.channel, pulse.channels.MeasureChannel):
+    elif isinstance(data.inst.channel, pulse.channels.MeasureChannel):
         systematic_name = 'Measure'
         latex_name = None
     else:
-        systematic_name = inst_data.inst.pulse.name
+        systematic_name = data.inst.pulse.name
 
         template = r'(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+'
         match_result = re.match(template, systematic_name)
@@ -330,9 +345,9 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
             latex_name = None
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_NAME,
-                                    channel=inst_data.inst.channel,
-                                    x=inst_data.t0 + 0.5 * inst_data.inst.duration,
-                                    y=PULSE_STYLE['formatter.label_offset.pulse_name'],
+                                    channels=data.inst.channel,
+                                    x=data.t0 + 0.5 * data.inst.duration,
+                                    y=formatter['label_offset.pulse_name'],
                                     text=systematic_name,
                                     latex=latex_name,
                                     ignore_scaling=True,
@@ -341,29 +356,33 @@ def gen_iqx_latex_waveform_name(inst_data: types.InstructionTuple) \
     return [text]
 
 
-# Channel related information generation
+# Chart axis related information generation
 
 
-def gen_baseline(channel_data: types.ChannelTuple) \
+def gen_baseline(data: types.ChartAxis,
+                 formatter: Dict[str, Any],
+                 device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.LineData]:
-    r"""Generate baseline associated with the channel.
+    """Generate baseline associated with the channel.
 
     The `baseline` style is applied.
 
     Args:
-        channel_data: Channel data to draw.
+        data: Chart axis data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
 
     Returns:
         List of `LineData` drawing objects.
     """
-    style = {'alpha': PULSE_STYLE['formatter.alpha.baseline'],
-             'zorder': PULSE_STYLE['formatter.layer.baseline'],
-             'linewidth': PULSE_STYLE['formatter.line_width.baseline'],
-             'linestyle': PULSE_STYLE['formatter.line_style.baseline'],
-             'color': PULSE_STYLE['formatter.color.baseline']}
+    style = {'alpha': formatter['formatter.alpha.baseline'],
+             'zorder': formatter['formatter.layer.baseline'],
+             'linewidth': formatter['formatter.line_width.baseline'],
+             'linestyle': formatter['formatter.line_style.baseline'],
+             'color': formatter['formatter.color.baseline']}
 
     baseline = drawing_objects.LineData(data_type=types.DrawingLine.BASELINE,
-                                        channel=channel_data.channel,
+                                        channels=data.channel,
                                         x=[types.AbstractCoordinate.LEFT,
                                            types.AbstractCoordinate.RIGHT],
                                         y=[0, 0],
@@ -373,31 +392,35 @@ def gen_baseline(channel_data: types.ChannelTuple) \
     return [baseline]
 
 
-def gen_latex_channel_name(channel_data: types.ChannelTuple) \
+def gen_chart_name(data: types.ChartAxis,
+                   formatter: Dict[str, Any],
+                   device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
-    r"""Generate channel name of provided channel.
+    """Generate chart name.
 
     The `axis_label` style is applied.
 
     Args:
-        channel_data: Channel data to draw.
+        data: Chart axis data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
 
     Returns:
         List of `TextData` drawing objects.
     """
-    style = {'zorder': PULSE_STYLE['formatter.layer.axis_label'],
-             'color': PULSE_STYLE['formatter.color.axis_label'],
-             'size': PULSE_STYLE['formatter.text_size.axis_label'],
+    style = {'zorder': formatter['layer.axis_label'],
+             'color': formatter['color.axis_label'],
+             'size': formatter['text_size.axis_label'],
              'va': 'center',
              'ha': 'right'}
-    latex_name = r'{}_{{{}}}'.format(channel_data.channel.prefix.upper(),
-                                     channel_data.channel.index)
+    latex_name = r'{}_{{{}}}'.format(data.channel.prefix.upper(),
+                                     data.channel.index)
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_NAME,
-                                    channel=channel_data.channel,
+                                    channels=data.channel,
                                     x=types.AbstractCoordinate.LEFT,
                                     y=0,
-                                    text=channel_data.channel.name.upper(),
+                                    text=data.channel.name.upper(),
                                     latex=latex_name,
                                     ignore_scaling=True,
                                     styles=style)
@@ -442,7 +465,9 @@ def gen_scaling_info(channel_data: types.ChannelTuple) \
 # Frame related information generation
 
 
-def gen_latex_vz_label(frame_data: types.InstructionTuple) \
+def gen_latex_vz_label(data: types.ChartAxis,
+                       formatter: Dict[str, Any],
+                       device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted virtual Z rotations from provided frame instruction.
 
@@ -462,7 +487,9 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
         Thus the sign of rotation angle is inverted.
 
     Args:
-        frame_data: Frame instruction data to draw.
+        data: Frame change instruction data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
 
     Returns:
         List of `TextData` drawing objects.
@@ -502,7 +529,9 @@ def gen_latex_vz_label(frame_data: types.InstructionTuple) \
     return [text]
 
 
-def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
+def gen_latex_frequency_mhz_value(data: types.ChartAxis,
+                                  formatter: Dict[str, Any],
+                                  device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     r"""Generate formatted frequency change from provided frame instruction.
 
@@ -542,7 +571,9 @@ def gen_latex_frequency_mhz_value(frame_data: types.InstructionTuple) \
     return [text]
 
 
-def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
+def gen_raw_frame_operand_values(data: types.ChartAxis,
+                                 formatter: Dict[str, Any],
+                                 device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     r"""Generate both phase and frequency change from provided frame instruction.
 
@@ -580,7 +611,9 @@ def gen_raw_frame_operand_values(frame_data: types.InstructionTuple) \
     return [text]
 
 
-def gen_frame_symbol(frame_data: types.InstructionTuple) \
+def gen_frame_symbol(data: types.ChartAxis,
+                     formatter: Dict[str, Any],
+                     device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     r"""Generate a frame change symbol with instruction meta data from provided frame instruction.
 

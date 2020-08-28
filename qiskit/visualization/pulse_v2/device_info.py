@@ -92,7 +92,7 @@ class DrawerBackendInfo(ABC):
 
     def get_channel_frequency(self, chan: pulse.channels.Channel) -> Union[float, None]:
         """Get frequency of given channel object."""
-        return self._chan_freq_map.get(chan, 0)
+        return self._chan_freq_map.get(chan, None)
 
 
 class OpenPulseBackendInfo(DrawerBackendInfo):

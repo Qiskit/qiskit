@@ -16,8 +16,10 @@
 Special data types.
 """
 
+import numpy as np
+
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional, NewType
+from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any
 
 from qiskit import pulse
 
@@ -31,41 +33,41 @@ PhaseFreqTuple.phase.__doc__ = 'Phase value in rad.'
 PhaseFreqTuple.freq.__doc__ = 'Frequency value in Hz.'
 
 
-InstructionTuple = NamedTuple(
+PulseInstruction = NamedTuple(
     'InstructionTuple',
     [('t0', int),
      ('dt', Optional[float]),
      ('frame', PhaseFreqTuple),
      ('inst', Union[pulse.Instruction, List[pulse.Instruction]])])
-InstructionTuple.__doc__ = 'Data to represent pulse instruction for visualization.'
-InstructionTuple.t0.__doc__ = 'A time when the instruction is issued.'
-InstructionTuple.dt.__doc__ = 'System cycle time.'
-InstructionTuple.frame.__doc__ = 'A reference frame to run instruction.'
-InstructionTuple.inst.__doc__ = 'Pulse instruction.'
+PulseInstruction.__doc__ = 'Data to represent pulse instruction for visualization.'
+PulseInstruction.t0.__doc__ = 'A time when the instruction is issued.'
+PulseInstruction.dt.__doc__ = 'System cycle time.'
+PulseInstruction.frame.__doc__ = 'A reference frame to run instruction.'
+PulseInstruction.inst.__doc__ = 'Pulse instruction.'
 
 
-Barrier = NamedTuple(
+BarrierInstruction = NamedTuple(
     'Barrier',
     [('t0', int),
      ('dt', Optional[float]),
      ('channels', List[pulse.channels.Channel])]
 )
-Barrier.__doc__ = 'Data to represent special pulse instruction of barrier.'
-Barrier.t0.__doc__ = 'A time when the instruction is issued.'
-Barrier.dt.__doc__ = 'System cycle time.'
-Barrier.channels.__doc__ = 'A list of channel associated with this barrier.'
+BarrierInstruction.__doc__ = 'Data to represent special pulse instruction of barrier.'
+BarrierInstruction.t0.__doc__ = 'A time when the instruction is issued.'
+BarrierInstruction.dt.__doc__ = 'System cycle time.'
+BarrierInstruction.channels.__doc__ = 'A list of channel associated with this barrier.'
 
 
-Snapshots = NamedTuple(
+SnapshotInstruction = NamedTuple(
     'Snapshots',
     [('t0', int),
      ('dt', Optional[float]),
-     ('channels', List[pulse.channels.SnapshotChannel])]
+     ('inst', pulse.instructions.Snapshot)]
 )
-Snapshots.__doc__ = 'Data to represent special pulse instruction of snapshot.'
-Snapshots.t0.__doc__ = 'A time when the instruction is issued.'
-Snapshots.dt.__doc__ = 'System cycle time.'
-Snapshots.channels.__doc__ = 'A list of channel associated with this snapshot.'
+SnapshotInstruction.__doc__ = 'Data to represent special pulse instruction of snapshot.'
+SnapshotInstruction.t0.__doc__ = 'A time when the instruction is issued.'
+SnapshotInstruction.dt.__doc__ = 'System cycle time.'
+SnapshotInstruction.inst.__doc__ = 'Snapshot instruction.'
 
 
 ChartAxis = NamedTuple(
@@ -85,8 +87,20 @@ ComplexColors.real.__doc__ = 'Color code of real part.'
 ComplexColors.imaginary.__doc__ = 'Color code of imaginary part.'
 
 
+ParsedInstruction = NamedTuple(
+    'ParsedWaveform',
+    [('xvals', np.ndarray),
+     ('yvals', np.ndarray),
+     ('meta', Dict[str, Any])]
+)
+ParsedInstruction.__doc__ = 'Data to represent a parsed pulse instruction for object generation.'
+ParsedInstruction.xvals.__doc__ = 'Numpy array of x axis data.'
+ParsedInstruction.yvals.__doc__ = 'Numpy array of y axis data.'
+ParsedInstruction.meta.__doc__ = 'Dictionary containing instruction details.'
+
+
 class DrawingWaveform(str, Enum):
-    r"""
+    """
     Waveform data type.
 
     REAL: Assigned to objects that represent real part of waveform.
@@ -97,7 +111,7 @@ class DrawingWaveform(str, Enum):
 
 
 class DrawingLabel(str, Enum):
-    r"""
+    """
     Label data type.
 
     PULSE_NAME: Assigned to objects that represent name of waveform.
@@ -114,7 +128,7 @@ class DrawingLabel(str, Enum):
 
 
 class DrawingSymbol(str, Enum):
-    r"""
+    """
     Symbol data type.
 
     FRAME: Assigned to objects that represent symbol of frame.
@@ -125,7 +139,7 @@ class DrawingSymbol(str, Enum):
 
 
 class DrawingLine(str, Enum):
-    r"""
+    """
     Line data type.
 
     BASELINE: Assigned to objects that represent zero line of channel.
@@ -136,7 +150,7 @@ class DrawingLine(str, Enum):
 
 
 class AbstractCoordinate(str, Enum):
-    r"""Abstract coordinate that the exact value depends on the user preference.
+    """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
     LEFT: The horizontal coordinate at tf shifted by the right margin.
@@ -146,7 +160,7 @@ class AbstractCoordinate(str, Enum):
 
 
 class WaveformChannel(pulse.channels.PulseChannel):
-    r"""Dummy channel that doesn't belong to specific pulse channel."""
+    """Dummy channel that doesn't belong to specific pulse channel."""
     prefix = 'w'
 
     def __init__(self):

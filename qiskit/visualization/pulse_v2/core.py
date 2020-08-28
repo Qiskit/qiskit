@@ -14,7 +14,7 @@
 
 # pylint: disable=invalid-name
 
-r"""
+"""
 Core module of the pulse drawer.
 
 This module provides the `DrawDataContainer` which is a collection of drawing objects
@@ -73,7 +73,7 @@ class DrawerCanvas:
     Pulse channels are associated with some `Chart` instance and
     drawing data object is stored in the `Chart` instance.
 
-    Device, stylesheet, and some user preferences are stored in the `DrawingCanvas`
+    Device, stylesheet, and some user generators are stored in the `DrawingCanvas`
     and the `Chart` instances are also attached to the `DrawerCanvas` as children.
     Global configurations are accessed by those children to modify appearance of `Chart` output.
     """
@@ -87,7 +87,6 @@ class DrawerCanvas:
             stylesheet: Stylesheet to decide appearance of output image.
             device: Backend information to run the program.
         """
-
         # stylesheet
         self.formatter = stylesheet.formatter
         self.generator = stylesheet.generator
@@ -155,7 +154,7 @@ class DrawerCanvas:
 
         # add waveform data
         sample_channel = types.WaveformChannel()
-        inst_data = types.InstructionTuple(t0=0,
+        inst_data = types.PulseInstruction(t0=0,
                                            dt=self.device.dt,
                                            frame=types.PhaseFreqTuple(phase=0, freq=0),
                                            inst=pulse.Play(program, sample_channel))
@@ -203,7 +202,7 @@ class DrawerCanvas:
             barrier_sched = program.filter(instruction_types=[pulse.instructions.RelativeBarrier],
                                            channels=chans)
             for t0, _ in barrier_sched.instructions:
-                inst_data = types.Barrier(t0, self.device.dt, chans)
+                inst_data = types.BarrierInstruction(t0, self.device.dt, chans)
                 for gen in self.generator['barrier']:
                     obj_generator = partial(func=gen,
                                             formatter=self.formatter,
@@ -227,7 +226,7 @@ class DrawerCanvas:
 
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.Snapshot])
         for t0, inst in snapshot_sched.instructions:
-            inst_data = types.Snapshots(t0, self.device.dt, inst.channels)
+            inst_data = types.SnapshotInstruction(t0, self.device.dt, inst.label, inst.channels)
             for gen in self.generator['snapshot']:
                 obj_generator = partial(func=gen,
                                         formatter=self.formatter,

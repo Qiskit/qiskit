@@ -71,7 +71,7 @@ from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
 
-from qiskit import pulse
+from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse_v2 import types
 
 
@@ -81,7 +81,7 @@ class ElementaryData(ABC):
 
     def __init__(self,
                  data_type: str,
-                 channels: Optional[List[pulse.channels.Channel]],
+                 channels: Optional[Union[Channel, List[Channel]]],
                  meta: Optional[Dict[str, Any]],
                  ignore_scaling: bool,
                  styles: Optional[Dict[str, Any]]):
@@ -140,7 +140,7 @@ class FilledAreaData(ElementaryData):
                  x: Union[np.ndarray, List[types.Coordinate]],
                  y1: Union[np.ndarray, List[types.Coordinate]],
                  y2: Union[np.ndarray, List[types.Coordinate]],
-                 channels: Optional[List[pulse.channels.Channel]] = None,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
                  meta: Optional[Dict[str, Any]] = None,
                  ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
@@ -196,7 +196,7 @@ class LineData(ElementaryData):
                  data_type: str,
                  x: Union[np.ndarray, List[types.Coordinate]],
                  y: Union[np.ndarray, List[types.Coordinate]],
-                 channels: Optional[List[pulse.channels.Channel]] = None,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
                  meta: Optional[Dict[str, Any]] = None,
                  ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
@@ -250,7 +250,7 @@ class TextData(ElementaryData):
                  y: types.Coordinate,
                  text: str,
                  latex: Optional[str] = None,
-                 channels: Optional[List[pulse.channels.Channel]] = None,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
                  meta: Optional[Dict[str, Any]] = None,
                  ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):

@@ -14,7 +14,7 @@ r"""
 Stylesheet library of the pulse drawer.
 
 The standard stylesheets provided by the pulse drawer are the subclass of the python dictionary.
-This enables a stylesheet to provide sufficient information of preferences in the docstring.
+This enables a stylesheet to provide sufficient information of generators in the docstring.
 An end-user can still create a custom stylesheet as a python dictionary:
 
     ```python
@@ -24,7 +24,7 @@ An end-user can still create a custom stylesheet as a python dictionary:
 Note that the user can partially update a default stylesheet with py:method:`dict.update`.
 
 Those stylesheets are fed into the drawer interface and the output images are modified
-according to the provided preferences.
+according to the provided generators.
 """
 
 from qiskit.visualization.pulse_v2 import generators, layouts

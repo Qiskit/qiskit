@@ -81,7 +81,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import PULSE_STYLE
-from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, InstructionTuple
+from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 
 
 class ChannelEvents:
@@ -157,7 +157,7 @@ class ChannelEvents:
         self._init_frequency = init_frequency
         self._init_phase = init_phase
 
-    def get_waveforms(self) -> Iterator[InstructionTuple]:
+    def get_waveforms(self) -> Iterator[PulseInstruction]:
         """Return waveform type instructions with frame."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
         sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
@@ -171,9 +171,9 @@ class ChannelEvents:
                 phase, frequency = self._calculate_current_frame(frame_changes, phase, frequency)
             frame = PhaseFreqTuple(phase, frequency)
 
-            yield InstructionTuple(t0, self._dt, frame, inst)
+            yield PulseInstruction(t0, self._dt, frame, inst)
 
-    def get_frame_changes(self) -> Iterator[InstructionTuple]:
+    def get_frame_changes(self) -> Iterator[PulseInstruction]:
         """Return frame change type instructions with total frame change amount."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 
@@ -185,7 +185,7 @@ class ChannelEvents:
             phase, frequency = self._calculate_current_frame(frame_changes, phase, frequency)
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
-            yield InstructionTuple(t0, self._dt, frame, frame_changes)
+            yield PulseInstruction(t0, self._dt, frame, frame_changes)
 
     @staticmethod
     def _calculate_current_frame(frame_changes: List[pulse.instructions.Instruction],
