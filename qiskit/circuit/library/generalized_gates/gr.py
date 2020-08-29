@@ -77,8 +77,8 @@ class GR(QuantumCircuit):
         self.append(gr, self.qubits)
 
 
-class GRx(GR):
-    r"""Global Rx gate.
+class GRX(GR):
+    r"""Global RX gate.
 
     **Circuit symbol:**
 
@@ -87,7 +87,7 @@ class GRx(GR):
              ┌──────────┐
         q_0: ┤0         ├
              │          │
-        q_1: ┤1  GRx(ϴ) ├
+        q_1: ┤1  GRX(ϴ) ├
              │          │
         q_2: ┤2         ├
              └──────────┘
@@ -97,29 +97,29 @@ class GRx(GR):
     .. jupyter-execute::
         :hide-code:
 
-        from qiskit.circuit.library import GRx
+        from qiskit.circuit.library import GRX
         import qiskit.tools.jupyter
         import numpy as np
-        circuit = GRx(num_qubits=3, theta=np.pi/4)
+        circuit = GRX(num_qubits=3, theta=np.pi/4)
         %circuit_library_info circuit.decompose()
 
-    The global Rx gate is native to atomic systems (ion traps, cold neutrals). The global Rx
+    The global RX gate is native to atomic systems (ion traps, cold neutrals). The global RX
     can be applied to multiple qubits simultaneously.
 
-    In the one-qubit case, this is equivalent to an Rx(theta) operations,
-    and is thus reduced to the RXGate. The global Rx gate is a direct sum of Rx
+    In the one-qubit case, this is equivalent to an RX(theta) operations,
+    and is thus reduced to the RXGate. The global RX gate is a direct sum of RX
     operations on all individual qubits.
 
     .. math::
 
-        GRx(\theta) =
+        GRX(\theta) =
         exp(-i \sum_{i=1}^{n} X_i \theta/2)
 
     """
     def __init__(self,
                  num_qubits: int,
                  theta: float) -> None:
-        """Create a new Global Rx (GRx) gate.
+        """Create a new Global RX (GRX) gate.
 
         Args:
             num_qubits: number of qubits.
@@ -128,8 +128,8 @@ class GRx(GR):
         super().__init__(num_qubits, theta, phi=0)
 
 
-class GRy(GR):
-    r"""Global Ry gate.
+class GRY(GR):
+    r"""Global RY gate.
 
     **Circuit symbol:**
 
@@ -138,7 +138,7 @@ class GRy(GR):
              ┌──────────┐
         q_0: ┤0         ├
              │          │
-        q_1: ┤1  GRy(ϴ) ├
+        q_1: ┤1  GRY(ϴ) ├
              │          │
         q_2: ┤2         ├
              └──────────┘
@@ -148,29 +148,29 @@ class GRy(GR):
     .. jupyter-execute::
         :hide-code:
 
-        from qiskit.circuit.library import GRy
+        from qiskit.circuit.library import GRY
         import qiskit.tools.jupyter
         import numpy as np
-        circuit = GRy(num_qubits=3, theta=np.pi/4)
+        circuit = GRY(num_qubits=3, theta=np.pi/4)
         %circuit_library_info circuit.decompose()
 
-    The global Ry gate is native to atomic systems (ion traps, cold neutrals). The global Ry
+    The global RY gate is native to atomic systems (ion traps, cold neutrals). The global RY
     can be applied to multiple qubits simultaneously.
 
-    In the one-qubit case, this is equivalent to an Ry(theta) operation,
-    and is thus reduced to the RYGate. The global Ry gate is a direct sum of Ry
+    In the one-qubit case, this is equivalent to an RY(theta) operation,
+    and is thus reduced to the RYGate. The global RY gate is a direct sum of RY
     operations on all individual qubits.
 
     .. math::
 
-        GRy(\theta) =
+        GRY(\theta) =
         exp(-i \sum_{i=1}^{n} Y_i \theta/2)
 
     """
     def __init__(self,
                  num_qubits: int,
                  theta: float) -> None:
-        """Create a new Global Ry (GRy) gate.
+        """Create a new Global RY (GRY) gate.
 
         Args:
             num_qubits: number of qubits.
@@ -179,8 +179,8 @@ class GRy(GR):
         super().__init__(num_qubits, theta, phi=np.pi/2)
 
 
-class GRz(QuantumCircuit):
-    r"""Global Rz gate.
+class GRZ(QuantumCircuit):
+    r"""Global RZ gate.
 
     **Circuit symbol:**
 
@@ -189,7 +189,7 @@ class GRz(QuantumCircuit):
              ┌──────────┐
         q_0: ┤0         ├
              │          │
-        q_1: ┤1  GRz(φ) ├
+        q_1: ┤1  GRZ(φ) ├
              │          │
         q_2: ┤2         ├
              └──────────┘
@@ -199,29 +199,29 @@ class GRz(QuantumCircuit):
     .. jupyter-execute::
         :hide-code:
 
-        from qiskit.circuit.library import GRz
+        from qiskit.circuit.library import GRZ
         import qiskit.tools.jupyter
         import numpy as np
-        circuit = GRz(num_qubits=3, phi=np.pi/2)
+        circuit = GRZ(num_qubits=3, phi=np.pi/2)
         %circuit_library_info circuit.decompose()
 
-    The global Rz gate is native to atomic systems (ion traps, cold neutrals). The global Rz
+    The global RZ gate is native to atomic systems (ion traps, cold neutrals). The global RZ
     can be applied to multiple qubits simultaneously.
 
-    In the one-qubit case, this is equivalent to an Rz(phi) operation,
-    and is thus reduced to the RZGate. The global Rz gate is a direct sum of Rz
+    In the one-qubit case, this is equivalent to an RZ(phi) operation,
+    and is thus reduced to the RZGate. The global RZ gate is a direct sum of RZ
     operations on all individual qubits.
 
     .. math::
 
-        GRz(\phi) =
+        GRZ(\phi) =
         exp(-i \sum_{i=1}^{n} Z_i \phi)
 
     """
     def __init__(self,
                  num_qubits: int,
                  phi: float) -> None:
-        """Create a new Global Rz (GRz) gate.
+        """Create a new Global RZ (GRZ) gate.
 
         Args:
             num_qubits: number of qubits.

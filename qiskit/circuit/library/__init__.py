@@ -89,9 +89,9 @@ Generalized Gates
    Permutation
    GMS
    GR
-   GRx
-   GRy
-   GRz
+   GRX
+   GRY
+   GRZ
 
 Boolean Logic Circuits
 ======================
@@ -202,9 +202,9 @@ from .generalized_gates import (
     Permutation,
     GMS,
     GR,
-    GRx,
-    GRy,
-    GRz
+    GRX,
+    GRY,
+    GRZ
 )
 from .boolean_logic import (
     AND,
