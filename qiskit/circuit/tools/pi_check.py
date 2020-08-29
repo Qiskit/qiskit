@@ -18,7 +18,8 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
-N, D = np.meshgrid(np.arange(1, 17), np.arange(1, 17))
+MAX_FRAC = 16
+N, D = np.meshgrid(np.arange(1, MAX_FRAC+1), np.arange(1, MAX_FRAC+1))
 FRAC_MESH = N / D * np.pi
 
 
@@ -52,7 +53,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     def normalize(single_inpt):
         if abs(single_inpt) < 1e-14:
             return '0'
-        val = single_inpt / np.pi
+
         if output in ['text', 'qasm']:
             pi = 'pi'
         elif output == 'latex':
@@ -62,6 +63,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         else:
             raise QiskitError('pi_check parameter output should be text, '
                               'latex, mpl, or qasm.')
+
+        # First check is for whole multiples of pi
+        val = single_inpt / np.pi
         if abs(val) >= 1 - eps:
             if abs(abs(val) - abs(round(val))) < eps:
                 val = int(round(val))
@@ -76,6 +80,14 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                         str_out = '{}{}'.format(val, pi)
                 return str_out
 
+        # Second is a check for a number larger than MAX_FRAC*np.pi, since no
+        # fractions will exceed that value
+        if abs(single_inpt) >= MAX_FRAC*np.pi:
+            str_out = '%.{}g'.format(ndigits) % single_inpt
+            return str_out
+
+        # Third check is for fractions for 1*np.pi in the numer and any
+        # number in the denom.
         val = np.pi / single_inpt
         if abs(abs(val) - abs(round(val))) < eps:
             val = int(round(val))
@@ -91,7 +103,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
                     str_out = '-{}/{}'.format(pi, abs(val))
             return str_out
 
-        # Look for all fracs in 8
+        # Fourth check for fractions where the numer > 1*np.pi and numer
+        # is up to MAX_FRAC*np.pi and denom is up to MAX_FRAC and all
+        # fractions are reduced. Ex. 15pi/16, 2pi/5, 15pi/2, 8pi/3, 16pi/9.
         abs_val = abs(single_inpt)
         frac = np.where(np.abs(abs_val - FRAC_MESH) < 1e-8)
         if frac[0].shape[0]:
