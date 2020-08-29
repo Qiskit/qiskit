@@ -25,7 +25,7 @@ from qiskit.visualization.pulse_v2.style import stylesheet
 def create_instruction(inst, phase, freq, t0, dt):
     """A helper function to create InstructionTuple."""
     frame = types.PhaseFreqTuple(phase=phase, freq=freq)
-    return types.InstructionTuple(t0=t0, dt=dt, frame=frame, inst=inst)
+    return types.PulseInstruction(t0=t0, dt=dt, frame=frame, inst=inst)
 
 
 class TestWaveformGenerators(QiskitTestCase):
@@ -181,7 +181,7 @@ class TestWaveformGenerators(QiskitTestCase):
         play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
-        obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
+        obj = generators.gen_ibmq_latex_waveform_name(inst_data)[0]
 
         # type check
         self.assertEqual(type(obj), drawing_objects.TextData)
@@ -205,7 +205,7 @@ class TestWaveformGenerators(QiskitTestCase):
         play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
-        obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
+        obj = generators.gen_ibmq_latex_waveform_name(inst_data)[0]
 
         # type check
         self.assertEqual(type(obj), drawing_objects.TextData)
@@ -221,7 +221,7 @@ class TestWaveformGenerators(QiskitTestCase):
         play = pulse.Play(iqx_pulse, pulse.ControlChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
-        obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
+        obj = generators.gen_ibmq_latex_waveform_name(inst_data)[0]
 
         # type check
         self.assertEqual(type(obj), drawing_objects.TextData)
@@ -237,7 +237,7 @@ class TestWaveformGenerators(QiskitTestCase):
         play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
-        obj = generators.gen_iqx_latex_waveform_name(inst_data)[0]
+        obj = generators.gen_ibmq_latex_waveform_name(inst_data)[0]
 
         # type check
         self.assertEqual(type(obj), drawing_objects.TextData)

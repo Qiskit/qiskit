@@ -71,11 +71,15 @@ SnapshotInstruction.inst.__doc__ = 'Snapshot instruction.'
 
 
 ChartAxis = NamedTuple(
-    'ChartHeader',
-    [('name', str)]
+    'ChartAxis',
+    [('name', str),
+     ('scale', float),
+     ('channels', List[pulse.channels.Channel])]
 )
-ChartAxis.__doc__ = 'Data to represent an axis information of chart object'
-ChartAxis.name.__doc__ = 'Name of this chart.'
+ChartAxis.__doc__ = 'Data to represent an axis information of chart.'
+ChartAxis.name.__doc__ = 'Name of chart.'
+ChartAxis.scale.__doc__ = 'Current scaling value of chart.'
+ChartAxis.channels.__doc__ = 'Channels associated with chart.'
 
 
 ComplexColors = NamedTuple(
@@ -122,7 +126,7 @@ class DrawingLabel(str, Enum):
     """
     PULSE_NAME = 'Label.Pulse.Name'
     CH_NAME = 'Label.Channel.Name'
-    CH_SCALE = 'Label.Channel.Scale'
+    CH_INFO = 'Label.Channel.Info'
     FRAME = 'Label.Frame.Value'
     SNAPSHOT = 'Label.Snapshot'
 
@@ -154,9 +158,13 @@ class AbstractCoordinate(str, Enum):
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
     LEFT: The horizontal coordinate at tf shifted by the right margin.
+    TOP: The vertical coordinate at the top of chart.
+    BOTTOM: The vertical coordinate at the bottom of chart.
     """
     RIGHT = 'RIGHT'
     LEFT = 'LEFT'
+    TOP = 'TOP'
+    BOTTOM = 'BOTTOM'
 
 
 class WaveformChannel(pulse.channels.PulseChannel):

@@ -210,15 +210,6 @@ class DrawerCanvas:
                     for data in obj_generator(inst_data):
                         chart.add_data(data)
 
-            # add chart axis
-            chart_header = types.ChartAxis(name=name)
-            for gen in self.generator['chart']:
-                obj_generator = partial(func=gen,
-                                        formatter=self.formatter,
-                                        device=self.device)
-                for data in obj_generator(chart_header):
-                    chart.add_data(data)
-
             self.charts.append(chart)
 
         # create snapshot chart
@@ -346,6 +337,7 @@ class Chart:
 
         self.index = self._cls_index()
         self.name = name
+        self.channels = set()
 
         self.vmax = 0
         self.vmin = 0
@@ -405,6 +397,8 @@ class Chart:
             for data in list(chain.from_iterable(drawings)):
                 self.add_data(data)
 
+        self.channels.add(chan)
+
     def update(self):
         """Update vertical data range and scaling factor of this chart.
 
@@ -421,6 +415,15 @@ class Chart:
             self.scale = 1.0 / (max(abs(self.vmax), abs(self.vmin), max_scaling))
         else:
             self.scale = 1.0
+
+        # regenerate chart axis objects
+        chart_axis = types.ChartAxis(name=self.name, scale=self.scale, channels=self.channels)
+        for gen in self._parent.generator['chart']:
+            obj_generator = partial(func=gen,
+                                    formatter=self._parent.formatter,
+                                    device=self._parent.device)
+            for data in obj_generator(chart_axis):
+                self.add_data(data)
 
     @property
     def is_active(self):
