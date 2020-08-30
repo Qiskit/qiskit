@@ -151,9 +151,9 @@ def gen_chart_scale(data: types.ChartAxis,
     return [text]
 
 
-def gen_channel_freq(data: types.ChartAxis,
-                     formatter: Dict[str, Any],
-                     device: device_info.DrawerBackendInfo) \
+def gen_channel_freqs(data: types.ChartAxis,
+                      formatter: Dict[str, Any],
+                      device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
     """Generate frequency values of associated channels.
 

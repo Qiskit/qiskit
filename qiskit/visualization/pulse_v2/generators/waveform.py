@@ -240,6 +240,92 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
     return [text]
 
 
+def gen_waveform_max_value(data: types.PulseInstruction,
+                           formatter: Dict[str, Any],
+                           device: device_info.DrawerBackendInfo) \
+        -> List[drawing_objects.TextData]:
+    """Generate annotation for maximum waveform height for real and imaginary part.
+
+    Maximum value smaller than the vertical resolution is ignored.
+
+    Stylesheets:
+        - The `annotate` style is applied.
+
+    Args:
+        data: Waveform instruction data to draw.
+        formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
+
+    Returns:
+        List of `TextData` drawing objects.
+    """
+    style = {'zorder': formatter['layer.annotate'],
+             'color': formatter['color.annotate'],
+             'size': formatter['text_size.annotate'],
+             'ha': 'center'}
+
+    # only pulses.
+    if isinstance(data.inst, instructions.Play):
+        # pulse
+        operand = data.inst.pulse
+        if isinstance(operand, pulse.ParametricPulse):
+            pulse_data = operand.get_waveform()
+        else:
+            pulse_data = operand
+        xdata = np.arange(pulse_data.duration) + data.t0
+        ydata = pulse_data.samples
+    else:
+        return []
+
+    # phase modulation
+    if formatter['control.apply_phase_modulation']:
+        ydata = np.asarray(ydata, dtype=np.complex) * np.exp(1j * data.frame.phase)
+    else:
+        ydata = np.asarray(ydata, dtype=np.complex)
+
+    texts = []
+
+    # max of real part
+    re_maxind = np.argmax(np.abs(ydata.real))
+    if np.abs(ydata.real[re_maxind]) > formatter['general.vertical_resolution']:
+        if ydata.real[re_maxind] > 0:
+            max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.real[re_maxind])
+            re_style = {'va': 'bottom'}
+        else:
+            max_val = u'{val:.2f}\n\u25B4'.format(val=ydata.real[re_maxind])
+            re_style = {'va': 'top'}
+        re_style.update(style)
+        re_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
+                                           channels=data.inst.channel,
+                                           x=xdata[re_maxind],
+                                           y=ydata.real[re_maxind],
+                                           text=max_val,
+                                           ignore_scaling=True,
+                                           styles=style)
+        texts.append(re_text)
+
+    # max of imag part
+    im_maxind = np.argmax(np.abs(ydata.imag))
+    if np.abs(ydata.imag[im_maxind]) > formatter['general.vertical_resolution']:
+        if ydata.imag[im_maxind] > 0:
+            max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.imag[im_maxind])
+            im_style = {'va': 'bottom'}
+        else:
+            max_val = u'{val:.2f}\n\u25B4'.format(val=ydata.imag[im_maxind])
+            im_style = {'va': 'top'}
+        im_style.update(style)
+        im_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
+                                           channels=data.inst.channel,
+                                           x=xdata[im_maxind],
+                                           y=ydata.imag[im_maxind],
+                                           text=max_val,
+                                           ignore_scaling=True,
+                                           styles=style)
+        texts.append(im_text)
+
+    return texts
+
+
 def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.ndarray:
     """A helper function to return non-consecutive index from the given list.
 

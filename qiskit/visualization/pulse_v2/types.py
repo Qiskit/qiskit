@@ -125,6 +125,7 @@ class DrawingLabel(str, Enum):
     SNAPSHOT: Assigned to objects that represent label of snapshot.
     """
     PULSE_NAME = 'Label.Pulse.Name'
+    PULSE_INFO = 'Label.Pulse.Info'
     CH_NAME = 'Label.Channel.Name'
     CH_INFO = 'Label.Channel.Info'
     FRAME = 'Label.Frame.Value'

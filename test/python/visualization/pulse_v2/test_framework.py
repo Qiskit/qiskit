@@ -18,8 +18,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import events, core, generators, layouts, PULSE_STYLE
-from qiskit.visualization.pulse_v2.style import stylesheet
+from qiskit.visualization.pulse_v2 import events, core, generators, layouts, PULSE_STYLE, stylesheet
 
 
 class TestChannelEvents(QiskitTestCase):

@@ -20,7 +20,9 @@ from qiskit.visualization.pulse_v2.generators.barrier import (
 
 from qiskit.visualization.pulse_v2.generators.chart import (
     gen_baseline,
-    gen_chart_name
+    gen_channel_freqs,
+    gen_chart_name,
+    gen_chart_scale
 )
 
 from qiskit.visualization.pulse_v2.generators.frame import (
@@ -38,5 +40,6 @@ from qiskit.visualization.pulse_v2.generators.snapshot import (
 
 from qiskit.visualization.pulse_v2.generators.waveform import (
     gen_filled_waveform_stepwise,
-    gen_ibmq_latex_waveform_name
+    gen_ibmq_latex_waveform_name,
+    gen_waveform_max_value
 )

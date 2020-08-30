@@ -94,7 +94,7 @@ class ElementaryData(ABC):
             ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
-        if channels and isinstance(channels, pulse.channels.Channel):
+        if channels and isinstance(channels, Channel):
             channels = List[channels]
 
         self.data_type = data_type

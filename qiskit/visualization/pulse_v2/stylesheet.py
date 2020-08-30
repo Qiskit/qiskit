@@ -132,6 +132,7 @@ See py:mod:`qiskit.visualization.pulse_v2.generators` for the detail of generato
 
 import warnings
 from typing import Dict, Any, Mapping
+from qiskit.visualization.pulse_v2 import generators, layouts
 
 
 class QiskitPulseStyle(dict):
@@ -154,6 +155,7 @@ class QiskitPulseStyle(dict):
                 self.__setitem__(self._deprecated_keys[key], value)
             else:
                 self.__setitem__(key, value)
+        self.stylesheet = __m.__class__.__name__
 
     @property
     def formatter(self):
@@ -183,6 +185,113 @@ class QiskitPulseStyle(dict):
         return sub_dict
 
 
+class IqxStandard(dict):
+    """Standard pulse stylesheet.
+
+    - Generate stepwise waveform envelope with latex pulse names.
+    - Apply phase modulation to waveforms.
+    - Plot frame change symbol with formatted operand values.
+    - Show chart name with scaling factor.
+    - Show snapshot and barrier.
+    - Channels are sorted by index and control channels are added to the end.
+    """
+    def __init__(self, **kwargs):
+        super().__init__()
+        style = {'formatter.control.apply_phase_modulation': True,
+                 'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_empty_channel': False,
+                 'formatter.control.auto_chart_scaling': True,
+                 'formatter.control.axis_break': True,
+                 'generator.waveform': [generators.gen_filled_waveform_stepwise,
+                                        generators.gen_ibmq_latex_waveform_name],
+                 'generator.frame': [generators.gen_frame_symbol,
+                                     generators.gen_formatted_frame_values],
+                 'generator.chart': [generators.gen_chart_name,
+                                     generators.gen_baseline,
+                                     generators.gen_channel_freqs],
+                 'generator.snapshot': [generators.gen_snapshot_symbol],
+                 'generator.barrier': [generators.gen_barrier],
+                 'layout.channel': layouts.channel_index_grouped_sort_except_u}
+        style.update(**kwargs)
+        self.update(style)
+
+    def __repr__(self):
+        return 'Standard Pulse style sheet.'
+
+
+class IqxPublication(dict):
+    """Simple pulse stylesheet suited for publication.
+
+    - Generate stepwise waveform envelope with latex pulse names.
+    - Apply phase modulation to waveforms.
+    - Do not show frame changes.
+    - Show chart name.
+    - Do not show snapshot and barrier.
+    - Channels are sorted by qubit index.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        style = {'formatter.control.apply_phase_modulation': True,
+                 'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_empty_channel': False,
+                 'formatter.control.auto_chart_scaling': True,
+                 'formatter.control.axis_break': True,
+                 'generator.waveform': [generators.gen_filled_waveform_stepwise,
+                                        generators.gen_ibmq_latex_waveform_name],
+                 'generator.frame': [],
+                 'generator.chart': [generators.gen_chart_name,
+                                     generators.gen_baseline],
+                 'generator.snapshot': [],
+                 'generator.barrier': [],
+                 'layout.channel': layouts.qubit_index_sort}
+        style.update(**kwargs)
+        self.update(style)
+
+    def __repr__(self):
+        return 'Simple pulse style sheet for publication.'
+
+
+class IqxDebugging(dict):
+    """Pulse stylesheet for pulse programmers. Show details of instructions.
+
+    # TODO: add more generators
+
+    - Generate stepwise waveform envelope with latex pulse names.
+    - Generate annotation for waveform height.
+    - Do not apply phase modulation to waveforms.
+    - Plot frame change symbol with raw operand values.
+    - Show chart name and channel frequency.
+    - Show snapshot and barrier.
+    - Channels are sorted by index and control channels are added to the end.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        style = {'formatter.control.apply_phase_modulation': False,
+                 'formatter.control.show_snapshot_channel': True,
+                 'formatter.control.show_empty_channel': False,
+                 'formatter.control.auto_chart_scaling': False,
+                 'formatter.control.axis_break': True,
+                 'generator.waveform': [generators.gen_filled_waveform_stepwise,
+                                        generators.gen_ibmq_latex_waveform_name,
+                                        generators.gen_waveform_max_value],
+                 'generator.frame': [generators.gen_frame_symbol,
+                                     generators.gen_raw_operand_values_compact],
+                 'generator.chart': [generators.gen_chart_name,
+                                     generators.gen_baseline,
+                                     generators.gen_channel_freqs],
+                 'generator.snapshot': [generators.gen_snapshot_symbol,
+                                        generators.gen_snapshot_name],
+                 'generator.barrier': [generators.gen_barrier],
+                 'layout.channel': layouts.channel_index_grouped_sort_except_u}
+        style.update(**kwargs)
+        self.update(style)
+
+    def __repr__(self):
+        return 'Pulse style sheet for pulse programmers.'
+
+
 def default_style() -> Dict[str, Any]:
     """Define default values of the pulse stylesheet."""
     return {
@@ -190,6 +299,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.general.fig_unit_height': 1,
         'formatter.general.dpi': 150,
         'formatter.general.vertical_resolution': 1e-6,
+        'formatter.general.max_scale': 100,
         'formatter.color.fill_waveform_w': ['#648fff', '#002999'],
         'formatter.color.fill_waveform_d': ['#648fff', '#002999'],
         'formatter.color.fill_waveform_u': ['#ffb000', '#994A00'],
@@ -242,7 +352,6 @@ def default_style() -> Dict[str, Any]:
         'formatter.axis_break.max_length': 1000,
         'formatter.control.apply_phase_modulation': True,
         'formatter.control.show_snapshot_channel': True,
-        'formatter.control.show_acquire_channel': True,
         'formatter.control.show_empty_channel': True,
         'formatter.control.auto_chart_scaling': True,
         'formatter.control.axis_break': True,

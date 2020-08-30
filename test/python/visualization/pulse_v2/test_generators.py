@@ -18,8 +18,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects, generators, types
-from qiskit.visualization.pulse_v2.style import stylesheet
+from qiskit.visualization.pulse_v2 import drawing_objects, generators, types, stylesheet
 
 
 def create_instruction(inst, phase, freq, t0, dt):
