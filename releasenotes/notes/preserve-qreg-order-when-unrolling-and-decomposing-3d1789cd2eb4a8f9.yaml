@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    You can specify gate registers when replacing a node's operation in DAGCircuit.
+    New registers order can be specified when replacing a node's operation in DAGCircuit.
     Usage example:
     .. code-block:: python
 
@@ -25,5 +25,5 @@ features:
 fixes:
   - |
     A bug that was causing registers to be mismapped when unrolling/decomposing
-    a gate defined with only one instruction. Now the decomposition will reflect
+    a gate defined with only one operation. Now the decomposition will reflect
     how a gate is defined.
