@@ -57,6 +57,8 @@ In this example, `DriveChannel(1)` will be removed from the output.
 from functools import partial
 from itertools import chain
 from typing import Union, List, Tuple, Iterator, Optional
+from copy import deepcopy
+from collections import defaultdict
 
 import numpy as np
 
@@ -119,6 +121,16 @@ class DrawerCanvas:
         self._time_range = new_range
         for chart in self.charts:
             chart.update()
+
+    @property
+    def time_breaks(self):
+        """Return time breaks with time range."""
+        return self._time_breaks
+
+    @time_breaks.setter
+    def time_breaks(self, new_breaks: List[Tuple[int, int]]):
+        """Set new time breaks."""
+        self._time_breaks = sorted(new_breaks, key=lambda x: x[0])
 
     def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
         """Load a program to draw.
@@ -215,7 +227,7 @@ class DrawerCanvas:
         self.charts.append(snapshot_chart)
 
         # calculate axis break
-        self._time_breaks = self._calculate_axis_break(program)
+        self.time_breaks = self._calculate_axis_break(program)
 
     def _calculate_axis_break(self, program: pulse.Schedule) -> List[Tuple[int, int]]:
         """A helper function to calculate axis break of long pulse sequence.
@@ -308,8 +320,6 @@ class Chart:
     The vertical value of each `Chart` should be in the range [-1, 1].
     This truncation should be performed in the plotter interface.
     """
-    WAVEFORMS = (types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG)
-
     # unique index of chart
     chart_index = 0
 
@@ -321,7 +331,11 @@ class Chart:
             name: Name of this `Chart` instance.
         """
         self._parent = parent
-        self._collections = dict()
+
+        self._waveform_collections = dict()
+        self._misc_collections = dict()
+
+        self._output_dataset = dict()
 
         self.index = self._cls_index()
         self.name = name or ''
@@ -342,7 +356,10 @@ class Chart:
         Args:
             data: New drawing object to add.
         """
-        self._collections[data.data_key] = data
+        if isinstance(data.data_type, types.DrawingWaveform):
+            self._waveform_collections[data.data_key] = data
+        else:
+            self._misc_collections[data.data_key] = data
 
     def load_program(self,
                      program: pulse.Schedule,
@@ -388,20 +405,57 @@ class Chart:
 
         Those parameters are updated based on current time range in the parent canvas.
         """
-        for data in self._collections.values():
-            if data.data_type in Chart.WAVEFORMS and self._check_visible(data):
-                scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
-                # assume no abstract coordinate in waveform y values.
-                if isinstance(data, drawing_objects.FilledAreaData):
-                    yvals = np.concatenate((data.y1, data.y2))
-                else:
-                    yvals = data.y
-                self.vmax = max(scale * np.max(yvals), self.vmax)
-                self.vmin = max(scale * np.min(yvals), self.vmin)
+        self._output_dataset.clear()
 
+        t0, t1 = self._parent.time_breaks
+        time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
+
+        # assume no abstract coordinate in waveform data
+        for key, data in self._waveform_collections.items():
+            # truncate
+            trunc_x, trunc_y = self._truncate_data(data.xvals,
+                                                   data.yvals,
+                                                   time_breaks)
+            if trunc_x.size == 0 or trunc_y.size == 0:
+                # no available data points
+                continue
+            # update y range
+            scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
+            self.vmax = max(scale * np.max(trunc_y),
+                            self.vmax,
+                            self._parent.formatter['channel_scaling.pos_spacing'])
+            self.vmin = min(scale * np.min(trunc_y),
+                            self.vmin,
+                            self._parent.formatter['channel_scaling.neg_spacing'])
+
+            # generate new data
+            new_data = deepcopy(data)
+            new_data.xvals = trunc_x
+            new_data.yvals = trunc_y
+
+            self._output_dataset[key] = new_data
+
+        # update other data
+        for key, data in self._misc_collections.items():
+            # truncate
+            trunc_x, trunc_y = self._truncate_data(self._bind_coordinate(data.xvals),
+                                                   self._bind_coordinate(data.yvals),
+                                                   time_breaks)
+            if trunc_x.size == 0 and trunc_y.size == 0:
+                # no available data points
+                continue
+
+            # generate new data
+            new_data = deepcopy(data)
+            new_data.xvals = trunc_x
+            new_data.yvals = trunc_y
+
+            self._output_dataset[key] = new_data
+
+        # calculate chart level scaling factor
         if self._parent.formatter['control.auto_chart_scaling']:
-            max_scaling = self._parent.formatter['general.max_scale']
-            self.scale = max(1.0 / (max(abs(self.vmax), abs(self.vmin))), max_scaling)
+            self.scale = max(1.0 / (max(abs(self.vmax), abs(self.vmin))),
+                             self._parent.formatter['general.max_scale'])
         else:
             self.scale = 1.0
 
@@ -417,8 +471,8 @@ class Chart:
     @property
     def is_active(self):
         """Check if there is any active waveform data in this entry."""
-        for _, data in self.collections:
-            if data.data_type in Chart.WAVEFORMS:
+        for data in self._output_dataset.values():
+            if isinstance(data.data_type, types.DrawingWaveform):
                 return True
         return False
 
@@ -430,14 +484,13 @@ class Chart:
         When the horizontal coordinate contains `AbstractCoordinate`,
         the value is substituted by current time range preference.
         """
-
-        for name, data in self._collections.items():
+        for name, data in self._output_dataset.items():
             # prepare unique name
             unique_id = 'chart{ind:d}_{key}'.format(ind=self.index, key=name)
             if self._check_visible(data):
                 yield unique_id, data
 
-    def bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
+    def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
         """A helper function to bind actual coordinate to `AbstractCoordinate`.
 
         Args:
@@ -459,6 +512,45 @@ class Chart:
         except ValueError:
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
+    def _truncate_data(self,
+                       xvals: np.ndarray,
+                       yvals: np.ndarray,
+                       breaks: List[Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        """A helper function to remove data points according to time breaks.
+
+        Args:
+            xvals: Time points.
+            yvals: Data points.
+        """
+        trunc_xvals = [xvals]
+        trunc_yvals = [yvals]
+        for t0, t1 in breaks:
+            sub_xs = trunc_xvals.pop()
+            sub_ys = trunc_yvals.pop()
+            trunc_inds = np.where((sub_xs > t0) & (sub_xs < t1), True, False)
+            # no overlap
+            if not np.any(trunc_inds):
+                trunc_xvals.append(sub_xs)
+                trunc_yvals.append(sub_ys)
+                continue
+            # all data points are truncated
+            if np.all(trunc_inds):
+                return np.array([]), np.array([])
+
+            # add left side
+            ind_l = np.where(sub_xs < t0, True, False)
+            if np.any(ind_l):
+                trunc_xvals.append(np.append(sub_xs[ind_l], t0))
+                trunc_yvals.append(np.append(sub_ys[ind_l], np.interp(t0, sub_xs, sub_ys)))
+
+            # add right side
+            ind_r = np.where(sub_xs > t1, True, False)
+            if np.any(ind_r):
+                trunc_xvals.append(np.insert(sub_xs[ind_r], 0, t1))
+                trunc_yvals.append(np.insert(sub_ys[ind_r], 0, np.interp(t1, sub_xs, sub_ys)))
+
+        return np.concatenate(trunc_xvals), np.concatenate(trunc_yvals)
+
     def _check_visible(self, data: drawing_objects.ElementaryData) -> bool:
         """A helper function to check if the data is visible.
 
@@ -469,19 +561,6 @@ class Chart:
         is_active_chan = any(chan not in self._parent.disable_chans for chan in data.channels)
         if not (is_active_type and is_active_chan):
             return False
-
-        t0, t1 = self._parent.time_range
-        try:
-            # check if horizontal position is in the time range.
-            xvals = data.x
-            if isinstance(xvals, types.Coordinate):
-                xvals = [xvals]
-            xvals = self.bind_coordinate(xvals)
-            if not any(np.where((xvals >= t0) & (xvals <= t1), True, False)):
-                return False
-        except AttributeError:
-            # data has no x attribute. likely no dependence on time range.
-            pass
 
         return True
 
