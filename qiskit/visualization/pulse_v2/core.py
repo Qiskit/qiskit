@@ -407,18 +407,15 @@ class Chart:
         """
         self._output_dataset.clear()
 
-        t0, t1 = self._parent.time_breaks
-        time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
-
         # assume no abstract coordinate in waveform data
         for key, data in self._waveform_collections.items():
             # truncate
-            trunc_x, trunc_y = self._truncate_data(data.xvals,
-                                                   data.yvals,
-                                                   time_breaks)
+            trunc_x, trunc_y = self._truncate_data(xvals=data.xvals,
+                                                   yvals=data.yvals)
+            # no available data points
             if trunc_x.size == 0 or trunc_y.size == 0:
-                # no available data points
                 continue
+
             # update y range
             scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
             self.vmax = max(scale * np.max(trunc_y),
@@ -435,14 +432,29 @@ class Chart:
 
             self._output_dataset[key] = new_data
 
+        # calculate chart level scaling factor
+        if self._parent.formatter['control.auto_chart_scaling']:
+            self.scale = max(1.0 / (max(abs(self.vmax), abs(self.vmin))),
+                             self._parent.formatter['general.max_scale'])
+        else:
+            self.scale = 1.0
+
+        # regenerate chart axis objects, this may include updated scaling value
+        chart_axis = types.ChartAxis(name=self.name, scale=self.scale, channels=self.channels)
+        for gen in self._parent.generator['chart']:
+            obj_generator = partial(func=gen,
+                                    formatter=self._parent.formatter,
+                                    device=self._parent.device)
+            for data in obj_generator(chart_axis):
+                self.add_data(data)
+
         # update other data
         for key, data in self._misc_collections.items():
             # truncate
-            trunc_x, trunc_y = self._truncate_data(self._bind_coordinate(data.xvals),
-                                                   self._bind_coordinate(data.yvals),
-                                                   time_breaks)
+            trunc_x, trunc_y = self._truncate_data(xvals=self._bind_coordinate(data.xvals),
+                                                   yvals=self._bind_coordinate(data.yvals))
+            # no available data points
             if trunc_x.size == 0 and trunc_y.size == 0:
-                # no available data points
                 continue
 
             # generate new data
@@ -452,27 +464,11 @@ class Chart:
 
             self._output_dataset[key] = new_data
 
-        # calculate chart level scaling factor
-        if self._parent.formatter['control.auto_chart_scaling']:
-            self.scale = max(1.0 / (max(abs(self.vmax), abs(self.vmin))),
-                             self._parent.formatter['general.max_scale'])
-        else:
-            self.scale = 1.0
-
-        # regenerate chart axis objects
-        chart_axis = types.ChartAxis(name=self.name, scale=self.scale, channels=self.channels)
-        for gen in self._parent.generator['chart']:
-            obj_generator = partial(func=gen,
-                                    formatter=self._parent.formatter,
-                                    device=self._parent.device)
-            for data in obj_generator(chart_axis):
-                self.add_data(data)
-
     @property
     def is_active(self):
         """Check if there is any active waveform data in this entry."""
         for data in self._output_dataset.values():
-            if isinstance(data.data_type, types.DrawingWaveform):
+            if isinstance(data.data_type, types.DrawingWaveform) and self._check_visible(data):
                 return True
         return False
 
@@ -514,17 +510,19 @@ class Chart:
 
     def _truncate_data(self,
                        xvals: np.ndarray,
-                       yvals: np.ndarray,
-                       breaks: List[Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+                       yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """A helper function to remove data points according to time breaks.
 
         Args:
             xvals: Time points.
             yvals: Data points.
         """
+        t0, t1 = self._parent.time_breaks
+        time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
+
         trunc_xvals = [xvals]
         trunc_yvals = [yvals]
-        for t0, t1 in breaks:
+        for t0, t1 in time_breaks:
             sub_xs = trunc_xvals.pop()
             sub_ys = trunc_yvals.pop()
             trunc_inds = np.where((sub_xs > t0) & (sub_xs < t1), True, False)
