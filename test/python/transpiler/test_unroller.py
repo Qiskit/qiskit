@@ -211,6 +211,58 @@ class TestUnroller(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
+    def test_unrolling_preserves_qregs_order(self):
+        """Test unrolling a gate preseveres it's definition registers order"""
+        qr = QuantumRegister(2, 'qr1')
+        qc = QuantumCircuit(qr)
+        qc.cx(1, 0)
+        gate = qc.to_gate()
+
+        qr2 = QuantumRegister(2, 'qr2')
+        qc2 = QuantumCircuit(qr2)
+        qc2.append(gate, qr2)
+
+        dag = circuit_to_dag(qc2)
+        out_dag = Unroller(['cx']).run(dag)
+
+        expected = QuantumCircuit(qr2)
+        expected.cx(1, 0)
+
+        self.assertEqual(circuit_to_dag(expected), out_dag)
+
+    def test_unrolling_nested_gates_preserves_qregs_order(self):
+        """Test unrolling a nested gate preseveres it's definition registers order."""
+        qr = QuantumRegister(2, 'qr1')
+        qc = QuantumCircuit(qr)
+        qc.cx(1, 0)
+        gate_level_1 = qc.to_gate()
+
+        qr2 = QuantumRegister(2, 'qr2')
+        qc2 = QuantumCircuit(qr2)
+        qc2.append(gate_level_1, [1, 0])
+        qc2.cu1(pi, 1, 0)
+        gate_level_2 = qc2.to_gate()
+
+        qr3 = QuantumRegister(2, 'qr3')
+        qc3 = QuantumCircuit(qr3)
+        qc3.append(gate_level_2, [1, 0])
+        qc3.cu3(pi, pi, pi, 1, 0)
+        gate_level_3 = qc3.to_gate()
+
+        qr4 = QuantumRegister(2, 'qr4')
+        qc4 = QuantumCircuit(qr4)
+        qc4.append(gate_level_3, [0, 1])
+
+        dag = circuit_to_dag(qc4)
+        out_dag = Unroller(['cx', 'cu1', 'cu3']).run(dag)
+
+        expected = QuantumCircuit(qr4)
+        expected.cx(1, 0)
+        expected.cu1(pi, 0, 1)
+        expected.cu3(pi, pi, pi, 1, 0)
+
+        self.assertEqual(circuit_to_dag(expected), out_dag)
+
 
 class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""

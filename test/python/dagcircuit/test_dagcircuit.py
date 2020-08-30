@@ -1003,6 +1003,23 @@ class TestDagSubstituteNode(QiskitTestCase):
 
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 
+    @data(True, False)
+    def test_substituting_node_with_different_qargs(self, inplace):
+        """Test replacing a node and changing qargs."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        dag.add_qreg(qr)
+        node_to_be_replaced = dag.apply_operation_back(CXGate(), [qr[0], qr[1]])
+
+        dag.substitute_node(node_to_be_replaced, op=CXGate(), inplace=inplace,
+                            qargs=[qr[1], qr[0]])
+
+        expected_dag = DAGCircuit()
+        expected_dag.add_qreg(qr)
+        expected_dag.apply_operation_back(XGate().control(1), [qr[1], qr[0]])
+
+        self.assertEqual(dag, expected_dag)
+
 
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties.

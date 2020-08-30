@@ -66,6 +66,7 @@ class Unroller(TransformationPass):
             # TODO: allow choosing other possible decompositions
             try:
                 rule = node.op.definition.data
+                qargs = rule[0][1]
             except TypeError as err:
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
@@ -73,14 +74,22 @@ class Unroller(TransformationPass):
             # original gate, in which case substitute_node will raise. Fall back
             # to substitute_node_with_dag if an the width of the definition is
             # different that the width of the node.
-            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
+            while rule and len(rule) == 1 and len(node.qargs) == len(qargs):
                 if rule[0][0].name in self.basis:
                     if node.op.definition and node.op.definition.global_phase:
                         dag.global_phase += node.op.definition.global_phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
+                    wires = node.op.definition._qubits
+                    wire_map = dict(zip(wires, list(node.qargs)))
+                    dag._check_wiremap_validity(wire_map, wires, dag.input_map)
+                    new_qargs = [wire_map.get(wire) for wire in qargs]
+
+                    dag.substitute_node(node, rule[0][0], inplace=True, qargs=new_qargs)
                     break
                 try:
+                    wires = rule[0][0].definition._qubits
+                    wire_map = dict(zip(wires, list(qargs)))
                     rule = rule[0][0].definition.data
+                    qargs = [wire_map.get(wire) for wire in rule[0][1]]
                 except (TypeError, AttributeError) as err:
                     raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 

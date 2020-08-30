@@ -50,7 +50,12 @@ class Decompose(TransformationPass):
             rule = node.op.definition.data
 
             if len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
-                dag.substitute_node(node, rule[0][0], inplace=True)
+                wires = node.op.definition._qubits
+                wire_map = dict(zip(wires, list(node.qargs)))
+                dag._check_wiremap_validity(wire_map, wires, dag.input_map)
+                new_qargs = [wire_map.get(wire) for wire in rule[0][1]]
+
+                dag.substitute_node(node, rule[0][0], inplace=True, qargs=new_qargs)
             else:
                 decomposition = circuit_to_dag(node.op.definition)
                 dag.substitute_node_with_dag(node, decomposition)

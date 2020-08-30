@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    You can specify gate registers when replacing a node's operation in DAGCircuit.
+    Usage example:
+    .. code-block:: python
+
+       dag = DAGCircuit()
+       qr = QuantumRegister(3)
+       dag.add_qreg(qr)
+       node = dag.apply_operation_back(cx_gate, [qr[0], qr[1]])
+
+       dag.substitute_node(node, op=CXGate(), qargs=[qr[1], qr[0]])
+
+    The new registers must match the node to be replaced registers. For example,
+    the following line will raise an exception.
+
+    .. code-block:: python
+
+      dag.substitute_node(node, op=CXGate(), qargs=[qr[0], qr[2]])
+
+    If qargs is not provided or set to None, The registers will be inferred
+    from the node to be replaced.
+
+fixes:
+  - |
+    A bug that was causing registers to be mismapped when unrolling/decomposing
+    a gate defined with only one instruction. Now the decomposition will reflect
+    how a gate is defined.
