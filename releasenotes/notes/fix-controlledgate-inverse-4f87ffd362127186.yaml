@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix bugs of `inverse` methods in controlled gates,
+    which do not preserve `ctrl_state`.
