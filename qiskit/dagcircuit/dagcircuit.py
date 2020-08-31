@@ -492,9 +492,9 @@ class DAGCircuit:
                                       (kname, vname))
 
     @staticmethod
-    def _map_condition(wire_map: Dict[Bit, Bit]
-                       condition: Optional[Tuple[ClassicalRegister,
-                                                 int]]) -> Tuple[ClassicalRegister, int]:
+    def _map_condition(wire_map: Dict[Bit, Bit],
+                       condition: Optional[Tuple[ClassicalRegister, int]])\
+            -> Tuple[ClassicalRegister, int]:
         """Use the wire_map dict to change the condition tuple's creg name.
 
         Args:
