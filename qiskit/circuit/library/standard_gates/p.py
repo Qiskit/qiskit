@@ -260,9 +260,9 @@ class MCPhaseGate(ControlledGate):
         else:
             from .u3 import _gray_code_chain
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = PhaseGate(scaled_lam)
+            bottom_gate = CPhaseGate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-            qc.data = definition
+            qc._data = definition
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
