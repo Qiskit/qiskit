@@ -19,7 +19,7 @@ import sys
 
 import numpy as np
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction, Parameter
+from qiskit.circuit import Instruction, Gate, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
@@ -33,6 +33,17 @@ from qiskit.pulse.macros import measure
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
 from qiskit.validation.jsonschema import SchemaValidationError
+
+
+class RxGate(Gate):
+    """Used to test custom gate assembly.
+
+    Useful for testing pulse gates with parameters, as well.
+    Note: Parallel maps (e.g., in assemble_circuits) pickle their input,
+          so circuit features have to be defined top level.
+    """
+    def __init__(self, theta):
+        super().__init__('rxtheta', 1, [theta])
 
 
 class TestCircuitAssembler(QiskitTestCase):
@@ -352,6 +363,97 @@ class TestCircuitAssembler(QiskitTestCase):
                          0)
         self.assertEqual(getattr(qobj.experiments[0].header, 'global_phase'),
                          .3 * np.pi)
+
+    def test_pulse_gates_single_circ(self):
+        """Test that we can add calibrations to circuits."""
+        theta = Parameter('theta')
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [0])
+        circ.append(RxGate(theta), [1])
+        circ = circ.assign_parameters({theta: 3.14})
+
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        with pulse.build() as x180:
+            pulse.play(pulse.library.Gaussian(50, 0.2, 5), pulse.DriveChannel(1))
+
+        circ.add_calibration('h', [0], custom_h_schedule)
+        circ.add_calibration(RxGate(3.14), [0], x180)
+        circ.add_calibration(RxGate(3.14), [1], x180)
+
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        # Only one circuit, so everything is stored at the job level
+        cals = qobj.config.calibrations
+        lib = qobj.config.pulse_library
+        self.assertFalse(hasattr(qobj.experiments[0].config, 'calibrations'))
+        self.assertEqual([gate.name == 'rxtheta' for gate in cals.gates].count(True), 2)
+        self.assertEqual([gate.name == 'h' for gate in cals.gates].count(True), 1)
+        self.assertEqual(len(lib), 2)
+        self.assertTrue(all(len(item.samples) == 50 for item in lib))
+
+    def test_pulse_gates_with_parameteric_pulses(self):
+        """Test that pulse gates are assembled efficiently for backends that enable
+        parametric pulses.
+        """
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.add_calibration('h', [0], custom_h_schedule)
+
+        backend = FakeOpenPulse2Q()
+        backend.configuration().parametric_pulses = ['drag']
+        qobj = assemble(circ, backend)
+        self.assertFalse(hasattr(qobj.config, 'pulse_library'))
+        self.assertTrue(hasattr(qobj.config, 'calibrations'))
+
+    def test_pulse_gates_multiple_circuits(self):
+        """Test one circuit with cals and another without."""
+        with pulse.build() as dummy_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [1])
+        circ.add_calibration('h', [0], dummy_sched)
+        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        circ2 = QuantumCircuit(2)
+        circ2.h(0)
+
+        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        self.assertEqual(len(qobj.config.pulse_library), 1)
+        self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 2)
+        self.assertFalse(hasattr(qobj.config, 'calibrations'))
+        self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
+
+    def test_pulse_gates_common_cals(self):
+        """Test that common calibrations are added at the top level."""
+        with pulse.build() as dummy_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.append(RxGate(3.14), [1])
+        circ.add_calibration('h', [0], dummy_sched)
+        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        circ2 = QuantumCircuit(2)
+        circ2.h(0)
+        circ2.add_calibration(RxGate(3.14), [1], dummy_sched)
+
+        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        # Identical pulses are only added once
+        self.assertEqual(len(qobj.config.pulse_library), 1)
+        # Identical calibrations are only added once
+        self.assertEqual(qobj.config.calibrations.gates[0].name, 'rxtheta')
+        self.assertEqual(qobj.config.calibrations.gates[0].params, [3.14])
+        self.assertEqual(qobj.config.calibrations.gates[0].qubits, [1])
+        self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 1)
+        self.assertFalse(hasattr(qobj.experiments[1].config, 'calibrations'))
 
 
 class TestPulseAssembler(QiskitTestCase):
