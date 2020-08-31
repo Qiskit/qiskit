@@ -28,6 +28,9 @@ class QiskitLoader(Loader):
         self.new_package = new_package
         self.old_namespace = old_namespace
 
+    def module_repr(self, module):
+        return repr(module)
+
     def load_module(self, fullname):
         old_name = fullname
         names = fullname.split(".")
