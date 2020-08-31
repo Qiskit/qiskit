@@ -127,7 +127,7 @@ class DAGNode:
     def semantic_eq(node1: 'DAGNode', node2: 'DAGNode') -> bool:
         """
         Check if nodes are considered equivalent. This method is checked
-        as a ``node_match`` for `rx.is_isomorphic()`_ in the ``retworkx`` library.
+        as a ``node_match`` for `nx.is_isomorphic()`_ in the ``networkx`` library.
 
         Args:
             node1: A node to compare.
@@ -136,7 +136,7 @@ class DAGNode:
         Return:
             If ``node1`` == ``node2``
 
-        .. _rx.is_isomorphic(): https://networkx.github.io/documentation/networkx-1.10/reference/\
+        .. _nx.is_isomorphic(): https://networkx.github.io/documentation/networkx-1.10/reference/\
                                 generated/networkx.algorithms.isomorphism.is_isomorphic.html
         """
         # For barriers, qarg order is not significant so compare as sets
