@@ -449,7 +449,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         # Deal with the aux_op behavior where there can be Nones or Zero qubit Paulis in the list
         self._ret['aux_ops'] = [None if is_none else [result]
                                 for (is_none, result) in zip(self._aux_op_nones, aux_op_results)]
-        self._ret['aux_ops'] = np.array([self._ret['aux_ops']])
+        # As this has mixed types, since it can included None, it needs to explicitly pass object
+        # data type to avoid numpy 1.19 warning message about implicit conversion being deprecated
+        self._ret['aux_ops'] = np.array([self._ret['aux_ops']], dtype=object)
 
     def compute_minimum_eigenvalue(
             self,

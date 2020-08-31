@@ -197,7 +197,7 @@ class NumPyEigensolver(ClassicalAlgorithm):
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
                 value = value.real if abs(value.real) > threshold else 0.0
             values.append((value, 0))
-        return np.asarray(values)
+        return np.array(values, dtype=object)
 
     def _run(self):
         """
