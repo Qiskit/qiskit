@@ -98,8 +98,7 @@ class PhaseGate(Gate):
         if num_ctrl_qubits == 1:
             gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
         elif ctrl_state is None and num_ctrl_qubits > 1:
-            from .u1 import MCU1Gate
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+            gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
         else:
             return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                    ctrl_state=ctrl_state)
