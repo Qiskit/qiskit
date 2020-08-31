@@ -650,7 +650,7 @@ class Schedule(ScheduleComponent):
             table: Draw event table for supported commands.
             label: Label individual instructions.
             framechange: Add framechange indicators.
-            channels: A list of channel names to plot.
+            channels: A list of Channels to plot.
             show_framechange_channels: Plot channels with only framechanges.
 
         Additional Information:
@@ -769,7 +769,7 @@ class ParameterizedSchedule:
             elif isinstance(schedule, Schedule):
                 full_schedules.append(schedule)
             else:
-                raise PulseError('Input type: {0} not supported'.format(type(schedule)))
+                raise PulseError('Input type: {} not supported'.format(type(schedule)))
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)

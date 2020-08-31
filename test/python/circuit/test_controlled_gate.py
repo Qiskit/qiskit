@@ -72,6 +72,11 @@ class TestControlledGate(QiskitTestCase):
         theta = 0.5
         self.assertEqual(PhaseGate(theta).control(), CPhaseGate(theta))
 
+    def test_double_controlled_phase(self):
+        """Test the creation of a controlled phase gate."""
+        theta = 0.5
+        self.assertEqual(PhaseGate(theta).control(2), MCPhaseGate(theta, 2))
+
     def test_controlled_u1(self):
         """Test the creation of a controlled U1 gate."""
         theta = 0.5
@@ -644,7 +649,7 @@ class TestControlledGate(QiskitTestCase):
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[None])
+    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
         """Test that UnitaryGate with control returns params."""
         umat = np.array([[1, 0], [0, -1]])
@@ -652,6 +657,17 @@ class TestControlledGate(QiskitTestCase):
         cugate = ugate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertEqual(Operator(cugate), Operator(ref_mat))
+
+    def test_controlled_controlled_unitary(self):
+        """Test that global phase in iso decomposition of unitary is handled."""
+        umat = np.array([[1, 0], [0, -1]])
+        ugate = UnitaryGate(umat)
+        cugate = ugate.control()
+        ccugate = cugate.control()
+        ccugate2 = ugate.control(2)
+        ref_mat = _compute_control_matrix(umat, 2)
+        self.assertTrue(Operator(ccugate2).equiv(Operator(ref_mat)))
+        self.assertTrue(Operator(ccugate).equiv(Operator(ccugate2)))
 
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
@@ -1090,8 +1106,8 @@ class TestControlledStandardGates(QiskitTestCase):
         gate = gate_class(*args)
 
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
-            with self.subTest(i='{0}, ctrl_state={1}'.format(gate_class.__name__,
-                                                             ctrl_state)):
+            with self.subTest(i='{}, ctrl_state={}'.format(gate_class.__name__,
+                                                           ctrl_state)):
                 if hasattr(gate, 'num_ancilla_qubits') and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
