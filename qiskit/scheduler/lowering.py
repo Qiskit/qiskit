@@ -14,7 +14,7 @@
 module handles the translation, but does not handle timing.
 """
 from collections import namedtuple
-from typing import List
+from typing import Dict, List
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.measure import Measure
