@@ -176,6 +176,5 @@ class JobWatcherMagic(Magics):
         _JOB_WATCHER.stop_viewer()
 
 
-if HAS_IBMQ:
-    # The Jupyter job watcher instance
-    _JOB_WATCHER = JobWatcher()
+# The Jupyter job watcher instance
+_JOB_WATCHER = JobWatcher()
