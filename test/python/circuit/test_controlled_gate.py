@@ -74,6 +74,11 @@ class TestControlledGate(QiskitTestCase):
         theta = 0.5
         self.assertEqual(PhaseGate(theta).control(), CPhaseGate(theta))
 
+    def test_double_controlled_phase(self):
+        """Test the creation of a controlled phase gate."""
+        theta = 0.5
+        self.assertEqual(PhaseGate(theta).control(2), MCPhaseGate(theta, 2))
+
     def test_controlled_u1(self):
         """Test the creation of a controlled U1 gate."""
         theta = 0.5
