@@ -219,7 +219,7 @@ class CU1Gate(ControlledGate, metaclass=CU1Meta):
 
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
-        return CU1Gate(-self.params[0])
+        return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CU1 gate."""
