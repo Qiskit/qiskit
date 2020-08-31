@@ -39,7 +39,7 @@ new_meta_path.append(namespace.QiskitElementImport(
 new_meta_path.append(namespace.QiskitElementImport(
     'qiskit_aqua.ml', 'qiskit.ml'))
 new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.optimizations', 'qiskit.optimizations'))
+    'qiskit_aqua.optimization', 'qiskit.optimization'))
 new_meta_path.append(namespace.QiskitElementImport(
     'qiskit_ibmq_provider', 'qiskit.providers.ibmq'))
 new_meta_path.append(namespace.QiskitElementImport(
