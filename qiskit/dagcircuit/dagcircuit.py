@@ -550,7 +550,6 @@ class DAGCircuit:
                 self.add_creg(ClassicalRegister(creg.size, creg.name))
             edge_map.update([(cbit, cbit) for cbit in creg if cbit not in edge_map])
 
-        print(edge_map)
         self.compose_back(dag, edge_map)
 
     def compose_back(self, input_circuit: 'DAGCircuit', edge_map: Optional[Dict[Bit, Bit]] = None):
@@ -658,6 +657,11 @@ class DAGCircuit:
                 dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
+
+        if not inplace:
+            return dag
+        else:
+            return None
 
     def idle_wires(self, ignore=None) -> Iterator[Bit]:
         """Return idle wires.
