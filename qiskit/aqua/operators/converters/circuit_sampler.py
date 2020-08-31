@@ -84,6 +84,7 @@ class CircuitSampler(ConverterBase):
         self._circuit_ops_cache = {}  # type: Dict[int, CircuitStateFn]
         self._transpiled_circ_cache = None  # type: Optional[List[Any]]
         self._transpiled_circ_templates = None  # type: Optional[List[Any]]
+        self._last_ready_circ = None  # type: Optional[List[Any]]
         self._transpile_before_bind = True
         self._binding_mappings = None
 
@@ -339,7 +340,6 @@ class CircuitSampler(ConverterBase):
                     ret.append([[gate_index, param_index], [val]])
                 param_index += 1
             gate_index += 1
-
         return ret
 
     def _prepare_parameterized_run_config(self, param_bindings:
@@ -348,25 +348,24 @@ class CircuitSampler(ConverterBase):
         self.quantum_instance._run_config.parameterizations = []
 
         if self._transpiled_circ_templates is None \
-            or len(self._transpiled_circ_templates) \
-                != len(self._transpiled_circ_cache) * len(param_bindings):
+                or len(self._transpiled_circ_templates) != len(self._transpiled_circ_cache):
 
             # temporally resolve parameters of self._transpiled_circ_cache
             # They will be overridden in Aer from the next iterations
-            self._transpiled_circ_templates = [circ.assign_parameters(binding)
-                                               for circ in self._transpiled_circ_cache
-                                               for binding in param_bindings]
+            self._transpiled_circ_templates = [circ.assign_parameters(param_bindings[0])
+                                               for circ in self._transpiled_circ_cache]
 
         for param_binding in param_bindings:
             for circ in self._transpiled_circ_cache:
                 self.quantum_instance._run_config.parameterizations.append(
                     self._generate_aer_params(circ, param_binding))
 
-        if len(param_bindings) != 1:
-            self.quantum_instance._run_config.max_parallel_experiments \
-                            = len(self.quantum_instance._run_config.parameterizations)
+        if self._last_ready_circ is None \
+            or len(self._last_ready_circ) != \
+                len(self._transpiled_circ_cache) * len(param_bindings):
+            self._last_ready_circ = self._transpiled_circ_templates * len(param_bindings)
 
-        return self._transpiled_circ_templates
+        return self._last_ready_circ
 
     def _clean_parameterized_run_config(self) -> None:
         self.quantum_instance._run_config.parameterizations = []
