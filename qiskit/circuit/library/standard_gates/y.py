@@ -197,7 +197,7 @@ class CYGate(ControlledGate):
 
     def inverse(self):
         """Return inverted CY gate (itself)."""
-        return CYGate()  # self-inverse
+        return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
