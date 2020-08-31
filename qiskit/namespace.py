@@ -48,7 +48,8 @@ class QiskitElementImport(MetaPathFinder):
         self.new_package = new_package
         self.old_namespace = old_namespace
 
-    def find_module(self, fullname, path=None):
+    def find_spec(self, fullname, path=None, target=None):
         if fullname.startswith(self.old_namespace):
-            return QiskitLoader(self.new_package, self.old_namespace)
+            return importlib.util.spec_from_loader(fullname,
+                QiskitLoader(self.new_package, self.old_namespace))
         return None
