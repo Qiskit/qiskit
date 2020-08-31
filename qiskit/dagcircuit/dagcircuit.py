@@ -249,7 +249,7 @@ class DAGCircuit:
 
         Args:
             name: used for error reporting
-            condition (tuple or None): a condition tuple (ClassicalRegister,int)
+            condition: a condition tuple (ClassicalRegister,int)
 
         Raises:
             DAGCircuitError: if conditioning on an invalid register
@@ -494,8 +494,8 @@ class DAGCircuit:
 
     @staticmethod
     def _map_condition(
-       wire_map: Dict[Bit, Bit],
-       condition: Optional[Tuple[ClassicalRegister, int]]
+            wire_map: Dict[Bit, Bit],
+            condition: Optional[Tuple[ClassicalRegister, int]]
     ) -> Tuple[ClassicalRegister, int]:
         """Use the wire_map dict to change the condition tuple's creg name.
 
