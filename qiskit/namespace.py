@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """Module for utilities to manually construct qiskit namespace"""
 
 import sys
@@ -25,9 +27,6 @@ class QiskitLoader(Loader):
         super().__init__()
         self.new_package = new_package
         self.old_namespace = old_namespace
-
-    def module_repr(self, module):
-        return repr(module)
 
     def load_module(self, fullname):
         old_name = fullname
@@ -49,7 +48,10 @@ class QiskitElementImport(MetaPathFinder):
         self.old_namespace = old_namespace
 
     def find_spec(self, fullname, path=None, target=None):
+        """Return the ModuleSpec for Qiskit element."""
         if fullname.startswith(self.old_namespace):
-            return importlib.util.spec_from_loader(fullname,
-                QiskitLoader(self.new_package, self.old_namespace))
+            return importlib.util.spec_from_loader(
+                fullname,
+                QiskitLoader(self.new_package, self.old_namespace),
+                origin='qiskit')
         return None
