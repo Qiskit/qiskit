@@ -273,3 +273,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
         self.assertTrue(Operator(qc).equiv(Operator(qc.decompose())))
+
+    def test_unitary_decomposition_via_definition(self):
+        """Test decomposition for 1Q unitary via definition."""
+        mat = numpy.array([[0, 1], [1, 0]])
+        numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat)
