@@ -30,12 +30,6 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-try:
-    from IPython.display import HTML
-    HAS_IPYTHON = True
-except ImportError:
-    HAS_IPYTHON = False
-
 
 def _normalize(v, tolerance=0.00001):
     """Makes sure magnitude of the vector is 1 with given tolerance"""
@@ -170,13 +164,19 @@ def visualize_transition(circuit,
         VisualizationError: Given gate(s) are not supported.
 
     """
+    try:
+        from IPython.display import HTML
+        has_ipython = True
+    except ImportError:
+        has_ipython = False
+
     jupyter = False
     if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         jupyter = True
 
     if not HAS_MATPLOTLIB:
         raise ImportError("Must have Matplotlib installed.")
-    if not HAS_IPYTHON and jupyter is True:
+    if not has_ipython and jupyter is True:
         raise ImportError("Must have IPython installed.")
     if len(circuit.qubits) != 1:
         raise VisualizationError("Only one qubit circuits are supported")
