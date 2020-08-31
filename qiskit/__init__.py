@@ -12,8 +12,10 @@
 
 # pylint: disable=wrong-import-order,invalid-name,wrong-import-position
 
+
 """Main Qiskit public functionality."""
 
+import pkgutil
 import sys
 import warnings
 import os
@@ -21,57 +23,31 @@ import os
 # First, check for required Python and API version
 from . import util
 
-# Extend namespace for backwards compat
-from qiskit import namespace
-new_meta_path = []
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aer', 'qiskit.providers.aer'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_ignis', 'qiskit.ignis'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua', 'qiskit.aqua'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.ai', 'qiskit.ai'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.chemistry', 'qiskit.chemistry'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.finance', 'qiskit.finance'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.ml', 'qiskit.ml'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.optimizations', 'qiskit.optimizations'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_ibmq_provider', 'qiskit.providers.ibmq'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqt_provider', 'qiskit.providers.aqt'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_honeywell_provider', 'qiskit.providers.honeywell'))
-# Add Qiskit importers to meta_path before PathFinder in the default
-# sys.meta_path to avoid the miss penalty on trying to import a module
-# which does not exist
-old_meta_path = sys.meta_path
-sys.meta_path = old_meta_path[:-1] + new_meta_path + [old_meta_path[-1]]
-
 # qiskit errors operator
-from qiskit.exceptions import QiskitError  # noqa
+from qiskit.exceptions import QiskitError
 
 # The main qiskit operators
-from qiskit.circuit import ClassicalRegister  # noqa
-from qiskit.circuit import QuantumRegister  # noqa
-from qiskit.circuit import AncillaRegister  # noqa
-from qiskit.circuit import QuantumCircuit  # noqa
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import AncillaRegister
+from qiskit.circuit import QuantumCircuit
 
 # user config
-from qiskit import user_config as _user_config  # noqa
+from qiskit import user_config as _user_config
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
-import qiskit.extensions  # noqa
-import qiskit.circuit.measure  # noqa
-import qiskit.circuit.reset  # noqa
+import qiskit.extensions
+import qiskit.circuit.measure
+import qiskit.circuit.reset
+
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code AND *before*
+# importing the package you want to allow extensions for (in this case `backends`).
+__path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
-from qiskit.providers.basicaer import BasicAer  # noqa
+from qiskit.providers.basicaer import BasicAer
 
 _config = _user_config.get_config()
 
@@ -85,7 +61,6 @@ except ImportError:
             warnings.warn('Could not import the Aer provider from the qiskit-aer '
                           'package. Install qiskit-aer or check your installation.',
                           RuntimeWarning)
-
 # Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
@@ -98,6 +73,8 @@ except ImportError:
                           'qiskit-ibmq-provider or check your installation.',
                           RuntimeWarning)
 
+# Moved to after IBMQ and Aer imports due to import issues
+# with other modules that check for IBMQ (tools)
 from qiskit.execute import execute  # noqa
 from qiskit.compiler import transpile, assemble, schedule  # noqa
 
