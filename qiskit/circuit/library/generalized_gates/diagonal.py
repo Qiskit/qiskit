@@ -103,6 +103,7 @@ class Diagonal(QuantumCircuit):
             angles_rz = []
             for i in range(0, n, 2):
                 diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
+                self.global_phase += diag_phases[i // 2]
                 angles_rz.append(rz_angle)
             num_act_qubits = int(np.log2(n))
             ctrl_qubits = list(range(num_qubits-num_act_qubits+1, num_qubits))

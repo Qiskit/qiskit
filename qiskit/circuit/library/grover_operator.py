@@ -67,7 +67,7 @@ class GroverOperator(QuantumCircuit):
 
         >>> oracle = QuantumCircuit(4)
         >>> oracle.z(3)
-        >>> reflection_qubits = [0]
+        >>> reflection_qubits = [0, 3]
         >>> state_in = QuantumCircuit(4)
         >>> state_in.cry(0.1, 0, 3)
         >>> state_in.ry(0.5, 3)
@@ -117,7 +117,7 @@ class GroverOperator(QuantumCircuit):
                  zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
                  reflection_qubits: Optional[List[int]] = None,
                  insert_barriers: bool = False,
-                 mcx: str = 'noancilla',
+                 mcx_mode: str = 'noancilla',
                  name: str = 'Q') -> None:
         """
         Args:
@@ -128,7 +128,7 @@ class GroverOperator(QuantumCircuit):
             zero_reflection: The reflection about the zero state.
             reflection_qubits: Qubits on which the the zero reflection act on.
             insert_barriers: Whether barriers should be inserted between the reflections and A.
-            mcx: The mode to use for building the default zero reflection.
+            mcx_mode: The mode to use for building the default zero reflection.
             name: The name of the circuit.
         """
         super().__init__(name=name)
@@ -147,7 +147,7 @@ class GroverOperator(QuantumCircuit):
         self._reflection_qubits = reflection_qubits
         self._state_in = state_in
         self._insert_barriers = insert_barriers
-        self._mcx = mcx
+        self._mcx_mode = mcx_mode
 
         # build circuit
         self._build()
@@ -155,11 +155,10 @@ class GroverOperator(QuantumCircuit):
     @property
     def reflection_qubits(self):
         """Reflection qubits, on which S0 is applied (if S0 is not user-specified)."""
-        num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-
         if self._reflection_qubits is not None:
-            return list(set(self._reflection_qubits + [num_state_qubits - 1]))
+            return self._reflection_qubits
 
+        num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
         return list(range(num_state_qubits))
 
     @property
@@ -170,7 +169,7 @@ class GroverOperator(QuantumCircuit):
 
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
         qubits = self.reflection_qubits
-        return _zero_reflection(num_state_qubits, qubits, self._mcx)
+        return _zero_reflection(num_state_qubits, qubits, self._mcx_mode)
 
     @property
     def state_in(self) -> QuantumCircuit:
@@ -212,12 +211,12 @@ class GroverOperator(QuantumCircuit):
 
 
 # TODO use the oracle compiler or the bit string oracle
-def _zero_reflection(num_state_qubits: int, qubits: List[int], mcx: Optional[str] = None
+def _zero_reflection(num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
                      ) -> QuantumCircuit:
     qr_state = QuantumRegister(num_state_qubits, 'state')
     reflection = QuantumCircuit(qr_state, name='S_0')
 
-    num_ancillas = MCXGate.get_num_ancilla_qubits(num_state_qubits - 1, mcx)
+    num_ancillas = MCXGate.get_num_ancilla_qubits(num_state_qubits - 1, mcx_mode)
     if num_ancillas > 0:
         qr_ancilla = AncillaRegister(num_ancillas, 'ancilla')
         reflection.add_register(qr_ancilla)
@@ -229,7 +228,7 @@ def _zero_reflection(num_state_qubits: int, qubits: List[int], mcx: Optional[str
         reflection.z(0)  # MCX does not allow 0 control qubits, therefore this is separate
     else:
         reflection.h(qubits[-1])
-        reflection.mcx(qubits[:-1], qubits[-1], qr_ancilla[:], mode=mcx)
+        reflection.mcx(qubits[:-1], qubits[-1], qr_ancilla[:], mode=mcx_mode)
         reflection.h(qubits[-1])
     reflection.x(qubits)
 
