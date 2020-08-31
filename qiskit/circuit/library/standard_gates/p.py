@@ -195,7 +195,7 @@ class CPhaseGate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
-        return CPhaseGate(-self.params[0])
+        return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CPhase gate."""
