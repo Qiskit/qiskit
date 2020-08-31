@@ -34,3 +34,8 @@ features:
         # Register the schedule to the gate
         circ.add_calibration('h', [0], custom_h_schedule)  # or gate.name string to register
         circ.add_calibration(RxGate(3.14), [0], q1_x180)   # Can accept gate
+
+    Previously, this functionality could only be capitalized on through complete Pulse
+    Schedules. With updates to the QASM Qobj and the assembler, jobs can now be sent as
+    circuit jobs, augmented with calibration libraries to communicate your custom definitions
+    to the backend.
