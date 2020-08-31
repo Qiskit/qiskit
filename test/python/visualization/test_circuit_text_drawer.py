@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -1266,6 +1264,17 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_pi_param_expr(self):
+        """Text pi in circuit with parameter expression."""
+        expected = '\n'.join(["     ┌───────────────────────┐",
+                              "q_0: ┤ RX((pi - x)*(pi - y)) ├",
+                              "     └───────────────────────┘"])
+
+        x, y = Parameter('x'), Parameter('y')
+        circuit = QuantumCircuit(1)
+        circuit.rx((pi - x) * (pi - y), 0)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):

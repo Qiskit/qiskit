@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -30,7 +28,7 @@ class FakeToronto(FakeBackend):
     def __init__(self):
         dirname = os.path.dirname(__file__)
         filename = "conf_toronto.json"
-        with open(os.path.join(dirname, filename), "r") as f_conf:
+        with open(os.path.join(dirname, filename)) as f_conf:
             conf = json.load(f_conf)
 
         configuration = PulseBackendConfiguration.from_dict(conf)
@@ -44,7 +42,7 @@ class FakeToronto(FakeBackend):
         if not self._properties:
             dirname = os.path.dirname(__file__)
             filename = "props_toronto.json"
-            with open(os.path.join(dirname, filename), "r") as f_prop:
+            with open(os.path.join(dirname, filename)) as f_prop:
                 props = json.load(f_prop)
             self._properties = BackendProperties.from_dict(props)
         return self._properties
@@ -54,7 +52,7 @@ class FakeToronto(FakeBackend):
         if not self._defaults:
             dirname = os.path.dirname(__file__)
             filename = "defs_toronto.json"
-            with open(os.path.join(dirname, filename), "r") as f_defs:
+            with open(os.path.join(dirname, filename)) as f_defs:
                 defs = json.load(f_defs)
             self._defaults = PulseDefaults.from_dict(defs)
         return self._defaults

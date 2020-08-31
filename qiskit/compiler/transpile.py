@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -184,6 +182,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         _log_transpile_time(start_time, end_time)
         return circuits
 
+    for circuit in circuits:
+        if len(circuit.calibrations) != 0:
+            warnings.warn("Transpiling with calibrations are not supported currently.",
+                          UserWarning)
+
     if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,
@@ -294,7 +297,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
                 not device_insts >= circuit.count_ops().keys():
             ms_basis_swap = pass_manager_config.basis_gates
             pass_manager_config.basis_gates = list(
-                set(['u3', 'cx']).union(pass_manager_config.basis_gates))
+                {'u3', 'cx'}.union(pass_manager_config.basis_gates))
 
     # we choose an appropriate one based on desired optimization level
     level = transpile_config['optimization_level']
