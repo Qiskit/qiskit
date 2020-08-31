@@ -3,5 +3,5 @@ deprecations:
   - |
     The :class:`qiskit.circuit.library.standard_gates.MSGate` has been
     deprecated and will be removed in a future release. It has been 
-    replaced with :class:`qiskit.circuit.generalized_gates.GMSGate`.
+    replaced with :class:`qiskit.circuit.library.generalized_gates.GMSGate`.
     Please use `GMSGate` instead of `MSGate`.
