@@ -131,7 +131,6 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
-        NotImplementedError: if circuit.calibrations is not empty.
     """
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
@@ -142,16 +141,8 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
-        # calibrate circuits to schedules (if any)
-        for exp in experiments:
-            if len(exp.calibrations) != 0:
-                # TODO: Do something here to schedule the circuits
-                # Raise an error - NotImplementedError" or try to schedule by adding
-                # cals to inst_map and call schedule.
-                # if scheduled, raise a warning - "Let the user know whats happening"
-                raise NotImplementedError
-
-        run_config = _parse_circuit_args(parameter_binds, **run_config_common_dict)
+        run_config = _parse_circuit_args(parameter_binds, backend, parametric_pulses,
+                                         **run_config_common_dict)
 
         # If circuits are parameterized, bind parameters and remove from run_config
         bound_experiments, run_config = _expand_parameters(circuits=experiments,
@@ -352,7 +343,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     return run_config
 
 
-def _parse_circuit_args(parameter_binds, **run_config):
+def _parse_circuit_args(parameter_binds, backend, parametric_pulses, **run_config):
     """Build a circuit RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
 
@@ -361,9 +352,13 @@ def _parse_circuit_args(parameter_binds, **run_config):
             and determines the runtime environment.
     """
     parameter_binds = parameter_binds or []
-
     # create run configuration and populate
     run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
+    if backend:
+        run_config_dict['parametric_pulses'] = getattr(backend.configuration(), 'parametric_pulses',
+                                                       [])
+    if parametric_pulses:
+        run_config_dict['parametric_pulses'] = parametric_pulses
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
