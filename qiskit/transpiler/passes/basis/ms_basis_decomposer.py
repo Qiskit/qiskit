@@ -36,10 +36,11 @@ class MSBasisDecomposer(TransformationPass):
         Args:
             basis_gates (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx', 'ms']` .
         """
-        warnings.warn("MSBasisDecomposer has been deprecated and will be removed "
-                      "in a future release. You can use "
-                      "qiskit.transpiler.passes.basis.BasisTranslator in place "
-                      "of this class.", DeprecationWarning)
+        warnings.warn('The qiskit.transpiler.passes.basis.MSBasisDecomposer class is '
+                      'deprecated as of 0.16.0, and will be removed no earlier '
+                      'than 3 months after that release date. You should use the '
+                      'qiskit.transpiler.passes.basis.BasisTranslator class '
+                      'instead.', DeprecationWarning, stacklevel=2)
         super().__init__()
 
         self.basis_gates = basis_gates
