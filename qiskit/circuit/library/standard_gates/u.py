@@ -207,7 +207,13 @@ class CUGate(ControlledGate):
 
         :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)
         """
-        return CUGate(-self.params[0], -self.params[2], -self.params[1], -self.params[3])
+        return CUGate(
+            -self.params[0],
+            -self.params[2],
+            -self.params[1],
+            -self.params[3],
+            ctrl_state=self.ctrl_state
+        )
 
     def to_matrix(self):
         """Return a numpy.array for the CU gate."""

@@ -209,7 +209,12 @@ class CU3Gate(ControlledGate, metaclass=CU3Meta):
 
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
-        return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return CU3Gate(
+            -self.params[0],
+            -self.params[2],
+            -self.params[1],
+            ctrl_state=self.ctrl_state
+        )
 
     def to_matrix(self):
         """Return a numpy.array for the CU3 gate."""
