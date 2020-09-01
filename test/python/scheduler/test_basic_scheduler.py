@@ -17,6 +17,7 @@ from qiskit.circuit import Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (Schedule, DriveChannel, AcquireChannel, Acquire,
                           MeasureChannel, MemorySlot, Gaussian, Play)
+from qiskit.pulse import macros
 
 from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
@@ -303,3 +304,73 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
         self.assertEqual(sched.instructions[0],
                          custom_gauss.instructions[0])
+
+    def test_pulse_gates(self):
+        """Test scheduling calibrated pulse gates."""
+        q = QuantumRegister(2)
+        qc = QuantumCircuit(q)
+        qc.u2(0, 0, q[0])
+        qc.barrier(q[0], q[1])
+        qc.u2(0, 0, q[1])
+        qc.add_calibration('u2', [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
+        qc.add_calibration('u2', [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
+
+        sched = schedule(qc, self.backend)
+        expected = Schedule(
+            Play(Gaussian(28, 0.2, 4), DriveChannel(0)),
+            (28, Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1)))))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_calibrated_measurements(self):
+        """Test scheduling calibrated measurements."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.u2(0, 0, q[0])
+        qc.measure(q[0], c[0])
+
+        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
+        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        qc.add_calibration('measure', [0], meas_sched)
+
+        sched = schedule(qc, self.backend)
+        expected = Schedule(
+            self.inst_map.get('u2', [0], 0, 0),
+            (28, meas_sched))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_subset_calibrated_measurements(self):
+        """Test that measurement calibrations can be added and used for some qubits, even
+        if the other qubits do not also have calibrated measurements."""
+        qc = QuantumCircuit(3, 3)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+        meas_scheds = []
+        for qubit in [0, 2]:
+            meas = (Play(Gaussian(1200, 0.2, 4), MeasureChannel(qubit))
+                    + Acquire(1200, AcquireChannel(qubit), MemorySlot(qubit)))
+            meas_scheds.append(meas)
+            qc.add_calibration('measure', [qubit], meas)
+
+        meas = macros.measure([1], FakeOpenPulse3Q())
+        meas = meas.exclude(channels=[AcquireChannel(0), AcquireChannel(2)])
+        sched = schedule(qc, FakeOpenPulse3Q())
+        expected = Schedule(meas_scheds[0], meas_scheds[1], meas)
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_clbits_of_calibrated_measurements(self):
+        """Test that calibrated measurements are only used when the classical bits also match."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.measure(q[0], c[1])
+
+        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
+        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        qc.add_calibration('measure', [0], meas_sched)
+
+        sched = schedule(qc, self.backend)
+        # Doesn't use the calibrated schedule because the classical memory slots do not match
+        expected = Schedule(macros.measure([0], self.backend, qubit_mem_slots={0: 1}))
+        self.assertEqual(sched.instructions, expected.instructions)

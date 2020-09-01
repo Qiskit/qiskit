@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Test Qiskit's inverse gate operation."""
+"""Test Qiskit's controlled gate operation."""
 
 import unittest
 from test import combine
@@ -794,8 +794,12 @@ class TestControlledGate(QiskitTestCase):
         cgate = base_gate.control()
         self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
-    @data(*[gate for name, gate in allGates.__dict__.items() if isinstance(gate, type)])
-    def test_all_inverses(self, gate):
+    @combine(
+        gate=[gate for gate in allGates.__dict__.values() if isinstance(gate, type)],
+        num_ctrl_qubits=[1, 2],
+        ctrl_state=[None, 0, 1],
+    )
+    def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
         """Test all gates in standard extensions except those that cannot be controlled
         or are being deprecated.
         """
@@ -806,7 +810,10 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len(_get_free_params(gate))
                 args = [2] * numargs
                 gate = gate(*args)
-                self.assertEqual(gate.inverse().control(2), gate.control(2).inverse())
+                self.assertEqual(
+                    gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state),
+                    gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse()
+                )
             except AttributeError:
                 # skip gates that do not have a control attribute (e.g. barrier)
                 pass

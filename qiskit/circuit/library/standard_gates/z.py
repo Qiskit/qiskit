@@ -164,7 +164,7 @@ class CZGate(ControlledGate):
 
     def inverse(self):
         """Return inverted CZ gate (itself)."""
-        return CZGate()  # self-inverse
+        return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CZ gate."""
