@@ -87,7 +87,6 @@ class ControlledGate(Gate):
            qc2.append(custom, [0, 3, 1, 2])
            qc2.draw()
         """
-        self.base_gate = None if base_gate is None else base_gate.copy()
         super().__init__(name, num_qubits, params, label=label)
         self.base_gate = None if base_gate is None else base_gate.copy()
         self._num_ctrl_qubits = 1
