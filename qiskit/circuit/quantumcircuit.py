@@ -773,7 +773,7 @@ class QuantumCircuit:
             instruction (qiskit.circuit.Instruction): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
-            index (int): Index number for gate's position on bit (zero-based)
+            index (int or list(int)): Index number(s) for gate position(s) on bit(s) (zero-based)
 
         Returns:
             qiskit.circuit.Instruction: a handle to the instruction that was just added
@@ -811,17 +811,21 @@ class QuantumCircuit:
         # TODO: make helper functions and clean up variable names
         for qubit_list_index, qubits in enumerate(instructions.qargs):
             if len(qubits) != len(index_list):
-                del self._data[-len(instructions.qargs):]
+                del self._data[-len(instructions.qargs) + qubit_list_index:]
                 raise CircuitError("Number of qubits (%s) does not match index width (%s)"
                                    % (len(qubits), len(index_list)))
 
-            instruction_counts = self._count_instructions(qubits, index_list)
+            instruct_upto_current = self._data[:-len(instructions.qargs) + qubit_list_index]
+            instruction_counts = self._count_instructions(qubits,
+                                                          index_list,
+                                                          instruct_upto_current)
 
             try:
                 shifter_instructions, splitter_list = self._sort_instructions(qubits,
-                                                                              instruction_counts)
+                                                                              instruction_counts,
+                                                                              index_list)
             except CircuitError as circuit_error:
-                del self._data[-len(instructions.qargs):]
+                del self._data[-len(instructions.qargs) + qubit_list_index:]
                 raise circuit_error
 
             replacement_instructions = [self._data.pop(-len(instructions.qargs) + qubit_list_index)]
@@ -834,11 +838,11 @@ class QuantumCircuit:
 
             self._repeated_qubit(qubit_list_index, qubits, instructions.qargs, index_list)
 
-    def _count_instructions(self, qubits, index_list):
+    def _count_instructions(self, qubits, index_list, data):
         # TODO: docs for this helper function
         qubit_gate_counts = [-1] * len(qubits)
         instruction_counts = [-1] * len(qubits)
-        for instruct in self._data:
+        for instruct in data:
             if qubit_gate_counts != index_list:
                 qubits_in_instruct = instruct[1]
                 for qubit_index, qubit in enumerate(qubits):
@@ -849,9 +853,11 @@ class QuantumCircuit:
                                 qubit_gate_counts[qubit_index] += 1
             else:
                 break  # instruction counts for gate insertion found
+        if qubit_gate_counts != index_list:
+            instruction_counts = [i+1 for i in instruction_counts]
         return instruction_counts
 
-    def _sort_instructions(self, qubits, instruction_counts):
+    def _sort_instructions(self, qubits, instruction_counts, index_list):
         # TODO: docs for this helper function
         lowest_instruction = min(instruction_counts)
         highest_instruction = max(instruction_counts)
@@ -862,7 +868,6 @@ class QuantumCircuit:
         shifter_qubits = [set() for n in range(len(qubits))]
 
         splitter_list = [-1] * len(qubits)  # stores indexes to divide instructions to be shifted
-
         for instruction_index, instruction in enumerate(self._data[lowest_instruction:
                                                                    highest_instruction],
                                                         lowest_instruction):
@@ -874,15 +879,25 @@ class QuantumCircuit:
                 shifter_instructions[low_index].append(instruction)   # low_index is arbitary
                 for qarg in instruction[1]:
                     shifter_qubits[low_index].add(qarg)
-            elif qubit_flags.count(True) == 1:
-                true_index = qubit_flags.index(True)
+            elif not all(qubit_flags):
+                if qubit_flags.count(True) > 1:
+                    for n, boolean in enumerate(qubit_flags):
+                        if boolean:
+                            gate_count = 0
+                            for i in range(instruction_index-1, -1, -1):
+                                if qubits[n] in self._data[i][1]:
+                                    gate_count += 1
+                            if index_list[n] > gate_count:
+                                raise CircuitError("Unable to place gate at index "
+                                                   "as multibit gate is in between")
+                true_index = max(i for i, boolean in enumerate(qubit_flags)
+                                 if boolean)
                 shifter_instructions[true_index].append(instruction)
                 for qarg in instruction[1]:
                     shifter_qubits[true_index].add(qarg)
             else:
                 raise CircuitError("Unable to place gate at index "
                                    "as multibit gate is in between")
-
         qubit_intersection = set.intersection(*shifter_qubits)
         if qubit_intersection:
             raise CircuitError("Unable to place gate at index, "
@@ -896,6 +911,7 @@ class QuantumCircuit:
     @staticmethod
     def _repeated_qubit(qubit_list_index, qubits, inst_qargs, index_list):
         # TODO: docs for this helper function
+        print(index_list)
         if qubit_list_index + 1 < len(inst_qargs):
             for qubit in qubits:
                 for m in range(len(inst_qargs[qubit_list_index + 1])):
@@ -2277,11 +2293,11 @@ class QuantumCircuit:
                           'ctl2': 'control_qubit2',
                           'tgt': 'target_qubit'})
     def ccx(self, control_qubit1, control_qubit2, target_qubit,
-            *, ctl1=None, ctl2=None, tgt=None):  # pylint: disable=unused-argument
+            *, ctl1=None, ctl2=None, tgt=None, index=None):  # pylint: disable=unused-argument
         """Apply :class:`~qiskit.circuit.library.CCXGate`."""
         from .library.standard_gates.x import CCXGate
         return self.append(CCXGate(),
-                           [control_qubit1, control_qubit2, target_qubit], [])
+                           [control_qubit1, control_qubit2, target_qubit], [], index)
 
     @deprecate_arguments({'ctl1': 'control_qubit1',
                           'ctl2': 'control_qubit2',
