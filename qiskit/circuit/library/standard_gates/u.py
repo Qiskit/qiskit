@@ -239,6 +239,7 @@ class CUGate(ControlledGate):
             CircuitError: Controlled gate does not define a base gate
         """
         if self.base_gate:
+            # CU has one additional parameter to the U base gate
             return self.base_gate.params + self._params
         else:
             raise CircuitError('Controlled gate does not define base gate '
@@ -254,6 +255,7 @@ class CUGate(ControlledGate):
         Raises:
             CircuitError: If controlled gate does not define a base gate.
         """
+        # CU has one additional parameter to the U base gate
         self._params = [parameters[-1]]
         if self.base_gate:
             self.base_gate.params = parameters[:-1]
