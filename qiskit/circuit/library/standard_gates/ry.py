@@ -180,8 +180,8 @@ class CRYGate(ControlledGate):
         self.definition = qc
 
     def inverse(self):
-        """Return inverse RY gate (i.e. with the negative rotation angle)."""
-        return CRYGate(-self.params[0])
+        """Return inverse CRY gate (i.e. with the negative rotation angle)."""
+        return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRY gate."""
