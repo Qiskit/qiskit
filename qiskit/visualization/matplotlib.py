@@ -906,7 +906,9 @@ class MatplotlibDrawer:
                         self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
                                               text=gate_text, subtext=vec)
                 elif isinstance(op.op, Delay):
-                    param_text = "%s[%s]" % (param, op.op.unit)
+                    param_text = "(%s)" % param
+                    if op.op.unit:
+                        param_text += "[%s]" % op.op.unit
                     self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
                                text=gate_text, subtext=param_text)
                 #

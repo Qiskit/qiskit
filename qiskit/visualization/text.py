@@ -798,7 +798,7 @@ class TextDrawing():
         params = TextDrawing.params_for_label(instruction)
 
         if params:
-            if isinstance(instruction.op, DelayInstruction):
+            if isinstance(instruction.op, DelayInstruction) and instruction.op.unit:
                 label += "(%s[%s])" % (params[0], instruction.op.unit)
             else:
                 label += "(%s)" % ','.join(params)
