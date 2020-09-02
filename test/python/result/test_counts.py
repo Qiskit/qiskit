@@ -276,7 +276,6 @@ class TestCounts(unittest.TestCase):
 
     def test_most_frequent_empty_bitstring_counts(self):
         raw_counts = {}
-        expected = '101110'
         counts_obj = counts.Counts(raw_counts)
         self.assertRaises(exceptions.QiskitError,
                           counts_obj.most_frequent)
