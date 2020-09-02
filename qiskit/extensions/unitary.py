@@ -106,8 +106,9 @@ class UnitaryGate(Gate):
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
-            theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
+            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
             qc._append(U3Gate(theta, phi, lam), [q[0]], [])
+            qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())

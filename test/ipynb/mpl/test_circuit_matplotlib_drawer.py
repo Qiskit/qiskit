@@ -331,6 +331,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename='scale_half.png', scale=0.5)
         self.circuit_drawer(circuit, filename='scale_double.png', scale=2)
 
+    def test_pi_param_expr(self):
+        """Text pi in circuit with parameter expression."""
+        x, y = Parameter('x'), Parameter('y')
+        circuit = QuantumCircuit(1)
+        circuit.rx((pi - x) * (pi - y), 0)
+
+        self.circuit_drawer(circuit, filename='pi_in_param_expr.png')
+
     def test_partial_layout(self):
         """Tests partial_layout
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
