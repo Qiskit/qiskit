@@ -13,15 +13,17 @@
 
 """Test hardcoded decomposition rules and matrix definitions for standard gates."""
 
+import inspect
+
 import numpy as np
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
 
-
+from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
     CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
@@ -113,6 +115,42 @@ class TestGateDefinitions(QiskitTestCase):
         circ.cx(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+
+@ddt
+class TestStandardGates(QiskitTestCase):
+    """Standard Extension Test."""
+
+    @unpack
+    @data(
+        *inspect.getmembers(
+            standard_gates,
+            predicate=lambda value: (inspect.isclass(value)
+                                     and issubclass(value, Gate)))
+    )
+    def test_definition_parameters(self, class_name, gate_class):
+        """Verify definitions from standard library include correct parameters."""
+
+        free_params = _get_free_params(gate_class)
+        n_params = len(free_params)
+        param_vector = ParameterVector('th', n_params)
+
+        if class_name in ('MCPhaseGate', 'MCU1Gate'):
+            param_vector = param_vector[:-1]
+            gate = gate_class(*param_vector, num_ctrl_qubits=2)
+        elif class_name in ('MCXGate', 'MCXGrayCode', 'MCXRecursive', 'MCXVChain'):
+            num_ctrl_qubits = 2
+            param_vector = param_vector[:-1]
+            gate = gate_class(num_ctrl_qubits, *param_vector)
+        elif class_name == 'MSGate':
+            num_qubits = 2
+            param_vector = param_vector[:-1]
+            gate = gate_class(num_qubits, *param_vector)
+        else:
+            gate = gate_class(*param_vector)
+
+        if gate.definition is not None:
+            self.assertEqual(gate.definition.parameters, set(param_vector))
 
 
 class TestGateEquivalenceEqual(QiskitTestCase):
