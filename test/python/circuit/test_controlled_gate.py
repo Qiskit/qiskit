@@ -787,7 +787,12 @@ class TestControlledGate(QiskitTestCase):
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
-        self.assertEqual(base_gate.base_gate, cgate.base_gate)
+
+        # the base gate of CU is U (3 params), the base gate of CCU is CU (4 params)
+        if gate_class == CUGate:
+            self.assertListEqual(cgate.base_gate.params[:3], base_gate.base_gate.params[:3])
+        else:
+            self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     @data(*[gate for name, gate in allGates.__dict__.items() if isinstance(gate, type)])
     def test_all_inverses(self, gate):

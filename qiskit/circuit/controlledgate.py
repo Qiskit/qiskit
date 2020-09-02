@@ -89,6 +89,7 @@ class ControlledGate(Gate):
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
         super().__init__(name, num_qubits, params, label=label)
+        self.base_gate = None if base_gate is None else base_gate.copy()
         self._num_ctrl_qubits = 1
         self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
