@@ -552,3 +552,53 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
+    - job: 'Tutorials'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            pip check
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            cd qiskit-tutorials
+            sphinx-build -b html . _build/html
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'qiskit-tutorials/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_tutorials.tar.gz'
+            verbose: true
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'html_tutorials'
+            Parallel: true
+            ParallelCount: 8
