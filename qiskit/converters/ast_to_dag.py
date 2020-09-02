@@ -388,7 +388,8 @@ class AstInterpreter:
             op = self._create_op(child_op.name, params=eparams)
             rules.append((op, qparams, []))
         circ = QuantumCircuit(qreg)
-        circ._data = rules
+        for instr, qargs, cargs in rules:
+            circ._append(instr, qargs, cargs)
         return circ
 
     def _create_dag_op(self, name, params, qargs):
