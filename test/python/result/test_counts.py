@@ -280,12 +280,6 @@ class TestCounts(unittest.TestCase):
         self.assertRaises(exceptions.QiskitError,
                           counts_obj.most_frequent)
 
-    def test_most_frequent_duplicate_empty_bitstring_counts(self):
-        raw_counts = {}
-        counts_obj = counts.Counts(raw_counts)
-        self.assertRaises(exceptions.QiskitError,
-                          counts_obj.most_frequent)
-
     def test_hex_outcomes_empty_bitstring_counts(self):
         raw_counts = {}
         expected = {}
