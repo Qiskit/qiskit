@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2018, 2020.
@@ -82,8 +80,7 @@ class TestAerPauliExpectation(QiskitAquaTestCase):
 
         zero_mean = (converted_meas @ Zero)
         sampled_zero = self.sampler.convert(zero_mean)
-        # TODO bug with Aer's Y
-        np.testing.assert_array_almost_equal(sampled_zero.eval(), [0, 1, 1, 1], decimal=1)
+        np.testing.assert_array_almost_equal(sampled_zero.eval(), [0, 0, 1, 1], decimal=1)
 
         sum_zero = (Plus + Minus) * (.5 ** .5)
         sum_zero_mean = (converted_meas @ sum_zero)
