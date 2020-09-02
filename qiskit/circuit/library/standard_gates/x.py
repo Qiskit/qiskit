@@ -519,7 +519,7 @@ class C3XGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The C3X is its own inverse."""
-        return C3XGate(angle=self._angle, ctrl_state=self.ctrl_state)
+        return C3XGate(angle=-self._angle, ctrl_state=self.ctrl_state)
 
     # This matrix is only correct if the angle is pi/4
     # def to_matrix(self):

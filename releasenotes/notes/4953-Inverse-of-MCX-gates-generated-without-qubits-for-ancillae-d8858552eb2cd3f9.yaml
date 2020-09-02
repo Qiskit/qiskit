@@ -8,3 +8,7 @@ fixes:
     ``Instruction.inverse()``, when not overridden by a subclass, would in some
     cases return a ``Gate`` instance with an incorrect ``to_matrix`` method. The
     instances of incorrect ``to_matrix`` methods have been removed.
+  - |
+    For ``C3XGate`` with a non-zero ``angle``, inverting the gate via
+    ``C3XGate.inverse()`` had previously generated an incorrect inverse gate.
+    This has been corrected.
