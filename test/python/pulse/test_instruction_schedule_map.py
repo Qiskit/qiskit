@@ -216,21 +216,20 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_schedule_generator_supports_parameter_expressions(self):
         """Test expression-based schedule generator functionalty."""
 
-        dur_val = 10
-        dur_expr = Parameter('t')
+        t_param = Parameter('t')
         amp = 1.0
 
-        def test_func(dur: ParameterExpression):
-            dur_bound = dur.bind({dur: dur_val})
+        def test_func(dur: ParameterExpression, t_val: int):
+            dur_bound = dur.bind({t_param: t_val})
             sched = Schedule()
             sched += Play(library.constant(int(float(dur_bound)), amp), DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        expected_sched += Play(library.constant(dur_val, amp), DriveChannel(0))
+        expected_sched += Play(library.constant(10, amp), DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add('f', (0,), test_func)
-        self.assertEqual(inst_map.get('f', (0,), dur_expr), expected_sched)
+        self.assertEqual(inst_map.get('f', (0,), dur=2*t_param, t_val=5), expected_sched)
 
-        self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur',))
+        self.assertEqual(inst_map.get_parameters('f', (0,)), ('dur', 't_val',))
