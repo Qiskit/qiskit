@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -40,7 +38,7 @@ RESULTDIR = os.path.dirname(os.path.abspath(__file__))
 def save_data(image_filename, testname):
     datafilename = 'result_test.json'
     if os.path.exists(datafilename):
-        with open(datafilename, 'r') as datafile:
+        with open(datafilename) as datafile:
             data = json.load(datafile)
     else:
         data = {}
@@ -332,6 +330,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename='scale_default.png')
         self.circuit_drawer(circuit, filename='scale_half.png', scale=0.5)
         self.circuit_drawer(circuit, filename='scale_double.png', scale=2)
+
+    def test_pi_param_expr(self):
+        """Text pi in circuit with parameter expression."""
+        x, y = Parameter('x'), Parameter('y')
+        circuit = QuantumCircuit(1)
+        circuit.rx((pi - x) * (pi - y), 0)
+
+        self.circuit_drawer(circuit, filename='pi_in_param_expr.png')
 
     def test_partial_layout(self):
         """Tests partial_layout

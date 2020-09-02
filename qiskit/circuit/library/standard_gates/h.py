@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -201,7 +199,7 @@ class CHGate(ControlledGate):
 
     def inverse(self):
         """Return inverted CH gate (itself)."""
-        return CHGate()  # self-inverse
+        return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""

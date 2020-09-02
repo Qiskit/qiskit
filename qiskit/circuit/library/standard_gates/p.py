@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -98,8 +96,7 @@ class PhaseGate(Gate):
         if num_ctrl_qubits == 1:
             gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
         elif ctrl_state is None and num_ctrl_qubits > 1:
-            from .u1 import MCU1Gate
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+            gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
         else:
             return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                    ctrl_state=ctrl_state)
@@ -198,7 +195,7 @@ class CPhaseGate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
-        return CPhaseGate(-self.params[0])
+        return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CPhase gate."""
@@ -260,9 +257,9 @@ class MCPhaseGate(ControlledGate):
         else:
             from .u3 import _gray_code_chain
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = PhaseGate(scaled_lam)
+            bottom_gate = CPhaseGate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-            qc.data = definition
+            qc._data = definition
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):

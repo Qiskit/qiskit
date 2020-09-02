@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -105,7 +103,7 @@ If one calls help on `linear` they will find
 
      Sampled continuous function:
 
-        function linear in module test.python.pulse.test_samplers
+        function linear in module qiskit.tests.python.pulse.test_samplers
         linear(x:numpy.ndarray, m:float, b:float) -> numpy.ndarray
             Linear test function
             Args:

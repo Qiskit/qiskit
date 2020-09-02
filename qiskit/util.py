@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -23,12 +21,6 @@ import warnings
 import functools
 
 import psutil
-
-
-def _check_python_version():
-    """Check for Python version 3.5+."""
-    if sys.version_info < (3, 5):
-        raise Exception('Qiskit requires Python version 3.5 or greater.')
 
 
 def _filter_deprecation_warnings():
@@ -57,7 +49,6 @@ def _filter_deprecation_warnings():
         pass
 
 
-_check_python_version()
 _filter_deprecation_warnings()
 
 
