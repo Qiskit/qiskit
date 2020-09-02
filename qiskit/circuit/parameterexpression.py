@@ -249,6 +249,12 @@ class ParameterExpression():
                             'cannot be cast to a float.'.format(self.parameters))
         return float(self._symbol_expr)
 
+    def __int__(self):
+        if self.parameters:
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot be cast to an int.'.format(self.parameters))
+        return int(self._symbol_expr)
+
     def __copy__(self):
         return self
 
