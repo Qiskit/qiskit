@@ -107,7 +107,9 @@ class iSwapGate(Gate):
             (CXGate(), [q[1], q[0]], []),
             (HGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def to_matrix(self):

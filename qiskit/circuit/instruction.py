@@ -385,6 +385,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc._data = [(self, qargs[:], cargs[:])] * n
+            qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction
