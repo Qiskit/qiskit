@@ -71,7 +71,9 @@ class RZGate(Gate):
         rules = [
             (U1Gate(theta), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -193,12 +195,14 @@ class CRZGate(ControlledGate):
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
-        """Return inverse RZ gate (i.e. with the negative rotation angle)."""
-        return CRZGate(-self.params[0])
+        """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
+        return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRZ gate."""

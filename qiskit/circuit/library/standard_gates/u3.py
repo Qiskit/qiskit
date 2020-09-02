@@ -189,7 +189,9 @@ class CU3Gate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
@@ -197,7 +199,12 @@ class CU3Gate(ControlledGate):
 
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
-        return CU3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return CU3Gate(
+            -self.params[0],
+            -self.params[2],
+            -self.params[1],
+            ctrl_state=self.ctrl_state
+        )
 
     def to_matrix(self):
         """Return a numpy.array for the CU3 gate."""
