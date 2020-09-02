@@ -70,7 +70,6 @@ For example::
 
 import unittest
 import sys
-import os
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
@@ -79,9 +78,7 @@ from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, S
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 
-from qiskit.test import QiskitTestCase
-
-DIRNAME = QiskitTestCase._get_resource_path('qasm')
+from qiskit.test import QiskitTestCase, Path
 
 
 class CommonUtilitiesMixin:
@@ -134,7 +131,7 @@ class CommonUtilitiesMixin:
     def assertResult(self, result, circuit):
         """Fetches the QASM in circuit.name file and compares it with result."""
         qasm_name = '%s_%s.qasm' % (type(self).__name__, circuit.name)
-        filename = os.path.join(DIRNAME, qasm_name)
+        filename = QiskitTestCase._get_resource_path(qasm_name, Path.QASMS)
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.

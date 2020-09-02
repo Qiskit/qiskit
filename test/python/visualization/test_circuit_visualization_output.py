@@ -21,6 +21,7 @@ from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
+from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -30,7 +31,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
 
     latex_reference = path_to_diagram_reference('circuit_latex_ref.png')
     matplotlib_reference = path_to_diagram_reference('circuit_matplotlib_ref.png')
-    text_reference = path_to_diagram_reference('circuit_text_ref.txt')
+    text_reference_utf8 = path_to_diagram_reference('circuit_text_ref_utf8.txt')
+    text_reference_cp437 = path_to_diagram_reference('circuit_text_ref_cp437.txt')
 
     def sample_circuit(self):
         """Generate a sample circuit that includes the most common elements of
@@ -97,16 +99,28 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, self.matplotlib_reference)
         os.remove(filename)
 
-    def test_text_drawer(self):
-        filename = self._get_resource_path('current_textplot.txt')
+    def test_text_drawer_utf8(self):
+        filename = self._get_resource_path('current_textplot_utf8.txt')
         qc = self.sample_circuit()
-        output = circuit_drawer(qc, filename=filename, output="text", fold=-1, initial_state=True,
-                                cregbundle=False)
+        output = _text_circuit_drawer(qc, filename=filename, fold=-1,
+                                      initial_state=True, cregbundle=False, encoding='utf8')
+        try:
+            encode(str(output), encoding='utf8')
+        except UnicodeEncodeError:
+            self.fail("_text_circuit_drawer() should be utf8.")
+        self.assertFilesAreEqual(filename, self.text_reference_utf8, 'utf8')
+        os.remove(filename)
+
+    def test_text_drawer_cp437(self):
+        filename = self._get_resource_path('current_textplot_cp437.txt')
+        qc = self.sample_circuit()
+        output = _text_circuit_drawer(qc, filename=filename, fold=-1,
+                                      initial_state=True, cregbundle=False, encoding='cp437')
         try:
             encode(str(output), encoding='cp437')
         except UnicodeEncodeError:
-            self.fail("_text_circuit_drawer() should only use extended ascii (aka code page 437).")
-        self.assertFilesAreEqual(filename, self.text_reference)
+            self.fail("_text_circuit_drawer() should be cp437.")
+        self.assertFilesAreEqual(filename, self.text_reference_cp437, 'cp437')
         os.remove(filename)
 
 
