@@ -61,7 +61,9 @@ class SGate(Gate):
         rules = [
             (U1Gate(pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
@@ -117,7 +119,9 @@ class SdgGate(Gate):
         rules = [
             (U1Gate(-pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
