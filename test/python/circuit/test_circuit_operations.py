@@ -619,6 +619,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
 
