@@ -133,6 +133,71 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(marginal_counts(result, [0]).get_counts(1),
                          expected_marginal_counts_2)
 
+    def test_marginal_counts_inplace_true(self):
+        """Test marginal_counts(Result, inplace = True)
+        """
+        raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
+        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_1 = models.ExperimentResult(shots=54, success=True, data=data_1,
+                                               header=exp_result_header_1)
+
+        raw_counts_2 = {'0x2': 5, '0x3': 8}
+        data_2 = models.ExperimentResultData(counts=dict(**raw_counts_2))
+        exp_result_header_2 = QobjExperimentHeader(creg_sizes=[['c0', 2]], memory_slots=2)
+        exp_result_2 = models.ExperimentResult(shots=13, success=True, data=data_2,
+                                               header=exp_result_header_2)
+
+        result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
+
+        expected_marginal_counts = {'0': 27, '1': 27}
+
+        self.assertEqual(marginal_counts(result, [0], inplace=True).get_counts(0),
+                         expected_marginal_counts)
+        self.assertEqual(result.get_counts(0),
+                         expected_marginal_counts)
+
+    def test_marginal_counts_inplace_false(self):
+        """Test marginal_counts(Result, inplace=False) """
+        raw_counts_1 = {'0x0': 4, '0x1': 7, '0x2': 10, '0x6': 5, '0x9': 11, '0xD': 9, '0xE': 8}
+        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[['c0', 4]], memory_slots=4)
+        exp_result_1 = models.ExperimentResult(shots=54, success=True, data=data_1,
+                                               header=exp_result_header_1)
+
+        raw_counts_2 = {'0x2': 5, '0x3': 8}
+        data_2 = models.ExperimentResultData(counts=dict(**raw_counts_2))
+        exp_result_header_2 = QobjExperimentHeader(creg_sizes=[['c0', 2]], memory_slots=2)
+        exp_result_2 = models.ExperimentResult(shots=13, success=True, data=data_2,
+                                               header=exp_result_header_2)
+
+        result = Result(results=[exp_result_1, exp_result_2], **self.base_result_args)
+
+        expected_marginal_counts = {'0': 27, '1': 27}
+
+        self.assertEqual(marginal_counts(result, [0], inplace=False).get_counts(0),
+                         expected_marginal_counts)
+        self.assertNotEqual(result.get_counts(0),
+                            expected_marginal_counts)
+
+    def test_marginal_counts_with_dict(self):
+        """Test the marginal_counts method with dictionary instead of Result object.
+        """
+        dict_counts_1 = {'0000': 4, '0001': 7, '0010': 10, '0110': 5,
+                         '1001': 11, '1101': 9, '1110': 8}
+        dict_counts_2 = {'10': 5, '11': 8}
+
+        expected_marginal_counts_1 = {'00': 4, '01': 27, '10': 23}
+        expected_marginal_counts_2 = {'0': 5, '1': 8}
+
+        self.assertEqual(marginal_counts(dict_counts_1, [0, 1]),
+                         expected_marginal_counts_1)
+        self.assertEqual(marginal_counts(dict_counts_2, [0], inplace=True),
+                         expected_marginal_counts_2)
+        self.assertNotEqual(dict_counts_2, expected_marginal_counts_2)
+        self.assertRaises(AttributeError,
+                          lambda: marginal_counts(dict_counts_1, [0, 1]).get_counts(0))
+
     def test_memory_counts_no_header(self):
         """Test that memory bitstrings are extracted properly without header."""
         raw_memory = ['0x0', '0x0', '0x2', '0x2', '0x2', '0x2', '0x2']
