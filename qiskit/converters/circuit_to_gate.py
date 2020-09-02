@@ -103,6 +103,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
                    []),
         rules))
     qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
-    qc._data = rules
+    for instr, qargs, cargs in rules:
+        qc._append(instr, qargs, cargs)
     gate.definition = qc
     return gate

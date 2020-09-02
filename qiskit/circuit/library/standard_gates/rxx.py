@@ -91,7 +91,9 @@ class RXXGate(Gate):
             (HGate(), [q[1]], []),
             (HGate(), [q[0]], []),
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):

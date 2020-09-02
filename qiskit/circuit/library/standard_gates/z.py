@@ -77,7 +77,9 @@ class ZGate(Gate):
         rules = [
             (U1Gate(pi), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -171,7 +173,9 @@ class CZGate(ControlledGate, metaclass=CZMeta):
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
