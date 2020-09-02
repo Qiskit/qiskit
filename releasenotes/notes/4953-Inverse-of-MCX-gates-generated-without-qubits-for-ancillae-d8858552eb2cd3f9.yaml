@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    ``SXGate().inverse()`` had previously returned an 'sx_dg' gate with a correct
+    ``definition`` but incorrect ``to_matrix``. This has been updated such that
+    ``SXGate().inverse()`` returns an ``SXdgGate()`` and vice versa.
