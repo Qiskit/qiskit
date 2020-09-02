@@ -4,3 +4,7 @@ fixes:
     ``SXGate().inverse()`` had previously returned an 'sx_dg' gate with a correct
     ``definition`` but incorrect ``to_matrix``. This has been updated such that
     ``SXGate().inverse()`` returns an ``SXdgGate()`` and vice versa.
+  - |
+    ``Instruction.inverse()``, when not overridden by a subclass, would in some
+    cases return a ``Gate`` instance with an incorrect ``to_matrix`` method. The
+    instances of incorrect ``to_matrix`` methods have been removed.
