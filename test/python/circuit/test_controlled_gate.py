@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Test Qiskit's inverse gate operation."""
+"""Test Qiskit's controlled gate operation."""
 
 import unittest
 from test import combine
@@ -71,6 +71,11 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled U1 gate."""
         theta = 0.5
         self.assertEqual(PhaseGate(theta).control(), CPhaseGate(theta))
+
+    def test_double_controlled_phase(self):
+        """Test the creation of a controlled phase gate."""
+        theta = 0.5
+        self.assertEqual(PhaseGate(theta).control(2), MCPhaseGate(theta, 2))
 
     def test_controlled_u1(self):
         """Test the creation of a controlled U1 gate."""
@@ -644,7 +649,7 @@ class TestControlledGate(QiskitTestCase):
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, ignore_phase=True))
 
-    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[None])
+    @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
         """Test that UnitaryGate with control returns params."""
         umat = np.array([[1, 0], [0, -1]])
@@ -652,6 +657,17 @@ class TestControlledGate(QiskitTestCase):
         cugate = ugate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
         ref_mat = _compute_control_matrix(umat, num_ctrl_qubits, ctrl_state=ctrl_state)
         self.assertEqual(Operator(cugate), Operator(ref_mat))
+
+    def test_controlled_controlled_unitary(self):
+        """Test that global phase in iso decomposition of unitary is handled."""
+        umat = np.array([[1, 0], [0, -1]])
+        ugate = UnitaryGate(umat)
+        cugate = ugate.control()
+        ccugate = cugate.control()
+        ccugate2 = ugate.control(2)
+        ref_mat = _compute_control_matrix(umat, 2)
+        self.assertTrue(Operator(ccugate2).equiv(Operator(ref_mat)))
+        self.assertTrue(Operator(ccugate).equiv(Operator(ccugate2)))
 
     @data(1, 2, 3)
     def test_open_controlled_unitary_matrix(self, num_ctrl_qubits):
@@ -778,8 +794,12 @@ class TestControlledGate(QiskitTestCase):
         cgate = base_gate.control()
         self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
-    @data(*[gate for name, gate in allGates.__dict__.items() if isinstance(gate, type)])
-    def test_all_inverses(self, gate):
+    @combine(
+        gate=[gate for gate in allGates.__dict__.values() if isinstance(gate, type)],
+        num_ctrl_qubits=[1, 2],
+        ctrl_state=[None, 0, 1],
+    )
+    def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
         """Test all gates in standard extensions except those that cannot be controlled
         or are being deprecated.
         """
@@ -790,7 +810,10 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len(_get_free_params(gate))
                 args = [2] * numargs
                 gate = gate(*args)
-                self.assertEqual(gate.inverse().control(2), gate.control(2).inverse())
+                self.assertEqual(
+                    gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state),
+                    gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse()
+                )
             except AttributeError:
                 # skip gates that do not have a control attribute (e.g. barrier)
                 pass

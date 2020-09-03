@@ -60,7 +60,9 @@ class RYGate(Gate):
         rules = [
             (RGate(self.params[0], pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -176,12 +178,14 @@ class CRYGate(ControlledGate):
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
-        """Return inverse RY gate (i.e. with the negative rotation angle)."""
-        return CRYGate(-self.params[0])
+        """Return inverse CRY gate (i.e. with the negative rotation angle)."""
+        return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CRY gate."""
