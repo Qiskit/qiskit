@@ -60,6 +60,8 @@ class GroverOperator(QuantumCircuit):
     Note that you can easily construct a phase oracle from a bitflip oracle by sandwiching the
     controlled X gate on the result qubit by a X and H gate. For instance
 
+    .. parsed-literal::
+
         Bitflip oracle     Phaseflip oracle
         q_0: ──■──         q_0: ────────────■────────────
              ┌─┴─┐              ┌───┐┌───┐┌─┴─┐┌───┐┌───┐
