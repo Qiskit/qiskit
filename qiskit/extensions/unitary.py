@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -109,8 +107,9 @@ class UnitaryGate(Gate):
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
-            theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
+            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
             qc._append(U3Gate(theta, phi, lam), [q[0]], [])
+            qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
@@ -136,7 +135,7 @@ class UnitaryGate(Gate):
             QiskitError: Invalid ctrl_state.
             ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=ctrl_state)
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
@@ -150,9 +149,8 @@ class UnitaryGate(Gate):
             raise ExtensionError('controlled unitary generation failed')
         phase = numpy.angle(diag[0])
         if phase:
-            qreg = cunitary.definition.qregs[0]
-            cunitary.definition.u3(numpy.pi, phase, phase - numpy.pi, qreg[0])
-            cunitary.definition.u3(numpy.pi, 0, numpy.pi, qreg[0])
+            # need to apply to _definition since open controls creates temporary definition
+            cunitary._definition.global_phase = phase
         cunitary.base_gate = self.copy()
         cunitary.base_gate.label = self.label
         return cunitary

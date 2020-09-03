@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -56,7 +54,7 @@ class FakeJob(BaseJob):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception('Unexpected state of {0}'.format(
+            raise Exception('Unexpected state of {}'.format(
                 self.__class__.__name__))
         _status_msg = None
         return {'status': _status,
