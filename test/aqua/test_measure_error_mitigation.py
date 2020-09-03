@@ -22,7 +22,10 @@ from qiskit import QuantumCircuit
 
 from qiskit.aqua.components.oracles import LogicalExpressionOracle
 from qiskit.aqua import QuantumInstance, aqua_globals, AquaError
-from qiskit.aqua.algorithms import Grover
+from qiskit.aqua.algorithms import Grover, VQE
+from qiskit.aqua.operators import I, X, Z
+from qiskit.aqua.components.optimizers import SPSA
+from qiskit.circuit.library import EfficientSU2
 
 
 class TestMeasurementErrorMitigation(QiskitAquaTestCase):
@@ -154,7 +157,7 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         self.assertGreater(timestamp_2, timestamp_1)
 
     def test_measurement_error_mitigation_with_diff_qubit_order(self):
-        """ measurement error mitigation with dedicated shots test """
+        """ measurement error mitigation with different qubit order"""
         # pylint: disable=import-outside-toplevel
         from qiskit import Aer
         from qiskit.providers.aer import noise
@@ -197,6 +200,50 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         qc3.measure(1, 2)
 
         self.assertRaises(AquaError, quantum_instance.execute, [qc1, qc3])
+
+    def test_measurement_error_mitigation_with_vqe(self):
+        """ measurement error mitigation test with vqe """
+        try:
+            # pylint: disable=import-outside-toplevel
+            from qiskit import Aer
+            from qiskit.providers.aer import noise
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            return
+
+        aqua_globals.random_seed = 0
+
+        # build noise model
+        noise_model = noise.NoiseModel()
+        read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
+        noise_model.add_all_qubit_readout_error(read_err)
+
+        backend = Aer.get_backend('qasm_simulator')
+
+        quantum_instance = QuantumInstance(
+            backend=backend,
+            seed_simulator=167,
+            seed_transpiler=167,
+            noise_model=noise_model,
+            measurement_error_mitigation_cls=CompleteMeasFitter
+        )
+
+        h2_hamiltonian = -1.052373245772859 * (I ^ I) \
+            + 0.39793742484318045 * (I ^ Z) \
+            - 0.39793742484318045 * (Z ^ I) \
+            - 0.01128010425623538 * (Z ^ Z) \
+            + 0.18093119978423156 * (X ^ X)
+        optimizer = SPSA(maxiter=200)
+        var_form = EfficientSU2(2, reps=1)
+
+        vqe = VQE(
+            var_form=var_form,
+            operator=h2_hamiltonian,
+            quantum_instance=quantum_instance,
+            optimizer=optimizer,
+        )
+        result = vqe.compute_minimum_eigenvalue()
+        self.assertAlmostEqual(result.eigenvalue.real, -1.86, places=2)
 
 
 if __name__ == '__main__':
