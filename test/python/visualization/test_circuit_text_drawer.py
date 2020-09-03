@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -902,6 +900,38 @@ class TestTextDrawerLabels(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_rzz_on_wide_layer(self):
+        """ Test a labeled gate (RZZ) in a wide layer.
+        See https://github.com/Qiskit/qiskit-terra/issues/4838"""
+        expected = '\n'.join(["                                               ",
+                              "q_0: |0>───────────────■───────────────────────",
+                              "                       │zz(pi/2)               ",
+                              "q_1: |0>───────────────■───────────────────────",
+                              "        ┌─────────────────────────────────────┐",
+                              "q_2: |0>┤ This is a really long long long box ├",
+                              "        └─────────────────────────────────────┘"])
+        circuit = QuantumCircuit(3)
+        circuit.rzz(pi / 2, 0, 1)
+        circuit.x(2, label='This is a really long long long box')
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_cu1_on_wide_layer(self):
+        """ Test a labeled gate (CU1) in a wide layer.
+        See https://github.com/Qiskit/qiskit-terra/issues/4838"""
+        expected = '\n'.join(["                                               ",
+                              "q_0: |0>─────────────────■─────────────────────",
+                              "                         │pi/2                 ",
+                              "q_1: |0>─────────────────■─────────────────────",
+                              "        ┌─────────────────────────────────────┐",
+                              "q_2: |0>┤ This is a really long long long box ├",
+                              "        └─────────────────────────────────────┘"])
+        circuit = QuantumCircuit(3)
+        circuit.cu1(pi / 2, 0, 1)
+        circuit.x(2, label='This is a really long long long box')
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """ Gates implying multiple qubits."""
@@ -1234,6 +1264,17 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_pi_param_expr(self):
+        """Text pi in circuit with parameter expression."""
+        expected = '\n'.join(["     ┌───────────────────────┐",
+                              "q_0: ┤ RX((pi - x)*(pi - y)) ├",
+                              "     └───────────────────────┘"])
+
+        x, y = Parameter('x'), Parameter('y')
+        circuit = QuantumCircuit(1)
+        circuit.rx((pi - x) * (pi - y), 0)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
@@ -2789,6 +2830,26 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(pqr)
         circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
         circuit.h(pqr)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_partial_layout(self):
+        """ With a partial layout.
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        expected = '\n'.join(["            ┌───┐",
+                              "v_0 -> 0 |0>┤ H ├",
+                              "            └───┘",
+                              "       1 |0>─────",
+                              "                 ",
+                              "       2 |0>─────",
+                              "            ┌───┐",
+                              "v_1 -> 3 |0>┤ H ├",
+                              "            └───┘"])
+        qr = QuantumRegister(2, 'v')
+        pqr = QuantumRegister(4, 'physical')
+        circuit = QuantumCircuit(pqr)
+        circuit.h(0)
+        circuit.h(3)
+        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_with_classical_regs(self):

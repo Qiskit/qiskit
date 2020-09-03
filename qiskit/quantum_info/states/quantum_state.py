@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -463,7 +461,7 @@ class QuantumState(metaclass=AbstractTolerancesMeta):
         # of all subsystem dimensions
         self._dim = np.product(dims)
         # Check if an N-qubit operator
-        if set(self._dims) == set([2]):
+        if set(self._dims) == {2}:
             # If so set the number of qubits
             self._num_qubits = len(self._dims)
         else:

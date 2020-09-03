@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -212,6 +210,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    NewType
 )
 
 import numpy as np
@@ -234,6 +233,8 @@ from qiskit.pulse.schedule import Schedule
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
 T = TypeVar('T')  # pylint: disable=invalid-name
+
+StorageLocation = NewType('StorageLocation', Union[chans.MemorySlot, chans.RegisterSlot])
 
 
 def _compile_lazy_circuit_before(function: Callable[..., T]
@@ -895,6 +896,99 @@ def align_sequential() -> ContextManager[None]:
     """
 
 
+# pylint: disable=unused-argument
+@_transform_context(transforms.align_equispaced)
+def align_equispaced(duration: int) -> ContextManager[None]:
+    """Equispaced alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled with the same interval spacing such that
+    the total length of the context block is ``duration``.
+    If the total free ``duration`` cannot be evenly divided by the number of instructions
+    within the context, the modulo is split and then prepended and appended to
+    the returned schedule. Delay instructions are automatically inserted in between pulses.
+
+    This context is convenient to write a schedule for periodical dynamic decoupling or
+    the Hahn echo sequence.
+
+    Examples:
+
+    .. jupyter-execute::
+
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        x90 = pulse.Gaussian(10, 0.1, 3)
+        x180 = pulse.Gaussian(10, 0.2, 3)
+
+        with pulse.build() as hahn_echo:
+            with pulse.align_equispaced(duration=100):
+                pulse.play(x90, d0)
+                pulse.play(x180, d0)
+                pulse.play(x90, d0)
+
+        hahn_echo.draw()
+
+    Args:
+        duration: Duration of this context. This should be larger than the schedule duration.
+
+    Notes:
+        The scheduling is performed for sub-schedules within the context rather than
+        channel-wise. If you want to apply the equispaced context for each channel,
+        you should use the context independently for channels.
+    """
+
+
+# pylint: disable=unused-argument
+@_transform_context(transforms.align_func)
+def align_func(duration: int,
+               func: Callable[[int], float]) -> ContextManager[None]:
+    """Callback defined alignment pulse scheduling context.
+
+    Pulse instructions within this context are scheduled at the location specified by
+    arbitrary callback function `position` that takes integer index and returns
+    the associated fractional location witin [0, 1].
+    Delay instruction is automatically inserted in between pulses.
+
+    This context may be convenient to write a schedule of arbitrary dynamical decoupling
+    sequences such as Uhrig dynamical decoupling.
+
+    Examples:
+
+    .. jupyter-execute::
+
+        import numpy as np
+        from qiskit import pulse
+
+        d0 = pulse.DriveChannel(0)
+        x90 = pulse.Gaussian(10, 0.1, 3)
+        x180 = pulse.Gaussian(10, 0.2, 3)
+
+        def udd10_pos(j):
+            return np.sin(np.pi*j/(2*10 + 2))**2
+
+        with pulse.build() as udd_sched:
+            pulse.play(x90, d0)
+            with pulse.align_func(duration=300, func=udd10_pos):
+                for _ in range(10):
+                    pulse.play(x180, d0)
+            pulse.play(x90, d0)
+
+        udd_sched.draw()
+
+    Args:
+        duration: Duration of context. This should be larger than the schedule duration.
+        func: A function that takes an index of sub-schedule and returns the
+            fractional coordinate of of that sub-schedule.
+            The returned value should be defined within [0, 1].
+            The pulse index starts from 1.
+
+    Notes:
+        The scheduling is performed for sub-schedules within the context rather than
+        channel-wise. If you want to apply the numerical context for each channel,
+        you need to apply the context independently to channels.
+    """
+
+
 def _align(alignment: str = 'left') -> ContextManager[None]:
     """General alignment context. Used by the :class:`_Builder` to choose the
     default alignment policy.
@@ -1292,7 +1386,7 @@ def play(pulse: Union[library.Pulse, np.ndarray],
 
 def acquire(duration: int,
             qubit_or_channel: Union[int, chans.AcquireChannel],
-            register: Union[chans.RegisterSlot, chans.MemorySlot],
+            register: StorageLocation,
             **metadata: Union[configuration.Kernel,
                               configuration.Discriminator]):
     """Acquire for a ``duration`` on a ``channel`` and store the result
@@ -1636,9 +1730,9 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int]):
 
 
 # Macros
-def measure(qubit: int,
-            register: Union[chans.MemorySlot, chans.RegisterSlot] = None,
-            ) -> Union[chans.MemorySlot, chans.RegisterSlot]:
+def measure(qubits: Union[List[int], int],
+            registers: Union[List[StorageLocation], StorageLocation] = None,
+            ) -> Union[List[StorageLocation], StorageLocation]:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
@@ -1686,25 +1780,39 @@ def measure(qubit: int,
     .. note:: Requires the active builder context to have a backend set.
 
     Args:
-        qubit: Physical qubit to measure.
-        register: Register to store result in. If not selected the current
+        qubits: Physical qubit to measure.
+        registers: Register to store result in. If not selected the current
             behaviour is to return the :class:`MemorySlot` with the same
             index as ``qubit``. This register will be returned.
     Returns:
         The ``register`` the qubit measurement result will be stored in.
     """
     backend = active_backend()
-    if not register:
-        register = chans.MemorySlot(qubit)
+
+    try:
+        qubits = list(qubits)
+    except TypeError:
+        qubits = [qubits]
+
+    if registers is None:
+        registers = [chans.MemorySlot(qubit) for qubit in qubits]
+    else:
+        try:
+            registers = list(registers)
+        except TypeError:
+            registers = [registers]
 
     measure_sched = macros.measure(
-        qubits=[qubit],
+        qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={register.index: register.index})
+        qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)})
     call_schedule(measure_sched)
 
-    return register
+    if len(qubits) == 1:
+        return registers[0]
+    else:
+        return registers
 
 
 def measure_all() -> List[chans.MemorySlot]:
