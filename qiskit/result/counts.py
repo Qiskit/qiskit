@@ -63,44 +63,49 @@ class Counts(dict):
         """
         bin_data = None
         data = dict(data)
-        first_key = next(iter(data.keys()))
-        if isinstance(first_key, int):
-            self.int_raw = data
-            self.hex_raw = {
-                hex(key): value for key, value in self.int_raw.items()}
-        elif isinstance(first_key, str):
-            if first_key.startswith('0x'):
-                self.hex_raw = data
-                self.int_raw = {
-                    int(key, 0): value for key, value in self.hex_raw.items()}
-            elif first_key.startswith('0b'):
-                self.int_raw = {
-                    int(key, 0): value for key, value in data.items()}
+        if not data:
+            self.int_raw = {}
+            self.hex_raw = {}
+            bin_data = {}
+        else:
+            first_key = next(iter(data.keys()))
+            if isinstance(first_key, int):
+                self.int_raw = data
                 self.hex_raw = {
                     hex(key): value for key, value in self.int_raw.items()}
-            else:
-                if not creg_sizes and not memory_slots:
-                    self.hex_raw = None
-                    self.int_raw = None
-                    bin_data = data
+            elif isinstance(first_key, str):
+                if first_key.startswith('0x'):
+                    self.hex_raw = data
+                    self.int_raw = {
+                        int(key, 0): value for key, value in self.hex_raw.items()}
+                elif first_key.startswith('0b'):
+                    self.int_raw = {
+                        int(key, 0): value for key, value in data.items()}
+                    self.hex_raw = {
+                        hex(key): value for key, value in self.int_raw.items()}
                 else:
-                    bitstring_regex = re.compile(r'^[01\s]+$')
-                    hex_dict = {}
-                    int_dict = {}
-                    for bitstring, value in data.items():
-                        if not bitstring_regex.search(bitstring):
-                            raise exceptions.QiskitError(
-                                'Counts objects with dit strings do not '
-                                'currently support dit string formatting parameters '
-                                'creg_sizes or memory_slots')
-                        int_key = int(bitstring.replace(" ", ""), 2)
-                        int_dict[int_key] = value
-                        hex_dict[hex(int_key)] = value
-                    self.hex_raw = hex_dict
-                    self.int_raw = int_dict
-        else:
-            raise TypeError("Invalid input key type %s, must be either an int "
-                            "key or string key with hexademical value or bit string")
+                    if not creg_sizes and not memory_slots:
+                        self.hex_raw = None
+                        self.int_raw = None
+                        bin_data = data
+                    else:
+                        bitstring_regex = re.compile(r'^[01\s]+$')
+                        hex_dict = {}
+                        int_dict = {}
+                        for bitstring, value in data.items():
+                            if not bitstring_regex.search(bitstring):
+                                raise exceptions.QiskitError(
+                                    'Counts objects with dit strings do not '
+                                    'currently support dit string formatting parameters '
+                                    'creg_sizes or memory_slots')
+                            int_key = int(bitstring.replace(" ", ""), 2)
+                            int_dict[int_key] = value
+                            hex_dict[hex(int_key)] = value
+                        self.hex_raw = hex_dict
+                        self.int_raw = int_dict
+            else:
+                raise TypeError("Invalid input key type %s, must be either an int "
+                                "key or string key with hexademical value or bit string")
         header = {}
         self.creg_sizes = creg_sizes
         if self.creg_sizes:
@@ -119,8 +124,12 @@ class Counts(dict):
         Returns:
             str: The bit string for the most frequent result
         Raises:
-            QiskitError: when there is >1 count with the same max counts
+            QiskitError: when there is >1 count with the same max counts, or
+                an empty object.
         """
+        if not self:
+            raise exceptions.QiskitError(
+                "Can not return a most frequent count on an empty object")
         max_value = max(self.values())
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
