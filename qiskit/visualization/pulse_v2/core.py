@@ -464,6 +464,10 @@ class Chart:
 
             self._output_dataset[key] = new_data
 
+            # return callback function to generate text with scaling value?
+            # how to generalize?
+            # isinstance(data, callback): generate obj
+
     @property
     def is_active(self):
         """Check if there is any active waveform data in this entry."""
