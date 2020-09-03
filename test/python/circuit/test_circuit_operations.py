@@ -587,6 +587,38 @@ class TestCircuitOperations(QiskitTestCase):
         expected.global_phase = -0.5
         self.assertEqual(qc.inverse(), expected)
 
+    def test_compare_two_equal_circuits(self):
+        """Test to compare that 2 circuits are equal.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.h(0)
+
+        self.assertTrue(qc1 == qc2)
+
+    def test_compare_two_different_circuits(self):
+        """Test to compare that 2 circuits are different.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.x(0)
+
+        self.assertFalse(qc1 == qc2)
+
+    def test_compare_a_circuit_with_none(self):
+        """Test to compare that a circuit is different to None.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = None
+
+        self.assertFalse(qc1 == qc2)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
