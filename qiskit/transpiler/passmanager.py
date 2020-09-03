@@ -109,7 +109,7 @@ class PassManager:
             flow_controller_conditions: control flow plugins.
 
         Raises:
-            TranspilerError: if a pass in passes is not a proper pass.
+            TranspilerError: if the index is not found.
 
         See Also:
             ``RunningPassManager.add_flow_controller()`` for more information about the control
