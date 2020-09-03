@@ -109,7 +109,7 @@ class PassManager:
             flow_controller_conditions: control flow plugins.
 
         Raises:
-            TranspilerError: if the index is not found.
+            TranspilerError: if a pass in passes is not a proper pass or index not found.
 
         See Also:
             ``RunningPassManager.add_flow_controller()`` for more information about the control
@@ -132,6 +132,9 @@ class PassManager:
 
         Args:
             index: Pass index to replace, based on the position in passes().
+
+        Raises:
+            TranspilerError: if the index is not found.
         """
         try:
             del self._pass_sets[index]
