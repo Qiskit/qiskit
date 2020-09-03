@@ -127,6 +127,17 @@ class PassManager:
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
 
+    def remove(self, index: int) -> None:
+        """Removes a particular pass in the scheduler.
+
+        Args:
+            index: Pass index to replace, based on the position in passes().
+        """
+        try:
+            del self._pass_sets[index]
+        except IndexError:
+            raise TranspilerError('Index to replace %s does not exists' % index)
+
     def __setitem__(self, index, item):
         self.replace(index, item)
 
@@ -161,7 +172,6 @@ class PassManager:
     def _normalize_passes(passes: Union[BasePass, List[BasePass]]) -> List[BasePass]:
         if isinstance(passes, BasePass):
             passes = [passes]
-
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)

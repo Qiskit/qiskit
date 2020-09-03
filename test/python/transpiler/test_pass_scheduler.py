@@ -695,8 +695,8 @@ class TestPassManagerReuse(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
 
-class TestPassManagerReplace(SchedulerTestCase):
-    """Test PassManager.replace"""
+class TestPassManagerChanges(SchedulerTestCase):
+    """Test PassManager manipulation with changes"""
 
     def setUp(self):
         self.passmanager = PassManager()
@@ -719,6 +719,28 @@ class TestPassManagerReplace(SchedulerTestCase):
         self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
 
         self.passmanager.replace(1, PassC_TP_RA_PA())
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove0(self):
+        """ Test passmanager.remove(0, ...)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(0)
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove1(self):
+        """ Test passmanager.remove(1, ...)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(1)
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassC_TP_RA_PA']
