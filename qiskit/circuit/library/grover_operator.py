@@ -26,21 +26,65 @@ class GroverOperator(QuantumCircuit):
 
     Grover's search algorithm [1, 2] consists of repeated applications of the so-called
     Grover operator used to amplify the amplitudes of the desired output states.
-    This operator consists of the oracle, $\mathcal{S}_f$, that multiplies the amplitude of the
-    good states by -1, a reflection $\mathcal{S}_0$ about the $\ket{0}^{\otimes n}$ state
-    and an input state $\mathcal{A}$. For the textbook Grover search, $\mathcal{A} = H^{\otimes n}$,
-    however for generic amplitude amplification the input state might differ [3].
-    With these terms, the Grover operator can be written as
+    This operator, :math:`\mathcal{Q}`, consists of the phase oracle, :math:`\mathcal{S}_f`,
+    zero phase-shift or zero reflection, :math:`\mathcal{S}_0`, and an
+    input state preparation :math:`\mathcal{A}`:
 
     .. math::
+        \mathcal{Q} = \mathcal{A} \mathcal{S}_0 \mathcal{A}^\dagger \mathcal{S}_f
 
-        \mathcal{Q} = \mathcal{A} \mathcal{S}_0 \mathcal{A} \mathcal{S_f}
+    In the standard Grover search we have :math:`\mathcal{A} = H^{\otimes n}`:
 
-    .. note::
+    .. math::
+        \mathcal{Q} = H^{\otimes n} \mathcal{S}_0 H^{\otimes n} \mathcal{S}_f
+                    = D \mathcal{S_f}
 
-        Sometimes the Grover operator is defined with a negative sign, in that case
-        $\mathcal{S}_0$ multiplies all states *except* $\ket{0}^{\otimes n}$ with -1.
-        In our formulation, $\mathcal{S}_0$ only multiplies $\ket{0}^{\otimes n}$ with -1.
+    The operation :math:`D = H^{\otimes n} \mathcal{S}_0 H^{\otimes n}` is also referred to as
+    diffusion operator. In this formulation we can see that Grover's operator consists of two
+    steps: first, the phase oracle multiplies the good states by -1 (with :math:`\mathcal{S}_f`)
+    and then the whole state is reflected around the mean (with :math:`D`).
+
+    This class allows setting a different state preparation, as in quantum amplitude
+    amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
+    a layer of Hardamard gates [3].
+
+    The action of the phase oracle :math:`\mathcal{S}_f` is defined as
+
+    .. math::
+        \mathcal{S}_f: |x\rangle \mapsto (-1)^{f(x)}|x\rangle
+
+    where :math:`f(x) = 1` if :math:`x` is a good state and 0 otherwise. To highlight the fact
+    that this oracle flips the phase of the good states and does not flip the state of a result
+    qubit, we call :math:`\mathcal{S}_f` a phase oracle.
+
+    Note that you can easily construct a phase oracle from a bitflip oracle by sandwiching the
+    controlled X gate on the result qubit by a X and H gate. For instance
+
+        Bitflip oracle     Phaseflip oracle
+        q_0: ──■──         q_0: ────────────■────────────
+             ┌─┴─┐              ┌───┐┌───┐┌─┴─┐┌───┐┌───┐
+        out: ┤ X ├         out: ┤ X ├┤ H ├┤ X ├┤ H ├┤ X ├
+             └───┘              └───┘└───┘└───┘└───┘└───┘
+
+    There is some flexibility in defining the oracle and :math:`\mathcal{A}` operator. Before the
+    Grover operator is applied in Grover's algorithm, the qubits are first prepared with one
+    application of the :math:`\mathcal{A}` operator (or Hadamard gates in the standard formulation).
+    Thus, we always have operation of the form
+    :math:`\mathcal{A} \mathcal{S}_f \mathcal{A}^\dagger`. Therefore it is possible to move
+    bitflip logic into :math:`\mathcal{A}` and leaving the oracle only to do phaseflips via Z gates
+    based on the bitflips. One possible use-case for this are oracles that do not uncompute the
+    state qubits.
+
+    The zero reflection :math:`\mathcal{S}_0` is usually defined as
+
+    .. math::
+        \mathcal{S}_0 = 2 |0\rangle^{\otimes n} \langle 0|^{\otimes n} - \mathbb{I}_n
+
+    where :math:`\mathbb{I}_n` is the identity on :math:`n` qubits.
+    By default, this class implements the negative version
+    :math:`2 |0\rangle^{\otimes n} \langle 0|^{\otimes n} - \mathbb{I}_n`, since this can simply
+    be implemented with a multi-controlled Z sandwiched by X gates on the target qubit and the
+    introduced global phase does not matter for Grover's algorithm.
 
     Examples:
         >>> from qiskit.circuit import QuantumCircuit
@@ -57,9 +101,9 @@ class GroverOperator(QuantumCircuit):
 
         >>> oracle = QuantumCircuit(1)
         >>> oracle.z(0)  # the qubit state |1> is the good state
-        >>> state_in = QuantumCircuit(1)
-        >>> state_in.ry(0.2, 0)  # non-uniform state preparation
-        >>> grover_op = GroverOperator(oracle, state_in)
+        >>> state_preparation = QuantumCircuit(1)
+        >>> state_preparation.ry(0.2, 0)  # non-uniform state preparation
+        >>> grover_op = GroverOperator(oracle, state_preparation)
         >>> grover_op.draw()
                  ┌───┐┌──────────┐┌───┐┌───┐┌───┐┌─────────┐
         state_0: ┤ Z ├┤ RY(-0.2) ├┤ X ├┤ Z ├┤ X ├┤ RY(0.2) ├
@@ -68,10 +112,11 @@ class GroverOperator(QuantumCircuit):
         >>> oracle = QuantumCircuit(4)
         >>> oracle.z(3)
         >>> reflection_qubits = [0, 3]
-        >>> state_in = QuantumCircuit(4)
-        >>> state_in.cry(0.1, 0, 3)
-        >>> state_in.ry(0.5, 3)
-        >>> grover_op = GroverOperator(oracle, state_in, reflection_qubits=reflection_qubits)
+        >>> state_preparation = QuantumCircuit(4)
+        >>> state_preparation.cry(0.1, 0, 3)
+        >>> state_preparation.ry(0.5, 3)
+        >>> grover_op = GroverOperator(oracle, state_preparation,
+        ... reflection_qubits=reflection_qubits)
         >>> grover_op.draw()
                                               ┌───┐          ┌───┐
         state_0: ──────────────────────■──────┤ X ├───────■──┤ X ├──────────■────────────────
@@ -113,19 +158,20 @@ class GroverOperator(QuantumCircuit):
     """
 
     def __init__(self, oracle: Union[QuantumCircuit, Statevector],
-                 state_in: Optional[QuantumCircuit] = None,
+                 state_preparation: Optional[QuantumCircuit] = None,
                  zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
                  reflection_qubits: Optional[List[int]] = None,
                  insert_barriers: bool = False,
                  mcx_mode: str = 'noancilla',
                  name: str = 'Q') -> None:
-        """
+        r"""
         Args:
-            oracle: The oracle implementing a reflection about the bad state.
-            state_in: The operator preparing the good and bad state. For Grover's algorithm,
-                this is a n-qubit Hadamard gate and for Amplitude Amplification or Estimation
-                the operator A.
-            zero_reflection: The reflection about the zero state.
+            oracle: The phase oracle implementing a reflection about the bad state. Note that this
+                is not a bitflip oracle, see the docstring for more information.
+            state_preparation: The operator preparing the good and bad state.
+                For Grover's algorithm, this is a n-qubit Hadamard gate and for amplitude
+                amplification or estimation the operator :math:`\mathcal{A}`.
+            zero_reflection: The reflection about the zero state, :math:`\mathcal{S}_0`.
             reflection_qubits: Qubits on which the the zero reflection act on.
             insert_barriers: Whether barriers should be inserted between the reflections and A.
             mcx_mode: The mode to use for building the default zero reflection.
@@ -145,7 +191,7 @@ class GroverOperator(QuantumCircuit):
         self._zero_reflection = zero_reflection
 
         self._reflection_qubits = reflection_qubits
-        self._state_in = state_in
+        self._state_preparation = state_preparation
         self._insert_barriers = insert_barriers
         self._mcx_mode = mcx_mode
 
@@ -172,10 +218,10 @@ class GroverOperator(QuantumCircuit):
         return _zero_reflection(num_state_qubits, qubits, self._mcx_mode)
 
     @property
-    def state_in(self) -> QuantumCircuit:
+    def state_preparation(self) -> QuantumCircuit:
         """The subcircuit implementing the A operator or Hadamards."""
-        if self._state_in is not None:
-            return self._state_in
+        if self._state_preparation is not None:
+            return self._state_preparation
 
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
         hadamards = QuantumCircuit(num_state_qubits, name='H')
@@ -193,21 +239,24 @@ class GroverOperator(QuantumCircuit):
         self.add_register(QuantumRegister(num_state_qubits, name='state'))
         num_ancillas = numpy.max([self.oracle.num_ancillas,
                                   self.zero_reflection.num_ancillas,
-                                  self.state_in.num_ancillas])
+                                  self.state_preparation.num_ancillas])
         if num_ancillas > 0:
             self.add_register(AncillaRegister(num_ancillas, name='ancilla'))
 
         self.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
         if self._insert_barriers:
             self.barrier()
-        self.compose(self.state_in.inverse(), list(range(self.state_in.num_qubits)), inplace=True)
+        self.compose(self.state_preparation.inverse(),
+                     list(range(self.state_preparation.num_qubits)),
+                     inplace=True)
         if self._insert_barriers:
             self.barrier()
         self.compose(self.zero_reflection, list(range(self.zero_reflection.num_qubits)),
                      inplace=True)
         if self._insert_barriers:
             self.barrier()
-        self.compose(self.state_in, list(range(self.state_in.num_qubits)), inplace=True)
+        self.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
+                     inplace=True)
 
 
 # TODO use the oracle compiler or the bit string oracle
