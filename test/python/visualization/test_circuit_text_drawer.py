@@ -1265,6 +1265,17 @@ class TestTextDrawerParams(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_pi_param_expr(self):
+        """Text pi in circuit with parameter expression."""
+        expected = '\n'.join(["     ┌───────────────────────┐",
+                              "q_0: ┤ RX((pi - x)*(pi - y)) ├",
+                              "     └───────────────────────┘"])
+
+        x, y = Parameter('x'), Parameter('y')
+        circuit = QuantumCircuit(1)
+        circuit.rx((pi - x) * (pi - y), 0)
+        self.assertEqual(circuit.draw(output='text').single_string(), expected)
+
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
     """Test vertical_compression='low' """

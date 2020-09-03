@@ -35,7 +35,6 @@ class CommutationAnalysis(AnalysisPass):
     def __init__(self):
         super().__init__()
         self.cache = {}
-        self.gates_on_wire = {}
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
