@@ -1142,13 +1142,13 @@ class DAGCircuit:
         """Returns set of the ancestors of a node as DAGNodes."""
         return {
             self._multi_graph.get_node_data(x) for x in rx.ancestors(
-                self._multi_graph, self._node_to_id[node]))
+                self._multi_graph, self._node_to_id[node])}
 
     def descendants(self, node):
         """Returns set of the descendants of a node as DAGNodes."""
         return {
             self._multi_graph.get_node_data(x) for x in rx.descendants(
-                self._multi_graph, self._node_to_id[node]))
+                self._multi_graph, self._node_to_id[node])}
 
     def bfs_successors(self, node):
         """
