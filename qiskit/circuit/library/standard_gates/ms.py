@@ -40,9 +40,8 @@ class MSGate(Gate):
         theta = self.params[0]
         q = QuantumRegister(self.num_qubits, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        rules = []
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
-                rules += [(RXXGate(theta), [q[i], q[j]], [])]
-        qc._data = rules
+                qc._append(RXXGate(theta), [q[i], q[j]], [])
+
         self.definition = qc

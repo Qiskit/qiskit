@@ -61,7 +61,9 @@ class RGate(Gate):
         rules = [
             (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
