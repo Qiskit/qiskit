@@ -39,3 +39,6 @@ features:
     Schedules. With updates to the QASM Qobj and the assembler, jobs can now be sent as
     circuit jobs, augmented with calibration libraries to communicate your custom definitions
     to the backend.
+
+    Circuits with pulse gates may still be lowered to the Pulse Schedule representation by using
+    the :py:mod:`qiskit.scheduler`.

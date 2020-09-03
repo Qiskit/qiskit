@@ -172,7 +172,7 @@ class GroverOperator(QuantumCircuit):
                 For Grover's algorithm, this is a n-qubit Hadamard gate and for amplitude
                 amplification or estimation the operator :math:`\mathcal{A}`.
             zero_reflection: The reflection about the zero state, :math:`\mathcal{S}_0`.
-            reflection_qubits: Qubits on which the the zero reflection act on.
+            reflection_qubits: Qubits on which the zero reflection acts on.
             insert_barriers: Whether barriers should be inserted between the reflections and A.
             mcx_mode: The mode to use for building the default zero reflection.
             name: The name of the circuit.
