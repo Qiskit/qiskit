@@ -317,7 +317,7 @@ class QuantumInstance:
                                                             self._backend_config,
                                                             self._compile_config,
                                                             temp_run_config)
-                if use_different_shots:
+                if use_different_shots or is_aer_qasm(self._backend):
                     cals_result = run_qobj(cals_qobj, self._backend, self._qjob_config,
                                            self._backend_options,
                                            self._noise_config,

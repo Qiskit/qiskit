@@ -143,4 +143,6 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
     t_meas_calibs_circuits = compiler.transpile(meas_calibs_circuits, backend,
                                                 **backend_config, **tmp_compile_config)
     cals_qobj = compiler.assemble(t_meas_calibs_circuits, backend, **run_config.to_dict())
+    if hasattr(cals_qobj.config, 'parameterizations'):
+        del cals_qobj.config.parameterizations
     return cals_qobj, state_labels, circlabel
