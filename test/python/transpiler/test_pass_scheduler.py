@@ -725,7 +725,7 @@ class TestPassManagerChanges(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
     def test_remove0(self):
-        """ Test passmanager.remove(0, ...)."""
+        """ Test passmanager.remove(0)."""
         self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
         self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
 
@@ -736,7 +736,7 @@ class TestPassManagerChanges(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
     def test_remove1(self):
-        """ Test passmanager.remove(1, ...)."""
+        """ Test passmanager.remove(1)."""
         self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
         self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
 
@@ -744,6 +744,16 @@ class TestPassManagerChanges(SchedulerTestCase):
 
         expected = ['run transformation pass PassA_TP_NR_NP',
                     'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_remove_minus_1(self):
+        """ Test passmanager.remove(-1)."""
+        self.passmanager.append(PassA_TP_NR_NP())
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.remove(-1)
+
+        expected = ['run transformation pass PassA_TP_NR_NP']
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
     def test_setitem(self):
