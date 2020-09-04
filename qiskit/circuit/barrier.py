@@ -33,7 +33,3 @@ class Barrier(Instruction):
 
     def c_if(self, classical, val):
         raise QiskitError('Barriers are compiler directives and cannot be conditional.')
-
-    def validate_parameter(self, parameter):
-        """Barrier paramenter"""
-        raise CircuitError("Barrier has no parameters: {0} was provided".format(type(parameter)))
