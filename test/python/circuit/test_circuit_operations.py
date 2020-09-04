@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -573,6 +571,53 @@ class TestCircuitOperations(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
         self.assertEqual(qc, expected)
+
+    def test_inverse(self):
+        """Test inverse circuit."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr, global_phase=0.5)
+        qc.h(0)
+        qc.barrier(qr)
+        qc.t(1)
+
+        expected = QuantumCircuit(qr)
+        expected.tdg(1)
+        expected.barrier(qr)
+        expected.h(0)
+        expected.global_phase = -0.5
+        self.assertEqual(qc.inverse(), expected)
+
+    def test_compare_two_equal_circuits(self):
+        """Test to compare that 2 circuits are equal.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.h(0)
+
+        self.assertTrue(qc1 == qc2)
+
+    def test_compare_two_different_circuits(self):
+        """Test to compare that 2 circuits are different.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.x(0)
+
+        self.assertFalse(qc1 == qc2)
+
+    def test_compare_a_circuit_with_none(self):
+        """Test to compare that a circuit is different to None.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = None
+
+        self.assertFalse(qc1 == qc2)
 
 
 class TestCircuitBuilding(QiskitTestCase):

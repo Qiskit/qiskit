@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -125,6 +123,18 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc.measure(qr[2], cr[2])
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
+            if os.path.exists(filename):
+                os.remove(filename)
+
+    def test_global_phase(self):
+        """Test circuit with global phase"""
+        filename = self._get_resource_path('test_global_phase.tex')
+        circuit = QuantumCircuit(3, global_phase=1.57079632679)
+        circuit.h(range(3))
+        try:
+            circuit_drawer(circuit, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
         finally:
             if os.path.exists(filename):

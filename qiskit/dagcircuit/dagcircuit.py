@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -26,12 +24,13 @@ from collections import OrderedDict
 import copy
 import itertools
 import warnings
+import math
 
 import retworkx as rx
 import networkx as nx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode
@@ -89,6 +88,8 @@ class DAGCircuit:
                 return self
         self._qubits = DummyCallableList()  # TODO: make these a regular empty list [] after the
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
+
+        self._global_phase = 0
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
@@ -152,6 +153,31 @@ class DAGCircuit:
         Returns the number of nodes in the dag.
         """
         return len(self._multi_graph)
+
+    @property
+    def global_phase(self):
+        """Return the global phase of the circuit."""
+        return self._global_phase
+
+    @global_phase.setter
+    def global_phase(self, angle):
+        """Set the global phase of the circuit.
+
+        Args:
+            angle (float, ParameterExpression)
+        """
+        from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
+        if isinstance(angle, ParameterExpression):
+            self._global_phase = angle
+        else:
+            # Set the phase to the [-2 * pi, 2 * pi] interval
+            angle = float(angle)
+            if not angle:
+                self._global_phase = 0
+            elif angle < 0:
+                self._global_phase = angle % (-2 * math.pi)
+            else:
+                self._global_phase = angle % (2 * math.pi)
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -444,7 +470,8 @@ class DAGCircuit:
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
 
-    def _map_condition(self, wire_map, condition):
+    @staticmethod
+    def _map_condition(wire_map, condition):
         """Use the wire_map dict to change the condition tuple's creg name.
 
         Args:
@@ -453,19 +480,29 @@ class DAGCircuit:
         Returns:
             tuple(ClassicalRegister,int): new condition
         Raises:
-            DAGCircuitError: if condition register not in wire_map
+            DAGCircuitError: if condition register not in wire_map, or if
+                wire_map maps condition onto more than one creg
         """
+
         if condition is None:
             new_condition = None
         else:
             # if there is a condition, map the condition bits to the
             # composed cregs based on the wire_map
+            creg = condition[0]
             cond_val = condition[1]
             new_cond_val = 0
             new_creg = None
             for bit in wire_map:
-                if isinstance(bit, Clbit):
-                    new_creg = wire_map[bit].register
+                if bit in creg:
+                    if new_creg is None:
+                        new_creg = wire_map[bit].register
+                    elif new_creg != wire_map[bit].register:
+                        # Raise if wire_map maps condition creg on to more than one
+                        # creg in target DAG.
+                        raise DAGCircuitError('wire_map maps conditional '
+                                              'register onto more than one creg.')
+
                     if 2**(bit.index) & cond_val:
                         new_cond_val += 2**(wire_map[bit].index)
             if new_creg is None:
@@ -570,6 +607,7 @@ class DAGCircuit:
             dag = self
         else:
             dag = copy.deepcopy(self)
+        dag.global_phase += other.global_phase
 
         for nd in other.topological_nodes():
             if nd.type == "in":
@@ -976,8 +1014,7 @@ class DAGCircuit:
         Yield:
             node: the node.
         """
-        for node in self._multi_graph.nodes():
-            yield node
+        yield from self._multi_graph.nodes()
 
     def edges(self, nodes=None):
         """Iterator for edge values and source and dest node
@@ -1107,15 +1144,15 @@ class DAGCircuit:
 
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
-        return set(
+        return {
             self._multi_graph.get_node_data(x) for x in rx.ancestors(
-                self._multi_graph, node._node_id))
+                self._multi_graph, node._node_id)}
 
     def descendants(self, node):
         """Returns set of the descendants of a node as DAGNodes."""
-        return set(
+        return {
             self._multi_graph.get_node_data(x) for x in rx.descendants(
-                self._multi_graph, node._node_id))
+                self._multi_graph, node._node_id)}
 
     def bfs_successors(self, node):
         """

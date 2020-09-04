@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -108,8 +106,9 @@ class UnitaryGate(Gate):
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
-            theta, phi, lam = _DECOMPOSER1Q.angles(self.to_matrix())
+            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
             qc._append(U3Gate(theta, phi, lam), [q[0]], [])
+            qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
@@ -132,15 +131,25 @@ class UnitaryGate(Gate):
             UnitaryGate: controlled version of gate.
 
         Raises:
-            QiskitError: invalid ctrl_state
+            QiskitError: Invalid ctrl_state.
+            ExtensionError: Non-unitary controlled unitary.
         """
-        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits)
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
         cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
                                   params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
-                                  definition=iso.definition, ctrl_state=ctrl_state)
-        cunitary.base_gate = self.copy()
-        cunitary.base_gate.label = self.label
+                                  definition=iso.definition, ctrl_state=ctrl_state,
+                                  base_gate=self.copy())
+        from qiskit.quantum_info import Operator
+        # hack to correct global phase; should fix to prevent need for correction here
+        pmat = (Operator(iso.inverse()).data @ cmat)
+        diag = numpy.diag(pmat)
+        if not numpy.allclose(diag, diag[0]):
+            raise ExtensionError('controlled unitary generation failed')
+        phase = numpy.angle(diag[0])
+        if phase:
+            # need to apply to _definition since open controls creates temporary definition
+            cunitary._definition.global_phase = phase
         return cunitary
 
     def qasm(self):
