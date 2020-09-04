@@ -565,7 +565,7 @@ class C3XGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The C3X is its own inverse."""
-        return C3XGate(angle=self._angle, ctrl_state=self.ctrl_state)
+        return C3XGate(angle=-self._angle, ctrl_state=self.ctrl_state)
 
     # This matrix is only correct if the angle is pi/4
     # def to_matrix(self):
@@ -798,6 +798,10 @@ class MCXGate(ControlledGate):
                          num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         self.base_gate = XGate()
 
+    def inverse(self):
+        """Invert this gate. The MCX is its own inverse."""
+        return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='noancilla'):
         """Get the number of required ancilla qubits without instantiating the class.
@@ -857,6 +861,10 @@ class MCXGrayCode(MCXGate):
     def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_gray')
 
+    def inverse(self):
+        """Invert this gate. The MCX is its own inverse."""
+        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+
     def _define(self):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
@@ -885,6 +893,10 @@ class MCXRecursive(MCXGate):
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='recursion'):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
+
+    def inverse(self):
+        """Invert this gate. The MCX is its own inverse."""
+        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
         """Define the MCX gate using recursion."""
@@ -941,6 +953,12 @@ class MCXVChain(MCXGate):
     def __init__(self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name='mcx_vchain')
         self._dirty_ancillas = dirty_ancillas
+
+    def inverse(self):
+        """Invert this gate. The MCX is its own inverse."""
+        return MCXVChain(num_ctrl_qubits=self.num_ctrl_qubits,
+                         dirty_ancillas=self._dirty_ancillas,
+                         ctrl_state=self.ctrl_state)
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='v-chain'):
