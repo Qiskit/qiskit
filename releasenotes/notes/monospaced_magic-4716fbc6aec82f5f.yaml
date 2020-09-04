@@ -6,6 +6,8 @@ features:
     text circuit drawings that are better aligned.
 
     .. code-block:: python
+
       import qiskit.tools.jupyter
       %monospaced_output
+
     .. code-block::
