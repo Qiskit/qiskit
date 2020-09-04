@@ -17,7 +17,7 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.qasm import pi
 from .h import HGate
 from .t import TGate, TdgGate
@@ -179,8 +179,7 @@ class CXGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CX gate."""
         super().__init__('cx', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a controlled-X gate with more control lines.
@@ -194,8 +193,7 @@ class CXGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 1, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -286,8 +284,7 @@ class CCXGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CCX gate."""
         super().__init__('ccx', 3, [], num_ctrl_qubits=2, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     def _define(self):
         """
@@ -336,8 +333,7 @@ class CCXGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 2, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -436,8 +432,9 @@ class C3XGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+        super().__init__('mcx', 4, [], num_ctrl_qubits=3, label=label,
+                         ctrl_state=ctrl_state, base_gate=XGate())
+
         self._angle = angle
 
     def _define(self):
@@ -510,8 +507,7 @@ class C3XGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -640,8 +636,8 @@ class C4XGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create a new 4-qubit controlled X gate."""
-        super().__init__('mcx', 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+        super().__init__('mcx', 5, [], num_ctrl_qubits=4, label=label,
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     # seems like open controls not hapening?
     def _define(self):
@@ -704,8 +700,7 @@ class C4XGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            ctrl_state = 2**num_ctrl_qubits - 1
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
         gate.base_gate.label = self.label
@@ -749,8 +744,8 @@ class MCXGate(ControlledGate):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
         super().__init__(_name, num_ctrl_qubits + 1 + num_ancilla_qubits, [],
-                         num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
-        self.base_gate = XGate()
+                         num_ctrl_qubits=num_ctrl_qubits, label=label,
+                         ctrl_state=ctrl_state, base_gate=XGate())
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits, mode='noancilla'):
