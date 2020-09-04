@@ -221,8 +221,7 @@ class CSXGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSX gate."""
         super().__init__('csx', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = SXGate()
+                         ctrl_state=ctrl_state, base_gate=SXGate())
 
     def _define(self):
         """
