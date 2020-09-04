@@ -155,7 +155,16 @@ class ListOp(OperatorBase):
                  convert_fn: Callable,
                  coeff: Optional[Union[int, float, complex,
                                        ParameterExpression]] = None) -> OperatorBase:
-        """ Apply the convert_fn to each node in the oplist. """
+        """Apply the convert_fn to each node in the oplist.
+
+            Args:
+                convert_fn: The function to apply to the internal OperatorBase.
+                coeff: A coefficient to multiply by after applying convert_fn.
+                    If it is None, self.coeff is used instead.
+
+            Returns:
+                The converted ListOp.
+        """
         if coeff is None:
             coeff = self.coeff
 
