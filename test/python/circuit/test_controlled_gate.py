@@ -21,7 +21,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -140,7 +140,7 @@ class TestControlledGate(QiskitTestCase):
         """Test the instantiation of a controlled swap gate with explicit definition."""
         swap = SwapGate()
         cswap = ControlledGate('cswap', 3, [], num_ctrl_qubits=1,
-                               definition=swap.definition)
+                               definition=swap.definition, base_gate=swap)
         self.assertEqual(swap.definition, cswap.definition)
 
     def test_multi_controlled_composite_gate(self):
@@ -779,7 +779,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(unrolled_dag, ref_dag)
 
     @data(*ControlledGate.__subclasses__())
-    def test_base_gate_setting(self, gate_class):
+    def test_standard_base_gate_setting(self, gate_class):
         """Test all gates in standard extensions which are of type ControlledGate
         and have a base gate setting.
         """
@@ -792,7 +792,12 @@ class TestControlledGate(QiskitTestCase):
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
-        self.assertEqual(base_gate.base_gate, cgate.base_gate)
+
+        # the base gate of CU is U (3 params), the base gate of CCU is CU (4 params)
+        if gate_class == CUGate:
+            self.assertListEqual(cgate.base_gate.params[:3], base_gate.base_gate.params[:3])
+        else:
+            self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
     @combine(
         gate=[gate for gate in allGates.__dict__.values() if isinstance(gate, type)],
@@ -897,6 +902,40 @@ class TestControlledGate(QiskitTestCase):
             base_gate.control(num_ctrl_qubits, ctrl_state=2 ** num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state='201')
+
+    def test_base_gate_params_reference(self):
+        """
+        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        setting have params which reference the one in their base gate.
+        """
+        num_ctrl_qubits = 1
+        for gate_class in ControlledGate.__subclasses__():
+            with self.subTest(i=repr(gate_class)):
+                num_free_params = len(_get_free_params(gate_class.__init__, ignore=['self']))
+                free_params = [0.1 * (i + 1) for i in range(num_free_params)]
+                if gate_class in [MCU1Gate, MCPhaseGate]:
+                    free_params[1] = 3
+                elif gate_class in [MCXGate]:
+                    free_params[0] = 3
+                base_gate = gate_class(*free_params)
+                if base_gate.params:
+                    cgate = base_gate.control(num_ctrl_qubits)
+                    self.assertIs(cgate.base_gate.params, cgate.params)
+
+    def test_assign_parameters(self):
+        """Test assigning parameters to quantum circuit with controlled gate."""
+        qc = QuantumCircuit(2, name='assign')
+        ptest = Parameter('p')
+        gate = CRYGate(ptest)
+        qc.append(gate, [0, 1])
+
+        subs1, subs2 = {ptest: Parameter('a')}, {ptest: Parameter('b')}
+        bound1 = qc.assign_parameters(subs1, inplace=False)
+        bound2 = qc.assign_parameters(subs2, inplace=False)
+
+        self.assertEqual(qc.parameters, {ptest})
+        self.assertEqual(bound1.parameters, {subs1[ptest]})
+        self.assertEqual(bound2.parameters, {subs2[ptest]})
 
     @data(-1, 0, 1.4, '1', 4, 10)
     def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
@@ -1109,7 +1148,6 @@ class TestControlledStandardGates(QiskitTestCase):
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
-
         gate = gate_class(*args)
 
         for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
