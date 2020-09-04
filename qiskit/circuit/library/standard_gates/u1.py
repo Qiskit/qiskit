@@ -16,6 +16,7 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import _ctrl_state_to_int
 
 
 class U1Gate(Gate):
@@ -163,8 +164,7 @@ class CU1Gate(ControlledGate):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CU1 gate."""
         super().__init__('cu1', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = U1Gate(theta)
+                         ctrl_state=ctrl_state, base_gate=U1Gate(theta))
 
     def _define(self):
         """
@@ -256,11 +256,10 @@ class MCU1Gate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam, num_ctrl_qubits, label=None):
+    def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
         """Create new MCU1 gate."""
         super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
-                         label=label)
-        self.base_gate = U1Gate(lam)
+                         label=label, ctrl_state=ctrl_state, base_gate=U1Gate(lam))
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -293,12 +292,12 @@ class MCU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-                            label=label)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                        label=label, ctrl_state=new_ctrl_state)
+        gate.base_gate.label = self.label
+        return gate
 
     def inverse(self):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
