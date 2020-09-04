@@ -20,7 +20,7 @@ from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, ControlledGate
+from qiskit.circuit import Gate, ControlledGate, Barrier
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
