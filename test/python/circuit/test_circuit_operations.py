@@ -618,7 +618,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = None
 
         self.assertFalse(qc1 == qc2)
-        
+
     def test_circuit_modification(self):
         """Test the mutability of the circuit."""
         qr1 = QuantumRegister(2, name='q1')
