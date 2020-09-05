@@ -12,16 +12,17 @@
 
 """ Test AerPauliExpectation """
 
+import itertools
 import unittest
 from test.aqua import QiskitAquaTestCase
 
-import itertools
 import numpy as np
 
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.operators import (X, Y, Z, I, CX, H, S,
                                    ListOp, Zero, One, Plus, Minus, StateFn,
-                                   AerPauliExpectation, CircuitSampler, CircuitStateFn)
+                                   AerPauliExpectation, CircuitSampler, CircuitStateFn,
+                                   PauliExpectation)
 from qiskit.circuit.library import RealAmplitudes
 
 
@@ -34,8 +35,8 @@ class TestAerPauliExpectation(QiskitAquaTestCase):
             from qiskit import Aer
 
             self.seed = 97
-            backend = Aer.get_backend('qasm_simulator')
-            q_instance = QuantumInstance(backend, seed_simulator=self.seed,
+            self.backend = Aer.get_backend('qasm_simulator')
+            q_instance = QuantumInstance(self.backend, seed_simulator=self.seed,
                                          seed_transpiler=self.seed)
             self.sampler = CircuitSampler(q_instance, attach_results=True)
             self.expect = AerPauliExpectation()
@@ -130,7 +131,7 @@ class TestAerPauliExpectation(QiskitAquaTestCase):
         plus_mean = (converted_meas @ Plus)
         sampled_plus = self.sampler.convert(plus_mean)
         np.testing.assert_array_almost_equal(sampled_plus.eval(),
-                                             [1, .5**.5, (1 + .5**.5), 1],
+                                             [1, .5 ** .5, (1 + .5 ** .5), 1],
                                              decimal=1)
 
     def test_parameterized_qobj(self):
@@ -173,17 +174,13 @@ class TestAerPauliExpectation(QiskitAquaTestCase):
             # sampler._last_ready_circ:
             #     set only if aer's binding was used.
             #     renewed if var_form or # of parameter sets are changed
-            return (sampler._transpiled_circ_templates, sampler._last_ready_circ)
+            return sampler._transpiled_circ_templates
 
         def validate_aer_binding_used(status):
-            self.assertIsNotNone(status[0])
-            self.assertIsNotNone(status[1])
+            self.assertIsNotNone(status)
 
         def validate_aer_templates_reused(prev_status, cur_status):
-            self.assertIs(prev_status[0], cur_status[0])
-
-        def validate_aer_circuits_reused(prev_status, cur_status):
-            self.assertIs(prev_status[1], cur_status[1])
+            self.assertIs(prev_status, cur_status)
 
         validate_sampler(self.sampler, aer_sampler, generate_parameters(1))
         cur_status = get_binding_status(aer_sampler)
@@ -201,7 +198,36 @@ class TestAerPauliExpectation(QiskitAquaTestCase):
         cur_status = get_binding_status(aer_sampler)
 
         validate_aer_templates_reused(prev_status, cur_status)
-        validate_aer_circuits_reused(prev_status, cur_status)
+
+    def test_pauli_expectation_param_qobj(self):
+        """ Test PauliExpectation with param_qobj """
+        q_instance = QuantumInstance(self.backend, seed_simulator=self.seed,
+                                     seed_transpiler=self.seed, shots=20000)
+        qubit_op = (1 * I ^ I) + (2 * I ^ Z) + (3 * Z ^ I) + (4 * Z ^ Z) + (5 * X ^ X)
+        var_form = RealAmplitudes(qubit_op.num_qubits)
+        ansatz_circuit_op = CircuitStateFn(var_form)
+        observable = PauliExpectation().convert(~StateFn(qubit_op))
+        expect_op = observable.compose(ansatz_circuit_op).reduce()
+        params1 = {}
+        params2 = {}
+        for param in var_form.parameters:
+            params1[param] = [0]
+            params2[param] = [0, 0]
+
+        sampler1 = CircuitSampler(backend=q_instance, param_qobj=False)
+        samples1 = sampler1.convert(expect_op, params=params1)
+        val1 = np.real(samples1.eval())[0]
+        samples2 = sampler1.convert(expect_op, params=params2)
+        val2 = np.real(samples2.eval())
+        sampler2 = CircuitSampler(backend=q_instance, param_qobj=True)
+        samples3 = sampler2.convert(expect_op, params=params1)
+        val3 = np.real(samples3.eval())
+        samples4 = sampler2.convert(expect_op, params=params2)
+        val4 = np.real(samples4.eval())
+
+        np.testing.assert_array_almost_equal([val1] * 2, val2, decimal=2)
+        np.testing.assert_array_almost_equal(val1, val3, decimal=2)
+        np.testing.assert_array_almost_equal([val1] * 2, val4, decimal=2)
 
 
 if __name__ == '__main__':
