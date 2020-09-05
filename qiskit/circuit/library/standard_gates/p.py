@@ -96,8 +96,7 @@ class PhaseGate(Gate):
         if num_ctrl_qubits == 1:
             gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
         elif ctrl_state is None and num_ctrl_qubits > 1:
-            from .u1 import MCU1Gate
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+            gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
         else:
             return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
                                    ctrl_state=ctrl_state)
@@ -154,8 +153,7 @@ class CPhaseGate(ControlledGate):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CPhase gate."""
         super().__init__('cp', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = PhaseGate(theta)
+                         ctrl_state=ctrl_state, base_gate=PhaseGate(theta))
 
     def _define(self):
         """
@@ -196,7 +194,7 @@ class CPhaseGate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
-        return CPhaseGate(-self.params[0])
+        return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def to_matrix(self):
         """Return a numpy.array for the CPhase gate."""
@@ -242,8 +240,7 @@ class MCPhaseGate(ControlledGate):
     def __init__(self, lam, num_ctrl_qubits, label=None):
         """Create new MCPhase gate."""
         super().__init__('mcphase', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
-                         label=label)
-        self.base_gate = PhaseGate(lam)
+                         label=label, base_gate=PhaseGate(lam))
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -258,7 +255,7 @@ class MCPhaseGate(ControlledGate):
         else:
             from .u3 import _gray_code_chain
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = PhaseGate(scaled_lam)
+            bottom_gate = CPhaseGate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
             qc.data = definition
         self.definition = qc

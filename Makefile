@@ -55,7 +55,7 @@ style:
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
-	python3 -m unittest discover -s test/python -v
+	python3 -m unittest discover -s test/python -t . -v
 
 # Use pytest to run tests
 pytest:
@@ -70,7 +70,7 @@ test_ci:
 	stestr run --concurrency $(CONCURRENCY)
 
 test_randomized:
-	python3 -m unittest discover -s test/randomized -v
+	python3 -m unittest discover -s test/randomized -t . -v
 
 coverage:
 	coverage3 run --source qiskit -m unittest discover -s test/python -q
