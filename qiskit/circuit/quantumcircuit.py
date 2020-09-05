@@ -24,7 +24,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.util import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
@@ -1529,7 +1528,7 @@ class QuantumCircuit:
                 # Remove all gates in association with the desired qubits
                 if self.qubits.index(qb) in indices:
                     flag = False
-                    break
+                    #break
                 else:
                     if trim:
                         new_qubits.append(q_map[qb])
