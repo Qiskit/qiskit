@@ -15,7 +15,7 @@
 
 from ddt import ddt, data
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, AncillaRegister
 from qiskit import execute
 from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
@@ -618,6 +618,53 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = None
 
         self.assertFalse(qc1 == qc2)
+        
+    def test_circuit_modification(self):
+        """Test the mutability of the circuit."""
+        qr1 = QuantumRegister(2, name='q1')
+        qr2 = QuantumRegister(1, name='q2')
+        ar1 = AncillaRegister(1, name='a1')
+
+        # Test the num_qubits setter
+        qc = QuantumCircuit(qr1, qr2)
+        qc.num_qubits = 2
+        expected = QuantumCircuit(qr1)
+        self.assertEqual(qc, expected)
+
+        qc.num_qubits = 4
+        tr = QuantumRegister(4, name='q1')
+        expected = QuantumCircuit(tr)
+        self.assertEqual(qc, expected)
+
+        # Test removing qubits at indices
+        qc = QuantumCircuit(qr1, qr2, ar1)
+        qc.cry(0.5, 0, 2)
+        qc.modify([0, 3], mode='rm')
+        qc.modify([0], mode='rm')
+        qc.h([0])
+        expected = QuantumCircuit(qr2)
+        expected.h([0])
+        self.assertEqual(qc, expected)
+
+        # Test inserting qubits at indices
+        qc = QuantumCircuit(qr1, qr2, ar1)
+        qc.h([0, 1, 2, 3])
+        qc.crx(0.5, 0, 3)
+        qc.modify([0, 2, 3], mode='add')
+        tr1 = QuantumRegister(3, name='q1')
+        tr2 = QuantumRegister(2, name='q2')
+        tr3 = AncillaRegister(2, name='a1')
+        expected = QuantumCircuit(tr1, tr2, tr3)
+        expected.h([0, 2, 3, 5])
+        expected.crx(0.5, 0, 5)
+        self.assertEqual(qc, expected)
+
+        # Test trimming unused qubits
+        qc.modify()
+        expected = QuantumCircuit(qr1, qr2, ar1)
+        expected.h([0, 1, 2, 3])
+        expected.crx(0.5, 0, 3)
+        self.assertEqual(qc, expected)
 
 
 class TestCircuitBuilding(QiskitTestCase):

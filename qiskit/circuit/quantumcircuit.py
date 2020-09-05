@@ -28,7 +28,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
@@ -1400,6 +1400,222 @@ class QuantumCircuit:
         for reg in self.qregs:
             qubits += reg.size
         return qubits
+
+    @num_qubits.setter
+    def num_qubits(self, requested_qubits):
+        """Sets number of qubits.
+
+        Args:
+            requested_qubits (int): quantity of desired qubits in QuantumCircuit
+        """
+        # Determine whether to add or remove qubits
+        if requested_qubits > self.num_qubits:
+            self.modify(requested_qubits-self.num_qubits, mode='add')
+        elif requested_qubits < self.num_qubits:
+            self.modify(self.num_qubits-requested_qubits, mode='rm')
+
+    def modify(self, qubits=None, mode='rm', trim=True):
+        """Adjust the width of the QuantumCircuit by adding or removing qubits.
+
+        Parameters:
+            qubits (int or list): If provided as an int, will add/remove the
+                    corresponding number of qubits (from bottom to top).
+                    If provided as a list, will add/remove the qubits at
+                    the corresponding indices from the QuantumCircuit.
+                    Note: qubits are inserted BELOW the index provided.
+            mode (str): Determines whether to add or remove qubits from
+                    the QuantumCircuit.
+            trim (bool): Whether to remove the Qubits from the QuantumCircuit.
+
+        Returns:
+            None
+
+        Raises:
+            CircuitError: when incorrect argument type is given.
+        """
+        if mode == 'rm':
+            if isinstance(qubits, int):
+                self._reduce_circuit(range(len(self.qubits)-qubits, len(self.qubits)), trim=trim)
+            elif isinstance(qubits, list) or qubits is None:
+                self._reduce_circuit(qubits, trim=trim)
+            else:
+                raise CircuitError("Type error handling %s (%s): Qubits to be "
+                                   "removed must be of type 'int' or 'list'."
+                                   % (qubits, type(qubits)))
+        elif mode == 'add':
+            if isinstance(qubits, int):
+                self._extend_circuit([len(self.qubits)-1], [qubits])
+            elif isinstance(qubits, list):
+                self._extend_circuit(qubits, [1] * len(qubits))
+            else:
+                raise CircuitError("Type error handling %s (%s): Qubits to be "
+                                   "added must be of type 'int' or 'list'."
+                                   % (qubits, type(qubits)))
+        else:
+            raise CircuitError("Incorrect mode given: the only supported "
+                               "modes are: 'add' and 'rm'.")
+
+    def _reduce_circuit(self, indices=None, trim=True):
+        """Reduce the width of a QuantumCircuit, adjusting its registers and bits.
+
+        Parameters:
+            indices (list): The Qubit indices to clear or remove from the QuantumCircuit.
+            trim (bool): Whether to remove the Qubits from the QuantumCircuit.
+
+        Returns:
+            None
+        """
+        # Init. our register and index mappings
+        reg_map = {}
+        for reg in self.qregs:
+            reg_map[reg] = reg
+        q_map = {}
+        for qb in self.qubits:
+            q_map[qb] = qb
+        if trim:
+            # If no indices given, simply trim the circuit
+            if not indices:
+                indices = []
+                acceptable = []
+                # Find all unused qubits
+                for context in self.data:
+                    for qb in context[1]:
+                        if self.qubits.index(qb) not in acceptable:
+                            acceptable.append(self.qubits.index(qb))
+                for index in range(self.num_qubits):
+                    if index not in acceptable:
+                        indices.append(index)
+            # Create a mapping from old registers to new ones
+            for ind in indices:
+                reg = self.qubits[ind].register
+                if reg_map[reg].size == 1:
+                    reg_map[reg] = None
+                else:
+                    if isinstance(reg, AncillaRegister):
+                        reg_map[reg] = AncillaRegister(reg_map[reg].size-1, reg.name)
+                    else:
+                        reg_map[reg] = QuantumRegister(reg_map[reg].size-1, reg.name)
+            # Create a mapping from old qubits to new ones
+            valid_regs = [self.qubits[ind].register for ind in indices]
+            for qb in q_map:
+                if qb.register in valid_regs:
+                    new_reg = reg_map[qb.register]
+                    n = 0
+                    for ind in indices:
+                        is_removable = ind <= self.qubits.index(qb)
+                        inside_valid_reg = self.qubits[ind].register == qb.register
+                        if is_removable and inside_valid_reg:
+                            n -= 1
+                    new_ind = qb.index + n
+                    if reg_map[qb.register]:
+                        if isinstance(qb, AncillaQubit):
+                            q_map[qb] = AncillaQubit(new_reg, new_ind)
+                        else:
+                            q_map[qb] = Qubit(new_reg, new_ind)
+        # Update data
+        from .barrier import Barrier
+        new_data = []
+        for context in self.data:
+            new_qubits = []
+            new_clbits = context[2]
+            flag = True
+            # Keep any barriers we find
+            if isinstance(context[0], Barrier):
+                new_qubits = [q_map[qb] for qb in context[1] if
+                              self.qubits.index(qb) not in indices]
+                new_data.append((context[0], new_qubits, new_clbits))
+                continue
+            for qb in context[1]:
+                # Remove all gates in association with the desired qubits
+                if self.qubits.index(qb) in indices:
+                    flag = False
+                    break
+                else:
+                    if trim:
+                        new_qubits.append(q_map[qb])
+                    else:
+                        new_qubits.append(qb)
+            if flag:
+                new_data.append((context[0], new_qubits, new_clbits))
+        if trim:
+            # Update qubits
+            new_qubits = []
+            new_ancillas = []
+            for qb in self.qubits:
+                if self.qubits.index(qb) not in indices:
+                    if isinstance(qb, AncillaQubit):
+                        new_ancillas.append(q_map[qb])
+                    new_qubits.append(q_map[qb])
+            self._qubits = new_qubits
+            self._ancillas = new_ancillas
+            # Update registers
+            new_regs = [reg_map[reg] for reg in self.qregs if reg_map[reg]]
+            self.qregs = new_regs
+        self.data = new_data
+
+    def _extend_circuit(self, indices, sizes):
+        """Extend the width of a QuantumCircuit, adjusting its registers and bits
+
+        Args:
+            indices (list): The Qubit indices to add to the QuantumCircuit.
+            sizes (list): The corresponding quantity of Qubits to add at each index.
+
+        Returns:
+            None
+
+        Notes: Qubits are added BELOW a given index, where the register
+               immediately above the index is extended.
+        """
+        indices.sort()
+        # Create a mapping from old registers to new ones
+        reg_map = {}
+        for reg in self.qregs:
+            n = 0
+            for ind, size in zip(indices, sizes):
+                if self.qubits[ind].register == reg:
+                    n = n + size
+            if n == 0:
+                reg_map[reg] = reg
+            else:
+                if isinstance(reg, AncillaRegister):
+                    reg_map[reg] = AncillaRegister(reg.size+n, reg.name)
+                else:
+                    reg_map[reg] = QuantumRegister(reg.size+n, reg.name)
+        # Update data
+        valid_regs = [self.qubits[ind].register for ind in indices]
+        new_data = []
+        for context in self.data:
+            new_qubits = []
+            new_clbits = context[2]
+            for qb in context[1]:
+                n = 0
+                for ind in indices:
+                    if qb.register in valid_regs:
+                        is_removable = ind < self.qubits.index(qb)
+                        inside_valid_reg = self.qubits[ind].register == qb.register
+                        if is_removable and inside_valid_reg:
+                            n += 1
+                if isinstance(qb, AncillaQubit):
+                    new_qubits.append(AncillaQubit(reg_map[qb.register], qb.index+n))
+                else:
+                    new_qubits.append(Qubit(reg_map[qb.register], qb.index+n))
+            new_data.append((context[0], new_qubits, new_clbits))
+        # Update registers
+        new_regs = [reg_map[reg] for reg in self.qregs if reg_map[reg]]
+        self.qregs = new_regs
+        # Update qubits
+        new_qubits = []
+        new_ancillas = []
+        for reg in self.qregs:
+            for qb_ind in range(reg.size):
+                if isinstance(reg, AncillaRegister):
+                    new_ancillas.append(AncillaQubit(reg, qb_ind))
+                    new_qubits.append(AncillaQubit(reg, qb_ind))
+                else:
+                    new_qubits.append(Qubit(reg, qb_ind))
+        self._qubits = new_qubits
+        self._ancillas = new_ancillas
+        self.data = new_data
 
     @property
     def num_ancillas(self):
