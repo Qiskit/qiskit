@@ -186,7 +186,7 @@ def plot_state_hinton(state, title='', figsize=None, ax_real=None, ax_imag=None,
         return fig
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None, *, coord_type="cartesian"):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
