@@ -1526,9 +1526,9 @@ class QuantumCircuit:
                 continue
             for qb in context[1]:
                 # Remove all gates in association with the desired qubits
+                # (Break here)
                 if self.qubits.index(qb) in indices:
                     flag = False
-                    #break
                 else:
                     if trim:
                         new_qubits.append(q_map[qb])
