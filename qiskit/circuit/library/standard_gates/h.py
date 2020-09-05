@@ -63,7 +63,9 @@ class HGate(Gate):
         rules = [
             (U2Gate(0, pi), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -194,12 +196,14 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverted CH gate (itself)."""
-        return CHGate()  # self-inverse
+        return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""
