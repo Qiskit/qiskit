@@ -12,7 +12,7 @@
     },
     "definitions": {
         "generic_instructions": {
-            "anyOf": [{		
+            "anyOf": [{
                 "title": "3-param 1Q op",
                 "required": ["qubits", "params"],
                 "properties": {
@@ -41,17 +41,17 @@
                 "clbits": {"maxItems": 0},
                 "params": {"minItems": 1, "maxItems": 1},
                 "texparams": {"minItems": 1, "maxItems": 1}
-            }			
+            }
             }, {
             "title": "2-param 1Q op",
-            "required": ["qubits", "params"],				
+            "required": ["qubits", "params"],
             "properties": {
                 "name": {"enum": ["u2"]},
                 "qubits": {"maxItems": 1},
                 "clbits": {"maxItems": 0},
                 "params": {"minItems": 2, "maxItems": 2},
                 "texparams": {"minItems": 2, "maxItems": 2}
-            }			
+            }
             }, {
             "title": "fixed 2Q gate",
             "required": ["qubits"],

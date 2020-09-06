@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -13,7 +11,7 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
-"""Tests for Weyl coorindate routines."""
+"""Tests for Weyl coordinate routines."""
 
 import unittest
 import numpy as np

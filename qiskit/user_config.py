@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -88,6 +86,11 @@ class UserConfig:
                         "0, 1, 2, or 3.")
                 self.settings['transpile_optimization_level'] = (
                     transpile_optimization_level)
+            # Parse package warnings
+            package_warnings = self.config_parser.getboolean(
+                'default', 'suppress_packaging_warnings', fallback=False)
+            if package_warnings:
+                self.settings['suppress_packaging_warnings'] = package_warnings
 
 
 def get_config():

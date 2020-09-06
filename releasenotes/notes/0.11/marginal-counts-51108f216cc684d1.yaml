@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    A new utility function ``qiskit.result.marginal_counts()`` is added
+    which allows marginalization of the counts over some indices of interest.
+    This is useful when more qubits are measured than needed, and one wishes
+    to get the observation counts for some subset of them only.
+other:
+  - |
+    The ``qiskit.result.marginal_counts()`` function replaces a similar utility
+    function in qiskit-ignis
+    ``qiskit.ignis.verification.tomography.marginal_counts()``, which
+    will be deprecated in a future qiskit-ignis release.

@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added ``qiskit.QuantumCircuit.cnot`` as an alias for the ``cx`` method of
+    ``QuantumCircuit``. The names ``cnot`` and ``cx`` are often used
+    interchangeably now the `cx` method can be called with either name.
+  - |
+    Added ``qiskit.QuantumCircuit.toffoli`` as an alias for the ``ccx`` method
+    of ``QuantumCircuit``. The names ``toffoli`` and ``ccx`` are often used
+    interchangeably now the `ccx` method can be called with either name.
+  - |
+    Added ``qiskit.QuantumCircuit.fredkin`` as an alias for the ``cswap``
+    method of ``QuantumCircuit``. The names ``fredkin`` and ``cswap`` are
+    often used interchangeably now the `cswap` method can be called with
+    either name.

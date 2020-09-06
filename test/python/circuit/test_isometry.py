@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -48,9 +46,14 @@ class TestIsometry(QiskitTestCase):
                 n = num_q_input + num_q_ancilla_for_output
                 q = QuantumRegister(n)
                 qc = QuantumCircuit(q)
-                qc.iso(iso, q[:num_q_input], q[num_q_input:])
+                qc.isometry(iso, q[:num_q_input], q[num_q_input:])
+
+                # Verify the circuit can be decomposed
+                self.assertIsInstance(qc.decompose(), QuantumCircuit)
+
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
+
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()

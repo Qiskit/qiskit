@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -185,8 +183,8 @@ class TestCXDirection(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
 
-        # Ordering of u2 is important because DAG comparision will consider
-        # different condional order on a creg to be a different circuit.
+        # Ordering of u2 is important because DAG comparison will consider
+        # different conditional order on a creg to be a different circuit.
         # See https://github.com/Qiskit/qiskit-terra/issues/3164
         expected.u2(0, pi, [qr[1], qr[0]]).c_if(cr, 0)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)

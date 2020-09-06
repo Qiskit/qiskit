@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -35,7 +33,7 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
 
-def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
+def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
 
@@ -54,7 +52,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
             default is False.
     Returns:
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
-                           no image was generated or PIL is not installed.
+        no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.

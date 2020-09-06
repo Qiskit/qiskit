@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A ``description`` attribute has been added to the
+    :class:`~qiskit.transpiler.CouplingMap` class for storing a short
+    description for different coupling maps (e.g. full, grid, line, etc.).

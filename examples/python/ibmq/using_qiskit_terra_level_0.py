@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -60,7 +58,7 @@ print(sim_result.get_counts(qc2))
 
 # see a list of available remote backends
 print("\n(IBMQ Backends)")
-print(IBMQ.backends())
+print(IBMQ.providers()[0].backends())
 
 # Compile and run on a real device backend
 try:

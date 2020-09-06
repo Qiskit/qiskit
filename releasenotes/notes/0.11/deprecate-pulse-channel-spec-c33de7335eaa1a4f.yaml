@@ -1,0 +1,41 @@
+---
+deprecations:
+  - |
+    ``PulseChannelSpec`` is being deprecated. Use ``BackendConfiguration``
+    instead. The backend configuration is accessed normally as
+    ``backend.configuration()``. The config has been extended with most of
+    the functionality of PulseChannelSpec, with some modifications as follows,
+    where `0` is an exemplary qubit index::
+
+        pulse_spec.drives[0]   -> config.drive(0)
+        pulse_spec.measures[0] -> config.measure(0)
+        pulse_spec.acquires[0] -> config.acquire(0)
+        pulse_spec.controls[0] -> config.control(0)
+
+    Now, if there is an attempt to get a channel for a qubit which does not
+    exist for the device, a ``BackendConfigurationError`` will be raised with
+    a helpful explanation.
+
+    The methods ``memoryslots`` and ``registerslots`` of the PulseChannelSpec
+    have not been migrated to the backend configuration. These classical
+    resources are not restrained by the physical configuration of a backend
+    system. Please instantiate them directly::
+
+        pulse_spec.memoryslots[0] -> MemorySlot(0)
+        pulse_spec.registerslots[0] -> RegisterSlot(0)
+
+    The ``qubits`` method is not migrated to backend configuration. The result
+    of ``qubits`` can be built as such::
+
+        [q for q in range(backend.configuration().n_qubits)]
+  - |
+    ``Qubit`` within ``pulse.channels`` has been deprecated. They should not
+    be used. It is possible to obtain channel <=> qubit mappings through the
+    BackendConfiguration (or backend.configuration()).
+
+upgrade:
+  - |
+    The ``qiskit.pulse.channels.SystemTopology`` class was used as a helper
+    class for ``PulseChannelSpec``. It has been removed since with the deprecation
+    of ``PulseChannelSpec`` and changes to ``BackendConfiguration`` make it
+    unnecessary.

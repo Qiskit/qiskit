@@ -1,0 +1,24 @@
+---
+upgrade:
+  - |
+    The pulse ``buffer`` option found in :class:`qiskit.pulse.Channel` and
+    :class:`qiskit.pulse.Schedule` was deprecated in Terra 0.11.0 and has now
+    been removed. To add a delay on a channel or in a schedule, specify it
+    explicitly in your Schedule with a Delay::
+
+        sched = Schedule()
+        sched += Delay(5)(DriveChannel(0))
+  - |
+    ``PulseChannelSpec``, which was deprecated in Terra 0.11.0, has now been
+    removed. Use BackendConfiguration instead::
+
+        config = backend.configuration()
+        drive_chan_0 = config.drives(0)
+        acq_chan_0 = config.acquires(0)
+
+    or, simply reference the channel directly, such as ``DriveChannel(index)``.
+  - |
+    An import path was deprecated in Terra 0.10.0 and has now been removed: for
+    ``PulseChannel``, ``DriveChannel``, ``MeasureChannel``, and
+    ``ControlChannel``, use ``from qiskit.pulse.channels import X`` in place of
+    ``from qiskit.pulse.channels.pulse_channels import X``.

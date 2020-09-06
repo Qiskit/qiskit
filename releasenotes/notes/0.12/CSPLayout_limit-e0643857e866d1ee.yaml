@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The pass :class:`qiskit.transpiler.passes.CSPLayout` was extended with two
+    new parameters: ``call_limit`` and ``time_limit``. These options allow to
+    limit how long this pass will run. The option ``call_limit`` limits the
+    amount of time that the recursive function in the backtracking solver is
+    called. Similarly, ``call_limit`` limits how long (in seconds) the solver
+    will be running. The defaults are ``1000`` calls and ``10`` seconds
+    respectively.

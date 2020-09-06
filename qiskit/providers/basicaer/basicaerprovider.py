@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -125,7 +123,7 @@ class BasicAerProvider(BaseProvider):
         Return an instance of a backend from its class.
 
         Args:
-            backend_cls (class): Backend class.
+            backend_cls (class): backend class.
         Returns:
             BaseBackend: a backend instance.
         Raises:

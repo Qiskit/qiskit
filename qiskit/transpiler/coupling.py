@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -20,6 +18,7 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+import io
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
@@ -35,15 +34,16 @@ class CouplingMap:
     to permitted CNOT gates
     """
 
-    def __init__(self, couplinglist=None):
+    def __init__(self, couplinglist=None, description=None):
         """
         Create coupling graph. By default, the generated coupling has no nodes.
 
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+            description (str): A string to describe the coupling map.
         """
-
+        self.description = description
         # the coupling map graph
         self.graph = nx.DiGraph()
         # a dict of dicts from node pairs to distances
@@ -68,7 +68,7 @@ class CouplingMap:
         Returns:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
-        return [edge for edge in self.graph.edges()]
+        return list(self.graph.edges())
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -118,7 +118,7 @@ class CouplingMap:
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         if self._qubit_list is None:
-            self._qubit_list = sorted([pqubit for pqubit in self.graph.nodes])
+            self._qubit_list = sorted(self.graph.nodes)
         return self._qubit_list
 
     def is_connected(self):
@@ -131,6 +131,14 @@ class CouplingMap:
             return nx.is_weakly_connected(self.graph)
         except nx.exception.NetworkXException:
             return False
+
+    def neighbors(self, physical_qubit):
+        """Return the nearest neighbors of a physical qubit.
+
+        Directionality matters, i.e. a neighbor must be reachable
+        by going one hop in the direction of an edge.
+        """
+        return self.graph.neighbors(physical_qubit)
 
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
@@ -199,6 +207,17 @@ class CouplingMap:
             self._is_symmetric = self._check_symmetry()
         return self._is_symmetric
 
+    def make_symmetric(self):
+        """
+        Convert uni-directional edges into bi-directional.
+        """
+        edges = self.get_edges()
+        for src, dest in edges:
+            if (dest, src) not in edges:
+                self.add_edge(dest, src)
+        self._dist_matrix = None  # invalidate
+        self._is_symmetric = None  # invalidate
+
     def _check_symmetry(self):
         """
         Calculates symmetry
@@ -248,6 +267,68 @@ class CouplingMap:
 
         return CouplingMap(reduced_cmap)
 
+    @classmethod
+    def from_full(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls(description='full')
+        for i in range(num_qubits):
+            for j in range(i):
+                cmap.add_edge(j, i)
+                if bidirectional:
+                    cmap.add_edge(i, j)
+        return cmap
+
+    @classmethod
+    def from_line(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls(description='line')
+        for i in range(num_qubits-1):
+            cmap.add_edge(i, i+1)
+            if bidirectional:
+                cmap.add_edge(i+1, i)
+        return cmap
+
+    @classmethod
+    def from_ring(cls, num_qubits, bidirectional=True):
+        """Return a fully connected coupling map on n qubits."""
+        cmap = cls(description='ring')
+        for i in range(num_qubits):
+            if i == num_qubits - 1:
+                k = 0
+            else:
+                k = i + 1
+            cmap.add_edge(i, k)
+            if bidirectional:
+                cmap.add_edge(k, i)
+        return cmap
+
+    @classmethod
+    def from_grid(cls, num_rows, num_columns, bidirectional=True):
+        """Return qubits connected on a grid of num_rows x num_columns."""
+        cmap = cls(description='grid')
+        for i in range(num_rows):
+            for j in range(num_columns):
+                node = i * num_columns + j
+
+                up = (node-num_columns) if i > 0 else None  # pylint: disable=invalid-name
+                down = (node+num_columns) if i < num_rows-1 else None
+                left = (node-1) if j > 0 else None
+                right = (node+1) if j < num_columns-1 else None
+
+                if up is not None and bidirectional:
+                    cmap.add_edge(node, up)
+                if left is not None and bidirectional:
+                    cmap.add_edge(node, left)
+                if down is not None:
+                    cmap.add_edge(node, down)
+                if right is not None:
+                    cmap.add_edge(node, right)
+        return cmap
+
+    def largest_connected_component(self):
+        """Return a set of qubits in the largest connected component."""
+        return max(nx.strongly_connected_components(self.graph), key=len)
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
@@ -256,3 +337,30 @@ class CouplingMap:
             string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
             string += "]"
         return string
+
+    def draw(self):
+        """Draws the coupling map.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_,
+        which in turn needs `Graphviz <https://www.graphviz.org/>`_ to be
+        installed. Additionally, `pillow <https://python-pillow.org/>`_ will
+        need to be installed.
+
+        Returns:
+            PIL.Image: Drawn coupling map.
+
+        Raises:
+            ImportError: when pydot or pillow are not installed.
+        """
+
+        try:
+            import pydot  # pylint: disable=unused-import
+            from PIL import Image
+        except ImportError:
+            raise ImportError("CouplingMap.draw requires pydot and pillow. "
+                              "Run 'pip install pydot pillow'.")
+
+        dot = nx.drawing.nx_pydot.to_pydot(self.graph)
+        png = dot.create_png(prog='neato')
+
+        return Image.open(io.BytesIO(png))

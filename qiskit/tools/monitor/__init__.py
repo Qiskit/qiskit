@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,4 +14,4 @@
 """
 
 from .job_monitor import job_monitor
-from .backend_overview import backend_monitor, backend_overview
+from .overview import backend_monitor, backend_overview

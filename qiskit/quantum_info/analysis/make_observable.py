@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -35,10 +33,10 @@ def make_dict_observable(matrix_observable):
     observable = np.array(matrix_observable)
     observable_size = len(observable)
     observable_bits = int(np.ceil(np.log2(observable_size)))
-    binary_formater = '0{}b'.format(observable_bits)
+    binary_formatter = '0{}b'.format(observable_bits)
     if observable.ndim == 2:
         observable = observable.diagonal()
     for state_no in range(observable_size):
-        state_str = format(state_no, binary_formater)
+        state_str = format(state_no, binary_formatter)
         dict_observable[state_str] = observable[state_no]
     return dict_observable

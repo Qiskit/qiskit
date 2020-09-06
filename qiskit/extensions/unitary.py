@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -19,15 +17,19 @@ Arbitrary unitary circuit instruction.
 from collections import OrderedDict
 import numpy
 
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard import U3Gate
+from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-from qiskit.quantum_info.synthesis import euler_angles_1q
-from qiskit.quantum_info.synthesis import two_qubit_cnot_decompose
+from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
+
+_DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
 class UnitaryGate(Gate):
@@ -59,8 +61,8 @@ class UnitaryGate(Gate):
             raise ExtensionError("Input matrix is not unitary.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
-        n_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2**n_qubits != input_dim:
+        num_qubits = int(numpy.log2(input_dim))
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError(
                 "Input matrix is not an N-qubit operator.")
 
@@ -68,7 +70,7 @@ class UnitaryGate(Gate):
         self._qasm_definition = None
         self._qasm_def_written = False
         # Store instruction params
-        super().__init__('unitary', n_qubits, [data], label=label)
+        super().__init__('unitary', num_qubits, [data], label=label)
 
     def __eq__(self, other):
         if not isinstance(other, UnitaryGate):
@@ -80,15 +82,15 @@ class UnitaryGate(Gate):
         return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
 
     def to_matrix(self):
-        """Return matrix for unitary"""
+        """Return matrix for the unitary."""
         return self.params[0]
 
     def inverse(self):
-        """Return the adjoint of the Unitary."""
+        """Return the adjoint of the unitary."""
         return self.adjoint()
 
     def conjugate(self):
-        """Return the conjugate of the Unitary."""
+        """Return the conjugate of the unitary."""
         return UnitaryGate(numpy.conj(self.to_matrix()))
 
     def adjoint(self):
@@ -103,13 +105,52 @@ class UnitaryGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
-            angles = euler_angles_1q(self.to_matrix())
-            self.definition = [(U3Gate(*angles), [q[0]], [])]
+            qc = QuantumCircuit(q, name=self.name)
+            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
+            qc._append(U3Gate(theta, phi, lam), [q[0]], [])
+            qc.global_phase = global_phase
+            self.definition = qc
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            raise NotImplementedError("Not able to generate a subcircuit for "
-                                      "a {}-qubit unitary".format(self.num_qubits))
+            q = QuantumRegister(self.num_qubits, "q")
+            qc = QuantumCircuit(q, name=self.name)
+            qc.append(isometry.Isometry(self.to_matrix(), 0, 0), qargs=q[:])
+            self.definition = qc
+
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+        r"""Return controlled version of gate
+
+        Args:
+            num_ctrl_qubits (int): number of controls to add to gate (default=1)
+            label (str): optional gate label
+            ctrl_state (int or str or None): The control state in decimal or as a
+                bit string (e.g. '1011'). If None, use 2**num_ctrl_qubits-1.
+
+        Returns:
+            UnitaryGate: controlled version of gate.
+
+        Raises:
+            QiskitError: Invalid ctrl_state.
+            ExtensionError: Non-unitary controlled unitary.
+        """
+        cmat = _compute_control_matrix(self.to_matrix(), num_ctrl_qubits, ctrl_state=None)
+        iso = isometry.Isometry(cmat, 0, 0)
+        cunitary = ControlledGate('c-unitary', num_qubits=self.num_qubits+num_ctrl_qubits,
+                                  params=[cmat], label=label, num_ctrl_qubits=num_ctrl_qubits,
+                                  definition=iso.definition, ctrl_state=ctrl_state,
+                                  base_gate=self.copy())
+        from qiskit.quantum_info import Operator
+        # hack to correct global phase; should fix to prevent need for correction here
+        pmat = (Operator(iso.inverse()).data @ cmat)
+        diag = numpy.diag(pmat)
+        if not numpy.allclose(diag, diag[0]):
+            raise ExtensionError('controlled unitary generation failed')
+        phase = numpy.angle(diag[0])
+        if phase:
+            # need to apply to _definition since open controls creates temporary definition
+            cunitary._definition.global_phase = phase
+        return cunitary
 
     def qasm(self):
         """ The qasm for a custom unitary gate
@@ -137,7 +178,7 @@ class UnitaryGate(Gate):
         current_reg = 0
 
         gates_def = ""
-        for gate in self.definition:
+        for gate in self.definition.data:
 
             # add regs from this gate to the overall set of params
             for reg in gate[1] + gate[2]:
@@ -162,7 +203,7 @@ class UnitaryGate(Gate):
 
 
 def unitary(self, obj, qubits, label=None):
-    """Apply u2 to q."""
+    """Apply unitary gate to q."""
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     return self.append(UnitaryGate(obj, label=label), qubits, [])

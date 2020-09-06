@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -45,7 +43,9 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
 
         if status.name == 'QUEUED':
             msg += ' (%s)' % job.queue_position()
-            if not _interval_set:
+            if job.queue_position() is None:
+                interval = 2
+            elif not _interval_set:
                 interval = max(job.queue_position(), 2)
         else:
             if not _interval_set:

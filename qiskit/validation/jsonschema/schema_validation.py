@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -53,7 +51,7 @@ def _load_schema(file_path, name=None):
         # filename without extension
         name = os.path.splitext(os.path.basename(file_path))[0]
     if name not in _SCHEMAS:
-        with open(file_path, 'r') as schema_file:
+        with open(file_path) as schema_file:
             _SCHEMAS[name] = json.load(schema_file)
 
     return _SCHEMAS[name]
@@ -131,21 +129,38 @@ def validate_json_against_schema(json_dict, schema,
         SchemaValidationError: Raised if validation fails.
     """
 
-    try:
-        if isinstance(schema, str):
-            schema_name = schema
-            schema = _SCHEMAS[schema_name]
-            validator = _get_validator(schema_name)
-            validator.validate(json_dict)
-        else:
+    if isinstance(schema, str):
+        schema_name = schema
+        schema = _SCHEMAS[schema_name]
+        validator = _get_validator(schema_name)
+        errors = list(validator.iter_errors(json_dict))
+        if errors:
+            best_match_error = jsonschema.exceptions.best_match(errors)
+            failure_path = list(best_match_error.absolute_path)
+            if len(failure_path) > 1:
+                failure_path = failure_path[:-1]
+            error_path = ""
+            for component in failure_path:
+                if isinstance(component, int):
+                    error_path += "[%s]" % component
+                else:
+                    error_path += "['%s']" % component
+            if failure_path:
+                err_message = "Validation failed. Possibly at %s" % error_path
+                err_message += " because of %s" % best_match_error.message
+            else:
+                err_message = "Validation failed. "
+                err_message += "Possibly because %s" % best_match_error.message
+            raise SchemaValidationError(err_message)
+    else:
+        try:
             jsonschema.validate(json_dict, schema)
-    except jsonschema.ValidationError as err:
-        if err_msg is None:
-            err_msg = "JSON failed validation. Set Qiskit log level to DEBUG " \
-                      "for further information."
-        newerr = SchemaValidationError(err_msg)
-        newerr.__cause__ = _SummaryValidationError(err)
-        logger.debug('%s', _format_causes(err))
+        except jsonschema.ValidationError as err:
+            if err_msg is None:
+                err_msg = ("JSON failed validation. Set Qiskit log level to "
+                           "DEBUG for further information.")
+            newerr = SchemaValidationError(err_msg)
+            newerr.__cause__ = _SummaryValidationError(err)
         raise newerr
 
 
