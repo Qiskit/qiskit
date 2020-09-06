@@ -1526,7 +1526,7 @@ class QuantumCircuit:
                 continue
             for qb in context[1]:
                 # Remove all gates in association with the desired qubits
-                # (Break here)
+                # (Break)
                 if self.qubits.index(qb) in indices:
                     flag = False
                 else:
