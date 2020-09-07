@@ -20,9 +20,7 @@ import copy
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
-import warnings
-
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 
 from qiskit.util import is_main_process
 from qiskit.pulse.channels import Channel
