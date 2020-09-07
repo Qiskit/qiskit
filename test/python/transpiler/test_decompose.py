@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -19,8 +17,8 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
-from qiskit.extensions.standard import HGate
-from qiskit.extensions.standard import CCXGate
+from qiskit.circuit.library import HGate
+from qiskit.circuit.library import CCXGate
 from qiskit.test import QiskitTestCase
 
 

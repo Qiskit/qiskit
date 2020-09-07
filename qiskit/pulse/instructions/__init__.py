@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -39,6 +37,8 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    Delay
    Play
    SetFrequency
+   ShiftFrequency
+   SetPhase
    ShiftPhase
    Snapshot
 
@@ -52,8 +52,9 @@ Abstract Classes
 """
 from .acquire import Acquire
 from .delay import Delay
+from .directives import Directive, RelativeBarrier
 from .instruction import Instruction
-from .frequency import SetFrequency
-from .phase import ShiftPhase
+from .frequency import SetFrequency, ShiftFrequency
+from .phase import ShiftPhase, SetPhase
 from .play import Play
 from .snapshot import Snapshot

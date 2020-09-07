@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -59,7 +57,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         # Add a barrier across all qubits so swap mapper doesn't add a swap
         # from an unmeasured qubit after a measure.
-        final_qubits = dag.qubits()
+        final_qubits = dag.qubits
 
         barrier_layer.apply_operation_back(
             Barrier(len(final_qubits)), list(final_qubits), [])

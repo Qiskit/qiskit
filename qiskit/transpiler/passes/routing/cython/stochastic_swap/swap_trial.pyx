@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #!python
 #cython: language_level = 3
 #distutils: language = c++
@@ -16,7 +15,7 @@
 # that they have been altered from the originals.
 
 cimport cython
-from libcpp.set cimport set as cset
+from libcpp.unordered_set cimport unordered_set as cset
 from .utils cimport NLayout, EdgeCollection
 
 @cython.boundscheck(False)

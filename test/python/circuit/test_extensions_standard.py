@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -15,25 +13,16 @@
 # pylint: disable=missing-docstring
 
 import unittest
-import warnings
 from inspect import signature
-from ddt import ddt, data, unpack
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, ControlledGate, ParameterVector
+from qiskit.circuit import Gate, ControlledGate
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
-
-from qiskit.extensions.standard import (
-    HGate, CHGate, IGate, RGate, RXGate, CRXGate, RYGate, CRYGate, RZGate,
-    CRZGate, SGate, SdgGate, CSwapGate, TGate, TdgGate, U1Gate, CU1Gate,
-    U2Gate, U3Gate, CU3Gate, XGate, CXGate, CCXGate, YGate, CYGate,
-    ZGate, CZGate
-)
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -1352,9 +1341,9 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches
         definition."""
-        from qiskit.extensions.standard.ms import MSGate
+        from qiskit.circuit.library.standard_gates.ms import MSGate
 
-        params = [0.1 * i for i in range(10)]
+        params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         simulator = BasicAer.get_backend('unitary_simulator')
         for gate_class in gate_class_list:
@@ -1365,7 +1354,7 @@ class TestStandardMethods(QiskitTestCase):
                 # n_qubits argument is no longer supported.
                 free_params = 2
             else:
-                free_params = len([p for p in sig.parameters.values() if p != p.POSITIONAL_ONLY])
+                free_params = len(set(sig.parameters) - {'label'})
             try:
                 gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1385,113 +1374,50 @@ class TestStandardMethods(QiskitTestCase):
                               gate.name)
                 continue
             definition_unitary = execute([circ], simulator).result().get_unitary()
+
+            with self.subTest(gate_class):
+                # TODO check for exact equality once BasicAer can handle global phase
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
+                self.assertTrue(is_unitary_matrix(gate_matrix))
+
+    def test_to_matrix_op(self):
+        """test gates implementing to_matrix generate matrix which matches
+        definition using Operator."""
+        from qiskit.quantum_info import Operator
+        from qiskit.circuit.library.standard_gates.ms import MSGate
+
+        params = [0.1 * i for i in range(10)]
+        gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+        for gate_class in gate_class_list:
+            sig = signature(gate_class)
+            if gate_class == MSGate:
+                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
+                # 3 arguments but really its only 2. This if can be removed once the deprecated
+                # n_qubits argument is no longer supported.
+                free_params = 2
+            else:
+                free_params = len(set(sig.parameters) - {'label'})
+            try:
+                gate = gate_class(*params[0:free_params])
+            except (CircuitError, QiskitError, AttributeError):
+                self.log.info(
+                    'Cannot init gate with params only. Skipping %s',
+                    gate_class)
+                continue
+            if gate.name in ['U', 'CX']:
+                continue
+            try:
+                gate_matrix = gate.to_matrix()
+            except CircuitError:
+                # gate doesn't implement to_matrix method: skip
+                self.log.info('to_matrix method FAILED for "%s" gate',
+                              gate.name)
+                continue
+            if not hasattr(gate, 'definition') or not gate.definition:
+                continue
+            definition_unitary = Operator(gate.definition).data
             self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
             self.assertTrue(is_unitary_matrix(gate_matrix))
-
-
-@ddt
-class TestQubitKeywordArgRenaming(QiskitTestCase):
-    """Test renaming of qubit keyword args on standard instructions."""
-
-    # pylint: disable=bad-whitespace
-    @unpack
-    @data(
-        ('h',    HGate,    0, [('q', 'qubit')]),
-        ('ch',   CHGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('id',   IGate,    0, [('q', 'qubit')]),
-        ('r',    RGate,    2, [('q', 'qubit')]),
-        ('rx',   RXGate,   1, [('q', 'qubit')]),
-        ('crx',  CRXGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('ry',   RYGate,   1, [('q', 'qubit')]),
-        ('cry',  CRYGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('rz',   RZGate,   1, [('q', 'qubit')]),
-        ('crz',  CRZGate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('s',    SGate,    0, [('q', 'qubit')]),
-        ('sdg',  SdgGate,  0, [('q', 'qubit')]),
-        ('cswap',
-         CSwapGate,
-         0,
-         [('ctl', 'control_qubit'),
-          ('tgt1', 'target_qubit1'),
-          ('tgt2', 'target_qubit2')]),
-        ('t',    TGate,    0, [('q', 'qubit')]),
-        ('tdg',  TdgGate,  0, [('q', 'qubit')]),
-        ('u1',   U1Gate,   1, [('q', 'qubit')]),
-        ('cu1',  CU1Gate,  1, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('u2',   U2Gate,   2, [('q', 'qubit')]),
-        ('u3',   U3Gate,   3, [('q', 'qubit')]),
-        ('cu3',  CU3Gate,  3, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('x',    XGate,    0, [('q', 'qubit')]),
-        ('cx',   CXGate, 0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('ccx',
-         CCXGate,
-         0,
-         [('ctl1', 'control_qubit1'),
-          ('ctl2', 'control_qubit2'),
-          ('tgt', 'target_qubit')]),
-        ('y',    YGate,    0, [('q', 'qubit')]),
-        ('cy',   CYGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-        ('z',    ZGate,    0, [('q', 'qubit')]),
-        ('cz',   CZGate,   0, [('ctl', 'control_qubit'), ('tgt', 'target_qubit')]),
-    )
-    # pylint: enable=bad-whitespace
-    def test_kwarg_deprecation(self, instr_name, inst_class, n_params, kwarg_map):
-        # Verify providing *args is unchanged
-        num_qubits = len(kwarg_map)
-
-        qr = QuantumRegister(num_qubits)
-        qc = QuantumCircuit(qr)
-        params = ParameterVector('theta', n_params)
-
-        getattr(qc, instr_name)(*params[:], *qr[:])
-
-        op, qargs, cargs = qc.data[0]
-        self.assertIsInstance(op, inst_class)
-        self.assertEqual(op.params, params[:])
-        self.assertEqual(qargs, qr[:])
-        self.assertEqual(cargs, [])
-
-        # Verify providing old_arg raises a DeprecationWarning
-        num_qubits = len(kwarg_map)
-
-        qr = QuantumRegister(num_qubits)
-        qc = QuantumCircuit(qr)
-        params = ParameterVector('theta', n_params)
-
-        with self.assertWarns(DeprecationWarning):
-            getattr(qc, instr_name)(*params[:],
-                                    **{keyword[0]: qubit
-                                       for keyword, qubit
-                                       in zip(kwarg_map, qr[:])})
-
-        op, qargs, cargs = qc.data[0]
-        self.assertIsInstance(op, inst_class)
-        self.assertEqual(op.params, params[:])
-        self.assertEqual(qargs, qr[:])
-        self.assertEqual(cargs, [])
-
-        # Verify providing new_arg does not raise a DeprecationWarning
-        num_qubits = len(kwarg_map)
-
-        qr = QuantumRegister(num_qubits)
-        qc = QuantumCircuit(qr)
-        params = ParameterVector('theta', n_params)
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-
-            getattr(qc, instr_name)(*params[:],
-                                    **{keyword[1]: qubit
-                                       for keyword, qubit
-                                       in zip(kwarg_map, qr[:])})
-
-            self.assertEqual(len(w), 0)
-
-        op, qargs, cargs = qc.data[0]
-        self.assertIsInstance(op, inst_class)
-        self.assertEqual(op.params, params[:])
-        self.assertEqual(qargs, qr[:])
-        self.assertEqual(cargs, [])
 
 
 if __name__ == '__main__':

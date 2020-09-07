@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -17,14 +15,22 @@ Tests for the Collect2qBlocks transpiler pass.
 """
 
 import unittest
+from math import pi
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from ddt import ddt, data, unpack
+
+from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library import (
+    CXGate, U1Gate, U2Gate, RXXGate, RXGate, RZGate
+)
 
 
+@ddt
 class TestCollect2qBlocks(QiskitTestCase):
     """
     Tests to verify that blocks of 2q interactions are found correctly.
@@ -179,6 +185,48 @@ class TestCollect2qBlocks(QiskitTestCase):
         self.assertEqual([['cx']],
                          [[n.name for n in block]
                           for block in pass_manager.property_set['block_list']])
+
+    @unpack
+    @data(
+        (CXGate(), U1Gate(0.1), U2Gate(0.2, 0.3)),
+        (RXXGate(pi/2), RZGate(0.1), RXGate(pi/2)),
+        (
+            Gate('custom2qgate', 2, []),
+            Gate('custom1qgate1', 1, []),
+            Gate('custom1qgate2', 1, []),
+        ),
+    )
+    def test_collect_arbitrary_gates(self, twoQ_gate, oneQ_gate1, oneQ_gate2):
+        """Validate we can collect blocks irrespective of gate types in the circuit."""
+
+        qc = QuantumCircuit(3)
+
+        # Block 1 - q[0] and q[1]
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+        qc.append(twoQ_gate, [0, 1])
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+
+        # Block 2 - q[1] and q[2]
+        qc.append(oneQ_gate1, [1])
+        qc.append(oneQ_gate2, [2])
+        qc.append(twoQ_gate, [1, 2])
+        qc.append(oneQ_gate1, [1])
+        qc.append(oneQ_gate2, [2])
+
+        # Block 3 - q[0] and q[1]
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+        qc.append(twoQ_gate, [0, 1])
+        qc.append(oneQ_gate1, [0])
+        qc.append(oneQ_gate2, [1])
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+
+        pass_manager.run(qc)
+        self.assertEqual(len(pass_manager.property_set['block_list']), 3)
 
 
 if __name__ == '__main__':

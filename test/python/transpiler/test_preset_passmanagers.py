@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -19,9 +17,9 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap
-from qiskit.extensions.standard import U2Gate, U3Gate
+from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
+from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeJohannesburg,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
 from qiskit.converters import circuit_to_dag
 
@@ -51,6 +49,22 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
 
+    def test_layout_3239(self, level=3):
+        """Test final layout after preset level3 passmanager does not include diagonal gates
+        See: https://github.com/Qiskit/qiskit-terra/issues/3239
+        """
+        qc = QuantumCircuit(5, 5)
+        qc.h(0)
+        qc.cx(range(3), range(1, 4))
+        qc.z(range(4))
+        qc.measure(range(4), range(4))
+        result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx'],
+                           layout_method='trivial', optimization_level=level)
+
+        dag = circuit_to_dag(result)
+        op_nodes = [node.name for node in dag.topological_op_nodes()]
+        self.assertNotIn('u1', op_nodes)  # Check if the diagonal Z-Gates (u1) were removed
+
     @combine(level=[0, 1, 2, 3], name='level{level}')
     def test_no_basis_gates(self, level):
         """Test that basis_gates can be None (level={level})"""
@@ -59,6 +73,15 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
         result = transpile(circuit, basis_gates=None, optimization_level=level)
+        self.assertEqual(result, circuit)
+
+    def test_level0_keeps_reset(self):
+        """Test level 0 should keep the reset instructions"""
+        q = QuantumRegister(2, name='q')
+        circuit = QuantumCircuit(q)
+        circuit.reset(q[0])
+        circuit.reset(q[0])
+        result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
 
@@ -326,13 +349,6 @@ class TestFinalLayouts(QiskitTestCase):
                         15: ancilla[10], 16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
                         19: ancilla[14]}
 
-        # noise_adaptive_layout = {6: qr[0], 11: qr[1], 5: qr[2], 10: qr[3], 15: qr[4],
-        #                          0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3],
-        #                          4: ancilla[4], 7: ancilla[5], 8: ancilla[6], 9: ancilla[7],
-        #                          12: ancilla[8], 13: ancilla[9], 14: ancilla[10],
-        #                          16: ancilla[11], 17: ancilla[12], 18: ancilla[13],
-        #                          19: ancilla[14]}
-
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = dense_layout
         expected_layout_level2 = dense_layout
@@ -452,3 +468,27 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn('swap', resulting_basis)
+
+
+@ddt
+class TestOptimizationWithCondition(QiskitTestCase):
+    """Test optimization levels with condition in the circuit"""
+
+    @data(0, 1, 2, 3)
+    def test_optimization_condition(self, level):
+        """Test optimization levels with condition in the circuit"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(0, 1).c_if(cr, 1)
+        backend = FakeJohannesburg()
+        circ = transpile(qc, backend, optimization_level=level)
+        self.assertIsInstance(circ, QuantumCircuit)
+
+    def test_input_dag_copy(self):
+        """Test substitute_node_with_dag input_dag copy on condition"""
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1).c_if(qc.cregs[0], 1)
+        qc.cx(1, 0)
+        circ = transpile(qc, basis_gates=['u3', 'cz'])
+        self.assertIsInstance(circ, QuantumCircuit)

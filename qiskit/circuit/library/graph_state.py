@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -20,6 +18,7 @@ from typing import Union, List
 
 import numpy as np
 from qiskit import QuantumCircuit
+from qiskit.circuit.exceptions import CircuitError
 
 
 class GraphState(QuantumCircuit):
@@ -69,9 +68,17 @@ class GraphState(QuantumCircuit):
         Args:
             adjacency_matrix: input graph as n-by-n list of 0-1 lists
 
+        Raises:
+            CircuitError: If adjacency_matrix is not symmetric.
+
         The circuit prepares a graph state with the given adjacency
         matrix.
         """
+
+        adjacency_matrix = np.asarray(adjacency_matrix)
+        if not np.allclose(adjacency_matrix, adjacency_matrix.transpose()):
+            raise CircuitError("The adjacency matrix must be symmetric.")
+
         num_qubits = len(adjacency_matrix)
         super().__init__(num_qubits, name="graph: %s" % (adjacency_matrix))
 

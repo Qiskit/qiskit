@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -14,10 +12,8 @@
 
 """Class for job status."""
 
-from types import SimpleNamespace
 
-
-class JobStatus(SimpleNamespace):
+class JobStatus:
     """Model for JobStatus.
 
     Attributes:
@@ -26,11 +22,14 @@ class JobStatus(SimpleNamespace):
         status_msg (str): status message.
     """
 
+    _data = {}
+
     def __init__(self, job_id, status, status_msg, **kwargs):
+        self._data = {}
         self.job_id = job_id
         self.status = status
         self.status_msg = status_msg
-        self.__dict__.update(kwargs)
+        self._data.update(kwargs)
 
     @classmethod
     def from_dict(cls, data):
@@ -53,13 +52,16 @@ class JobStatus(SimpleNamespace):
         Returns:
             dict: The dictionary form of the JobStatus.
         """
-        return self.__dict__
+        out_dict = {
+            'job_id': self.job_id,
+            'status': self.status,
+            'status_msg': self.status_msg,
+        }
+        out_dict.update(self._data)
+        return out_dict
 
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        return (self.__class__, (self.job_id, self.status, self.status_msg))
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)

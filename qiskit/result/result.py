@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -19,9 +17,10 @@ import copy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states import Statevector
+from qiskit.quantum_info.states import statevector
 from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
+from qiskit.result.counts import Counts
 from qiskit.qobj.utils import MeasLevel
 from qiskit.qobj import QobjHeader
 
@@ -159,7 +158,7 @@ class Result:
         try:
             return self._get_experiment(experiment).data.to_dict()
         except (KeyError, TypeError):
-            raise QiskitError('No data for experiment "{0}"'.format(experiment))
+            raise QiskitError('No data for experiment "{}"'.format(experiment))
 
     def get_memory(self, experiment=None):
         """Get the sequence of memory states (readouts) for each shot
@@ -206,10 +205,10 @@ class Result:
             elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
-                raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
+                raise QiskitError('Measurement level {} is not supported'.format(meas_level))
 
         except KeyError:
-            raise QiskitError('No memory for experiment "{0}".'.format(experiment))
+            raise QiskitError('No memory for experiment "{}".'.format(experiment))
 
     def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
@@ -242,12 +241,18 @@ class Result:
                 header = None
 
             if 'counts' in self.data(key).keys():
-                dict_list.append(postprocess.format_counts(self.data(key)['counts'], header))
+                if header:
+                    counts_header = {
+                        k: v for k, v in header.items() if k in {
+                            'time_taken', 'creg_sizes', 'memory_slots'}}
+                else:
+                    counts_header = {}
+                dict_list.append(Counts(self.data(key)['counts'], **counts_header))
             elif 'statevector' in self.data(key).keys():
                 vec = postprocess.format_statevector(self.data(key)['statevector'])
-                dict_list.append(Statevector(vec).probabilities_dict(decimals=15))
+                dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
-                raise QiskitError('No counts for experiment "{0}"'.format(key))
+                raise QiskitError('No counts for experiment "{}"'.format(key))
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
@@ -274,7 +279,7 @@ class Result:
             return postprocess.format_statevector(self.data(experiment)['statevector'],
                                                   decimals=decimals)
         except KeyError:
-            raise QiskitError('No statevector for experiment "{0}"'.format(experiment))
+            raise QiskitError('No statevector for experiment "{}"'.format(experiment))
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
@@ -296,7 +301,7 @@ class Result:
             return postprocess.format_unitary(self.data(experiment)['unitary'],
                                               decimals=decimals)
         except KeyError:
-            raise QiskitError('No unitary for experiment "{0}"'.format(experiment))
+            raise QiskitError('No unitary for experiment "{}"'.format(experiment))
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.

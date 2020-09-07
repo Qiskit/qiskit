@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -25,7 +23,7 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.standard import HGate, CHGate, CXGate
+from qiskit.circuit.library import HGate, CHGate, CXGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal

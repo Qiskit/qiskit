@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -253,6 +251,20 @@ class DensityMatrix(QuantumState):
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._evolve_operator(other, qargs=qargs)
+
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (Operator): an operator to evaluate expval.
+            qargs (None or list): subsystems to apply the operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        if not isinstance(oper, Operator):
+            oper = Operator(oper)
+        return np.trace(Operator(self).dot(oper.adjoint(), qargs=qargs).data)
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
@@ -547,12 +559,22 @@ class DensityMatrix(QuantumState):
 
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
+        from qiskit.circuit.reset import Reset
+        from qiskit.circuit.barrier import Barrier
 
         # Try evolving by a matrix operator (unitary-like evolution)
         mat = Operator._instruction_to_matrix(other)
         if mat is not None:
             self._data = self._evolve_operator(Operator(mat), qargs=qargs).data
             return
+
+        # Special instruction types
+        if isinstance(other, Reset):
+            self._data = self.reset(qargs)._data
+            return
+        if isinstance(other, Barrier):
+            return
+
         # Otherwise try evolving by a Superoperator
         chan = SuperOp._instruction_to_superop(other)
         if chan is not None:
@@ -565,6 +587,9 @@ class DensityMatrix(QuantumState):
         if other.definition is None:
             raise QiskitError('Cannot apply Instruction: {}'.format(
                 other.name))
+        if not isinstance(other.definition, QuantumCircuit):
+            raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
+                other.name, type(other.definition)))
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
@@ -584,6 +609,38 @@ class DensityMatrix(QuantumState):
         vec = DensityMatrix(self.data, dims=self._dims)
         vec._append_instruction(obj, qargs=qargs)
         return vec
+
+    def to_statevector(self, atol=None, rtol=None):
+        """Return a statevector from a pure density matrix.
+
+        Args:
+            atol (float): Absolute tolerance for checking operation validity.
+            rtol (float): Relative tolerance for checking operation validity.
+
+        Returns:
+            Statevector: The pure density matrix's corresponding statevector.
+                Corresponds to the eigenvector of the only non-zero eigenvalue.
+
+        Raises:
+            QiskitError: if the state is not pure.
+        """
+        if atol is None:
+            atol = self.atol
+        if rtol is None:
+            rtol = self.rtol
+
+        if not is_hermitian_matrix(self._data, atol=atol, rtol=rtol):
+            raise QiskitError("Not a valid density matrix (non-hermitian).")
+
+        evals, evecs = np.linalg.eig(self._data)
+
+        nonzero_evals = evals[abs(evals) > atol]
+        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1,
+                                                     atol=atol, rtol=rtol):
+            raise QiskitError("Density matrix is not a pure state")
+
+        psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
+        return Statevector(psi)
 
     def to_counts(self):
         """Returns the density matrix as a counts dict of probabilities.

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -15,7 +13,7 @@
 """Test operations on circuit.data."""
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.extensions.standard import HGate, XGate, CXGate
+from qiskit.circuit.library import HGate, XGate, CXGate
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError

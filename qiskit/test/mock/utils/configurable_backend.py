@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -28,7 +26,7 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.test.mock.fake_backend import FakeBackend
 
 
-class ConfigurableBackend(FakeBackend):
+class ConfigurableFakeBackend(FakeBackend):
     """Configurable backend."""
 
     def __init__(self,
@@ -171,7 +169,7 @@ class ConfigurableBackend(FakeBackend):
 
             if gate in self.single_qubit_gates:
                 for i in range(self.n_qubits):
-                    gates.append(Gate(gate=gate, name="{0}_{1}".format(gate, i),
+                    gates.append(Gate(gate=gate, name="{}_{}".format(gate, i),
                                       qubits=[i], parameters=parameters))
             elif gate == 'cx':
                 for (qubit1, qubit2) in list(itertools.combinations(range(self.n_qubits), 2)):
@@ -209,7 +207,7 @@ class ConfigurableBackend(FakeBackend):
 
             variables.append(("jq{q1}q{q2}".format(q1=qubit1, q2=qubit2), 0))
         for i, (qubit1, qubit2) in enumerate(self.coupling_map):
-            h_str.append("omegad{0}*X{1}||U{2}".format(qubit1, qubit2, i))
+            h_str.append("omegad{}*X{}||U{}".format(qubit1, qubit2, i))
         for i in range(self.n_qubits):
             variables += [
                 ("omegad{}".format(i), 0),
@@ -225,7 +223,7 @@ class ConfigurableBackend(FakeBackend):
         meas_map = [list(range(self.n_qubits))]
         qubit_lo_range = [[freq - 0.5, freq + 0.5] for freq in self.qubit_frequency]
         meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
-        u_channel_lo = [[UchannelLO(q=i, scale=[1.0, 0])] for i in range(len(self.coupling_map))]
+        u_channel_lo = [[UchannelLO(q=i, scale=1.0+0.0j)] for i in range(len(self.coupling_map))]
 
         return PulseBackendConfiguration(
             backend_name=self.name,

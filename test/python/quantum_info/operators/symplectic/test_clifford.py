@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -24,9 +22,9 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
-from qiskit.extensions.standard import (IGate, XGate, YGate, ZGate, HGate,
-                                        SGate, SdgGate, CXGate, CZGate,
-                                        SwapGate)
+from qiskit.circuit.library import (IGate, XGate, YGate, ZGate, HGate,
+                                    SGate, SdgGate, CXGate, CZGate,
+                                    SwapGate)
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
@@ -42,7 +40,9 @@ class VGate(Gate):
     def _define(self):
         """V Gate definition."""
         q = QuantumRegister(1, 'q')
-        self.definition = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+        qc = QuantumCircuit(q)
+        qc.data = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+        self.definition = qc
 
 
 class WGate(Gate):
@@ -54,7 +54,9 @@ class WGate(Gate):
     def _define(self):
         """W Gate definition."""
         q = QuantumRegister(1, 'q')
-        self.definition = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+        qc = QuantumCircuit(q)
+        qc.data = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+        self.definition = qc
 
 
 def random_clifford_circuit(num_qubits, num_gates, gates='all', seed=None):
@@ -729,15 +731,15 @@ class TestCliffordOperators(QiskitTestCase):
             value = cliff.to_dict()
 
             keys_value = set(value.keys())
-            keys_target = set(['destabilizer', 'stabilizer'])
+            keys_target = {'destabilizer', 'stabilizer'}
             self.assertEqual(keys_value, keys_target)
 
             stabilizer_value = set(value['stabilizer'])
-            stabilizer_target = set(['+IIIZ', '+IIZI', '+IZII', '+ZIII'])
+            stabilizer_target = {'+IIIZ', '+IIZI', '+IZII', '+ZIII'}
             self.assertEqual(stabilizer_value, stabilizer_target)
 
             destabilizer_value = set(value['destabilizer'])
-            destabilizer_target = set(['+IIIX', '+IIXI', '+IXII', '+XIII'])
+            destabilizer_target = {'+IIIX', '+IIXI', '+IXII', '+XIII'}
             self.assertEqual(destabilizer_value, destabilizer_target)
 
         with self.subTest(msg="bell"):
@@ -748,15 +750,15 @@ class TestCliffordOperators(QiskitTestCase):
             value = cliff.to_dict()
 
             keys_value = set(value.keys())
-            keys_target = set(['destabilizer', 'stabilizer'])
+            keys_target = {'destabilizer', 'stabilizer'}
             self.assertEqual(keys_value, keys_target)
 
             stabilizer_value = set(value['stabilizer'])
-            stabilizer_target = set(['+XX', '+ZZ'])
+            stabilizer_target = {'+XX', '+ZZ'}
             self.assertEqual(stabilizer_value, stabilizer_target)
 
             destabilizer_value = set(value['destabilizer'])
-            destabilizer_target = set(['+IZ', '+XI'])
+            destabilizer_target = {'+IZ', '+XI'}
             self.assertEqual(destabilizer_value, destabilizer_target)
 
     def test_from_dict(self):

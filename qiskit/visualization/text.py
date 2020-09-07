@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,6 +14,7 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from warnings import warn
 from shutil import get_terminal_size
 import sys
 from numpy import ndarray
@@ -23,11 +22,23 @@ from numpy import ndarray
 from qiskit.circuit import ControlledGate, Gate, Instruction
 from qiskit.circuit import Reset as ResetInstruction
 from qiskit.circuit import Measure as MeasureInstruction
-from qiskit.extensions import IGate, UnitaryGate, HamiltonianGate, RZZGate, SwapGate, Snapshot
-from qiskit.extensions import Barrier as BarrierInstruction
+from qiskit.circuit import Barrier as BarrierInstruction
+from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
+from qiskit.extensions import UnitaryGate, HamiltonianGate, Snapshot
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from .exceptions import VisualizationError
+
+
+class TextDrawerCregBundle(VisualizationError):
+    """The parameter "cregbundle" was set to True in an imposible situation. For example, an
+    instruction needs to refer to individual classical wires'"""
+    pass
+
+
+class TextDrawerEncodingError(VisualizationError):
+    """A problem with encoding"""
+    pass
 
 
 class DrawElement():
@@ -399,10 +410,15 @@ class Bullet(DirectOnQuWire):
         bot:  │      │
     """
 
-    def __init__(self, top_connect="", bot_connect="", conditional=False):
+    def __init__(self, top_connect="", bot_connect="", conditional=False,
+                 label=None, bottom=False):
         super().__init__('■')
         self.top_connect = top_connect
         self.bot_connect = '│' if conditional else bot_connect
+        if label and bottom:
+            self.bot_connect = label
+        elif label:
+            self.top_connect = label
         self.mid_bck = '─'
 
 
@@ -416,10 +432,15 @@ class OpenBullet(DirectOnQuWire):
         bot:  │      │
     """
 
-    def __init__(self, top_connect="", bot_connect="", conditional=False):
+    def __init__(self, top_connect="", bot_connect="", conditional=False,
+                 label=None, bottom=False):
         super().__init__('o')
         self.top_connect = top_connect
         self.bot_connect = '│' if conditional else bot_connect
+        if label and bottom:
+            self.bot_connect = label
+        elif label:
+            self.top_connect = label
         self.mid_bck = '─'
 
 
@@ -501,19 +522,20 @@ class TextDrawing():
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
                  line_length=None, vertical_compression='high', layout=None, initial_state=True,
-                 cregbundle=False):
+                 cregbundle=False, global_phase=None, encoding=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
         self.layout = layout
         self.initial_state = initial_state
-
         self.cregbundle = cregbundle
+        self.global_phase = global_phase
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ['high', 'medium', 'low']:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+        self.encoding = encoding if encoding else sys.stdout.encoding
 
     def __str__(self):
         return self.single_string()
@@ -531,20 +553,25 @@ class TextDrawing():
 
     def single_string(self):
         """Creates a long string with the ascii art.
-
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
-        return "\n".join(self.lines())
+        try:
+            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            warn('The encoding %s has a limited charset. Consider a different encoding in your '
+                 'environment. UTF-8 is being used instead' % self.encoding, RuntimeWarning)
+            self.encoding = 'utf-8'
+            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
 
-    def dump(self, filename, encoding="utf8"):
+    def dump(self, filename, encoding=None):
         """Dumps the ascii art in the file.
 
         Args:
             filename (str): File to dump the ascii art.
-            encoding (str): Optional. Default "utf-8".
+            encoding (str): Optional. Force encoding, instead of self.encoding.
         """
-        with open(filename, mode='w', encoding=encoding) as text_file:
+        with open(filename, mode='w', encoding=encoding or self.encoding) as text_file:
             text_file.write(self.single_string())
 
     def lines(self, line_length=None):
@@ -570,7 +597,13 @@ class TextDrawing():
 
         noqubits = len(self.qregs)
 
-        layers = self.build_layers()
+        try:
+            layers = self.build_layers()
+        except TextDrawerCregBundle:
+            self.cregbundle = False
+            warn('The parameter "cregbundle" was disable, since an instruction needs to refer to '
+                 'individual classical wires', RuntimeWarning, 2)
+            layers = self.build_layers()
 
         layer_groups = [[]]
         rest_of_the_line = line_length
@@ -606,6 +639,11 @@ class TextDrawing():
                 rest_of_the_line -= layer_groups[-1][-1][0].length
 
         lines = []
+
+        if self.global_phase:
+            lines.append('global phase: %s' % pi_check(self.global_phase,
+                                                       ndigits=5))
+
         for layer_group in layer_groups:
             wires = list(zip(*layer_group))
             lines += self.draw_wires(wires)
@@ -638,10 +676,14 @@ class TextDrawing():
                                                  physical=''))
         else:
             for bit in self.qregs:
-                label = '{name}_{index} -> {physical} ' + initial_qubit_value
-                qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
-                                                 index=self.layout[bit.index].index,
-                                                 physical=bit.index))
+                if self.layout[bit.index]:
+                    label = '{name}_{index} -> {physical} ' + initial_qubit_value
+                    qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
+                                                     index=self.layout[bit.index].index,
+                                                     physical=bit.index))
+                else:
+                    qubit_labels.append('%s ' % bit.index + initial_qubit_value)
+
         clbit_labels = []
         previous_creg = None
         for bit in self.cregs:
@@ -667,6 +709,10 @@ class TextDrawing():
             return False
         for top, bot in zip(top_line, bot_line):
             if top == '┴' and bot == '┬':
+                return False
+        for line in (bot_line, top_line):
+            no_spaces = line.replace(' ', '')
+            if len(no_spaces) > 0 and all(c.isalpha() or c.isnumeric() for c in no_spaces):
                 return False
         return True
 
@@ -738,7 +784,9 @@ class TextDrawing():
         labels = {IGate: 'I',
                   Initialize: 'initialize',
                   UnitaryGate: 'unitary',
-                  HamiltonianGate: 'Hamiltonian'}
+                  HamiltonianGate: 'Hamiltonian',
+                  SXGate: '√X',
+                  SXdgGate: '√XDG'}
         instruction_type = type(instruction)
         if instruction_type in {Gate, Instruction}:
             return instruction.name
@@ -803,7 +851,7 @@ class TextDrawing():
                 ret += "╫"
             elif topc in '║╫╬' and botc in " ":
                 ret += "║"
-            elif topc == '└' and botc == "┌":
+            elif topc == '└' and botc == "┌" and icod == 'top':
                 ret += "├"
             elif topc == '┘' and botc == "┐":
                 ret += "┤"
@@ -850,7 +898,7 @@ class TextDrawing():
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
         args_qubits = instruction.qargs[num_ctrl_qubits:]
-        ctrl_state = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        ctrl_state = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
 
         in_box = list()
         top_box = list()
@@ -867,19 +915,21 @@ class TextDrawing():
                 in_box.append(ctrl_qubit)
         return (top_box, bot_box, in_box, args_qubits)
 
-    def _set_ctrl_state(self, instruction, conditional):
+    def _set_ctrl_state(self, instruction, conditional, ctrl_label, bottom):
         """ Takes the ctrl_state from instruction and appends Bullet or OpenBullet
         to gates depending on whether the bit in ctrl_state is 1 or 0. Returns gates"""
 
         gates = []
         num_ctrl_qubits = instruction.op.num_ctrl_qubits
         ctrl_qubits = instruction.qargs[:num_ctrl_qubits]
-        cstate = "{0:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        cstate = "{:b}".format(instruction.op.ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(len(ctrl_qubits)):
             if cstate[i] == '1':
-                gates.append(Bullet(conditional=conditional))
+                gates.append(Bullet(conditional=conditional, label=ctrl_label,
+                                    bottom=bottom))
             else:
-                gates.append(OpenBullet(conditional=conditional))
+                gates.append(OpenBullet(conditional=conditional, label=ctrl_label,
+                                        bottom=bottom))
         return gates
 
     def _instruction_to_gate(self, instruction, layer):
@@ -888,7 +938,12 @@ class TextDrawing():
 
         current_cons = []
         connection_label = None
+        ctrl_label = None
+        box_label = None
         conditional = False
+        multi_qubit_instruction = len(instruction.qargs) >= 2 and not instruction.cargs
+        label_multibox = False
+        base_gate = getattr(instruction.op, 'base_gate', None)
 
         if instruction.condition is not None:
             # conditional
@@ -904,14 +959,22 @@ class TextDrawing():
                     layer.set_qubit(instruction.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
-        if len(instruction.qargs) >= 2 and \
-                not instruction.cargs and \
+        if multi_qubit_instruction and \
+                getattr(instruction.op, 'label', None) is not None and \
+                getattr(base_gate, 'label', None) is not None:
+            # If a multi qubit instruction has a label, and the base gate has a
+            # label, the label is applied to the bullet instead of the box.
+            ctrl_label = getattr(instruction.op, 'label', None)
+            box_label = getattr(base_gate, 'label', None)
+
+        elif multi_qubit_instruction and \
                 getattr(instruction.op, 'label', None) is not None:
             # If a multi qubit instruction has a label, it is a box
+            label_multibox = True
             layer._set_multibox(instruction.op.label, qubits=instruction.qargs,
                                 conditional=conditional)
 
-        elif isinstance(instruction.op, MeasureInstruction):
+        if isinstance(instruction.op, MeasureInstruction):
             gate = MeasureFrom()
             layer.set_qubit(instruction.qargs[0], gate)
             if self.cregbundle:
@@ -925,8 +988,8 @@ class TextDrawing():
                 return layer, current_cons, connection_label
 
             for qubit in instruction.qargs:
-                layer.set_qubit(qubit, Barrier())
-
+                if qubit in self.qregs:
+                    layer.set_qubit(qubit, Barrier())
         elif isinstance(instruction.op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
@@ -948,23 +1011,25 @@ class TextDrawing():
                             BoxOnQuWire(TextDrawing.label_for_box(instruction),
                                         conditional=conditional))
 
-        elif isinstance(instruction.op, ControlledGate):
-            label = TextDrawing.label_for_box(instruction, controlled=True)
+        elif isinstance(instruction.op, ControlledGate) and not label_multibox:
+            label = box_label if box_label is not None \
+                else TextDrawing.label_for_box(instruction, controlled=True)
             params_array = TextDrawing.controlled_wires(instruction, layer)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
-            gates = self._set_ctrl_state(instruction, conditional)
-            if instruction.op.base_gate.name == 'z':
+            gates = self._set_ctrl_state(instruction, conditional, ctrl_label,
+                                         bool(controlled_bot))
+            if base_gate.name == 'z':
                 # cz
                 gates.append(Bullet(conditional=conditional))
-            elif instruction.op.base_gate.name == 'u1':
+            elif base_gate.name == 'u1':
                 # cu1
                 connection_label = TextDrawing.params_for_label(instruction)[0]
                 gates.append(Bullet(conditional=conditional))
-            elif instruction.op.base_gate.name == 'swap':
+            elif base_gate.name == 'swap':
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
                 add_connected_gate(instruction, gates, layer, current_cons)
-            elif instruction.op.base_gate.name == 'rzz':
+            elif base_gate.name == 'rzz':
                 # crzz
                 connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
@@ -978,7 +1043,7 @@ class TextDrawing():
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement('')))
-            elif instruction.op.base_gate.name == 'z':
+            elif base_gate.name == 'z':
                 gates.append(Bullet(conditional=conditional))
             else:
                 gates.append(BoxOnQuWire(label, conditional=conditional))
@@ -992,6 +1057,8 @@ class TextDrawing():
         elif instruction.qargs and instruction.cargs:
             # multiple gate, involving both qargs AND cargs
             label = TextDrawing.label_for_box(instruction)
+            if self.cregbundle and instruction.cargs:
+                raise TextDrawerCregBundle('TODO')
             layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
                                 conditional=conditional)
         else:
@@ -1027,7 +1094,7 @@ class TextDrawing():
                     self._instruction_to_gate(instruction, layer)
 
                 layer.connections.append((connection_label, current_connections))
-                layer.connect_with("│")
+            layer.connect_with("│")
             layers.append(layer.full_layer)
 
         return layers
