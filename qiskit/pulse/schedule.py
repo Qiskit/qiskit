@@ -167,7 +167,6 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-
     # pylint: disable=arguments-differ
     def shift(self,
               time: int,
