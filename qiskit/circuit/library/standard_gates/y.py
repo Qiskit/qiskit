@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -78,7 +76,9 @@ class YGate(Gate):
         rules = [
             (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
         ]
-        qc.data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -111,17 +111,7 @@ class YGate(Gate):
                             [1j, 0]], dtype=complex)
 
 
-class CYMeta(type):
-    """A metaclass to ensure that CyGate and CYGate are of the same type.
-
-    Can be removed when CyGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CYGate, CyGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CYGate(ControlledGate, metaclass=CYMeta):
+class CYGate(ControlledGate):
     r"""Controlled-Y gate.
 
     **Circuit symbol:**
@@ -186,8 +176,7 @@ class CYGate(ControlledGate, metaclass=CYMeta):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = YGate()
+                         ctrl_state=ctrl_state, base_gate=YGate())
 
     def _define(self):
         """
@@ -204,12 +193,14 @@ class CYGate(ControlledGate, metaclass=CYMeta):
             (CXGate(), [q[0], q[1]], []),
             (SGate(), [q[1]], [])
         ]
-        qc.data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverted CY gate (itself)."""
-        return CYGate()  # self-inverse
+        return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
@@ -217,15 +208,3 @@ class CYGate(ControlledGate, metaclass=CYMeta):
             return self._matrix1
         else:
             return self._matrix0
-
-
-class CyGate(CYGate, metaclass=CYMeta):
-    """A deprecated CYGate class."""
-
-    def __init__(self, label=None, ctrl_state=None):
-        import warnings
-        warnings.warn('The class CyGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CYGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(label=label, ctrl_state=ctrl_state)

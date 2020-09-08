@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -68,11 +66,14 @@ class RZGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         q = QuantumRegister(1, 'q')
-        qc = QuantumCircuit(q, name=self.name)
+        theta = self.params[0]
+        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
         rules = [
-            (U1Gate(self.params[0]), [q[0]], [])
+            (U1Gate(theta), [q[0]], [])
         ]
-        qc.data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -100,27 +101,15 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    # TODO: this is the correct matrix however the control mechanism
-    # cannot distinguish U1 and RZ yet.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZ gate."""
-    #    import numpy
-    #    lam = float(self.params[0])
-    #    return numpy.array([[numpy.exp(-1j * lam / 2), 0],
-    #                        [0, numpy.exp(1j * lam / 2)]], dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the RZ gate."""
+        import numpy as np
+        ilam2 = 0.5j * float(self.params[0])
+        return np.array([[np.exp(-ilam2), 0],
+                         [0, np.exp(ilam2)]], dtype=complex)
 
 
-class CRZMeta(type):
-    """A metaclass to ensure that CrzGate and CRZGate are of the same type.
-
-    Can be removed when CrzGate gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {CRZGate, CrzGate}  # pylint: disable=unidiomatic-typecheck
-
-
-class CRZGate(ControlledGate, metaclass=CRZMeta):
+class CRZGate(ControlledGate):
     r"""Controlled-RZ gate.
 
     This is a diagonal but non-symmetric gate that induces a
@@ -184,8 +173,7 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRZ gate."""
         super().__init__('crz', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = RZGate(theta)
+                         ctrl_state=ctrl_state, base_gate=RZGate(theta))
 
     def _define(self):
         """
@@ -206,32 +194,28 @@ class CRZGate(ControlledGate, metaclass=CRZMeta):
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], [])
         ]
-        qc.data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
-        """Return inverse RZ gate (i.e. with the negative rotation angle)."""
-        return CRZGate(-self.params[0])
+        """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
+        return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the CRZ gate."""
-    #    arg = 1j * self.params[0] / 2
-    #    return numpy.array([[1,               0, 0,              0],
-    #                        [0, numpy.exp(-arg), 0,              0],
-    #                        [0,               0, 1,              0],
-    #                        [0,               0, 0, numpy.exp(arg)]],
-    #                       dtype=complex)
-
-
-class CrzGate(CRZGate, metaclass=CRZMeta):
-    """The deprecated CRZGate class."""
-
-    def __init__(self, theta):
-        import warnings
-        warnings.warn('The class CrzGate is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class CRZGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(theta)
+    def to_matrix(self):
+        """Return a numpy.array for the CRZ gate."""
+        import numpy
+        arg = 1j * float(self.params[0]) / 2
+        if self.ctrl_state:
+            return numpy.array([[1, 0, 0, 0],
+                                [0, numpy.exp(-arg), 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, numpy.exp(arg)]],
+                               dtype=complex)
+        else:
+            return numpy.array([[numpy.exp(-arg), 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, numpy.exp(arg), 0],
+                                [0, 0, 0, 1]],
+                               dtype=complex)

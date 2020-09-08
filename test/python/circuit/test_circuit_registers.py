@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -16,7 +14,10 @@
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Gate
+from qiskit.circuit import (
+    QuantumRegister, ClassicalRegister, AncillaRegister, QuantumCircuit, Qubit, Clbit, AncillaQubit,
+    Gate
+)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
@@ -33,12 +34,20 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(type(qr1), QuantumRegister)
 
     def test_cregs(self):
-        """Test getting quantum registers from circuit.
+        """Test getting classical registers from circuit.
         """
         cr1 = ClassicalRegister(10, "c")
         self.assertEqual(cr1.name, "c")
         self.assertEqual(cr1.size, 10)
         self.assertEqual(type(cr1), ClassicalRegister)
+
+    def test_aregs(self):
+        """Test getting ancilla registers from circuit.
+        """
+        ar1 = AncillaRegister(10, "a")
+        self.assertEqual(ar1.name, "a")
+        self.assertEqual(ar1.size, 10)
+        self.assertEqual(type(ar1), AncillaRegister)
 
     def test_qarg_negative_size(self):
         """Test attempt to create a negative size QuantumRegister.
@@ -58,6 +67,18 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.name, "q")
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
+
+    def test_register_int_types(self):
+        """Test attempt to pass different types of integer as indices
+        of QuantumRegister and ClassicalRegister
+        """
+        ints = [int(2), np.int(2), np.int32(2), np.int64(2)]
+        for index in ints:
+            with self.subTest(index=index):
+                qr = QuantumRegister(4)
+                cr = ClassicalRegister(4)
+                self.assertEqual(qr[index], qr[2])
+                self.assertEqual(cr[index], cr[2])
 
     def test_numpy_array_of_registers(self):
         """Test numpy array of Registers .
@@ -105,11 +126,11 @@ class TestCircuitRegisters(QiskitTestCase):
         qr2 = QuantumRegister(2, "q2")
         qc = QuantumCircuit(qr2, cr1, qr1)
 
-        qubtis = qc.qubits
+        qubits = qc.qubits
 
-        self.assertEqual(qubtis[0], qr2[0])
-        self.assertEqual(qubtis[1], qr2[1])
-        self.assertEqual(qubtis[2], qr1[0])
+        self.assertEqual(qubits[0], qr2[0])
+        self.assertEqual(qubits[1], qr2[1])
+        self.assertEqual(qubits[2], qr1[0])
 
     def test_clbits(self):
         """Test clbits() method.
@@ -120,11 +141,48 @@ class TestCircuitRegisters(QiskitTestCase):
         cr2 = ClassicalRegister(1, "c2")
         qc = QuantumCircuit(qr2, cr2, qr1, cr1)
 
-        clbtis = qc.clbits
+        clbits = qc.clbits
 
-        self.assertEqual(clbtis[0], cr2[0])
-        self.assertEqual(clbtis[1], cr1[0])
-        self.assertEqual(clbtis[2], cr1[1])
+        self.assertEqual(clbits[0], cr2[0])
+        self.assertEqual(clbits[1], cr1[0])
+        self.assertEqual(clbits[2], cr1[1])
+
+    def test_ancillas(self):
+        """Test ancillas() method.
+        """
+        qr1 = QuantumRegister(1, "q1")
+        cr1 = ClassicalRegister(2, "c1")
+        ar1 = AncillaRegister(2, "a1")
+        qr2 = QuantumRegister(2, "q2")
+        cr2 = ClassicalRegister(1, "c2")
+        ar2 = AncillaRegister(1, "a2")
+        qc = QuantumCircuit(qr2, cr2, ar2, qr1, cr1, ar1)
+
+        ancillas = qc.ancillas
+
+        self.assertEqual(qc.num_ancillas, 3)
+
+        self.assertEqual(ancillas[0], ar2[0])
+        self.assertEqual(ancillas[1], ar1[0])
+        self.assertEqual(ancillas[2], ar1[1])
+
+    def test_ancilla_qubit(self):
+        """Test ancilla type and that it can be accessed as ordinary qubit."""
+        qr, ar = QuantumRegister(2), AncillaRegister(2)
+        qc = QuantumCircuit(qr, ar)
+
+        with self.subTest('num ancillas and qubits'):
+            self.assertEqual(qc.num_ancillas, 2)
+            self.assertEqual(qc.num_qubits, 4)
+
+        with self.subTest('ancilla is a qubit'):
+            for ancilla in qc.ancillas:
+                self.assertIsInstance(ancilla, AncillaQubit)
+                self.assertIsInstance(ancilla, Qubit)
+
+        with self.subTest('qubit is not an ancilla'):
+            action_qubits = [qubit for qubit in qc.qubits if not isinstance(qubit, AncillaQubit)]
+            self.assertEqual(len(action_qubits), 2)
 
     def test_qregs_circuit(self):
         """Test getting quantum registers from circuit.

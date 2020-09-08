@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -160,8 +158,8 @@ class Instruction:
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
             else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+                raise CircuitError("invalid param type {} in instruction "
+                                   "{}".format(type(single_param), self.name))
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
@@ -246,9 +244,9 @@ class Instruction:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + '_reverse')
-        reverse_inst.definition.data = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.data.append((inst.reverse_ops(), qargs, cargs))
+        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return reverse_inst
 
     def inverse(self):
@@ -269,10 +267,23 @@ class Instruction:
         """
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
-        inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition.data = []
-        for inst, qargs, cargs in reversed(self._definition.data):
-            inverse_gate._definition.data.append((inst.inverse(), qargs, cargs))
+
+        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        if self.num_clbits:
+            inverse_gate = Instruction(name=self.name + '_dg',
+                                       num_qubits=self.num_qubits,
+                                       num_clbits=self.num_clbits,
+                                       params=self.params.copy())
+
+        else:
+            inverse_gate = Gate(name=self.name + '_dg',
+                                num_qubits=self.num_qubits,
+                                params=self.params.copy())
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return inverse_gate
 
     def c_if(self, classical, val):

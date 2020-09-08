@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -123,7 +121,11 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
                                   'multiple classical registers to instruction')
 
     qc = QuantumCircuit(*regs, name=instruction.name)
-    qc.data = definition
+    for instr, qargs, cargs in definition:
+        qc._append(instr, qargs, cargs)
+    if circuit.global_phase:
+        qc.global_phase = circuit.global_phase
+
     instruction.definition = qc
 
     return instruction

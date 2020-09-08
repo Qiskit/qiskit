@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -81,7 +79,7 @@ class Results:
         self.missing = []
         datafilename = os.path.join(SWD, directory, 'result_test.json')
         if os.path.exists(datafilename):
-            with open(datafilename, 'r') as datafile:
+            with open(datafilename) as datafile:
                 self.data = json.load(datafile)
 
     @staticmethod

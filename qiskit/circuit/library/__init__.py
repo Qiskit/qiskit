@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -31,10 +29,13 @@ Standard Gates
    CCXGate
    DCXGate
    CHGate
+   CPhaseGate
    CRXGate
    CRYGate
    CRZGate
    CSwapGate
+   CSXGate
+   CUGate
    CU1Gate
    CU3Gate
    CXGate
@@ -42,8 +43,14 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    Measure
    MSGate
+   PhaseGate
    RCCXGate
    RC3XGate
    Reset
@@ -58,8 +65,11 @@ Standard Gates
    SdgGate
    SwapGate
    iSwapGate
+   SXGate
+   SXdgGate
    TGate
    TdgGate
+   UGate
    U1Gate
    U2Gate
    U3Gate
@@ -128,6 +138,14 @@ Comparators
 
    IntegerComparator
 
+Functions on binary variables
++++++++++++++++++++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QuadraticForm
+
 Particular Quantum Circuits
 ===========================
 
@@ -139,6 +157,8 @@ Particular Quantum Circuits
    HiddenLinearFunction
    IQP
    QuantumVolume
+   PhaseEstimation
+   GroverOperator
 
 
 N-local circuits
@@ -193,6 +213,7 @@ from .arithmetic import (
     PolynomialPauliRotations,
     IntegerComparator,
     WeightedAdder,
+    QuadraticForm,
 )
 from .n_local import (
     NLocal,
@@ -211,3 +232,5 @@ from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
+from .phase_estimation import PhaseEstimation
+from .grover_operator import GroverOperator

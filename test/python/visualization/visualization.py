@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -37,12 +35,12 @@ def _this_directory():
 class QiskitVisualizationTestCase(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
-    def assertFilesAreEqual(self, current, expected):
+    def assertFilesAreEqual(self, current, expected, encoding='cp437'):
         """Checks if both file are the same."""
         self.assertTrue(os.path.exists(current))
         self.assertTrue(os.path.exists(expected))
-        with open(current, "r", encoding='cp437') as cur, \
-                open(expected, "r", encoding='cp437') as exp:
+        with open(current, encoding=encoding) as cur, \
+                open(expected, encoding=encoding) as exp:
             self.assertEqual(cur.read(), exp.read())
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -390,7 +388,8 @@ class AstInterpreter:
             op = self._create_op(child_op.name, params=eparams)
             rules.append((op, qparams, []))
         circ = QuantumCircuit(qreg)
-        circ.data = rules
+        for instr, qargs, cargs in rules:
+            circ._append(instr, qargs, cargs)
         return circ
 
     def _create_dag_op(self, name, params, qargs):

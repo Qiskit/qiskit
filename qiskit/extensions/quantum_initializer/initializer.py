@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -25,7 +23,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.reset import Reset
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -113,12 +111,12 @@ class Initialize(Instruction):
                 add_last_cnot = False
 
             if np.linalg.norm(phis) != 0:
-                rz_mult = self._multiplex(RZGate, phis, last_cnot=add_last_cnot)
+                rz_mult = self._multiplex(U1Gate, phis, last_cnot=add_last_cnot)
                 circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
 
             if np.linalg.norm(thetas) != 0:
                 ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
-                circuit.append(ry_mult.to_instruction().mirror(), q[i:self.num_qubits])
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i:self.num_qubits])
 
         return circuit
 

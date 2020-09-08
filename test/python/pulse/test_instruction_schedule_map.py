@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -150,25 +148,6 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.qubits_with_instruction('tmp'), [])
         with self.assertRaises(PulseError):
             inst_map.pop('not_there', (0,))
-
-    def test_parameterized_schedule(self):
-        """Test adding parameterized schedule."""
-        converter = QobjToInstructionConverter([], buffer=0)
-        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P2*cos(np.pi*P1)')
-        converted_instruction = converter(qobj)
-
-        inst_map = InstructionScheduleMap()
-
-        inst_map.add('pv_test', 0, converted_instruction)
-        self.assertEqual(inst_map.get_parameters('pv_test', 0), ('P1', 'P2'))
-
-        with self.assertWarns(DeprecationWarning):
-            sched = inst_map.get('pv_test', 0, P1=0, P2=-1)
-        self.assertEqual(sched.instructions[0][-1].command.value, -1)
-        with self.assertRaises(PulseError):
-            inst_map.get('pv_test', 0, 0, P1=-1)
-        with self.assertRaises(PulseError):
-            inst_map.get('pv_test', 0, P1=1, P2=2, P3=3)
 
     def test_sequenced_parameterized_schedule(self):
         """Test parametrized schedule consists of multiple instruction. """
