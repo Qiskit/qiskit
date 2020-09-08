@@ -31,7 +31,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     """Qiskit latex source generator tests."""
 
     def test_empty_circuit(self):
-        """Test draw an empty circuit (edge case)."""
+        """Test draw an empty circuit"""
         filename = self._get_resource_path('test_tiny.tex')
         qc = QuantumCircuit(1)
         try:
