@@ -529,9 +529,11 @@ class QuantumCircuit:
         for element in rhs.qregs:
             if element not in self.qregs:
                 self.qregs.append(element)
+                self._qubits += element[:]
         for element in rhs.cregs:
             if element not in self.cregs:
                 self.cregs.append(element)
+                self._clbits += element[:]
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
