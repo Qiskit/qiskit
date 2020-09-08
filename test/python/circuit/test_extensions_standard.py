@@ -55,11 +55,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.barrier, (self.qr, 'a'))
         self.assertRaises(CircuitError, qc.barrier, .0)
 
-    def test_barrier_parameters(self):
-        barrier = Barrier(2)
-        with self.assertRaises(CircuitError):
-            barrier.params = [0, 1]
-
     def test_conditional_barrier_invalid(self):
         qc = self.circuit
         barrier = qc.barrier(self.qr)

@@ -75,6 +75,10 @@ class DiagonalGate(Gate):
         else:
             return complex(super().validate_parameter(parameter))
 
+    def inverse(self):
+        """Return the inverse of the diagonal gate."""
+        return DiagonalGate([np.conj(entry) for entry in self.params])
+
     def _dec_diag(self):
         """
         Call to create a circuit implementing the diagonal gate.
