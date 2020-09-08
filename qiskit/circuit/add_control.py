@@ -213,8 +213,8 @@ def control(operation: Union[Gate, ControlledGate],
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=controlled_circ,
-                                          ctrl_state=new_ctrl_state,
-                                          base_gate=base_gate)
+                                          ctrl_state=new_ctrl_state)
+    cgate.base_gate = base_gate
     cgate.base_gate.label = operation.label
     return cgate
 
