@@ -210,6 +210,15 @@ class DrawerCanvas:
                     for data in obj_generator(inst_data):
                         chart.add_data(data)
 
+            # add chart axis
+            chart_axis = types.ChartAxis(name=chart.name, channels=chart.channels)
+            for gen in self.generator['chart']:
+                obj_generator = partial(func=gen,
+                                        formatter=self.formatter,
+                                        device=self.device)
+                for data in obj_generator(chart_axis):
+                    chart.add_data(data)
+
             self.charts.append(chart)
 
         # create snapshot chart
@@ -332,15 +341,16 @@ class Chart:
         """
         self._parent = parent
 
-        self._waveform_collections = dict()
-        self._misc_collections = dict()
-
+        # data stored in this channel
+        self._collections = dict()
         self._output_dataset = dict()
 
+        # channel metadata
         self.index = self._cls_index()
         self.name = name or ''
         self.channels = set()
 
+        # vertical axis information
         self.vmax = 0
         self.vmin = 0
         self.scale = 1.0
@@ -356,10 +366,7 @@ class Chart:
         Args:
             data: New drawing object to add.
         """
-        if isinstance(data.data_type, types.DrawingWaveform):
-            self._waveform_collections[data.data_key] = data
-        else:
-            self._misc_collections[data.data_key] = data
+        self._collections[data.data_key] = data
 
     def load_program(self,
                      program: pulse.Schedule,
@@ -408,22 +415,24 @@ class Chart:
         self._output_dataset.clear()
 
         # assume no abstract coordinate in waveform data
-        for key, data in self._waveform_collections.items():
+        for key, data in self._collections.items():
             # truncate
-            trunc_x, trunc_y = self._truncate_data(xvals=data.xvals,
-                                                   yvals=data.yvals)
+            trunc_x, trunc_y = self._truncate_data(xvals=data.xvals, yvals=data.yvals)
+
             # no available data points
             if trunc_x.size == 0 or trunc_y.size == 0:
                 continue
 
-            # update y range
-            scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
-            self.vmax = max(scale * np.max(trunc_y),
-                            self.vmax,
-                            self._parent.formatter['channel_scaling.pos_spacing'])
-            self.vmin = min(scale * np.min(trunc_y),
-                            self.vmin,
-                            self._parent.formatter['channel_scaling.neg_spacing'])
+            # update vertical range if data is waveform
+            if isinstance(data.data_type, types.DrawingWaveform):
+                # update y range
+                scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
+                self.vmax = max(scale * np.max(trunc_y),
+                                self.vmax,
+                                self._parent.formatter['channel_scaling.pos_spacing'])
+                self.vmin = min(scale * np.min(trunc_y),
+                                self.vmin,
+                                self._parent.formatter['channel_scaling.neg_spacing'])
 
             # generate new data
             new_data = deepcopy(data)
@@ -438,35 +447,6 @@ class Chart:
                              self._parent.formatter['general.max_scale'])
         else:
             self.scale = 1.0
-
-        # regenerate chart axis objects, this may include updated scaling value
-        chart_axis = types.ChartAxis(name=self.name, scale=self.scale, channels=self.channels)
-        for gen in self._parent.generator['chart']:
-            obj_generator = partial(func=gen,
-                                    formatter=self._parent.formatter,
-                                    device=self._parent.device)
-            for data in obj_generator(chart_axis):
-                self.add_data(data)
-
-        # update other data
-        for key, data in self._misc_collections.items():
-            # truncate
-            trunc_x, trunc_y = self._truncate_data(xvals=self._bind_coordinate(data.xvals),
-                                                   yvals=self._bind_coordinate(data.yvals))
-            # no available data points
-            if trunc_x.size == 0 and trunc_y.size == 0:
-                continue
-
-            # generate new data
-            new_data = deepcopy(data)
-            new_data.xvals = trunc_x
-            new_data.yvals = trunc_y
-
-            self._output_dataset[key] = new_data
-
-            # return callback function to generate text with scaling value?
-            # how to generalize?
-            # isinstance(data, callback): generate obj
 
     @property
     def is_active(self):

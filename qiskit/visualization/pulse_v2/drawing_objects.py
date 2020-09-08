@@ -126,18 +126,41 @@ class ElementaryData(ABC):
         return isinstance(other, self.__class__) and self.data_key == other.data_key
 
 
-class FilledAreaData(ElementaryData):
-    """Drawing object to represent object appears as a filled area.
-
-    This is the counterpart of `matplotlib.axes.Axes.fill_between`.
-    """
-
-
 class LineData(ElementaryData):
     """Drawing object to represent object appears as a line.
 
     This is the counterpart of `matplotlib.pyploy.plot`.
     """
+    def __init__(self,
+                 data_type: str,
+                 xvals: Union[np.ndarray, List[types.Coordinate]],
+                 yvals: Union[np.ndarray, List[types.Coordinate]],
+                 fill: bool = False,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
+                 meta: Optional[Dict[str, Any]] = None,
+                 ignore_scaling: bool = False,
+                 styles: Optional[Dict[str, Any]] = None):
+        """Create new drawing object.
+
+        Args:
+            data_type: String representation of this drawing object.
+            channels: Pulse channel object bound to this drawing.
+            xvals: Series of horizontal coordinate that the object is drawn.
+            yvals: Series of vertical coordinate that the object is drawn.
+            fill: Set ``True`` to fill the area under curve.
+            meta: Meta data dictionary of the object.
+            ignore_scaling: Set ``True`` to disable scaling.
+            styles: Style keyword args of the object. This conforms to `matplotlib`.
+        """
+        self.fill = fill
+
+        super().__init__(data_type=data_type,
+                         xvals=xvals,
+                         yvals=yvals,
+                         channels=channels,
+                         meta=meta,
+                         ignore_scaling=ignore_scaling,
+                         styles=styles)
 
 
 class TextData(ElementaryData):

@@ -110,13 +110,13 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         re_yvals = re_y[re_valid_inds]
 
         # object
-        real = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.REAL,
-                                              channels=channel,
-                                              x=re_xvals,
-                                              y1=re_yvals,
-                                              y2=np.zeros_like(re_xvals),
-                                              meta=re_meta,
-                                              styles=re_style)
+        real = drawing_objects.LineData(data_type=types.DrawingWaveform.REAL,
+                                        channels=channel,
+                                        xvals=re_xvals,
+                                        yvals=re_yvals,
+                                        fill=True,
+                                        meta=re_meta,
+                                        styles=re_style)
         fill_objs.append(real)
 
     # create imaginary part
@@ -134,13 +134,13 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         im_yvals = im_y[im_valid_inds]
 
         # object
-        imag = drawing_objects.FilledAreaData(data_type=types.DrawingWaveform.IMAG,
-                                              channels=channel,
-                                              x=im_xvals,
-                                              y1=im_yvals,
-                                              y2=np.zeros_like(im_xvals),
-                                              meta=im_meta,
-                                              styles=im_style)
+        imag = drawing_objects.LineData(data_type=types.DrawingWaveform.IMAG,
+                                        channels=channel,
+                                        xvals=im_xvals,
+                                        yvals=im_yvals,
+                                        fill=True,
+                                        meta=im_meta,
+                                        styles=im_style)
         fill_objs.append(imag)
 
     return fill_objs
@@ -230,8 +230,8 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_NAME,
                                     channels=data.inst.channel,
-                                    x=data.t0 + 0.5 * data.inst.duration,
-                                    y=formatter['label_offset.pulse_name'],
+                                    xvals=[data.t0 + 0.5 * data.inst.duration],
+                                    yvals=[formatter['label_offset.pulse_name']],
                                     text=systematic_name,
                                     latex=latex_name,
                                     ignore_scaling=True,
@@ -297,8 +297,8 @@ def gen_waveform_max_value(data: types.PulseInstruction,
         re_style.update(style)
         re_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
                                            channels=data.inst.channel,
-                                           x=xdata[re_maxind],
-                                           y=ydata.real[re_maxind],
+                                           xvals=[xdata[re_maxind]],
+                                           yvals=[ydata.real[re_maxind]],
                                            text=max_val,
                                            ignore_scaling=True,
                                            styles=style)
@@ -316,8 +316,8 @@ def gen_waveform_max_value(data: types.PulseInstruction,
         im_style.update(style)
         im_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
                                            channels=data.inst.channel,
-                                           x=xdata[im_maxind],
-                                           y=ydata.imag[im_maxind],
+                                           xvals=[xdata[im_maxind]],
+                                           yvals=[ydata.imag[im_maxind]],
                                            text=max_val,
                                            ignore_scaling=True,
                                            styles=style)

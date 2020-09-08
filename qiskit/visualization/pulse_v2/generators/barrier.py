@@ -66,8 +66,8 @@ def gen_barrier(data: types.BarrierInstruction,
 
     line = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
                                     channels=data.channels,
-                                    x=[data.t0, data.t0],
-                                    y=[-1, 1],
+                                    xvals=[[data.t0, data.t0]],
+                                    yvals=[[-1, 1]],
                                     styles=style)
 
     return [line]

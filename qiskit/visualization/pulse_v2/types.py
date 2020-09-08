@@ -73,12 +73,10 @@ SnapshotInstruction.inst.__doc__ = 'Snapshot instruction.'
 ChartAxis = NamedTuple(
     'ChartAxis',
     [('name', str),
-     ('scale', float),
      ('channels', List[pulse.channels.Channel])]
 )
 ChartAxis.__doc__ = 'Data to represent an axis information of chart.'
 ChartAxis.name.__doc__ = 'Name of chart.'
-ChartAxis.scale.__doc__ = 'Current scaling value of chart.'
 ChartAxis.channels.__doc__ = 'Channels associated with chart.'
 
 
@@ -166,6 +164,14 @@ class AbstractCoordinate(str, Enum):
     LEFT = 'LEFT'
     TOP = 'TOP'
     BOTTOM = 'BOTTOM'
+
+
+class DynamicString(str, Enum):
+    """The string which is dynamically updated at the time of drawing.
+
+    SCALE: A temporal value of chart scaling factor.
+    """
+    SCALE = '$scale$'
 
 
 class WaveformChannel(pulse.channels.PulseChannel):
