@@ -13,7 +13,6 @@
 """Barrier instruction."""
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 
 
