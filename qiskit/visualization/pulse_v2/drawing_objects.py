@@ -99,7 +99,7 @@ class ElementaryData(ABC):
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         if channels and isinstance(channels, Channel):
-            channels = List[channels]
+            channels = [channels]
 
         self.data_type = data_type
         self.xvals = xvals

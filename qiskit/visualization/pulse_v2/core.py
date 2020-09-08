@@ -54,14 +54,12 @@ dynamic update of drawings, the channel data can be updated with new preference:
 In this example, `DriveChannel(1)` will be removed from the output.
 """
 
+from copy import deepcopy
 from functools import partial
 from itertools import chain
 from typing import Union, List, Tuple, Iterator, Optional
-from copy import deepcopy
-from collections import defaultdict
 
 import numpy as np
-
 from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawing_objects, device_info
@@ -119,8 +117,6 @@ class DrawerCanvas:
     def time_range(self, new_range: Tuple[int, int]):
         """Update time range to draw and update child charts."""
         self._time_range = new_range
-        for chart in self.charts:
-            chart.update()
 
     @property
     def time_breaks(self):
@@ -168,7 +164,7 @@ class DrawerCanvas:
                                            frame=types.PhaseFreqTuple(phase=0, freq=0),
                                            inst=fake_inst)
         for gen in self.generator['waveform']:
-            obj_generator = partial(func=gen,
+            obj_generator = partial(gen,
                                     formatter=self.formatter,
                                     device=self.device)
             for data in obj_generator(inst_data):
@@ -204,7 +200,7 @@ class DrawerCanvas:
             for t0, _ in barrier_sched.instructions:
                 inst_data = types.BarrierInstruction(t0, self.device.dt, chans)
                 for gen in self.generator['barrier']:
-                    obj_generator = partial(func=gen,
+                    obj_generator = partial(gen,
                                             formatter=self.formatter,
                                             device=self.device)
                     for data in obj_generator(inst_data):
@@ -213,7 +209,7 @@ class DrawerCanvas:
             # add chart axis
             chart_axis = types.ChartAxis(name=chart.name, channels=chart.channels)
             for gen in self.generator['chart']:
-                obj_generator = partial(func=gen,
+                obj_generator = partial(gen,
                                         formatter=self.formatter,
                                         device=self.device)
                 for data in obj_generator(chart_axis):
@@ -228,7 +224,7 @@ class DrawerCanvas:
         for t0, inst in snapshot_sched.instructions:
             inst_data = types.SnapshotInstruction(t0, self.device.dt, inst.label, inst.channels)
             for gen in self.generator['snapshot']:
-                obj_generator = partial(func=gen,
+                obj_generator = partial(gen,
                                         formatter=self.formatter,
                                         device=self.device)
                 for data in obj_generator(inst_data):
@@ -319,6 +315,14 @@ class DrawerCanvas:
         else:
             self.disable_types.discard(data_type)
 
+    def update(self):
+        """Update all associated charts and generate actual drawing data from template object.
+
+        This method should be called before the canvas is passed to the plotter.
+        """
+        for chart in self.charts:
+            chart.update()
+
 
 class Chart:
     """A collection of drawing object to be shown in the same line.
@@ -348,7 +352,7 @@ class Chart:
         # channel metadata
         self.index = self._cls_index()
         self.name = name or ''
-        self.channels = set()
+        self._channels = set()
 
         # vertical axis information
         self.vmax = 0
@@ -388,7 +392,7 @@ class Chart:
         # create objects associated with waveform
         waveforms = chan_events.get_waveforms()
         for gen in self._parent.generator['waveform']:
-            obj_generator = partial(func=gen,
+            obj_generator = partial(gen,
                                     formatter=self._parent.formatter,
                                     device=self._parent.device)
             drawings = [obj_generator(waveform) for waveform in waveforms]
@@ -398,14 +402,14 @@ class Chart:
         # create objects associated with frame change
         frames = chan_events.get_frame_changes()
         for gen in self._parent.generator['frame']:
-            obj_generator = partial(func=gen,
+            obj_generator = partial(gen,
                                     formatter=self._parent.formatter,
                                     device=self._parent.device)
             drawings = [obj_generator(frame) for frame in frames]
             for data in list(chain.from_iterable(drawings)):
                 self.add_data(data)
 
-        self.channels.add(chan)
+        self._channels.add(chan)
 
     def update(self):
         """Update vertical data range and scaling factor of this chart.
@@ -443,8 +447,10 @@ class Chart:
 
         # calculate chart level scaling factor
         if self._parent.formatter['control.auto_chart_scaling']:
-            self.scale = max(1.0 / (max(abs(self.vmax), abs(self.vmin))),
-                             self._parent.formatter['general.max_scale'])
+            max_val = max(abs(self.vmax),
+                          abs(self.vmin),
+                          self._parent.formatter['general.vertical_resolution'])
+            self.scale = min(1.0 / max_val, self._parent.formatter['general.max_scale'])
         else:
             self.scale = 1.0
 
@@ -470,27 +476,10 @@ class Chart:
             if self._check_visible(data):
                 yield unique_id, data
 
-    def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
-        """A helper function to bind actual coordinate to `AbstractCoordinate`.
-
-        Args:
-            vals: Sequence of coordinate object associated with a drawing object.
-        """
-        def substitute(val: types.Coordinate):
-            if val == types.AbstractCoordinate.LEFT:
-                return self._parent.time_range[0]
-            if val == types.AbstractCoordinate.RIGHT:
-                return self._parent.time_range[1]
-            if val == types.AbstractCoordinate.TOP:
-                return self.vmax
-            if val == types.AbstractCoordinate.BOTTOM:
-                return self.vmin
-            raise VisualizationError('Coordinate {name} is not supported.'.format(name=val))
-
-        try:
-            return np.asarray(vals, dtype=float)
-        except ValueError:
-            return np.asarray(list(map(substitute, vals)), dtype=float)
+    @property
+    def channels(self) -> List[pulse.channels.Channel]:
+        """Return a list of channels associated with this chart."""
+        return list(self._channels)
 
     def _truncate_data(self,
                        xvals: np.ndarray,
@@ -501,11 +490,11 @@ class Chart:
             xvals: Time points.
             yvals: Data points.
         """
-        t0, t1 = self._parent.time_breaks
+        t0, t1 = self._parent.time_range
         time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
 
-        trunc_xvals = [xvals]
-        trunc_yvals = [yvals]
+        trunc_xvals = [self._bind_coordinate(xvals)]
+        trunc_yvals = [self._bind_coordinate(yvals)]
         for t0, t1 in time_breaks:
             sub_xs = trunc_xvals.pop()
             sub_ys = trunc_yvals.pop()
@@ -533,13 +522,35 @@ class Chart:
 
         return np.concatenate(trunc_xvals), np.concatenate(trunc_yvals)
 
+    def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
+        """A helper function to bind actual coordinate to `AbstractCoordinate`.
+
+        Args:
+            vals: Sequence of coordinate object associated with a drawing object.
+        """
+        def substitute(val: types.Coordinate):
+            if val == types.AbstractCoordinate.LEFT:
+                return self._parent.time_range[0]
+            if val == types.AbstractCoordinate.RIGHT:
+                return self._parent.time_range[1]
+            if val == types.AbstractCoordinate.TOP:
+                return self.vmax
+            if val == types.AbstractCoordinate.BOTTOM:
+                return self.vmin
+            raise VisualizationError('Coordinate {name} is not supported.'.format(name=val))
+
+        try:
+            return np.asarray(vals, dtype=float)
+        except ValueError:
+            return np.asarray(list(map(substitute, vals)), dtype=float)
+
     def _check_visible(self, data: drawing_objects.ElementaryData) -> bool:
         """A helper function to check if the data is visible.
 
         Args:
             data: Drawing object to test.
         """
-        is_active_type = data.data_type in self._parent.disable_types
+        is_active_type = data.data_type not in self._parent.disable_types
         is_active_chan = any(chan not in self._parent.disable_chans for chan in data.channels)
         if not (is_active_type and is_active_chan):
             return False

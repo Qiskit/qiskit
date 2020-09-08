@@ -117,9 +117,9 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         # load frequencies
         chan_freqs = dict()
 
-        chan_freqs.update({pulse.DriveChannel(qind)
+        chan_freqs.update({pulse.DriveChannel(qind): freq
                            for qind, freq in enumerate(defaults.qubit_freq_est)})
-        chan_freqs.update({pulse.MeasureChannel(qind)
+        chan_freqs.update({pulse.MeasureChannel(qind): freq
                            for qind, freq in enumerate(defaults.meas_freq_est)})
         for qind, u_lo_mappers in enumerate(configuration.u_channel_lo):
             temp_val = .0 + .0j
@@ -130,11 +130,11 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         # load qubit channel mapping
         qubit_channel_map = defaultdict(list)
         for qind in range(configuration.n_qubits):
-            qubit_channel_map[qind].extend(configuration.drive(qind))
-            qubit_channel_map[qind].extend(configuration.measure(qind))
+            qubit_channel_map[qind].append(configuration.drive(qubit=qind))
+            qubit_channel_map[qind].append(configuration.measure(qubit=qind))
             for tind in range(configuration.n_qubits):
                 try:
-                    qubit_channel_map[qind].extend(configuration.control(qind, tind))
+                    qubit_channel_map[qind].extend(configuration.control(qubits=(qind, tind)))
                 except BackendConfigurationError:
                     pass
 

@@ -77,10 +77,7 @@ than plotting each operand value bound to the instruction.
 from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
 
-import numpy as np
-
 from qiskit import pulse
-from qiskit.visualization.pulse_v2 import PULSE_STYLE
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 
 

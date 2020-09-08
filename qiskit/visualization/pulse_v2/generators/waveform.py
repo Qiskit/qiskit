@@ -51,7 +51,7 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 def gen_filled_waveform_stepwise(data: types.PulseInstruction,
                                  formatter: Dict[str, Any],
                                  device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.FilledAreaData]:
+        -> List[drawing_objects.LineData]:
     """Generate filled area object of waveform envelope.
 
     The curve of envelope is not interpolated and presented as stepwise function.
@@ -65,7 +65,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         device: Backend configuration.
 
     Returns:
-        List of `FilledAreaData` drawing objects.
+        List of `LineData` drawing objects.
     """
     fill_objs = []
 

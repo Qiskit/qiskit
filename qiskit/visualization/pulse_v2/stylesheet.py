@@ -211,7 +211,7 @@ class IqxStandard(dict):
                                      generators.gen_channel_freqs],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier],
-                 'layout.channel': layouts.channel_index_grouped_sort_except_u}
+                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u}
         style.update(**kwargs)
         self.update(style)
 
@@ -244,7 +244,7 @@ class IqxPublication(dict):
                                      generators.gen_baseline],
                  'generator.snapshot': [],
                  'generator.barrier': [],
-                 'layout.channel': layouts.qubit_index_sort}
+                 'layout.chart_channel_map': layouts.qubit_index_sort}
         style.update(**kwargs)
         self.update(style)
 
@@ -284,7 +284,7 @@ class IqxDebugging(dict):
                  'generator.snapshot': [generators.gen_snapshot_symbol,
                                         generators.gen_snapshot_name],
                  'generator.barrier': [generators.gen_barrier],
-                 'layout.channel': layouts.channel_index_grouped_sort_except_u}
+                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u}
         style.update(**kwargs)
         self.update(style)
 
@@ -364,4 +364,4 @@ def default_style() -> Dict[str, Any]:
         'generator.channel': [],
         'generator.snapshot': [],
         'generator.barrier': [],
-        'layout.channel': None}
+        'layout.chart_channel_map': None}

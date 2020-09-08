@@ -39,7 +39,7 @@ Returned `ElementaryData` can be arbitrary subclass that is implemented in plott
 """
 from typing import Dict, Any, List
 
-from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info, core
+from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 
 def gen_baseline(data: types.ChartAxis,
