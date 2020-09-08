@@ -16,6 +16,7 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.test import QiskitTestCase
 
 
@@ -378,6 +379,64 @@ class TestDagCompose(QiskitTestCase):
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
 
         self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_condition_multiple_classical(self):
+        """Compose a circuit with more than one creg.
+
+                          ┌───┐              ┌───┐
+        q5_0:      q5_0: ─┤ H ├─      q5_0: ─┤ H ├─
+                          └─┬─┘              └─┬─┘
+                         ┌──┴──┐            ┌──┴──┐
+        c0:    +   c0: 1/╡ = 1 ╞   =  c0: 1/╡ = 1 ╞
+                         └─────┘            └─────┘
+        c1:        c1: 1/═══════      c1: 1/═══════
+        """
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/4964
+
+        qreg = QuantumRegister(1)
+        creg1 = ClassicalRegister(1)
+        creg2 = ClassicalRegister(1)
+
+        circuit_left = QuantumCircuit(qreg, creg1, creg2)
+        circuit_right = QuantumCircuit(qreg, creg1, creg2)
+        circuit_right.h(0).c_if(creg1, 1)
+
+        dag_left = circuit_to_dag(circuit_left)
+        dag_right = circuit_to_dag(circuit_right)
+
+        dag_composed = dag_left.compose(dag_right,
+                                        qubits=[0],
+                                        clbits=[0, 1],
+                                        inplace=False)
+
+        dag_expected = circuit_to_dag(circuit_right.copy())
+
+        self.assertEqual(dag_composed, dag_expected)
+
+    def test_compose_raises_if_splitting_condition_creg(self):
+        """Verify compose raises if a condition is mapped to more than one creg.
+
+                             ┌───┐
+        q_0:           q_0: ─┤ H ├─
+                             └─┬─┘
+        c0: 1/  +           ┌──┴──┐   = DAGCircuitError
+                       c: 2/╡ = 2 ╞
+        c1: 1/              └─────┘
+        """
+
+        qreg = QuantumRegister(1)
+        creg1 = ClassicalRegister(1)
+        creg2 = ClassicalRegister(1)
+
+        circuit_left = QuantumCircuit(qreg, creg1, creg2)
+
+        wide_creg = ClassicalRegister(2)
+
+        circuit_right = QuantumCircuit(qreg, wide_creg)
+        circuit_right.h(0).c_if(wide_creg, 2)
+
+        with self.assertRaisesRegex(DAGCircuitError, 'more than one creg'):
+            circuit_left.compose(circuit_right)
 
 
 if __name__ == '__main__':
