@@ -213,12 +213,14 @@ def cnot_synth(state, section_size=2):
     state = np.transpose(state)
     # Synthesize upper triangular part
     [state, circuit_u] = _lwr_cnot_synth(state, section_size)
-    circuit_l.reverse()
+    circuit_u.reverse()
     for i in circuit_u:
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
     circ = QuantumCircuit(state.shape[0])
-    for i in circuit_u + circuit_l:
+    # We want a circuit for the inverse of `state`, so we want the Gaussian
+    # elimination order of operations
+    for i in circuit_l + circuit_u:
         circ.cx(i[0], i[1])
     return circ
 
@@ -241,6 +243,13 @@ def _lwr_cnot_synth(state, section_size):
     Patel, Ketan N., Igor L. Markov, and John P. Hayes.
     Quantum Information & Computation 8.3 (2008): 282-294.
 
+    Matt's tweak:
+    To get decent performance out of PMH you need to play around with it a bit.
+    This version adds a simple "back reduce" that lets rows below the pivot
+    which have significant overlap with the pivot to be added back to the pivot.
+    The intuition is to avoid the situation where a high-weight pivot row is
+    propagated to other rows. Seems to work well in practice.
+
     Args:
         state (ndarray): n x n matrix, describing a linear quantum circuit
         section_size (int): the section size the matrix columns are divided into
@@ -251,11 +260,8 @@ def _lwr_cnot_synth(state, section_size):
     """
     circuit = []
     num_qubits = state.shape[0]
+    cutoff = 1
 
-    # If the matrix is already an upper triangular one,
-    # there is no need for any transformations
-    if np.allclose(state, np.triu(state)):
-        return [state, circuit]
     # Iterate over column sections
     for sec in range(1, int(np.ceil(num_qubits/section_size)+1)):
         # Remove duplicate sub-rows in section sec
@@ -284,6 +290,10 @@ def _lwr_cnot_synth(state, section_size):
                         diag_one = 1
                     state[row, :] ^= state[col, :]
                     circuit.append([col, row])
+                # Back reduce the pivot row using the current row
+                if sum(state[col, :] & state[row, :]) > cutoff:
+                    state[col, :] ^= state[row, :]
+                    circuit.append([row, col])
     return [state, circuit]
 
 
