@@ -22,6 +22,93 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.20.1
+*************
+
+Terra 0.15.2
+============
+
+.. _Release Notes_0.15.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- When accessing the ``definition`` attribute of a parameterized ``Gate``
+  instance, the generated ``QuantumCircuit`` had been generated with an invalid
+  ``ParameterTable``, such that reading from ``QuantumCircuit.parameters`` or
+  calling ``QuantumCircuit.bind_parameters`` would incorrectly report the
+  unbound parameters. This has been resolved.
+
+- ``SXGate().inverse()`` had previously returned an 'sx_dg' gate with a correct
+  ``definition`` but incorrect ``to_matrix``. This has been updated such that
+  ``SXGate().inverse()`` returns an ``SXdgGate()`` and vice versa.
+
+- ``Instruction.inverse()``, when not overridden by a subclass, would in some
+  cases return a ``Gate`` instance with an incorrect ``to_matrix`` method. The
+  instances of incorrect ``to_matrix`` methods have been removed.
+
+- For ``C3XGate`` with a non-zero ``angle``, inverting the gate via
+  ``C3XGate.inverse()`` had previously generated an incorrect inverse gate.
+  This has been corrected.
+
+- The ``MCXGate`` modes have been updated to return a gate of the same mode
+  when calling ``.inverse()``. This resolves an issue where in some cases,
+  transpiling a circuit containing the inverse of an ``MCXVChain`` gate would
+  raise an error.
+
+- Previously, when creating a multiply controlled phase gate via
+  ``PhaseGate.control``, an ``MCU1Gate`` gate had been returned. This has been
+  had corrected so that an ``MCPhaseGate`` is returned.
+
+- Previously, attempting to decompose a circuit containing an
+  ``MCPhaseGate`` would raise an error due to an inconsistency in the
+  definition of the ``MCPhaseGate``. This has been corrected.
+
+- ``QuantumCircuit.compose`` and ``DAGCircuit.compose`` had, in some cases,
+  incorrectly translated conditional gates if the input circuit contained
+  more than one ``ClassicalRegister``. This has been resolved.
+
+- Fixed an issue when creating a :class:`qiskit.result.Counts` object from an
+  empty data dictionary. Now this will create an empty
+  :class:`~qiskit.result.Counts` object. The
+  :meth:`~qiskit.result.Counts.most_frequent` method is also updated to raise
+  a more descriptive exception when the object is empty. Fixes
+  `#5017 <https://github.com/Qiskit/qiskit-terra/issues/5017>`__
+
+- Extending circuits with differing registers updated the ``qregs`` and
+  ``cregs`` properties accordingly, but not the ``qubits`` and ``clbits``
+  lists. As these are no longer generated from the registers but are cached
+  lists, this lead to a discrepancy of registers and bits. This has been
+  fixed and the ``extend`` method explicitly updates the cached bit lists.
+
+- Fix bugs of the concrete implementations of
+  meth:`~qiskit.circuit.ControlledGate.inverse` method which do not preserve
+  the ``ctrl_state`` parameter.
+
+- A bug was fixed that caused long pulse schedules to throw a recursion error.
+
+Aer 0.6.1
+=========
+
+No change
+
+Ignis 0.4.0
+===========
+
+No change
+
+Aqua 0.7.5
+==========
+
+No change
+
+IBM Q Provider 0.8.0
+====================
+
+No change
+
+
+*************
 Qiskit 0.20.0
 *************
 
