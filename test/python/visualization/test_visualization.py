@@ -30,6 +30,17 @@ logger = logging.getLogger(__name__)
 class TestLatexSourceGenerator(QiskitTestCase):
     """Qiskit latex source generator tests."""
 
+    def test_empty_circuit(self):
+        """Test draw an empty circuit"""
+        filename = self._get_resource_path('test_tiny.tex')
+        qc = QuantumCircuit(1)
+        try:
+            circuit_drawer(qc, filename=filename, output='latex_source')
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
+            if os.path.exists(filename):
+                os.remove(filename)
+
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path('test_tiny.tex')
