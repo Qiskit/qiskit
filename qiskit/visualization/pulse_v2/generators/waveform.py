@@ -304,7 +304,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
                                            yvals=[ydata.real[re_maxind]],
                                            text=max_val,
                                            ignore_scaling=True,
-                                           styles=style)
+                                           styles=re_style)
         texts.append(re_text)
 
     # max of imag part
@@ -323,7 +323,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
                                            yvals=[ydata.imag[im_maxind]],
                                            text=max_val,
                                            ignore_scaling=True,
-                                           styles=style)
+                                           styles=im_style)
         texts.append(im_text)
 
     return texts

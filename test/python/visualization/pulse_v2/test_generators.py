@@ -283,6 +283,44 @@ class TestWaveformGenerators(QiskitTestCase):
         self.assertEqual(obj.text, 'CR90p_d0_u0_1234567')
         self.assertEqual(obj.latex, r'\overline{\rm CR}(\frac{\pi}{4})')
 
+    def test_gen_waveform_max_value(self):
+        """Test gen_waveform_max_value."""
+        iqx_pulse = pulse.Waveform(samples=[0, 0.1, 0.3, -0.2j], name='test')
+        play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
+        inst_data = create_instruction(play, 0, 0, 0, 0.1)
+
+        objs = waveform.gen_waveform_max_value(inst_data,
+                                               formatter=self.formatter,
+                                               device=self.device)
+
+        # type check
+        self.assertEqual(type(objs[0]), drawing_objects.TextData)
+        self.assertEqual(type(objs[1]), drawing_objects.TextData)
+
+        # data check, real part, positive max
+        self.assertListEqual(objs[0].channels, [pulse.DriveChannel(0)])
+        self.assertEqual(objs[0].text, u'0.30\n\u25BE')
+
+        # style check
+        ref_style = {'zorder': self.formatter['layer.annotate'],
+                     'color': self.formatter['color.annotate'],
+                     'size': self.formatter['text_size.annotate'],
+                     'va': 'bottom',
+                     'ha': 'center'}
+        self.assertDictEqual(objs[0].styles, ref_style)
+
+        # data check, imaginary part, negative max
+        self.assertListEqual(objs[1].channels, [pulse.DriveChannel(0)])
+        self.assertEqual(objs[1].text, u'-0.20\n\u25B4')
+
+        # style check
+        ref_style = {'zorder': self.formatter['layer.annotate'],
+                     'color': self.formatter['color.annotate'],
+                     'size': self.formatter['text_size.annotate'],
+                     'va': 'top',
+                     'ha': 'center'}
+        self.assertDictEqual(objs[1].styles, ref_style)
+
 
 class TestChartGenerators(QiskitTestCase):
     """Tests for chart info generators."""
