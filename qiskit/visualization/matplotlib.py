@@ -288,8 +288,7 @@ class MatplotlibDrawer:
             # happens and may change in a future release of latex_to_text. It
             # also changes hyphen to + to match width of math mode minus sign.
             if param:
-                text = text.replace('\n    ', '')
-                text = text.replace('\n', '')
+                text = text.rstrip()
                 text = text.replace('-', '+')
 
             f = 0 if fontsize == self._style.fs else 1
