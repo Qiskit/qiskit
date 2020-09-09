@@ -492,23 +492,22 @@ class Chart:
         self.vmax = 0
         self.vmin = 0
 
-        # assume no abstract coordinate in waveform data
+        # waveform
         for key, data in self._collections.items():
-            # truncate
-            trunc_x, trunc_y = self._truncate_data(
-                xvals=self._bind_coordinate(data.xvals),
-                yvals=self._bind_coordinate(data.yvals))
+            if not isinstance(data.data_type, types.DrawingWaveform):
+                continue
+
+            # truncate, assume no abstract coordinate in waveform sample
+            trunc_x, trunc_y = self._truncate_data(xvals=data.xvals, yvals=data.yvals)
 
             # no available data points
             if trunc_x.size == 0 or trunc_y.size == 0:
                 continue
 
-            # update vertical range if data is waveform
-            if isinstance(data.data_type, types.DrawingWaveform):
-                # update y range
-                scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
-                self.vmax = max(scale * np.max(trunc_y), self.vmax)
-                self.vmin = min(scale * np.min(trunc_y), self.vmin)
+            # update y range
+            scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
+            self.vmax = max(scale * np.max(trunc_y), self.vmax)
+            self.vmin = min(scale * np.min(trunc_y), self.vmin)
 
             # generate new data
             new_data = deepcopy(data)
@@ -532,6 +531,27 @@ class Chart:
 
         self.vmin = min(self.scale * self.vmin,
                         self._parent.formatter['channel_scaling.neg_spacing'])
+
+        # other data
+        for key, data in self._collections.items():
+            if isinstance(data.data_type, types.DrawingWaveform):
+                continue
+
+            # truncate
+            trunc_x, trunc_y = self._truncate_data(
+                xvals=self._bind_coordinate(data.xvals),
+                yvals=self._bind_coordinate(data.yvals))
+
+            # no available data points
+            if trunc_x.size == 0 or trunc_y.size == 0:
+                continue
+
+            # generate new data
+            new_data = deepcopy(data)
+            new_data.xvals = trunc_x
+            new_data.yvals = trunc_y
+
+            self._output_dataset[key] = new_data
 
     @property
     def is_active(self):

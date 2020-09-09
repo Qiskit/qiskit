@@ -15,6 +15,8 @@
 r"""
 Stylesheet for pulse drawer.
 
+# TODO update docstring
+
 The stylesheet `QiskitPulseStyle` is initialized with the hard-corded default values in
 `default_style`. This instance is generated when the pulse drawer module is loaded so that
 every lower modules can access to the information.
@@ -368,7 +370,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.latex_symbol.snapshot': '',
         'generator.waveform': [],
         'generator.frame': [],
-        'generator.channel': [],
+        'generator.chart': [],
         'generator.snapshot': [],
         'generator.barrier': [],
         'layout.chart_channel_map': None,
