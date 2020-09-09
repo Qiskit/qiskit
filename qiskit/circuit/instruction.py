@@ -267,7 +267,20 @@ class Instruction:
         """
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
-        inverse_gate = self.copy(name=self.name + '_dg')
+
+        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        if self.num_clbits:
+            inverse_gate = Instruction(name=self.name + '_dg',
+                                       num_qubits=self.num_qubits,
+                                       num_clbits=self.num_clbits,
+                                       params=self.params.copy())
+
+        else:
+            inverse_gate = Gate(name=self.name + '_dg',
+                                num_qubits=self.num_qubits,
+                                params=self.params.copy())
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 
@@ -383,6 +396,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc._data = [(self, qargs[:], cargs[:])] * n
+            qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction

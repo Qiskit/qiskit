@@ -220,6 +220,9 @@ class QuantumCircuit:
         return str(self.draw(output='text'))
 
     def __eq__(self, other):
+        if not isinstance(other, QuantumCircuit):
+            return False
+
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
@@ -536,9 +539,11 @@ class QuantumCircuit:
         for element in rhs.qregs:
             if element not in self.qregs:
                 self.qregs.append(element)
+                self._qubits += element[:]
         for element in rhs.cregs:
             if element not in self.cregs:
                 self.cregs.append(element)
+                self._clbits += element[:]
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
@@ -2278,7 +2283,7 @@ class QuantumCircuit:
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params))] = schedule
+            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
 
 def _circuit_from_qasm(qasm):
