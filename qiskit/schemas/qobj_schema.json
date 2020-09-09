@@ -1116,6 +1116,11 @@
                         "pulse_library": {
                             "$ref": "#/definitions/pulse_library"
                         },
+                        "": {
+                            "minimum": 0,
+                            "description": "Delay between programs (microseconds).",
+                            "type": "number"
+                        },
                         "calibrations": {
                             "description": "User-specified pulse-level calibrations for operations utilized across all experiments in this job.",
                             "type": "object",
@@ -1229,7 +1234,7 @@
                             "description": "Execution time of program (microseconds).",
                             "type": "integer"
                         },
-                        "rep_delay": {
+                        "": {
                             "minimum": 0,
                             "description": "Delay between programs (microseconds).",
                             "type": "number"
