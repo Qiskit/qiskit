@@ -757,10 +757,10 @@ class TestTranspile(QiskitTestCase):
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
-    def test_transpile_calibrated_custom_gates(self):
-        """Transpile calibrated custom gates."""
-        custom_180 = Gate('mycustom', 1, [3.14])
-        custom_90 = Gate('mycustom', 1, [1.57])
+    def test_transpiled_custom_gates_calibration(self):
+        """Test if transpiled calibrations is equal to custom gates circuit calibrations."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
 
         circ = QuantumCircuit(2)
         circ.append(custom_180, [0])
@@ -775,12 +775,17 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(custom_180, [0], q0_x180)
         circ.add_calibration(custom_90, [1], q1_y90)
 
-        transpiled_circuit = transpile(circ, backend=FakeAlmaden())
-        self.assertEqual(transpiled_circuit.depth(), circ.depth())
-        self.assertEqual(transpiled_circuit.count_ops(), circ.count_ops())
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+            basis_gates=backend.configuration().basis_gates
+            + list(circ.calibrations.keys()),
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
 
-    def test_transpile_calibrated_basis_gates(self):
-        """Transpile calibrated basis gates."""
+    def test_transpiled_basis_gates_calibrations(self):
+        """Test if the transpiled calibrations is equal to basis gates circuit calibrations."""
         circ = QuantumCircuit(2)
         circ.h(0)
 
@@ -788,11 +793,16 @@ class TestTranspile(QiskitTestCase):
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
         # Add calibration
-        circ.add_calibration('h', [0], q0_x180)
+        circ.add_calibration("h", [0], q0_x180)
 
-        transpiled_circuit = transpile(circ, FakeAlmaden())
-        self.assertEqual(transpiled_circuit.depth(), circ.depth())
-        self.assertEqual(transpiled_circuit.count_ops(), circ.count_ops())
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+            basis_gates=backend.configuration().basis_gates
+            + list(circ.calibrations.keys()),
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
 
 
 class StreamHandlerRaiseException(StreamHandler):

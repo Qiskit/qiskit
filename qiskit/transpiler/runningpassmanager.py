@@ -102,6 +102,7 @@ class RunningPassManager:
             QuantumCircuit: Transformed circuit.
         """
         name = circuit.name
+        calibration = circuit.calibrations
         dag = circuit_to_dag(circuit)
         del circuit
 
@@ -118,6 +119,12 @@ class RunningPassManager:
         else:
             circuit.name = name
         circuit._layout = self.property_set['layout']
+        for gate_name, cals in calibration.items():
+            if isinstance(cals, dict):
+                for qubit_params, sched in cals.items():
+                    circuit.add_calibration(gate_name, qubit_params[0], sched, qubit_params[1])
+            else:
+                circuit.add_calibration(gate_name, list(cals.keys())[0][0], list(cals.items())[0], list(cals.keys())[0][1])
         return circuit
 
     def _do_pass(self, pass_, dag, options):

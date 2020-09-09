@@ -196,11 +196,6 @@ class QuantumCircuit:
         """
         return dict(self._calibrations)
 
-    @property
-    def calibration_gate_names(self):
-        """Return a list of gates that are calibrated."""
-        return list(self._calibrations.keys())
-
     @data.setter
     def data(self, data_input):
         """Sets the circuit data from a list of instructions and context.
