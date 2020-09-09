@@ -1116,7 +1116,7 @@
                         "pulse_library": {
                             "$ref": "#/definitions/pulse_library"
                         },
-                        "": {
+                        "rep_delay": {
                             "minimum": 0,
                             "description": "Delay between programs (microseconds).",
                             "type": "number"
@@ -1234,7 +1234,7 @@
                             "description": "Execution time of program (microseconds).",
                             "type": "integer"
                         },
-                        "": {
+                        "rep_delay": {
                             "minimum": 0,
                             "description": "Delay between programs (microseconds).",
                             "type": "number"
