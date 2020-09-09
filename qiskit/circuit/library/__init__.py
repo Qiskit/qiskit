@@ -162,6 +162,7 @@ Particular Quantum Circuits
    IQP
    QuantumVolume
    PhaseEstimation
+   GroverOperator
 
 
 N-local circuits
@@ -240,3 +241,4 @@ from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
+from .grover_operator import GroverOperator
