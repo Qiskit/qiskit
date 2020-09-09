@@ -17,41 +17,54 @@
 """
 Core module of the pulse drawer.
 
-This module provides the `DrawDataContainer` which is a collection of drawing objects
-with additional information such as the modulation frequency and the time resolution.
-In addition, this instance performs the simple data processing such as channel arrangement,
-auto scaling of channels, and truncation of long pulses when a program is loaded.
+This module provides the `DrawerCanvas` which is a collection of `Chart` object.
+The `Chart` object is a collection of drawing objects. A user can assign multiple channels
+to a single chart instance. For example, we can define a chart for specific qubit
+and assign all related channels to the chart. This chart-channel mapping is defined by
+the function specified by ``layout.chart_channel_map``.
 
-This class may be initialized with backend instance which plays the schedule,
-then a program is loaded and channel information is updated according to the preference:
+Because this chart instance is decoupled from the coordinate system of the plotter,
+we can arbitrary place the charts in the plotter canvas, i.e. if we want to create 3D plot,
+each chart may be placed on the X-Z plane and charts are arranged along Y axis.
+Thus this data model maximizes the flexibility to generate output image.
+
+The chart instance is not just a container of drawing objects, but it also performs
+data processing like biding abstract coordinate and truncating long pulse for axis break.
+Each chart object has `._parent` which points `DrawerCanvas` instance so that
+each child chart can refer to the global figure settings such as time range and axis break.
+
+
+Initialization:
+The `DataCanvas` and `Chart` are not exposed to users and they are implicitly
+initialized in the interface function. It is noteworthy that the data canvas is agnostic
+to plotters. This means once the canvas instance is initialized we can reuse this data
+among multiple plotters. The canvas is initialized with stylesheet and quantum backend
+information :py:class:~`qiskit.visualization.pulse_v2.device_info.DrawerBackendInfo`.
+Chart instances are automatically generated when pulse program is loaded.
 
     ```python
-    ddc = DrawDataContainer(backend)
-    ddc.load_program(sched)
-    ddc.update_channel_property(visible_channels=[DriveChannel(0), DriveChannel(1)])
+    canvas = DrawerCanvas(stylesheet=stylesheet, device=device)
+    canvas.load_program(sched)
+    canvas.update()
     ```
 
+Once all properties are set, `.update` method is called to apply changes to drawing objects.
 If the `DrawDataContainer` is initialized without backend information, the output shows
 the time in units of system cycle time `dt` and the frequencies are initialized to zero.
 
-This module is expected to be used by the pulse drawer interface and not exposed to users.
-
-The `DrawDataContainer` takes a schedule of pulse waveform data and converts it into
-a set of drawing objects, then a plotter interface takes the drawing objects
-from the container to call the plotter's API. The visualization of drawing objects can be
-customized with the stylesheet. The generated drawing objects can be accessed from
+Update:
+To update the image, a user can set new values to canvas and then call `.update` method.
 
     ```python
-    ddc.drawings
+    canvas.set_time_range(2000, 3000, seconds=False)
+    canvas.update()
     ```
 
-This module can be commonly used among different plotters. If the plotter supports
-dynamic update of drawings, the channel data can be updated with new preference:
-
-    ```python
-    ddc.update_channel_property(visible_channels=[DriveChannel(0)])
-    ```
-In this example, `DriveChannel(1)` will be removed from the output.
+All stored drawing objects are updated accordingly. The plotter API can access to
+drawing objects with `.collections` property of chart instance. This returns
+an iterator of drawing object with the unique data key.
+If a plotter provides object handler for plotted shapes, the plotter API can manage
+the lookup table of the handler and the drawing object by using this data key.
 """
 
 from copy import deepcopy

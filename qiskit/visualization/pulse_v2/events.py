@@ -67,7 +67,7 @@ For example:
     ```
 In this example, ``sched1`` and ``sched2`` will have different frames.
 On the drawer canvas, the total frame change amount of +3.14 should be shown for ``sched1``,
-while `sched2` is +1.57. Since the `SetPhase` and the `ShiftPhase` instruction behave
+while ``sched2`` is +1.57. Since the `SetPhase` and the `ShiftPhase` instruction behave
 differently, we cannot simply sum up the operand values in visualization output.
 
 It should be also noted that zero duration instructions issued at the same time will be

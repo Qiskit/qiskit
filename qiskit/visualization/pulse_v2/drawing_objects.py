@@ -26,44 +26,35 @@ Design concept
 ~~~~~~~~~~~~~~
 When we think about dynamically updating drawing objects, it will be most efficient to
 update only the changed properties of drawings rather than regenerating entirely from scratch.
-Thus the core drawing function generates all possible drawings in the beginning and
-then updates the visibility and the offset coordinate of each item according to
-the end-user request.
+Thus the core :py:class:`qiskit.visualization.pulse_v2.core.DrawerCanvas` generates
+all possible drawings in the beginning and then the canvas instance manages
+visibility of each drawing object according to the end-user request.
 
 Data key
 ~~~~~~~~
 In the abstract class ``ElementaryData`` common attributes to represent a drawing object are
 specified. In addition, drawing objects have the `data_key` property that returns an
 unique hash of the object for comparison.
-This property should be defined in each-subclass by considering necessary data set to
-identify that object while keeping sufficient flexibility for object to be updated.
-Thus, this is basically the combination of data type, channel and coordinate.
-See py:mod:`qiskit.visualization.pulse_v2.data_ypes` for the detail of data type.
+This key is generated from data type and location of the drawing object in the canvas.
+See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of data type.
 If a data key cannot distinguish two independent objects, you need to add new data type.
-
-The data key may be used in the plotter interface to identify the object instance
-which may be dynamically updated. For example, we may use a `TextData` instance
-to draw a scaling factor of certain channel. If we interactively change the scaling factor,
-the plotter interface should be able to find the old object instance and
-update the text field with new scaling factor. This example illustrates
-the reason that the data key should be insensitive to the text value.
-
+The data key may be used in the plotter interface to identify the object.
 
 Drawing objects
 ~~~~~~~~~~~~~~~
-To support not only `matplotlib` but also multiple plotters, those drawing objectss should be
+To support not only `matplotlib` but also multiple plotters, those drawing objects should be
 universal and designed without strong dependency on modules in `matplotlib`.
 This means drawing objects that represent primitive geometries are preferred.
-It should be noted that there will be no unittest for a plotter interface, which takes
-drawing objects and output an image data, we should avoid adding a complicated data structure
+It should be noted that there will be no unittest for each plotter API, which takes
+drawing objects and output an image data, we should avoid adding a complicated geometry
 that has a context of the pulse program.
 
 For example, a pulse envelope is complex valued number array and may be represented
 by two lines with different colors associated with the real and the imaginary component.
-In this case, we can use two line-type objects rather than defining a new drwaing object
-that takes complex value. Because many plotters don't support an API that visualizes
-complex valued data array. If we introduce such drawing object and write a custom wrapper function
-on top of the existing plotter API, it could be difficult to prevent bugs with the CI tools
+We can use two line-type objects rather than defining a new drawing object that takes
+complex value. Because many plotters don't support an API that visualizes complex valued
+data array. If we introduce such drawing object and write a custom wrapper function
+on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
 from abc import ABC, abstractmethod
