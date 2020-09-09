@@ -161,6 +161,7 @@ class QiskitPulseStyle(dict):
 
     @property
     def formatter(self):
+        """Return formatter field of style dictionary."""
         sub_dict = dict()
         for key, value in self.items():
             sub_keys = key.split('.')
@@ -170,6 +171,7 @@ class QiskitPulseStyle(dict):
 
     @property
     def generator(self):
+        """Return generator field of style dictionary."""
         sub_dict = dict()
         for key, value in self.items():
             sub_keys = key.split('.')
@@ -179,6 +181,7 @@ class QiskitPulseStyle(dict):
 
     @property
     def layout(self):
+        """Return layout field of style dictionary."""
         sub_dict = dict()
         for key, value in self.items():
             sub_keys = key.split('.')
@@ -213,7 +216,7 @@ class IqxStandard(dict):
                                      generators.gen_channel_freqs],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier],
-                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u,
+                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_u,
                  'layout.time_axis_map': layouts.time_map_in_ns}
         style.update(**kwargs)
         self.update(style)
@@ -290,7 +293,7 @@ class IqxDebugging(dict):
                  'generator.snapshot': [generators.gen_snapshot_symbol,
                                         generators.gen_snapshot_name],
                  'generator.barrier': [generators.gen_barrier],
-                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u,
+                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_u,
                  'layout.time_axis_map': layouts.time_map_in_ns}
         style.update(**kwargs)
         self.update(style)

@@ -124,10 +124,10 @@ class TestChannelArrangement(QiskitTestCase):
         self.assertListEqual(list(out_layout), ref)
 
     def test_channel_index_sort_grouped_control(self):
-        """Test channel_index_grouped_sort_except_u."""
-        out_layout = layouts.channel_index_grouped_sort_except_u(self.channels,
-                                                                 formatter=self.formatter,
-                                                                 device=self.device)
+        """Test channel_index_grouped_sort_u."""
+        out_layout = layouts.channel_index_grouped_sort_u(self.channels,
+                                                          formatter=self.formatter,
+                                                          device=self.device)
 
         ref_channels = [[pulse.DriveChannel(0)],
                         [pulse.DriveChannel(1)],

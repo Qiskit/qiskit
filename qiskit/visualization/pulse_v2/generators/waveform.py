@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """Waveform generators.
 
 A collection of functions that generate drawing object for input waveform type instructions.
@@ -153,7 +155,7 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
                                  formatter: Dict[str, Any],
                                  device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
-    """Generate formatted instruction name associated with the waveform.
+    r"""Generate formatted instruction name associated with the waveform.
 
     Channel name and id are removed and the rotation angle is expressed in units of pi.
     CR pulse name is also converted with the controlled rotation angle divided by 2.

@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """
 A collection of functions that decide the layout of a figure.
 
@@ -184,9 +186,9 @@ def channel_index_grouped_sort(channels: List[pulse.channels.Channel],
         yield chan.name.upper(), [chan]
 
 
-def channel_index_grouped_sort_except_u(channels: List[pulse.channels.Channel],
-                                        formatter: Dict[str, Any],
-                                        device: DrawerBackendInfo) \
+def channel_index_grouped_sort_u(channels: List[pulse.channels.Channel],
+                                 formatter: Dict[str, Any],
+                                 device: DrawerBackendInfo) \
         -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for channel arrangement.
 

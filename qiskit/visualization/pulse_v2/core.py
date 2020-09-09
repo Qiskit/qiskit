@@ -123,10 +123,13 @@ class DrawerCanvas:
         self._time_breaks = []
 
     @property
-    def time_range(self):
+    def time_range(self) -> Tuple[int, int]:
         """Return current time range to draw.
 
         Calculate net duration and add side margin to edge location.
+
+        Returns:
+            Time window considering side margin.
         """
         t0, t1 = self._time_range
 
@@ -147,7 +150,7 @@ class DrawerCanvas:
         self._time_range = new_range
 
     @property
-    def time_breaks(self):
+    def time_breaks(self) -> List[Tuple[int, int]]:
         """Return time breaks with time range.
 
         If an edge of time range is in the axis break period,
@@ -155,6 +158,9 @@ class DrawerCanvas:
 
         Raises:
             VisualizationError: When axis break is greater than time window.
+
+        Returns:
+            List of axis break periods considering the time window edges.
         """
         t0, t1 = self._time_range
 
@@ -163,6 +169,7 @@ class DrawerCanvas:
             if t0b >= t1 or t1b <= t0:
                 # skip because break period is outside of time window
                 continue
+
             if t0b < t0 and t1b > t1:
                 raise VisualizationError('Axis break is greater than time window. '
                                          'Nothing will be drawn.')
@@ -170,18 +177,12 @@ class DrawerCanvas:
                 if t1b - t0 > self.formatter['axis_break.length']:
                     new_t0 = t0 + 0.5 * self.formatter['axis_break.max_length']
                     axis_breaks.append((new_t0, t1b))
-                    continue
-                else:
-                    # skip because new break period is less than threshold
-                    continue
+                continue
             if t0b < t1 < t1b:
                 if t1 - t0b > self.formatter['axis_break.length']:
                     new_t1 = t1 - 0.5 * self.formatter['axis_break.max_length']
                     axis_breaks.append((t0b, new_t1))
-                    continue
-                else:
-                    # skip because new break period is less than threshold
-                    continue
+                continue
             axis_breaks.append((t0b, t1b))
 
         return axis_breaks
@@ -311,6 +312,9 @@ class DrawerCanvas:
 
         Args:
             program: A schedule to calculate axis break.
+
+        Returns:
+            List of axis break periods.
         """
         axis_breaks = []
 
@@ -554,8 +558,12 @@ class Chart:
             self._output_dataset[key] = new_data
 
     @property
-    def is_active(self):
-        """Check if there is any active waveform data in this entry."""
+    def is_active(self) -> bool:
+        """Check if there is any active waveform data in this entry.
+
+        Returns:
+            Return `True` if there is any visible waveform in this chart.
+        """
         for data in self._output_dataset.values():
             if isinstance(data.data_type, types.DrawingWaveform) and self._check_visible(data):
                 return True
@@ -577,7 +585,11 @@ class Chart:
 
     @property
     def channels(self) -> List[pulse.channels.Channel]:
-        """Return a list of channels associated with this chart."""
+        """Return a list of channels associated with this chart.
+
+        Returns:
+            List of channels associated with this chart.
+        """
         return list(self._channels)
 
     def _truncate_data(self,
@@ -588,6 +600,9 @@ class Chart:
         Args:
             xvals: Time points.
             yvals: Data points.
+
+        Returns:
+            Set of truncated numpy arrays for x and y coordinate.
         """
         t0, t1 = self._parent.time_range
         time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
@@ -639,6 +654,9 @@ class Chart:
 
         Args:
             vals: Sequence of coordinate object associated with a drawing object.
+
+        Returns:
+            Numpy data array with substituted values.
         """
         def substitute(val: types.Coordinate):
             if val == types.AbstractCoordinate.LEFT:
@@ -661,6 +679,9 @@ class Chart:
 
         Args:
             data: Drawing object to test.
+
+        Returns:
+            Return `True` if the data is visible.
         """
         is_active_type = data.data_type not in self._parent.disable_types
         is_active_chan = any(chan not in self._parent.disable_chans for chan in data.channels)
@@ -675,6 +696,6 @@ class Chart:
         cls.chart_index += 1
 
     @classmethod
-    def _cls_index(cls):
+    def _cls_index(cls) -> int:
         """Return counter index of the chart."""
         return cls.chart_index

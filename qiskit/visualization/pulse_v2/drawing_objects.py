@@ -57,11 +57,10 @@ data array. If we introduce such drawing object and write a custom wrapper funct
 on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
-
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse_v2 import types
 

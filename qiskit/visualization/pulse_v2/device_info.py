@@ -87,8 +87,7 @@ class DrawerBackendInfo(ABC):
         for qind, chans in self._qubit_channel_map.items():
             if chan in chans:
                 return qind
-        else:
-            return chan.index
+        return chan.index
 
     def get_channel_frequency(self, chan: pulse.channels.Channel) -> Union[float, None]:
         """Get frequency of given channel object."""
@@ -104,6 +103,9 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
         Args:
             backend: Backend object.
+
+        Returns:
+            OpenPulseBackendInfo: New configured instance.
         """
         configuration = backend.configuration()
         defaults = backend.defaults()

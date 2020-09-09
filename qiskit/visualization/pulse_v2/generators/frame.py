@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """Frame change generators.
 
 A collection of functions that generate drawing object for input frame change type instructions.
@@ -40,7 +42,6 @@ from fractions import Fraction
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
@@ -358,6 +359,9 @@ def _freq_to_text(freq: float, unit: str = 'MHz') -> Tuple[str, str]:
 
     Returns:
         Standard text and latex text of phase value.
+
+    Raises:
+        VisualizationError: When unsupported unit is specified.
     """
     unit_table = {'THz': 1e12, 'GHz': 1e9, 'MHz': 1e6, 'kHz': 1e3, 'Hz': 1}
 
