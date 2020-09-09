@@ -184,7 +184,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 
     for circuit in circuits:
         if len(circuit.calibrations) != 0:
-            basis_gates = circuit.calibration_name
+            basis_gates = circuit.calibration_gate_names
 
     if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,

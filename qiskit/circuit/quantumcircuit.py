@@ -197,8 +197,8 @@ class QuantumCircuit:
         return dict(self._calibrations)
 
     @property
-    def calibration_name(self):
-        """Return a list of calibration gate names."""
+    def calibration_gate_names(self):
+        """Return a list of gates that are calibrated."""
         return list(self._calibrations.keys())
 
     @data.setter
