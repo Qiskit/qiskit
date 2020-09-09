@@ -164,7 +164,7 @@ class GRY(GR):
     .. math::
 
         GRY(\theta) =
-        exp(-i \sum_{i=1}^{n} Y_i \theta/2)
+        \exp(-i \sum_{i=1}^{n} Y_i \theta/2)
 
     """
     def __init__(self,
