@@ -23,14 +23,14 @@ from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
 
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.circuit.library import CXGate
 from qiskit.test import QiskitTestCase, Path
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
+from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -756,6 +756,46 @@ class TestTranspile(QiskitTestCase):
 
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
+    def test_transpile_calibrated_custom_gates(self):
+        """Transpile calibrated custom gates."""
+        class CustomGate(Gate):
+            def __init__(self, theta):
+                super.__init__('mycustom', 1, [theta])
+        custom_180 = Gate('mycustom', 1, [3.14])
+        custom_90 = Gate('mycustom', 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.append(custom_180, [0])
+        circ.append(custom_90, [1])
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration(custom_180, [0], q0_x180)
+        circ.add_calibration(custom_90, [1], q1_y90)
+
+        transpiled_circuit = transpile(circ, backend=FakeAlmaden())
+        self.assertEqual(transpiled_circuit.depth(), circ.depth())
+        self.assertEqual(transpiled_circuit.count_ops(), circ.count_ops())
+
+    def test_transpile_calibrated_basis_gates(self):
+        """Transpile calibrated basis gates."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibration
+        circ.add_calibration('h', [0], q0_x180)
+
+        transpiled_circuit = transpile(circ, FakeAlmaden())
+        self.assertEqual(transpiled_circuit.depth(), circ.depth())
+        self.assertEqual(transpiled_circuit.count_ops(), circ.count_ops())
 
 
 class StreamHandlerRaiseException(StreamHandler):
