@@ -379,9 +379,9 @@ class TestCircuitAssembler(QiskitTestCase):
         with pulse.build() as x180:
             pulse.play(pulse.library.Gaussian(50, 0.2, 5), pulse.DriveChannel(1))
 
-        circ.add_calibration('h', [0], custom_h_schedule)
-        circ.add_calibration(RxGate(3.14), [0], x180)
-        circ.add_calibration(RxGate(3.14), [1], x180)
+        circ.def_calibration('h', [0], custom_h_schedule)
+        circ.def_calibration(RxGate(3.14), [0], x180)
+        circ.def_calibration(RxGate(3.14), [1], x180)
 
         qobj = assemble(circ, FakeOpenPulse2Q())
         # Only one circuit, so everything is stored at the job level
@@ -402,7 +402,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         circ = QuantumCircuit(2)
         circ.h(0)
-        circ.add_calibration('h', [0], custom_h_schedule)
+        circ.def_calibration('h', [0], custom_h_schedule)
 
         backend = FakeOpenPulse2Q()
         backend.configuration().parametric_pulses = ['drag']
@@ -418,8 +418,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.append(RxGate(3.14), [1])
-        circ.add_calibration('h', [0], dummy_sched)
-        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+        circ.def_calibration('h', [0], dummy_sched)
+        circ.def_calibration(RxGate(3.14), [1], dummy_sched)
 
         circ2 = QuantumCircuit(2)
         circ2.h(0)
@@ -438,12 +438,12 @@ class TestCircuitAssembler(QiskitTestCase):
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.append(RxGate(3.14), [1])
-        circ.add_calibration('h', [0], dummy_sched)
-        circ.add_calibration(RxGate(3.14), [1], dummy_sched)
+        circ.def_calibration('h', [0], dummy_sched)
+        circ.def_calibration(RxGate(3.14), [1], dummy_sched)
 
         circ2 = QuantumCircuit(2)
         circ2.h(0)
-        circ2.add_calibration(RxGate(3.14), [1], dummy_sched)
+        circ2.def_calibration(RxGate(3.14), [1], dummy_sched)
 
         qobj = assemble([circ, circ2], FakeOpenPulse2Q())
         # Identical pulses are only added once

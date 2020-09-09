@@ -21,7 +21,7 @@ features:
         circ.append(RxGate(3.14), [1])
 
     Then, the user must register the calibration with the gate via the circuit method
-    ``add_calibration``, which takes a schedule definition as well as the specific qubits
+    ``def_calibration``, which takes a schedule definition as well as the specific qubits
     and parameters that it is defined for::
 
         # Define the gate implementation as a schedule
@@ -32,8 +32,8 @@ features:
             pulse.play(pulse.library.Gaussian(...), pulse.DriveChannel(1))
 
         # Register the schedule to the gate
-        circ.add_calibration('h', [0], custom_h_schedule)  # or gate.name string to register
-        circ.add_calibration(RxGate(3.14), [0], q1_x180)   # Can accept gate
+        circ.def_calibration('h', [0], custom_h_schedule)  # or gate.name string to register
+        circ.def_calibration(RxGate(3.14), [0], q1_x180)   # Can accept gate
 
     Previously, this functionality could only be capitalized on through complete Pulse
     Schedules. With updates to the QASM Qobj and the assembler, jobs can now be sent as

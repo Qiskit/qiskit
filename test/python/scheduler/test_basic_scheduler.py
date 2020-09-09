@@ -312,8 +312,8 @@ class TestBasicSchedule(QiskitTestCase):
         qc.u2(0, 0, q[0])
         qc.barrier(q[0], q[1])
         qc.u2(0, 0, q[1])
-        qc.add_calibration('u2', [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
-        qc.add_calibration('u2', [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
+        qc.def_calibration('u2', [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
+        qc.def_calibration('u2', [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
 
         sched = schedule(qc, self.backend)
         expected = Schedule(
@@ -331,7 +331,7 @@ class TestBasicSchedule(QiskitTestCase):
 
         meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
         meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
-        qc.add_calibration('measure', [0], meas_sched)
+        qc.def_calibration('measure', [0], meas_sched)
 
         sched = schedule(qc, self.backend)
         expected = Schedule(
@@ -351,7 +351,7 @@ class TestBasicSchedule(QiskitTestCase):
             meas = (Play(Gaussian(1200, 0.2, 4), MeasureChannel(qubit))
                     + Acquire(1200, AcquireChannel(qubit), MemorySlot(qubit)))
             meas_scheds.append(meas)
-            qc.add_calibration('measure', [qubit], meas)
+            qc.def_calibration('measure', [qubit], meas)
 
         meas = macros.measure([1], FakeOpenPulse3Q())
         meas = meas.exclude(channels=[AcquireChannel(0), AcquireChannel(2)])
@@ -368,7 +368,7 @@ class TestBasicSchedule(QiskitTestCase):
 
         meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
         meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
-        qc.add_calibration('measure', [0], meas_sched)
+        qc.def_calibration('measure', [0], meas_sched)
 
         sched = schedule(qc, self.backend)
         # Doesn't use the calibrated schedule because the classical memory slots do not match

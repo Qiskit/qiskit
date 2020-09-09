@@ -625,8 +625,8 @@ class TestCircuitProperties(QiskitTestCase):
             pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
 
         # Add calibration
-        circ.add_calibration(RXGate(3.14), [0], q0_x180)
-        circ.add_calibration(RYGate(1.57), [1], q1_y90)
+        circ.def_calibration(RXGate(3.14), [0], q0_x180)
+        circ.def_calibration(RYGate(1.57), [1], q1_y90)
 
         self.assertEqual(set(circ.calibrations.keys()), {'rx', 'ry'})
         self.assertEqual(set(circ.calibrations['rx'].keys()), {((0,), (3.14,))})
@@ -644,7 +644,7 @@ class TestCircuitProperties(QiskitTestCase):
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
         # Add calibrations with a custom gate 'rxt'
-        circ.add_calibration('rxt', [0], q0_x180, params=[1.57, 3.14, 4.71])
+        circ.def_calibration('rxt', [0], q0_x180, params=[1.57, 3.14, 4.71])
 
         self.assertEqual(set(circ.calibrations.keys()), {'rxt'})
         self.assertEqual(set(circ.calibrations['rxt'].keys()), {((0,), (1.57, 3.14, 4.71))})
@@ -658,7 +658,7 @@ class TestCircuitProperties(QiskitTestCase):
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
 
-        circ.add_calibration('h', [0], q0_x180)
+        circ.def_calibration('h', [0], q0_x180)
 
         self.assertEqual(set(circ.calibrations.keys()), {'h'})
         self.assertEqual(set(circ.calibrations['h'].keys()), {((0,), ())})
