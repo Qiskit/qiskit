@@ -50,6 +50,7 @@ class TestCircuitAssembler(QiskitTestCase):
     """Tests for assembling circuits to qobj."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(2, name='q')
         cr = ClassicalRegister(2, name='c')
         self.circ = QuantumCircuit(qr, cr, name='circ')

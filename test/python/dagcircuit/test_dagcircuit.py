@@ -354,6 +354,7 @@ class TestDagNodeSelection(QiskitTestCase):
     """Test methods that select certain dag nodes"""
 
     def setUp(self):
+        super().setUp()
         self.dag = DAGCircuit()
         qreg = QuantumRegister(3, 'qr')
         creg = ClassicalRegister(2, 'cr')
@@ -1064,6 +1065,7 @@ class TestDagProperties(QiskitTestCase):
     """
 
     def setUp(self):
+        super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)
         circ = QuantumCircuit(qr1, qr2)
