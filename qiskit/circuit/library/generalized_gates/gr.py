@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Global R gates.
-"""
+"""Global R gates."""
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
