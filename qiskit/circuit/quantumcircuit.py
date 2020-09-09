@@ -1886,7 +1886,8 @@ class QuantumCircuit:
     def _bind_parameter(self, parameter, value):
         """Assigns a parameter value to matching instructions in-place."""
         for (instr, param_index) in self._parameter_table[parameter]:
-            instr.params[param_index] = instr.params[param_index].bind({parameter: value})
+            new_param = instr.params[param_index].bind({parameter: value})
+            instr.params[param_index] = instr.validate_parameter(new_param)
 
             # For instructions which have already been defined (e.g. composite
             # instructions), search the definition for instances of the

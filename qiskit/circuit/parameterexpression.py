@@ -67,7 +67,7 @@ class ParameterExpression():
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        self._raise_if_passed_non_real_value(parameter_values)
+        # self._raise_if_passed_non_real_value(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -195,11 +195,14 @@ class ParameterExpression():
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+        else:
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
-        else:
-            return NotImplemented
+        # elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+        #     parameter_symbols = self._parameter_symbols.copy()
+        #     other_expr = other
+        # else:
+        #     return NotImplemented
 
         if reflected:
             expr = operation(other_expr, self_expr)
