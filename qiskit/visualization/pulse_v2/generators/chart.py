@@ -128,10 +128,6 @@ def gen_chart_scale(data: types.ChartAxis,
     Returns:
         List of `TextData` drawing objects.
     """
-
-    if data.scale == 1:
-        return []
-
     style = {'zorder': formatter['layer.axis_label'],
              'color': formatter['color.axis_label'],
              'size': formatter['text_size.annotate'],

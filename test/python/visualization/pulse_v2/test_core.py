@@ -15,12 +15,11 @@
 """Tests for core modules of pulse drawer."""
 
 import numpy as np
-
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import events, core, layouts, stylesheet, device_info, drawing_objects, types
-from qiskit.visualization.pulse_v2.generators.waveform import gen_filled_waveform_stepwise
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.pulse_v2 import core, stylesheet, device_info, drawing_objects, types
+from qiskit.visualization.pulse_v2.generators.waveform import gen_filled_waveform_stepwise
 
 
 class TestChart(QiskitTestCase):

@@ -72,6 +72,9 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
     # generate waveform data
     parsed = _parse_waveform(data)
     channel = data.inst.channel
+    qubit = device.get_qubit_index(channel)
+    if qubit is None:
+        qubit = 'N/A'
     resolution = formatter['general.vertical_resolution']
 
     # phase modulation
@@ -103,7 +106,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         re_style = {'color': color_code.real}
         re_style.update(style)
         # metadata
-        re_meta = {'data': 'real', 'qubit': device.get_qubit_index(channel) or 'N/A'}
+        re_meta = {'data': 'real', 'qubit': qubit}
         re_meta.update(parsed.meta)
         # active xy data
         re_xvals = time[re_valid_inds]
@@ -127,7 +130,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         im_style = {'color': color_code.imaginary}
         im_style.update(style)
         # metadata
-        im_meta = {'data': 'imag', 'qubit': device.get_qubit_index(channel) or 'N/A'}
+        im_meta = {'data': 'imag', 'qubit': qubit}
         im_meta.update(parsed.meta)
         # active xy data
         im_xvals = time[im_valid_inds]

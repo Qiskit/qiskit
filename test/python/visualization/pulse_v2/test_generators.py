@@ -38,16 +38,16 @@ class TestWaveformGenerators(QiskitTestCase):
     def setUp(self) -> None:
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
-                pulse.DriveChannel(0): 5.0,
-                pulse.DriveChannel(1): 5.1,
-                pulse.MeasureChannel(0): 7.0,
-                pulse.MeasureChannel(1): 7.1,
-                pulse.ControlChannel(0): 5.0,
-                pulse.ControlChannel(1): 5.1
+                pulse.DriveChannel(0): 5.0e9,
+                pulse.DriveChannel(1): 5.1e9,
+                pulse.MeasureChannel(0): 7.0e9,
+                pulse.MeasureChannel(1): 7.1e9,
+                pulse.ControlChannel(0): 5.0e9,
+                pulse.ControlChannel(1): 5.1e9
             },
             qubit_channel_map={
                 0: [pulse.DriveChannel(0),
@@ -139,6 +139,7 @@ class TestWaveformGenerators(QiskitTestCase):
                     't0 (sec)': 0.5,
                     'phase': np.pi/2,
                     'frequency': 5e9,
+                    'qubit': 0,
                     'name': 'my_pulse',
                     'data': 'real'}
         self.assertDictEqual(objs[0].meta, ref_meta)
@@ -188,6 +189,7 @@ class TestWaveformGenerators(QiskitTestCase):
                     't0 (sec)': 0.5,
                     'phase': 0,
                     'frequency': 7e9,
+                    'qubit': 0,
                     'name': 'acquire',
                     'data': 'real'}
 
@@ -288,16 +290,16 @@ class TestChartGenerators(QiskitTestCase):
     def setUp(self) -> None:
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
-                pulse.DriveChannel(0): 5.0,
-                pulse.DriveChannel(1): 5.1,
-                pulse.MeasureChannel(0): 7.0,
-                pulse.MeasureChannel(1): 7.1,
-                pulse.ControlChannel(0): 5.0,
-                pulse.ControlChannel(1): 5.1
+                pulse.DriveChannel(0): 5.0e9,
+                pulse.DriveChannel(1): 5.1e9,
+                pulse.MeasureChannel(0): 7.0e9,
+                pulse.MeasureChannel(1): 7.1e9,
+                pulse.ControlChannel(0): 5.0e9,
+                pulse.ControlChannel(1): 5.1e9
             },
             qubit_channel_map={
                 0: [pulse.DriveChannel(0),
@@ -338,20 +340,19 @@ class TestChartGenerators(QiskitTestCase):
                      'color': self.formatter['color.baseline']}
         self.assertDictEqual(obj.styles, ref_style)
 
-    def test_gen_latex_channel_name(self):
-        """Test gen_latex_channel_name."""
+    def test_gen_chart_name(self):
+        """Test gen_chart_name."""
         channel_info = types.ChartAxis(name='D0', channels=[pulse.DriveChannel(0)])
 
-        obj = chart.gen_chart_scale(channel_info,
-                                    formatter=self.formatter,
-                                    device=self.device)[0]
+        obj = chart.gen_chart_name(channel_info,
+                                   formatter=self.formatter,
+                                   device=self.device)[0]
 
         # type check
         self.assertEqual(type(obj), drawing_objects.TextData)
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.latex, 'D_{0}')
         self.assertEqual(obj.text, 'D0')
 
         # style check
@@ -398,7 +399,7 @@ class TestChartGenerators(QiskitTestCase):
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.text, '5.00 GHz'.format(scale=types.DynamicString.SCALE))
+        self.assertEqual(obj.text, '5.00 GHz')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.axis_label'],
@@ -415,16 +416,16 @@ class TestFrameGenerators(QiskitTestCase):
     def setUp(self) -> None:
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
-                pulse.DriveChannel(0): 5.0,
-                pulse.DriveChannel(1): 5.1,
-                pulse.MeasureChannel(0): 7.0,
-                pulse.MeasureChannel(1): 7.1,
-                pulse.ControlChannel(0): 5.0,
-                pulse.ControlChannel(1): 5.1
+                pulse.DriveChannel(0): 5.0e9,
+                pulse.DriveChannel(1): 5.1e9,
+                pulse.MeasureChannel(0): 7.0e9,
+                pulse.MeasureChannel(1): 7.1e9,
+                pulse.ControlChannel(0): 5.0e9,
+                pulse.ControlChannel(1): 5.1e9
             },
             qubit_channel_map={
                 0: [pulse.DriveChannel(0),
@@ -441,21 +442,21 @@ class TestFrameGenerators(QiskitTestCase):
         """Test helper function to convert phase to text."""
         plain, latex = frame._phase_to_text(np.pi, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi')
-        self.assertEqual(plain, r'-\pi')
+        self.assertEqual(latex, r'-\pi')
 
         plain, latex = frame._phase_to_text(np.pi/2, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi/2')
-        self.assertEqual(plain, r'-\frac{pi}{2}')
+        self.assertEqual(latex, r'-\frac{\pi}{2}')
 
         plain, latex = frame._phase_to_text(np.pi*3/4, max_denom=10, flip=True)
         self.assertEqual(plain, '-3/4 pi')
-        self.assertEqual(plain, r'-\frac{3}{4}\pi')
+        self.assertEqual(latex, r'-\frac{3}{4}\pi')
 
     def test_frequency_to_text(self):
         """Test helper function to convert frequency to text."""
         plain, latex = frame._freq_to_text(1e6, unit='MHz')
         self.assertEqual(plain, '1.00 MHz')
-        self.assertEqual(plain, r'1.00~{\rm MHz}')
+        self.assertEqual(latex, r'1.00~{\rm MHz}')
 
     def test_gen_formatted_phase(self):
         """Test gen_formatted_phase."""
@@ -529,9 +530,9 @@ class TestFrameGenerators(QiskitTestCase):
                pulse.ShiftFrequency(1e6, pulse.DriveChannel(0))]
         inst_data = create_instruction(fcs, np.pi/2, 1e6, 5, 0.1)
 
-        obj = frame.gen_formatted_frame_values(inst_data,
-                                               formatter=self.formatter,
-                                               device=self.device)[0]
+        obj = frame.gen_raw_operand_values_compact(inst_data,
+                                                   formatter=self.formatter,
+                                                   device=self.device)[0]
 
         # type check
         self.assertEqual(type(obj), drawing_objects.TextData)
@@ -583,16 +584,16 @@ class TestSnapshotGenerators(QiskitTestCase):
     def setUp(self) -> None:
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
-                pulse.DriveChannel(0): 5.0,
-                pulse.DriveChannel(1): 5.1,
-                pulse.MeasureChannel(0): 7.0,
-                pulse.MeasureChannel(1): 7.1,
-                pulse.ControlChannel(0): 5.0,
-                pulse.ControlChannel(1): 5.1
+                pulse.DriveChannel(0): 5.0e9,
+                pulse.DriveChannel(1): 5.1e9,
+                pulse.MeasureChannel(0): 7.0e9,
+                pulse.MeasureChannel(1): 7.1e9,
+                pulse.ControlChannel(0): 5.0e9,
+                pulse.ControlChannel(1): 5.1e9
             },
             qubit_channel_map={
                 0: [pulse.DriveChannel(0),
@@ -625,7 +626,7 @@ class TestSnapshotGenerators(QiskitTestCase):
         # style check
         ref_style = {'zorder': self.formatter['layer.snapshot'],
                      'color': self.formatter['color.snapshot'],
-                     'size': self.formatter['text_size.snapshot'],
+                     'size': self.formatter['text_size.annotate'],
                      'va': 'bottom',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
@@ -671,16 +672,16 @@ class TestBarrierGenerators(QiskitTestCase):
     def setUp(self) -> None:
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
-                pulse.DriveChannel(0): 5.0,
-                pulse.DriveChannel(1): 5.1,
-                pulse.MeasureChannel(0): 7.0,
-                pulse.MeasureChannel(1): 7.1,
-                pulse.ControlChannel(0): 5.0,
-                pulse.ControlChannel(1): 5.1
+                pulse.DriveChannel(0): 5.0e9,
+                pulse.DriveChannel(1): 5.1e9,
+                pulse.MeasureChannel(0): 7.0e9,
+                pulse.MeasureChannel(1): 7.1e9,
+                pulse.ControlChannel(0): 5.0e9,
+                pulse.ControlChannel(1): 5.1e9
             },
             qubit_channel_map={
                 0: [pulse.DriveChannel(0),

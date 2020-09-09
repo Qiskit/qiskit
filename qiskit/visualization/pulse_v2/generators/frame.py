@@ -91,7 +91,7 @@ def gen_formatted_phase(data: types.PulseInstruction,
                                     xvals=[data.t0],
                                     yvals=[formatter['label_offset.frame_change']],
                                     text='VZ({phase})'.format(phase=plain_phase),
-                                    latex=r'{{\rm VZ}({phase})'.format(phase=latex_phase),
+                                    latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
                                     ignore_scaling=True,
                                     styles=style)
 
