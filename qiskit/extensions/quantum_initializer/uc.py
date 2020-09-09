@@ -96,6 +96,23 @@ class UCGate(Gate):
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
 
+    def inverse(self):
+        """Return the inverse.
+
+        This does not re-compute the decomposition for the multiplexer with the inverse of the
+        gates but simply inverts the existing decomposition.
+        """
+        # need to convert to list, np.ndarrary is deprecated as type
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
+
+        return inverse_gate
+
     def _get_diagonal(self):
         # Important: for a control list q_controls = [q[0],...,q_[k-1]] the
         # diagonal gate is provided in the computational basis of the qubits
