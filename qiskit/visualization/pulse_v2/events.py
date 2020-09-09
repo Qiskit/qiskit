@@ -188,7 +188,7 @@ class ChannelEvents:
     def _calculate_current_frame(frame_changes: List[pulse.instructions.Instruction],
                                  phase: float,
                                  frequency: float) -> Tuple[float, float]:
-        """Calculate current frame from previous frame.
+        """Calculate the current frame from the previous frame.
 
         Args:
             frame_changes: List of frame change instructions at a specific time.
