@@ -759,9 +759,6 @@ class TestTranspile(QiskitTestCase):
 
     def test_transpile_calibrated_custom_gates(self):
         """Transpile calibrated custom gates."""
-        class CustomGate(Gate):
-            def __init__(self, theta):
-                super.__init__('mycustom', 1, [theta])
         custom_180 = Gate('mycustom', 1, [3.14])
         custom_90 = Gate('mycustom', 1, [1.57])
 
