@@ -91,6 +91,7 @@ class TestUseCases(SchedulerTestCase):
     in the right order."""
 
     def setUp(self):
+        super().setUp()
         self.circuit = QuantumCircuit(QuantumRegister(1))
         self.passmanager = PassManager()
 
@@ -422,6 +423,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
     """Testing the control flow plugin system."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -539,6 +541,7 @@ class TestLogPasses(QiskitTestCase):
     """Testing the log_passes option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()
@@ -612,6 +615,7 @@ class TestPassManagerReuse(SchedulerTestCase):
     """The PassManager instance should be reusable."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -699,6 +703,7 @@ class TestPassManagerChanges(SchedulerTestCase):
     """Test PassManager manipulation with changes"""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -791,6 +796,7 @@ class TestPassManagerSlicing(SchedulerTestCase):
     """test PassManager slicing."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
@@ -919,6 +925,7 @@ class TestPassManagerConcatenation(SchedulerTestCase):
     """test PassManager concatenation by + operator."""
 
     def setUp(self):
+        super().setUp()
         self.passmanager1 = PassManager()
         self.passmanager2 = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
