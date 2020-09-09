@@ -194,7 +194,7 @@ def gen_channel_freqs(data: types.ChartAxis,
                                     channels=data.channels,
                                     xvals=[types.AbstractCoordinate.LEFT],
                                     yvals=[formatter['label_offset.scale_factor']],
-                                    text=freq_text or '---',
+                                    text=freq_text or 'n/a',
                                     ignore_scaling=True,
                                     styles=style)
 

@@ -19,7 +19,7 @@ Special data types.
 import numpy as np
 
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any
+from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 
 from qiskit import pulse
 
@@ -101,6 +101,20 @@ ParsedInstruction.yvals.__doc__ = 'Numpy array of y axis data.'
 ParsedInstruction.meta.__doc__ = 'Dictionary containing instruction details.'
 
 
+HorizontalAxis = NamedTuple(
+    'HorizontalAxis',
+    [('window', Tuple[int, int]),
+     ('axis_map', Dict[int, int]),
+     ('axis_break_pos', List[int]),
+     ('label', str)]
+)
+HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
+HorizontalAxis.window.__doc__ = "Left and right edge of graph."
+HorizontalAxis.axis_map.__doc__ = 'Mapping of apparent coordinate system and actual location.'
+HorizontalAxis.axis_break_pos.__doc__ = "Locations of axis break."
+HorizontalAxis.label.__doc__ = "Label of horizontal axis."
+
+
 class DrawingWaveform(str, Enum):
     """
     Waveform data type.
@@ -171,7 +185,7 @@ class DynamicString(str, Enum):
 
     SCALE: A temporal value of chart scaling factor.
     """
-    SCALE = '$scale$'
+    SCALE = '@scale'
 
 
 class WaveformChannel(pulse.channels.PulseChannel):

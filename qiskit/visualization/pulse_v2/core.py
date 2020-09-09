@@ -95,6 +95,7 @@ class DrawerCanvas:
         self.device = device
 
         # chart
+        self.global_charts = Chart(parent=self, name='global')
         self.charts = []
 
         # visible controls
@@ -111,17 +112,63 @@ class DrawerCanvas:
     @property
     def time_range(self):
         """Return current time range to draw."""
-        return self._time_range
+        t0, t1 = self._time_range
+
+        total_time_elimination = 0
+        for t0b, t1b in self.time_breaks:
+            if t1b > t0 and t0b < t1:
+                total_time_elimination += t1b - t0b
+        net_duration = t1 - t0 - total_time_elimination
+
+        new_t0 = t0 - net_duration * self.formatter['margin.left_percent']
+        new_t1 = t1 + net_duration * self.formatter['margin.right_percent']
+
+        return new_t0, new_t1
 
     @time_range.setter
     def time_range(self, new_range: Tuple[int, int]):
-        """Update time range to draw and update child charts."""
+        """Update time range to draw."""
         self._time_range = new_range
 
     @property
     def time_breaks(self):
-        """Return time breaks with time range."""
-        return self._time_breaks
+        """Return time breaks with time range.
+
+        If an edge of time range is in the axis break period,
+        the axis break period is recalculated.
+
+        Raises:
+            VisualizationError: When axis break is greater than time window.
+        """
+        t0, t1 = self._time_range
+
+        axis_breaks = []
+        for t0b, t1b in self._time_breaks:
+            if t0b > t1 or t1b < t0:
+                # skip because break period is outside of time window
+                continue
+            if t0b < t0 and t1b > t1:
+                raise VisualizationError('Axis break is greater than time window. '
+                                         'Nothing will be drawn.')
+            if t0b < t0 < t1b:
+                if t1b - t0 > self.formatter['axis_break.length']:
+                    new_t0 = t0 + 0.5 * self.formatter['axis_break.max_length']
+                    axis_breaks.append((new_t0, t1b))
+                    continue
+                else:
+                    # skip because new break period is less than threshold
+                    continue
+            if t0b < t1 < t1b:
+                if t1 - t0b > self.formatter['axis_break.length']:
+                    new_t1 = t1 - 0.5 * self.formatter['axis_break.max_length']
+                    axis_breaks.append((t0b, new_t1))
+                    continue
+                else:
+                    # skip because new break period is less than threshold
+                    continue
+            axis_breaks.append((t0b, t1b))
+
+        return axis_breaks
 
     @time_breaks.setter
     def time_breaks(self, new_breaks: List[Tuple[int, int]]):
@@ -145,7 +192,7 @@ class DrawerCanvas:
             raise VisualizationError('Data type %s is not supported.' % type(program))
 
         # update time range
-        self.set_time_range(0, program.duration)
+        self.set_time_range(0, program.duration, seconds=False)
 
     def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
         """Load Waveform instance.
@@ -181,13 +228,25 @@ class DrawerCanvas:
             program: `Schedule` to draw.
         """
         # initialize scale values
-        self.chan_scales = {chan: 1.0 for chan in program.channels}
+        self.chan_scales = {}
+        for chan in program.channels:
+            if isinstance(chan, pulse.channels.DriveChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.drive']
+            elif isinstance(chan, pulse.channels.MeasureChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.measure']
+            elif isinstance(chan, pulse.channels.ControlChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.control']
+            elif isinstance(chan, pulse.channels.AcquireChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.acquire']
+            else:
+                self.chan_scales[chan] = 1.0
 
         # create charts
         mapper = self.layout['chart_channel_map']
         for name, chans in mapper(channels=program.channels,
                                   formatter=self.formatter,
                                   device=self.device):
+
             chart = Chart(parent=self, name=name)
 
             # add standard pulse instructions
@@ -217,9 +276,7 @@ class DrawerCanvas:
 
             self.charts.append(chart)
 
-        # create snapshot chart
-        snapshot_chart = Chart(parent=self, name='snapshot')
-
+        # add snapshot data to global
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.Snapshot])
         for t0, inst in snapshot_sched.instructions:
             inst_data = types.SnapshotInstruction(t0, self.device.dt, inst.label, inst.channels)
@@ -228,8 +285,7 @@ class DrawerCanvas:
                                         formatter=self.formatter,
                                         device=self.device)
                 for data in obj_generator(inst_data):
-                    snapshot_chart.add_data(data)
-        self.charts.append(snapshot_chart)
+                    self.global_charts.add_data(data)
 
         # calculate axis break
         self.time_breaks = self._calculate_axis_break(program)
@@ -390,8 +446,8 @@ class Chart:
                            init_phase=0)
 
         # create objects associated with waveform
-        waveforms = chan_events.get_waveforms()
         for gen in self._parent.generator['waveform']:
+            waveforms = chan_events.get_waveforms()
             obj_generator = partial(gen,
                                     formatter=self._parent.formatter,
                                     device=self._parent.device)
@@ -400,8 +456,8 @@ class Chart:
                 self.add_data(data)
 
         # create objects associated with frame change
-        frames = chan_events.get_frame_changes()
         for gen in self._parent.generator['frame']:
+            frames = chan_events.get_frame_changes()
             obj_generator = partial(gen,
                                     formatter=self._parent.formatter,
                                     device=self._parent.device)
@@ -417,11 +473,15 @@ class Chart:
         Those parameters are updated based on current time range in the parent canvas.
         """
         self._output_dataset.clear()
+        self.vmax = 0
+        self.vmin = 0
 
         # assume no abstract coordinate in waveform data
         for key, data in self._collections.items():
             # truncate
-            trunc_x, trunc_y = self._truncate_data(xvals=data.xvals, yvals=data.yvals)
+            trunc_x, trunc_y = self._truncate_data(
+                xvals=self._bind_coordinate(data.xvals),
+                yvals=self._bind_coordinate(data.yvals))
 
             # no available data points
             if trunc_x.size == 0 or trunc_y.size == 0:
@@ -431,12 +491,8 @@ class Chart:
             if isinstance(data.data_type, types.DrawingWaveform):
                 # update y range
                 scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
-                self.vmax = max(scale * np.max(trunc_y),
-                                self.vmax,
-                                self._parent.formatter['channel_scaling.pos_spacing'])
-                self.vmin = min(scale * np.min(trunc_y),
-                                self.vmin,
-                                self._parent.formatter['channel_scaling.neg_spacing'])
+                self.vmax = max(scale * np.max(trunc_y), self.vmax)
+                self.vmin = min(scale * np.min(trunc_y), self.vmin)
 
             # generate new data
             new_data = deepcopy(data)
@@ -453,6 +509,13 @@ class Chart:
             self.scale = min(1.0 / max_val, self._parent.formatter['general.max_scale'])
         else:
             self.scale = 1.0
+
+        # update vertical range with scalign and limitation
+        self.vmax = max(self.scale * self.vmax,
+                        self._parent.formatter['channel_scaling.pos_spacing'])
+
+        self.vmin = min(self.scale * self.vmin,
+                        self._parent.formatter['channel_scaling.neg_spacing'])
 
     @property
     def is_active(self):
@@ -493,12 +556,16 @@ class Chart:
         t0, t1 = self._parent.time_range
         time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
 
-        trunc_xvals = [self._bind_coordinate(xvals)]
-        trunc_yvals = [self._bind_coordinate(yvals)]
+        trunc_xvals = [xvals]
+        trunc_yvals = [yvals]
         for t0, t1 in time_breaks:
             sub_xs = trunc_xvals.pop()
             sub_ys = trunc_yvals.pop()
-            trunc_inds = np.where((sub_xs > t0) & (sub_xs < t1), True, False)
+            try:
+                trunc_inds = np.where((sub_xs > t0) & (sub_xs < t1), True, False)
+            except TypeError:
+                # abstract coordinate is included
+                return sub_xs, sub_ys
             # no overlap
             if not np.any(trunc_inds):
                 trunc_xvals.append(sub_xs)
@@ -520,7 +587,16 @@ class Chart:
                 trunc_xvals.append(np.insert(sub_xs[ind_r], 0, t1))
                 trunc_yvals.append(np.insert(sub_ys[ind_r], 0, np.interp(t1, sub_xs, sub_ys)))
 
-        return np.concatenate(trunc_xvals), np.concatenate(trunc_yvals)
+        new_x = np.concatenate(trunc_xvals)
+        new_y = np.concatenate(trunc_yvals)
+
+        # shift time axis
+        offset_accumulation = 0
+        for t0, t1 in time_breaks[1:-1]:
+            offset_accumulation += t1 - t0
+            new_x = np.where(new_x > t1, new_x - offset_accumulation, new_x)
+
+        return new_x, new_y
 
     def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
         """A helper function to bind actual coordinate to `AbstractCoordinate`.

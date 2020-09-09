@@ -17,7 +17,8 @@ from typing import Optional
 import matplotlib.pyplot as plt
 
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import core, drawing_objects
+from qiskit.visualization.pulse_v2 import core, drawing_objects, types
+import numpy as np
 
 
 class Mpl2DPlotter:
@@ -50,14 +51,19 @@ class Mpl2DPlotter:
         # axis labels
         self.ax.set_yticklabels([])
 
-        # boundary
-        self.ax.set_xlim(*self.canvas.time_range)
-
     def draw(self):
+        # axis configuration
+        axis_config = self.canvas.layout['time_axis_map'](
+            time_window=self.canvas.time_range,
+            axis_breaks=self.canvas.time_breaks,
+            dt=self.canvas.device.dt
+        )
+
         current_y = 0
+        margin_y = self.canvas.formatter['margin.between_channel']
         for chart in self.canvas.charts:
             current_y -= chart.vmax
-            for data in chart.collections:
+            for _, data in chart.collections:
                 # calculate scaling factor
                 if not data.ignore_scaling:
                     # product of channel-wise scaling and chart level scaling
@@ -66,27 +72,63 @@ class Mpl2DPlotter:
                 else:
                     scale = 1.0
 
-                if isinstance(data, drawing_objects.FilledAreaData):
-                    # filled area object
-                    x = chart.bind_coordinate(data.x)
-                    y1 = scale * chart.bind_coordinate(data.y1) + current_y
-                    y2 = scale * chart.bind_coordinate(data.y2) + current_y
-                    self.ax.fill_between(x=x, y1=y1, y2=y2, **data.styles)
-                elif isinstance(data, drawing_objects.LineData):
+                x = data.xvals
+                y = scale * data.yvals + current_y
+
+                if isinstance(data, drawing_objects.LineData):
                     # line object
-                    x = chart.bind_coordinate(data.x)
-                    y = scale * chart.bind_coordinate(data.y) + current_y
-                    self.ax.plot(x, y, **data.styles)
+                    if data.fill:
+                        self.ax.fill_between(x, y1=y,  y2=current_y * np.ones_like(y),
+                                             **data.styles)
+                    else:
+                        self.ax.plot(x, y, **data.styles)
                 elif isinstance(data, drawing_objects.TextData):
                     # text object
-                    x = chart.bind_coordinate([data.x])[0]
-                    y = scale * chart.bind_coordinate([data.y])[0] + current_y
                     text = r'${s}$'.format(s=data.latex) if data.latex else data.text
-                    self.ax.text(x=x, y=y, s=text, **data.styles)
+                    # replace dynamic text
+                    text = text.replace(types.DynamicString.SCALE,
+                                        '{val:.1f}'.format(val=chart.scale))
+                    self.ax.text(x=x[0], y=y[0], s=text, **data.styles)
                 else:
                     VisualizationError('Data {name} is not supported '
                                        'by {plotter}'.format(name=data,
                                                              plotter=self.__class__.__name__))
-            current_y -= chart.vmin
+            # axis break
+            for pos in axis_config.axis_break_pos:
+                self.ax.text(x=pos, y=current_y,
+                             s='//',
+                             ha='center',
+                             va='center',
+                             zorder=self.canvas.formatter['layer.axis_label'],
+                             fontsize=self.canvas.formatter['text_size.axis_break_symbol'],
+                             rotation=180)
 
-        self.ax.set_ylim(current_y, 0)
+            # shift chart position
+            current_y += chart.vmin - margin_y
+
+        # remove the last margin
+        current_y += margin_y
+
+        y_max = self.canvas.formatter['margin.top']
+        y_min = current_y - self.canvas.formatter['margin.bottom']
+
+        # plot axis break line
+        for pos in axis_config.axis_break_pos:
+            self.ax.plot([pos, pos], [y_min, y_max],
+                         zorder=self.canvas.formatter['layer.fill_waveform'] + 1,
+                         linewidth=self.canvas.formatter['line_width.axis_break'],
+                         color=self.canvas.formatter['color.background'])
+
+        # label
+        self.ax.set_xticks(list(axis_config.axis_map.keys()))
+        self.ax.set_xticklabels(list(axis_config.axis_map.values()),
+                                fontsize=self.canvas.formatter['text_size.axis_label'])
+        self.ax.set_xlabel(axis_config.label,
+                           fontsize=self.canvas.formatter['text_size.axis_label'])
+
+        # boundary
+        self.ax.set_xlim(*axis_config.window)
+        self.ax.set_ylim(y_min, y_max)
+
+        # misc
+        self.ax.yaxis.set_tick_params(left=False)

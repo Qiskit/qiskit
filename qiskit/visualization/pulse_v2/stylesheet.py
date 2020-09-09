@@ -211,7 +211,8 @@ class IqxStandard(dict):
                                      generators.gen_channel_freqs],
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier],
-                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u}
+                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u,
+                 'layout.time_axis_map': layouts.time_map_in_ns}
         style.update(**kwargs)
         self.update(style)
 
@@ -235,8 +236,10 @@ class IqxPublication(dict):
         style = {'formatter.control.apply_phase_modulation': True,
                  'formatter.control.show_snapshot_channel': True,
                  'formatter.control.show_empty_channel': False,
-                 'formatter.control.auto_chart_scaling': True,
+                 'formatter.control.auto_chart_scaling': False,
                  'formatter.control.axis_break': True,
+                 'formatter.channel_scaling.drive': 5.0,
+                 'formatter.channel_scaling.measure': 5.0,
                  'generator.waveform': [generators.gen_filled_waveform_stepwise,
                                         generators.gen_ibmq_latex_waveform_name],
                  'generator.frame': [],
@@ -244,7 +247,8 @@ class IqxPublication(dict):
                                      generators.gen_baseline],
                  'generator.snapshot': [],
                  'generator.barrier': [],
-                 'layout.chart_channel_map': layouts.qubit_index_sort}
+                 'layout.chart_channel_map': layouts.qubit_index_sort,
+                 'layout.time_axis_map': layouts.time_map_in_ns}
         style.update(**kwargs)
         self.update(style)
 
@@ -284,7 +288,8 @@ class IqxDebugging(dict):
                  'generator.snapshot': [generators.gen_snapshot_symbol,
                                         generators.gen_snapshot_name],
                  'generator.barrier': [generators.gen_barrier],
-                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u}
+                 'layout.chart_channel_map': layouts.channel_index_grouped_sort_except_u,
+                 'layout.time_axis_map': layouts.time_map_in_ns}
         style.update(**kwargs)
         self.update(style)
 
@@ -295,8 +300,8 @@ class IqxDebugging(dict):
 def default_style() -> Dict[str, Any]:
     """Define default values of the pulse stylesheet."""
     return {
-        'formatter.general.fig_width': 10,
-        'formatter.general.fig_unit_height': 1,
+        'formatter.general.fig_width': 13,
+        'formatter.general.fig_chart_height': 1.5,
         'formatter.general.dpi': 150,
         'formatter.general.vertical_resolution': 1e-6,
         'formatter.general.max_scale': 100,
@@ -307,25 +312,25 @@ def default_style() -> Dict[str, Any]:
         'formatter.color.fill_waveform_a': ['#dc267f', '#760019'],
         'formatter.color.baseline': '#000000',
         'formatter.color.barrier': '#222222',
-        'formatter.color.background': 'f2f3f4',
+        'formatter.color.background': '#f2f3f4',
         'formatter.color.annotate': '#222222',
         'formatter.color.frame_change': '#000000',
         'formatter.color.snapshot': '#000000',
         'formatter.color.axis_label': '#000000',
-        'formatter.alpha.fill_waveform': 0.5,
+        'formatter.alpha.fill_waveform': 0.3,
         'formatter.alpha.baseline': 1.0,
         'formatter.alpha.barrier': 0.7,
         'formatter.layer.fill_waveform': 2,
         'formatter.layer.baseline': 1,
         'formatter.layer.barrier': 1,
-        'formatter.layer.annotate': 4,
-        'formatter.layer.axis_label': 4,
-        'formatter.layer.frame_change': 3,
+        'formatter.layer.annotate': 5,
+        'formatter.layer.axis_label': 5,
+        'formatter.layer.frame_change': 4,
         'formatter.layer.snapshot': 3,
         'formatter.margin.top': 0.5,
         'formatter.margin.bottom': 0.5,
-        'formatter.margin.left': 0.05,
-        'formatter.margin.right': 0.05,
+        'formatter.margin.left_percent': 0.05,
+        'formatter.margin.right_percent': 0.05,
         'formatter.margin.between_channel': 0.2,
         'formatter.label_offset.pulse_name': -0.1,
         'formatter.label_offset.scale_factor': -0.15,
@@ -336,7 +341,9 @@ def default_style() -> Dict[str, Any]:
         'formatter.text_size.frame_change': 20,
         'formatter.text_size.snapshot': 20,
         'formatter.text_size.fig_title': 15,
+        'formatter.text_size.axis_break_symbol': 15,
         'formatter.line_width.fill_waveform': 0,
+        'formatter.line_width.axis_break': 6,
         'formatter.line_width.baseline': 1,
         'formatter.line_width.barrier': 1,
         'formatter.line_style.fill_waveform': '-',
@@ -364,4 +371,5 @@ def default_style() -> Dict[str, Any]:
         'generator.channel': [],
         'generator.snapshot': [],
         'generator.barrier': [],
-        'layout.chart_channel_map': None}
+        'layout.chart_channel_map': None,
+        'layout.time_axis_map': None}
