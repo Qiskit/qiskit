@@ -273,7 +273,7 @@ class MatplotlibDrawer:
                 math_mode_text = math_mode_match.group(1)
                 num_underscores = math_mode_text.count('_')
                 num_carets = math_mode_text.count('^')
-            text = LatexNodes2Text().latex_to_text(text)
+            text = LatexNodes2Text().latex_to_text(text.replace('$$', ''))
 
             # If there are subscripts or superscripts in mathtext string
             # we need to account for that spacing by manually removing
@@ -283,13 +283,8 @@ class MatplotlibDrawer:
             if num_carets:
                 text = text.replace('^', '', num_carets)
 
-            # This removes some arbitrary \n's and spaces that are returned
-            # by latex_to_text when parameters contain pi. Not sure why this
-            # happens and may change in a future release of latex_to_text. It
-            # also changes hyphen to + to match width of math mode minus sign.
+            # This changes hyphen to + to match width of math mode minus sign.
             if param:
-                text = text.replace('\n    ', '')
-                text = text.replace('\n', '')
                 text = text.replace('-', '+')
 
             f = 0 if fontsize == self._style.fs else 1
