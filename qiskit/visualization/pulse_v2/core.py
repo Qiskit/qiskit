@@ -160,7 +160,7 @@ class DrawerCanvas:
 
         axis_breaks = []
         for t0b, t1b in self._time_breaks:
-            if t0b > t1 or t1b < t0:
+            if t0b >= t1 or t1b <= t0:
                 # skip because break period is outside of time window
                 continue
             if t0b < t0 and t1b > t1:
@@ -630,7 +630,7 @@ class Chart:
         offset_accumulation = 0
         for t0, t1 in time_breaks[1:-1]:
             offset_accumulation += t1 - t0
-            new_x = np.where(new_x > t1, new_x - offset_accumulation, new_x)
+            new_x = np.where(new_x >= t1, new_x - offset_accumulation, new_x)
 
         return new_x, new_y
 

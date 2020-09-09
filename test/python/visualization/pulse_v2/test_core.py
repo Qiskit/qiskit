@@ -19,7 +19,6 @@ from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, stylesheet, device_info, drawing_objects, types
-from qiskit.visualization.pulse_v2.generators.waveform import gen_filled_waveform_stepwise
 
 
 class TestChart(QiskitTestCase):
@@ -27,7 +26,7 @@ class TestChart(QiskitTestCase):
 
     def setUp(self) -> None:
         self.style = stylesheet.QiskitPulseStyle()
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
@@ -74,13 +73,8 @@ class TestChart(QiskitTestCase):
         chart.add_data(self.short_pulse)
         self.assertEqual(len(chart._collections), 1)
 
-        self.assertListEqual(chart.channels, [pulse.DriveChannel(0)])
-
         chart.add_data(self.long_pulse)
         self.assertEqual(len(chart._collections), 2)
-
-        # new channel is added
-        self.assertListEqual(chart.channels, [pulse.DriveChannel(0), pulse.DriveChannel(1)])
 
     def test_bind_coordinate(self):
         """Test bind coordinate."""
@@ -100,7 +94,7 @@ class TestChart(QiskitTestCase):
         # horizontal, margin is is considered
         hline = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
         vals = chart._bind_coordinate(hline)
-        np.testing.assert_array_equal(vals, np.array([350., 1850.]))
+        np.testing.assert_array_equal(vals, np.array([350., 2150.]))
 
     def test_truncate(self):
         """Test pulse truncation."""
@@ -121,7 +115,7 @@ class TestChart(QiskitTestCase):
 
         new_xvals, new_yvals = chart._truncate_data(xvals, yvals)
 
-        ref_xvals = np.array([4., 5., 6., 7.])
+        ref_xvals = np.array([4., 5., 5., 6.])
         ref_yvals = np.array([1., 2., 7., 8.])
 
         np.testing.assert_array_almost_equal(new_xvals, ref_xvals)
@@ -189,7 +183,7 @@ class TestChart(QiskitTestCase):
 
         long_pulse = chart._output_dataset[self.long_pulse.data_key]
         xref = np.array([8., 8., 9., 14., 15., 15.])
-        yref = np.array([0., 0.5, 0.5, 0.5, 0.5, 0.])
+        yref = np.array([0., 0.3, 0.3, 0.3, 0.3, 0.])
         np.testing.assert_array_almost_equal(xref, long_pulse.xvals)
         np.testing.assert_array_almost_equal(yref, long_pulse.yvals)
 
@@ -199,7 +193,7 @@ class TestChart(QiskitTestCase):
         np.testing.assert_array_almost_equal(xref, abstract_hline.xvals)
         np.testing.assert_array_almost_equal(yref, abstract_hline.yvals)
 
-        self.assertEqual(chart.vmax, 0.5)
+        self.assertEqual(chart.vmax, 1.0)
         self.assertEqual(chart.vmin, -0.1)
         self.assertEqual(chart.scale, 2.)
 
@@ -209,7 +203,7 @@ class TestDrawCanvas(QiskitTestCase):
 
     def setUp(self) -> None:
         self.style = stylesheet.QiskitPulseStyle()
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
@@ -225,13 +219,13 @@ class TestDrawCanvas(QiskitTestCase):
             })
 
         self.sched = pulse.Schedule()
-        self.sched.insert(0, pulse.Play(pulse.Waveform([0, 1, 2, 3, 4, 5]),
+        self.sched.insert(0, pulse.Play(pulse.Waveform([0., 0.1, 0.2, 0.3, 0.4, 0.5]),
                                         pulse.DriveChannel(0)),
                           inplace=True)
-        self.sched.insert(10, pulse.Play(pulse.Waveform([0, 1, 2, 3, 4, 5]),
+        self.sched.insert(10, pulse.Play(pulse.Waveform([0.5, 0.4, 0.3, 0.2, 0.1, 0.]),
                                          pulse.DriveChannel(0)),
                           inplace=True)
-        self.sched.insert(0, pulse.Play(pulse.Waveform([0, 1, 2, 3, 4, 5]),
+        self.sched.insert(0, pulse.Play(pulse.Waveform([0.3, 0.3, 0.3, 0.3, 0.3, 0.3]),
                                         pulse.DriveChannel(1)),
                           inplace=True)
 
@@ -256,8 +250,8 @@ class TestDrawCanvas(QiskitTestCase):
             _ = canvas.time_breaks
 
         # time range overlap
-        canvas.time_range = (20, 100)
-        ref_breaks = [(25, 40), (60, 80)]
+        canvas.time_range = (15, 100)
+        ref_breaks = [(20, 40), (60, 80)]
         self.assertListEqual(canvas.time_breaks, ref_breaks)
 
         # time range overlap
@@ -288,21 +282,28 @@ class TestDrawCanvas(QiskitTestCase):
 
         # no breaks
         canvas.time_breaks = []
-        ref_range = [-10, 110]
+        ref_range = [-10., 110.]
         self.assertListEqual(list(canvas.time_range), ref_range)
 
         # with break
         canvas.time_breaks = [(20, 40)]
-        ref_range = [-8, 118]
+        ref_range = [-8., 108.]
         self.assertListEqual(list(canvas.time_range), ref_range)
 
-    def chart_channel_map(self):
+    def chart_channel_map(self, **kwargs):
         """Mock of chart channel mapper."""
         names = ['D0', 'D1']
         chans = [[pulse.DriveChannel(0)], [pulse.DriveChannel(1)]]
 
         for name, chan in zip(names, chans):
             yield name, chan
+
+    def generate_dummy_obj(self, data: types.PulseInstruction, **kwargs):
+        dummy_obj = drawing_objects.ElementaryData(data_type='test',
+                                                   xvals=np.arange(data.inst.pulse.duration),
+                                                   yvals=data.inst.pulse.samples,
+                                                   channels=[data.inst.channel])
+        return [dummy_obj]
 
     def test_load_program(self):
         """Test loading program."""
@@ -313,7 +314,7 @@ class TestDrawCanvas(QiskitTestCase):
             'channel_scaling.drive': 5
         }
         canvas.generator = {
-            'waveform': [gen_filled_waveform_stepwise],
+            'waveform': [self.generate_dummy_obj],
             'frame': [],
             'chart': [],
             'snapshot': [],
