@@ -39,7 +39,7 @@ Returned `ElementaryData` can be arbitrary subclass that is implemented in plott
 """
 from typing import Dict, Any, List
 
-from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info, core
+from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 
 def gen_baseline(data: types.ChartAxis,
@@ -67,9 +67,9 @@ def gen_baseline(data: types.ChartAxis,
 
     baseline = drawing_objects.LineData(data_type=types.DrawingLine.BASELINE,
                                         channels=data.channels,
-                                        x=[types.AbstractCoordinate.LEFT,
-                                           types.AbstractCoordinate.RIGHT],
-                                        y=[0, 0],
+                                        xvals=[types.AbstractCoordinate.LEFT,
+                                               types.AbstractCoordinate.RIGHT],
+                                        yvals=[0, 0],
                                         ignore_scaling=True,
                                         styles=style)
 
@@ -101,8 +101,8 @@ def gen_chart_name(data: types.ChartAxis,
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_NAME,
                                     channels=data.channels,
-                                    x=types.AbstractCoordinate.LEFT,
-                                    y=0,
+                                    xvals=[types.AbstractCoordinate.LEFT],
+                                    yvals=[0],
                                     text=data.name,
                                     ignore_scaling=True,
                                     styles=style)
@@ -138,12 +138,12 @@ def gen_chart_scale(data: types.ChartAxis,
              'va': 'top',
              'ha': 'right'}
 
-    scale_val = 'x{scale:.1f}'.format(scale=data.scale)
+    scale_val = 'x{param}'.format(param=types.DynamicString.SCALE)
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_INFO,
                                     channels=data.channels,
-                                    x=types.AbstractCoordinate.LEFT,
-                                    y=formatter['label_offset.scale_factor'],
+                                    xvals=[types.AbstractCoordinate.LEFT],
+                                    yvals=[formatter['label_offset.scale_factor']],
                                     text=scale_val,
                                     ignore_scaling=True,
                                     styles=style)
@@ -192,9 +192,9 @@ def gen_channel_freqs(data: types.ChartAxis,
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_INFO,
                                     channels=data.channels,
-                                    x=types.AbstractCoordinate.LEFT,
-                                    y=formatter['label_offset.scale_factor'],
-                                    text=freq_text or '---',
+                                    xvals=[types.AbstractCoordinate.LEFT],
+                                    yvals=[formatter['label_offset.scale_factor']],
+                                    text=freq_text or 'n/a',
                                     ignore_scaling=True,
                                     styles=style)
 

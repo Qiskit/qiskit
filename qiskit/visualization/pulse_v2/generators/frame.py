@@ -88,8 +88,8 @@ def gen_formatted_phase(data: types.PulseInstruction,
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channels=data.inst[0].channel,
-                                    x=data.t0,
-                                    y=formatter['label_offset.frame_change'],
+                                    xvals=[data.t0],
+                                    yvals=[formatter['label_offset.frame_change']],
                                     text='VZ({phase})'.format(phase=plain_phase),
                                     latex=r'{{\rm VZ}({phase})'.format(phase=latex_phase),
                                     ignore_scaling=True,
@@ -133,8 +133,8 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channels=data.inst[0].channel,
-                                    x=data.t0,
-                                    y=formatter['label_offset.frame_change'],
+                                    xvals=[data.t0],
+                                    yvals=[formatter['label_offset.frame_change']],
                                     text=u'\u0394f = {freq}'.format(freq=plain_freq),
                                     latex=r'\Delta f = {freq}'.format(freq=latex_freq),
                                     ignore_scaling=True,
@@ -165,6 +165,8 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
     Returns:
         List of `TextData` drawing objects.
     """
+    texts = []
+
     _max_denom = 10
     _unit = 'MHz'
 
@@ -174,34 +176,38 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
              'ha': 'center'}
 
     # phase value
-    plain_phase, latex_phase = _freq_to_text(data.frame.freq, _unit)
-    phase_style = {'va': 'bottom'}
-    phase_style.update(style)
+    if data.frame.phase != 0:
+        plain_phase, latex_phase = _phase_to_text(data.frame.phase, _max_denom, flip=True)
+        phase_style = {'va': 'bottom'}
+        phase_style.update(style)
 
-    phase = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                     channels=data.inst[0].channel,
-                                     x=data.t0,
-                                     y=formatter['label_offset.frame_change'],
-                                     text='VZ({phase})'.format(phase=plain_phase),
-                                     latex=r'{{\rm VZ}({phase})'.format(phase=latex_phase),
-                                     ignore_scaling=True,
-                                     styles=phase_style)
+        phase = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
+                                         channels=data.inst[0].channel,
+                                         xvals=[data.t0],
+                                         yvals=[formatter['label_offset.frame_change']],
+                                         text='VZ({phase})'.format(phase=plain_phase),
+                                         latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
+                                         ignore_scaling=True,
+                                         styles=phase_style)
+        texts.append(phase)
 
     # frequency value
-    plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
-    freq_style = {'va': 'top'}
-    freq_style.update(style)
+    if data.frame.freq != 0:
+        plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
+        freq_style = {'va': 'top'}
+        freq_style.update(style)
 
-    freq = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
-                                    channels=data.inst[0].channel,
-                                    x=data.t0,
-                                    y=-formatter['label_offset.frame_change'],
-                                    text=u'\u0394f = {freq}'.format(freq=plain_freq),
-                                    latex=r'\Delta f = {freq}'.format(freq=latex_freq),
-                                    ignore_scaling=True,
-                                    styles=freq_style)
+        freq = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
+                                        channels=data.inst[0].channel,
+                                        xvals=[data.t0],
+                                        yvals=[-formatter['label_offset.frame_change']],
+                                        text=u'\u0394f = {freq}'.format(freq=plain_freq),
+                                        latex=r'\Delta f = {freq}'.format(freq=latex_freq),
+                                        ignore_scaling=True,
+                                        styles=freq_style)
+        texts.append(freq)
 
-    return [phase, freq]
+    return texts
 
 
 def gen_raw_operand_values_compact(data: types.PulseInstruction,
@@ -240,8 +246,8 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channels=data.inst[0].channel,
-                                    x=data.t0,
-                                    y=formatter['label_offset.frame_change'],
+                                    xvals=[data.t0],
+                                    yvals=[formatter['label_offset.frame_change']],
                                     text=frame_info,
                                     ignore_scaling=True,
                                     styles=style)
@@ -290,8 +296,8 @@ def gen_frame_symbol(data: types.PulseInstruction,
 
     text = drawing_objects.TextData(data_type=types.DrawingSymbol.FRAME,
                                     channels=data.inst[0].channel,
-                                    x=data.t0,
-                                    y=0,
+                                    xvals=[data.t0],
+                                    yvals=[0],
                                     text=formatter['unicode_symbol.frame_change'],
                                     latex=formatter['latex_symbol.frame_change'],
                                     ignore_scaling=True,
@@ -313,6 +319,9 @@ def _phase_to_text(phase: float, max_denom: int = 10, flip: bool = True) -> Tupl
         Standard text and latex text of phase value.
     """
     frac = Fraction(np.abs(phase) / np.pi)
+
+    if phase == 0:
+        return '0', r'0'
 
     num = frac.numerator
     denom = frac.denominator
@@ -357,7 +366,7 @@ def _freq_to_text(freq: float, unit: str = 'MHz') -> Tuple[str, str]:
     except KeyError:
         raise VisualizationError('Unit {unit} is not supported.'.format(unit=unit))
 
-    latex = r'{{val:.2f}~{\rm {unit}}}'.format(val=value, unit=unit)
+    latex = r'{val:.2f}~{{\rm {unit}}}'.format(val=value, unit=unit)
     plain = '{val:.2f} {unit}'.format(val=value, unit=unit)
 
     return plain, latex

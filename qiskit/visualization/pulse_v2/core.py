@@ -17,49 +17,62 @@
 """
 Core module of the pulse drawer.
 
-This module provides the `DrawDataContainer` which is a collection of drawing objects
-with additional information such as the modulation frequency and the time resolution.
-In addition, this instance performs the simple data processing such as channel arrangement,
-auto scaling of channels, and truncation of long pulses when a program is loaded.
+This module provides the `DrawerCanvas` which is a collection of `Chart` object.
+The `Chart` object is a collection of drawing objects. A user can assign multiple channels
+to a single chart instance. For example, we can define a chart for specific qubit
+and assign all related channels to the chart. This chart-channel mapping is defined by
+the function specified by ``layout.chart_channel_map``.
 
-This class may be initialized with backend instance which plays the schedule,
-then a program is loaded and channel information is updated according to the preference:
+Because this chart instance is decoupled from the coordinate system of the plotter,
+we can arbitrary place the charts in the plotter canvas, i.e. if we want to create 3D plot,
+each chart may be placed on the X-Z plane and charts are arranged along Y axis.
+Thus this data model maximizes the flexibility to generate output image.
+
+The chart instance is not just a container of drawing objects, but it also performs
+data processing like biding abstract coordinate and truncating long pulse for axis break.
+Each chart object has `._parent` which points `DrawerCanvas` instance so that
+each child chart can refer to the global figure settings such as time range and axis break.
+
+
+Initialization:
+The `DataCanvas` and `Chart` are not exposed to users and they are implicitly
+initialized in the interface function. It is noteworthy that the data canvas is agnostic
+to plotters. This means once the canvas instance is initialized we can reuse this data
+among multiple plotters. The canvas is initialized with stylesheet and quantum backend
+information :py:class:~`qiskit.visualization.pulse_v2.device_info.DrawerBackendInfo`.
+Chart instances are automatically generated when pulse program is loaded.
 
     ```python
-    ddc = DrawDataContainer(backend)
-    ddc.load_program(sched)
-    ddc.update_channel_property(visible_channels=[DriveChannel(0), DriveChannel(1)])
+    canvas = DrawerCanvas(stylesheet=stylesheet, device=device)
+    canvas.load_program(sched)
+    canvas.update()
     ```
 
+Once all properties are set, `.update` method is called to apply changes to drawing objects.
 If the `DrawDataContainer` is initialized without backend information, the output shows
 the time in units of system cycle time `dt` and the frequencies are initialized to zero.
 
-This module is expected to be used by the pulse drawer interface and not exposed to users.
-
-The `DrawDataContainer` takes a schedule of pulse waveform data and converts it into
-a set of drawing objects, then a plotter interface takes the drawing objects
-from the container to call the plotter's API. The visualization of drawing objects can be
-customized with the stylesheet. The generated drawing objects can be accessed from
+Update:
+To update the image, a user can set new values to canvas and then call `.update` method.
 
     ```python
-    ddc.drawings
+    canvas.set_time_range(2000, 3000, seconds=False)
+    canvas.update()
     ```
 
-This module can be commonly used among different plotters. If the plotter supports
-dynamic update of drawings, the channel data can be updated with new preference:
-
-    ```python
-    ddc.update_channel_property(visible_channels=[DriveChannel(0)])
-    ```
-In this example, `DriveChannel(1)` will be removed from the output.
+All stored drawing objects are updated accordingly. The plotter API can access to
+drawing objects with `.collections` property of chart instance. This returns
+an iterator of drawing object with the unique data key.
+If a plotter provides object handler for plotted shapes, the plotter API can manage
+the lookup table of the handler and the drawing object by using this data key.
 """
 
+from copy import deepcopy
 from functools import partial
 from itertools import chain
 from typing import Union, List, Tuple, Iterator, Optional
 
 import numpy as np
-
 from qiskit import pulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawing_objects, device_info
@@ -95,6 +108,7 @@ class DrawerCanvas:
         self.device = device
 
         # chart
+        self.global_charts = Chart(parent=self, name='global')
         self.charts = []
 
         # visible controls
@@ -110,15 +124,72 @@ class DrawerCanvas:
 
     @property
     def time_range(self):
-        """Return current time range to draw."""
-        return self._time_range
+        """Return current time range to draw.
+
+        Calculate net duration and add side margin to edge location.
+        """
+        t0, t1 = self._time_range
+
+        total_time_elimination = 0
+        for t0b, t1b in self.time_breaks:
+            if t1b > t0 and t0b < t1:
+                total_time_elimination += t1b - t0b
+        net_duration = t1 - t0 - total_time_elimination
+
+        new_t0 = t0 - net_duration * self.formatter['margin.left_percent']
+        new_t1 = t1 + net_duration * self.formatter['margin.right_percent']
+
+        return new_t0, new_t1
 
     @time_range.setter
     def time_range(self, new_range: Tuple[int, int]):
-        """Update time range to draw and update child charts."""
+        """Update time range to draw."""
         self._time_range = new_range
-        for chart in self.charts:
-            chart.update()
+
+    @property
+    def time_breaks(self):
+        """Return time breaks with time range.
+
+        If an edge of time range is in the axis break period,
+        the axis break period is recalculated.
+
+        Raises:
+            VisualizationError: When axis break is greater than time window.
+        """
+        t0, t1 = self._time_range
+
+        axis_breaks = []
+        for t0b, t1b in self._time_breaks:
+            if t0b > t1 or t1b < t0:
+                # skip because break period is outside of time window
+                continue
+            if t0b < t0 and t1b > t1:
+                raise VisualizationError('Axis break is greater than time window. '
+                                         'Nothing will be drawn.')
+            if t0b < t0 < t1b:
+                if t1b - t0 > self.formatter['axis_break.length']:
+                    new_t0 = t0 + 0.5 * self.formatter['axis_break.max_length']
+                    axis_breaks.append((new_t0, t1b))
+                    continue
+                else:
+                    # skip because new break period is less than threshold
+                    continue
+            if t0b < t1 < t1b:
+                if t1 - t0b > self.formatter['axis_break.length']:
+                    new_t1 = t1 - 0.5 * self.formatter['axis_break.max_length']
+                    axis_breaks.append((t0b, new_t1))
+                    continue
+                else:
+                    # skip because new break period is less than threshold
+                    continue
+            axis_breaks.append((t0b, t1b))
+
+        return axis_breaks
+
+    @time_breaks.setter
+    def time_breaks(self, new_breaks: List[Tuple[int, int]]):
+        """Set new time breaks."""
+        self._time_breaks = sorted(new_breaks, key=lambda x: x[0])
 
     def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
         """Load a program to draw.
@@ -137,7 +208,7 @@ class DrawerCanvas:
             raise VisualizationError('Data type %s is not supported.' % type(program))
 
         # update time range
-        self.set_time_range(0, program.duration)
+        self.set_time_range(0, program.duration, seconds=False)
 
     def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
         """Load Waveform instance.
@@ -156,7 +227,7 @@ class DrawerCanvas:
                                            frame=types.PhaseFreqTuple(phase=0, freq=0),
                                            inst=fake_inst)
         for gen in self.generator['waveform']:
-            obj_generator = partial(func=gen,
+            obj_generator = partial(gen,
                                     formatter=self.formatter,
                                     device=self.device)
             for data in obj_generator(inst_data):
@@ -173,13 +244,25 @@ class DrawerCanvas:
             program: `Schedule` to draw.
         """
         # initialize scale values
-        self.chan_scales = {chan: 1.0 for chan in program.channels}
+        self.chan_scales = {}
+        for chan in program.channels:
+            if isinstance(chan, pulse.channels.DriveChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.drive']
+            elif isinstance(chan, pulse.channels.MeasureChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.measure']
+            elif isinstance(chan, pulse.channels.ControlChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.control']
+            elif isinstance(chan, pulse.channels.AcquireChannel):
+                self.chan_scales[chan] = self.formatter['channel_scaling.acquire']
+            else:
+                self.chan_scales[chan] = 1.0
 
         # create charts
         mapper = self.layout['chart_channel_map']
         for name, chans in mapper(channels=program.channels,
                                   formatter=self.formatter,
                                   device=self.device):
+
             chart = Chart(parent=self, name=name)
 
             # add standard pulse instructions
@@ -192,30 +275,36 @@ class DrawerCanvas:
             for t0, _ in barrier_sched.instructions:
                 inst_data = types.BarrierInstruction(t0, self.device.dt, chans)
                 for gen in self.generator['barrier']:
-                    obj_generator = partial(func=gen,
+                    obj_generator = partial(gen,
                                             formatter=self.formatter,
                                             device=self.device)
                     for data in obj_generator(inst_data):
                         chart.add_data(data)
 
+            # add chart axis
+            chart_axis = types.ChartAxis(name=chart.name, channels=chart.channels)
+            for gen in self.generator['chart']:
+                obj_generator = partial(gen,
+                                        formatter=self.formatter,
+                                        device=self.device)
+                for data in obj_generator(chart_axis):
+                    chart.add_data(data)
+
             self.charts.append(chart)
 
-        # create snapshot chart
-        snapshot_chart = Chart(parent=self, name='snapshot')
-
+        # add snapshot data to global
         snapshot_sched = program.filter(instruction_types=[pulse.instructions.Snapshot])
         for t0, inst in snapshot_sched.instructions:
             inst_data = types.SnapshotInstruction(t0, self.device.dt, inst.label, inst.channels)
             for gen in self.generator['snapshot']:
-                obj_generator = partial(func=gen,
+                obj_generator = partial(gen,
                                         formatter=self.formatter,
                                         device=self.device)
                 for data in obj_generator(inst_data):
-                    snapshot_chart.add_data(data)
-        self.charts.append(snapshot_chart)
+                    self.global_charts.add_data(data)
 
         # calculate axis break
-        self._time_breaks = self._calculate_axis_break(program)
+        self.time_breaks = self._calculate_axis_break(program)
 
     def _calculate_axis_break(self, program: pulse.Schedule) -> List[Tuple[int, int]]:
         """A helper function to calculate axis break of long pulse sequence.
@@ -298,6 +387,14 @@ class DrawerCanvas:
         else:
             self.disable_types.discard(data_type)
 
+    def update(self):
+        """Update all associated charts and generate actual drawing data from template object.
+
+        This method should be called before the canvas is passed to the plotter.
+        """
+        for chart in self.charts:
+            chart.update()
+
 
 class Chart:
     """A collection of drawing object to be shown in the same line.
@@ -308,8 +405,6 @@ class Chart:
     The vertical value of each `Chart` should be in the range [-1, 1].
     This truncation should be performed in the plotter interface.
     """
-    WAVEFORMS = (types.DrawingWaveform.REAL, types.DrawingWaveform.IMAG)
-
     # unique index of chart
     chart_index = 0
 
@@ -321,12 +416,17 @@ class Chart:
             name: Name of this `Chart` instance.
         """
         self._parent = parent
-        self._collections = dict()
 
+        # data stored in this channel
+        self._collections = dict()
+        self._output_dataset = dict()
+
+        # channel metadata
         self.index = self._cls_index()
         self.name = name or ''
-        self.channels = set()
+        self._channels = set()
 
+        # vertical axis information
         self.vmax = 0
         self.vmin = 0
         self.scale = 1.0
@@ -362,9 +462,9 @@ class Chart:
                            init_phase=0)
 
         # create objects associated with waveform
-        waveforms = chan_events.get_waveforms()
         for gen in self._parent.generator['waveform']:
-            obj_generator = partial(func=gen,
+            waveforms = chan_events.get_waveforms()
+            obj_generator = partial(gen,
                                     formatter=self._parent.formatter,
                                     device=self._parent.device)
             drawings = [obj_generator(waveform) for waveform in waveforms]
@@ -372,53 +472,72 @@ class Chart:
                 self.add_data(data)
 
         # create objects associated with frame change
-        frames = chan_events.get_frame_changes()
         for gen in self._parent.generator['frame']:
-            obj_generator = partial(func=gen,
+            frames = chan_events.get_frame_changes()
+            obj_generator = partial(gen,
                                     formatter=self._parent.formatter,
                                     device=self._parent.device)
             drawings = [obj_generator(frame) for frame in frames]
             for data in list(chain.from_iterable(drawings)):
                 self.add_data(data)
 
-        self.channels.add(chan)
+        self._channels.add(chan)
 
     def update(self):
         """Update vertical data range and scaling factor of this chart.
 
         Those parameters are updated based on current time range in the parent canvas.
         """
-        for data in self._collections.values():
-            if data.data_type in Chart.WAVEFORMS and self._check_visible(data):
-                scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
-                # assume no abstract coordinate in waveform y values.
-                if isinstance(data, drawing_objects.FilledAreaData):
-                    yvals = np.concatenate((data.y1, data.y2))
-                else:
-                    yvals = data.y
-                self.vmax = max(scale * np.max(yvals), self.vmax)
-                self.vmin = max(scale * np.min(yvals), self.vmin)
+        self._output_dataset.clear()
+        self.vmax = 0
+        self.vmin = 0
 
+        # assume no abstract coordinate in waveform data
+        for key, data in self._collections.items():
+            # truncate
+            trunc_x, trunc_y = self._truncate_data(
+                xvals=self._bind_coordinate(data.xvals),
+                yvals=self._bind_coordinate(data.yvals))
+
+            # no available data points
+            if trunc_x.size == 0 or trunc_y.size == 0:
+                continue
+
+            # update vertical range if data is waveform
+            if isinstance(data.data_type, types.DrawingWaveform):
+                # update y range
+                scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
+                self.vmax = max(scale * np.max(trunc_y), self.vmax)
+                self.vmin = min(scale * np.min(trunc_y), self.vmin)
+
+            # generate new data
+            new_data = deepcopy(data)
+            new_data.xvals = trunc_x
+            new_data.yvals = trunc_y
+
+            self._output_dataset[key] = new_data
+
+        # calculate chart level scaling factor
         if self._parent.formatter['control.auto_chart_scaling']:
-            max_scaling = self._parent.formatter['general.max_scale']
-            self.scale = max(1.0 / (max(abs(self.vmax), abs(self.vmin))), max_scaling)
+            max_val = max(abs(self.vmax),
+                          abs(self.vmin),
+                          self._parent.formatter['general.vertical_resolution'])
+            self.scale = min(1.0 / max_val, self._parent.formatter['general.max_scale'])
         else:
             self.scale = 1.0
 
-        # regenerate chart axis objects
-        chart_axis = types.ChartAxis(name=self.name, scale=self.scale, channels=self.channels)
-        for gen in self._parent.generator['chart']:
-            obj_generator = partial(func=gen,
-                                    formatter=self._parent.formatter,
-                                    device=self._parent.device)
-            for data in obj_generator(chart_axis):
-                self.add_data(data)
+        # update vertical range with scalign and limitation
+        self.vmax = max(self.scale * self.vmax,
+                        self._parent.formatter['channel_scaling.pos_spacing'])
+
+        self.vmin = min(self.scale * self.vmin,
+                        self._parent.formatter['channel_scaling.neg_spacing'])
 
     @property
     def is_active(self):
         """Check if there is any active waveform data in this entry."""
-        for _, data in self.collections:
-            if data.data_type in Chart.WAVEFORMS:
+        for data in self._output_dataset.values():
+            if isinstance(data.data_type, types.DrawingWaveform) and self._check_visible(data):
                 return True
         return False
 
@@ -430,14 +549,72 @@ class Chart:
         When the horizontal coordinate contains `AbstractCoordinate`,
         the value is substituted by current time range preference.
         """
-
-        for name, data in self._collections.items():
+        for name, data in self._output_dataset.items():
             # prepare unique name
             unique_id = 'chart{ind:d}_{key}'.format(ind=self.index, key=name)
             if self._check_visible(data):
                 yield unique_id, data
 
-    def bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
+    @property
+    def channels(self) -> List[pulse.channels.Channel]:
+        """Return a list of channels associated with this chart."""
+        return list(self._channels)
+
+    def _truncate_data(self,
+                       xvals: np.ndarray,
+                       yvals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """A helper function to remove data points according to time breaks.
+
+        Args:
+            xvals: Time points.
+            yvals: Data points.
+        """
+        t0, t1 = self._parent.time_range
+        time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
+
+        trunc_xvals = [xvals]
+        trunc_yvals = [yvals]
+        for t0, t1 in time_breaks:
+            sub_xs = trunc_xvals.pop()
+            sub_ys = trunc_yvals.pop()
+            try:
+                trunc_inds = np.where((sub_xs > t0) & (sub_xs < t1), True, False)
+            except TypeError:
+                # abstract coordinate is included
+                return sub_xs, sub_ys
+            # no overlap
+            if not np.any(trunc_inds):
+                trunc_xvals.append(sub_xs)
+                trunc_yvals.append(sub_ys)
+                continue
+            # all data points are truncated
+            if np.all(trunc_inds):
+                return np.array([]), np.array([])
+
+            # add left side
+            ind_l = np.where(sub_xs < t0, True, False)
+            if np.any(ind_l):
+                trunc_xvals.append(np.append(sub_xs[ind_l], t0))
+                trunc_yvals.append(np.append(sub_ys[ind_l], np.interp(t0, sub_xs, sub_ys)))
+
+            # add right side
+            ind_r = np.where(sub_xs > t1, True, False)
+            if np.any(ind_r):
+                trunc_xvals.append(np.insert(sub_xs[ind_r], 0, t1))
+                trunc_yvals.append(np.insert(sub_ys[ind_r], 0, np.interp(t1, sub_xs, sub_ys)))
+
+        new_x = np.concatenate(trunc_xvals)
+        new_y = np.concatenate(trunc_yvals)
+
+        # shift time axis
+        offset_accumulation = 0
+        for t0, t1 in time_breaks[1:-1]:
+            offset_accumulation += t1 - t0
+            new_x = np.where(new_x > t1, new_x - offset_accumulation, new_x)
+
+        return new_x, new_y
+
+    def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
         """A helper function to bind actual coordinate to `AbstractCoordinate`.
 
         Args:
@@ -465,23 +642,10 @@ class Chart:
         Args:
             data: Drawing object to test.
         """
-        is_active_type = data.data_type in self._parent.disable_types
+        is_active_type = data.data_type not in self._parent.disable_types
         is_active_chan = any(chan not in self._parent.disable_chans for chan in data.channels)
         if not (is_active_type and is_active_chan):
             return False
-
-        t0, t1 = self._parent.time_range
-        try:
-            # check if horizontal position is in the time range.
-            xvals = data.x
-            if isinstance(xvals, types.Coordinate):
-                xvals = [xvals]
-            xvals = self.bind_coordinate(xvals)
-            if not any(np.where((xvals >= t0) & (xvals <= t1), True, False)):
-                return False
-        except AttributeError:
-            # data has no x attribute. likely no dependence on time range.
-            pass
 
         return True
 

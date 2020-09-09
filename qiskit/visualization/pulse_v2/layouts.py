@@ -15,9 +15,12 @@
 """
 A collection of functions that decide the layout of a figure.
 
-Currently this module provides functions to arrange the order of channels.
+Currently this module provides two types functions:
 
-An end-user can write their own layouts with by providing a function with the signature:
+[1] arrange the order of channels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An end-user can write their own channel layouts by providing a function with the signature:
 
     ```python
     def my_channel_layout(channels: List[Channel]) -> List[Channel]:
@@ -27,11 +30,33 @@ An end-user can write their own layouts with by providing a function with the si
         return ordered_channels
     ```
 
-The user-defined arrangement process can be assigned to the layout of the stylesheet:
+The user-defined arrangement function can be assigned to the layout of the stylesheet:
 
     ```python
     my_custom_style = {
-        'layout': {'channel': my_channel_layout}
+        'layout.chart_channel_map' : my_channel_layout
+    }
+    ```
+
+[2] change horizontal axis format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An end-user can modify horizontal axis by providing a function with the signature:
+
+    ```python
+    def my_horizontal_axis(time_windos: Tuple[int, int],
+                           axis_breaks: List[Tuple[int, int]],
+                           dt: Optional[float] = None) -> HorizontalAxis:
+        # write horizontal axis configuration
+
+        return horizontal_axis
+    ```
+
+The user-defined arrangement function can be assigned to the layout of the stylesheet:
+
+    ```python
+    my_custom_style = {
+        'layout.time_axis_map' : my_horizontal_axis
     }
     ```
 
@@ -39,9 +64,11 @@ The user can set the custom stylesheet to the drawer interface.
 """
 
 from collections import defaultdict
-from typing import List, Dict, Any, Tuple, Iterator
+from typing import List, Dict, Any, Tuple, Iterator, Optional
 
+import numpy as np
 from qiskit import pulse
+from qiskit.visualization.pulse_v2 import types
 from qiskit.visualization.pulse_v2.device_info import DrawerBackendInfo
 
 
@@ -49,7 +76,9 @@ def channel_type_grouped_sort(channels: List[pulse.channels.Channel],
                               formatter: Dict[str, Any],
                               device: DrawerBackendInfo) \
         -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Assign single channel per chart. Channels are grouped by type and
+    """Layout function for channel arrangement.
+
+    Assign single channel per chart. Channels are grouped by type and
     sorted by index in ascending order.
 
     Stylesheet key:
@@ -97,7 +126,9 @@ def channel_index_grouped_sort(channels: List[pulse.channels.Channel],
                                formatter: Dict[str, Any],
                                device: DrawerBackendInfo) \
         -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Assign single channel per chart. Channels are grouped by the same index and
+    """Layout function for channel arrangement.
+
+    Assign single channel per chart. Channels are grouped by the same index and
     sorted by type.
 
     Stylesheet key:
@@ -157,7 +188,9 @@ def channel_index_grouped_sort_except_u(channels: List[pulse.channels.Channel],
                                         formatter: Dict[str, Any],
                                         device: DrawerBackendInfo) \
         -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Assign single channel per chart. Channels are grouped by the same index and
+    """Layout function for channel arrangement.
+
+    Assign single channel per chart. Channels are grouped by the same index and
     sorted by type except for control channels. Control channels are added to the
     end of other channels.
 
@@ -218,7 +251,9 @@ def qubit_index_sort(channels: List[pulse.channels.Channel],
                      formatter: Dict[str, Any],
                      device: DrawerBackendInfo) \
         -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Assign multiple channels per chart. Channels associated with the same qubit
+    """Layout function for channel arrangement.
+
+    Assign multiple channels per chart. Channels associated with the same qubit
     are grouped in the same chart and sorted by qubit index in ascending order.
 
     Acquire channels are not shown.
@@ -237,10 +272,14 @@ def qubit_index_sort(channels: List[pulse.channels.Channel],
     Yields:
         Tuple of chart name and associated channels.
     """
+    _removed = (pulse.channels.AcquireChannel,
+                pulse.channels.MemorySlot,
+                pulse.channels.RegisterSlot)
+
     qubit_channel_map = defaultdict(list)
 
     for chan in channels:
-        if isinstance(chan, pulse.channels.AcquireChannel):
+        if isinstance(chan, _removed):
             continue
         qubit_channel_map[device.get_qubit_index(chan)].append(chan)
 
@@ -248,3 +287,60 @@ def qubit_index_sort(channels: List[pulse.channels.Channel],
 
     for qind, chans in sorted_map:
         yield 'Q{index:d}'.format(index=qind), chans
+
+
+def time_map_in_ns(time_window: Tuple[int, int],
+                   axis_breaks: List[Tuple[int, int]],
+                   dt: Optional[float] = None) -> types.HorizontalAxis:
+    """Layout function for horizontal axis formatting.
+
+    Calculate axis break and map true time to axis labels. Generate equispaced
+    6 horizontal axis ticks. Convert into seconds if ``dt`` is provided.
+
+    Args:
+        time_window: Left and right edge of this graph.
+        axis_breaks: List of axis break period.
+        dt: Time resolution of system.
+
+    Returns:
+        Axis formatter object.
+    """
+    # shift time axis
+    t0, t1 = time_window
+
+    axis_break_pos = []
+    offset_accumulation = 0
+    for t0b, t1b in axis_breaks:
+        if t1b < t0 or t0b > t1:
+            continue
+        if t0 > t1b:
+            t0 -= t1b - t0b
+        if t1 > t1b:
+            t1 -= t1b - t0b
+        axis_break_pos.append(t0b - offset_accumulation)
+        offset_accumulation += t0b - t1b
+
+    # axis label
+    axis_loc = np.linspace(max(t0, 0), t1, 6)
+    axis_label = axis_loc.copy()
+
+    offset_accumulation = 0
+    for t0b, t1b in axis_breaks:
+        offset_accumulation += t1b - t0b
+        axis_label = np.where(axis_label > t0b, axis_label + offset_accumulation, axis_label)
+
+    # consider time resolution
+    if dt:
+        label = 'Time (ns)'
+        axis_label *= dt * 1e9
+    else:
+        label = 'System cycle time (dt)'
+
+    formatted_label = ['{val:.0f}'.format(val=val) for val in axis_label]
+
+    return types.HorizontalAxis(
+        window=(t0, t1),
+        axis_map=dict(zip(axis_loc, formatted_label)),
+        axis_break_pos=axis_break_pos,
+        label=label
+    )

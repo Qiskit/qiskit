@@ -19,7 +19,7 @@ Special data types.
 import numpy as np
 
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any
+from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 
 from qiskit import pulse
 
@@ -73,12 +73,10 @@ SnapshotInstruction.inst.__doc__ = 'Snapshot instruction.'
 ChartAxis = NamedTuple(
     'ChartAxis',
     [('name', str),
-     ('scale', float),
      ('channels', List[pulse.channels.Channel])]
 )
 ChartAxis.__doc__ = 'Data to represent an axis information of chart.'
 ChartAxis.name.__doc__ = 'Name of chart.'
-ChartAxis.scale.__doc__ = 'Current scaling value of chart.'
 ChartAxis.channels.__doc__ = 'Channels associated with chart.'
 
 
@@ -101,6 +99,20 @@ ParsedInstruction.__doc__ = 'Data to represent a parsed pulse instruction for ob
 ParsedInstruction.xvals.__doc__ = 'Numpy array of x axis data.'
 ParsedInstruction.yvals.__doc__ = 'Numpy array of y axis data.'
 ParsedInstruction.meta.__doc__ = 'Dictionary containing instruction details.'
+
+
+HorizontalAxis = NamedTuple(
+    'HorizontalAxis',
+    [('window', Tuple[int, int]),
+     ('axis_map', Dict[int, int]),
+     ('axis_break_pos', List[int]),
+     ('label', str)]
+)
+HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
+HorizontalAxis.window.__doc__ = "Left and right edge of graph."
+HorizontalAxis.axis_map.__doc__ = 'Mapping of apparent coordinate system and actual location.'
+HorizontalAxis.axis_break_pos.__doc__ = "Locations of axis break."
+HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
 class DrawingWaveform(str, Enum):
@@ -166,6 +178,14 @@ class AbstractCoordinate(str, Enum):
     LEFT = 'LEFT'
     TOP = 'TOP'
     BOTTOM = 'BOTTOM'
+
+
+class DynamicString(str, Enum):
+    """The string which is dynamically updated at the time of drawing.
+
+    SCALE: A temporal value of chart scaling factor.
+    """
+    SCALE = '@scale'
 
 
 class WaveformChannel(pulse.channels.PulseChannel):
