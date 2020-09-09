@@ -122,9 +122,19 @@ class RunningPassManager:
         for gate_name, cals in calibration.items():
             if isinstance(cals, dict):
                 for qubit_params, sched in cals.items():
-                    circuit.add_calibration(gate_name, qubit_params[0], sched, qubit_params[1])
+                    circuit.add_calibration(
+                        gate=gate_name,
+                        qubits=qubit_params[0],
+                        schedule=sched,
+                        params=qubit_params[1],
+                    )
             else:
-                circuit.add_calibration(gate_name, list(cals.keys())[0][0], list(cals.items())[0], list(cals.keys())[0][1])
+                circuit.add_calibration(
+                    gate=gate_name,
+                    qubits=list(cals.keys())[0][0],
+                    schedule=list(cals.items())[0],
+                    params=list(cals.keys())[0][1],
+                )
         return circuit
 
     def _do_pass(self, pass_, dag, options):
