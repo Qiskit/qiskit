@@ -36,22 +36,22 @@ class TestChannelArrangement(QiskitTestCase):
                          pulse.ControlChannel(2),
                          pulse.ControlChannel(5)]
         self.formatter = {}
-        self.device = device_info.DrawerBackendInfo(
+        self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,
             channel_frequency_map={
-                pulse.DriveChannel(0): 5.0,
-                pulse.DriveChannel(1): 5.1,
-                pulse.DriveChannel(2): 5.2,
-                pulse.MeasureChannel(1): 7.0,
-                pulse.MeasureChannel(1): 7.1,
-                pulse.MeasureChannel(2): 7.2,
-                pulse.ControlChannel(0): 5.0,
-                pulse.ControlChannel(1): 5.1,
-                pulse.ControlChannel(2): 5.2,
-                pulse.ControlChannel(3): 5.3,
-                pulse.ControlChannel(4): 5.4,
-                pulse.ControlChannel(5): 5.5
+                pulse.DriveChannel(0): 5.0e9,
+                pulse.DriveChannel(1): 5.1e9,
+                pulse.DriveChannel(2): 5.2e9,
+                pulse.MeasureChannel(1): 7.0e9,
+                pulse.MeasureChannel(1): 7.1e9,
+                pulse.MeasureChannel(2): 7.2e9,
+                pulse.ControlChannel(0): 5.0e9,
+                pulse.ControlChannel(1): 5.1e9,
+                pulse.ControlChannel(2): 5.2e9,
+                pulse.ControlChannel(3): 5.3e9,
+                pulse.ControlChannel(4): 5.4e9,
+                pulse.ControlChannel(5): 5.5e9
             },
             qubit_channel_map={
                 0: [pulse.DriveChannel(0),
@@ -91,7 +91,7 @@ class TestChannelArrangement(QiskitTestCase):
                         [pulse.AcquireChannel(1)],
                         [pulse.AcquireChannel(2)]]
         ref_names = [
-            'D0', 'D1', 'D2', 'C0', 'C2', 'C5', 'M1', 'M2', 'A0', 'A1'
+            'D0', 'D1', 'D2', 'U0', 'U2', 'U5', 'M1', 'M2', 'A1', 'A2'
         ]
 
         ref = list(zip(ref_names, ref_channels))
@@ -116,7 +116,7 @@ class TestChannelArrangement(QiskitTestCase):
                         [pulse.ControlChannel(5)]]
 
         ref_names = [
-            'D0', 'C0', 'D1', 'M1', 'A1', 'D2', 'C2', 'M2', 'A2', 'C5'
+            'D0', 'U0', 'D1', 'M1', 'A1', 'D2', 'U2', 'M2', 'A2', 'U5'
         ]
 
         ref = list(zip(ref_names, ref_channels))
@@ -141,7 +141,7 @@ class TestChannelArrangement(QiskitTestCase):
                         [pulse.ControlChannel(5)]]
 
         ref_names = [
-            'D0', 'C0', 'D1', 'M1', 'A1', 'D2', 'M2', 'A2', 'C2', 'C5'
+            'D0', 'D1', 'M1', 'A1', 'D2', 'M2', 'A2', 'U0', 'U2', 'U5'
         ]
 
         ref = list(zip(ref_names, ref_channels))
