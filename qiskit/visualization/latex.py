@@ -299,7 +299,8 @@ class QCircuitImage:
         columns = 2
 
         # add extra column if needed
-        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
+        if self.cregbundle and (self.ops and self.ops[0] and
+                                (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             columns += 1
 
         # all gates take up 1 column except from those with labels (ie cu1)
@@ -382,7 +383,8 @@ class QCircuitImage:
 
         column = 1
         # Leave a column to display number of classical registers if needed
-        if self.cregbundle and (self.ops[0][0].name == "measure" or self.ops[0][0].condition):
+        if self.cregbundle and (self.ops and self.ops[0] and
+                                (self.ops[0][0].name == "measure" or self.ops[0][0].condition)):
             column += 1
         for layer in self.ops:
             num_cols_used = 1
