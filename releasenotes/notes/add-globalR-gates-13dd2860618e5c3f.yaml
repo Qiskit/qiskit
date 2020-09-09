@@ -18,7 +18,7 @@ features:
       qr = QuantumRegister(num_qubits)
       qc = QuantumCircuit(qr)
 
-      qc.GR(num_qubits=num_qubits, theta=np.pi/3, phi=2*np.pi/3)
+      qc.compose(GR(num_qubits, theta=np.pi/3, phi=2*np.pi/3), inplace=True)
 
     will create a QuantumCircuit on a QuantumRegister of 3 qubits and perform a
     RGate of an angle theta=np.pi/3 about an axis in the xy-plane of the Bloch
