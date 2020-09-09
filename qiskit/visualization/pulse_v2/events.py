@@ -165,7 +165,10 @@ class ChannelEvents:
         for t0, inst in sorted_waveforms:
             while len(sorted_frame_changes) > 0 and sorted_frame_changes[-1][0] <= t0:
                 _, frame_changes = sorted_frame_changes.pop()
-                phase, frequency = self._calculate_current_frame(frame_changes, phase, frequency)
+                phase, frequency = ChannelEvents._calculate_current_frame(
+                    frame_changes=frame_changes,
+                    phase=phase,
+                    frequency=frequency)
             frame = PhaseFreqTuple(phase, frequency)
 
             yield PulseInstruction(t0, self._dt, frame, inst)
@@ -179,13 +182,17 @@ class ChannelEvents:
         for t0, frame_changes in sorted_frame_changes:
             pre_phase = phase
             pre_frequency = frequency
-            phase, frequency = self._calculate_current_frame(frame_changes, phase, frequency)
+            phase, frequency = ChannelEvents._calculate_current_frame(
+                frame_changes=frame_changes,
+                phase=phase,
+                frequency=frequency)
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
             yield PulseInstruction(t0, self._dt, frame, frame_changes)
 
-    @staticmethod
-    def _calculate_current_frame(frame_changes: List[pulse.instructions.Instruction],
+    @classmethod
+    def _calculate_current_frame(cls,
+                                 frame_changes: List[pulse.instructions.Instruction],
                                  phase: float,
                                  frequency: float) -> Tuple[float, float]:
         """Calculate the current frame from the previous frame.
