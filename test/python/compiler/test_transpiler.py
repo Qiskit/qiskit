@@ -769,6 +769,7 @@ class TestLogTranspile(QiskitTestCase):
     """Testing the log_transpile option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()

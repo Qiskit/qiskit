@@ -52,6 +52,8 @@ class BaseTestSchedule(QiskitTestCase):
     """Schedule tests."""
 
     def setUp(self):
+        super().setUp()
+
         @functional_pulse
         def linear(duration, slope, intercept):
             x = np.linspace(0, duration - 1, duration)
