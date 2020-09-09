@@ -422,8 +422,6 @@ class BackendConfiguration(QasmBackendConfiguration):
 class PulseBackendConfiguration(QasmBackendConfiguration):
     """Static configuration state for an OpenPulse enabled backend. This contains information
     about the set up of the device which can be useful for building Pulse programs.
-
-    Inherits from Qasm backend configuration.
     """
 
     def __init__(self,
