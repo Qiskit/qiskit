@@ -77,13 +77,11 @@ class MCGupDiag(Gate):
     def inverse(self):
         """Return the inverse.
 
-        This does not re-compute the decomposition for the multiplexer with the inverse of the
-        gates but simply inverts the existing decomposition.
+        Note that the resulting Gate object has an empty ``params`` property.
         """
-        # need to convert to list, np.ndarrary is deprecated as type
         inverse_gate = Gate(name=self.name + '_dg',
                             num_qubits=self.num_qubits,
-                            params=[])
+                            params=[])  # removing the params because arrays are deprecated
 
         inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
         inverse_gate.definition._data = [(inst.inverse(), qargs, [])

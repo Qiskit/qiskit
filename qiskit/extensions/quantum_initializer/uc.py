@@ -102,10 +102,9 @@ class UCGate(Gate):
         This does not re-compute the decomposition for the multiplexer with the inverse of the
         gates but simply inverts the existing decomposition.
         """
-        # need to convert to list, np.ndarrary is deprecated as type
         inverse_gate = Gate(name=self.name + '_dg',
                             num_qubits=self.num_qubits,
-                            params=[])
+                            params=[])  # remove parameters since array is deprecated as parameter
 
         inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
         inverse_gate.definition._data = [(inst.inverse(), qargs, [])
