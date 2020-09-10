@@ -98,7 +98,7 @@ class MinimumEigensolverResult(AlgorithmResult):
     """ Minimum Eigensolver Result."""
 
     @property
-    def eigenvalue(self) -> Union[None, complex]:
+    def eigenvalue(self) -> Optional[complex]:
         """ returns eigen value """
         return self.get('eigenvalue')
 
@@ -108,7 +108,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         self.data['eigenvalue'] = value
 
     @property
-    def eigenstate(self) -> Union[None, np.ndarray]:
+    def eigenstate(self) -> Optional[np.ndarray]:
         """ return eigen state """
         return self.get('eigenstate')
 
@@ -118,7 +118,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         self.data['eigenstate'] = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Union[None, np.ndarray]:
+    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
         """ return aux operator eigen values """
         return self.get('aux_operator_eigenvalues')
 

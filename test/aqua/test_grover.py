@@ -69,10 +69,10 @@ class TestGrover(QiskitAquaTestCase):
         ret = grover.run(quantum_instance)
 
         self.log.debug('Ground-truth Solutions: %s.', groundtruth)
-        self.log.debug('Top measurement:        %s.', ret['top_measurement'])
-        if ret['oracle_evaluation']:
-            self.assertIn(ret['top_measurement'], groundtruth)
-            self.log.debug('Search Result:          %s.', ret['result'])
+        self.log.debug('Top measurement:        %s.', ret.top_measurement)
+        if ret.oracle_evaluation:
+            self.assertIn(ret.top_measurement, groundtruth)
+            self.log.debug('Search Result:          %s.', ret.assignment)
         else:
             self.assertEqual(groundtruth, [])
             self.log.debug('Nothing found.')

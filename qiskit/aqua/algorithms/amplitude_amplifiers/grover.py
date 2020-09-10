@@ -13,8 +13,9 @@
 The Grover's Search algorithm.
 """
 
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict, Any, List
 import logging
+import warnings
 import operator
 import numpy as np
 
@@ -25,7 +26,7 @@ from qiskit.providers import BaseBackend
 from qiskit.aqua import QuantumInstance, AquaError
 from qiskit.aqua.utils import get_subsystem_density_matrix
 from qiskit.aqua.utils.validation import validate_min, validate_in_set
-from qiskit.aqua.algorithms import QuantumAlgorithm
+from qiskit.aqua.algorithms import QuantumAlgorithm, AlgorithmResult
 from qiskit.aqua.components.initial_states import Custom
 from qiskit.aqua.components.oracles import Oracle
 from qiskit.aqua.components.initial_states import InitialState
@@ -267,7 +268,7 @@ class Grover(QuantumAlgorithm):
         self._ret['circuit'] = qc
         return qc
 
-    def _run(self):
+    def _run(self) -> 'GroverResult':
         if self._incremental:
 
             def _try_target_num_iterations():
@@ -297,6 +298,83 @@ class Grover(QuantumAlgorithm):
             self._qc_amplitude_amplification = QuantumCircuit()
             assignment, oracle_evaluation = self._run_with_existing_iterations()
 
+        # TODO remove all former dictionary logic
         self._ret['result'] = assignment
         self._ret['oracle_evaluation'] = oracle_evaluation
-        return self._ret
+
+        result = GroverResult()
+        if 'measurement' in self._ret:
+            result.measurement = dict(self._ret['measurement'])
+        if 'top_measurement' in self._ret:
+            result.top_measurement = self._ret['top_measurement']
+        if 'circuit' in self._ret:
+            result.circuit = self._ret['circuit']
+        result.assignment = self._ret['result']
+        result.oracle_evaluation = self._ret['oracle_evaluation']
+        return result
+
+
+class GroverResult(AlgorithmResult):
+    """ Grover Result."""
+
+    @property
+    def measurement(self) -> Optional[Dict[str, int]]:
+        """ returns measurement """
+        return self.get('measurement')
+
+    @measurement.setter
+    def measurement(self, value: Dict[str, int]) -> None:
+        """ set measurement """
+        self.data['measurement'] = value
+
+    @property
+    def top_measurement(self) -> Optional[str]:
+        """ return top measurement """
+        return self.get('top_measurement')
+
+    @top_measurement.setter
+    def top_measurement(self, value: str) -> None:
+        """ set top measurement """
+        self.data['top_measurement'] = value
+
+    @property
+    def circuit(self) -> Optional[QuantumCircuit]:
+        """ return circuit """
+        return self.get('circuit')
+
+    @circuit.setter
+    def circuit(self, value: QuantumCircuit) -> None:
+        """ set circuit """
+        self.data['circuit'] = value
+
+    @property
+    def assignment(self) -> List[int]:
+        """ return assignment """
+        return self.get('assignment')
+
+    @assignment.setter
+    def assignment(self, value: List[int]) -> None:
+        """ set assignment """
+        self.data['assignment'] = value
+
+    @property
+    def oracle_evaluation(self) -> bool:
+        """ return oracle evaluation """
+        return self.get('oracle_evaluation')
+
+    @oracle_evaluation.setter
+    def oracle_evaluation(self, value: bool) -> None:
+        """ set oracle evaluation """
+        self.data['oracle_evaluation'] = value
+
+    @staticmethod
+    def from_dict(a_dict: Dict) -> 'GroverResult':
+        """ create new object from a dictionary """
+        return GroverResult(a_dict)
+
+    def __getitem__(self, key: object) -> object:
+        if key == 'result':
+            warnings.warn('result deprecated, use assignment property.', DeprecationWarning)
+            return super().__getitem__('assignment')
+
+        return super().__getitem__(key)

@@ -72,7 +72,7 @@ class QuantumAlgorithm(ABC):
         raise NotImplementedError()
 
     @property
-    def quantum_instance(self) -> Union[None, QuantumInstance]:
+    def quantum_instance(self) -> Optional[QuantumInstance]:
         """ Returns quantum instance. """
         return self._quantum_instance
 

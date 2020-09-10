@@ -61,6 +61,7 @@ Amplitude Amplifiers
    :nosignatures:
 
    Grover
+   GroverResult
 
 Amplitude Estimators
 ++++++++++++++++++++
@@ -71,8 +72,11 @@ Algorithms that estimate a value.
    :nosignatures:
 
    AmplitudeEstimation
+   AmplitudeEstimationResult
    IterativeAmplitudeEstimation
+   IterativeAmplitudeEstimationResult
    MaximumLikelihoodAmplitudeEstimation
+   MaximumLikelihoodAmplitudeEstimationResult
 
 Classifiers
 +++++++++++
@@ -179,10 +183,13 @@ from .algorithm_result import AlgorithmResult
 from .quantum_algorithm import QuantumAlgorithm
 from .classical_algorithm import ClassicalAlgorithm
 from .vq_algorithm import VQAlgorithm, VQResult
-from .amplitude_amplifiers import Grover
+from .amplitude_amplifiers import Grover, GroverResult
 from .amplitude_estimators import (AmplitudeEstimation,
+                                   AmplitudeEstimationResult,
                                    IterativeAmplitudeEstimation,
-                                   MaximumLikelihoodAmplitudeEstimation)
+                                   IterativeAmplitudeEstimationResult,
+                                   MaximumLikelihoodAmplitudeEstimation,
+                                   MaximumLikelihoodAmplitudeEstimationResult)
 from .classifiers import VQC, QSVM, SklearnSVM, SVM_Classical
 from .distribution_learners import QGAN
 from .eigen_solvers import NumPyEigensolver, ExactEigensolver, EigensolverResult
@@ -219,13 +226,17 @@ __all__ = [
     'EOH',
     'QSVM',
     'Grover',
+    'GroverResult',
     'IQPE',
     'IQPEResult',
     'QPE',
     'QPEResult',
     'AmplitudeEstimation',
+    'AmplitudeEstimationResult',
     'IterativeAmplitudeEstimation',
+    'IterativeAmplitudeEstimationResult',
     'MaximumLikelihoodAmplitudeEstimation',
+    'MaximumLikelihoodAmplitudeEstimationResult',
     'Simon',
     'DeutschJozsa',
     'BernsteinVazirani',

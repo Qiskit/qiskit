@@ -13,7 +13,7 @@
 """The Eigensolver result."""
 
 import warnings
-from typing import Dict, Union
+from typing import Dict, Optional
 import numpy as np
 
 from qiskit.aqua.algorithms import AlgorithmResult
@@ -23,7 +23,7 @@ class EigensolverResult(AlgorithmResult):
     """ Eigensolver Result."""
 
     @property
-    def eigenvalues(self) -> Union[None, np.ndarray]:
+    def eigenvalues(self) -> Optional[np.ndarray]:
         """ returns eigen values """
         return self.get('eigenvalues')
 
@@ -33,7 +33,7 @@ class EigensolverResult(AlgorithmResult):
         self.data['eigenvalues'] = value
 
     @property
-    def eigenstates(self) -> Union[None, np.ndarray]:
+    def eigenstates(self) -> Optional[np.ndarray]:
         """ return eigen states """
         return self.get('eigenstates')
 
@@ -43,7 +43,7 @@ class EigensolverResult(AlgorithmResult):
         self.data['eigenstates'] = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Union[None, np.ndarray]:
+    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
         """ return aux operator eigen values """
         return self.get('aux_operator_eigenvalues')
 

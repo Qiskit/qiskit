@@ -70,12 +70,12 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         grover = Grover(oracle)
 
         result_wo_mitigation = grover.run(quantum_instance)
-        prob_top_meas_wo_mitigation = result_wo_mitigation['measurement'][
-            result_wo_mitigation['top_measurement']]
+        prob_top_meas_wo_mitigation = result_wo_mitigation.measurement[
+            result_wo_mitigation.top_measurement]
 
         result_w_mitigation = grover.run(qi_with_mitigation)
         prob_top_meas_w_mitigation = \
-            result_w_mitigation['measurement'][result_w_mitigation['top_measurement']]
+            result_w_mitigation.measurement[result_w_mitigation.top_measurement]
 
         self.assertGreaterEqual(prob_top_meas_w_mitigation, prob_top_meas_wo_mitigation)
 
