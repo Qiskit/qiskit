@@ -50,6 +50,7 @@ class TestCircuitAssembler(QiskitTestCase):
     """Tests for assembling circuits to qobj."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(2, name='q')
         cr = ClassicalRegister(2, name='c')
         self.circ = QuantumCircuit(qr, cr, name='circ')
@@ -502,6 +503,7 @@ class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
@@ -1085,6 +1087,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     """Verify that errors are raised in case backend is not provided and kwargs are missing."""
 
     def setUp(self):
+        super().setUp()
         self.schedule = pulse.Schedule(name='fake_experiment')
 
         self.backend = FakeOpenPulse2Q()
@@ -1261,6 +1264,7 @@ class TestLogAssembler(QiskitTestCase):
     """Testing the log_assembly option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()

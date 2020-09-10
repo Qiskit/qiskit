@@ -28,6 +28,7 @@ class TestGenerators(QiskitTestCase):
     """Tests for generators."""
 
     def setUp(self) -> None:
+        super().setUp()
         self.style = stylesheet.QiskitPulseStyle()
 
     @staticmethod
