@@ -140,8 +140,8 @@ class TestGraySynth(QiskitTestCase):
         c_compare.t(q[0])
         c_compare.cx(q[3], q[0])
         c_compare.t(q[0])
-        c_compare.cx(q[1], q[0])
         c_compare.cx(q[2], q[1])
+        c_compare.cx(q[1], q[0])
         c_compare.cx(q[3], q[0])
         unitary_compare = UnitaryGate(Operator(c_compare))
 
@@ -187,6 +187,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
                  [1, 1, 0, 1, 1, 1],
                  [0, 0, 1, 1, 1, 0]]
         c_patel = cnot_synth(state)
+        unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:
         q = QuantumRegister(6, 'q')
@@ -206,6 +207,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
         c_compare.cx(q[0], q[1])
         c_compare.cx(q[0], q[4])
         c_compare.cx(q[0], q[3])
+        unitary_compare = UnitaryGate(Operator(c_compare))
 
         # Check if the two circuits are equivalent
-        self.assertEqual(c_patel, c_compare)
+        self.assertEqual(unitary_patel, unitary_compare)
