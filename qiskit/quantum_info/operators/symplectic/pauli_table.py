@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
@@ -145,7 +145,7 @@ class PauliTable(BaseOperator):
             # Share underlying array
             self._array = data._array
         elif isinstance(data, Pauli):
-            self._array = np.hstack([data.x, data.z])
+            self._array = data.array
         elif isinstance(data, ScalarOp):
             # Initialize an N-qubit identity
             if data.num_qubits is None:
