@@ -218,8 +218,6 @@ def cnot_synth(state, section_size=2):
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
     circ = QuantumCircuit(state.shape[0])
-    # We want a circuit for the inverse of `state`, so we want the Gaussian
-    # elimination order of operations
     for i in circuit_u + circuit_l:
         circ.cx(i[0], i[1])
     return circ
@@ -244,11 +242,10 @@ def _lwr_cnot_synth(state, section_size):
     Quantum Information & Computation 8.3 (2008): 282-294.
 
     Note:
-    To get decent performance out of PMH you need to play around with it a bit.
-    This version adds a simple "back reduce" that lets rows below the pivot
-    which have significant overlap with the pivot to be added back to the pivot.
-    The intuition is to avoid the situation where a high-weight pivot row is
-    propagated to other rows. Seems to work well in practice.
+    This implementation tweaks the Patel, Markov, and Hayes algorithm by adding
+    a "back reduce" which adds rows below the pivot row with a high degree of
+    overlap back to it. The intuition is to avoid a high-weight pivot row
+    increasing the weight of lower rows.
 
     Args:
         state (ndarray): n x n matrix, describing a linear quantum circuit
