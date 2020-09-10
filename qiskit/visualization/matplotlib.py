@@ -258,7 +258,7 @@ class MatplotlibDrawer:
         return self._ast
 
     # This computes the width of a string in the default font
-    def _get_text_width(self, text, fontsize):
+    def _get_text_width(self, text, fontsize, param=False):
         if not text:
             return 0.0
 
@@ -273,7 +273,8 @@ class MatplotlibDrawer:
                 math_mode_text = math_mode_match.group(1)
                 num_underscores = math_mode_text.count('_')
                 num_carets = math_mode_text.count('^')
-            text = LatexNodes2Text().latex_to_text(text)
+            text = LatexNodes2Text().latex_to_text(text.replace('$$', ''))
+
             # If there are subscripts or superscripts in mathtext string
             # we need to account for that spacing by manually removing
             # from text string for text length
@@ -282,14 +283,18 @@ class MatplotlibDrawer:
             if num_carets:
                 text = text.replace('^', '', num_carets)
 
+            # This changes hyphen to + to match width of math mode minus sign.
+            if param:
+                text = text.replace('-', '+')
+
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
             for c in text:
                 try:
                     sum_text += self._char_list[c][f]
                 except KeyError:
-                    # if non-ASCII char, use width of 'r', an average size
-                    sum_text += self._char_list['r'][f]
+                    # if non-ASCII char, use width of 'c', an average size
+                    sum_text += self._char_list['c'][f]
             return sum_text
 
     def param_parse(self, v):
@@ -354,7 +359,7 @@ class MatplotlibDrawer:
 
         # added .21 is for qubit numbers on the left side
         text_width = self._get_text_width(text, self._style.fs) + .21
-        sub_width = self._get_text_width(subtext, self._style.sfs) + .21
+        sub_width = self._get_text_width(subtext, self._style.sfs, param=True) + .21
         wid = max((text_width, sub_width, WID))
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
@@ -389,7 +394,7 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         text_width = self._get_text_width(text, self._style.fs)
-        sub_width = self._get_text_width(subtext, self._style.sfs)
+        sub_width = self._get_text_width(subtext, self._style.sfs, param=True)
         wid = max((text_width, sub_width, WID))
 
         box = patches.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
@@ -764,7 +769,8 @@ class MatplotlibDrawer:
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
-                    param_width = self._get_text_width(param, fontsize=self._style.sfs) + 0.08
+                    param_width = self._get_text_width(param, fontsize=self._style.sfs,
+                                                       param=True) + 0.08
                 else:
                     param_width = 0.0
 
