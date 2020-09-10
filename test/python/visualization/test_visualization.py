@@ -30,6 +30,17 @@ logger = logging.getLogger(__name__)
 class TestLatexSourceGenerator(QiskitTestCase):
     """Qiskit latex source generator tests."""
 
+    def test_empty_circuit(self):
+        """Test draw an empty circuit"""
+        filename = self._get_resource_path('test_tiny.tex')
+        qc = QuantumCircuit(1)
+        try:
+            circuit_drawer(qc, filename=filename, output='latex_source')
+            self.assertNotEqual(os.path.exists(filename), False)
+        finally:
+            if os.path.exists(filename):
+                os.remove(filename)
+
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path('test_tiny.tex')
@@ -147,6 +158,7 @@ class TestVisualizationUtils(QiskitTestCase):
     the need to be check if the interface or their result changes."""
 
     def setUp(self):
+        super().setUp()
         self.qr1 = QuantumRegister(2, 'qr1')
         self.qr2 = QuantumRegister(2, 'qr2')
         self.cr1 = ClassicalRegister(2, 'cr1')
