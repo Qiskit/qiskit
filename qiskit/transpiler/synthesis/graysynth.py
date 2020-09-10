@@ -243,7 +243,7 @@ def _lwr_cnot_synth(state, section_size):
     Patel, Ketan N., Igor L. Markov, and John P. Hayes.
     Quantum Information & Computation 8.3 (2008): 282-294.
 
-    Matt's tweak:
+    Note:
     To get decent performance out of PMH you need to play around with it a bit.
     This version adds a simple "back reduce" that lets rows below the pivot
     which have significant overlap with the pivot to be added back to the pivot.
