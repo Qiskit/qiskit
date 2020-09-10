@@ -170,6 +170,18 @@ class TestCompiler(QiskitTestCase):
         qobj = assemble(transpile(qlist, backend=backend))
         self.assertEqual(len(qobj.experiments), 10)
 
+    def test_no_conflict_backend_passmanager(self):
+        """execute(qc, backend=..., passmanager=...)
+        See: https://github.com/Qiskit/qiskit-terra/issues/5037
+        """
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc = QuantumCircuit(2)
+        qc.u1(0, 0)
+        qc.measure_all()
+        job = execute(qc, backend=backend, pass_manager=PassManager())
+        result = job.result().get_counts()
+        self.assertEqual(result, {'00': 1024})
+
     def test_compile_single_qubit(self):
         """ Compile a single-qubit circuit in a non-trivial layout
         """
