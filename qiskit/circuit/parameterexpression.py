@@ -215,15 +215,24 @@ class ParameterExpression():
     def __radd__(self, other):
         return self._apply_operation(operator.add, other, reflected=True)
 
+    def __mod__(self, other):
+        return self._apply_operation(operator.mod, other, reflected=True)
+
+    def __abs__(self):
+        from sympy import Abs
+        return Abs(self._symbol_expr)
+
     def exp(self):
         from sympy import exp
         return exp(self._symbol_expr)
 
     def cos(self):
-        return math.cos(self._symbol_expr)
+        from sympy import cos
+        return cos(self._symbol_expr)
 
     def sin(self):
-        return math.sin(self._symbol_expr)
+        from sympy import sin
+        return sin(self._symbol_expr)
 
     def __sub__(self, other):
         return self._apply_operation(operator.sub, other)
