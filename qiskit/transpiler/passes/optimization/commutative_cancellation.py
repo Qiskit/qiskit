@@ -107,7 +107,7 @@ class CommutativeCancellation(TransformationPass):
                         raise TranspilerError("internal error")
 
                     if current_node.name in ['u1', 'rz', 'rx']:
-                        current_angle = float(current_node.op.params[0])
+                        current_angle = current_node.op.params[0]
                     elif current_node.name in ['z', 'x']:
                         current_angle = np.pi
                     elif current_node.name == 't':

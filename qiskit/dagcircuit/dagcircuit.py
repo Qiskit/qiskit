@@ -171,7 +171,6 @@ class DAGCircuit:
             self._global_phase = angle
         else:
             # Set the phase to the [-2 * pi, 2 * pi] interval
-            angle = float(angle)
             if not angle:
                 self._global_phase = 0
             elif angle < 0:
