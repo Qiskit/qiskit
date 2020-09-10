@@ -31,6 +31,7 @@ from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
+from qiskit.quantum_info import Operator
 
 
 def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
@@ -885,10 +886,10 @@ class TestParameterExpressions(QiskitTestCase):
                 self.assertEqual(float(bound_expr),
                                  op(2.3, const))
 
-    def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
-        """Verify operations between a Parameter and a non-float will raise."""
+    def test_operating_on_a_parameter_with_a_non_number_will_raise(self):
+        """Verify operations between a Parameter and a non-number will raise."""
 
-        bad_constants = [1j, '1', numpy.Inf, numpy.NaN, None, {}, []]
+        bad_constants = ['1', numpy.Inf, numpy.NaN, None, {}, []]
 
         x = Parameter('x')
 

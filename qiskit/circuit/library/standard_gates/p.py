@@ -109,7 +109,7 @@ class PhaseGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the Phase gate."""
-        lam = float(self.params[0])
+        lam = self.params[0]
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
@@ -198,7 +198,7 @@ class CPhaseGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CPhase gate."""
-        eith = numpy.exp(1j * float(self.params[0]))
+        eith = numpy.exp(1j * self.params[0])
         if self.ctrl_state:
             return numpy.array([[1, 0, 0, 0],
                                 [0, 1, 0, 0],

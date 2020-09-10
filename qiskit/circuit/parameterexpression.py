@@ -15,6 +15,7 @@ ParameterExpression Class to enable creating simple expressions of Parameters.
 
 import numbers
 import operator
+import math
 
 import numpy
 
@@ -195,7 +196,7 @@ class ParameterExpression():
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -213,6 +214,16 @@ class ParameterExpression():
 
     def __radd__(self, other):
         return self._apply_operation(operator.add, other, reflected=True)
+
+    def exp(self):
+        from sympy import exp
+        return exp(self._symbol_expr)
+
+    def cos(self):
+        return math.cos(self._symbol_expr)
+
+    def sin(self):
+        return math.sin(self._symbol_expr)
 
     def __sub__(self, other):
         return self._apply_operation(operator.sub, other)

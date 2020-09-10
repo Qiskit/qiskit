@@ -99,7 +99,9 @@ class UGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the U gate."""
-        theta, phi, lam = [float(param) for param in self.params]
+        theta = self.params[0]
+        phi = self.params[1]
+        lam = self.params[2]
         return numpy.array([
             [
                 numpy.cos(theta / 2),
@@ -216,7 +218,11 @@ class CUGate(ControlledGate):
 
     def to_matrix(self):
         """Return a numpy.array for the CU gate."""
-        theta, phi, lam, gamma = [float(param) for param in self.params]
+        theta = self.params[0]
+        phi = self.params[1]
+        lam = self.params[2]
+        gamma = self.params[3]
+
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         a = numpy.exp(1j * gamma) * cos

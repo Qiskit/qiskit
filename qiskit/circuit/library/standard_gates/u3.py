@@ -90,7 +90,6 @@ class U3Gate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
-        theta, phi, lam = float(theta), float(phi), float(lam)
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         return numpy.array([
@@ -209,7 +208,6 @@ class CU3Gate(ControlledGate):
     def to_matrix(self):
         """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
-        theta, phi, lam = float(theta), float(phi), float(lam)
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         if self.ctrl_state:
