@@ -32,10 +32,6 @@ from qiskit.transpiler.passes import CXCancellation
 class TestUnitaryGate(QiskitTestCase):
     """Tests for the Unitary class."""
 
-    def setUp(self):
-        """Setup."""
-        pass
-
     def test_set_matrix(self):
         """Test instantiation"""
         try:

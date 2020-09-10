@@ -27,6 +27,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
     backend_name = 'fake_ourense'
 
     def setUp(self):
+        super().setUp()
         self.provider = FakeProvider()
         self.backend = self.provider.get_backend('fake_ourense')
         self.properties = self.backend.properties()
