@@ -255,10 +255,9 @@ class QasmQobjConfig(SimpleNamespace):
             pulse_library (list): List of :class:`PulseLibraryItem`.
             calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
             rep_delay (float): Delay between programs in sec. Only supported on certain
-                backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
-                ``rep_delay`` will be used instead of ``rep_time`` and must be from the range
-                supplied by the backend (``backend.configuration().rep_delay_range``). Default is
-                ``backend.configuration().default_rep_delay``.
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). Must be from the
+                range supplied by the backend (``backend.configuration().rep_delay_range``). Default
+                is ``backend.configuration().default_rep_delay``.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
