@@ -176,7 +176,7 @@ def graysynth(cnots, angles, section_size=2):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir += cnot_synth(state, section_size)
+    qcir += cnot_synth(state, section_size).inverse()
     return qcir
 
 
@@ -213,14 +213,14 @@ def cnot_synth(state, section_size=2):
     state = np.transpose(state)
     # Synthesize upper triangular part
     [state, circuit_u] = _lwr_cnot_synth(state, section_size)
-    circuit_u.reverse()
+    circuit_l.reverse()
     for i in circuit_u:
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
     circ = QuantumCircuit(state.shape[0])
     # We want a circuit for the inverse of `state`, so we want the Gaussian
     # elimination order of operations
-    for i in circuit_l + circuit_u:
+    for i in circuit_u + circuit_l:
         circ.cx(i[0], i[1])
     return circ
 
