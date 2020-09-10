@@ -28,6 +28,7 @@ class TestCompiler(QiskitTestCase):
     """Qiskit Compiler Tests."""
 
     def setUp(self):
+        super().setUp()
         self.seed_simulator = 42
         self.backend = BasicAer.get_backend("qasm_simulator")
 

@@ -26,6 +26,7 @@ class TestBackendConfiguration(QiskitTestCase):
     """Test the methods on the BackendConfiguration class."""
 
     def setUp(self):
+        super().setUp()
         self.provider = FakeProvider()
         self.config = self.provider.get_backend('fake_openpulse_2q').configuration()
 
