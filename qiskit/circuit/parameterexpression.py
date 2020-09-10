@@ -195,14 +195,11 @@ class ParameterExpression():
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        else:
+        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
-        # elif isinstance(other, numbers.Real) and numpy.isfinite(other):
-        #     parameter_symbols = self._parameter_symbols.copy()
-        #     other_expr = other
-        # else:
-        #     return NotImplemented
+        else:
+            return NotImplemented
 
         if reflected:
             expr = operation(other_expr, self_expr)

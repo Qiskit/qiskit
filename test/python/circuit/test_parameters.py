@@ -885,20 +885,38 @@ class TestParameterExpressions(QiskitTestCase):
                 self.assertEqual(float(bound_expr),
                                  op(2.3, const))
 
+    def test_complex_angle_raises_when_not_supported(self):
+        """Test parameters are validated when fully bound and errors are raised accordingly."""
+        x = Parameter('x')
+        qc = QuantumCircuit(1)
+        qc.r(x, 1j * x, 0)
+
+        with self.subTest('binding x to 0 yields real parameters'):
+            bound = qc.bind_parameters({x: 0})
+            ref = QuantumCircuit(1)
+            ref.r(0, 0, 0)
+            self.assertEqual(bound, ref)
+
+        with self.subTest('binding x to 1 yields complex parameters'):
+            # RGate does not support complex parameters
+            with self.assertRaises(CircuitError):
+                bound = qc.bind_parameters({x: 1})
+
     def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
         """Verify operations between a Parameter and a non-float will raise."""
 
-        bad_constants = [1j, '1', numpy.Inf, numpy.NaN, None, {}, []]
+        bad_constants = ['1', numpy.Inf, numpy.NaN, None, {}, []]
 
         x = Parameter('x')
 
         for op in self.supported_operations:
             for const in bad_constants:
-                with self.assertRaises(TypeError):
-                    _ = op(const, x)
+                with self.subTest(op=op, const=const):
+                    with self.assertRaises(TypeError):
+                        _ = op(const, x)
 
-                with self.assertRaises(TypeError):
-                    _ = op(x, const)
+                    with self.assertRaises(TypeError):
+                        _ = op(x, const)
 
     def test_expressions_division_by_zero(self):
         """Verify dividing a Parameter by 0, or binding 0 as a denominator raises."""

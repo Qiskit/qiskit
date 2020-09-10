@@ -227,7 +227,6 @@ class Gate(Instruction):
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
-        print('calling validate parameters with', parameter, type(parameter))
         if isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
