@@ -12,36 +12,15 @@
 
 """Tests for visualization of circuit with Latex drawer."""
 
-import os
 import unittest
-from filecmp import cmp as cmpfile
-from shutil import copyfile
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.visualization import circuit_drawer
-from qiskit.test import QiskitTestCase
-
-def path_to_reference(filename):
-    return os.path.join(_this_directory(), 'references', filename)
+from .visualization import QiskitVisualizationTestCase
 
 
-def _this_directory():
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-class TestLatexSourceGenerator(QiskitTestCase):
+class TestLatexSourceGenerator(QiskitVisualizationTestCase):
     """Qiskit latex source generator tests."""
-
-    def assertEqualToReference(self, result):
-        reference = path_to_reference(os.path.basename(result))
-        if not os.path.exists(result):
-            raise self.failureException('Result file was not generated.')
-        if not os.path.exists(reference):
-            copyfile(result, reference)
-        if cmpfile(reference, result):
-            os.remove(result)
-        else:
-            raise self.failureException('Result and reference do not match.')
 
     def test_empty_circuit(self):
         """Test draw an empty circuit"""
