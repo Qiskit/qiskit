@@ -230,7 +230,13 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
         rep_delay_range = getattr(backend_config, "rep_delay_range", None)
         rep_delay = _parse_rep_delay(rep_delay, default_rep_delay, rep_delay_range)
     else:
-        rep_delay = None
+        if rep_delay is not None:
+            rep_delay = None
+            warnings.warn(
+                "Dynamic rep rates not supported on this backend. rep_time will be "
+                "used instead of rep_delay.",
+                RuntimeWarning,
+            )
 
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
@@ -300,13 +306,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
-
-    if not dynamic_reprate_enabled:
-        warnings.warn(
-            "Dynamic rep rates not supported on this backend. rep_time will be "
-            "used instead of rep_delay.",
-            RuntimeWarning,
-        )
 
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
