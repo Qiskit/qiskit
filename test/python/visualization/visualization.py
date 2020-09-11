@@ -17,9 +17,9 @@ Useful for refactoring purposes."""
 
 import os
 import unittest
-import matplotlib
 from filecmp import cmp as cmpfile
 from shutil import copyfile
+import matplotlib
 
 from qiskit.test import QiskitTestCase
 
