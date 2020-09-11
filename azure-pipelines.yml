@@ -153,7 +153,7 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
+            pip install -c constraints.txt .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
