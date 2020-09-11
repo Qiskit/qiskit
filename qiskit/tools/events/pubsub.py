@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -54,7 +52,7 @@ class _Broker:
             """Overrides the default implementation"""
             if isinstance(other, self.__class__):
                 return self.event == other.event and \
-                       self.callback.__name__ == other.callback.__name__
+                       id(self.callback) == id(other.callback)  # Allow 1:N subscribers
             return False
 
     def subscribe(self, event, callback):
