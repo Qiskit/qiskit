@@ -154,7 +154,7 @@ class TestGraySynth(QiskitTestCase):
         The diagonal operator in Example 4.3
             U|x> = e^(2.pi.i.f(x))|x>,
         where
-            f(x) = 1/8*(x0 + x1 + x2 - x0^x1 - x0^x2 - x1^x2 + x0^x1^x3)
+            f(x) = 1/8*(x0 + x1 + x2 - x0^x1 - x0^x2 - x1^x2 + x0^x1^x2)
 
         The algorithm should take the following matrix as an input:
         S = [[1, 0, 0, 1, 1, 0, 1],
