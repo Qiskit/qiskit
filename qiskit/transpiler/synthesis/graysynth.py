@@ -260,7 +260,7 @@ def _lwr_cnot_synth(state, section_size):
     cutoff = 1
 
     # Iterate over column sections
-    for sec in range(1, int(np.ceil(num_qubits/section_size)+1)):
+    for sec in range(1, int(np.floor(num_qubits/section_size)+1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
         for row in range((sec-1)*section_size, num_qubits):
