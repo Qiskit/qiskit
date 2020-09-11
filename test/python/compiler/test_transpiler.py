@@ -776,6 +776,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(custom_90, [1], q1_y90)
 
         backend = FakeAlmaden()
+        # TODO: Remove L783-L784 in the next PR
         transpiled_circuit = transpile(
             circ,
             backend=backend,
@@ -796,6 +797,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [0], q0_x180)
 
         backend = FakeAlmaden()
+        # TODO: Remove L803-L804 in the next PR
         transpiled_circuit = transpile(
             circ,
             backend=backend,
