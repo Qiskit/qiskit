@@ -220,6 +220,9 @@ class QuantumCircuit:
         return str(self.draw(output='text'))
 
     def __eq__(self, other):
+        if not isinstance(other, QuantumCircuit):
+            return False
+
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
@@ -980,6 +983,7 @@ class QuantumCircuit:
         """Returns OpenQASM string composite circuit given an instruction.
         The given instruction should be the result of composite_circuit.to_instruction()."""
 
+        gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
         qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
         composite_circuit_gates = ""
 
@@ -987,8 +991,12 @@ class QuantumCircuit:
             gate_qargs = ",".join(["q%i" % index for index in [qubit.index for qubit in qargs]])
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
-        qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
-                                           composite_circuit_gates)
+        if gate_parameters:
+            qasm_string = "gate %s (%s) %s {%s}" % (instruction.name, gate_parameters, qubit_parameters,
+                                                    composite_circuit_gates)
+        else:
+            qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
+                                               composite_circuit_gates)
 
         return qasm_string
 
