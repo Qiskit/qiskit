@@ -222,14 +222,10 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', 1)
 
-    if scheduling_method is None:
-        if any_delay_in(circuits):
-            raise TranspilerError("Invalid arguments: When transpiling circuits with delays, "
-                                  "'scheduling_method' is required.")
-    else:
-        if backend is None and not (basis_gates and instruction_durations):
-            raise TranspilerError("Invalid arguments: When scheduling circuits without backend,"
-                                  " 'basis_gates' and 'instruction_durations' are required.")
+    if scheduling_method is not None and backend is None and not instruction_durations:
+        warnings.warn("When scheduling circuits without backend,"
+                      " 'instruction_durations' should be usually provided.",
+                      UserWarning)
 
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
@@ -362,8 +358,11 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager.append(MSBasisDecomposer(ms_basis_swap))
 
     if pass_manager_config.scheduling_method is not None:
-        if 'delay' not in pass_manager_config.basis_gates:
-            pass_manager_config.basis_gates.append('delay')
+        if pass_manager_config.basis_gates:
+            if 'delay' not in pass_manager_config.basis_gates:
+                pass_manager_config.basis_gates.append('delay')
+        else:
+            pass_manager_config.basis_gates = ['delay']
 
         from qiskit.transpiler.passes.scheduling import RemoveOpsOnIdleQubits
         pass_manager.append(RemoveOpsOnIdleQubits())

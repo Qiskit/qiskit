@@ -55,27 +55,25 @@ class TestScheduledCircuit(QiskitTestCase):
         duration = duration_in_dt(scheduled.duration, self.dt)
         self.assertEqual(duration, 1858)
 
-    def test_transpile_delays_circuit_without_backend(self):
+    def test_transpile_delay_circuit_without_backend(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
         scheduled = transpile(qc,
                               scheduling_method='alap',
-                              basis_gates=['h', 'cx'],
-                              instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)]
-                              )
+                              instruction_durations=[('h', 0, 200), ('cx', [0, 1], 700)])
         self.assertEqual(scheduled.duration, 1200)
 
-    def test_raise_error_if_transpile_circuit_with_delay_without_scheduling_method(self):
+    def test_transpile_delay_circuit_without_scheduling_method_as_normal_circuit(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        with self.assertRaises(TranspilerError):
-            transpile(qc)
+        transpiled = transpile(qc)
+        self.assertEqual(transpiled.duration, None)
 
-    def test_raise_error_if_transpile_with_scheduling_method_but_without_backend(self):
+    def test_raise_error_if_transpile_with_scheduling_method_but_without_durations(self):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)

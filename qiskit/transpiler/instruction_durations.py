@@ -115,8 +115,8 @@ class InstructionDurations:
 
         try:
             return self._get(inst_name, qubits)
-        except TranspilerError as err:
-            raise TranspilerError(err.message)
+        except TranspilerError:
+            raise TranspilerError("Duration of %s on qubits %s is not found." % (inst_name, qubits))
 
     def _get(self, name: str, qubits: List[int]):
         """Get the duration of the instruction with the name and the qubits."""
