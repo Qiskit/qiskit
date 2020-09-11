@@ -27,6 +27,7 @@ class TestBasicSchedule(QiskitTestCase):
     """Scheduling tests."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 

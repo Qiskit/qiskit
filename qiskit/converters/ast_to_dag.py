@@ -21,7 +21,6 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate, QuantumCircuit
 from qiskit.qasm.node.real import Real
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
@@ -412,15 +411,9 @@ class AstInterpreter:
         if name in self.standard_extension:
             op = self.standard_extension[name](*params)
         elif name in self.gates:
-            if self.gates[name]['opaque']:
-                # call an opaque gate
-                op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
-            else:
-                # call a custom gate
-                op = Instruction(name=name,
-                                 num_qubits=self.gates[name]['n_bits'],
-                                 num_clbits=0,
-                                 params=params)
+            op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
+            if not self.gates[name]['opaque']:
+                # call a custom gate (otherwise, opaque)
                 op.definition = self._gate_rules_to_qiskit_circuit(self.gates[name],
                                                                    params=params)
         else:

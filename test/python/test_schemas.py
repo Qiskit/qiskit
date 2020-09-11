@@ -56,6 +56,7 @@ class TestSchemaExamples(QiskitTestCase):
     }
 
     def setUp(self):
+        super().setUp()
         self.examples_base_path = self._get_resource_path('examples',
                                                           Path.SCHEMAS)
 
