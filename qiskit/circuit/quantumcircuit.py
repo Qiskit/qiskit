@@ -204,7 +204,6 @@ class QuantumCircuit:
             cals_input (dict): A dictionary of input in th format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
-        self._calibrations.clear()
         self._calibrations = cals_input
 
     @data.setter
