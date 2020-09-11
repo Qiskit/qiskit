@@ -992,8 +992,8 @@ class QuantumCircuit:
             composite_circuit_gates += "%s %s; " % (data.qasm(), gate_qargs)
 
         if gate_parameters:
-            qasm_string = "gate %s (%s) %s {%s}" % (instruction.name, gate_parameters, qubit_parameters,
-                                                    composite_circuit_gates)
+            qasm_string = "gate %s (%s) %s {%s}" % (instruction.name, gate_parameters,
+                                                    qubit_parameters, composite_circuit_gates)
         else:
             qasm_string = "gate %s %s {%s}" % (instruction.name, qubit_parameters,
                                                composite_circuit_gates)
