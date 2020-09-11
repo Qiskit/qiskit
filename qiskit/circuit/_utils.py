@@ -55,8 +55,6 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
             raise QiskitError('Invalid control state value specified.')
     else:
         raise QiskitError('Invalid control state type specified.')
-    full_mat_dim = ctrl_dim * base_mat.shape[0]
-    full_mat = numpy.zeros((full_mat_dim, full_mat_dim), dtype=base_mat.dtype)
     ctrl_proj = numpy.diag(numpy.roll(ctrl_grnd, ctrl_state))
     full_mat = (numpy.kron(numpy.eye(2**num_target),
                            numpy.eye(ctrl_dim) - ctrl_proj)
