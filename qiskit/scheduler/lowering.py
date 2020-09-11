@@ -18,6 +18,7 @@ from typing import Dict, List
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -59,7 +60,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
     # convert the unit of durations from sec to dt before lowering
-    circuit = circuit.convert_durations_to_dt(dt_in_sec=schedule_config.dt, inplace=False)
+    circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
 
     def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""

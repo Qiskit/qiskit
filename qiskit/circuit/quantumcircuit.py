@@ -1925,43 +1925,6 @@ class QuantumCircuit:
                             op.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(op, parameter, value)
 
-    def convert_durations_to_dt(self, dt_in_sec, inplace=True):
-        """Convert all the durations in seconds into those in dt.
-
-        Returns a new circuit if `inplace=False`.
-
-        Parameters:
-            dt_in_sec (float): duration of dt in seconds used for conversion.
-            inplace (bool): All durations are converted inplace or return new circuit.
-
-        Returns:
-            QuantumCircuit: Returns converted circuit when `inplace = False`.
-
-        Raises:
-            CircuitError: if fail to convert durations.
-        """
-        if inplace:
-            circ = self
-        else:
-            circ = self.copy()
-
-        from qiskit.circuit.duration import duration_in_dt
-        from qiskit.circuit.delay import Delay
-        for inst, _, _ in circ.data:
-            if isinstance(inst, Delay) and inst.unit != 's':
-                raise CircuitError("Unable to convert unit '{0}' to 'dt'".format(inst.unit))
-
-            if inst.duration is not None:
-                inst.duration = duration_in_dt(inst.duration, dt_in_sec)
-
-        if circ.duration is not None:
-            circ.duration = duration_in_dt(circ.duration, dt_in_sec)
-
-        if not inplace:
-            return circ
-        else:
-            return None
-
     def barrier(self, *qargs):
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is None, applies to all."""
         from .barrier import Barrier

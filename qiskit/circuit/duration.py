@@ -15,6 +15,9 @@ Utilities for handling duration of a circuit instruction.
 """
 import warnings
 
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.exceptions import CircuitError
+
 
 def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
     """
@@ -34,3 +37,41 @@ def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
                       % (res, res * dt_in_sec, duration_in_sec),
                       UserWarning)
     return res
+
+
+def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
+    """Convert all the durations in seconds into those in dt.
+
+    Returns a new circuit if `inplace=False`.
+
+    Parameters:
+        qc (QuantumCircuit): Duration of dt in seconds used for conversion.
+        dt_in_sec (float): Duration of dt in seconds used for conversion.
+        inplace (bool): All durations are converted inplace or return new circuit.
+
+    Returns:
+        QuantumCircuit: Converted circuit if `inplace = False`, otherwise None.
+
+    Raises:
+        CircuitError: if fail to convert durations.
+    """
+    if inplace:
+        circ = qc
+    else:
+        circ = qc.copy()
+
+    from qiskit.circuit.delay import Delay
+    for inst, _, _ in circ.data:
+        if isinstance(inst, Delay) and inst.unit != 's':
+            raise CircuitError("Unable to convert unit '{0}' to 'dt'".format(inst.unit))
+
+        if inst.duration is not None:
+            inst.duration = duration_in_dt(inst.duration, dt_in_sec)
+
+    if circ.duration is not None:
+        circ.duration = duration_in_dt(circ.duration, dt_in_sec)
+
+    if not inplace:
+        return circ
+    else:
+        return None
