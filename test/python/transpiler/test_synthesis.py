@@ -200,6 +200,7 @@ class TestGraySynth(QiskitTestCase):
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_gray, unitary_compare)
 
+
 class TestPatelMarkovHayes(QiskitTestCase):
     """Test the Patel-Markov-Hayes algorithm for synthesizing linear
     CNOT-only circuits."""
