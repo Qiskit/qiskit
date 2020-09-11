@@ -31,7 +31,6 @@ from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
-from qiskit.quantum_info import Operator
 
 
 def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name

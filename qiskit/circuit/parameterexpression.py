@@ -15,7 +15,6 @@ ParameterExpression Class to enable creating simple expressions of Parameters.
 
 import numbers
 import operator
-import math
 
 import numpy
 
@@ -223,14 +222,17 @@ class ParameterExpression():
         return Abs(self._symbol_expr)
 
     def exp(self):
+        """For np.exp()"""
         from sympy import exp
         return exp(self._symbol_expr)
 
     def cos(self):
+        """For np.cos()"""
         from sympy import cos
         return cos(self._symbol_expr)
 
     def sin(self):
+        """For np.sin()"""
         from sympy import sin
         return sin(self._symbol_expr)
 
