@@ -10,48 +10,56 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=anomalous-backslash-in-string
-
-"""Tests for visualization tools."""
+"""Tests for visualization of circuit with Latex drawer."""
 
 import os
-import logging
 import unittest
+from filecmp import cmp as cmpfile
+from shutil import copyfile
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Qubit, Clbit
-from qiskit.visualization import utils
 from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
 
-logger = logging.getLogger(__name__)
+def path_to_reference(filename):
+    return os.path.join(_this_directory(), 'references', filename)
+
+
+def _this_directory():
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 class TestLatexSourceGenerator(QiskitTestCase):
     """Qiskit latex source generator tests."""
 
+    def assertEqualToReference(self, result):
+        reference = path_to_reference(os.path.basename(result))
+        if not os.path.exists(result):
+            raise self.failureException('Result file was not generated.')
+        if not os.path.exists(reference):
+            copyfile(result, reference)
+        if cmpfile(reference, result):
+            os.remove(result)
+        else:
+            raise self.failureException('Result and reference do not match.')
+
     def test_empty_circuit(self):
         """Test draw an empty circuit"""
-        filename = self._get_resource_path('test_tiny.tex')
+        filename = self._get_resource_path('test_empty.tex')
         qc = QuantumCircuit(1)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path('test_tiny.tex')
         qc = QuantumCircuit(1)
         qc.h(0)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
@@ -59,12 +67,10 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc = QuantumCircuit(5)
         for qubit in range(5):
             qc.h(qubit)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_4597(self):
         """Test cregbundle and conditional gates.
@@ -76,12 +82,9 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc.x(qr[2]).c_if(cr, 2)
         qc.draw(output='latex_source', cregbundle=True)
 
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_deep_circuit(self):
         """Test draw deep circuit."""
@@ -89,12 +92,10 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc = QuantumCircuit(1)
         for _ in range(100):
             qc.h(0)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_huge_circuit(self):
         """Test draw huge circuit."""
@@ -103,12 +104,10 @@ class TestLatexSourceGenerator(QiskitTestCase):
         for qubit in range(39):
             qc.h(qubit)
             qc.cx(qubit, 39)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_teleport(self):
         """Test draw teleport circuit."""
@@ -132,24 +131,20 @@ class TestLatexSourceGenerator(QiskitTestCase):
         qc.z(qr[2]).c_if(cr, 1)
         qc.x(qr[2]).c_if(cr, 2)
         qc.measure(qr[2], cr[2])
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+
+        circuit_drawer(qc, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
     def test_global_phase(self):
         """Test circuit with global phase"""
         filename = self._get_resource_path('test_global_phase.tex')
         circuit = QuantumCircuit(3, global_phase=1.57079632679)
         circuit.h(range(3))
-        try:
-            circuit_drawer(circuit, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
+
+        circuit_drawer(circuit, filename=filename, output='latex_source')
+
+        self.assertEqualToReference(filename)
 
 
 if __name__ == '__main__':

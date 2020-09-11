@@ -10,21 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=anomalous-backslash-in-string
-
 """Tests for visualization tools."""
 
-import os
-import logging
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
 from qiskit.visualization import utils
-from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
-
-logger = logging.getLogger(__name__)
 
 
 class TestVisualizationUtils(QiskitTestCase):
