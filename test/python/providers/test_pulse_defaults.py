@@ -26,6 +26,7 @@ class TestPulseDefaults(QiskitTestCase):
     """Test the PulseDefaults creation and method usage."""
 
     def setUp(self):
+        super().setUp()
         self.defs = FakeOpenPulse2Q().defaults()
         self.inst_map = self.defs.instruction_schedule_map
 
