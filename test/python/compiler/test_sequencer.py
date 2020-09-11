@@ -26,6 +26,7 @@ class TestSequence(QiskitTestCase):
     """Test sequence function."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeParis()
 
     def test_sequence_empty(self):

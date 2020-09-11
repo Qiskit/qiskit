@@ -26,6 +26,7 @@ from qiskit.test.base import QiskitTestCase
 class TestScheduledCircuit(QiskitTestCase):
     """Test scheduled circuit (quantum circuit with duration)."""
     def setUp(self):
+        super().setUp()
         self.backend = FakeParis()
         self.dt = self.backend.configuration().dt
 
