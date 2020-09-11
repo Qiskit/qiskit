@@ -251,8 +251,7 @@ class GroverOperator(QuantumCircuit):
                      inplace=True)
         if self._insert_barriers:
             self.barrier()
-        self.compose(self.zero_reflection, self.reflection_qubits,
-                     inplace=True)
+        self.compose(self.zero_reflection, self.reflection_qubits, inplace=True)
         if self._insert_barriers:
             self.barrier()
         self.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
