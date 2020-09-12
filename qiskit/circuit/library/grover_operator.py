@@ -215,7 +215,8 @@ class GroverOperator(QuantumCircuit):
         if self._zero_reflection is not None:
             return self._zero_reflection
 
-        return _zero_reflection(self.reflection_qubits, self._mcx_mode)
+        num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
+        return _zero_reflection(num_state_qubits, self.reflection_qubits, self._mcx_mode)
 
     @property
     def state_preparation(self) -> QuantumCircuit:
@@ -251,7 +252,8 @@ class GroverOperator(QuantumCircuit):
                      inplace=True)
         if self._insert_barriers:
             self.barrier()
-        self.compose(self.zero_reflection, self.reflection_qubits, inplace=True)
+        self.compose(self.zero_reflection, list(range(self.zero_reflection.num_qubits)),
+                     inplace=True)
         if self._insert_barriers:
             self.barrier()
         self.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
@@ -259,9 +261,9 @@ class GroverOperator(QuantumCircuit):
 
 
 # TODO use the oracle compiler or the bit string oracle
-def _zero_reflection(qubits: List[int], mcx_mode: Optional[str] = None
+def _zero_reflection(num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
                      ) -> QuantumCircuit:
-    qr_state = QuantumRegister(len(qubits), 'state')
+    qr_state = QuantumRegister(num_state_qubits, 'state')
     reflection = QuantumCircuit(qr_state, name='S_0')
 
     num_ancillas = MCXGate.get_num_ancilla_qubits(len(qubits) - 1, mcx_mode)
