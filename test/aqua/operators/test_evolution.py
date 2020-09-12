@@ -18,6 +18,7 @@ from test.aqua import QiskitAquaTestCase
 import numpy as np
 import scipy.linalg
 
+import qiskit
 from qiskit.circuit import ParameterVector, Parameter
 
 from qiskit.aqua.operators import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, EvolutionFactory,
@@ -28,6 +29,13 @@ from qiskit.aqua.operators import (X, Y, Z, I, CX, H, ListOp, CircuitOp, Zero, E
 
 class TestEvolution(QiskitAquaTestCase):
     """Evolution tests."""
+
+    def test_exp_i(self):
+        """ exponential of Pauli test """
+        op = Z.exp_i()
+        gate = op.to_circuit().data[0][0]
+        self.assertIsInstance(gate, qiskit.circuit.library.RZGate)
+        self.assertEqual(gate.params[0], 2)
 
     def test_pauli_evolution(self):
         """ pauli evolution test """

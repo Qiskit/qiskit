@@ -17,6 +17,7 @@ import unittest
 
 from test.aqua import QiskitAquaTestCase
 import itertools
+import scipy
 from scipy.stats import unitary_group
 import numpy as np
 from ddt import ddt, data
@@ -200,6 +201,14 @@ class TestOpConstruction(QiskitAquaTestCase):
         op6 = op5 + PrimitiveOp(Operator.from_label('+r').data)
         np.testing.assert_array_almost_equal(
             op6.to_matrix(), op5.to_matrix() + Operator.from_label('+r').data)
+
+    def test_circuit_op_to_matrix(self):
+        """ test CircuitOp.to_matrix """
+        qc = QuantumCircuit(1)
+        qc.rz(1.0, 0)
+        qcop = CircuitOp(qc)
+        np.testing.assert_array_almost_equal(
+            qcop.to_matrix(), scipy.linalg.expm(-0.5j * Z.to_matrix()))
 
     def test_matrix_to_instruction(self):
         """Test MatrixOp.to_instruction yields an Instruction object."""
