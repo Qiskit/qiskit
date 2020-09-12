@@ -22,12 +22,12 @@ class DefaultStyle:
 
     def __init__(self):
         # Set colors
-        basis_color = '#FA74A6'     # Red
-        clifford_color = '#6FA4FF'  # Blue
-        non_gate_color = '#000000'  # Black
-        other_color = '#BB8BFF'     # Purple
-        pauli_color = '#05BAB6'     # Green
-        iden_color = '#05BAB6'      # Green
+        other_color = '#9D1C54'
+        hadamard_color = '#f84f5a'
+        classical_color = '#06329A'
+        phase_color= '#3CB3FC'
+        nonunit_color = '#A8A8A8'
+        quantum_color = '#9D1C54'
 
         self.name = 'iqx'
         self.tc = '#000000'
@@ -76,37 +76,52 @@ class DefaultStyle:
             'initialize': '$|\\psi\\rangle$'
         }
         self.dispcol = {
-            'u0': basis_color,
-            'u1': basis_color,
-            'u2': basis_color,
-            'u3': basis_color,
-            'id': iden_color,
-            'x': pauli_color,
-            'y': pauli_color,
-            'z': pauli_color,
-            'h': clifford_color,
-            'cx': clifford_color,
-            'cy': clifford_color,
-            'cz': clifford_color,
-            'swap': clifford_color,
-            's': clifford_color,
-            'sdg': clifford_color,
-            'dcx': clifford_color,
-            'iswap': clifford_color,
-            't': other_color,
-            'tdg': other_color,
-            'r': other_color,
-            'rx': other_color,
-            'ry': other_color,
-            'rz': other_color,
-            'rxx': other_color,
-            'ryy': other_color,
-            'rzx': other_color,
-            'reset': non_gate_color,
+            'h': hadamard_color,
+
+            'x': classical_color,
+            'cx': classical_color,
+            'ccx': classical_color,
+            'swap': classical_color,
+            'cswap': classical_color,
+            'iswap': classical_color,
+
+            't': phase_color,
+            'tdg': phase_color,
+            's': phase_color,
+            'sdg': phase_color,
+            'z': phase_color,
+            'u1': phase_color,
+
+            'meas': nonunit_color,
+            'measure': nonunit_color,
+            'reset': nonunit_color,
+
+
+            'u0': quantum_color,
+            'u2': quantum_color,
+            'u3': quantum_color,
+            'id': quantum_color,
+            'y': quantum_color,
+            'cy': quantum_color,
+            'cz': quantum_color,
+
+
+            'r': quantum_color,
+            'rx': quantum_color,
+            'ry': quantum_color,
+            'rz': quantum_color,
+            'rxx': quantum_color,
+            'ryy': quantum_color,
+            'rzx': quantum_color,
+            'rzz': quantum_color,
+            'ch': quantum_color,
+            'crx': quantum_color,
+            'cry': quantum_color,
+            'crz': quantum_color,
+
             'target': '#ffffff',
             'multi': other_color,
-            'meas': non_gate_color,
-            'measure': non_gate_color
+
         }
         self.latexmode = False
         self.index = False
