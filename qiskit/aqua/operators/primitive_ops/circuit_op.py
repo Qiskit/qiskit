@@ -16,7 +16,8 @@ from typing import Union, Optional, Set, List, Dict, cast
 import logging
 import numpy as np
 
-from qiskit import QuantumCircuit, BasicAer, execute
+import qiskit
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import IGate
 from qiskit.circuit import Instruction, ParameterExpression
 
@@ -139,14 +140,7 @@ class CircuitOp(PrimitiveOp):
                 ' in this case {0}x{0} elements.'
                 ' Set massive=True if you want to proceed.'.format(2 ** self.num_qubits))
 
-        # NOTE: not reversing qubits!! We generally reverse endianness when converting between
-        # circuit or Pauli representation and matrix representation, but we don't need to here
-        # because the Unitary simulator already presents the endianness of the circuit unitary in
-        # forward endianness.
-        unitary_backend = BasicAer.get_backend('unitary_simulator')
-        unitary = execute(self.to_circuit(),
-                          unitary_backend,
-                          optimization_level=0).result().get_unitary()
+        unitary = qiskit.quantum_info.Operator(self.to_circuit()).data
         # pylint: disable=cyclic-import
         from ..operator_globals import EVAL_SIG_DIGITS
         return np.round(unitary * self.coeff, decimals=EVAL_SIG_DIGITS)

@@ -220,13 +220,13 @@ class PauliOp(PrimitiveOp):
                 else self.coeff
             # Y rotation
             if corrected_x[sig_qubit_index] and corrected_z[sig_qubit_index]:
-                rot_op = PrimitiveOp(RYGate(coeff))
+                rot_op = PrimitiveOp(RYGate(2 * coeff))
             # Z rotation
             elif corrected_z[sig_qubit_index]:
-                rot_op = PrimitiveOp(RZGate(coeff))
+                rot_op = PrimitiveOp(RZGate(2 * coeff))
             # X rotation
             elif corrected_x[sig_qubit_index]:
-                rot_op = PrimitiveOp(RXGate(coeff))
+                rot_op = PrimitiveOp(RXGate(2 * coeff))
 
             from ..operator_globals import I
             left_pad = I.tensorpower(sig_qubit_index)
