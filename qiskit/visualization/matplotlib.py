@@ -346,7 +346,9 @@ class MatplotlibDrawer:
         else:
             ec = self._style.edge_color
             lc = self._style.lc
-        if op.name == 'reset':
+        if op.name in self._style.gt:
+            gt = self._style.gt[op.name]
+        elif op.name == 'reset':
             gt = self._style.not_gate_lc
         else:
             gt = self._style.gt

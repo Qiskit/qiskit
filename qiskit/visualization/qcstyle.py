@@ -29,14 +29,64 @@ class DefaultStyle:
         nonunit_color = '#A8A8A8'
         quantum_color = '#9D1C54'
 
+        classical_text = '#ffffff'
+        other_text = '#000000'
+
         self.name = 'iqx'
         self.tc = '#000000'
+        self.gt = {
+            'h': other_text,
+
+            'x': classical_text,
+            'cx': classical_text,
+            'ccx': classical_text,
+            'swap': classical_text,
+            'cswap': classical_text,
+            'iswap': classical_text,
+
+            't': other_text,
+            'tdg': other_text,
+            's': other_text,
+            'sdg': other_text,
+            'z': other_text,
+            'u1': other_text,
+
+            'meas': other_text,
+            'measure': other_text,
+            'reset': other_text,
+
+
+            'u0': other_text,
+            'u2': other_text,
+            'u3': other_text,
+            'id': other_text,
+            'y': other_text,
+            'cy': other_text,
+            'cz': other_text,
+
+
+            'r': other_text,
+            'rx': other_text,
+            'ry': other_text,
+            'rz': other_text,
+            'rxx': other_text,
+            'ryy': other_text,
+            'rzx': other_text,
+            'rzz': other_text,
+            'ch': other_text,
+            'crx': other_text,
+            'cry': other_text,
+            'crz': other_text,
+
+            'target': other_text,
+            'multi': other_text,
+
+        }
         self.sc = '#000000'
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'         # Medium Gray
         self.gc = other_color
-        self.gt = '#000000'
         self.bc = '#bdbdbd'         # Dark Gray
         self.bg = '#ffffff'
         self.edge_color = None
