@@ -14,14 +14,16 @@
 
 from qiskit.circuit import QuantumCircuit
 
+
 class UniformDistribution(QuantumCircuit):
     """The uniform distribution circuit."""
 
     def __init__(self, num_qubits: int, name: str = 'P(X)') -> None:
         """
         Args:
-            num_qubits: The number of qubits in the circuit, the distribution is uniform over 
+            num_qubits: The number of qubits in the circuit, the distribution is uniform over
                 ``2 ** num_qubits`` values.
+            name: The name of the circuit.
         """
         super().__init__(num_qubits, name=name)
         self.h(self.qubits)
