@@ -176,7 +176,7 @@ def graysynth(cnots, angles, section_size=2):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir += cnot_synth(state, section_size)
+    qcir += cnot_synth(state, section_size).inverse()
     return qcir
 
 
@@ -241,6 +241,12 @@ def _lwr_cnot_synth(state, section_size):
     Patel, Ketan N., Igor L. Markov, and John P. Hayes.
     Quantum Information & Computation 8.3 (2008): 282-294.
 
+    Note:
+    This implementation tweaks the Patel, Markov, and Hayes algorithm by adding
+    a "back reduce" which adds rows below the pivot row with a high degree of
+    overlap back to it. The intuition is to avoid a high-weight pivot row
+    increasing the weight of lower rows.
+
     Args:
         state (ndarray): n x n matrix, describing a linear quantum circuit
         section_size (int): the section size the matrix columns are divided into
@@ -251,13 +257,10 @@ def _lwr_cnot_synth(state, section_size):
     """
     circuit = []
     num_qubits = state.shape[0]
+    cutoff = 1
 
-    # If the matrix is already an upper triangular one,
-    # there is no need for any transformations
-    if np.allclose(state, np.triu(state)):
-        return [state, circuit]
     # Iterate over column sections
-    for sec in range(1, int(np.ceil(num_qubits/section_size)+1)):
+    for sec in range(1, int(np.floor(num_qubits/section_size)+1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
         for row in range((sec-1)*section_size, num_qubits):
@@ -284,6 +287,10 @@ def _lwr_cnot_synth(state, section_size):
                         diag_one = 1
                     state[row, :] ^= state[col, :]
                     circuit.append([col, row])
+                # Back reduce the pivot row using the current row
+                if sum(state[col, :] & state[row, :]) > cutoff:
+                    state[col, :] ^= state[row, :]
+                    circuit.append([row, col])
     return [state, circuit]
 
 
