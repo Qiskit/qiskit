@@ -16,6 +16,7 @@ instructions available are determined by the simulator being used.
 from typing import Optional
 
 from qiskit.pulse.channels import SnapshotChannel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -31,7 +32,12 @@ class Snapshot(Instruction):
                            The types of snapshots offered are defined by the simulator used.
             name: Snapshot name which defaults to ``label``. This parameter is only for display
                   purposes and is not taken into account during comparison.
+
+        Raises:
+            PulseError: If snapshot label is invalid.
         """
+        if not isinstance(label, str):
+            raise PulseError('Snapshot label must be a string.')
         self._channel = SnapshotChannel()
         if name is None:
             name = label
