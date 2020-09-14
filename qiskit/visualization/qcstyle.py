@@ -22,12 +22,15 @@ class DefaultStyle:
 
     def __init__(self):
         # Set colors
-        basis_color = '#FA74A6'     # Red
-        clifford_color = '#6FA4FF'  # Blue
-        non_gate_color = '#000000'  # Black
-        other_color = '#BB8BFF'     # Purple
-        pauli_color = '#05BAB6'     # Green
-        iden_color = '#05BAB6'      # Green
+        basis_color = '#FA74A6'               # Red
+        clifford_color = '#6FA4FF'            # Blue
+        iden_color = '#05BAB6'                # Green
+
+        hadamard_color = '#DC143C'            # Red
+        classical_gate_color = '#000080'      # Dark Blue
+        phase_gate_color = '#1E90FF'          # Light Blue
+        non_unitary_gate_color = '#808080'    # Grey
+        other_color = '#99004C'               # Dark Red
 
         self.name = 'iqx'
         self.tc = '#000000'
@@ -77,36 +80,39 @@ class DefaultStyle:
         }
         self.dispcol = {
             'u0': basis_color,
-            'u1': basis_color,
-            'u2': basis_color,
-            'u3': basis_color,
+            'u1': phase_gate_color,
+            'u2': other_color,
+            'u3': other_color,
             'id': iden_color,
-            'x': pauli_color,
-            'y': pauli_color,
-            'z': pauli_color,
-            'h': clifford_color,
-            'cx': clifford_color,
-            'cy': clifford_color,
-            'cz': clifford_color,
-            'swap': clifford_color,
-            's': clifford_color,
-            'sdg': clifford_color,
+            'x': classical_gate_color,
+            'y': other_color,
+            'z': phase_gate_color,
+            'h': hadamard_color,
+            'cx': classical_gate_color,
+            'ccx': classical_gate_color,
+            'cy': other_color,
+            'cz': other_color,
+            'swap': classical_gate_color,
+            'cswap': classical_gate_color,
+            's': phase_gate_color,
+            'sdg': phase_gate_color,
             'dcx': clifford_color,
-            'iswap': clifford_color,
-            't': other_color,
-            'tdg': other_color,
+            'iswap': classical_gate_color,
+            't': phase_gate_color,
+            'tdg': phase_gate_color,
             'r': other_color,
             'rx': other_color,
             'ry': other_color,
             'rz': other_color,
             'rxx': other_color,
             'ryy': other_color,
+            'rzz': other_color,
             'rzx': other_color,
-            'reset': non_gate_color,
+            'reset': non_unitary_gate_color,
             'target': '#ffffff',
             'multi': other_color,
-            'meas': non_gate_color,
-            'measure': non_gate_color
+            'meas': non_unitary_gate_color,
+            'measure': non_unitary_gate_color
         }
         self.latexmode = False
         self.index = False

@@ -342,9 +342,16 @@ class MatplotlibDrawer:
             ec = self._style.edge_color
             lc = self._style.lc
         if op.name == 'reset':
-            gt = self._style.not_gate_lc
+            gt = self._style.lc
         else:
             gt = self._style.gt
+        if op.name not in {'h', 't', 's', 'z', 'sdg', 'tdg', 'u1', 'reset', 'meas', 'measure'}:
+            gt = self._style.not_gate_lc
+            self._style.sc = self._style.not_gate_lc
+        else:
+            gt = self._style.gt
+            self._style.sc = self._style.lc
+
         return fc, ec, gt, self._style.tc, self._style.sc, lc
 
     def _multiqubit_gate(self, xy, fc=None, ec=None, gt=None, sc=None, text='', subtext=''):
@@ -451,10 +458,10 @@ class MatplotlibDrawer:
         # add measure symbol
         arc = patches.Arc(xy=(qx, qy - 0.15 * HIG), width=WID * 0.7,
                           height=HIG * 0.7, theta1=0, theta2=180, fill=False,
-                          ec=self._style.not_gate_lc, linewidth=self._lwidth2, zorder=PORDER_GATE)
+                          ec=self._style.lc, linewidth=self._lwidth2, zorder=PORDER_GATE)
         self.ax.add_patch(arc)
         self.ax.plot([qx, qx + 0.35 * WID], [qy - 0.15 * HIG, qy + 0.20 * HIG],
-                     color=self._style.not_gate_lc, linewidth=self._lwidth2, zorder=PORDER_GATE)
+                     color=self._style.lc, linewidth=self._lwidth2, zorder=PORDER_GATE)
         # arrow
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc, ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
@@ -918,6 +925,15 @@ class MatplotlibDrawer:
                                       ac=self._style.dispcol['target'])
                     self._line(qreg_b, qreg_t, lc=lc)
 
+                # ccx gates
+                elif isinstance(op.op, ControlledGate) and op.name == 'ccx':
+                    num_ctrl_qubits = op.op.num_ctrl_qubits
+                    self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
+                                        q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
+                    self._x_tgt_qubit(q_xy[num_ctrl_qubits+1], ec=ec,
+                                      ac=self._style.dispcol['target'])
+                    self._line(qreg_b, qreg_t, lc=lc)
+
                 # cz gate
                 elif op.name == 'cz':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
@@ -947,7 +963,7 @@ class MatplotlibDrawer:
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # cswap gate
-                elif op.name != 'swap' and base_name == 'swap':
+                elif op.name == 'cswap':
                     num_ctrl_qubits = op.op.num_ctrl_qubits
                     self._set_ctrl_bits(op.op.ctrl_state, num_ctrl_qubits,
                                         q_xy, ec=ec, tc=tc, text=ctrl_text, qargs=op.qargs)
