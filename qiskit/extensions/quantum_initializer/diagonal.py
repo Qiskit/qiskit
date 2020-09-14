@@ -48,16 +48,26 @@ class DiagonalGate(Gate):
         num_action_qubits = math.log2(len(diag))
         if num_action_qubits < 1 or not num_action_qubits.is_integer():
             raise QiskitError("The number of diagonal entries is not a positive power of 2.")
+        only_complex = True
         for z in diag:
+            if np.isscalar(z) and (z == 1. or z == -1.):
+                continue
             try:
-                complex(z)
+                if z is not complex:
+                    complex(z)
+                    only_complex = False
             except TypeError:
                 raise QiskitError("Not all of the diagonal entries can be converted to "
                                   "complex numbers.")
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
-        super().__init__("diagonal", int(num_action_qubits), diag)
+        if only_complex:
+            # Hack to skip value checking
+            super().__init__("diagonal", int(num_action_qubits), [])
+            self._params = diag
+        else:
+            super().__init__("diagonal", int(num_action_qubits), diag)
 
     def _define(self):
         diag_circuit = self._dec_diag()
