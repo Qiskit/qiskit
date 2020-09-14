@@ -41,6 +41,7 @@ class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.inst_map = self.backend.defaults().instruction_schedule_map
@@ -198,6 +199,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
@@ -335,6 +337,18 @@ class TestPad(QiskitTestCase):
                  Delay(delay, DriveChannel(0)).shift(20))
         ref_sched = (sched | pulse.Delay(5, DriveChannel(0)).shift(10))
         self.assertEqual(transforms.pad(sched, until=15), ref_sched)
+
+    def test_padding_prepended_delay(self):
+        """Test that there is delay before the first instruction."""
+        delay = 10
+        sched = (Delay(delay, DriveChannel(0)).shift(10) +
+                 Delay(delay, DriveChannel(0)))
+
+        ref_sched = (Delay(delay, DriveChannel(0)) +
+                     Delay(delay, DriveChannel(0)) +
+                     Delay(delay, DriveChannel(0)))
+
+        self.assertEqual(transforms.pad(sched, until=30, inplace=True), ref_sched)
 
 
 def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:
@@ -640,6 +654,93 @@ class TestAlignRight(QiskitTestCase):
         reference.insert(3, instructions.Delay(11, d2), inplace=True)
 
         self.assertEqual(schedule, reference)
+
+
+class TestAlignEquispaced(QiskitTestCase):
+    """Test equispaced alignment transform."""
+
+    def test_equispaced_with_short_duration(self):
+        """Test equispaced context with duration shorter than the schedule duration."""
+        d0 = pulse.DriveChannel(0)
+
+        sched = pulse.Schedule()
+        for _ in range(3):
+            sched.append(Delay(10, d0), inplace=True)
+
+        sched = transforms.align_equispaced(sched, duration=20)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(10, Delay(10, d0), inplace=True)
+        reference.insert(20, Delay(10, d0), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+    def test_equispaced_with_longer_duration(self):
+        """Test equispaced context with duration longer than the schedule duration."""
+        d0 = pulse.DriveChannel(0)
+
+        sched = pulse.Schedule()
+        for _ in range(3):
+            sched.append(Delay(10, d0), inplace=True)
+
+        sched = transforms.align_equispaced(sched, duration=50)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(10, Delay(10, d0), inplace=True)
+        reference.insert(20, Delay(10, d0), inplace=True)
+        reference.insert(30, Delay(10, d0), inplace=True)
+        reference.insert(40, Delay(10, d0), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+
+class TestAlignFunc(QiskitTestCase):
+    """Test callback alignment transform."""
+
+    @staticmethod
+    def _position(ind):
+        """Returns 0.25, 0.5, 0.75 for ind = 1, 2, 3."""
+        return ind / (3 + 1)
+
+    def test_numerical_with_short_duration(self):
+        """Test numerical alignment context with duration shorter than the schedule duration."""
+        d0 = pulse.DriveChannel(0)
+
+        sched = pulse.Schedule()
+        for _ in range(3):
+            sched.append(Delay(10, d0), inplace=True)
+
+        sched = transforms.align_func(sched, duration=20, func=self._position)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(10, d0), inplace=True)
+        reference.insert(10, Delay(10, d0), inplace=True)
+        reference.insert(20, Delay(10, d0), inplace=True)
+
+        self.assertEqual(sched, reference)
+
+    def test_numerical_with_longer_duration(self):
+        """Test numerical alignment context with duration longer than the schedule duration."""
+        d0 = pulse.DriveChannel(0)
+
+        sched = pulse.Schedule()
+        for _ in range(3):
+            sched.append(Delay(10, d0), inplace=True)
+
+        sched = transforms.align_func(sched, duration=80, func=self._position)
+
+        reference = pulse.Schedule()
+        reference.insert(0, Delay(15, d0), inplace=True)
+        reference.insert(15, Delay(10, d0), inplace=True)
+        reference.insert(25, Delay(10, d0), inplace=True)
+        reference.insert(35, Delay(10, d0), inplace=True)
+        reference.insert(45, Delay(10, d0), inplace=True)
+        reference.insert(55, Delay(10, d0), inplace=True)
+        reference.insert(65, Delay(15, d0), inplace=True)
+
+        self.assertEqual(sched, reference)
 
 
 class TestFlatten(QiskitTestCase):

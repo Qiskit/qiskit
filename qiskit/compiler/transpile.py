@@ -182,6 +182,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         _log_transpile_time(start_time, end_time)
         return circuits
 
+    for circuit in circuits:
+        if len(circuit.calibrations) != 0:
+            warnings.warn("Transpiling with calibrations are not supported currently.",
+                          UserWarning)
+
     if pass_manager is not None:
         _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
                                     coupling_map=coupling_map, seed_transpiler=seed_transpiler,

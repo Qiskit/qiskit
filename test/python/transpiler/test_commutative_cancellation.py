@@ -26,7 +26,7 @@ class TestCommutativeCancellation(QiskitTestCase):
     """Test the CommutativeCancellation pass."""
 
     def setUp(self):
-
+        super().setUp()
         self.com_pass_ = CommutationAnalysis()
         self.pass_ = CommutativeCancellation()
         self.pset = self.pass_.property_set = PropertySet()

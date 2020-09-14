@@ -22,10 +22,10 @@ from typing import Union, List
 
 import numpy
 
-from qiskit.qobj.qasm_qobj import QobjDictField
-from qiskit.qobj.qasm_qobj import QobjHeader
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
-from qiskit.qobj.qasm_qobj import validator
+from qiskit.qobj.common import QobjDictField
+from qiskit.qobj.common import QobjHeader
+from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.qobj.common import validator
 
 
 class QobjMeasurementOption:
@@ -176,8 +176,8 @@ class PulseQobjInstruction:
 
     def __repr__(self):
         out = "PulseQobjInstruction(name='%s', t0=%s" % (self.name, self.t0)
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
+        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
+                     'duration', 'qubits', 'memory_slot', 'register_slot',
                      'label', 'type', 'pulse_shape', 'parameters']:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
@@ -191,8 +191,8 @@ class PulseQobjInstruction:
     def __str__(self):
         out = "Instruction: %s\n" % self.name
         out += "\t\tt0: %s\n" % self.t0
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
+        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
+                     'duration', 'qubits', 'memory_slot', 'register_slot',
                      'label', 'type', 'pulse_shape', 'parameters']:
             if hasattr(self, attr):
                 out += '\t\t%s: %s\n' % (attr, getattr(self, attr))

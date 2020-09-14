@@ -45,7 +45,8 @@ class TestSchemaExamples(QiskitTestCase):
             "job_status_example.json"],
         "qobj": [
             "qobj_openpulse_example.json",
-            "qobj_openqasm_example.json"],
+            "qobj_openqasm_example.json",
+            "qasm_w_pulse_gates.json"],
         "result": [
             "result_openqasm_example.json",
             "result_openpulse_level_0_example.json",
@@ -55,6 +56,7 @@ class TestSchemaExamples(QiskitTestCase):
     }
 
     def setUp(self):
+        super().setUp()
         self.examples_base_path = self._get_resource_path('examples',
                                                           Path.SCHEMAS)
 

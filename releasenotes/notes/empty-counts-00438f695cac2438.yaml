@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue when creating a :class:`qiskit.result.Counts` object from an
+    empty data dictionary. Now this will create an empty
+    :class:`~qiskit.result.Counts` object. The
+    :meth:`~qiskit.result.Counts.most_frequent` method is also updated to raise
+    a more descriptive exception when the object is empty. Fixes
+    `#5017 <https://github.com/Qiskit/qiskit-terra/issues/5017>`__
