@@ -47,6 +47,17 @@ class ParameterExpression():
         """Return the conjugate, which is the ParameterExpression itself, since it is real."""
         return self
 
+    def assign(self, parameter_values):
+        """
+        """
+        ret = self
+        for key, value in parameter_values.items():
+            if isinstance(value, ParameterExpression):
+                ret = ret.subs({key: value})
+            else:
+                ret = ret.bind({key: value})
+        return ret
+
     def bind(self, parameter_values):
         """Binds the provided set of parameters to their corresponding values.
 

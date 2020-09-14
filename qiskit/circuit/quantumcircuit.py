@@ -1010,7 +1010,7 @@ class QuantumCircuit:
     def qasm(self, formatted=False, filename=None):
         """Return OpenQASM string.
 
-        Parameters:
+        Args:
             formatted (bool): Return formatted Qasm string.
             filename (str): Save Qasm to file with name 'filename'.
 
@@ -1616,7 +1616,7 @@ class QuantumCircuit:
 
         Returns a new circuit with measurements if `inplace=False`.
 
-        Parameters:
+        Args:
             inplace (bool): All measurements inplace or return new circuit.
 
         Returns:
@@ -1645,7 +1645,7 @@ class QuantumCircuit:
 
         Returns a new circuit with measurements if `inplace=False`.
 
-        Parameters:
+        Args:
             inplace (bool): All measurements inplace or return new circuit.
 
         Returns:
@@ -1673,7 +1673,7 @@ class QuantumCircuit:
 
         Returns a new circuit without measurements if `inplace=False`.
 
-        Parameters:
+        Args:
             inplace (bool): All measurements removed inplace or return new circuit.
 
         Returns:

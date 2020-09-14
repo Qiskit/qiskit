@@ -17,8 +17,8 @@ relative amount.
 """
 from typing import Optional
 
-from ..channels import PulseChannel
-from .instruction import Instruction
+from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class ShiftPhase(Instruction):
@@ -49,21 +49,19 @@ class ShiftPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        self._phase = phase
-        self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
 
     @property
     def phase(self) -> float:
         """Return the rotation angle enacted by this instruction in radians."""
-        return self._phase
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
 
 
 class SetPhase(Instruction):
@@ -91,18 +89,16 @@ class SetPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        self._phase = phase
-        self._channel = channel
         super().__init__((phase, channel), 0, (channel,), name=name)
 
     @property
     def phase(self) -> float:
         """Return the rotation angle enacted by this instruction in radians."""
-        return self._phase
+        return self.operands[0]
 
     @property
     def channel(self) -> PulseChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]

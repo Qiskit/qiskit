@@ -626,6 +626,13 @@ class Schedule(ScheduleComponent):
                     'overlapping instructions.'.format(
                         old=old, new=new)) from err
 
+    def assign_parameters(self, value_dict: Dict):
+        """
+        """
+        # TODO: efficient assignment with parameter table
+        for _, inst in self.instructions:
+            inst.assign_parameters(value_dict)
+
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scale: Optional[float] = None,
