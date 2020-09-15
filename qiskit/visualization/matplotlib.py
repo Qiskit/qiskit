@@ -53,7 +53,7 @@ HIG = 0.65
 BASE_SIZE = 3.01
 PORDER_GATE = 5
 PORDER_LINE = 3
-PORDER_REGLINE = 0
+PORDER_REGLINE = 2
 PORDER_GRAY = 3
 PORDER_TEXT = 6
 PORDER_SUBP = 4
@@ -674,7 +674,7 @@ class MatplotlibDrawer:
             self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
-            self._line([self.x_offset, y], [self._cond['xmax'], y],
+            self._line([self.x_offset+0.3, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
 
         # classical register
@@ -697,7 +697,7 @@ class MatplotlibDrawer:
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
-            self._line([self.x_offset+1, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset+0.3, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf vertical line at either end
