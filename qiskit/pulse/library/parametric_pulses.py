@@ -185,9 +185,9 @@ class Gaussian(ParametricPulse):
         sigma = self.sigma
         for parameter, value in value_dict.items():
             if isinstance(self.amp, ParameterExpression) and parameter in self.amp.parameters:
-                amp = self.amp.assign({parameter: value})
+                amp = self.amp.assign(parameter, value)
             if isinstance(self.sigma, ParameterExpression) and parameter in self.sigma.parameters:
-                sigma = self.sigma.assign({parameter: value})
+                sigma = self.sigma.assign(parameter, value)
         return Gaussian(duration=self.duration, amp=amp, sigma=sigma)
 
     def __repr__(self) -> str:

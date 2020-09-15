@@ -47,16 +47,22 @@ class ParameterExpression():
         """Return the conjugate, which is the ParameterExpression itself, since it is real."""
         return self
 
-    def assign(self, parameter_values):
+    def assign(self, parameter, value):
         """
+        Assign one parameter to a value, which can either be numeric or another parameter
+        expression.
+
+        Args:
+            parameter (Parameter): A parameter in this expression whose value will be updated.
+            value (Union(ParameterExpression, int, float)): The new value to bind to.
+
+        Returns:
+            ParameterExpression: a new expression parameterized by any parameters
+                which were not bound by assignment.
         """
-        ret = self
-        for key, value in parameter_values.items():
-            if isinstance(value, ParameterExpression):
-                ret = ret.subs({key: value})
-            else:
-                ret = ret.bind({key: value})
-        return ret
+        if isinstance(value, ParameterExpression):
+            return self.subs({parameter: value})
+        return self.bind({parameter: value})
 
     def bind(self, parameter_values):
         """Binds the provided set of parameters to their corresponding values.

@@ -44,7 +44,7 @@ class Schedule(ScheduleComponent):
     # Prefix to use for auto naming.
     prefix = 'sched'
 
-    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+    def __init__(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
                  name: Optional[str] = None):
         """Create an empty schedule.
 
@@ -626,12 +626,30 @@ class Schedule(ScheduleComponent):
                     'overlapping instructions.'.format(
                         old=old, new=new)) from err
 
-    def assign_parameters(self, value_dict: Dict):
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression,
+                                           Union[ParameterExpression, int, float, complex]],
+                          inplace: bool = True) -> 'Schedule':
+        """Assign the parameters in this schedule according to the input.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+            inplace: Modify this ``Schedule`` iff True, else return a new ``Schedule``.
+
+        Returns:
+            Schedule with updated parameters (a new one if not inplace, otherwise self).
         """
-        """
-        # TODO: efficient assignment with parameter table
-        for _, inst in self.instructions:
-            inst.assign_parameters(value_dict)
+        # TODO: efficient assignment
+        # TODO: raise error if parameter in input does not appear in schedule
+        if inplace:
+            for _, inst in self.instructions:
+                inst.assign_parameters(value_dict, inplace)
+            return self
+
+        insts = [(time, inst.assign_parameters(value_dict, inplace))
+                 for time, inst in self.instructions]
+        return Schedule(*insts, name=self.name)
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

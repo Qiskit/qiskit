@@ -13,8 +13,9 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Optional
+from typing import Dict, Optional, Union
 
+from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
@@ -61,3 +62,14 @@ class Play(Instruction):
         scheduled on.
         """
         return self.operands[1]
+
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression,
+                                           Union[ParameterExpression, int, float, complex]],
+                          inplace: bool = True) -> 'Play':
+        super().assign_parameters(value_dict, inplace)
+        pulse = self.pulse.assign_parameters(value_dict)
+        if inplace:
+            self._operands = (pulse, self.channel)
+            return self
+        return Play(pulse, self.channel)

@@ -25,7 +25,7 @@ import warnings
 
 from abc import ABC
 
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -219,32 +219,36 @@ class Instruction(ScheduleComponent, ABC):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name)
 
-    def assign_parameters(self, value_dict):
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression,
+                                           Union[ParameterExpression, int, float, complex]],
+                          inplace: bool = True) -> 'Instruction':
+        """Assign the parameters in this instruction according to the input.
+
+        Args:
+            value_dict: A mapping from Parameters to either numeric values or another
+                Parameter expression.
+            inplace: Modify this ``Instruction`` iff True, else return a new ``Instruction``.
+
+        Returns:
+            Instruction with updated parameters (a new one if not inplace, otherwise self).
         """
-        """
-        # TODO: efficiency
-        # TODO: type checking??
-        # TODO: raise error if parameter in input does not appear in schedule
-        from qiskit.pulse.library import Pulse
-        for parameter, value in value_dict.items():
-            for idx, op in enumerate(self.operands):
+        new_operands = list(self.operands)
+        for idx, op in enumerate(self.operands):
+            for parameter, value in value_dict.items():
                 if isinstance(op, ParameterExpression) and parameter in op.parameters:
-                    ops = list(self.operands)
-                    ops[idx] = self._operands[idx].assign({parameter: value})
-                    self._operands = tuple(ops)
-                elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
-                    # FIXME
-                    # assert value is int
-                    ops = list(self.operands)
-                    ops[idx] = type(ops[idx])(self._operands[idx].index.assign({parameter: value}))
-                    self._operands = tuple(ops)
-                elif isinstance(op, Pulse):
-                    try:
-                        ops = list(self.operands)
-                        ops[idx] = op.assign_parameters({parameter: value})
-                        self._operands = tuple(ops)
-                    except:
-                        raise
+                    new_operands[idx] = new_operands[idx].assign(parameter, value)
+                elif (isinstance(op, Channel)
+                      and isinstance(op.index, ParameterExpression)
+                      and parameter in op.index.parameters):
+                    # TODO: Check int type?
+                    new_index = new_operands[idx].index.assign(parameter, value)
+                    new_operands[idx] = type(op)(new_index)
+
+        if inplace:
+            self._operands = tuple(new_operands)
+            return self
+        return type(self)(*new_operands)
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
