@@ -130,5 +130,80 @@ class TestNormalDistribution(QiskitTestCase):
             _ = NormalDistribution([1, 1], [0, 0], [[1, 0], [0, 1]], bounds)
 
 
+@ddt
+class TestLogNormalDistribution(QiskitTestCase):
+    """Test the normal distribution circuit."""
+
+    def assertDistributionIsCorrect(self, circuit, num_qubits, mu, sigma, bounds):
+        """Assert that ``circuit`` implements the normal distribution correctly.
+
+        This test asserts that the ``circuit`` produces the desired state-vector.
+        """
+        if not isinstance(num_qubits, (list, np.ndarray)):
+            num_qubits = [num_qubits]
+        if not isinstance(mu, (list, np.ndarray)):
+            mu = [mu]
+        if not isinstance(sigma, (list, np.ndarray)):
+            sigma = [[sigma]]
+        # bit differently to cover the case the users might pass `bounds` as a single list,
+        # e.g. [0, 1], instead of a tuple
+        if not isinstance(bounds[0], tuple):
+            bounds = [bounds]
+
+        # compute the points
+        meshgrid = np.meshgrid(*[np.linspace(bound[0], bound[1], num=2**num_qubits[i])
+                                 for i, bound in enumerate(bounds)], indexing='ij')
+        x = list(zip(*[grid.flatten() for grid in meshgrid]))
+
+        # compute the normalized, truncated probabilities
+        probabilities = []
+        for x_i in x:
+            if np.min(x_i) > 0:
+                det = 1 / np.prod(x_i)
+                probabilities += [multivariate_normal.pdf(np.log(x_i), mu, sigma) * det]
+            else:
+                probabilities += [0]
+        normalized_probabilities = probabilities / np.sum(probabilities)
+        expected = np.sqrt(normalized_probabilities)
+
+        # compare to actual statevector from circuit
+        actual = Statevector.from_instruction(circuit).data
+        np.testing.assert_array_almost_equal(expected, actual)
+
+    @data(
+        [2, None, None, None],
+        [3, 1.75, 2.5, None],
+        [2, 1.75, 2.5, (0, 3)],
+        [[1, 2, 2], None, None, None],
+        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)]]
+    )
+    @unpack
+    def test_lognormal(self, num_qubits, mu, sigma, bounds):
+        """Test the statevector produced by ``LogNormalDistribution`` and the default arguments."""
+
+        # construct default values and kwargs dictionary to call the constructor of
+        # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
+        # None to test the default values of the class.
+        kwargs = {'num_qubits': num_qubits}
+
+        if mu is None:
+            mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
+        else:
+            kwargs['mu'] = mu
+
+        if sigma is None:
+            sigma = np.eye(len(num_qubits)).tolist() if isinstance(num_qubits, list) else 1
+        else:
+            kwargs['sigma'] = sigma
+
+        if bounds is None:
+            bounds = [(0, 1)] * (len(num_qubits) if isinstance(num_qubits, list) else 1)
+        else:
+            kwargs['bounds'] = bounds
+
+        normal = LogNormalDistribution(**kwargs)
+        self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds)
+
+
 if __name__ == '__main__':
     unittest.main()

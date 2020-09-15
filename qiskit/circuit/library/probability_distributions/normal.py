@@ -119,8 +119,8 @@ class NormalDistribution(QuantumCircuit):
 
     def __init__(self,
                  num_qubits: Union[int, List[int]],
-                 mu: Union[float, List[float]] = None,
-                 sigma: Union[float, List[float]] = None,
+                 mu: Optional[Union[float, List[float]]] = None,
+                 sigma: Optional[Union[float, List[float]]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
                  name: str = 'P(X)') -> None:
         r"""

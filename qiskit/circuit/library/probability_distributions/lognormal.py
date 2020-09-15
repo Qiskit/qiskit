@@ -65,8 +65,8 @@ class LogNormalDistribution(QuantumCircuit):
 
     def __init__(self,
                  num_qubits: Union[int, List[int]],
-                 mu: Union[float, List[float]] = 0,
-                 sigma: Union[float, List[float]] = 1,
+                 mu: Optional[Union[float, List[float]]] = None,
+                 sigma: Optional[Union[float, List[float]]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
                  name: str = 'P(X)') -> None:
         r"""
