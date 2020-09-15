@@ -27,12 +27,12 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 
 """
 import inspect
-
 from collections import defaultdict
-from typing import List, Tuple, Iterable, Union, Callable
+from typing import Callable, Iterable, List, Tuple, Union
 
-from .schedule import Schedule, ParameterizedSchedule
-from .exceptions import PulseError
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 
 
 class InstructionScheduleMap():
@@ -140,8 +140,8 @@ class InstructionScheduleMap():
     def get(self,
             instruction: str,
             qubits: Union[int, Iterable[int]],
-            *params: Union[int, float, complex],
-            **kwparams: Union[int, float, complex]) -> Schedule:
+            *params: Union[int, float, complex, ParameterExpression],
+            **kwparams: Union[int, float, complex, ParameterExpression]) -> Schedule:
         """Return the defined :py:class:`~qiskit.pulse.Schedule` for the given instruction on
         the given qubits.
 
@@ -204,8 +204,8 @@ class InstructionScheduleMap():
     def pop(self,
             instruction: str,
             qubits: Union[int, Iterable[int]],
-            *params: Union[int, float, complex],
-            **kwparams: Union[int, float, complex]) -> Schedule:
+            *params: Union[int, float, complex, ParameterExpression],
+            **kwparams: Union[int, float, complex, ParameterExpression]) -> Schedule:
         """Remove and return the defined ``Schedule`` for the given instruction on the given
         qubits.
 
