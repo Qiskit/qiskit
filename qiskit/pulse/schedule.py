@@ -20,12 +20,13 @@ import copy
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
-from qiskit.util import is_main_process
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.util import is_main_process
 
 # pylint: disable=missing-return-doc
 
@@ -780,8 +781,9 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
-    def bind_parameters(self, *args: List[Union[float, complex]],
-                        **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
+    def bind_parameters(self,
+                        *args: Union[int, float, complex, ParameterExpression],
+                        **kwargs: Union[int, float, complex, ParameterExpression]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
         schedules = list(self._schedules)
@@ -821,8 +823,8 @@ class ParameterizedSchedule:
 
         return bound_schedule
 
-    def __call__(self, *args: List[Union[float, complex]],
-                 **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
+    def __call__(self, *args: Union[int, float, complex, ParameterExpression],
+                 **kwargs: Union[int, float, complex, ParameterExpression]) -> Schedule:
         return self.bind_parameters(*args, **kwargs)
 
 

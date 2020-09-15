@@ -46,6 +46,7 @@ jobs:
       python: 3.6
       env:
         - PYTHON="coverage run --source qiskit --parallel-mode"
+        - QISKIT_TEST_CAPTURE_STREAMS=1
       after_success:
         - coverage combine || true
         - coveralls || true
