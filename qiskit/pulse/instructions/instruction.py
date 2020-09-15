@@ -229,6 +229,12 @@ class Instruction(ScheduleComponent, ABC):
                     ops = list(self.operands)
                     ops[idx] = self._operands[idx].assign({parameter: value})
                     self._operands = tuple(ops)
+                elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
+                    # FIXME
+                    # assert value is int
+                    ops = list(self.operands)
+                    ops[idx] = type(ops[idx])(self._operands[idx].index.assign({parameter: value}))
+                    self._operands = tuple(ops)
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

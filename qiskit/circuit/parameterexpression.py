@@ -266,6 +266,9 @@ class ParameterExpression():
                             'cannot be cast to an int.'.format(self.parameters))
         return int(self._symbol_expr)
 
+    def __hash__(self):
+        return hash((tuple(hash(p) for p in self.parameters), str(self)))
+
     def __copy__(self):
         return self
 
