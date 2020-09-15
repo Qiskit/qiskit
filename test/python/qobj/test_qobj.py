@@ -39,6 +39,7 @@ class TestQASMQobj(QiskitTestCase):
     """Tests for QasmQobj."""
 
     def setUp(self):
+        super().setUp()
         self.valid_qobj = QasmQobj(
             qobj_id='12345',
             header=QobjHeader(),
@@ -252,6 +253,7 @@ class TestPulseQobj(QiskitTestCase):
     """Tests for PulseQobj."""
 
     def setUp(self):
+        super().setUp()
         self.valid_qobj = PulseQobj(
             qobj_id='12345',
             header=QobjHeader(),
