@@ -67,9 +67,14 @@ class Play(Instruction):
                           value_dict: Dict[ParameterExpression,
                                            Union[ParameterExpression, int, float, complex]],
                           inplace: bool = True) -> 'Play':
-        super().assign_parameters(value_dict, inplace)
-        pulse = self.pulse.assign_parameters(value_dict)
-        if inplace:
-            self._operands = (pulse, self.channel)
-            return self
-        return Play(pulse, self.channel)
+        play_inst = super().assign_parameters(value_dict, inplace)
+
+        if hasattr(self.pulse, 'assign_parameters'):
+            pulse = self.pulse.assign_parameters(value_dict)
+            if inplace:
+                self._operands = (pulse, self.channel)
+                return self
+            return Play(pulse, play_inst.channel)
+
+        return play_inst
+
