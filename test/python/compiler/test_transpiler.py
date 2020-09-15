@@ -780,10 +780,9 @@ class TestTranspile(QiskitTestCase):
         transpiled_circuit = transpile(
             circ,
             backend=backend,
-            basis_gates=backend.configuration().basis_gates
-            + list(circ.calibrations.keys()),
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(transpiled_circuit, circ)
 
     def test_transpiled_basis_gates_calibrations(self):
         """Test if the transpiled calibrations is equal to basis gates circuit calibrations."""

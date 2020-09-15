@@ -112,7 +112,7 @@ class RunningPassManager:
 
         for passset in self.working_list:
             for pass_ in passset:
-                dag = self._do_pass(pass_, dag, passset.options)
+                dag = self._do_pass(pass_, dag, passset.options, calibrations)
 
         circuit = dag_to_circuit(dag)
         if output_name:
@@ -126,13 +126,14 @@ class RunningPassManager:
 
         return circuit
 
-    def _do_pass(self, pass_, dag, options):
+    def _do_pass(self, pass_, dag, options, circuit_calibrations):
         """Do a pass and its "requires".
 
         Args:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag on which the pass is ran.
             options (dict): PassManager options.
+            circuit_calibrations (dict): Dictionary of circuit calibrations.
         Returns:
             DAGCircuit: The transformed dag in case of a transformation pass.
             The same input dag in case of an analysis pass.
@@ -146,19 +147,26 @@ class RunningPassManager:
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
-            dag = self._run_this_pass(pass_, dag)
+            dag = self._run_this_pass(pass_, dag, circuit_calibrations)
 
             # update the valid_passes property
             self._update_valid_passes(pass_)
 
         return dag
 
-    def _run_this_pass(self, pass_, dag):
+    def _run_this_pass(self, pass_, dag, circuit_calibrations):
         pass_.property_set = self.property_set
         if pass_.is_transformation_pass:
             # Measure time if we have a callback or logging set
             start_time = time()
-            new_dag = pass_.run(dag)
+            for node in dag.op_nodes():
+                qubit = tuple([node.qargs[0].index])
+                params = tuple(node.op.params)
+                if (node.name in circuit_calibrations and
+                        (qubit, params) in circuit_calibrations[node.name].keys()):
+                    new_dag = dag
+                else:
+                    new_dag = pass_.run(dag)
             end_time = time()
             run_time = end_time - start_time
             # Execute the callback function if one is set
