@@ -222,7 +222,10 @@ class Instruction(ScheduleComponent, ABC):
     def assign_parameters(self, value_dict):
         """
         """
+        # TODO: efficiency
         # TODO: type checking??
+        # TODO: raise error if parameter in input does not appear in schedule
+        from qiskit.pulse.library import Pulse
         for parameter, value in value_dict.items():
             for idx, op in enumerate(self.operands):
                 if isinstance(op, ParameterExpression) and parameter in op.parameters:
@@ -235,6 +238,13 @@ class Instruction(ScheduleComponent, ABC):
                     ops = list(self.operands)
                     ops[idx] = type(ops[idx])(self._operands[idx].index.assign({parameter: value}))
                     self._operands = tuple(ops)
+                elif isinstance(op, Pulse):
+                    try:
+                        ops = list(self.operands)
+                        ops[idx] = op.assign_parameters({parameter: value})
+                        self._operands = tuple(ops)
+                    except:
+                        raise
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

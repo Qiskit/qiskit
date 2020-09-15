@@ -41,12 +41,14 @@ from abc import abstractmethod
 from typing import Any, Callable, Dict, Optional
 import math
 import numpy as np
+from numbers import Number
 
-from . import continuous
-from .discrete import gaussian, gaussian_square, drag, constant
-from .pulse import Pulse
-from .waveform import Waveform
-from ..exceptions import PulseError
+from qiskit.circuit import ParameterExpression
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.library import continuous
+from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
+from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.library.waveform import Waveform
 
 
 class ParametricPulse(Pulse):
@@ -145,7 +147,10 @@ class Gaussian(ParametricPulse):
                    in the class docstring.
             name: Display name for this pulse envelope.
         """
-        self._amp = complex(amp)
+        if not isinstance(amp, ParameterExpression):
+            self._amp = complex(amp)
+        else:
+            self._amp = amp
         self._sigma = sigma
         super().__init__(duration=duration, name=name)
 
@@ -164,15 +169,27 @@ class Gaussian(ParametricPulse):
                         sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
-        if abs(self.amp) > 1.:
+        if not isinstance(self.amp, ParameterExpression) and abs(self.amp) > 1.:
             raise PulseError("The amplitude norm must be <= 1, "
                              "found: {}".format(abs(self.amp)))
-        if self.sigma <= 0:
+        if not isinstance(self.sigma, ParameterExpression) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
+
+    def assign_parameters(self, value_dict):
+        """
+        """
+        amp = self.amp
+        sigma = self.sigma
+        for parameter, value in value_dict.items():
+            if isinstance(self.amp, ParameterExpression) and parameter in self.amp.parameters:
+                amp = self.amp.assign({parameter: value})
+            if isinstance(self.sigma, ParameterExpression) and parameter in self.sigma.parameters:
+                sigma = self.sigma.assign({parameter: value})
+        return Gaussian(duration=self.duration, amp=amp, sigma=sigma)
 
     def __repr__(self) -> str:
         return "{}(duration={}, amp={}, sigma={}{})" \
