@@ -75,7 +75,8 @@ class FakeProvider(BaseProvider):
                           FakeBogota(),
                           FakeMontreal(),
                           FakeToronto(),
-                          FakeManhattan()]
+                          FakeManhattan(),
+                          FakeSantiago()]
 
         super().__init__()
 
