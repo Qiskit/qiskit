@@ -16,6 +16,7 @@ from typing import Tuple, List, Union, Optional
 import numpy as np
 from scipy.stats import multivariate_normal
 from qiskit.circuit import QuantumCircuit
+from .normal import _check_bounds_valid, _check_dimensions_match
 
 
 class LogNormalDistribution(QuantumCircuit):
@@ -83,19 +84,26 @@ class LogNormalDistribution(QuantumCircuit):
                 If ``None``, the bounds are set to ``(0, 1)`` for each dimension.
             name: The name of the circuit.
         """
+        _check_dimensions_match(num_qubits, mu, sigma, bounds)
+        _check_bounds_valid(bounds)
+
+        # set default arguments
+        dim = 1 if isinstance(num_qubits, int) else len(num_qubits)
+        if mu is None:
+            mu = 0 if dim == 1 else [0] * dim
+
+        if sigma is None:
+            sigma = 1 if dim == 1 else np.eye(dim)
+
+        if bounds is None:
+            bounds = (0, 1) if dim == 1 else [(0, 1)] * dim
+
         if not isinstance(num_qubits, list):  # univariate case
             super().__init__(num_qubits, name=name)
 
-            if bounds is None:
-                bounds = (0, 1)
-
-            x = np.linspace(bounds[0], bounds[1], num=2**num_qubits)
-
+            x = np.linspace(bounds[0], bounds[1], num=2**num_qubits)  # evaluation points
         else:  # multivariate case
             super().__init__(sum(num_qubits), name=name)
-
-            if bounds is None:
-                bounds = [(0, 1)] * len(num_qubits)
 
             # compute the evaluation points using numpy's meshgrid
             # indexing 'ij' yields the "column-based" indexing
