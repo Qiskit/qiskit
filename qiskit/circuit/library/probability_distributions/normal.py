@@ -119,8 +119,8 @@ class NormalDistribution(QuantumCircuit):
 
     def __init__(self,
                  num_qubits: Union[int, List[int]],
-                 mu: Union[float, List[float]] = 0,
-                 sigma: Union[float, List[float]] = 1,
+                 mu: Union[float, List[float]] = None,
+                 sigma: Union[float, List[float]] = None,
                  bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
                  name: str = 'P(X)') -> None:
         r"""
@@ -130,27 +130,33 @@ class NormalDistribution(QuantumCircuit):
                 of integers indicating the number of qubits to use in each dimension.
             mu: The parameter :math:`\mu`, which is the expected value of the distribution.
                 Can be either a float for a 1d random variable or a list of floats for a higher
-                dimensional random variable.
+                dimensional random variable. Defaults to 0.
             sigma: The parameter :math:`\sigma`, which is the standard deviation or covariance
-                matrix.
+                matrix. Default to the identity matrix of appropriate size.
             bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
                 ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
                 If ``None``, the bounds are set to ``(-1, 1)`` for each dimension.
             name: The name of the circuit.
         """
+        self._check_dimensions_match(num_qubits, mu, sigma, bounds)
+        self._check_bounds_valid(bounds)
+
+        # set default arguments
+        dim = 1 if isinstance(num_qubits, int) else len(num_qubits)
+        if mu is None:
+            mu = 0 if dim == 1 else [0] * dim
+
+        if sigma is None:
+            sigma = 1 if dim == 1 else np.eye(dim)
+
+        if bounds is None:
+            bounds = (-1, 1) if dim == 1 else [(-1, 1)] * dim
+
         if not isinstance(num_qubits, list):  # univariate case
             super().__init__(num_qubits, name=name)
-
-            if bounds is None:
-                bounds = (-1, 1)
-
             x = np.linspace(bounds[0], bounds[1], num=2**num_qubits)
-
         else:  # multivariate case
             super().__init__(sum(num_qubits), name=name)
-
-            if bounds is None:
-                bounds = [(-1, 1)] * len(num_qubits)
 
             # compute the evaluation points using numpy's meshgrid
             # indexing 'ij' yields the "column-based" indexing
@@ -165,3 +171,42 @@ class NormalDistribution(QuantumCircuit):
 
         # use default synthesis to construct the circuit
         self.initialize(np.sqrt(normalized_probabilities), self.qubits)  # pylint: disable=no-member
+
+    def _check_dimensions_match(self, num_qubits, mu, sigma, bounds):
+        num_qubits = [num_qubits] if not isinstance(num_qubits, (list, np.ndarray)) else num_qubits
+        dim = len(num_qubits)
+
+        if mu is not None:
+            mu = [mu] if not isinstance(mu, (list, np.ndarray)) else mu
+            if len(mu) != dim:
+                raise ValueError('Dimension of mu ({}) does not match the dimension of the '
+                                 'random variable specified by the number of qubits ({})'
+                                 ''.format(len(mu), dim))
+
+        if sigma is not None:
+            sigma = [[sigma]] if not isinstance(sigma, (list, np.ndarray)) else sigma
+            if len(sigma) != dim or len(sigma[0]) != dim:
+                raise ValueError('Dimension of sigma ({} x {}) does not match the dimension of '
+                                 'the random variable specified by the number of qubits ({})'
+                                 ''.format(len(sigma), len(sigma[0]), dim))
+
+        if bounds is not None:
+            # bit differently to cover the case the users might pass `bounds` as a single list,
+            # e.g. [0, 1], instead of a tuple
+            bounds = [bounds] if not isinstance(bounds[0], tuple) else bounds
+            if len(bounds) != dim:
+                raise ValueError('Dimension of bounds ({}) does not match the dimension of the '
+                                 'random variable specified by the number of qubits ({})'
+                                 ''.format(len(bounds), dim))
+
+    def _check_bounds_valid(self, bounds):
+        if bounds is None:
+            return
+
+        bounds = [bounds] if not isinstance(bounds[0], tuple) else bounds
+
+        for i, bound in enumerate(bounds):
+            if not bound[1] - bound[0] > 0:
+                raise ValueError('Dimension {} of the bounds are invalid, must be a non-empty '
+                                 'interval where the lower bounds is smaller than the upper bound.'
+                                 ''.format(i))
