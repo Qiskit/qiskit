@@ -61,6 +61,7 @@ class NormalDistribution(QuantumCircuit):
     distribution.
 
     Examples:
+
         The ``NormalDistribution`` circuit leverages the ``initialize`` method of the circuit.
         >>> circuit = NormalDistribution(3, mu=1, sigma=1, bounds=(0, 2))
         >>> circuit.draw()
@@ -71,14 +72,12 @@ class NormalDistribution(QuantumCircuit):
              │                                                                            │
         q_2: ┤2                                                                           ├
              └────────────────────────────────────────────────────────────────────────────┘
-
         The class can be used for both univariate and multivariate distributions.
         >>> mu = [1, 0.9]
         >>> sigma = [[1, -0.2], [-0.2, 1]]
         >>> circuit = NormalDistribution([2, 3], mu, sigma)
         >>> circuit.num_qubits
         5
-
         A typical example from optimization or finance uses the probability distribution to prepare
         the qubit amplitudes and then applies some function of interest, here examplary shown as
         controlled Pauli-Y rotations.
