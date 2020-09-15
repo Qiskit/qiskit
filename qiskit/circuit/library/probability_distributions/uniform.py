@@ -16,7 +16,35 @@ from qiskit.circuit import QuantumCircuit
 
 
 class UniformDistribution(QuantumCircuit):
-    """The uniform distribution circuit."""
+    r"""A circuit to encode a discretized uniform distribution in qubit amplitudes.
+
+    This simplfy corresponds to applying Hadamard gates on all qubits.
+
+    The probability density function of the discretized uniform distribution on
+    :math:`N` values is
+
+    .. math::
+
+        \mathbb{P}(X = x) = \frac{1}{N}.
+
+    This circuit considers :math:`N = 2^n`, where :math:`n =` ``num_qubits`` and prepares the state
+
+    .. math::
+
+        \mathcal{P}_X |0\rangle^{\otimes n} = \frac{1}{\sqrt{2^n}} \sum_{x=0}^{2^n - 1} |x\rangle
+
+    Examples:
+        >>> circuit = UniformDistribution(3)
+        >>> circuit.draw()
+             ┌───┐
+        q_0: ┤ H ├
+             ├───┤
+        q_1: ┤ H ├
+             ├───┤
+        q_2: ┤ H ├
+             └───┘
+
+    """
 
     def __init__(self, num_qubits: int, name: str = 'P(X)') -> None:
         """

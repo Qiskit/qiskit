@@ -12,31 +12,75 @@
 
 """The log-normal probability distribution circuit."""
 
-from typing import Tuple
+from typing import Tuple, List, Union, Optional
 import numpy as np
 from scipy.stats import multivariate_normal
 from qiskit.circuit import QuantumCircuit
 
 
 class LogNormalDistribution(QuantumCircuit):
-    r"""The log-normal distribution circuit.
+    r"""A circuit to encode a discretized log-normal distribution in qubit amplitudes.
 
-    The probability density function of the normal distribution is defined as
+    A random variable :math:`X` is log-normal distributed if
 
     .. math::
 
-        \mathbb{P}(\log(X) = x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x - \mu)^2}{\sigma^2}}
+        \log(X) \sim \mathcal{N}(\mu, \sigma^2)
+
+    for a normal distribution :math:`\mathcal{N}(\mu, \sigma^2)`.
+    The probability density function of the log-normal distribution is defined as
+
+    .. math::
+
+        \mathbb{P}(X = x) = \frac{1}{x\sqrt{2\pi\sigma^2}} e^{-\frac{(\log(x) - \mu)^2}{\sigma^2}}
+
+
+    This circuit considers the discretized version of :math:`X` on ``2 ** num_qubits`` equidistant
+    points, :math:`x_i`, truncated to ``bounds``. See also
+    :class:`~qiskit.circuit.library.NormalDistribution` for more information.
+
+    This circuit is for example used in amplitude estimation applications, such as finance [1, 2],
+    where customer demand or the return of a portfolio could be modelled using a log-normal
+    distribution.
+
+    Examples:
+        This class can be used for both univariate and multivariate distributions.
+        >>> mu = [1, 0.9, 0.2]
+        >>> sigma = [[1, -0.2, 0.2], [-0.2, 1, 0.4], [0.2, 0.4, 1]]
+        >>> circuit = LogNormalDistribution([2, 2, 2], mu, sigma)
+        >>> circuit.num_qubits
+        6
+
+    References:
+        [1]: Gacon, J., Zoufal, C., & Woerner, S. (2020).
+             Quantum-Enhanced Simulation-Based Optimization.
+             `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
+
+        [2]: Woerner, S., & Egger, D. J. (2018).
+             Quantum Risk Analysis.
+             `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
 
     """
 
-    def __init__(self, num_qubits: int, mu: float = 0, sigma: float = 1,
-                 bounds: Tuple[float, float] = None, name: str = 'P(X)') -> None:
+    def __init__(self,
+                 num_qubits: Union[int, List[int]],
+                 mu: Union[float, List[float]] = 0,
+                 sigma: Union[float, List[float]] = 1,
+                 bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
+                 name: str = 'P(X)') -> None:
         r"""
         Args:
-            num_qubits: The number of qubits in the circuit.
-            mu: The parameter :math:`\mu`.
-            sigma: The parameter :math:`\sigma`.
-            bounds: The truncation bounds of the distribution.
+            num_qubits: The number of qubits used to discretize the random variable. For a 1d
+                random variable, ``num_qubits`` is an integer, for multiple dimensions a list
+                of integers indicating the number of qubits to use in each dimension.
+            mu: The parameter :math:`\mu` of the distribution.
+                Can be either a float for a 1d random variable or a list of floats for a higher
+                dimensional random variable.
+            sigma: The parameter :math:`\sigma`, which is the standard deviation or covariance
+                matrix.
+            bounds: The truncation bounds of the distribution as tuples. For multiple dimensions,
+                ``bounds`` is a list of tuples ``[(low0, high0), (low1, high1), ...]``.
+                If ``None``, the bounds are set to ``(0, 1)`` for each dimension.
             name: The name of the circuit.
         """
         if not isinstance(num_qubits, list):  # univariate case
@@ -72,7 +116,6 @@ class LogNormalDistribution(QuantumCircuit):
             else:
                 probability = 0
             probabilities += [probability]
-        print(probabilities)
         normalized_probabilities = probabilities / np.sum(probabilities)
 
         # use default synthesis to construct the circuit
