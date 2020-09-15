@@ -2073,7 +2073,7 @@ class TestGroverOperator(QiskitTestCase):
         oracle.ccx(4, 5, 6)
         oracle.h(6)
         oracle.x(6)
-        grover_op = GroverOperator(oracle, reflection_qubits=[0,1])
+        grover_op = GroverOperator(oracle, reflection_qubits=[0, 1])
         self.assertEqual(grover_op.width(), 7)
 
 
