@@ -67,7 +67,7 @@ pytest_randomized:
 
 test_ci:
 	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
-	stestr run --concurrency $(CONCURRENCY)
+	QISKIT_TEST_CAPTURE_STREAMS=1 stestr run --concurrency $(CONCURRENCY)
 
 test_randomized:
 	python3 -m unittest discover -s test/randomized -t . -v

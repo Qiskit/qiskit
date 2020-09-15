@@ -135,7 +135,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
-        """Test extending a circuits fails if registers incompatible.
+        """Test extending a circuit fails if registers incompatible.
 
         If two circuits have same name register of different size or type
         it should raise a CircuitError.
@@ -149,6 +149,15 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertRaises(CircuitError, qc1.__iadd__, qc2)
         self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
+
+    def test_extend_circuit_adds_qubits(self):
+        """Test extending a circuits with differing registers adds the qubits."""
+        qr = QuantumRegister(1, "q")
+        qc = QuantumCircuit(qr)
+        empty = QuantumCircuit()
+        empty.extend(qc)
+
+        self.assertListEqual(empty.qubits, qr[:])
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
