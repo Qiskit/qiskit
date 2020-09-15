@@ -13,7 +13,7 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel

@@ -41,7 +41,6 @@ from abc import abstractmethod
 from typing import Any, Callable, Dict, Optional
 import math
 import numpy as np
-from numbers import Number
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
