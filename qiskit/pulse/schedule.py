@@ -311,8 +311,7 @@ class Schedule(ScheduleComponent):
         ``filter_funcs`` returns ``True``, the instruction occurs on a channel type contained in
         ``channels``, the instruction type is contained in ``instruction_types``, and the period
         over which the instruction operates is *fully* contained in one specified in
-        ``time_ranges`` or ``intervals``.
-        If no arguments are provided, ``self`` is returned.
+        ``time_ranges`` or ``intervals``. If no arguments are provided, ``self`` is returned.
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
@@ -337,7 +336,9 @@ class Schedule(ScheduleComponent):
                 intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """Return a Schedule with only the instructions from this Schedule *failing* at least one
         of the provided filters. This method is the complement of ``self.filter``, so that::
+
             self.filter(args) | self.exclude(args) == self
+
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
@@ -382,11 +383,11 @@ class Schedule(ScheduleComponent):
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool
-            channels: For example, [DriveChannel(0), AcquireChannel(0)] or DriveChannel(0)
-            instruction_types: For example, [PulseInstruction, AcquireInstruction]
-                               or DelayInstruction
-            time_ranges: For example, [(0, 5), (6, 10)] or (0, 5)
-            intervals: For example, [Interval(0, 5), Interval(6, 10)] or Interval(0, 5)
+            channels: For example, ``[DriveChannel(0), AcquireChannel(0)]`` or ``DriveChannel(0)``
+            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``
+                               or ``DelayInstruction``
+            time_ranges: For example, ``[(0, 5), (6, 10)]`` or ``(0, 5)``
+            intervals: For example, ``[Interval(0, 5), Interval(6, 10)]`` or ``Interval(0, 5)``
         """
 
         def if_scalar_cast_to_list(to_list):
@@ -674,10 +675,14 @@ class Schedule(ScheduleComponent):
 
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
+
         Equality is checked by verifying there is an equal instruction at every time
         in ``other`` for every instruction in this ``Schedule``.
+
         .. warning::
+
             This does not check for logical equivalency. Ie.,
+
             ```python
             >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
                  Delay(20)(DriveChannel(0)))
