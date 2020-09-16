@@ -232,7 +232,6 @@ class Schedule(ScheduleComponent):
                ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
-
         Args:
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
