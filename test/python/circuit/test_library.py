@@ -698,6 +698,11 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
 
+    def test_piecewise_linear_rotations_no_comparator(self):
+        """Test that no ancillas are allocated if not required."""
+        pw_linear_rotations = PiecewiseLinearPauliRotations(3, [0], [1], [0])
+        self.assertEqual(pw_linear_rotations.num_ancillas, 0)
+
     def test_piecewise_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
