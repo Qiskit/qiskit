@@ -21,7 +21,7 @@ features:
                          DriveChannel(qubit))
         schedule += ShiftPhase(-phi, DriveChannel(qubit))
 
-    Parameter assignment is done via ``assign_parameters``:
+    Parameter assignment is done via ``assign_parameters``::
 
         schedule.assign_parameters({alpha: 4.5e9, phi: 1.57,
                                     qubit: 0, amp: 0.2})
