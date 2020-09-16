@@ -22,6 +22,7 @@ from unittest.mock import patch
 from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
 
+from qiskit.exceptions import QiskitError
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Parameter, Gate
@@ -776,13 +777,13 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(custom_90, [1], q1_y90)
 
         backend = FakeAlmaden()
-        # TODO: Remove L783-L784 in the next PR
         transpiled_circuit = transpile(
             circ,
             backend=backend,
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        self.assertEqual(transpiled_circuit, circ)
+        self.assertEqual(list(transpiled_circuit.count_ops().keys()), ['mycustom'])
+        self.assertEqual(list(transpiled_circuit.count_ops().values()), [2])
 
     def test_transpiled_basis_gates_calibrations(self):
         """Test if the transpiled calibrations is equal to basis gates circuit calibrations."""
@@ -796,14 +797,54 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [0], q0_x180)
 
         backend = FakeAlmaden()
-        # TODO: Remove L803-L804 in the next PR
         transpiled_circuit = transpile(
             circ,
             backend=backend,
-            basis_gates=backend.configuration().basis_gates
-            + list(circ.calibrations.keys()),
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(transpiled_circuit, circ)
+
+
+    def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
+        """Test if the custom, non calibrated gate raises QiskitError."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.append(custom_180, [0])
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration(custom_180, [1], q0_x180)
+
+        backend = FakeAlmaden()
+        with self.assertRaises(QiskitError):
+            transpile(circ, backend=backend)
+
+    def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
+        """Test if the non-basis gates are transpiled if they are on different qubit that
+        is not calibrated."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.h(1)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibration
+        circ.add_calibration("h", [1], q0_x180)
+
+        backend = FakeAlmaden()
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+        self.assertEqual(list(transpiled_circuit.count_ops().keys()), ['u2'])
 
 
 class StreamHandlerRaiseException(StreamHandler):
