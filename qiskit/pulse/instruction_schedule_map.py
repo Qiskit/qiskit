@@ -147,7 +147,7 @@ class InstructionScheduleMap():
         the given qubits.
 
         Args:
-            instruction: Name of the instruction.
+            instruction: Name of the instruction or the instruction (gate) itself.
             qubits: The qubits for the instruction.
             *params: Command parameters for generating the output schedule.
             **kwparams: Keyworded command parameters for generating the schedule.
