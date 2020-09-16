@@ -386,6 +386,7 @@ class Schedule(ScheduleComponent):
             time_ranges: For example, [(0, 5), (6, 10)] or (0, 5)
             intervals: For example, [Interval(0, 5), Interval(6, 10)] or Interval(0, 5)
         """
+
         def if_scalar_cast_to_list(to_list):
             try:
                 iter(to_list)
@@ -402,6 +403,7 @@ class Schedule(ScheduleComponent):
                     time_inst (Tuple[int, Instruction]): Time
                 """
                 return any([chan in channels for chan in time_inst[1].channels])
+
             return channel_filter
 
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
@@ -413,6 +415,7 @@ class Schedule(ScheduleComponent):
                     time_inst (Tuple[int, Instruction]): Time
                 """
                 return isinstance(time_inst[1], tuple(types))
+
             return instruction_filter
 
         def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
@@ -429,6 +432,7 @@ class Schedule(ScheduleComponent):
                     if i[0] <= inst_start and inst_stop <= i[1]:
                         return True
                 return False
+
             return interval_filter
 
         filter_func_list = list(filter_funcs)
