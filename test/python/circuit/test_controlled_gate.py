@@ -1051,7 +1051,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         try:
             actual = cgate.to_matrix()
         except CircuitError as cerr:
-            self.skipTest(cerr)
+            self.skipTest(str(cerr))
         self.assertTrue(np.allclose(actual, target))
 
 

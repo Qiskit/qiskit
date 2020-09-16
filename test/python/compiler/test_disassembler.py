@@ -216,6 +216,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
     """Tests for disassembling pulse schedules to qobj."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
         self.backend_config.parametric_pulses = [
