@@ -281,9 +281,12 @@ class Schedule(ScheduleComponent):
                inplace: bool = False) -> 'Schedule':
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
+
         .. math::
+
             t = \textrm{max}(\texttt{x.stop_time} |\texttt{x} \in
                 \texttt{self.channels} \cap \texttt{schedule.channels})
+
         Args:
             schedule: Schedule to be appended.
             name: Name of the new ``Schedule``. Defaults to name of ``self``.
