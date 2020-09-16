@@ -91,16 +91,26 @@ class BasisTranslator(TransformationPass):
         skip_translation = set()
 
         if len(dag.calibrations) != 0:
-            gate_qubit_set = {(node.op.name, (tuple([node.qargs[0].index]), tuple(node.op.params)), node.op.num_qubits,)
-                              for node in dag.op_nodes()}
+            gate_qubit_set = {
+                (
+                    node.op.name,
+                    (tuple([node.qargs[0].index]), tuple(node.op.params)),
+                    node.op.num_qubits,
+                )
+                for node in dag.op_nodes()
+            }
             for gate_qubit_params in gate_qubit_set:
                 gate = gate_qubit_params[0]
                 qubit_params = gate_qubit_params[1]
                 num_qubits = gate_qubit_params[2]
                 dag_qubit_param = dag.calibrations.get(gate, None)
-                if (dag_qubit_param and dag_qubit_param.get(qubit_params) and
-                        (gate, num_qubits) in source_basis):
+                if (
+                    dag_qubit_param
+                    and dag_qubit_param.get(qubit_params)
+                    and (gate, num_qubits) in source_basis
+                ):
                     source_basis.remove((gate, num_qubits))
+
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
