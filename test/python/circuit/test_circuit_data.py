@@ -398,7 +398,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
             qc.data = [(HGate(), [], [qr[0]])]
 
     def test_param_gate_instance(self):
-        """Verify the same Parameter gate instance is not being used in
+        """Verify that the same Parameter gate instance is not being used in
            multiple circuits."""
         a, b = Parameter('a'), Parameter('b')
         rx = RXGate(a)
