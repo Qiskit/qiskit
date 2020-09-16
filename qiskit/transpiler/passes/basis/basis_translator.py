@@ -85,32 +85,23 @@ class BasisTranslator(TransformationPass):
         basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
 
         target_basis = set(self._target_basis).union(basic_instrs)
-
         source_basis = {(node.op.name, node.op.num_qubits)
                         for node in dag.op_nodes()}
-        skip_translation = set()
 
-        if len(dag.calibrations) != 0:
-            gate_qubit_set = {
-                (
-                    node.op.name,
-                    (tuple([node.qargs[0].index]), tuple(node.op.params)),
-                    node.op.num_qubits,
-                )
-                for node in dag.op_nodes()
-            }
-            for gate_qubit_params in gate_qubit_set:
-                gate = gate_qubit_params[0]
-                qubit_params = gate_qubit_params[1]
-                num_qubits = gate_qubit_params[2]
-                dag_qubit_param = dag.calibrations.get(gate, None)
-                if (
-                    dag_qubit_param
-                    and dag_qubit_param.get(qubit_params)
-                    and (gate, num_qubits) in source_basis
-                ):
-                    source_basis.remove((gate, num_qubits))
-
+        if dag.calibrations:
+            for node in dag.op_nodes():
+                gate = node.op.name
+                qubit_params = (tuple([node.qargs[0].index]), tuple(node.op.params))
+                num_qubits = node.op.num_qubits
+                if gate in dag.calibrations:
+                    gate_cals = dag.calibrations[gate]
+                    if qubit_params in gate_cals:
+                        if (gate, num_qubits) in source_basis:
+                            source_basis.remove((gate, num_qubits))
+                    else:
+                        # If the ``gate`` is in cals, but qubit_params isn't, we need to add
+                        # it back to the source_basis
+                        source_basis.add((gate, num_qubits))
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -146,6 +137,12 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
+            if dag.calibrations and node.name in dag.calibrations:
+                qubit = tuple([node.qargs[0].index])
+                params = tuple(node.op.params)
+                if (qubit, params) in dag.calibrations[node.name]:
+                    continue
+
             if (node.op.name, node.op.num_qubits) in instr_map:
                 target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
 
@@ -175,8 +172,6 @@ class BasisTranslator(TransformationPass):
                     dag.substitute_node(node, bound_target_dag.op_nodes()[0].op, inplace=True)
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
-            elif node.name in dag.calibrations:
-                continue
             else:
                 raise TranspilerError('BasisTranslator did not map {}.'.format(node.name))
 

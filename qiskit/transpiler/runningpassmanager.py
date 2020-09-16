@@ -155,9 +155,7 @@ class RunningPassManager:
             # Measure time if we have a callback or logging set
             start_time = time()
             new_dag = pass_.run(dag)
-            if new_dag.calibrations != dag.calibrations:
-                new_dag.calibrations = dag.calibrations
-                print("This pass {} removed calibrations".format(pass_))
+            new_dag.calibrations = dag.calibrations
             end_time = time()
             run_time = end_time - start_time
             # Execute the callback function if one is set
