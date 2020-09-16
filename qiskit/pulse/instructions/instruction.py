@@ -241,8 +241,12 @@ class Instruction(ScheduleComponent, ABC):
                 elif (isinstance(op, Channel)
                       and isinstance(op.index, ParameterExpression)
                       and parameter in op.index.parameters):
-                    # TODO: Check int type?
                     new_index = new_operands[idx].index.assign(parameter, value)
+                    if not new_index.parameters:
+                        new_index = float(new_index)
+                        if float(new_index).is_integer():
+                            # If it's not, allow Channel to raise an error upon initialization
+                            new_index = int(new_index)
                     new_operands[idx] = type(op)(new_index)
 
         self._operands = tuple(new_operands)
