@@ -253,6 +253,7 @@ class TestFaultyQ1Unpickable(TestFaultyBackendCase):
 
     def setUp(self):
         """Creates a FakeBackend that is unpickable"""
+        super().setUp()
         backend = FakeOurenseFaultyQ1()
         backend.unpickable_prop = (lambda x: x)
         self.unpickable_backend = backend

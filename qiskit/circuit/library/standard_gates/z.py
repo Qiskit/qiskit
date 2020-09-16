@@ -75,7 +75,9 @@ class ZGate(Gate):
         rules = [
             (U1Gate(pi), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -141,8 +143,7 @@ class CZGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CZ gate."""
         super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1,
-                         ctrl_state=ctrl_state)
-        self.base_gate = ZGate()
+                         ctrl_state=ctrl_state, base_gate=ZGate())
 
     def _define(self):
         """
@@ -159,12 +160,14 @@ class CZGate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverted CZ gate (itself)."""
-        return CZGate()  # self-inverse
+        return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CZ gate."""

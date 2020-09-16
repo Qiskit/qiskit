@@ -21,6 +21,7 @@ class TestPropertySet(QiskitTestCase):
     """ Tests for PropertySet methods. """
 
     def setUp(self):
+        super().setUp()
         self.pset = PropertySet()
 
     def test_get_non_existent(self):
