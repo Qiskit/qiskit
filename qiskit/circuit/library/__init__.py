@@ -270,6 +270,7 @@ from .arithmetic import (
     IntegerComparator,
     WeightedAdder,
     QuadraticForm,
+    LinearAmplitudeFunction,
 )
 from .n_local import (
     NLocal,
