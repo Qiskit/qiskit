@@ -82,7 +82,7 @@ class DefaultStyle:
             'multi': other_text,
 
         }
-        self.sc = '#000000'
+        self.sc = white_text
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'         # Medium Gray
@@ -168,6 +168,7 @@ class DefaultStyle:
             'crx': quantum_color,
             'cry': quantum_color,
             'crz': quantum_color,
+            'cu3': quantum_color,
 
             'target': '#ffffff',
             'multi': other_color,
