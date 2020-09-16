@@ -16,59 +16,18 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
-from time import time
 from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 
-
-class CustomSolver(RecursiveBacktrackingSolver):
-    """A wrap to RecursiveBacktrackingSolver to support ``call_limit``"""
-
-    def __init__(self, call_limit=None, time_limit=None):
-        self.call_limit = call_limit
-        self.time_limit = time_limit
-        self.call_current = None
-        self.time_start = None
-        self.time_current = None
-        super().__init__()
-
-    def limit_reached(self):
-        """Checks if a limit is reached."""
-        if self.call_current is not None:
-            self.call_current += 1
-            if self.call_current > self.call_limit:
-                return True
-        if self.time_start is not None:
-            self.time_current = time() - self.time_start
-            if self.time_current > self.time_limit:
-                return True
-        return False
-
-    def getSolution(self,  # pylint: disable=invalid-name
-                    domains, constraints, vconstraints):
-        """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
-        if self.call_limit is not None:
-            self.call_current = 0
-        if self.time_limit is not None:
-            self.time_start = time()
-        return super().getSolution(domains, constraints, vconstraints)
-
-    def recursiveBacktracking(self,  # pylint: disable=invalid-name
-                              solutions, domains, vconstraints, assignments, single):
-        """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
-        limited in the amount of calls by ``self.call_limit`` """
-        if self.limit_reached():
-            return None
-        return super().recursiveBacktracking(solutions, domains, vconstraints, assignments,
-                                             single)
+from ._crb_solver import CRBSolver
 
 
 class CSPLayout(AnalysisPass):
     """If possible, chooses a Layout as a CSP, using backtracking."""
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000,
+    def __init__(self, coupling_map, strict_direction=True, seed=None, call_limit=1000,
                  time_limit=10):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
@@ -84,7 +43,7 @@ class CSPLayout(AnalysisPass):
         Args:
             coupling_map (Coupling): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
-                                     Default is False.
+                                     Default is True.
             seed (int): Sets the seed of the PRNG.
             call_limit (int): Amount of times that
                 ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` will be called.
@@ -101,44 +60,55 @@ class CSPLayout(AnalysisPass):
 
     def run(self, dag):
         qubits = dag.qubits
-        cxs = set()
-
-        for gate in dag.two_qubit_ops():
-            cxs.add((qubits.index(gate.qargs[0]),
-                     qubits.index(gate.qargs[1])))
-        edges = self.coupling_map.get_edges()
 
         if self.time_limit is None and self.call_limit is None:
             solver = RecursiveBacktrackingSolver()
         else:
-            solver = CustomSolver(call_limit=self.call_limit, time_limit=self.time_limit)
+            solver = CRBSolver(call_limit=self.call_limit, time_limit=self.time_limit)
 
-        problem = Problem(solver)
-        problem.addVariables(list(range(len(qubits))), self.coupling_map.physical_qubits)
-        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
+        solutions = self._get_csp_solutions(solver, dag)
 
-        if self.strict_direction:
-            def constraint(control, target):
-                return (control, target) in edges
-        else:
-            def constraint(control, target):
-                return (control, target) in edges or (target, control) in edges
-
-        for pair in cxs:
-            problem.addConstraint(constraint, [pair[0], pair[1]])
-
-        random.seed(self.seed)
-        solution = problem.getSolution()
-
-        if solution is None:
+        if not solutions:
             stop_reason = 'nonexistent solution'
-            if isinstance(solver, CustomSolver):
+            if isinstance(solver, CRBSolver):
                 if solver.time_current is not None and solver.time_current >= self.time_limit:
                     stop_reason = 'time limit reached'
                 elif solver.call_current is not None and solver.call_current >= self.call_limit:
                     stop_reason = 'call limit reached'
         else:
             stop_reason = 'solution found'
-            self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
+            self.property_set['layout'] = Layout({v: qubits[k] for k, v in solutions[0].items()})
 
         self.property_set['CSPLayout_stop_reason'] = stop_reason
+
+    def _get_csp_solutions(self, solver, dag):
+        """Run the CSP Solver """
+
+        physical_edges = self.coupling_map.get_edges()
+        logical_edges = self._get_logical_edges(dag)
+
+        problem = Problem(solver)
+        problem.addVariables(list(range(len(dag.qubits))),
+                             self.coupling_map.physical_qubits)
+        problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qbit
+
+        if self.strict_direction:
+            def constraint(control, target):
+                return (control, target) in physical_edges
+        else:
+            def constraint(control, target):
+                return (control, target) in physical_edges or (target, control) in physical_edges
+
+        for edge in logical_edges:
+            problem.addConstraint(constraint, [edge[0], edge[1]])
+
+        random.seed(self.seed)
+        return problem.getSolutions()
+
+    def _get_logical_edges(self, dag):
+        """Extract the logical edges from the CNOT interactions"""
+        logical_edges = set()
+        for gate in dag.two_qubit_ops():
+            logical_edges.add((dag.qubits.index(gate.qargs[0]),
+                               dag.qubits.index(gate.qargs[1])))
+        return logical_edges
