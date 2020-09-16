@@ -2063,6 +2063,19 @@ class TestGroverOperator(QiskitTestCase):
 
             self.assertEqual(expected, grover_op)
 
+    def test_num_mcx_ancillas(self):
+        """Test the number of ancilla bits for the mcx gate in zero_reflection."""
+        oracle = QuantumCircuit(7)
+        oracle.x(6)
+        oracle.h(6)
+        oracle.ccx(0, 1, 4)
+        oracle.ccx(2, 3, 5)
+        oracle.ccx(4, 5, 6)
+        oracle.h(6)
+        oracle.x(6)
+        grover_op = GroverOperator(oracle, reflection_qubits=[0, 1])
+        self.assertEqual(grover_op.width(), 7)
+
 
 @ddt
 class TestQuadraticForm(QiskitTestCase):
