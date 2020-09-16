@@ -629,30 +629,19 @@ class Schedule(ScheduleComponent):
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression,
                                            Union[ParameterExpression, int, float, complex]],
-                          inplace: bool = True) -> 'Schedule':
+                          ) -> 'Schedule':
         """Assign the parameters in this schedule according to the input.
 
         Args:
             value_dict: A mapping from Parameters to either numeric values or another
                 Parameter expression.
-            inplace: Modify this ``Schedule`` iff True, else return a new ``Schedule``.
 
         Returns:
             Schedule with updated parameters (a new one if not inplace, otherwise self).
         """
-        # TODO: efficient assignment
-        # TODO: raise error if parameter in input does not appear in schedule
-        if inplace:
-            for _, inst in self.instructions:
-                inst.assign_parameters(value_dict)
-            return self
-
-        new_insts = []
-        for time, inst in self.instructions:
-            inst = copy.deepcopy(inst)
+        for _, inst in self.instructions:
             inst.assign_parameters(value_dict)
-            new_insts.append((time, inst))
-        return Schedule(*new_insts, name=self.name)
+        return self
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

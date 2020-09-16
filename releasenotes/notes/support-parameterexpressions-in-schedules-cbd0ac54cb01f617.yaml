@@ -32,8 +32,3 @@ features:
         schedule += SetFrequency(alpha + beta, DriveChannel(0))
         schedule.assign_parameters({alpha: 4.5e9})
         schedule.assign_parameters({beta: phi / 6.28})
-
-    By default, ``assign_parameters`` modifies the schedule in place.
-    This can be controlled with the ``inplace`` flag::
-
-        schedule = schedule.assign_parameters({...}, inplace=False)
