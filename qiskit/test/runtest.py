@@ -78,6 +78,8 @@ class RunTest:
                 called as last_resort(exc_info), and then the exception will be
                 raised - aborting the test run as this is inside the runner
                 machinery rather than the confined context of the test.
+        Raises:
+            ImportError: If test requirements aren't installed
         """
         if not HAS_TESTTOOLS:
             raise ImportError(
