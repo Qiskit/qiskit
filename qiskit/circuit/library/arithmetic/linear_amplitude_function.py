@@ -20,9 +20,61 @@ from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations
 
 
 class LinearAmplitudeFunction(QuantumCircuit):
-    """A circuit implementing a (pieceswie) linear function on qubit amplitudes.
+    r"""A circuit implementing a (piecewise) linear function on qubit amplitudes.
 
-    This class uses Pauli-Y rotations to rotate the values onto the amplitudes.
+    An amplitude function :math:`F` of a function :math:`f` is a mapping
+
+    .. math::
+
+        F|x\rangle|0\rangle = \sqrt{1 - \hat{f}(x)} |x\rangle|0\rangle + \sqrt{\hat{f}(x)}
+            |x\rangle|1\rangle.
+
+    for a function :math:`\hat{f}: \{0, ..., 2^n - 1} \rightarrow [0, 1]`, where :math:`|x\rangle`
+    is a :math:`n` qubit state.
+
+    This circuit implements :math:`F` for piecewise linear functions :math:`\hat{f}`.
+    In this case, the mapping :math:`F` can be approximately implemented using a Taylor expansion
+    and linearly controlled Pauli-Y rotations, see [1, 2] for more detail. This approximation
+    uses a ``rescaling_factor`` to determine the accuracy of the Taylor expansion.
+
+    In general, the function of interest :math:`f` is defined from some interval :math:`[a,b]`,
+    the ``domain`` to :math:`[c,d]`, the ``image``, instead of :math`\{1, ..., N}` to
+    :math:`[0, 1]`. Usng an affine transformation we can rescale :math:`f` to :math:`\hat{f}`:
+
+    .. math::
+
+        \hat{f(x)} = \frac{f(\phi(x)) - c}{d - c}
+
+    with
+
+    .. math::
+
+        \phi(x) = a + \frac{b - a}{2^n - 1} x.
+
+    If :math:`f` is a piecewise linear function on :math:`m` intervals
+    :math:`[p_{i-1}, p_i], i \in \{1, ..., m\}` with slopes :math:`\alpha_i` and
+    offsets `\beta_i` it can be written as
+
+    .. math::
+
+        f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i}(x) (\alpha_i x + \beta_i)
+
+    where :math:`1_[a, b]` is an indication function that is 1 if the argument is in the interval
+    :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
+    ``breakpoints`` argument.
+
+    Examples:
+
+
+    References:
+
+        [1]: Woerner, S., & Egger, D. J. (2018).
+             Quantum Risk Analysis.
+             `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
+
+        [2]: Gacon, J., Zoufal, C., & Woerner, S. (2020).
+             Quantum-Enhanced Simulation-Based Optimization.
+             `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
     """
 
     def __init__(self,
@@ -44,14 +96,15 @@ class LinearAmplitudeFunction(QuantumCircuit):
                 linear function.
             domain: The domain of the function as tuple :math:`(x_\min{}, x_\max{})`.
             image: The image of the function as tuple :math:`(f_\min{}, f_\max{})`.
-            rescaling_factor: The rescaling factor :math:`c`.
+            rescaling_factor: The rescaling factor to adjust the accuracy in the Taylor
+                approximation.
             breakpoints: The breakpoints if the function is piecewise linear. If None, the function
                 is not piecewise.
             name: Name of the circuit.
         """
-        if isinstance(slope, float):
+        if not hasattr(slope, '__len__'):
             slope = [slope]
-        if isinstance(offset, float):
+        if not hasattr(offset, '__len__'):
             offset = [offset]
 
         _check_sizes_match(slope, offset, breakpoints)
@@ -63,16 +116,20 @@ class LinearAmplitudeFunction(QuantumCircuit):
         else:
             if not np.isclose(breakpoints[0], domain[0]):
                 breakpoints = [domain[0]] + breakpoints
-                slopes = [0] + slopes
-                offsets = [0] + offsets
+                slope = [0] + slope
+                offset = [0] + offset
+
+        self._domain = domain
+        self._image = image
+        self._rescaling_factor = rescaling_factor
 
         # do rescalings
         a, b = domain
         c, d = image
 
         mapped_breakpoints = []
-        mapped_slopes = []
-        mapped_offsets = []
+        mapped_slope = []
+        mapped_offset = []
         for i, point in enumerate(breakpoints):
             mapped_breakpoint = (point - a) / (b - a) * (2**num_state_qubits - 1)
             if mapped_breakpoint <= 2**num_state_qubits - 1:
@@ -81,8 +138,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
                 # factor (upper - lower) / (2^n - 1) is for the scaling of x to [l,u]
                 # note that the +l for mapping to [l,u] is already included in
                 # the offsets given as parameters
-                mapped_slopes += [slopes[i] * (b - a) / (2**num_state_qubits - 1)]
-                mapped_offsets += [offsets[i]]
+                mapped_slope += [slope[i] * (b - a) / (2**num_state_qubits - 1)]
+                mapped_offset += [offset[i]]
             else:
                 raise RuntimeError('wtf')
 
@@ -90,8 +147,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
         slope_angles = np.zeros(len(breakpoints))
         offset_angles = np.pi / 4 * (1 - rescaling_factor) * np.ones(len(breakpoints))
         for i in range(len(breakpoints)):
-            slope_angles[i] = np.pi * rescaling_factor * mapped_slopes[i] / 2 / (d - c)
-            offset_angles[i] += np.pi * rescaling_factor * (mapped_offsets[i] - c) / 2 / (d - c)
+            slope_angles[i] = np.pi * rescaling_factor * mapped_slope[i] / 2 / (d - c)
+            offset_angles[i] += np.pi * rescaling_factor * (mapped_offset[i] - c) / 2 / (d - c)
 
         # use PWLPauliRotations to implement the function
         pwl_pauli_rotation = PiecewiseLinearPauliRotations(
@@ -100,12 +157,29 @@ class LinearAmplitudeFunction(QuantumCircuit):
             2 * slope_angles,
             2 * offset_angles
         )
+        print(num_state_qubits, mapped_breakpoints, slope_angles, offset_angles)
 
         super().__init__(pwl_pauli_rotation.num_qubits, name=name)
         self.compose(pwl_pauli_rotation, inplace=True)
 
+    def post_processing(self, scaled_value):
+        """Apply the inverse scaling applied to the function values.
+
+        Args:
+            scaled_value: A function value.
+        """
+        # map normalized value back to estimation
+        value = scaled_value - 1 / 2 + np.pi / 4 * self._rescaling_factor
+        value *= 2 / np.pi / self._rescaling_factor
+        value *= self._domain[1] - self._domain[0]
+        value += self._domain[0]
+        return value
+
 
 def _check_sorted_and_in_range(breakpoints, domain):
+    if breakpoints is None:
+        return
+
     # check if sorted
     if not np.all(np.diff(breakpoints) > 0):
         raise ValueError('Breakpoints must be unique and sorted.')
