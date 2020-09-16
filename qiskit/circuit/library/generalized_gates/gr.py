@@ -10,12 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
 """Global R gates."""
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import RGate, RZGate
 
 
 class GR(QuantumCircuit):
@@ -53,7 +51,7 @@ class GR(QuantumCircuit):
         import qiskit.tools.jupyter
         import numpy as np
         circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
-        %circuit_library_info circuit.decompose()
+        %circuit_library_info circuit
 
     """
 
@@ -69,10 +67,7 @@ class GR(QuantumCircuit):
             phi: angle of rotation axis in xy-plane
         """
         super().__init__(num_qubits, name="gr")
-        gr = QuantumCircuit(num_qubits, name="gr")
-        for i in range(self.num_qubits):
-            gr.append(RGate(theta, phi), [i])
-        self.append(gr, self.qubits)
+        self.r(theta, phi, self.qubits)
 
 
 class GRX(GR):
@@ -110,7 +105,7 @@ class GRX(GR):
         import qiskit.tools.jupyter
         import numpy as np
         circuit = GRX(num_qubits=3, theta=np.pi/4)
-        %circuit_library_info circuit.decompose()
+        %circuit_library_info circuit
 
     """
 
@@ -161,7 +156,7 @@ class GRY(GR):
         import qiskit.tools.jupyter
         import numpy as np
         circuit = GRY(num_qubits=3, theta=np.pi/4)
-        %circuit_library_info circuit.decompose()
+        %circuit_library_info circuit
 
     """
 
@@ -212,7 +207,7 @@ class GRZ(QuantumCircuit):
         import qiskit.tools.jupyter
         import numpy as np
         circuit = GRZ(num_qubits=3, phi=np.pi/2)
-        %circuit_library_info circuit.decompose()
+        %circuit_library_info circuit
 
     """
 
@@ -226,7 +221,4 @@ class GRZ(QuantumCircuit):
             phi: rotation angle about z-axis
         """
         super().__init__(num_qubits, name="grz")
-        grz = QuantumCircuit(num_qubits, name="grz")
-        for i in range(self.num_qubits):
-            grz.append(RZGate(phi), [i])
-        self.append(grz, self.qubits)
+        self.rz(phi, self.qubits)
