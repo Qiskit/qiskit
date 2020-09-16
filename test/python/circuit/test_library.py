@@ -30,7 +30,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
                                     HiddenLinearFunction, GraphState, PhaseEstimation,
-                                    FourierChecking, GroverOperator, QuadraticForm)
+                                    FourierChecking, GroverOperator, QuadraticForm,
+                                    GR, GRX, GRY, GRZ, RGate)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -311,6 +312,39 @@ class TestGMSLibrary(QiskitTestCase):
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
+
+
+@ddt
+class TestGlobalRLibrary(QiskitTestCase):
+    """Test library of global R gates."""
+
+    def test_gr_equivalence(self):
+        """Test global R gate is same as 3 individual R gates."""
+        circuit = GR(num_qubits=3, theta=np.pi/3, phi=2*np.pi/3)
+        expected = QuantumCircuit(3, name="gr")
+        for i in range(3):
+            expected.append(RGate(theta=np.pi/3, phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
+
+    def test_grx_equivalence(self):
+        """Test global RX gates is same as 3 individual RX gates."""
+        circuit = GRX(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=0)
+        self.assertEqual(expected, circuit)
+
+    def test_gry_equivalence(self):
+        """Test global RY gates is same as 3 individual RY gates."""
+        circuit = GRY(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=np.pi/2)
+        self.assertEqual(expected, circuit)
+
+    def test_grz_equivalence(self):
+        """Test global RZ gate is same as 3 individual RZ gates."""
+        circuit = GRZ(num_qubits=3, phi=2*np.pi/3)
+        expected = QuantumCircuit(3, name="grz")
+        for i in range(3):
+            expected.append(RZGate(phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
 
 
 @ddt
