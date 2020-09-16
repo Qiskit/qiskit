@@ -22,6 +22,60 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.21.0
+*************
+
+Terra 0.15.2
+============
+
+No change
+
+Aer 0.6.1
+=========
+
+No change
+
+Ignis 0.4.0
+===========
+
+No change
+
+Aqua 0.7.5
+==========
+
+No change
+
+IBM Q Provider 0.9.0
+====================
+
+.. _Release Notes_IBMQ_provider_0.9.0_New Features:
+
+New Features
+------------
+
+- You can now access the IBMQ random number services, such as the CQC
+  randomness extractor, using the new package
+  :mod:`qiskit.providers.ibmq.random`. Note that this feature is still in
+  beta, and not all accounts have access to it. It is also subject to heavy
+  modification in both functionality and API without backward compatibility.
+
+
+.. _Release Notes_IBMQ_provider_0.9.0_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes an issue that may raise a ``ValueError`` if
+  :meth:`~qiskit.providers.ibmq.IBMQBackend.retrieve_job` is used to retrieve
+  a job submitted via the IBM Quantum Experience Composer.
+
+- :class:`~qiskit.providers.ibmq.managed.IBMQJobManager` has been updated so
+  that if a time out happens while waiting for an old job to finish, the
+  time out error doesn't prevent a new job to be submitted. Fixes
+  `#737 <https://github.com/Qiskit/qiskit-ibmq-provider/issues/737>`_
+
+
+*************
 Qiskit 0.20.1
 *************
 
