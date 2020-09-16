@@ -115,7 +115,7 @@ class ParametricPulse(Pulse):
                 if is_parameterized(op_value) and parameter in op_value.parameters:
                     op_value = op_value.assign(parameter, value)
                     try:
-                        # TODO: some need to be complex, but ParameterExpression doesn't support it
+                        # TODO: ParameterExpression doesn't support complex values
                         op_value = float(op_value)
                     except TypeError:
                         pass

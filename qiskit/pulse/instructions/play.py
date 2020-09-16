@@ -77,4 +77,3 @@ class Play(Instruction):
             return Play(pulse, play_inst.channel)
 
         return play_inst
-
