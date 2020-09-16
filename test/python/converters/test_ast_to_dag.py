@@ -24,6 +24,7 @@ class TestAstToDag(QiskitTestCase):
     """Test AST to DAG."""
 
     def setUp(self):
+        super().setUp()
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         self.circuit = QuantumCircuit(qr, cr)

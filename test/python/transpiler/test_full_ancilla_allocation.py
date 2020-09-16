@@ -25,6 +25,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
     """Tests the ExtendLayout pass"""
 
     def setUp(self):
+        super().setUp()
         self.cmap5 = CouplingMap([[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]])
 
     def test_3q_circuit_5q_coupling(self):
