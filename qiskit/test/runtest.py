@@ -28,7 +28,11 @@ __all__ = [
 
 import sys
 
-from testtools.testresult import ExtendedToOriginalDecorator
+try:
+    from testtools.testresult import ExtendedToOriginalDecorator
+    HAS_TESTTOOLS = True
+except ImportError:
+    HAS_TESTTOOLS = False
 
 
 class MultipleExceptions(Exception):
@@ -74,7 +78,13 @@ class RunTest:
                 called as last_resort(exc_info), and then the exception will be
                 raised - aborting the test run as this is inside the runner
                 machinery rather than the confined context of the test.
+        Raises:
+            ImportError: If test requirements aren't installed
         """
+        if not HAS_TESTTOOLS:
+            raise ImportError(
+                'Test runner requirements are missing, install '
+                'requirements-dev.txt before running tests')
         self.case = case
         self.handlers = handlers or []
         self.exception_caught = object()
