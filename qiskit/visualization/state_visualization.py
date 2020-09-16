@@ -768,13 +768,15 @@ def plot_state_qsphere(state, figsize=None, ax=None, show_state_labels=True,
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
+                if prob > 1:  # See https://github.com/Qiskit/qiskit-terra/issues/4666
+                    prob = 1
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1
                 if yvalue >= 0.1:
                     alfa = 1.0 - yvalue
 
-                if prob > 0 and show_state_labels:
+                if not np.isclose(prob, 0) and show_state_labels:
                     rprime = 1.3
                     angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
                     xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
