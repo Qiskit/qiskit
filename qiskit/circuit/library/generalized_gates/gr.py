@@ -33,6 +33,17 @@ class GR(QuantumCircuit):
         q_2: ┤2         ├
              └──────────┘
 
+    The global R gate is native to atomic systems (ion traps, cold neutrals). The global R
+    can be applied to multiple qubits simultaneously.
+
+    In the one-qubit case, this is equivalent to an R(theta, phi) operation,
+    and is thus reduced to the RGate. The global R gate is a direct sum of R
+    operations on all individual qubits.
+
+    .. math::
+
+        GR(\theta, \phi) = \exp(-i \sum_{i=1}^{n} (\cos(\phi)X_i + \sin(\phi)Y_i) \theta/2)
+
     **Expanded Circuit:**
 
     .. jupyter-execute::
@@ -44,19 +55,8 @@ class GR(QuantumCircuit):
         circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
         %circuit_library_info circuit.decompose()
 
-    The global R gate is native to atomic systems (ion traps, cold neutrals). The global R
-    can be applied to multiple qubits simultaneously.
-
-    In the one-qubit case, this is equivalent to an R(theta, phi) operation,
-    and is thus reduced to the RGate. The global R gate is a direct sum of R
-    operations on all individual qubits.
-
-    .. math::
-
-        GR(\theta, \phi) =
-        exp(-i \sum_{i=1}^{n} (\cos(\phi)X_i + sin(\phi)Y_i) \theta/2)
-
     """
+
     def __init__(self,
                  num_qubits: int,
                  theta: float,
@@ -90,6 +90,17 @@ class GRX(GR):
         q_2: ┤2         ├
              └──────────┘
 
+    The global RX gate is native to atomic systems (ion traps, cold neutrals). The global RX
+    can be applied to multiple qubits simultaneously.
+
+    In the one-qubit case, this is equivalent to an RX(theta) operations,
+    and is thus reduced to the RXGate. The global RX gate is a direct sum of RX
+    operations on all individual qubits.
+
+    .. math::
+
+        GRX(\theta) = \exp(-i \sum_{i=1}^{n} X_i \theta/2)
+
     **Expanded Circuit:**
 
     .. jupyter-execute::
@@ -101,19 +112,8 @@ class GRX(GR):
         circuit = GRX(num_qubits=3, theta=np.pi/4)
         %circuit_library_info circuit.decompose()
 
-    The global RX gate is native to atomic systems (ion traps, cold neutrals). The global RX
-    can be applied to multiple qubits simultaneously.
-
-    In the one-qubit case, this is equivalent to an RX(theta) operations,
-    and is thus reduced to the RXGate. The global RX gate is a direct sum of RX
-    operations on all individual qubits.
-
-    .. math::
-
-        GRX(\theta) =
-        exp(-i \sum_{i=1}^{n} X_i \theta/2)
-
     """
+
     def __init__(self,
                  num_qubits: int,
                  theta: float) -> None:
@@ -141,6 +141,17 @@ class GRY(GR):
         q_2: ┤2         ├
              └──────────┘
 
+    The global RY gate is native to atomic systems (ion traps, cold neutrals). The global RY
+    can be applied to multiple qubits simultaneously.
+
+    In the one-qubit case, this is equivalent to an RY(theta) operation,
+    and is thus reduced to the RYGate. The global RY gate is a direct sum of RY
+    operations on all individual qubits.
+
+    .. math::
+
+        GRY(\theta) = \exp(-i \sum_{i=1}^{n} Y_i \theta/2)
+
     **Expanded Circuit:**
 
     .. jupyter-execute::
@@ -152,19 +163,8 @@ class GRY(GR):
         circuit = GRY(num_qubits=3, theta=np.pi/4)
         %circuit_library_info circuit.decompose()
 
-    The global RY gate is native to atomic systems (ion traps, cold neutrals). The global RY
-    can be applied to multiple qubits simultaneously.
-
-    In the one-qubit case, this is equivalent to an RY(theta) operation,
-    and is thus reduced to the RYGate. The global RY gate is a direct sum of RY
-    operations on all individual qubits.
-
-    .. math::
-
-        GRY(\theta) =
-        \exp(-i \sum_{i=1}^{n} Y_i \theta/2)
-
     """
+
     def __init__(self,
                  num_qubits: int,
                  theta: float) -> None:
@@ -192,6 +192,17 @@ class GRZ(QuantumCircuit):
         q_2: ┤2         ├
              └──────────┘
 
+    The global RZ gate is native to atomic systems (ion traps, cold neutrals). The global RZ
+    can be applied to multiple qubits simultaneously.
+
+    In the one-qubit case, this is equivalent to an RZ(phi) operation,
+    and is thus reduced to the RZGate. The global RZ gate is a direct sum of RZ
+    operations on all individual qubits.
+
+    .. math::
+
+        GRZ(\phi) = \exp(-i \sum_{i=1}^{n} Z_i \phi)
+
     **Expanded Circuit:**
 
     .. jupyter-execute::
@@ -203,19 +214,8 @@ class GRZ(QuantumCircuit):
         circuit = GRZ(num_qubits=3, phi=np.pi/2)
         %circuit_library_info circuit.decompose()
 
-    The global RZ gate is native to atomic systems (ion traps, cold neutrals). The global RZ
-    can be applied to multiple qubits simultaneously.
-
-    In the one-qubit case, this is equivalent to an RZ(phi) operation,
-    and is thus reduced to the RZGate. The global RZ gate is a direct sum of RZ
-    operations on all individual qubits.
-
-    .. math::
-
-        GRZ(\phi) =
-        exp(-i \sum_{i=1}^{n} Z_i \phi)
-
     """
+
     def __init__(self,
                  num_qubits: int,
                  phi: float) -> None:
