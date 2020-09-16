@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -22,20 +20,21 @@ from qiskit.qasm.node.node import Node
 from qiskit.test import QiskitTestCase, Path
 
 
-def parse(file_path, prec=15):
+def parse(file_path):
     """
       Simple helper
       - file_path: Path to the OpenQASM file
       - prec: Precision for the returned string
     """
     qasm = Qasm(file_path)
-    return qasm.parse().qasm(prec)
+    return qasm.parse().qasm()
 
 
 class TestParser(QiskitTestCase):
     """QasmParser"""
 
     def setUp(self):
+        super().setUp()
         self.qasm_file_path = self._get_resource_path('example.qasm', Path.QASMS)
         self.qasm_file_path_fail = self._get_resource_path(
             'example_fail.qasm', Path.QASMS)
@@ -88,10 +87,10 @@ class TestParser(QiskitTestCase):
         res_if = qasm_if.parse()
         inspect(res_if)
 
-    def test_get_tokens(self):
+    def test_generate_tokens(self):
         """Test whether we get only valid tokens."""
         qasm = Qasm(self.qasm_file_path)
-        for token in qasm.get_tokens():
+        for token in qasm.generate_tokens():
             self.assertTrue(isinstance(token, ply.lex.LexToken))
 
 

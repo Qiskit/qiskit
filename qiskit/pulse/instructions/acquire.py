@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -13,12 +11,11 @@
 # that they have been altered from the originals.
 
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
-some metadata for the acquisition process; for example, where to store classified readout data.
+some metadata for the acquisition process, for example, where to store classified readout data.
 """
 import warnings
-import itertools
 
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from ..channels import MemorySlot, RegisterSlot, AcquireChannel
 from ..configuration import Kernel, Discriminator
@@ -45,10 +42,8 @@ class Acquire(Instruction):
 
     def __init__(self,
                  duration: int,
-                 channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
-                 mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
-                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
+                 channel: AcquireChannel,
+                 mem_slot: Optional[MemorySlot] = None,
                  reg_slot: Optional[RegisterSlot] = None,
                  kernel: Optional[Kernel] = None,
                  discriminator: Optional[Discriminator] = None,
@@ -59,8 +54,6 @@ class Acquire(Instruction):
             duration: Length of time to acquire data in terms of dt.
             channel: The channel that will acquire data.
             mem_slot: The classical memory slot in which to store the classified readout result.
-            mem_slots: Deprecated list form of ``mem_slot``.
-            reg_slots: Deprecated list form of ``reg_slot``.
             reg_slot: The fast-access register slot in which to store the classified readout
                       result for fast feedback.
             kernel: A ``Kernel`` for integrating raw data.
@@ -72,57 +65,22 @@ class Acquire(Instruction):
             PulseError: If channels are supplied, and the number of register and/or memory slots
                         does not equal the number of channels.
         """
-        if isinstance(channel, list) or isinstance(mem_slot, list) or reg_slots or mem_slots:
-            warnings.warn('The AcquireInstruction on multiple qubits, multiple '
-                          'memory slots and multiple reg slots is deprecated. The '
-                          'parameter "mem_slots" has been replaced by "mem_slot" and '
-                          '"reg_slots" has been replaced by "reg_slot"', DeprecationWarning, 3)
+        if isinstance(channel, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
+            raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
+                             "classical memory destination for the measurement result.")
 
-        if not isinstance(channel, list):
-            channels = [channel] if channel else None
-        else:
-            channels = channel
-
-        if mem_slot and not isinstance(mem_slot, list):
-            mem_slot = [mem_slot]
-        elif mem_slots:
-            mem_slot = mem_slots
-
-        if reg_slot:
-            reg_slot = [reg_slot]
-        elif reg_slots and not isinstance(reg_slots, list):
-            reg_slot = [reg_slots]
-        else:
-            reg_slot = reg_slots
-
-        if channels and not (mem_slot or reg_slot):
+        if not (mem_slot or reg_slot):
             raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
 
-        if channels and mem_slot and len(channels) != len(mem_slot):
-            raise PulseError("The number of mem_slots must be equal to the number of channels.")
-
-        if channels and reg_slot:
-            if len(channels) != len(reg_slot):
-                raise PulseError("The number of reg_slots must be equal to the number of "
-                                 "channels.")
-        else:
-            reg_slot = []
-
-        self._acquires = channels
-        self._channel = channels[0] if channels else None
-        self._mem_slots = mem_slot
-        self._reg_slots = reg_slot
+        self._channel = channel
+        self._mem_slot = mem_slot
+        self._reg_slot = reg_slot
         self._kernel = kernel
         self._discriminator = discriminator
 
-        if channels is None:
-            warnings.warn("Usage of Acquire without specifying a channel is deprecated. For "
-                          "example, Acquire(1200)(AcquireChannel(0)) should be replaced by "
-                          "Acquire(1200, AcquireChannel(0)).", DeprecationWarning)
-        all_channels = [group for group in [channels, mem_slot, reg_slot] if group is not None]
-        flattened_channels = tuple(itertools.chain.from_iterable(all_channels))
+        all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
         super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
-                         duration, flattened_channels, name=name)
+                         duration, all_channels, name=name)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -146,84 +104,47 @@ class Acquire(Instruction):
         """Acquire channel to acquire data. The ``AcquireChannel`` index maps trivially to
         qubit index.
         """
-        return self._acquires[0] if self._acquires else None
+        return self._channel
 
     @property
     def mem_slot(self) -> MemorySlot:
         """The classical memory slot which will store the classified readout result."""
-        return self._mem_slots[0] if self._mem_slots else None
+        return self._mem_slot
 
     @property
     def reg_slot(self) -> RegisterSlot:
         """The fast-access register slot which will store the classified readout result for
         fast-feedback computation.
         """
-        return self._reg_slots[0] if self._reg_slots else None
+        return self._reg_slot
 
     @property
     def acquires(self) -> List[AcquireChannel]:
         """Acquire channels to be acquired on."""
-        return self._acquires
+        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
+                      DeprecationWarning)
+        return [self._channel]
 
     @property
     def mem_slots(self) -> List[MemorySlot]:
         """MemorySlots."""
-        return self._mem_slots
+        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
+                      DeprecationWarning)
+        return [self._mem_slot]
 
     @property
     def reg_slots(self) -> List[RegisterSlot]:
         """RegisterSlots."""
-        return self._reg_slots
+        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
+                      DeprecationWarning)
+        return [self._reg_slot]
 
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
-            ', ' + ', '.join(str(ch) for ch in self.acquires) if self.acquires else '',
+            ', ' + str(self.channel),
             ', ' + str(self.mem_slot) if self.mem_slot else '',
             ', ' + str(self.reg_slot) if self.reg_slot else '',
             ', ' + str(self.kernel) if self.kernel else '',
             ', ' + str(self.discriminator) if self.discriminator else '')
-
-    def __call__(self,
-                 channel: Optional[Union[AcquireChannel, List[AcquireChannel]]] = None,
-                 mem_slot: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
-                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
-                 mem_slots: Optional[Union[List[MemorySlot]]] = None,
-                 reg_slot: Optional[RegisterSlot] = None,
-                 kernel: Optional[Kernel] = None,
-                 discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None) -> 'Acquire':
-        """Return new ``Acquire`` that is fully instantiated with its channels.
-
-        Args:
-            channel: The channel that will acquire data.
-            mem_slot: The classical memory slot in which to store the classified readout result.
-            mem_slots: Deprecated list form of ``mem_slot``.
-            reg_slots: Deprecated list form of ``reg_slot``.
-            reg_slot: The fast-access register slot in which to store the classified readout
-                      result for fast feedback.
-            kernel: A ``Kernel`` for integrating raw data.
-            discriminator: A ``Discriminator`` for discriminating kerneled IQ data into 0/1
-                           results.
-            name: Name of the instruction for display purposes.
-
-        Return:
-            Complete and ready to schedule ``Acquire``.
-
-        Raises:
-            PulseError: If ``channel`` has already been set.
-        """
-        warnings.warn("Calling Acquire with a channel is deprecated. Instantiate the acquire with "
-                      "a channel instead.", DeprecationWarning)
-        if self._channel is not None:
-            raise PulseError("The channel has already been assigned as {}.".format(self.channel))
-        return Acquire(self.duration,
-                       channel=channel,
-                       mem_slot=mem_slot,
-                       reg_slots=reg_slots,
-                       mem_slots=mem_slots,
-                       reg_slot=reg_slot,
-                       kernel=kernel,
-                       discriminator=discriminator,
-                       name=name if name is not None else self.name)

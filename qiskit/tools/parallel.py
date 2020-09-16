@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -102,6 +100,8 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         terra.parallel.update: One of the parallel task has finished.
         terra.parallel.finish: All the parallel tasks have finished.
     """
+    if len(values) == 0:
+        return []
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
 

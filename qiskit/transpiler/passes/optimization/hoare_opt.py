@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -69,7 +67,7 @@ class HoareOptimizer(TransformationPass):
         Args:
             dag (DAGCircuit): input DAG to get qubits from
         """
-        for qbt in dag.qubits():
+        for qbt in dag.qubits:
             self.gatenum[qbt.index] = 0
             self.variables[qbt.index] = []
             self.gatecache[qbt.index] = []
@@ -338,6 +336,6 @@ class HoareOptimizer(TransformationPass):
         self._initialize(dag)
         self._traverse_dag(dag)
         if self.size > 1:
-            for qbt in dag.qubits():
+            for qbt in dag.qubits:
                 self._multigate_opt(dag, qbt.index)
         return dag

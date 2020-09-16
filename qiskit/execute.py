@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -46,8 +44,9 @@ def execute(experiments, backend,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
             meas_return=MeasReturnType.AVERAGE,
-            memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-            schedule_circuit=False, inst_map=None, meas_map=None, scheduling_method=None,
+            memory_slots=None, memory_slot_size=100, rep_time=None, rep_delay=None,
+            parameter_binds=None, schedule_circuit=False, inst_map=None, meas_map=None,
+            scheduling_method=None, init_qubits=None,
             **run_config):
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
@@ -171,9 +170,14 @@ def execute(experiments, backend,
 
         memory_slot_size (int): Size of each memory slot if the output is Level 0.
 
-        rep_time (int): repetition time of the experiment in μs.
-            The delay between experiments will be rep_time.
-            Must be from the list provided by the device.
+        rep_time (int): Time per program execution in seconds. Must be from the list provided
+            by the backend (``backend.configuration().rep_times``). Defaults to the first entry.
+
+        rep_delay (float): Delay between programs in seconds. Only supported on certain
+            backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
+            ``rep_delay`` will be used instead of ``rep_time`` and must be from the range supplied
+            by the backend (``backend.configuration().rep_delay_range``). Default is given by
+            ``backend.configuration().default_rep_delay``.
 
         parameter_binds (list[dict]): List of Parameter bindings over which the set of
             experiments will be executed. Each list element (bind) should be of the form
@@ -195,6 +199,9 @@ def execute(experiments, backend,
 
         scheduling_method (str or list(str)):
             Optionally specify a particular scheduling method.
+
+        init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
+                            Default: ``True``.
 
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
@@ -236,8 +243,7 @@ def execute(experiments, backend,
                                     coupling_map=coupling_map,
                                     seed_transpiler=seed_transpiler,
                                     backend_properties=backend_properties,
-                                    initial_layout=initial_layout,
-                                    backend=backend)
+                                    initial_layout=initial_layout)
         experiments = pass_manager.run(experiments)
     else:
         # transpiling the circuits using given transpile options
@@ -273,10 +279,11 @@ def execute(experiments, backend,
                     memory_slots=memory_slots,
                     memory_slot_size=memory_slot_size,
                     rep_time=rep_time,
+                    rep_delay=rep_delay,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    **run_config
-                    )
+                    init_qubits=init_qubits,
+                    **run_config)
 
     # executing the circuits on the backend and returning the job
     start_time = time()

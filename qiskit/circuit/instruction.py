@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -32,6 +30,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
+import warnings
 import copy
 from itertools import zip_longest
 
@@ -138,29 +137,11 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression)):
-                self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self._params.append(single_param)
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self._params.append(single_param)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self._params.append(single_param)
-            # example: Aer expectation_value_snapshot [complex, 'X']
-            elif isinstance(single_param, list):
-                self._params.append(single_param)
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
-                self._params.append(single_param)
-            else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+            self._params.append(self.validate_parameter(single_param))
+
+    def validate_parameter(self, parameter):
+        """Instruction parameters has no validation or normalization."""
+        return parameter
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
@@ -177,7 +158,7 @@ class Instruction:
 
     @definition.setter
     def definition(self, array):
-        """Set matrix representation"""
+        """Set gate representation"""
         self._definition = array
 
     @property
@@ -221,21 +202,33 @@ class Instruction:
         return instruction
 
     def mirror(self):
-        """For a composite instruction, reverse the order of sub-gates.
+        """DEPRECATED: use instruction.reverse_ops().
 
-        This is done by recursively mirroring all sub-instructions.
+        Return:
+            qiskit.circuit.Instruction: a new instruction with sub-instructions
+                reversed.
+        """
+        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse_ops()'
+                      'to reverse the order of gates.', DeprecationWarning)
+        return self.reverse_ops()
+
+    def reverse_ops(self):
+        """For a composite instruction, reverse the order of sub-instructions.
+
+        This is done by recursively reversing all sub-instructions.
         It does not invert any gate.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh gate with sub-gates reversed
+            qiskit.circuit.Instruction: a new instruction with
+                sub-instructions reversed.
         """
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name + '_mirror')
-        reverse_inst.definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
+        reverse_inst = self.copy(name=self.name + '_reverse')
+        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return reverse_inst
 
     def inverse(self):
@@ -256,10 +249,23 @@ class Instruction:
         """
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
-        inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition = []
-        for inst, qargs, cargs in reversed(self._definition):
-            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+
+        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        if self.num_clbits:
+            inverse_gate = Instruction(name=self.name + '_dg',
+                                       num_qubits=self.num_qubits,
+                                       num_clbits=self.num_clbits,
+                                       params=self.params.copy())
+
+        else:
+            inverse_gate = Gate(name=self.name + '_dg',
+                                num_qubits=self.num_qubits,
+                                params=self.params.copy())
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -364,5 +370,14 @@ class Instruction:
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
 
-        instruction.definition = [(self, qargs[:], cargs[:])] * n
+        if instruction.definition is None:
+            # pylint: disable=cyclic-import
+            from qiskit import QuantumCircuit
+            qc = QuantumCircuit()
+            if qargs:
+                qc.add_register(qargs)
+            if cargs:
+                qc.add_register(cargs)
+            qc.data = [(self, qargs[:], cargs[:])] * n
+        instruction.definition = qc
         return instruction

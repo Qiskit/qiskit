@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -23,4 +21,4 @@ Pulse scheduling methods.
    basic
 """
 
-from .basic import *
+from qiskit.scheduler.methods.basic import as_soon_as_possible, as_late_as_possible

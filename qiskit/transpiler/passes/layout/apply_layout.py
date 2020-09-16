@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -58,6 +56,6 @@ class ApplyLayout(TransformationPass):
         for node in dag.topological_op_nodes():
             if node.type == 'op':
                 qargs = [q[layout[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs, node.condition)
+                new_dag.apply_operation_back(node.op, qargs, node.cargs)
 
         return new_dag

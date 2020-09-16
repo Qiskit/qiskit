@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020
@@ -39,7 +37,7 @@ class Clifford(BaseOperator):
     from reference [1].
 
     * Rows 0 to *N-1* are the *destabilizer* group generators
-    * Rows *N-1* to *2N-1* are the *stabilizer* group generators.
+    * Rows *N* to *2N-1* are the *stabilizer* group generators.
 
     The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
     can be accessed using the :attr:`table` attribute. The destabilizer or
@@ -73,12 +71,12 @@ class Clifford(BaseOperator):
     **Circuit Conversion**
 
     Clifford operators can be initialized from circuits containing *only* the
-    following Clifford gates: :class:`~qiskit.extensions.IGate`,
-    :class:`~qiskit.extensions.XGate`, :class:`~qiskit.extensions.YGate`,
-    :class:`~qiskit.extensions.ZGate`, :class:`~qiskit.extensions.HGate`,
-    :class:`~qiskit.extensions.SGate`, :class:`~qiskit.extensions.SdgGate`,
-    :class:`~qiskit.extensions.CXGate`, :class:`~qiskit.extensions.CZGate`,
-    :class:`~qiskit.extensions.SwapGate`.
+    following Clifford gates: :class:`~qiskit.circuit.library.IGate`,
+    :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
+    :class:`~qiskit.circuit.library.ZGate`, :class:`~qiskit.circuit.library.HGate`,
+    :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
+    :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
+    :class:`~qiskit.circuit.library.SwapGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -87,10 +85,10 @@ class Clifford(BaseOperator):
     .. note::
 
         A minimally generating set of gates for Clifford circuits is
-        the :class:`~qiskit.extensions.HGate` and
-        :class:`~qiskit.extensions.SGate` gate and *either* the
-        :class:`~qiskit.extensions.CXGate` or
-        :class:`~qiskit.extensions.CZGate` two-qubit gate.
+        the :class:`~qiskit.circuit.library.HGate` and
+        :class:`~qiskit.circuit.library.SGate` gate and *either* the
+        :class:`~qiskit.circuit.library.CXGate` or
+        :class:`~qiskit.circuit.library.CZGate` two-qubit gate.
 
     Clifford operators can also be converted to
     :class:`~qiskit.quantum_info.Operator` objects using the
@@ -113,7 +111,7 @@ class Clifford(BaseOperator):
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
-            if not data.is_unitary() or set(data._input_dims) != set([2]):
+            if not data.is_unitary() or set(data._input_dims) != {2}:
                 raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
             self._table = StabilizerTable(
                 np.eye(2 * len(data._input_dims), dtype=np.bool))

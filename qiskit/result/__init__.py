@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -24,8 +22,10 @@ Experiment Results (:mod:`qiskit.result`)
 
    Result
    ResultError
+   Counts
 """
 
 from .result import Result
 from .exceptions import ResultError
 from .utils import marginal_counts
+from .counts import Counts

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -55,8 +53,10 @@ ibmq_backends = provider.backends()
 
 print("Remote backends: ", ibmq_backends)
 # Compile and run the Quantum Program on a real device backend
+# select those with at least 2 qubits
 try:
-    least_busy_device = least_busy(provider.backends(simulator=False))
+    least_busy_device = least_busy(provider.backends(
+        filters=lambda x: x.configuration().n_qubits >= 2, simulator=False))
 except:
     print("All devices are currently unavailable.")
 

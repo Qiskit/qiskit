@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -28,7 +26,8 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
                          PulseQobjConfig, QobjMeasurementOption,
                          PulseLibraryItem, QasmQobjInstruction,
-                         QasmQobjExperiment, QasmQobjConfig)
+                         QasmQobjExperiment, QasmQobjConfig,
+                         QasmExperimentCalibrations, GateCalibration)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
@@ -40,6 +39,7 @@ class TestQASMQobj(QiskitTestCase):
     """Tests for QasmQobj."""
 
     def setUp(self):
+        super().setUp()
         self.valid_qobj = QasmQobj(
             qobj_id='12345',
             header=QobjHeader(),
@@ -55,7 +55,7 @@ class TestQASMQobj(QiskitTestCase):
         self.valid_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -122,7 +122,7 @@ class TestQASMQobj(QiskitTestCase):
         expected_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.1.0',
+            'schema_version': '1.3.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -157,7 +157,7 @@ class TestQASMQobj(QiskitTestCase):
         qobj_dict = {
             'qobj_id': '12345',
             'type': 'QASM',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024},
             'experiments': [
@@ -202,11 +202,58 @@ class TestQASMQobj(QiskitTestCase):
         self.assertTrue(qobj1.experiments[1].config.shots == 1)
         self.assertTrue(qobj1.config.shots == 1024)
 
+    def test_gate_calibrations_to_dict(self):
+        """Test gate calibrations to dict."""
+
+        pulse_library = [PulseLibraryItem(name='test', samples=[1j, 1j])]
+        valid_qobj = QasmQobj(
+            qobj_id='12345',
+            header=QobjHeader(),
+            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10,
+                                  pulse_library=pulse_library),
+            experiments=[
+                QasmQobjExperiment(
+                    instructions=[
+                        QasmQobjInstruction(name='u1', qubits=[1], params=[0.4])
+                    ],
+                    config=QasmQobjConfig(
+                        calibrations=QasmExperimentCalibrations(
+                            gates=[
+                                GateCalibration(name='u1', qubits=[1],
+                                                params=[0.4], instructions=[])
+                            ]
+                        )
+                    )
+                )
+            ]
+        )
+        res = valid_qobj.to_dict(validate=True)
+        expected_dict = {
+            'qobj_id': '12345',
+            'type': 'QASM',
+            'schema_version': '1.3.0',
+            'header': {},
+            'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024,
+                       'pulse_library': [{'name': 'test', 'samples': [1j, 1j]}]},
+            'experiments': [
+                {'instructions': [
+                    {'name': 'u1', 'params': [0.4], 'qubits': [1]}
+                ],
+                 'config': {
+                     'calibrations': {
+                         'gates': [{'name': 'u1', 'qubits': [1],
+                                    'params': [0.4], 'instructions': []}]}},
+                 'header': {}}
+            ],
+        }
+        self.assertEqual(expected_dict, res)
+
 
 class TestPulseQobj(QiskitTestCase):
     """Tests for PulseQobj."""
 
     def setUp(self):
+        super().setUp()
         self.valid_qobj = PulseQobj(
             qobj_id='12345',
             header=QobjHeader(),
@@ -229,9 +276,9 @@ class TestPulseQobj(QiskitTestCase):
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=0.),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
-                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
-                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val='P1'),
+                    PulseQobjInstruction(name='setp', t0=10, ch='d0', phase=3.14),
                     PulseQobjInstruction(name='setf', t0=10, ch='d0', frequency=8.0),
+                    PulseQobjInstruction(name='shiftf', t0=10, ch='d0', frequency=4.0),
                     PulseQobjInstruction(name='acquire', t0=15, duration=5,
                                          qubits=[0], memory_slot=[0],
                                          kernels=[
@@ -245,7 +292,7 @@ class TestPulseQobj(QiskitTestCase):
         self.valid_dict = {
             'qobj_id': '12345',
             'type': 'PULSE',
-            'schema_version': '1.1.0',
+            'schema_version': '1.2.0',
             'header': {},
             'config': {'max_credits': 10, 'memory_slots': 2, 'shots': 1024,
                        'meas_level': 1,
@@ -263,9 +310,9 @@ class TestPulseQobj(QiskitTestCase):
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 1.57},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 0},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
-                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 0.1+0j},
-                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
+                    {'name': 'setp', 't0': 10, 'ch': 'd0', 'phase': 3.14},
                     {'name': 'setf', 't0': 10, 'ch': 'd0', 'frequency': 8.0},
+                    {'name': 'shiftf', 't0': 10, 'ch': 'd0', 'frequency': 4.0},
                     {'name': 'acquire', 't0': 15, 'duration': 5,
                      'qubits': [0], 'memory_slot': [0],
                      'kernels': [{'name': 'boxcar',

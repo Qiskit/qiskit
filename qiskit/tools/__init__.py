@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -37,29 +35,7 @@ Monitoring
    backend_monitor
    backend_overview
 
-Quantum Information
-===================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   qft
-   partial_trace
-   vectorize
-   devectorize
-   choi_to_pauli
-   chop
-   outer
-   entropy
-   shannon_entropy
-   concurrence
-   entanglement_of_formation
-   mutual_information
-   is_pos_def
 """
 
 from .parallel import parallel_map
 from .monitor import (job_monitor, backend_monitor, backend_overview)
-from .qi import (qft, partial_trace, vectorize, devectorize, choi_to_pauli,
-                 chop, outer, entropy, shannon_entropy, concurrence,
-                 entanglement_of_formation, mutual_information, is_pos_def)

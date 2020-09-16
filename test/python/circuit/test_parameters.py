@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -15,21 +13,21 @@
 """Test circuits with variable parameters."""
 
 import pickle
-from operator import add, sub, mul, truediv
-
+from operator import add, mul, sub, truediv
 from test import combine
-import numpy
 
-from ddt import ddt, data
+import numpy
+from ddt import data, ddt
 
 import qiskit
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Gate, Instruction
-from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+import qiskit.circuit.library as circlib
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
+                            ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
@@ -127,7 +125,7 @@ class TestParameters(QiskitTestCase):
 
     def test_get_parameters(self):
         """Test instantiating gate with variable parameters"""
-        from qiskit.extensions.standard.rx import RXGate
+        from qiskit.circuit.library.standard_gates.rx import RXGate
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -140,8 +138,8 @@ class TestParameters(QiskitTestCase):
 
     def test_is_parameterized(self):
         """Test checking if a gate is parameterized (bound/unbound)"""
-        from qiskit.extensions.standard.h import HGate
-        from qiskit.extensions.standard.rx import RXGate
+        from qiskit.circuit.library.standard_gates.h import HGate
+        from qiskit.circuit.library.standard_gates.rx import RXGate
         theta = Parameter('θ')
         rxg = RXGate(theta)
         self.assertTrue(rxg.is_parameterized())
@@ -177,6 +175,17 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
+        self.assertEqual(qc.parameters, {theta, x})
+
+    def test_multiple_named_parameters(self):
+        """Test setting multiple named/keyword argument based parameters"""
+        theta = Parameter(name='θ')
+        x = Parameter(name='x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+        self.assertEqual(theta.name, 'θ')
         self.assertEqual(qc.parameters, {theta, x})
 
     def test_partial_binding(self):
@@ -285,7 +294,7 @@ class TestParameters(QiskitTestCase):
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
-        from qiskit.extensions.standard import RZGate
+        from qiskit.circuit.library.standard_gates.rz import RZGate
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         gate = RZGate(theta)
@@ -731,6 +740,15 @@ class TestParameters(QiskitTestCase):
         inv_instr = qc.inverse().to_instruction()
         self.assertIsInstance(inv_instr, Instruction)
 
+    def test_repeated_circuit(self):
+        """Test repeating a circuit maintains the parameters."""
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        qc.rz(theta, 0)
+        rep = qc.repeat(3)
+
+        self.assertEqual(rep.parameters, {theta})
+
     def test_copy_after_inverse(self):
         """Verify circuit.inverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
@@ -741,15 +759,15 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, inverse.parameters)
         raise_if_parameter_table_invalid(inverse)
 
-    def test_copy_after_mirror(self):
-        """Verify circuit.mirror generates a valid ParameterTable."""
+    def test_copy_after_reverse(self):
+        """Verify circuit.reverse generates a valid ParameterTable."""
         qc = QuantumCircuit(1)
         theta = Parameter('theta')
         qc.rz(theta, 0)
 
-        mirror = qc.mirror()
-        self.assertIn(theta, mirror.parameters)
-        raise_if_parameter_table_invalid(mirror)
+        reverse = qc.reverse_ops()
+        self.assertIn(theta, reverse.parameters)
+        raise_if_parameter_table_invalid(reverse)
 
     def test_copy_after_dot_data_setter(self):
         """Verify setting circuit.data generates a valid ParameterTable."""
@@ -773,6 +791,47 @@ class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
     supported_operations = [add, sub, mul, truediv]
+
+    def test_cast_to_float_when_bound(self):
+        """Verify expression can be cast to a float when fully bound."""
+
+        x = Parameter('x')
+        bound_expr = x.bind({x: 2.3})
+        self.assertEqual(float(bound_expr), 2.3)
+
+    def test_raise_if_cast_to_float_when_not_fully_bound(self):
+        """Verify raises if casting to float and not fully bound."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        bound_expr = (x + y).bind({x: 2.3})
+        with self.assertRaisesRegex(TypeError, 'unbound parameters'):
+            float(bound_expr)
+
+    def test_cast_to_int_when_bound(self):
+        """Verify expression can be cast to an int when fully bound."""
+
+        x = Parameter('x')
+        bound_expr = x.bind({x: 2.3})
+        self.assertEqual(int(bound_expr), 2)
+
+    def test_cast_to_int_when_bound_truncates_after_evaluation(self):
+        """Verify expression can be cast to an int when fully bound, but
+        truncated only after evaluation."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        bound_expr = (x + y).bind({x: 2.3, y: 0.8})
+        self.assertEqual(int(bound_expr), 3)
+
+    def test_raise_if_cast_to_int_when_not_fully_bound(self):
+        """Verify raises if casting to int and not fully bound."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        bound_expr = (x + y).bind({x: 2.3})
+        with self.assertRaisesRegex(TypeError, 'unbound parameters'):
+            int(bound_expr)
 
     def test_raise_if_sub_unknown_parameters(self):
         """Verify we raise if asked to sub a parameter not in self."""
@@ -1081,7 +1140,7 @@ class TestParameterExpressions(QiskitTestCase):
         """Bind a parameter which was included via a broadcast instruction."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3008
 
-        from qiskit.extensions.standard import RZGate
+        from qiskit.circuit.library.standard_gates.rz import RZGate
         theta = Parameter('θ')
         n = 5
 
@@ -1168,6 +1227,32 @@ class TestParameterExpressions(QiskitTestCase):
         expected = (y + z) * (y + z)
 
         self.assertEqual(updated_expr, expected)
+
+    def test_conjugate(self):
+        """Test calling conjugate on a ParameterExpression."""
+        x = Parameter('x')
+        self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
+
+    @data(circlib.RGate, circlib.RXGate, circlib.RYGate, circlib.RZGate, circlib.RXXGate,
+          circlib.RYYGate, circlib.RZXGate, circlib.RZZGate, circlib.CRXGate, circlib.CRYGate,
+          circlib.CRZGate)
+    def test_bound_gate_to_matrix(self, gate_class):
+        """Test to_matrix works if previously free parameters are bound.
+
+        The conversion might fail, if trigonometric functions such as cos are called on the
+        parameters and the parameters are still of type ParameterExpression.
+        """
+        num_parameters = 2 if gate_class == circlib.RGate else 1
+        params = list(range(1, 1 + num_parameters))
+        free_params = ParameterVector('th', num_parameters)
+        gate = gate_class(*params)
+        num_qubits = gate.num_qubits
+
+        circuit = QuantumCircuit(num_qubits)
+        circuit.append(gate_class(*free_params), list(range(num_qubits)))
+        bound_circuit = circuit.assign_parameters({free_params: params})
+
+        numpy.testing.assert_array_almost_equal(Operator(bound_circuit).data, gate.to_matrix())
 
 
 class TestParameterEquality(QiskitTestCase):

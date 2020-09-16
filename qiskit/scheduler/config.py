@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -17,8 +15,7 @@
 from typing import List
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-
-from qiskit.scheduler.utils import format_meas_map
+from qiskit.pulse.utils import format_meas_map
 
 
 class ScheduleConfig():

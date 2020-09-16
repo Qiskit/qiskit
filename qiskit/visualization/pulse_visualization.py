@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -17,10 +15,9 @@
 """
 matplotlib pulse visualization.
 """
-import warnings
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.pulse import Schedule, Instruction, SamplePulse, ScheduleComponent
+from qiskit.pulse import Schedule, Instruction, SamplePulse, Waveform, ScheduleComponent
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
@@ -33,22 +30,20 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 
-def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
+def pulse_drawer(data: Union[Waveform, ScheduleComponent],
                  dt: int = 1,
                  style: Union[PulseStyle, SchedStyle] = None,
                  filename: str = None,
                  interp_method: Callable = None,
                  scale: float = None,
                  channel_scales: Dict[Channel, float] = None,
-                 channels_to_plot: List[Channel] = None,
                  plot_all: bool = False,
                  plot_range: Tuple[Union[int, float], Union[int, float]] = None,
                  interactive: bool = False,
-                 table: bool = True,
+                 table: bool = False,
                  label: bool = False,
                  framechange: bool = True,
                  channels: List[Channel] = None,
-                 scaling: float = None,
                  show_framechange_channels: bool = True
                  ):
     """Plot the interpolated envelope of pulse and schedule.
@@ -67,7 +62,6 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
             scaled channel by channel if not provided.
         channel_scales: Dictionary of scale factor for specific channels.
             Scale of channels not specified here is overwritten by `scale`.
-        channels_to_plot: Deprecated, see `channels`.
         plot_all: When set `True` plot empty channels.
         plot_range: A tuple of time range to plot.
         interactive: When set `True` show the circuit in a new window.
@@ -75,7 +69,6 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
         table: When set `True` draw event table for supported commands.
         label: When set `True` draw label for individual instructions.
         framechange: When set `True` draw framechange indicators.
-        scaling: Deprecated, see `scale`.
         channels: A list of channel names to plot.
             All non-empty channels are shown if not provided.
         show_framechange_channels: When set `True` plot channels
@@ -149,19 +142,10 @@ def pulse_drawer(data: Union[SamplePulse, ScheduleComponent],
         VisualizationError: when invalid data is given
         ImportError: when matplotlib is not installed
     """
-    if scaling is not None:
-        warnings.warn('The parameter "scaling" is being replaced by "scale"',
-                      DeprecationWarning, 3)
-        scale = scaling
-    if channels_to_plot:
-        warnings.warn('The parameter "channels_to_plot" is being replaced by "channels"',
-                      DeprecationWarning, 3)
-        channels = channels_to_plot
-
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
-    if isinstance(data, SamplePulse):
-        drawer = _matplotlib.SamplePulseDrawer(style=style)
+    if isinstance(data, (SamplePulse, Waveform)):
+        drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)

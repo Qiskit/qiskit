@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -13,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM U statement."""
+import warnings
 
 from .node import Node
 
@@ -28,7 +27,10 @@ class UniversalUnitary(Node):
         """Create the U node."""
         super().__init__('universal_unitary', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
-        return "U(" + self.children[0].qasm(prec) + ") " + \
-               self.children[1].qasm(prec) + ";"
+        if prec is not None:
+            warnings.warn('Parameter \'UniversalUnitary.qasm(..., prec)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
+        return "U(" + self.children[0].qasm() + ") " + \
+               self.children[1].qasm() + ";"

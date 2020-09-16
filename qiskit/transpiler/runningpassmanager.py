@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -19,6 +17,7 @@ from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
+import copy
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -104,6 +103,7 @@ class RunningPassManager:
             QuantumCircuit: Transformed circuit.
         """
         name = circuit.name
+        calibrations = circuit.calibrations
         dag = circuit_to_dag(circuit)
         del circuit
 
@@ -120,6 +120,10 @@ class RunningPassManager:
         else:
             circuit.name = name
         circuit._layout = self.property_set['layout']
+
+        if calibrations:
+            circuit.calibrations = copy.deepcopy(calibrations)
+
         return circuit
 
     def _do_pass(self, pass_, dag, options):
@@ -214,8 +218,7 @@ class FlowController():
         self.options = options
 
     def __iter__(self):
-        for pass_ in self.passes:
-            yield pass_
+        yield from self.passes
 
     def dump_passes(self):
         """Fetches the passes added to this flow controller.
@@ -303,8 +306,7 @@ class DoWhileController(FlowController):
 
     def __iter__(self):
         for _ in range(self.max_iteration):
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
             if not self.do_while():
                 return
@@ -322,8 +324,7 @@ class ConditionalController(FlowController):
 
     def __iter__(self):
         if self.condition():
-            for pass_ in self.passes:
-                yield pass_
+            yield from self.passes
 
 
 # Default controllers
