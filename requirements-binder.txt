@@ -1,0 +1,6 @@
+matplotlib>=2.1
+pillow>=4.2.1
+fixtures>=3.0.0
+testtools>=2.2.0
+pylatexenc>=1.4
+appmode
