@@ -103,15 +103,11 @@ class RunningPassManager:
             QuantumCircuit: Transformed circuit.
         """
         name = circuit.name
-        calibrations = circuit.calibrations
         dag = circuit_to_dag(circuit)
         del circuit
 
         if callback:
             self.callback = callback
-
-        if calibrations:
-            dag.calibrations = copy.deepcopy(calibrations)
 
         for passset in self.working_list:
             for pass_ in passset:
@@ -124,9 +120,6 @@ class RunningPassManager:
             circuit.name = name
         circuit._layout = self.property_set['layout']
 
-        if calibrations:
-            circuit.calibrations = copy.deepcopy(calibrations)
-
         return circuit
 
     def _do_pass(self, pass_, dag, options):
@@ -136,11 +129,9 @@ class RunningPassManager:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag on which the pass is ran.
             options (dict): PassManager options.
-
         Returns:
             DAGCircuit: The transformed dag in case of a transformation pass.
             The same input dag in case of an analysis pass.
-
         Raises:
             TranspilerError: If the pass is not a proper pass instance.
         """
@@ -155,6 +146,7 @@ class RunningPassManager:
 
             # update the valid_passes property
             self._update_valid_passes(pass_)
+
         return dag
 
     def _run_this_pass(self, pass_, dag):
@@ -163,7 +155,9 @@ class RunningPassManager:
             # Measure time if we have a callback or logging set
             start_time = time()
             new_dag = pass_.run(dag)
-            new_dag.calibrations = dag.calibrations
+            if new_dag.calibrations != dag.calibrations:
+                new_dag.calibrations = dag.calibrations
+                print("This pass {} removed calibrations".format(pass_))
             end_time = time()
             run_time = end_time - start_time
             # Execute the callback function if one is set
