@@ -33,6 +33,7 @@ from typing import List, Tuple, Iterable, Union, Callable
 
 from .schedule import Schedule, ParameterizedSchedule
 from .exceptions import PulseError
+from qiskit.circuit.gate import Gate
 
 
 class InstructionScheduleMap():
@@ -138,7 +139,7 @@ class InstructionScheduleMap():
                              "system.".format(inst=instruction))
 
     def get(self,
-            instruction: str,
+            instruction: Union[str, Gate],
             qubits: Union[int, Iterable[int]],
             *params: Union[int, float, complex],
             **kwparams: Union[int, float, complex]) -> Schedule:
@@ -154,6 +155,8 @@ class InstructionScheduleMap():
         Returns:
             The Schedule defined for the input.
         """
+        if isinstance(instruction, Gate):
+            instruction = instruction.name
         self.assert_has(instruction, qubits)
         schedule_generator = self._map[instruction].get(_to_tuple(qubits))
 
@@ -163,7 +166,7 @@ class InstructionScheduleMap():
         return schedule_generator
 
     def add(self,
-            instruction: str,
+            instruction: Union[str, Gate],
             qubits: Union[int, Iterable[int]],
             schedule: Union[Schedule, Callable[..., Schedule]]) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
