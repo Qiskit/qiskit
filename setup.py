@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -27,9 +25,7 @@ except ImportError:
 REQUIREMENTS = [
     "contextvars>=2.4;python_version<'3.7'",
     "jsonschema>=2.6",
-    "networkx>=2.2;python_version>'3.5'",
-    # Networkx 2.4 is the final version with python 3.5 support.
-    "networkx>=2.2,<2.4;python_version=='3.5'",
+    "networkx>=2.2",
     "retworkx>=0.4.0",
     "numpy>=1.17",
     "ply>=3.10",
@@ -81,13 +77,13 @@ with open(README_PATH) as readme_file:
 
 setup(
     name="qiskit-terra",
-    version="0.15.0",
+    version="0.16.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
-    author_email="qiskit@qiskit.org",
+    author_email="hello@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -98,7 +94,6 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -109,7 +104,7 @@ setup(
     install_requires=REQUIREMENTS,
     setup_requires=['Cython>=0.27.1'],
     include_package_data=True,
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     extras_require={
         'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
                           'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",

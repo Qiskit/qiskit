@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -63,7 +61,9 @@ class SGate(Gate):
         rules = [
             (U1Gate(pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
@@ -103,7 +103,7 @@ class SdgGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label='S_dg'):
+    def __init__(self, label=None):
         """Create new Sdg gate."""
         super().__init__('sdg', 1, [], label=label)
 
@@ -119,7 +119,9 @@ class SdgGate(Gate):
         rules = [
             (U1Gate(-pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):

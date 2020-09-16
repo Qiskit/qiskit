@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -32,13 +30,14 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
                                     HiddenLinearFunction, GraphState, PhaseEstimation,
-                                    QuadraticForm)
+                                    FourierChecking, GroverOperator, QuadraticForm,
+                                    GR, GRX, GRY, GRZ, RGate)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (XGate, RXGate, RYGate, RZGate, CRXGate, CCXGate, SwapGate,
                                     RXXGate, RYYGate, HGate, ZGate, CXGate, CZGate, CHGate)
-from qiskit.quantum_info import Statevector, Operator, Clifford
+from qiskit.quantum_info import Statevector, Operator, Clifford, DensityMatrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import state_fidelity
 
@@ -231,6 +230,53 @@ class TestGraphStateLibrary(QiskitTestCase):
             GraphState(adjacency_matrix)
 
 
+@ddt
+class TestFourierCheckingLibrary(QiskitTestCase):
+    """Test the Fourier Checking circuit."""
+
+    def assertFourierCheckingIsCorrect(self, f_truth_table, g_truth_table, fc_circuit):
+        """Assert that the Fourier Checking circuit produces the correct matrix."""
+
+        simulated = Operator(fc_circuit)
+
+        num_qubits = int(np.log2(len(f_truth_table)))
+
+        # create Hadamard matrix, re-use approach from TestMCMT
+        h_i = 1 / np.sqrt(2) * np.array([[1, 1], [1, -1]])
+        h_tot = np.array([1])
+        for _ in range(num_qubits):
+            h_tot = np.kron(h_tot, h_i)
+
+        f_mat = np.diag(f_truth_table)
+        g_mat = np.diag(g_truth_table)
+
+        expected = np.linalg.multi_dot([h_tot, g_mat, h_tot, f_mat, h_tot])
+        expected = Operator(expected)
+
+        self.assertTrue(expected.equiv(simulated))
+
+    @data(
+        ([1, -1, -1, -1], [1, 1, -1, -1]),
+        ([1, 1, 1, 1], [1, 1, 1, 1])
+    )
+    @unpack
+    def test_fourier_checking(self, f_truth_table, g_truth_table):
+        """Test if the Fourier Checking circuit produces the correct matrix."""
+        fc_circuit = FourierChecking(f_truth_table, g_truth_table)
+        self.assertFourierCheckingIsCorrect(f_truth_table, g_truth_table, fc_circuit)
+
+    @data(
+        ([1, -1, -1, -1], [1, 1, -1]),
+        ([1], [-1]),
+        ([1, -1, -1, -1, 1], [1, 1, -1, -1, 1])
+    )
+    @unpack
+    def test_invalid_input_raises(self, f_truth_table, g_truth_table):
+        """Test that invalid input truth tables raise an error."""
+        with self.assertRaises(CircuitError):
+            FourierChecking(f_truth_table, g_truth_table)
+
+
 class TestIQPLibrary(QiskitTestCase):
     """Test library of IQP quantum circuits."""
 
@@ -266,6 +312,39 @@ class TestGMSLibrary(QiskitTestCase):
         expected = Operator(expected)
         simulated = Operator(circuit)
         self.assertTrue(expected.equiv(simulated))
+
+
+@ddt
+class TestGlobalRLibrary(QiskitTestCase):
+    """Test library of global R gates."""
+
+    def test_gr_equivalence(self):
+        """Test global R gate is same as 3 individual R gates."""
+        circuit = GR(num_qubits=3, theta=np.pi/3, phi=2*np.pi/3)
+        expected = QuantumCircuit(3, name="gr")
+        for i in range(3):
+            expected.append(RGate(theta=np.pi/3, phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
+
+    def test_grx_equivalence(self):
+        """Test global RX gates is same as 3 individual RX gates."""
+        circuit = GRX(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=0)
+        self.assertEqual(expected, circuit)
+
+    def test_gry_equivalence(self):
+        """Test global RY gates is same as 3 individual RY gates."""
+        circuit = GRY(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=np.pi/2)
+        self.assertEqual(expected, circuit)
+
+    def test_grz_equivalence(self):
+        """Test global RZ gate is same as 3 individual RZ gates."""
+        circuit = GRZ(num_qubits=3, phi=2*np.pi/3)
+        expected = QuantumCircuit(3, name="grz")
+        for i in range(3):
+            expected.append(RZGate(phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
 
 
 @ddt
@@ -709,7 +788,7 @@ class TestIntegerComparator(QiskitTestCase):
             if prob > 1e-6:
                 # equal superposition
                 self.assertEqual(True, np.isclose(1.0, prob * 2.0**num_state_qubits))
-                b_value = '{0:b}'.format(i).rjust(qc.width(), '0')
+                b_value = '{:b}'.format(i).rjust(qc.width(), '0')
                 x = int(b_value[(-num_state_qubits):], 2)
                 comp_result = int(b_value[-num_state_qubits-1], 2)
                 if geq:
@@ -1239,7 +1318,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(2, entanglement_blocks=circuit, reps=reps)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1262,7 +1341,7 @@ class TestNLocal(QiskitTestCase):
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
-        param_set = set(p for p in params if isinstance(p, ParameterExpression))
+        param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg='Test the parameters of the non-transpiled circuit'):
             # check the parameters of the final circuit
             self.assertEqual(nlocal.parameters, param_set)
@@ -1311,7 +1390,7 @@ class TestNLocal(QiskitTestCase):
                 nlocal = NLocal(num_qubits, rotation_blocks=XGate(), entanglement_blocks=CCXGate(),
                                 entanglement=entanglement, reps=3, skip_unentangled_qubits=True)
 
-                skipped_set = set(nlocal.qubits[i] for i in skipped)
+                skipped_set = {nlocal.qubits[i] for i in skipped}
                 dag = circuit_to_dag(nlocal)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
@@ -1474,7 +1553,7 @@ class TestTwoLocal(QiskitTestCase):
         """Test different possibilities to set parameters."""
         two = TwoLocal(3, rotation_blocks='rx', entanglement='cz', reps=2)
         params = [0, 1, 2, Parameter('x'), Parameter('y'), Parameter('z'), 6, 7, 0]
-        params_set = set(param for param in params if isinstance(param, Parameter))
+        params_set = {param for param in params if isinstance(param, Parameter)}
 
         with self.subTest(msg='dict assign and copy'):
             ordered = two.ordered_parameters
@@ -1925,6 +2004,111 @@ class TestPhaseEstimation(QiskitTestCase):
             iqft = QFT(3, approximation_degree=2, do_swaps=False).inverse()
             pec = PhaseEstimation(3, unitary, iqft=iqft)
             self.assertEqual(pec.data[-1][0].definition, iqft)
+
+
+class TestGroverOperator(QiskitTestCase):
+    """Test the Grover operator."""
+
+    def assertGroverOperatorIsCorrect(self, grover_op, oracle, state_in=None, zero_reflection=None):
+        """Test that ``grover_op`` implements the correct Grover operator."""
+
+        oracle = Operator(oracle)
+
+        if state_in is None:
+            state_in = QuantumCircuit(oracle.num_qubits)
+            state_in.h(state_in.qubits)
+        state_in = Operator(state_in)
+
+        if zero_reflection is None:
+            zero_reflection = np.eye(2 ** oracle.num_qubits)
+            zero_reflection[0][0] = -1
+        zero_reflection = Operator(zero_reflection)
+
+        expected = state_in.dot(zero_reflection).dot(state_in.adjoint()).dot(oracle)
+        self.assertTrue(Operator(grover_op).equiv(expected))
+
+    def test_grover_operator(self):
+        """Test the base case for the Grover operator."""
+        with self.subTest('single Z oracle'):
+            oracle = QuantumCircuit(3)
+            oracle.z(2)  # good state if last qubit is 1
+            grover_op = GroverOperator(oracle)
+            self.assertGroverOperatorIsCorrect(grover_op, oracle)
+
+        with self.subTest('target state x0x1'):
+            oracle = QuantumCircuit(4)
+            oracle.x(1)
+            oracle.z(1)
+            oracle.x(1)
+            oracle.z(3)
+            grover_op = GroverOperator(oracle)
+            self.assertGroverOperatorIsCorrect(grover_op, oracle)
+
+    def test_quantum_info_input(self):
+        """Test passing quantum_info.Operator and Statevector as input."""
+        mark = Statevector.from_label('001')
+        diffuse = 2 * DensityMatrix.from_label('000') - Operator.from_label('III')
+        grover_op = GroverOperator(oracle=mark, zero_reflection=diffuse)
+        self.assertGroverOperatorIsCorrect(grover_op,
+                                           oracle=np.diag((-1) ** mark.data),
+                                           zero_reflection=diffuse.data)
+
+    def test_reflection_qubits(self):
+        """Test setting idle qubits doesn't apply any operations on these qubits."""
+        oracle = QuantumCircuit(4)
+        oracle.z(3)
+        grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
+        dag = circuit_to_dag(grover_op)
+        self.assertEqual(set(wire.index for wire in dag.idle_wires()), {1, 2})
+
+    def test_custom_state_in(self):
+        """Test passing a custom state_in operator."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        bernoulli = QuantumCircuit(1)
+        sampling_probability = 0.2
+        bernoulli.ry(2 * np.arcsin(np.sqrt(sampling_probability)), 0)
+
+        grover_op = GroverOperator(oracle, bernoulli)
+        self.assertGroverOperatorIsCorrect(grover_op, oracle, bernoulli)
+
+    def test_custom_zero_reflection(self):
+        """Test passing in a custom zero reflection."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        zero_reflection = QuantumCircuit(1)
+        zero_reflection.x(0)
+        zero_reflection.rz(np.pi, 0)
+        zero_reflection.x(0)
+
+        grover_op = GroverOperator(oracle, zero_reflection=zero_reflection)
+
+        with self.subTest('zero reflection up to phase works'):
+            self.assertGroverOperatorIsCorrect(grover_op, oracle)
+
+        with self.subTest('circuits match'):
+            expected = QuantumCircuit(*grover_op.qregs)
+            expected.compose(oracle, inplace=True)
+            expected.h(0)  # state_in is H
+            expected.compose(zero_reflection, inplace=True)
+            expected.h(0)
+
+            self.assertEqual(expected, grover_op)
+
+    def test_num_mcx_ancillas(self):
+        """Test the number of ancilla bits for the mcx gate in zero_reflection."""
+        oracle = QuantumCircuit(7)
+        oracle.x(6)
+        oracle.h(6)
+        oracle.ccx(0, 1, 4)
+        oracle.ccx(2, 3, 5)
+        oracle.ccx(4, 5, 6)
+        oracle.h(6)
+        oracle.x(6)
+        grover_op = GroverOperator(oracle, reflection_qubits=[0, 1])
+        self.assertEqual(grover_op.width(), 7)
 
 
 @ddt

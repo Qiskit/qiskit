@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -46,6 +44,7 @@ from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
@@ -53,17 +52,7 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 _DECOMPOSER1Q = OneQubitEulerDecomposer('U3')
 
 
-class UCMeta(type):
-    """A metaclass to ensure that UCGate and UCG are of the same type.
-
-    Can be removed when UCGG gets removed.
-    """
-    @classmethod
-    def __instancecheck__(mcs, inst):
-        return type(inst) in {UCGate, UCG}  # pylint: disable=unidiomatic-typecheck
-
-
-class UCGate(Gate, metaclass=UCMeta):
+class UCGate(Gate):
     """Uniformly controlled gate (also called multiplexed gate).
     The decomposition is based on: https://arxiv.org/pdf/quant-ph/0410066.pdf.
     """
@@ -106,6 +95,22 @@ class UCGate(Gate, metaclass=UCMeta):
         # Create new gate.
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
+
+    def inverse(self):
+        """Return the inverse.
+
+        This does not re-compute the decomposition for the multiplexer with the inverse of the
+        gates but simply inverts the existing decomposition.
+        """
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # remove parameters since array is deprecated as parameter
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
+
+        return inverse_gate
 
     def _get_diagonal(self):
         # Important: for a control list q_controls = [q[0],...,q_[k-1]] the
@@ -263,6 +268,14 @@ class UCGate(Gate, metaclass=UCMeta):
     def _rz(alpha):
         return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
 
+    def validate_parameter(self, parameter):
+        """Uniformly controlled gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
+
 
 def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
@@ -321,28 +334,4 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
-class UCG(UCGate, metaclass=UCMeta):
-    """The deprecated UCGate class."""
-
-    def __init__(self, gate_list, up_to_diagonal=False):
-        import warnings
-        warnings.warn('The class UCG is deprecated as of 0.14.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the class UCGate instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(gate_list, up_to_diagonal)
-
-
-def ucg(self, angle_list, q_controls, q_target, up_to_diagonal=False):
-    """Deprecated version of uc."""
-
-    import warnings
-    warnings.warn('The QuantumCircuit.ucg() method is deprecated as of 0.14.0, and '
-                  'will be removed no earlier than 3 months after that release date. '
-                  'You should use the QuantumCircuit.uc() method instead.',
-                  DeprecationWarning, stacklevel=2)
-    return uc(self, angle_list, q_controls, q_target, up_to_diagonal)
-
-
 QuantumCircuit.uc = uc
-QuantumCircuit.ucg = ucg  # deprecated, but still supported

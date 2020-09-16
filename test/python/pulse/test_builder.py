@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -33,6 +31,7 @@ class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.configuration = self.backend.configuration()
         self.defaults = self.backend.defaults()
