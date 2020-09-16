@@ -807,15 +807,12 @@ class TestTranspile(QiskitTestCase):
     def test_transpile_calibrated_custom_gate_on_diff_qubit(self):
         """Test if the custom, non calibrated gate raises QiskitError."""
         custom_180 = Gate("mycustom", 1, [3.14])
-        custom_90 = Gate("mycustom", 1, [1.57])
 
         circ = QuantumCircuit(2)
         circ.append(custom_180, [0])
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-        with pulse.build() as q1_y90:
-            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
 
         # Add calibration
         circ.add_calibration(custom_180, [1], q0_x180)
@@ -849,7 +846,6 @@ class TestTranspile(QiskitTestCase):
         """Test transpiling a circuit with both basis gate (not-calibrated) and
         a calibrated gate"""
         x_180 = Gate('mycustom', 1, [3.14])
-        x_90 = Gate('mycustom', 1, [1.57])
 
         circ = QuantumCircuit(2)
         circ.h(0)

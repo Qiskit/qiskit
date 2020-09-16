@@ -17,7 +17,6 @@ from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
-import copy
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
