@@ -221,19 +221,19 @@ class Instruction(ScheduleComponent, ABC):
 
     def assign_parameters(self,
                           value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]],
-                          inplace: bool = True) -> 'Instruction':
-        """Assign the parameters in this instruction according to the input.
+                                           Union[ParameterExpression, int, float, complex]]
+                          ) -> 'Instruction':
+        """Modify and return self with parameters assigned according to the input.
 
         Args:
             value_dict: A mapping from Parameters to either numeric values or another
                 Parameter expression.
-            inplace: Modify this ``Instruction`` iff True, else return a new ``Instruction``.
 
         Returns:
-            Instruction with updated parameters (a new one if not inplace, otherwise self).
+            Self with updated parameters.
         """
         new_operands = list(self.operands)
+
         for idx, op in enumerate(self.operands):
             for parameter, value in value_dict.items():
                 if isinstance(op, ParameterExpression) and parameter in op.parameters:
@@ -245,10 +245,8 @@ class Instruction(ScheduleComponent, ABC):
                     new_index = new_operands[idx].index.assign(parameter, value)
                     new_operands[idx] = type(op)(new_index)
 
-        if inplace:
-            self._operands = tuple(new_operands)
-            return self
-        return type(self)(*new_operands)
+        self._operands = tuple(new_operands)
+        return self
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,

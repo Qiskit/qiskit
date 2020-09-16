@@ -644,12 +644,15 @@ class Schedule(ScheduleComponent):
         # TODO: raise error if parameter in input does not appear in schedule
         if inplace:
             for _, inst in self.instructions:
-                inst.assign_parameters(value_dict, inplace)
+                inst.assign_parameters(value_dict)
             return self
 
-        insts = [(time, inst.assign_parameters(value_dict, inplace))
-                 for time, inst in self.instructions]
-        return Schedule(*insts, name=self.name)
+        new_insts = []
+        for time, inst in self.instructions:
+            inst = copy.deepcopy(inst)
+            inst.assign_parameters(value_dict)
+            new_insts.append((time, inst))
+        return Schedule(*new_insts, name=self.name)
 
     def draw(self, dt: float = 1, style=None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
