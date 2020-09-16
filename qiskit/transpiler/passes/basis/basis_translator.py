@@ -85,8 +85,39 @@ class BasisTranslator(TransformationPass):
         basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
 
         target_basis = set(self._target_basis).union(basic_instrs)
+
         source_basis = {(node.op.name, node.op.num_qubits)
                         for node in dag.op_nodes()}
+        skip_translation = set()
+
+        for basis in source_basis:
+            gate = basis[0]
+            qubit = basis[1]
+            dag_qubit_params = dag.calibrations.get(gate, None)
+            if dag_qubit_params:
+                for dag_qubit, _ in dag_qubit_params.items():
+                    if dag_qubit[0] == tuple([qubit]):
+                        skip_translation.add(basis)
+            else:
+                continue
+
+        if skip_translation == source_basis:
+            return dag
+        elif skip_translation.issubset(source_basis):
+            source_basis = skip_translation ^ source_basis
+
+        # if dag.calibrations:
+        #     test_source_basis = {node.op.name for node in dag.op_nodes()}
+        #     # if len(test_source_basis - set(dag.calibrations.keys())) == 0:
+        #     #     return dag
+        #     if set(dag.calibrations.keys()).issubset(test_source_basis):
+        #         source_gate = test_source_basis ^ set(dag.calibrations.keys())
+        #         for node in dag.op_nodes():
+        #             if len(source_gate) == 0:
+        #                 for
+        #                 pass
+        #             if node.op.name in source_gate and node.op.num_qubits:
+        #                 source_basis = {(node.op.name, node.op.num_qubits)}
 
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
@@ -151,6 +182,8 @@ class BasisTranslator(TransformationPass):
                     dag.substitute_node(node, bound_target_dag.op_nodes()[0].op, inplace=True)
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
+            elif node.name in dag.calibrations:
+                continue
             else:
                 raise TranspilerError('BasisTranslator did not map {}.'.format(node.name))
 
