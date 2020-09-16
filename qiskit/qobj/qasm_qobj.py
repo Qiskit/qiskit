@@ -241,7 +241,7 @@ class QasmQobjConfig(SimpleNamespace):
 
     def __init__(self, shots=None, max_credits=None, seed_simulator=None,
                  memory=None, parameter_binds=None, memory_slots=None,
-                 n_qubits=None, pulse_library=None, calibrations=None, **kwargs):
+                 n_qubits=None, pulse_library=None, calibrations=None, rep_delay=None, **kwargs):
         """Model for RunConfig.
 
         Args:
@@ -254,6 +254,10 @@ class QasmQobjConfig(SimpleNamespace):
             n_qubits (int): The number of qubits on the device
             pulse_library (list): List of :class:`PulseLibraryItem`.
             calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
+            rep_delay (float): Delay between programs in sec. Only supported on certain
+                backends (``backend.configuration().dynamic_reprate_enabled`` ). Must be from the
+                range supplied by the backend (``backend.configuration().rep_delay_range``). Default
+                is ``backend.configuration().default_rep_delay``.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
@@ -283,6 +287,9 @@ class QasmQobjConfig(SimpleNamespace):
 
         if calibrations is not None:
             self.calibrations = calibrations
+
+        if rep_delay is not None:
+            self.rep_delay = rep_delay
 
         if kwargs:
             self.__dict__.update(kwargs)

@@ -29,6 +29,7 @@ class TestStandard1Q(QiskitTestCase):
     """Standard Extension Test. Gates with a single Qubit"""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, "q")
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
@@ -953,6 +954,7 @@ class TestStandard2Q(QiskitTestCase):
     """Standard Extension Test. Gates with two Qubits"""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, "q")
         self.qr2 = QuantumRegister(3, "r")
         self.cr = ClassicalRegister(3, "c")
@@ -1300,6 +1302,7 @@ class TestStandard3Q(QiskitTestCase):
     """Standard Extension Test. Gates with three Qubits"""
 
     def setUp(self):
+        super().setUp()
         self.qr = QuantumRegister(3, "q")
         self.qr2 = QuantumRegister(3, "r")
         self.qr3 = QuantumRegister(3, "s")

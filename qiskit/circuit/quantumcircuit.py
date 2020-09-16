@@ -196,6 +196,16 @@ class QuantumCircuit:
         """
         return dict(self._calibrations)
 
+    @calibrations.setter
+    def calibrations(self, calibrations):
+        """Set the circuit calibration data from a dictionary of calibration definition.
+
+        Args:
+            calibrations (dict): A dictionary of input in th format
+                {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations = calibrations
+
     @data.setter
     def data(self, data_input):
         """Sets the circuit data from a list of instructions and context.
