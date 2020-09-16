@@ -844,7 +844,7 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        self.assertEqual(set(transpiled_circuit.count_ops().keys()), {'u2', 'h}')
+        self.assertEqual(set(transpiled_circuit.count_ops().keys()), {'u2', 'h'})
 
     def test_transpile_subset_of_calibrated_gates(self):
         """Test transpiling a circuit with both basis gate (not-calibrated) and
