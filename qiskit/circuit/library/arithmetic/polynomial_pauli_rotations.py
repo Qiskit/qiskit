@@ -13,6 +13,7 @@
 # pylint: disable=no-member
 
 """Polynomially controlled Pauli-rotations."""
+
 import warnings
 from typing import List, Optional, Dict, Sequence
 
@@ -230,6 +231,14 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             True, if the rotations are applied on the reversed list, False otherwise.
         """
         return self._reverse
+
+    @property
+    def num_ancilla_qubits(self):
+        """Deprecated. Use num_ancillas instead."""
+        warnings.warn('The PolynomialPauliRotations.num_ancilla_qubits property is deprecated '
+                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
+                      'date. You should use the num_ancillas property instead.')
+        return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
         if num_state_qubits is not None:

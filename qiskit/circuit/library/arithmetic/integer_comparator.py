@@ -15,6 +15,7 @@
 """Integer Comparator."""
 
 from typing import List, Optional
+import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister
@@ -97,6 +98,14 @@ class IntegerComparator(BlueprintCircuit):
         if geq != self._geq:
             self._invalidate()
             self._geq = geq
+
+    @property
+    def num_ancilla_qubits(self):
+        """Deprecated. Use num_ancillas instead."""
+        warnings.warn('The IntegerComparator.num_ancilla_qubits property is deprecated '
+                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
+                      'date. You should use the num_ancillas property instead.')
+        return self.num_ancillas
 
     @property
     def num_state_qubits(self) -> int:
