@@ -21,6 +21,7 @@ the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
 """
 
+import inspect
 import itertools
 import logging
 import os
@@ -36,7 +37,7 @@ except ImportError:
     HAS_FIXTURES = False
 
 from .runtest import RunTest, MultipleExceptions
-from .utils import Path, _AssertNoLogsContext
+from .utils import Path, _AssertNoLogsContext, setup_test_logging
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
@@ -171,7 +172,7 @@ class FullQiskitTestCase(BaseQiskitTestCase):
             raise ImportError(
                 "Test runner requirements testtools and fixtures are missing. "
                 "Install them with 'pip install testtools fixtures'")
-        super(QiskitTestCase, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
         self._reset()
         self.__exception_handlers = []
