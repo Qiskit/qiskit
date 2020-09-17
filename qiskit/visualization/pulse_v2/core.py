@@ -24,9 +24,9 @@ and assign all related channels to the chart. This chart-channel mapping is defi
 the function specified by ``layout.chart_channel_map``.
 
 Because this chart instance is decoupled from the coordinate system of the plotter,
-we can arbitrary place the charts in the plotter canvas, i.e. if we want to create 3D plot,
-each chart may be placed on the X-Z plane and charts are arranged along Y axis.
-Thus this data model maximizes the flexibility to generate output image.
+we can arbitrarily place charts on the plotter canvas, i.e. if we want to create 3D plot,
+each chart may be placed on the X-Z plane and charts are arranged along the Y-axis.
+Thus this data model maximizes the flexibility to generate an output image.
 
 The chart instance is not just a container of drawing objects, but it also performs
 data processing like biding abstract coordinate and truncating long pulse for axis break.
