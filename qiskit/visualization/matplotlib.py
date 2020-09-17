@@ -345,7 +345,7 @@ class MatplotlibDrawer:
             gt = self._style.lc
         else:
             gt = self._style.gt
-        if op.name not in {'h', 't', 's', 'z', 'sdg', 'tdg', 'u1', 'reset', 'meas', 'measure'}:
+        if op.name not in {'h', 't', 's', 'z', 'sdg', 'tdg', 'u1', 'r', 'reset', 'meas', 'measure'}:
             gt = self._style.not_gate_lc
             self._style.sc = self._style.not_gate_lc
         else:
