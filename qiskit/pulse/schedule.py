@@ -311,7 +311,10 @@ class Schedule(ScheduleComponent):
         ``filter_funcs`` returns ``True``, the instruction occurs on a channel type contained in
         ``channels``, the instruction type is contained in ``instruction_types``, and the period
         over which the instruction operates is *fully* contained in one specified in
-        ``time_ranges`` or ``intervals``. If no arguments are provided, ``self`` is returned.
+        ``time_ranges`` or ``intervals``.
+
+        If no arguments are provided, ``self`` is returned.
+
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool.
@@ -369,16 +372,15 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types: Optional[Iterable[Type['Instruction']]] = None,
+                          instruction_types: Optional[Iterable['Instruction']] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
-        """
-        Returns a boolean-valued function with input type (int, ScheduleComponent) that returns True
-        iff the input satisfies all of the criteria specified by the arguments; i.e. iff every
-        function in filter_funcs returns True, the instruction occurs on a channel type contained
-        in channels, the instruction type is contained in instruction_types, and the period over
-        which the instruction operates is fully contained in one specified in time_ranges or
-        intervals.
+        """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
+        returns ``True`` iff the input satisfies all of the criteria specified by the arguments;
+        i.e. iff every function in ``filter_funcs`` returns ``True``, the instruction occurs on a
+        channel type contained in ``channels``, the instruction type is contained in
+        ``instruction_types``, and the period over which the instruction operates is fully
+        contained in one specified in ``time_ranges`` or ``intervals``.
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
