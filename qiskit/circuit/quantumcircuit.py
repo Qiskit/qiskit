@@ -1954,15 +1954,15 @@ class QuantumCircuit:
 
         return self.append(Barrier(len(qubits)), qubits, [])
 
-    def delay(self, duration, qarg=None, unit=None):
+    def delay(self, duration, qarg=None, unit='dt'):
         """Apply :class:`~qiskit.circuit.Delay`. If qarg is None, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
             duration (int or float): duration of the delay.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Default unit is ``None``, i.e. unitless.
-                Supported units: 's', 'ms', 'us', 'ns', 'ps'.
+            unit (str): unit of the duration. Supported units: 's', 'ms', 'us', 'ns', 'ps', 'dt'.
+                Default is ``dt``, i.e. time unit depending on the target backend.
 
         Returns:
             qiskit.Instruction: the attached delay instruction.

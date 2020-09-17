@@ -31,7 +31,7 @@ class TestDelayClass(QiskitTestCase):
         qc.delay(200, 0, unit='s')
         qc.delay(300, 0, unit='ns')
         qc.delay(400, 0, unit='dt')
-        self.assertEqual(qc.data[1][0].unit, None)
+        self.assertEqual(qc.data[1][0].unit, 'dt')
         self.assertEqual(qc.data[2][0].unit, 's')
         self.assertEqual(qc.data[3][0].unit, 'ns')
         self.assertEqual(qc.data[4][0].unit, 'dt')

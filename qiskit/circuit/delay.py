@@ -21,12 +21,12 @@ from qiskit.circuit.instruction import Instruction
 class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
-    def __init__(self, duration, unit=None):
+    def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
         if not isinstance(duration, (float, int)):
             raise CircuitError('Invalid duration type.')
 
-        if unit not in {None, 's', 'ms', 'us', 'ns', 'ps', 'dt'}:
+        if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
         super().__init__("delay", 1, 0, params=[duration])
