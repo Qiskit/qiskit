@@ -92,9 +92,10 @@ class UGate(Gate):
     def _define(self):
         """Alias for U3 until U becomes a basis gate."""
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .u3 import U3Gate
         q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q)
-        qc.u3(self.params[0], self.params[1], self.params[2], q[0])
+        qc.append(U3Gate(self.params[0], self.params[1], self.params[2]), [q[0]])
         self.definition = qc
 
     def to_matrix(self):

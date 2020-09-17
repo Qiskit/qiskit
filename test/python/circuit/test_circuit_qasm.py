@@ -29,9 +29,8 @@ class TestCircuitQasm(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
         cr = ClassicalRegister(3, 'cr')
         qc = QuantumCircuit(qr1, qr2, cr)
-        qc.u1(0.3, qr1[0])
-        qc.u2(0.2, 0.1, qr2[0])
-        qc.u3(0.3, 0.2, 0.1, qr2[1])
+        qc.p(0.3, qr1[0])
+        qc.u(0.3, 0.2, 0.1, qr2[1])
         qc.s(qr2[1])
         qc.sdg(qr2[1])
         qc.cx(qr1[0], qr2[1])
@@ -50,9 +49,8 @@ include "qelib1.inc";
 qreg qr1[1];
 qreg qr2[2];
 creg cr[3];
-u1(0.3) qr1[0];
-u2(0.2,0.1) qr2[0];
-u3(0.3,0.2,0.1) qr2[1];
+p(0.3) qr1[0];
+u(0.3,0.2,0.1) qr2[1];
 s qr2[1];
 sdg qr2[1];
 cx qr1[0],qr2[1];
