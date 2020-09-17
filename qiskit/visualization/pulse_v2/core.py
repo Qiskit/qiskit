@@ -28,9 +28,9 @@ we can arbitrarily place charts on the plotter canvas, i.e. if we want to create
 each chart may be placed on the X-Z plane and charts are arranged along the Y-axis.
 Thus this data model maximizes the flexibility to generate an output image.
 
-The chart instance is not just a container of drawing objects, but it also performs
-data processing like biding abstract coordinate and truncating long pulse for axis break.
-Each chart object has `._parent` which points `DrawerCanvas` instance so that
+The chart instance is not just a container of drawing objects, as it also performs
+data processing like binding abstract coordinates and truncating long pulses for an axis break.
+Each chart object has `._parent` which points to the `DrawerCanvas` instance so that
 each child chart can refer to the global figure settings such as time range and axis break.
 
 
