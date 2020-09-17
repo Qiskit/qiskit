@@ -83,7 +83,7 @@ class DrawerCanvas:
     """Collection of `Chart` and configuration data.
 
     Pulse channels are associated with some `Chart` instance and
-    drawing data object is stored in the `Chart` instance.
+    drawing data object are stored in the `Chart` instance.
 
     Device, stylesheet, and some user generators are stored in the `DrawingCanvas`
     and the `Chart` instances are also attached to the `DrawerCanvas` as children.
