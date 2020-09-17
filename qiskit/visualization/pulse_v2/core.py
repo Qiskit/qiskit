@@ -50,7 +50,7 @@ Chart instances are automatically generated when pulse program is loaded.
 
 Once all properties are set, `.update` method is called to apply changes to drawing objects.
 If the `DrawDataContainer` is initialized without backend information, the output shows
-the time in units of system cycle time `dt` and the frequencies are initialized to zero.
+the time in units of the system cycle time `dt` and the frequencies are initialized to zero.
 
 Update:
 To update the image, a user can set new values to canvas and then call `.update` method.
