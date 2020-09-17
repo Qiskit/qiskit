@@ -39,6 +39,8 @@ from qiskit.circuit.library.standard_gates.t import TdgGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.u2 import U2Gate
 from qiskit.circuit.library.standard_gates.u3 import U3Gate
+from qiskit.circuit.library.standard_gates.p import PhaseGate
+from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.z import ZGate
@@ -47,6 +49,8 @@ from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.rxx import RXXGate
 from qiskit.circuit.library.standard_gates.rzz import RZZGate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate
+from qiskit.circuit.library.standard_gates.u import CUGate
 from qiskit.circuit.library.standard_gates.u1 import CU1Gate
 from qiskit.circuit.library.standard_gates.u3 import CU3Gate
 from qiskit.circuit.library.standard_gates.h import CHGate
@@ -99,6 +103,8 @@ class AstInterpreter:
     standard_extension = {"u1": U1Gate,
                           "u2": U2Gate,
                           "u3": U3Gate,
+                          "p": PhaseGate,
+                          "u": UGate,
                           "x": XGate,
                           "y": YGate,
                           "z": ZGate,
@@ -123,6 +129,8 @@ class AstInterpreter:
                           "crz": CRZGate,
                           "cu1": CU1Gate,
                           "cu3": CU3Gate,
+                          "cp": CPhaseGate,
+                          "cu": CUGate,
                           "ccx": CCXGate,
                           "cswap": CSwapGate}
 
