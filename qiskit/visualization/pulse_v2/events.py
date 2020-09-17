@@ -139,10 +139,10 @@ class ChannelEvents:
 
         return ChannelEvents(waveforms, frames, channel)
 
-    def config(self,
-               dt: float,
-               init_frequency: float,
-               init_phase: float):
+    def set_config(self,
+                   dt: float,
+                   init_frequency: float,
+                   init_phase: float):
         """Setup system status.
 
         Args:

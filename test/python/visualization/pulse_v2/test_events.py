@@ -92,7 +92,7 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        ch_events.config(dt=0.1, init_frequency=3.0, init_phase=0)
+        ch_events.set_config(dt=0.1, init_frequency=3.0, init_phase=0)
         frames = list(ch_events.get_frame_changes())
 
         inst_data0 = frames[0]

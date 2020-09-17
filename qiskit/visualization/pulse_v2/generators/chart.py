@@ -16,7 +16,7 @@
 
 """Chart axis generators.
 
-A collection of functions that generate a drawing object for am input chart axis.
+A collection of functions that generate a drawing object for an input chart axis.
 See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
 data.
 
@@ -48,9 +48,9 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 def gen_baseline(data: types.ChartAxis,
                  formatter: Dict[str, Any],
-                 device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.LineData]:
-    """Generate baseline associated with the chart.
+                 device: device_info.DrawerBackendInfo
+                 ) -> List[drawing_objects.LineData]:
+    """Generate the baseline associated with the chart.
 
     Stylesheets:
         - The `baseline` style is applied.
@@ -82,9 +82,9 @@ def gen_baseline(data: types.ChartAxis,
 
 def gen_chart_name(data: types.ChartAxis,
                    formatter: Dict[str, Any],
-                   device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate chart name.
+                   device: device_info.DrawerBackendInfo
+                   ) -> List[drawing_objects.TextData]:
+    """Generate the name of chart.
 
     Stylesheets:
         - The `axis_label` style is applied.
@@ -116,8 +116,8 @@ def gen_chart_name(data: types.ChartAxis,
 
 def gen_chart_scale(data: types.ChartAxis,
                     formatter: Dict[str, Any],
-                    device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
+                    device: device_info.DrawerBackendInfo
+                    ) -> List[drawing_objects.TextData]:
     """Generate the current scaling value of the chart.
 
     Stylesheets:
@@ -153,8 +153,8 @@ def gen_chart_scale(data: types.ChartAxis,
 
 def gen_channel_freqs(data: types.ChartAxis,
                       formatter: Dict[str, Any],
-                      device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
+                      device: device_info.DrawerBackendInfo
+                      ) -> List[drawing_objects.TextData]:
     """Generate the frequency values of associated channels.
 
     Stylesheets:

@@ -21,7 +21,7 @@ This module provides the `DrawerCanvas` which is a collection of `Chart` object.
 The `Chart` object is a collection of drawing objects. A user can assign multiple channels
 to a single chart instance. For example, we can define a chart for specific qubit
 and assign all related channels to the chart. This chart-channel mapping is defined by
-the function specified by ``layout.chart_channel_map``.
+the function specified by ``layout.chart_channel_map`` of the stylesheet.
 
 Because this chart instance is decoupled from the coordinate system of the plotter,
 we can arbitrarily place charts on the plotter canvas, i.e. if we want to create 3D plot,
@@ -30,11 +30,12 @@ Thus this data model maximizes the flexibility to generate an output image.
 
 The chart instance is not just a container of drawing objects, as it also performs
 data processing like binding abstract coordinates and truncating long pulses for an axis break.
-Each chart object has `._parent` which points to the `DrawerCanvas` instance so that
+Each chart object has `.parent` which points to the `DrawerCanvas` instance so that
 each child chart can refer to the global figure settings such as time range and axis break.
 
 
-Initialization:
+Initialization
+~~~~~~~~~~~~~~
 The `DataCanvas` and `Chart` are not exposed to users as they are implicitly
 initialized in the interface function. It is noteworthy that the data canvas is agnostic
 to plotters. This means once the canvas instance is initialized we can reuse this data
@@ -52,7 +53,8 @@ Once all properties are set, `.update` method is called to apply changes to draw
 If the `DrawDataContainer` is initialized without backend information, the output shows
 the time in units of the system cycle time `dt` and the frequencies are initialized to zero.
 
-Update:
+Update
+~~~~~~
 To update the image, a user can set new values to canvas and then call the `.update` method.
 
     ```python
@@ -419,7 +421,7 @@ class Chart:
             parent: `DrawerCanvas` that this `Chart` instance belongs to.
             name: Name of this `Chart` instance.
         """
-        self._parent = parent
+        self.parent = parent
 
         # data stored in this channel
         self._collections = dict()
@@ -461,26 +463,26 @@ class Chart:
             chan: A pulse channels associated with this instance.
         """
         chan_events = events.ChannelEvents.load_program(program, chan)
-        chan_events.config(dt=self._parent.device.dt,
-                           init_frequency=self._parent.device.get_channel_frequency(chan),
-                           init_phase=0)
+        chan_events.set_config(dt=self.parent.device.dt,
+                               init_frequency=self.parent.device.get_channel_frequency(chan),
+                               init_phase=0)
 
         # create objects associated with waveform
-        for gen in self._parent.generator['waveform']:
+        for gen in self.parent.generator['waveform']:
             waveforms = chan_events.get_waveforms()
             obj_generator = partial(gen,
-                                    formatter=self._parent.formatter,
-                                    device=self._parent.device)
+                                    formatter=self.parent.formatter,
+                                    device=self.parent.device)
             drawings = [obj_generator(waveform) for waveform in waveforms]
             for data in list(chain.from_iterable(drawings)):
                 self.add_data(data)
 
         # create objects associated with frame change
-        for gen in self._parent.generator['frame']:
+        for gen in self.parent.generator['frame']:
             frames = chan_events.get_frame_changes()
             obj_generator = partial(gen,
-                                    formatter=self._parent.formatter,
-                                    device=self._parent.device)
+                                    formatter=self.parent.formatter,
+                                    device=self.parent.device)
             drawings = [obj_generator(frame) for frame in frames]
             for data in list(chain.from_iterable(drawings)):
                 self.add_data(data)
@@ -509,7 +511,7 @@ class Chart:
                 continue
 
             # update y range
-            scale = min(self._parent.chan_scales.get(chan, 1.0) for chan in data.channels)
+            scale = min(self.parent.chan_scales.get(chan, 1.0) for chan in data.channels)
             self.vmax = max(scale * np.max(trunc_y), self.vmax)
             self.vmin = min(scale * np.min(trunc_y), self.vmin)
 
@@ -521,20 +523,20 @@ class Chart:
             self._output_dataset[key] = new_data
 
         # calculate chart level scaling factor
-        if self._parent.formatter['control.auto_chart_scaling']:
+        if self.parent.formatter['control.auto_chart_scaling']:
             max_val = max(abs(self.vmax),
                           abs(self.vmin),
-                          self._parent.formatter['general.vertical_resolution'])
-            self.scale = min(1.0 / max_val, self._parent.formatter['general.max_scale'])
+                          self.parent.formatter['general.vertical_resolution'])
+            self.scale = min(1.0 / max_val, self.parent.formatter['general.max_scale'])
         else:
             self.scale = 1.0
 
         # update vertical range with scalign and limitation
         self.vmax = max(self.scale * self.vmax,
-                        self._parent.formatter['channel_scaling.pos_spacing'])
+                        self.parent.formatter['channel_scaling.pos_spacing'])
 
         self.vmin = min(self.scale * self.vmin,
-                        self._parent.formatter['channel_scaling.neg_spacing'])
+                        self.parent.formatter['channel_scaling.neg_spacing'])
 
         # other data
         for key, data in self._collections.items():
@@ -604,8 +606,8 @@ class Chart:
         Returns:
             Set of truncated numpy arrays for x and y coordinate.
         """
-        t0, t1 = self._parent.time_range
-        time_breaks = [(-np.inf, t0)] + self._parent.time_breaks + [(t1, np.inf)]
+        t0, t1 = self.parent.time_range
+        time_breaks = [(-np.inf, t0)] + self.parent.time_breaks + [(t1, np.inf)]
 
         trunc_xvals = [xvals]
         trunc_yvals = [yvals]
@@ -660,9 +662,9 @@ class Chart:
         """
         def substitute(val: types.Coordinate):
             if val == types.AbstractCoordinate.LEFT:
-                return self._parent.time_range[0]
+                return self.parent.time_range[0]
             if val == types.AbstractCoordinate.RIGHT:
-                return self._parent.time_range[1]
+                return self.parent.time_range[1]
             if val == types.AbstractCoordinate.TOP:
                 return self.vmax
             if val == types.AbstractCoordinate.BOTTOM:
@@ -683,8 +685,8 @@ class Chart:
         Returns:
             Return `True` if the data is visible.
         """
-        is_active_type = data.data_type not in self._parent.disable_types
-        is_active_chan = any(chan not in self._parent.disable_chans for chan in data.channels)
+        is_active_type = data.data_type not in self.parent.disable_types
+        is_active_chan = any(chan not in self.parent.disable_chans for chan in data.channels)
         if not (is_active_type and is_active_chan):
             return False
 

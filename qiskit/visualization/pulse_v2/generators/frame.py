@@ -16,10 +16,11 @@
 
 """Frame change generators.
 
-A collection of functions that generate drawing objects for input frame change instructions.
-See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the input data.
+A collection of functions that generate a drawing object for an input frame change instructions.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
+data.
 
-In this module input data is `PulseInstruction`.
+In this module the input data is `types.PulseInstruction`.
 
 An end-user can write arbitrary functions that generate custom drawing objects.
 Generators in this module are called with the `formatter` and `device` kwargs.
@@ -35,8 +36,10 @@ The format of generator is restricted to:
         pass
     ```
 
-Arbitrary generator function satisfying above format can be accepted.
-Returned `ElementaryData` can be arbitrary subclass that is implemented in plotter API.
+Arbitrary generator function satisfying the above format can be accepted.
+Returned `ElementaryData` can be arbitrary subclasses that are implemented in
+the plotter API.
+
 """
 from fractions import Fraction
 from typing import Dict, Any, List, Tuple
@@ -49,9 +52,9 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 def gen_formatted_phase(data: types.PulseInstruction,
                         formatter: Dict[str, Any],
-                        device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate formatted virtual Z rotation labels from provided frame instruction.
+                        device: device_info.DrawerBackendInfo
+                        ) -> List[drawing_objects.TextData]:
+    """Generate the formatted virtual Z rotation label from provided frame instruction.
 
     Rotation angle is expressed in units of pi.
     If the denominator of fraction is larger than 10, the angle is expressed in units of radian.
@@ -101,9 +104,9 @@ def gen_formatted_phase(data: types.PulseInstruction,
 
 def gen_formatted_freq_mhz(data: types.PulseInstruction,
                            formatter: Dict[str, Any],
-                           device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate formatted frequency change labels from provided frame instruction.
+                           device: device_info.DrawerBackendInfo
+                           ) -> List[drawing_objects.TextData]:
+    """Generate the formatted frequency change label from provided frame instruction.
 
     Frequency change is expressed in units of MHz.
 
@@ -146,9 +149,9 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
 
 def gen_formatted_frame_values(data: types.PulseInstruction,
                                formatter: Dict[str, Any],
-                               device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate formatted virtual Z rotation labels and frequency change labels
+                               device: device_info.DrawerBackendInfo
+                               ) -> List[drawing_objects.TextData]:
+    """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
 
     Phase value is placed on top of the symbol, and frequency value is placed below the symbol.
@@ -213,9 +216,9 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
 
 def gen_raw_operand_values_compact(data: types.PulseInstruction,
                                    formatter: Dict[str, Any],
-                                   device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate formatted virtual Z rotation labels and frequency change labels
+                                   device: device_info.DrawerBackendInfo
+                                   ) -> List[drawing_objects.TextData]:
+    """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
 
     Raw operand values are shown in compact form. Frequency change is expressed
@@ -258,8 +261,8 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
 
 def gen_frame_symbol(data: types.PulseInstruction,
                      formatter: Dict[str, Any],
-                     device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
+                     device: device_info.DrawerBackendInfo
+                     ) -> List[drawing_objects.TextData]:
     """Generate a frame change symbol with instruction meta data from provided frame instruction.
 
     Stylesheets:
