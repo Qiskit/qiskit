@@ -86,7 +86,7 @@ class DrawerCanvas:
     drawing data object are stored in the `Chart` instance.
 
     Device, stylesheet, and some user generators are stored in the `DrawingCanvas`
-    and the `Chart` instances are also attached to the `DrawerCanvas` as children.
+    and `Chart` instances are also attached to the `DrawerCanvas` as children.
     Global configurations are accessed by those children to modify appearance of `Chart` output.
     """
 
