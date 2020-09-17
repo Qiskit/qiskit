@@ -46,7 +46,7 @@ To support not only `matplotlib` but also multiple plotters, those drawing objec
 universal and designed without strong dependency on modules in `matplotlib`.
 This means drawing objects that represent primitive geometries are preferred.
 It should be noted that there will be no unittest for each plotter API, which takes
-drawing objects and output an image data, we should avoid adding a complicated geometry
+drawing objects and outputs image data, we should avoid adding a complicated geometry
 that has a context of the pulse program.
 
 For example, a pulse envelope is complex valued number array and may be represented
