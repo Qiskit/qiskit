@@ -16,6 +16,7 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 import logging
 from math import pi
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit.library.standard_gates import U1Gate, U3Gate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.exceptions import QiskitError
 
@@ -24,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
     if use_basis_gates:
-        circuit.u1((lam + phi) / 2, control)
-        circuit.u1((lam - phi) / 2, target)
+        circuit.append(U1Gate((lam + phi) / 2), [control])
+        circuit.append(U1Gate((lam - phi) / 2), [target])
         circuit.cx(control, target)
-        circuit.u3(-theta / 2, 0, -(phi + lam) / 2, target)
+        circuit.append(U3Gate(-theta / 2, 0, -(phi + lam) / 2), [target])
         circuit.cx(control, target)
-        circuit.u3(theta / 2, phi, 0, target)
+        circuit.append(U3Gate(theta / 2, phi, 0), [target])
     else:
-        circuit.cu3(theta, phi, lam, control, target)
+        circuit.cu(theta, phi, lam, 0, control, target)
 
 
 def _apply_mcu3_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
@@ -170,9 +171,9 @@ def mcry(self, theta, q_controls, q_target, q_ancillae, mode='basic',
     self._check_dups(all_qubits)
 
     if mode == 'basic':
-        self.u3(theta / 2, 0, 0, q_target)
+        self.u(theta / 2, 0, 0, q_target)
         self.mct(q_controls, q_target, q_ancillae)
-        self.u3(-theta / 2, 0, 0, q_target)
+        self.u(-theta / 2, 0, 0, q_target)
         self.mct(q_controls, q_target, q_ancillae)
     elif mode == 'noancilla':
         n_c = len(control_qubits)

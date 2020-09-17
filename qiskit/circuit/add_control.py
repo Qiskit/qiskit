@@ -131,7 +131,9 @@ def control(operation: Union[Gate, ControlledGate],
                                      q_control, q_target[qreg[0].index],
                                      use_basis_gates=True)
             elif gate.name == 'u1':
-                controlled_circ.mcu1(gate.params[0], q_control, q_target[qreg[0].index])
+                from qiskit.circuit.library import MCU1Gate
+                controlled_circ.append(MCU1Gate(gate.params[0], num_ctrl_qubits),
+                                       q_control[:] + [q_target[qreg[0].index]])
             elif gate.name == 'cx':
                 controlled_circ.mct(q_control[:] + [q_target[qreg[0].index]],
                                     q_target[qreg[1].index],
@@ -162,10 +164,10 @@ def control(operation: Union[Gate, ControlledGate],
     # apply controlled global phase
     if ((operation.definition is not None and operation.definition.global_phase) or global_phase):
         if len(q_control) < 2:
-            controlled_circ.u1(operation.definition.global_phase + global_phase, q_control)
+            controlled_circ.p(operation.definition.global_phase + global_phase, q_control)
         else:
-            controlled_circ.mcu1(operation.definition.global_phase + global_phase,
-                                 q_control[:-1], q_control[-1])
+            controlled_circ.mcp(operation.definition.global_phase + global_phase,
+                                q_control[:-1], q_control[-1])
     if isinstance(operation, controlledgate.ControlledGate):
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
