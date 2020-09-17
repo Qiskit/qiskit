@@ -14,7 +14,7 @@
 
 from typing import Optional, List, Union, Tuple
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 
 from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations
 
@@ -107,17 +107,15 @@ class LinearAmplitudeFunction(QuantumCircuit):
         if not hasattr(offset, '__len__'):
             offset = [offset]
 
-        _check_sizes_match(slope, offset, breakpoints)
-        _check_sorted_and_in_range(breakpoints, domain)
-
         # ensure that the breakpoints include the first point of the domain
         if breakpoints is None:
             breakpoints = [domain[0]]
         else:
             if not np.isclose(breakpoints[0], domain[0]):
                 breakpoints = [domain[0]] + breakpoints
-                slope = [0] + slope
-                offset = [0] + offset
+
+        _check_sizes_match(slope, offset, breakpoints)
+        _check_sorted_and_in_range(breakpoints, domain)
 
         self._domain = domain
         self._image = image
@@ -157,10 +155,10 @@ class LinearAmplitudeFunction(QuantumCircuit):
             2 * slope_angles,
             2 * offset_angles
         )
-        print(num_state_qubits, mapped_breakpoints, slope_angles, offset_angles)
 
-        super().__init__(pwl_pauli_rotation.num_qubits, name=name)
-        self.compose(pwl_pauli_rotation, inplace=True)
+        super().__init__(*pwl_pauli_rotation.qregs, name=name)
+        self._data = pwl_pauli_rotation.data.copy()
+        # self.compose(pwl_pauli_rotation, inplace=True)
 
     def post_processing(self, scaled_value: float) -> float:
         r"""Map the function value of the approximated :math:`\hat{f}` to :math:`f`.
@@ -201,6 +199,6 @@ def _check_sizes_match(slope, offset, breakpoints):
     if len(offset) != size:
         raise ValueError('Size mismatch of slope ({}) and offset ({}).'.format(size, len(offset)))
     if breakpoints is not None:
-        if len(slope) != size:
+        if len(breakpoints) != size:
             raise ValueError('Size mismatch of slope ({}) and breakpoints ({}).'.format(
                 size, len(breakpoints)))

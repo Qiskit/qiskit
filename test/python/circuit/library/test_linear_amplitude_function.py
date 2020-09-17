@@ -18,10 +18,10 @@ from collections import defaultdict
 from ddt import ddt, data, unpack
 import numpy as np
 
+from qiskit import BasicAer, execute
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import LinearAmplitudeFunction
-from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -37,9 +37,8 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
 
-        # backend = BasicAer.get_backend('statevector_simulator')
-        # statevector = execute(circuit, backend).result().get_statevector()
-        statevector = Statevector.from_instruction(circuit).data
+        backend = BasicAer.get_backend('statevector_simulator')
+        statevector = execute(circuit, backend).result().get_statevector()
 
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
@@ -87,6 +86,10 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
 
     @data(
         (2, 1, 0, (0, 3), (0, 3), 0.1, None),
+        (3, 1, 0, (0, 1), (0, 1), 0.01, None),
+        (1, [0, 0], [0, 0], (0, 2), (0, 1), 0.1, [0, 1]),
+        (2, [1, -1], [0, 1], (0, 2), (0, 1), 0.1, [0, 1]),
+        (3, [1, 0, -1, 0], [0, 0.5, -0.5, -0.5], (0, 2.5), (-0.5, 0.5), 0.1, [0, 0.5, 1, 2]),
     )
     @unpack
     def test_polynomial_function(self, num_state_qubits, slope, offset, domain, image,
@@ -103,8 +106,68 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
 
         linear_f = LinearAmplitudeFunction(num_state_qubits, slope, offset, domain, image,
                                            rescaling_factor, breakpoints)
-        print(linear_f.draw())
+
         self.assertFunctionIsCorrect(linear_f, reference)
+
+    def test_not_including_start_in_breakpoints(self):
+        """Test not including the start of the domain works."""
+        num_state_qubits = 1
+        slope = [0, 0]
+        offset = [0, 0]
+        domain = (0, 2)
+        image = (0, 1)
+        rescaling_factor = 0.1
+        breakpoints = [1]
+
+        reference = partial(self.evaluate_function,
+                            num_qubits=num_state_qubits,
+                            slope=slope,
+                            offset=offset,
+                            domain=domain,
+                            image=image,
+                            rescaling_factor=rescaling_factor,
+                            breakpoints=breakpoints)
+
+        linear_f = LinearAmplitudeFunction(num_state_qubits, slope, offset, domain, image,
+                                           rescaling_factor, breakpoints)
+
+        self.assertFunctionIsCorrect(linear_f, reference)
+
+    def test_invalid_inputs_raise(self):
+        """Test passing invalid inputs to the LinearAmplitudeFunction raises an error."""
+        # default values
+        num_state_qubits = 1
+        slope = [0, 0]
+        offset = [0, 0]
+        domain = (0, 2)
+        image = (0, 1)
+        rescaling_factor = 0.1
+        breakpoints = [0, 1]
+
+        with self.subTest('mismatching breakpoints size'):
+            with self.assertRaises(ValueError):
+                _ = LinearAmplitudeFunction(num_state_qubits, slope, offset, domain, image,
+                                            rescaling_factor, [0])
+
+        with self.subTest('mismatching offsets'):
+            with self.assertRaises(ValueError):
+                _ = LinearAmplitudeFunction(num_state_qubits, slope, [0], domain, image,
+                                            rescaling_factor, breakpoints)
+
+        with self.subTest('mismatching slopes'):
+            with self.assertRaises(ValueError):
+                _ = LinearAmplitudeFunction(num_state_qubits, [0], offset, domain, image,
+                                            rescaling_factor, breakpoints)
+
+        with self.subTest('breakpoints outside of domain'):
+            with self.assertRaises(ValueError):
+                _ = LinearAmplitudeFunction(num_state_qubits, slope, offset, (0, 0.2), image,
+                                            rescaling_factor, breakpoints)
+
+        with self.subTest('breakpoints not sorted'):
+            with self.assertRaises(ValueError):
+                _ = LinearAmplitudeFunction(num_state_qubits, slope, offset, domain, image,
+                                            rescaling_factor, [1, 0])
 
 
 if __name__ == '__main__':
