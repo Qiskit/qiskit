@@ -155,7 +155,7 @@ def gen_channel_freqs(data: types.ChartAxis,
                       formatter: Dict[str, Any],
                       device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
-    """Generate frequency values of associated channels.
+    """Generate the frequency values of associated channels.
 
     Stylesheets:
         - The `axis_label` style is applied.
