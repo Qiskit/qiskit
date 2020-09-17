@@ -650,7 +650,7 @@ class Chart:
         return new_x, new_y
 
     def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
-        """A helper function to bind actual coordinate to `AbstractCoordinate`.
+        """A helper function to bind actual coordinates to an `AbstractCoordinate`.
 
         Args:
             vals: Sequence of coordinate object associated with a drawing object.
