@@ -52,8 +52,8 @@ that has a context of the pulse program.
 For example, a pulse envelope is complex valued number array and may be represented
 by two lines with different colors associated with the real and the imaginary component.
 We can use two line-type objects rather than defining a new drawing object that takes
-complex value. Because many plotters don't support an API that visualizes complex valued
-data array. If we introduce such drawing object and write a custom wrapper function
+complex value. As many plotters don't support an API that visualizes complex-valued
+data arrays, if we introduced such a drawing object and wrote a custom wrapper function
 on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
