@@ -16,13 +16,13 @@
 
 """Frame change generators.
 
-A collection of functions that generate drawing object for input frame change type instructions.
-See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of input data.
+A collection of functions that generate drawing objects for input frame change instructions.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the input data.
 
 In this module input data is `PulseInstruction`.
 
 An end-user can write arbitrary functions that generate custom drawing objects.
-Generators in this module are called with `formatter` and `device` kwargs.
+Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
 The format of generator is restricted to:
