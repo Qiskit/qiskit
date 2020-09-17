@@ -24,6 +24,7 @@ class TestDrawingObjects(QiskitTestCase):
 
     def setUp(self) -> None:
         """Setup."""
+        super().setUp()
 
         # bits
         self.ch_d0 = [pulse.DriveChannel(0)]

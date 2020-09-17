@@ -25,6 +25,7 @@ class TestChannelArrangement(QiskitTestCase):
     """Tests for channel mapping functions."""
 
     def setUp(self) -> None:
+        super().setUp()
         self.channels = [pulse.DriveChannel(0),
                          pulse.DriveChannel(1),
                          pulse.DriveChannel(2),

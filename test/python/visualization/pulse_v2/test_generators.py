@@ -36,6 +36,7 @@ class TestWaveformGenerators(QiskitTestCase):
     """Tests for waveform generators."""
 
     def setUp(self) -> None:
+        super().setUp()
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
         self.device = device_info.OpenPulseBackendInfo(
@@ -326,6 +327,7 @@ class TestChartGenerators(QiskitTestCase):
     """Tests for chart info generators."""
 
     def setUp(self) -> None:
+        super().setUp()
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
         self.device = device_info.OpenPulseBackendInfo(
@@ -452,6 +454,7 @@ class TestFrameGenerators(QiskitTestCase):
     """Tests for frame info generators."""
 
     def setUp(self) -> None:
+        super().setUp()
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
         self.device = device_info.OpenPulseBackendInfo(
@@ -620,6 +623,7 @@ class TestSnapshotGenerators(QiskitTestCase):
     """Tests for snapshot generators."""
 
     def setUp(self) -> None:
+        super().setUp()
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
         self.device = device_info.OpenPulseBackendInfo(
@@ -708,6 +712,7 @@ class TestBarrierGenerators(QiskitTestCase):
     """Tests for barrier generators."""
 
     def setUp(self) -> None:
+        super().setUp()
         style = stylesheet.QiskitPulseStyle()
         self.formatter = style.formatter
         self.device = device_info.OpenPulseBackendInfo(

@@ -25,6 +25,8 @@ class TestChart(QiskitTestCase):
     """Tests for chart."""
 
     def setUp(self) -> None:
+        super().setUp()
+
         self.style = stylesheet.QiskitPulseStyle()
         self.device = device_info.OpenPulseBackendInfo(
             name='test',
@@ -202,6 +204,7 @@ class TestDrawCanvas(QiskitTestCase):
     """Tests for draw canvas."""
 
     def setUp(self) -> None:
+        super().setUp()
         self.style = stylesheet.QiskitPulseStyle()
         self.device = device_info.OpenPulseBackendInfo(
             name='test',
