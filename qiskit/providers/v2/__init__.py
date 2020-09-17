@@ -31,7 +31,7 @@ Abstract Classes
 
    Provider
    Backend
-   Configuration
+   Options
    Properties
 """
 

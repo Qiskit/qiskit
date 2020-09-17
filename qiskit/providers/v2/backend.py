@@ -24,7 +24,7 @@ class Backend(ABC):
     The first are the properties of class itself. These should be used to
     defined the immutable characteristics of the backend. For a backend
     that runs experiments this would be things like ``basis_gates`` that
-    do not change for the lifetime of the backend. The ``configuration``
+    do not change for the lifetime of the backend. The ``options``
     attribute of the backend is used to contain the dynamic properties of
     the backend. The intent is that these will all be user configurable. It
     should be used more for runtime properties that **configure** how the
@@ -41,60 +41,62 @@ class Backend(ABC):
     circuits will be transpiled so that they actually run on the backend.
     """
 
+    version = 1
+
     def __init__(self, name, **fields):
         """Initialize a backend class
 
         Args:
             name (str): The name of the backend
-            fields: kwargs for the values to use to override the default configuration.
+            fields: kwargs for the values to use to override the default options.
         Raises:
-            AttributeError: if input field not a valid configuration
+            AttributeError: if input field not a valid options
         """
         self.name = name
-        self._configuration = self._default_config()
+        self._options = self._default_config()
         if fields:
             for field in fields:
-                if field not in self._configuration.data:
+                if field not in self._options.data:
                     raise AttributeError(
-                        "Configuration field %s is not valid for this backend" % field)
-            self._configuration.update_config(**fields)
+                        "Options field %s is not valid for this backend" % field)
+            self._options.update_config(**fields)
 
     @classmethod
     @abstractmethod
     def _default_config(cls):
-        """Return the default configuration
+        """Return the default options
 
-        This method will return a :class:`qiskit.providers.v2.BaseConfiguration`
-        subclass object that will be used for the default configuration. These
-        should be the default parameters to use for the configuration of the
+        This method will return a :class:`qiskit.providers.v2.Options`
+        subclass object that will be used for the default options. These
+        should be the default parameters to use for the options of the
         backend.
 
         Returns:
-            qiskit.providers.v2.Configuration: A configuration object with
+            qiskit.providers.v2.Options: A options object with
                 default values set
         """
         pass
 
-    def set_configuration(self, **fields):
-        """Set the configuration fields for the backend
+    def set_options(self, **fields):
+        """Set the options fields for the backend
 
-        This method is used to update the configuration of a backend. If
-        you need to change any of the configuration prior to running just
-        pass in the kwarg with the new value for the configuration.
+        This method is used to update the options of a backend. If
+        you need to change any of the options prior to running just
+        pass in the kwarg with the new value for the options.
 
         Args:
-            fields: The fields to update the configuration
+            fields: The fields to update the options
 
         Raises:
             AttributeError: If the field passed in is not part of the
-                configuration
+                options
         """
         for field in fields:
-            if field not in self._configuration.data:
+            if field not in self._options.data:
                 raise AttributeError(
-                    "Configuration field %s is not valid for this "
+                    "Options field %s is not valid for this "
                     "backend" % field)
-        self._configuration.update_config(**fields)
+        self._options.update_config(**fields)
 
     @property
     def properties(self):
@@ -113,14 +115,14 @@ class Backend(ABC):
             return None
 
     @property
-    def configuration(self):
-        """Return the configuration for the backend
+    def options(self):
+        """Return the options for the backend
 
-        The configuration of a backend are the dynamic parameters defining
+        The options of a backend are the dynamic parameters defining
         how the backend is used. These are used to control the :meth:`run`
         method.
         """
-        return self._configuration
+        return self._options
 
     @property
     def target(self):
@@ -141,7 +143,7 @@ class Backend(ABC):
             return None
 
     @abstractmethod
-    def run(self, run_input):
+    def run(self, run_input, **options):
         """Run on the backend.
 
         This method that will return a :class:`~qiskit.providers.v2.Job` object

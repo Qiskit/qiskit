@@ -13,15 +13,15 @@
 # that they have been altered from the originals.
 
 
-class Configuration:
-    """Base configuration object
+class Options:
+    """Base options object
 
-    This class is the abstract class that all backend configuration is based
+    This class is the abstract class that all backend options are based
     on. The properties of the class are intended to be all ddynamically
     adjustable so that a user can reconfigure the backend on demand. If a
     property is immutable to the user (eg something like number of qubits)
-    that should be a property of the backend class itself instead of the
-    configuration.
+    that should be a property of the backend class (itself instead of the
+    options.
     """
 
     def __init__(self, **kwargs):
