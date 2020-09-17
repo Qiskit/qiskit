@@ -20,7 +20,7 @@ import copy
 import itertools
 import multiprocessing as mp
 import sys
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
@@ -273,7 +273,6 @@ class Schedule(ScheduleComponent):
                           name: Optional[str] = None,
                           ) -> 'Schedule':
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
-
         Args:
             start_time: Time to insert the schedule.
             schedule: Schedule to insert.
@@ -384,7 +383,7 @@ class Schedule(ScheduleComponent):
 
     def _construct_filter(self, *filter_funcs: List[Callable],
                           channels: Optional[Iterable[Channel]] = None,
-                          instruction_types=None,
+                          instruction_types: Optional[Iterable['Instruction']] = None,
                           time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                           intervals: Optional[Iterable[Interval]] = None) -> Callable:
         """Returns a boolean-valued function with input type ``(int, ScheduleComponent)`` that
@@ -396,14 +395,24 @@ class Schedule(ScheduleComponent):
 
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
-                          return a bool.
-            channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
-            instruction_types (Optional[Iterable[Type[Instruction]]]): For example,
-                ``[PulseInstruction, AcquireInstruction]``.
-            time_ranges: For example, ``[(0, 5), (6, 10)]``.
-            intervals: For example, ``[(0, 5), (6, 10)]``.
+                          return a bool
+            channels: For example, ``[DriveChannel(0), AcquireChannel(0)]`` or ``DriveChannel(0)``
+            instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``
+                               or ``DelayInstruction``
+            time_ranges: For example, ``[(0, 5), (6, 10)]`` or ``(0, 5)``
+            intervals: For example, ``[Interval(0, 5), Interval(6, 10)]`` or ``Interval(0, 5)``
         """
-        def only_channels(channels: Set[Channel]) -> Callable:
+
+        def if_scalar_cast_to_list(to_list):
+            try:
+                iter(to_list)
+            except TypeError:
+                to_list = [to_list]
+            return to_list
+
+        def only_channels(channels: Union[Set[Channel], Channel]) -> Callable:
+            channels = if_scalar_cast_to_list(channels)
+
             def channel_filter(time_inst) -> bool:
                 """Filter channel.
 
@@ -413,7 +422,9 @@ class Schedule(ScheduleComponent):
                 return any([chan in channels for chan in time_inst[1].channels])
             return channel_filter
 
-        def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
+        def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
+            types = if_scalar_cast_to_list(types)
+
             def instruction_filter(time_inst) -> bool:
                 """Filter instruction.
 
@@ -423,10 +434,11 @@ class Schedule(ScheduleComponent):
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
 
-        def only_intervals(ranges: Iterable[Interval]) -> Callable:
+        def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
+            ranges = if_scalar_cast_to_list(ranges)
+
             def interval_filter(time_inst) -> bool:
                 """Filter interval.
-
                 Args:
                     time_inst (Tuple[int, Instruction]): Time
                 """
@@ -436,18 +448,18 @@ class Schedule(ScheduleComponent):
                     if i[0] <= inst_start and inst_stop <= i[1]:
                         return True
                 return False
+
             return interval_filter
 
         filter_func_list = list(filter_funcs)
         if channels is not None:
-            filter_func_list.append(only_channels(set(channels)))
+            filter_func_list.append(only_channels(channels))
         if instruction_types is not None:
             filter_func_list.append(only_instruction_types(instruction_types))
         if time_ranges is not None:
             filter_func_list.append(only_intervals(time_ranges))
         if intervals is not None:
             filter_func_list.append(only_intervals(intervals))
-
         # return function returning true iff all filters are passed
         return lambda x: all([filter_func(x) for filter_func in filter_func_list])
 
@@ -744,12 +756,9 @@ class Schedule(ScheduleComponent):
 
 class ParameterizedSchedule:
     """Temporary parameterized schedule class.
-
     This should not be returned to users as it is currently only a helper class.
-
     This class is takes an input command definition that accepts
     a set of parameters. Calling ``bind`` on the class will return a ``Schedule``.
-
     # TODO: In the near future this will be replaced with proper incorporation of parameters
             into the ``Schedule`` class.
     """
@@ -878,15 +887,12 @@ def _locate_interval_index(intervals: List[Interval],
 def _find_insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
     """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
-
     Args:
         intervals: A sorted list of non-overlapping Intervals.
         new_interval: The interval for which the index into intervals will be found.
-
     Returns:
         The index into intervals that new_interval should be inserted to maintain a sorted list
         of intervals.
-
     Raises:
         PulseError: If new_interval overlaps with the given intervals.
     """
@@ -900,7 +906,6 @@ def _find_insertion_index(intervals: List[Interval], new_interval: Interval) -> 
 
 def _overlaps(first: Interval, second: Interval) -> bool:
     """Return True iff first and second overlap.
-
     Note: first.stop may equal second.start, since Interval stop times are exclusive.
     """
     if first[0] == second[0] == second[1]:
