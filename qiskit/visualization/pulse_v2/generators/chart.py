@@ -118,7 +118,7 @@ def gen_chart_scale(data: types.ChartAxis,
                     formatter: Dict[str, Any],
                     device: device_info.DrawerBackendInfo) \
         -> List[drawing_objects.TextData]:
-    """Generate current scaling value of the chart.
+    """Generate the current scaling value of the chart.
 
     Stylesheets:
         - The `axis_label` style is applied.
