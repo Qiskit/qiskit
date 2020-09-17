@@ -91,6 +91,7 @@ class BaseQiskitTestCase(unittest.TestCase):
         Args:
             filename (string): filename or relative path to the resource.
             path (Path): path used as relative to the filename.
+
         Returns:
             str: the absolute path to the resource.
         """
