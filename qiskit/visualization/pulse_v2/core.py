@@ -653,7 +653,7 @@ class Chart:
         """A helper function to bind actual coordinates to an `AbstractCoordinate`.
 
         Args:
-            vals: Sequence of coordinate object associated with a drawing object.
+            vals: Sequence of coordinate objects associated with a drawing object.
 
         Returns:
             Numpy data array with substituted values.
