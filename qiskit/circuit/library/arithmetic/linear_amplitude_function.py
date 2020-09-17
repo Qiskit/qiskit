@@ -162,17 +162,25 @@ class LinearAmplitudeFunction(QuantumCircuit):
         super().__init__(pwl_pauli_rotation.num_qubits, name=name)
         self.compose(pwl_pauli_rotation, inplace=True)
 
-    def post_processing(self, scaled_value):
-        """Apply the inverse scaling applied to the function values.
+    def post_processing(self, scaled_value: float) -> float:
+        r"""Map the function value of the approximated :math:`\hat{f}` to :math:`f`.
 
         Args:
-            scaled_value: A function value.
+            scaled_value: A function value from the Taylor expansion of :math:`\hat{f}(x)`.
+
+        Returns:
+            The ``scaled_value`` mapped back to the domain of :math:`f`, by first inverting
+            the transformation used for the Taylor approximation and then mapping back from
+            :math:`[0, 1]` to the original domain.
         """
-        # map normalized value back to estimation
+        # revert the mapping applied in the Taylor approximation
         value = scaled_value - 1 / 2 + np.pi / 4 * self._rescaling_factor
         value *= 2 / np.pi / self._rescaling_factor
+
+        # map the value from [0, 1] back to the original domain
         value *= self._domain[1] - self._domain[0]
         value += self._domain[0]
+
         return value
 
 
