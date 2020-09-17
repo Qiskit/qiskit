@@ -674,8 +674,7 @@ def _parse_instruction_durations(backend, instruction_durations, scheduling_meth
     if scheduling_method is not None:
         from qiskit.transpiler.instruction_durations import InstructionDurations
         if backend:
-            durations = InstructionDurations.from_backend(backend)
-            durations = durations.update(instruction_durations, unit='s')
+            durations = InstructionDurations.from_backend(backend).update(instruction_durations)
         else:
             durations = InstructionDurations(instruction_durations)
 
