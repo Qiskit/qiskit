@@ -47,6 +47,7 @@ from qiskit.providers.v2 import BackendV1
 from qiskit.providers.v2 import Options
 from qiskit.providers.v2.target import TargetV1
 from qiskit.providers.v2.result_data import ResultData
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.qobj.qasm_qobj import QasmQobj
 from qiskit.version import VERSION as __version__
 from qiskit.quantum_info import Statevector
@@ -136,6 +137,14 @@ class QasmSimulatorPy(BackendV1):
     @property
     def memory(self):
         return True
+
+    def configuration(self):
+        warnings.warn("configuration() is deprecated")
+        return BackendConfiguration('Qasm simulator', 'v2',
+                                    self.target.num_qubits,
+                                    self.target.basis_gates, self.target.gates,
+                                    True, True, True, False, True, 8192,
+                                    self.target.coupling_map)
 
     def __init__(self, name='qasm_simulator', **fields):
         super().__init__(name, **fields)

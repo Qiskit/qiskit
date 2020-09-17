@@ -127,6 +127,14 @@ class UnitarySimulatorPy(BackendV1):
     def memory(self):
         return False
 
+    def configuration(self):
+        warnings.warn("configuration() is deprecated")
+        return BackendConfiguration('unitary simulator', 'v2',
+                                    self.target.num_qubits,
+                                    self.target.basis_gates, self.target.gates,
+                                    True, True, True, False, True, 8192,
+                                    self.target.coupling_map)
+
     def __init__(self, name='unitary_simulator', **fields):
         super().__init__(name, **fields)
         # Define attributes inside __init__.
