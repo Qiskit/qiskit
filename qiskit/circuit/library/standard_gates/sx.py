@@ -76,6 +76,10 @@ class SXGate(Gate):
         qc.data = rules
         self.definition = qc
 
+    def inverse(self):
+        """Return inverse SX gate (i.e. SXdg)."""
+        return SXdgGate()
+
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SX gate.
 
@@ -150,6 +154,10 @@ class SXdgGate(Gate):
         qc.data = rules
         self.definition = qc
 
+    def inverse(self):
+        """Return inverse SXdg gate (i.e. SX)."""
+        return SXGate()
+
     def to_matrix(self):
         """Return a numpy.array for the SXdg gate."""
         return numpy.array([[1 - 1j, 1 + 1j],
@@ -221,8 +229,7 @@ class CSXGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSX gate."""
         super().__init__('csx', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = SXGate()
+                         ctrl_state=ctrl_state, base_gate=SXGate())
 
     def _define(self):
         """
