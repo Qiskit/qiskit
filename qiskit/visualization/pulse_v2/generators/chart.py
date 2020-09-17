@@ -16,13 +16,14 @@
 
 """Chart axis generators.
 
-A collection of functions that generate drawing object for input chart axis.
-See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of input data.
+A collection of functions that generate a drawing object for am input chart axis.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
+data.
 
-In this module input data is `types.ChartAxis`.
+In this module the input data is `types.ChartAxis`.
 
 An end-user can write arbitrary functions that generate custom drawing objects.
-Generators in this module are called with `formatter` and `device` kwargs.
+Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
 The format of generator is restricted to:
@@ -35,8 +36,9 @@ The format of generator is restricted to:
         pass
     ```
 
-Arbitrary generator function satisfying above format can be accepted.
-Returned `ElementaryData` can be arbitrary subclass that is implemented in plotter API.
+Arbitrary generator function satisfying the above format can be accepted.
+Returned `ElementaryData` can be arbitrary subclasses that are implemented in
+the plotter API.
 
 """
 from typing import Dict, Any, List
