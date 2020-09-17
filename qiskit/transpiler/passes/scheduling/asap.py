@@ -32,11 +32,12 @@ class ASAPSchedule(TransformationPass):
         super().__init__()
         self.durations = durations
 
-    def run(self, dag):
+    def run(self, dag, time_unit=None):
         """Run the ASAPSchedule pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to schedule.
+            time_unit (str): Time unit to be used in scheduling: 'dt' or 's'.
 
         Returns:
             DAGCircuit: A scheduled DAG.
@@ -47,6 +48,8 @@ class ASAPSchedule(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ASAP schedule runs on physical circuits only')
 
+        if not time_unit:
+            time_unit = self.property_set['time_unit']
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -64,10 +67,10 @@ class ASAPSchedule(TransformationPass):
 
         for node in dag.topological_op_nodes():
             start_time = max(qubit_time_available[q] for q in node.qargs)
-            pad_with_delays(node.qargs, until=start_time, unit=self.durations.unit)
+            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
 
             new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
-            duration = self.durations.get(node.op, node.qargs)
+            duration = self.durations.get(node.op, node.qargs, unit=time_unit)
             # set duration for each instruction (tricky but necessary)
             new_node.op.duration = duration
 
@@ -78,7 +81,7 @@ class ASAPSchedule(TransformationPass):
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=self.durations.unit)
+        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
 
         new_dag.name = dag.name
         new_dag.duration = circuit_duration

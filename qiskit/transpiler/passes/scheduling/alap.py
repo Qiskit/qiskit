@@ -29,11 +29,12 @@ class ALAPSchedule(TransformationPass):
         super().__init__()
         self._asap = ASAPSchedule(durations)
 
-    def run(self, dag):
+    def run(self, dag, time_unit=None):
         """Run the ALAPSchedule pass on `dag`.
 
         Args:
             dag (DAGCircuit): DAG to schedule.
+            time_unit (str): Time unit to be used in scheduling: 'dt' or 's'.
 
         Returns:
             DAGCircuit: A scheduled DAG.
@@ -44,8 +45,10 @@ class ALAPSchedule(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('ALAP schedule runs on physical circuits only')
 
+        if not time_unit:
+            time_unit = self.property_set['time_unit']
         new_dag = dag.reverse_ops()
-        new_dag = self._asap.run(new_dag)
+        new_dag = self._asap.run(new_dag, self.property_set['time_unit'])
         new_dag = new_dag.reverse_ops()
 
         new_dag.name = dag.name
