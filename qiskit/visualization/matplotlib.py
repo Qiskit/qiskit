@@ -714,8 +714,9 @@ class MatplotlibDrawer:
                              color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
 
     def _draw_ops(self, verbose=False):
-        _standard_1q_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx',
-                              'ry', 'rz', 'u,', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx', 'sxdg']
+        _standard_1q_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry',
+                              'rz', 'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx',
+                              'sxdg', 'p']
         _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
