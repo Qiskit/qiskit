@@ -20,7 +20,7 @@ import copy
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
