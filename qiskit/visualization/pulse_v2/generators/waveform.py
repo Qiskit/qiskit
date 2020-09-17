@@ -359,8 +359,8 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
 
 
 def _parse_waveform(data: types.PulseInstruction) -> types.ParsedInstruction:
-    """A helper function that generates sample data array of the waveform with
-    instruction meta data.
+    """A helper function that generates an array for the waveform with
+    instruction metadata.
 
     Args:
         data: Instruction data set
