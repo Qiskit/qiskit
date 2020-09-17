@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -18,7 +16,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.qasm import pi
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
@@ -58,15 +55,18 @@ class HGate(Gate):
         """
         gate h a { u2(0,pi) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u2 import U2Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (U2Gate(0, pi), [q[0]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-H gate.
@@ -118,12 +118,11 @@ class CHGate(ControlledGate):
 
         CH\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + H \otimes |1\rangle\langle 1| =
-            \frac{1}{\sqrt{2}}
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & 1 & 0 & 1 \\
+                0 & \frac{1}{\sqrt{2}} & 0 & \frac{1}{\sqrt{2}} \\
                 0 & 0 & 1 & 0 \\
-                0 & 1 & 0 & -1
+                0 & \frac{1}{\sqrt{2}} & 0 & -\frac{1}{\sqrt{2}}
             \end{pmatrix}
 
     .. note::
@@ -151,14 +150,24 @@ class CHGate(ControlledGate):
                     0 & 0 & 1 & 1 \\
                     0 & 0 & 1 & -1
                 \end{pmatrix}
-
     """
+    # Define class constants. This saves future allocation time.
+    _sqrt2o2 = 1 / numpy.sqrt(2)
+    _matrix1 = numpy.array([[1, 0, 0, 0],
+                            [0, _sqrt2o2, 0, _sqrt2o2],
+                            [0, 0, 1, 0],
+                            [0, _sqrt2o2, 0, -_sqrt2o2]],
+                           dtype=complex)
+    _matrix0 = numpy.array([[_sqrt2o2, 0, _sqrt2o2, 0],
+                            [0, 1, 0, 0],
+                            [_sqrt2o2, 0, -_sqrt2o2, 0],
+                            [0, 0, 0, 1]],
+                           dtype=complex)
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CH gate."""
         super().__init__('ch', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = HGate()
+                         ctrl_state=ctrl_state, base_gate=HGate())
 
     def _define(self):
         """
@@ -172,10 +181,12 @@ class CHGate(ControlledGate):
             sdg b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
-        definition = []
         q = QuantumRegister(2, 'q')
-        rule = [
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
             (SGate(), [q[1]], []),
             (HGate(), [q[1]], []),
             (TGate(), [q[1]], []),
@@ -184,16 +195,18 @@ class CHGate(ControlledGate):
             (HGate(), [q[1]], []),
             (SdgGate(), [q[1]], [])
         ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
 
     def inverse(self):
         """Return inverted CH gate (itself)."""
-        return CHGate()  # self-inverse
+        return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CH gate."""
-        return _compute_control_matrix(self.base_gate.to_matrix(),
-                                       self.num_ctrl_qubits,
-                                       ctrl_state=self.ctrl_state)
+        if self.ctrl_state:
+            return self._matrix1
+        else:
+            return self._matrix0

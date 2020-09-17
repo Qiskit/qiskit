@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -72,17 +70,15 @@ For example::
 
 import unittest
 import sys
-import os
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SetLayout
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
+from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 
-from qiskit.test import QiskitTestCase
-
-DIRNAME = QiskitTestCase._get_resource_path('qasm')
+from qiskit.test import QiskitTestCase, Path
 
 
 class CommonUtilitiesMixin:
@@ -135,7 +131,7 @@ class CommonUtilitiesMixin:
     def assertResult(self, result, circuit):
         """Fetches the QASM in circuit.name file and compares it with result."""
         qasm_name = '%s_%s.qasm' % (type(self).__name__, circuit.name)
-        filename = os.path.join(DIRNAME, qasm_name)
+        filename = QiskitTestCase._get_resource_path(qasm_name, Path.QASMS)
 
         if self.regenerate_expected:
             # Run result in backend to test that is valid.
@@ -284,12 +280,14 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     additional_args = {'seed': 0}
 
 
+class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using SabreSwap."""
+    pass_class = SabreSwap
+    additional_args = {'seed': 0}
+
+
 if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == 'regenerate':
         CommonUtilitiesMixin.regenerate_expected = True
-
-        for qasm_filename in os.listdir(DIRNAME):
-            os.remove(os.path.join(DIRNAME, qasm_filename))
-
         del sys.argv[1]
     unittest.main()

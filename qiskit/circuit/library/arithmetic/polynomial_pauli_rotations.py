@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -15,7 +13,7 @@
 # pylint: disable=no-member
 
 """Polynomially controlled Pauli-rotations."""
-
+import warnings
 from typing import List, Optional, Dict, Sequence
 
 from itertools import product
@@ -179,6 +177,10 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         # set default internal parameters
         self._coeffs = coeffs or [0, 1]
         self._reverse = reverse
+        if self._reverse is True:
+            warnings.warn('The reverse flag has been deprecated. '
+                          'Use circuit.reverse_bits() to reverse order of qubits.',
+                          DeprecationWarning)
 
         # initialize super (after setting coeffs)
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
@@ -228,17 +230,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             True, if the rotations are applied on the reversed list, False otherwise.
         """
         return self._reverse
-
-    @reverse.setter
-    def reverse(self, reverse: bool) -> None:
-        """Set to True to reverse the list of qubits.
-
-        Args:
-            reverse: If True, the rotations are applied on the reversed list. If False, then not.
-        """
-        if self._reverse is None or reverse != self._reverse:
-            self._invalidate()
-            self._reverse = reverse
 
     @property
     def num_ancilla_qubits(self) -> int:

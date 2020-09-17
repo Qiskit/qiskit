@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -15,13 +13,17 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+from ddt import ddt, data
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
+from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library.standard_gates import SGate
 
 
+@ddt
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
@@ -133,7 +135,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(counts, target)
 
     def test_extend_circuit_fail(self):
-        """Test extending a circuits fails if registers incompatible.
+        """Test extending a circuit fails if registers incompatible.
 
         If two circuits have same name register of different size or type
         it should raise a CircuitError.
@@ -147,6 +149,15 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertRaises(CircuitError, qc1.__iadd__, qc2)
         self.assertRaises(CircuitError, qc1.__iadd__, qcr3)
+
+    def test_extend_circuit_adds_qubits(self):
+        """Test extending a circuits with differing registers adds the qubits."""
+        qr = QuantumRegister(1, "q")
+        qc = QuantumCircuit(qr)
+        empty = QuantumCircuit()
+        empty.extend(qc)
+
+        self.assertListEqual(empty.qubits, qr[:])
 
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
@@ -350,8 +361,8 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
-    def test_mirror(self):
-        """Test mirror method reverses but does not invert."""
+    def test_reverse(self):
+        """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.s(1)
@@ -368,7 +379,254 @@ class TestCircuitOperations(QiskitTestCase):
         expected.s(1)
         expected.h(0)
 
-        self.assertEqual(qc.mirror(), expected)
+        self.assertEqual(qc.reverse_ops(), expected)
+
+    def test_repeat(self):
+        """Test repeating the circuit works."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.h(0).c_if(cr, 1)
+
+        with self.subTest('repeat 0 times'):
+            rep = qc.repeat(0)
+            self.assertEqual(rep, QuantumCircuit(qr, cr))
+
+        with self.subTest('repeat 3 times'):
+            inst = qc.to_instruction()
+            ref = QuantumCircuit(qr, cr)
+            for _ in range(3):
+                ref.append(inst, ref.qubits, ref.clbits)
+            rep = qc.repeat(3)
+            self.assertEqual(rep, ref)
+
+    def test_power(self):
+        """Test taking the circuit to a power works."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rx(0.2, 1)
+
+        gate = qc.to_gate()
+
+        with self.subTest('power(int >= 0) equals repeat'):
+            self.assertEqual(qc.power(4), qc.repeat(4))
+
+        with self.subTest('explicit matrix power'):
+            self.assertEqual(qc.power(4, matrix_power=True).data[0][0],
+                             gate.power(4))
+
+        with self.subTest('float power'):
+            self.assertEqual(qc.power(1.23).data[0][0], gate.power(1.23))
+
+        with self.subTest('negative power'):
+            self.assertEqual(qc.power(-2).data[0][0], gate.power(-2))
+
+    def test_power_parameterized_circuit(self):
+        """Test taking a parameterized circuit to a power."""
+        theta = Parameter('th')
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rx(theta, 1)
+
+        with self.subTest('power(int >= 0) equals repeat'):
+            self.assertEqual(qc.power(4), qc.repeat(4))
+
+        with self.subTest('cannot to matrix power if parameterized'):
+            with self.assertRaises(CircuitError):
+                _ = qc.power(0.5)
+
+    def test_control(self):
+        """Test controlling the circuit."""
+        qc = QuantumCircuit(2, name='my_qc')
+        qc.cry(0.2, 0, 1)
+
+        c_qc = qc.control()
+        with self.subTest('return type is circuit'):
+            self.assertIsInstance(c_qc, QuantumCircuit)
+
+        with self.subTest('test name'):
+            self.assertEqual(c_qc.name, 'c_my_qc')
+
+        with self.subTest('repeated control'):
+            cc_qc = c_qc.control()
+            self.assertEqual(cc_qc.num_qubits, c_qc.num_qubits + 1)
+
+        with self.subTest('controlled circuit has same parameter'):
+            param = Parameter('p')
+            qc.rx(param, 0)
+            c_qc = qc.control()
+            self.assertEqual(qc.parameters, c_qc.parameters)
+
+        with self.subTest('non-unitary operation raises'):
+            qc.reset(0)
+            with self.assertRaises(CircuitError):
+                _ = qc.control()
+
+    def test_control_implementation(self):
+        """Run a test case for controlling the circuit, which should use ``Gate.control``."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cry(0.2, 0, 1)
+        qc.t(0)
+        qc.append(SGate().control(2), [0, 1, 2])
+        qc.iswap(2, 0)
+
+        c_qc = qc.control(2, ctrl_state='10')
+
+        cgate = qc.to_gate().control(2, ctrl_state='10')
+        ref = QuantumCircuit(*c_qc.qregs)
+        ref.append(cgate, ref.qubits)
+
+        self.assertEqual(ref, c_qc)
+
+    @data('gate', 'instruction')
+    def test_repeat_appended_type(self, subtype):
+        """Test repeat appends Gate if circuit contains only gates and Instructions otherwise."""
+        sub = QuantumCircuit(2)
+        sub.x(0)
+
+        if subtype == 'gate':
+            sub = sub.to_gate()
+        else:
+            sub = sub.to_instruction()
+
+        qc = QuantumCircuit(2)
+        qc.append(sub, [0, 1])
+        rep = qc.repeat(3)
+
+        if subtype == 'gate':
+            self.assertTrue(all(isinstance(op[0], Gate) for op in rep.data))
+        else:
+            self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
+
+    def test_reverse_bits(self):
+        """Test reversing order of bits."""
+        qc = QuantumCircuit(3, 2)
+        qc.h(0)
+        qc.s(1)
+        qc.cx(0, 1)
+        qc.measure(0, 1)
+        qc.x(0)
+        qc.y(1)
+
+        expected = QuantumCircuit(3, 2)
+        expected.h(2)
+        expected.s(1)
+        expected.cx(2, 1)
+        expected.measure(2, 0)
+        expected.x(2)
+        expected.y(1)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_boxed(self):
+        """Test reversing order of bits in a hierarchiecal circuit."""
+        wide_cx = QuantumCircuit(3)
+        wide_cx.cx(0, 1)
+        wide_cx.cx(1, 2)
+
+        wide_cxg = wide_cx.to_gate()
+        cx_box = QuantumCircuit(3)
+        cx_box.append(wide_cxg, [0, 1, 2])
+
+        expected = QuantumCircuit(3)
+        expected.cx(2, 1)
+        expected.cx(1, 0)
+
+        self.assertEqual(cx_box.reverse_bits().decompose(), expected)
+        self.assertEqual(cx_box.decompose().reverse_bits(), expected)
+
+        # box one more layer to be safe.
+        cx_box_g = cx_box.to_gate()
+        cx_box_box = QuantumCircuit(4)
+        cx_box_box.append(cx_box_g, [0, 1, 2])
+        cx_box_box.cx(0, 3)
+
+        expected2 = QuantumCircuit(4)
+        expected2.cx(3, 2)
+        expected2.cx(2, 1)
+        expected2.cx(3, 0)
+
+        self.assertEqual(cx_box_box.reverse_bits().decompose().decompose(), expected2)
+
+    def test_reverse_bits_with_registers(self):
+        """Test reversing order of bits when registers are present."""
+        qr1 = QuantumRegister(3, 'a')
+        qr2 = QuantumRegister(2, 'b')
+        qc = QuantumCircuit(qr1, qr2)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
+        qc.cx(qr2[0], qr2[1])
+
+        expected = QuantumCircuit(qr2, qr1)
+        expected.h(qr1[2])
+        expected.cx(qr1[2], qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[1])
+        expected.cx(qr2[1], qr2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_cnot_alias(self):
+        """Test that the cnot method alias adds a cx gate."""
+        qc = QuantumCircuit(2)
+        qc.cnot(0, 1)
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+        self.assertEqual(qc, expected)
+
+    def test_inverse(self):
+        """Test inverse circuit."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr, global_phase=0.5)
+        qc.h(0)
+        qc.barrier(qr)
+        qc.t(1)
+
+        expected = QuantumCircuit(qr)
+        expected.tdg(1)
+        expected.barrier(qr)
+        expected.h(0)
+        expected.global_phase = -0.5
+        self.assertEqual(qc.inverse(), expected)
+
+    def test_compare_two_equal_circuits(self):
+        """Test to compare that 2 circuits are equal.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.h(0)
+
+        self.assertTrue(qc1 == qc2)
+
+    def test_compare_two_different_circuits(self):
+        """Test to compare that 2 circuits are different.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = QuantumCircuit(2, 2)
+        qc2.x(0)
+
+        self.assertFalse(qc1 == qc2)
+
+    def test_compare_a_circuit_with_none(self):
+        """Test to compare that a circuit is different to None.
+        """
+        qc1 = QuantumCircuit(2, 2)
+        qc1.h(0)
+
+        qc2 = None
+
+        self.assertFalse(qc1 == qc2)
 
 
 class TestCircuitBuilding(QiskitTestCase):

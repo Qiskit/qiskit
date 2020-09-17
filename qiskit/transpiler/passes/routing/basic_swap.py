@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -60,7 +58,7 @@ class BasicSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Basic swap runs on physical circuits only')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
+        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
@@ -92,14 +90,14 @@ class BasicSwap(TransformationPass):
                                                         cargs=[])
 
                     # layer insertion
-                    order = current_layout.reorder_bits(new_dag.qubits())
+                    order = current_layout.reorder_bits(new_dag.qubits)
                     new_dag.compose(swap_layer, qubits=order)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-            order = current_layout.reorder_bits(new_dag.qubits())
+            order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
 
         return new_dag

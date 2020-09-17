@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -111,7 +109,7 @@ class PassManager:
             flow_controller_conditions: control flow plugins.
 
         Raises:
-            TranspilerError: if a pass in passes is not a proper pass.
+            TranspilerError: if a pass in passes is not a proper pass or index not found.
 
         See Also:
             ``RunningPassManager.add_flow_controller()`` for more information about the control
@@ -126,6 +124,20 @@ class PassManager:
         try:
             self._pass_sets[index] = {'passes': passes,
                                       'flow_controllers': flow_controller_conditions}
+        except IndexError:
+            raise TranspilerError('Index to replace %s does not exists' % index)
+
+    def remove(self, index: int) -> None:
+        """Removes a particular pass in the scheduler.
+
+        Args:
+            index: Pass index to replace, based on the position in passes().
+
+        Raises:
+            TranspilerError: if the index is not found.
+        """
+        try:
+            del self._pass_sets[index]
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
 
@@ -163,7 +175,6 @@ class PassManager:
     def _normalize_passes(passes: Union[BasePass, List[BasePass]]) -> List[BasePass]:
         if isinstance(passes, BasePass):
             passes = [passes]
-
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
                 raise TranspilerError('%s is not a pass instance' % pass_.__class__)

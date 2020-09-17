@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -22,12 +21,6 @@ import warnings
 import functools
 
 import psutil
-
-
-def _check_python_version():
-    """Check for Python version 3.5+."""
-    if sys.version_info < (3, 5):
-        raise Exception('Qiskit requires Python version 3.5 or greater.')
 
 
 def _filter_deprecation_warnings():
@@ -56,7 +49,6 @@ def _filter_deprecation_warnings():
         pass
 
 
-_check_python_version()
 _filter_deprecation_warnings()
 
 
@@ -107,6 +99,28 @@ def deprecate_arguments(kwarg_map):
             if kwargs:
                 _rename_kwargs(func.__name__, kwargs, kwarg_map)
             return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def deprecate_function(msg):
+    """Emit a warning prior to calling decorated function.
+
+    Args:
+        msg (str): Warning message to emit.
+
+    Returns:
+        Callable: The decorated, deprecated callable.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # warn only once
+            if not wrapper._warned:
+                warnings.warn(msg, DeprecationWarning, stacklevel=2)
+                wrapper._warned = True
+            return func(*args, **kwargs)
+        wrapper._warned = False
         return wrapper
     return decorator
 

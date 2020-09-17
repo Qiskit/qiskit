@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -17,6 +15,7 @@
 
 """Main Qiskit public functionality."""
 
+
 import pkgutil
 import sys
 import warnings
@@ -31,6 +30,7 @@ from qiskit.exceptions import QiskitError
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
+from qiskit.circuit import AncillaRegister
 from qiskit.circuit import QuantumCircuit
 
 # user config
@@ -81,13 +81,6 @@ from qiskit.compiler import transpile, assemble, schedule  # noqa
 
 from .version import __version__  # noqa
 from .version import _get_qiskit_versions  # noqa
-
-
-if sys.version_info[0] == 3 and sys.version_info[1] == 5:
-    warnings.warn(
-        "Using Qiskit with Python 3.5 is deprecated as of the 0.12.0 release. "
-        "Support for running Qiskit with Python 3.5 will be removed at the "
-        "Python 3.5 EoL on 09/13/2020.", DeprecationWarning)
 
 
 __qiskit_version__ = _get_qiskit_versions()

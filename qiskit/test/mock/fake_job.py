@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -27,16 +25,15 @@ class FakeJob(BaseJob):
     """Fake simulator job"""
     _executor = futures.ProcessPoolExecutor()
 
-    def __init__(self, backend, job_id, fn, qobj):
+    def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
         self._backend = backend
         self._job_id = job_id
-        self._qobj = qobj
         self._future = None
         self._future_callback = fn
 
     def submit(self):
-        self._future = self._executor.submit(self._future_callback, self._qobj)
+        self._future = self._executor.submit(self._future_callback)
 
     def result(self, timeout=None):
         # pylint: disable=arguments-differ
@@ -57,7 +54,7 @@ class FakeJob(BaseJob):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception('Unexpected state of {0}'.format(
+            raise Exception('Unexpected state of {}'.format(
                 self.__class__.__name__))
         _status_msg = None
         return {'status': _status,

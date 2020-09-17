@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -13,5 +11,8 @@
 # that they have been altered from the originals.
 
 """Module for methods which sample continuous functions."""
+import warnings
 
-from .decorators import left, right, midpoint
+from qiskit.pulse.library.samplers.decorators import left, right, midpoint
+warnings.warn("the pulse_lib module is deprecated, pulse_lib is renamed to library",
+              DeprecationWarning, stacklevel=2)

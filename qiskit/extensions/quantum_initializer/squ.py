@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -25,11 +23,9 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-
 from qiskit.util import deprecate_arguments
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -65,6 +61,21 @@ class SingleQubitUnitary(Gate):
         # Create new gate
         super().__init__("unitary", 1, [unitary_matrix])
 
+    def inverse(self):
+        """Return the inverse.
+
+        Note that the resulting gate has an empty ``params`` property.
+        """
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # removing the params because arrays are deprecated
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
+
+        return inverse_gate
+
     @property
     def diag(self):
         """Returns the diagonal gate D up to which the single-qubit unitary u is implemented.
@@ -79,32 +90,33 @@ class SingleQubitUnitary(Gate):
         """Define the gate using the decomposition."""
 
         if self.mode == 'ZYZ':
-            rule, diag = self._zyz_rule()
+            circuit, diag = self._zyz_circuit()
         else:
             raise QiskitError('The decomposition mode is not known.')
 
         self._diag = diag
-        self.definition = rule
 
-    def _zyz_rule(self):
-        """Get the circuit rule for the ZYZ decomposition."""
+        self.definition = circuit
+
+    def _zyz_circuit(self):
+        """Get the circuit for the ZYZ decomposition."""
         q = QuantumRegister(self.num_qubits)
-        rule = []
+        qc = QuantumCircuit(q, name=self.name)
 
         diag = [1., 1.]
         alpha, beta, gamma, _ = self._zyz_dec()
 
         if abs(alpha) > _EPS:
-            rule += [(RZGate(alpha), [q[0]], [])]
+            qc.rz(alpha, q[0])
         if abs(beta) > _EPS:
-            rule += [(RYGate(beta), [q[0]], [])]
+            qc.ry(beta, q[0])
         if abs(gamma) > _EPS:
             if self.up_to_diagonal:
                 diag = [np.exp(-1j * gamma / 2.), np.exp(1j * gamma / 2.)]
             else:
-                rule += [(RZGate(gamma), [q[0]], [])]
+                qc.rz(gamma, q[0])
 
-        return rule, diag
+        return qc, diag
 
     def _zyz_dec(self):
         """Finds rotation angles (a,b,c,d) in the decomposition u=exp(id)*Rz(c).Ry(b).Rz(a).
@@ -140,6 +152,14 @@ class SingleQubitUnitary(Gate):
         # (the one using negative angles).
         # Therefore, we have to take the inverse of the angles at the end.
         return -alpha, -beta, -gamma, delta
+
+    def validate_parameter(self, parameter):
+        """Single-qubit unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
 
 
 # pylint: disable=unused-argument, invalid-name, missing-type-doc, missing-param-doc

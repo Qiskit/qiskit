@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -39,3 +37,8 @@ from .paris import FakeParis
 from .rochester import FakeRochester
 from .athens import FakeAthens
 from .rome import FakeRome
+from .bogota import FakeBogota
+from .montreal import FakeMontreal
+from .toronto import FakeToronto
+from .manhattan import FakeManhattan
+from .santiago import FakeSantiago

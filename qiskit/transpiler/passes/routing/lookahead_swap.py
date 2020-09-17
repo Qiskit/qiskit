@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -25,7 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class LookaheadSwap(TransformationPass):
@@ -93,7 +91,7 @@ class LookaheadSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
             raise TranspilerError('Lookahead swap runs on physical circuits only')
 
-        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
+        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
@@ -166,8 +164,8 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
 
     # Include symmetric 2q gates (e.g coupling maps with both [0,1] and [1,0])
     # as one available swap.
-    possible_swaps = set(tuple(sorted(edge))
-                         for edge in coupling_map.get_edges())
+    possible_swaps = {tuple(sorted(edge))
+                      for edge in coupling_map.get_edges()}
 
     def _score_swap(swap):
         """Calculate the relative score for a given SWAP."""

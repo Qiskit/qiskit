@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2018, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -86,32 +84,66 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     except ImportError:
         raise ImportError("dag_drawer requires pydot. "
                           "Run 'pip install pydot'.")
+    # NOTE: use type str checking to avoid potential cyclical import
+    # the two tradeoffs ere that it will not handle subclasses and it is
+    # slower (which doesn't matter for a visualization function)
+    type_str = str(type(dag))
+    if 'dagcircuit.DAGDependency' in type_str:
+        G = dag.to_networkx()
+        G.graph['dpi'] = 100 * scale
 
-    G = dag.to_networkx()
-    G.graph['dpi'] = 100 * scale
+        if style == 'plain':
+            pass
+        elif style == 'color':
+            for node in G.nodes:
+                n = G.nodes[node]
+                n['label'] = str(node.node_id) + ': ' + node.name
+                if node.name == 'measure':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.name == 'barrier':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.name == 'snapshot':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
+                if node.condition:
+                    n['label'] = str(node.node_id) + ': ' + node.name + ' (conditional)'
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightgreen'
+        else:
+            raise VisualizationError("Unrecognized style for the dag_drawer.")
 
-    if style == 'plain':
-        pass
-    elif style == 'color':
-        for node in G.nodes:
-            n = G.nodes[node]
-            n['label'] = node.name
-            if node.type == 'op':
-                n['color'] = 'blue'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'lightblue'
-            if node.type == 'in':
-                n['color'] = 'black'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'green'
-            if node.type == 'out':
-                n['color'] = 'black'
-                n['style'] = 'filled'
-                n['fillcolor'] = 'red'
-        for e in G.edges(data=True):
-            e[2]['label'] = e[2]['name']
     else:
-        raise VisualizationError("Unrecognized style for the dag_drawer.")
+        G = dag.to_networkx()
+        G.graph['dpi'] = 100 * scale
+
+        if style == 'plain':
+            pass
+        elif style == 'color':
+            for node in G.nodes:
+                n = G.nodes[node]
+                n['label'] = node.name
+                if node.type == 'op':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.type == 'in':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.type == 'out':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
+            for e in G.edges(data=True):
+                e[2]['label'] = e[2]['name']
+        else:
+            raise VisualizationError("Unrecognized style for the dag_drawer.")
 
     dot = to_pydot(G)
 
@@ -140,6 +172,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
             tmp_path = os.path.join(tmpdirname, 'dag.png')
             dot.write_png(tmp_path)
             image = Image.open(tmp_path)
-            os.remove(tmp_path)
             image.show()
+            os.remove(tmp_path)
             return None

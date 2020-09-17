@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -14,22 +12,25 @@
 
 """Tests basic functionality of the transpile function"""
 
-import math
 import io
+import sys
+import math
+
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
-import sys
-from ddt import ddt, data
+
+from ddt import ddt, data, unpack
+from test import combine  # pylint: disable=wrong-import-order
 
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+from qiskit.circuit import Parameter, Gate
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.extensions.standard import CXGate
+from qiskit.circuit.library import CXGate
 from qiskit.test import QiskitTestCase, Path
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
+from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -452,7 +453,6 @@ class TestTranspile(QiskitTestCase):
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
@@ -471,7 +471,6 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(square, qr[0])
-
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):
@@ -696,6 +695,117 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(qc, out)
 
+    @data(
+        ['cx', 'u3'],
+        ['cz', 'u3'],
+        ['cz', 'rx', 'rz'],
+        ['rxx', 'rx', 'ry'],
+        ['iswap', 'rx', 'rz'],
+    )
+    def test_block_collection_runs_for_non_cx_bases(self, basis_gates):
+        """Verify block collection is run when a single two qubit gate is in the basis."""
+        twoq_gate, *_ = basis_gates
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
+
+        self.assertLessEqual(out.count_ops()[twoq_gate], 2)
+
+    @unpack
+    @data(
+        (['u3', 'cx'], {'u3': 1, 'cx': 1}),
+        (['rx', 'rz', 'iswap'], {'rx': 6, 'rz': 12, 'iswap': 2}),
+        (['rx', 'ry', 'rxx'], {'rx': 6, 'ry': 5, 'rxx': 1}),
+    )
+    def test_block_collection_reduces_1q_gate(self, basis_gates, gate_counts):
+        """For synthesis to non-U3 bases, verify we minimize 1q gates."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+        for basis_gate in basis_gates:
+            self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        basis_gates=[
+            ['u3', 'cx'],
+            ['rx', 'rz', 'iswap'],
+            ['rx', 'ry', 'rxx'],
+        ],
+    )
+    def test_translation_method_synthesis(self, optimization_level, basis_gates):
+        """Verify translation_method='synthesis' gets to the basis."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, translation_method='synthesis',
+                        basis_gates=basis_gates,
+                        optimization_level=optimization_level)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
+    def test_transpiled_custom_gates_calibration(self):
+        """Test if transpiled calibrations is equal to custom gates circuit calibrations."""
+        custom_180 = Gate("mycustom", 1, [3.14])
+        custom_90 = Gate("mycustom", 1, [1.57])
+
+        circ = QuantumCircuit(2)
+        circ.append(custom_180, [0])
+        circ.append(custom_90, [1])
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        with pulse.build() as q1_y90:
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), pulse.DriveChannel(1))
+
+        # Add calibration
+        circ.add_calibration(custom_180, [0], q0_x180)
+        circ.add_calibration(custom_90, [1], q1_y90)
+
+        backend = FakeAlmaden()
+        # TODO: Remove L783-L784 in the next PR
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+            basis_gates=backend.configuration().basis_gates
+            + list(circ.calibrations.keys()),
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+
+    def test_transpiled_basis_gates_calibrations(self):
+        """Test if the transpiled calibrations is equal to basis gates circuit calibrations."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+
+        # Add calibration
+        circ.add_calibration("h", [0], q0_x180)
+
+        backend = FakeAlmaden()
+        # TODO: Remove L803-L804 in the next PR
+        transpiled_circuit = transpile(
+            circ,
+            backend=backend,
+            basis_gates=backend.configuration().basis_gates
+            + list(circ.calibrations.keys()),
+        )
+        self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
@@ -708,6 +818,7 @@ class TestLogTranspile(QiskitTestCase):
     """Testing the log_transpile option."""
 
     def setUp(self):
+        super().setUp()
         logger = getLogger()
         logger.setLevel('DEBUG')
         self.output = io.StringIO()

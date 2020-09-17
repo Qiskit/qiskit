@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -16,8 +14,6 @@
 
 """Model and schema for pulse defaults."""
 import copy
-import warnings
-from types import SimpleNamespace
 from typing import Any, Dict, List
 
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
@@ -98,12 +94,14 @@ class Discriminator:
         return cls(**data)
 
 
-class Command(SimpleNamespace):
+class Command:
     """Class representing a Command.
 
     Attributes:
         name: Pulse command name.
     """
+    _data = {}
+
     def __init__(self, name: str, qubits=None, sequence=None, **kwargs):
         """Initialize a Command object
 
@@ -113,12 +111,19 @@ class Command(SimpleNamespace):
             sequence (PulseQobjInstruction): The sequence for the Command
             kwargs: Optional additional fields
         """
+        self._data = {}
         self.name = name
         if qubits is not None:
             self.qubits = qubits
         if sequence is not None:
             self.sequence = sequence
-        self.__dict__.update(kwargs)
+        self._data.update(kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     def to_dict(self):
         """Return a dictionary format representation of the Command.
@@ -131,9 +136,7 @@ class Command(SimpleNamespace):
             out_dict['qubits'] = self.qubits
         if hasattr(self, 'sequence'):
             out_dict['sequence'] = [x.to_dict() for x in self.sequence]
-        for key, value in self.__dict__.items():
-            if key not in ['name', 'qubits', 'sequence']:
-                out_dict[key] = value
+        out_dict.update(self._data)
         return out_dict
 
     @classmethod
@@ -156,21 +159,14 @@ class Command(SimpleNamespace):
                     'sequence')]
         return cls(**in_data)
 
-    def __getstate__(self):
-        return self.to_dict()
 
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        return (self.__class__, (self.name))
-
-
-class PulseDefaults(SimpleNamespace):
+class PulseDefaults:
     """Description of default settings for Pulse systems. These are instructions or settings that
     may be good starting points for the Pulse user. The user may modify these defaults for custom
     scheduling.
     """
+
+    _data = {}
 
     def __init__(self,
                  qubit_freq_est: List[float],
@@ -183,7 +179,6 @@ class PulseDefaults(SimpleNamespace):
                  **kwargs: Dict[str, Any]):
         """
         Validate and reformat transport layer inputs to initialize.
-
         Args:
             qubit_freq_est: Estimated qubit frequencies in GHz.
             meas_freq_est: Estimated measurement cavity frequencies in GHz.
@@ -194,6 +189,7 @@ class PulseDefaults(SimpleNamespace):
             discriminator: The discriminators
             **kwargs: Other attributes for the super class.
         """
+        self._data = {}
         self.buffer = buffer
         self.qubit_freq_est = [freq * 1e9 for freq in qubit_freq_est]
         """Qubit frequencies in Hertz."""
@@ -214,11 +210,16 @@ class PulseDefaults(SimpleNamespace):
         if discriminator is not None:
             self.discriminator = discriminator
 
-        self.__dict__.update(kwargs)
+        self._data.update(kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError('Attribute %s is not defined' % name)
 
     def to_dict(self):
         """Return a dictionary format representation of the PulseDefaults.
-
         Returns:
             dict: The dictionary form of the PulseDefaults.
         """
@@ -239,6 +240,10 @@ class PulseDefaults(SimpleNamespace):
                            'discriminator', 'converter',
                            'instruction_schedule_map']:
                 out_dict[key] = value
+        out_dict.update(self._data)
+
+        out_dict['qubit_freq_est'] = [freq * 1e-9 for freq in self.qubit_freq_est]
+        out_dict['meas_freq_est'] = [freq * 1e-9 for freq in self.meas_freq_est]
         return out_dict
 
     @classmethod
@@ -249,7 +254,6 @@ class PulseDefaults(SimpleNamespace):
             data (dict): A dictionary representing the PulseDefaults
                          to create. It will be in the same format as output by
                          :meth:`to_dict`.
-
         Returns:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
@@ -265,24 +269,6 @@ class PulseDefaults(SimpleNamespace):
             in_data['discriminator'] = Discriminator.from_dict(
                 in_data.pop('discriminator'))
         return cls(**in_data)
-
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, state):
-        return self.from_dict(state)
-
-    def __reduce__(self):
-        return (self.__class__, (self.qubit_freq_est, self.meas_freq_est,
-                                 self.buffer, self.pulse_library,
-                                 self.cmd_def))
-
-    @property
-    def circuit_instruction_map(self):
-        """Deprecated property, use ``instruction_schedule_map`` instead."""
-        warnings.warn("The `circuit_instruction_map` attribute has been renamed to "
-                      "`instruction_schedule_map`.", DeprecationWarning)
-        return self.instruction_schedule_map
 
     def __str__(self):
         qubit_freqs = [freq / 1e9 for freq in self.qubit_freq_est]

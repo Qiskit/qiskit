@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -19,7 +17,7 @@ Circuit Scheduler (:mod:`qiskit.scheduler`)
 
 .. currentmodule:: qiskit.scheduler
 
-A scheduler compiles a circuit program to a pulse program.
+A circuit scheduler compiles a circuit program to a pulse program.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -27,16 +25,8 @@ A scheduler compiles a circuit program to a pulse program.
    schedule_circuit
    ScheduleConfig
 
-Scheduling utility functions
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   qiskit.scheduler.utils
-
 .. automodule:: qiskit.scheduler.methods
 """
-
+from qiskit.scheduler import schedule_circuit
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.scheduler.utils import measure, measure_all

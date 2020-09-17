@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -26,7 +24,7 @@ class U2Gate(Gate):
     Implemented using one X90 pulse on IBM Quantum systems:
 
     .. math::
-        U2(\phi, \lambda) = RZ(\phi+\pi/2).RX(\frac{\pi}{2}).RZ(\lambda-\pi/2)
+        U2(\phi, \lambda) = RZ(\phi).RY(\frac{\pi}{2}).RZ(\lambda)
 
     **Circuit symbol:**
 
@@ -51,7 +49,8 @@ class U2Gate(Gate):
     .. math::
 
         U2(0, \pi) = H
-
+        U2(0, 0) = RY(\pi/2)
+        U2(-\pi/2, \pi/2) = RX(\pi/2)
     .. seealso::
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
@@ -64,13 +63,16 @@ class U2Gate(Gate):
         super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        definition = []
         q = QuantumRegister(1, 'q')
-        rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
 
     def inverse(self):
         r"""Return inverted U2 gate.

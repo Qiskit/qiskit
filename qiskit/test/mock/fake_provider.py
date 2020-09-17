@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -73,7 +71,12 @@ class FakeProvider(BaseProvider):
                           FakeParis(),
                           FakeRochester(),
                           FakeRome(),
-                          FakeAthens()]
+                          FakeAthens(),
+                          FakeBogota(),
+                          FakeMontreal(),
+                          FakeToronto(),
+                          FakeManhattan(),
+                          FakeSantiago()]
 
         super().__init__()
 
