@@ -401,7 +401,7 @@ class DrawerCanvas:
 
 
 class Chart:
-    """A collection of drawing object to be shown in the same line.
+    """A collection of drawing object to be shown on the same line.
 
     Multiple pulse channels can be assigned to a single `Chart`.
     The parent `DrawerCanvas` should be specified to refer to the current user preference.
