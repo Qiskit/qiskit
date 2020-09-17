@@ -413,7 +413,7 @@ def _parse_waveform(data: types.PulseInstruction) -> types.ParsedInstruction:
 
 
 def _fill_waveform_color(channel: pulse.channels.Channel) -> str:
-    """A helper function that returns formatter key of the color code.
+    """A helper function that returns the formatter key of the color code.
 
     Args:
         channel: Pulse channel object associated with the fill waveform.
