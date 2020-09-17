@@ -35,7 +35,7 @@ Data key
 In the abstract class ``ElementaryData`` common attributes to represent a drawing object are
 specified. In addition, drawing objects have the `data_key` property that returns an
 unique hash of the object for comparison.
-This key is generated from data type and location of the drawing object in the canvas.
+This key is generated from a data type and the location of the drawing object in the canvas.
 See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of data type.
 If a data key cannot distinguish two independent objects, you need to add new data type.
 The data key may be used in the plotter interface to identify the object.
