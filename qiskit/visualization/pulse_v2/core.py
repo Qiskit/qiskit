@@ -53,7 +53,7 @@ If the `DrawDataContainer` is initialized without backend information, the outpu
 the time in units of the system cycle time `dt` and the frequencies are initialized to zero.
 
 Update:
-To update the image, a user can set new values to canvas and then call `.update` method.
+To update the image, a user can set new values to canvas and then call the `.update` method.
 
     ```python
     canvas.set_time_range(2000, 3000, seconds=False)
