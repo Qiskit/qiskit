@@ -27,10 +27,13 @@ import os
 import sys
 import unittest
 from unittest.util import safe_repr
-
-import fixtures
-from testtools.compat import advance_iterator
-from testtools import content
+try:
+    import fixtures
+    from testtools.compat import advance_iterator
+    from testtools import content
+    HAS_FIXTURES = True
+except ImportError:
+    HAS_FIXTURES = False
 
 from .runtest import RunTest, MultipleExceptions
 from .utils import Path, _AssertNoLogsContext
@@ -86,6 +89,10 @@ class QiskitTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         """Construct a TestCase."""
+        if not HAS_FIXTURES:
+            raise ImportError(
+                "Test runner requirements are missing, install "
+                "requirements-dev.txt and run tests again.")
         super(QiskitTestCase, self).__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
         self._reset()
