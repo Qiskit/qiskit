@@ -89,7 +89,8 @@ class DrawerCanvas:
 
     Device, stylesheet, and some user generators are stored in the `DrawingCanvas`
     and `Chart` instances are also attached to the `DrawerCanvas` as children.
-    Global configurations are accessed by those children to modify the appearance of the `Chart` output.
+    Global configurations are accessed by those children to modify
+    the appearance of the `Chart` output.
     """
 
     def __init__(self,
