@@ -47,6 +47,7 @@ class Schedule(ScheduleComponent):
     def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
                  name: Optional[str] = None):
         """Create an empty schedule.
+
         Args:
             *schedules: Child Schedules of this parent Schedule. May either be passed as
                         the list of schedules, or a list of ``(start_time, schedule)`` pairs.
@@ -112,6 +113,7 @@ class Schedule(ScheduleComponent):
     @property
     def instructions(self):
         """Get the time-ordered instructions from self.
+
         ReturnType:
             Tuple[Tuple[int, Instruction], ...]
         """
@@ -125,6 +127,7 @@ class Schedule(ScheduleComponent):
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
+
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -132,6 +135,7 @@ class Schedule(ScheduleComponent):
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
+
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -144,6 +148,7 @@ class Schedule(ScheduleComponent):
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum start time over supplied channels.
+
         Args:
             *channels: Channels within ``self`` to include.
         """
@@ -156,8 +161,10 @@ class Schedule(ScheduleComponent):
 
     def _instructions(self, time: int = 0):
         """Iterable for flattening Schedule tree.
+
         Args:
             time: Shifted time due to parent.
+
         Yields:
             Iterable[Tuple[int, Instruction]]: Tuple containing the time each
                 :class:`~qiskit.pulse.Instruction`
@@ -173,6 +180,7 @@ class Schedule(ScheduleComponent):
               inplace: bool = False
               ) -> 'Schedule':
         """Return a schedule shifted forward by ``time``.
+
         Args:
             time: Time to shift by.
             name: Name of the new schedule. Defaults to the name of self.
@@ -201,8 +209,10 @@ class Schedule(ScheduleComponent):
                        time: int
                        ) -> 'Schedule':
         """Return this schedule shifted forward by `time`.
+
         Args:
             time: Time to shift by
+
         Raises:
             PulseError: if ``time`` is not an integer.
         """
@@ -362,6 +372,7 @@ class Schedule(ScheduleComponent):
     def _apply_filter(self, filter_func: Callable, new_sched_name: str) -> 'Schedule':
         """Return a Schedule containing only the instructions from this Schedule for which
         ``filter_func`` returns ``True``.
+
         Args:
             filter_func: Function of the form (int, ScheduleComponent) -> bool.
             new_sched_name: Name of the returned ``Schedule``.
@@ -404,11 +415,11 @@ class Schedule(ScheduleComponent):
 
             def channel_filter(time_inst) -> bool:
                 """Filter channel.
+
                 Args:
                     time_inst (Tuple[int, Instruction]): Time
                 """
                 return any([chan in channels for chan in time_inst[1].channels])
-
             return channel_filter
 
         def only_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
@@ -416,11 +427,11 @@ class Schedule(ScheduleComponent):
 
             def instruction_filter(time_inst) -> bool:
                 """Filter instruction.
+
                 Args:
                     time_inst (Tuple[int, Instruction]): Time
                 """
                 return isinstance(time_inst[1], tuple(types))
-
             return instruction_filter
 
         def only_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
@@ -454,9 +465,11 @@ class Schedule(ScheduleComponent):
 
     def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
         """Update all time tracking within this schedule based on the given schedule.
+
         Args:
             time: The time to insert the schedule into self.
             schedule: The schedule to insert into self.
+
         Raises:
             PulseError: If timeslots overlap or an invalid start time is provided.
         """
@@ -635,6 +648,7 @@ class Schedule(ScheduleComponent):
              channels: Optional[List[Channel]] = None,
              show_framechange_channels: bool = True):
         r"""Plot the schedule.
+
         Args:
             dt: Time interval of samples.
             style (Optional[SchedStyle]): A style sheet to configure plot appearance.
@@ -651,16 +665,20 @@ class Schedule(ScheduleComponent):
             framechange: Add framechange indicators.
             channels: A list of Channels to plot.
             show_framechange_channels: Plot channels with only framechanges.
+
         Additional Information:
             If you want to manually rescale the waveform amplitude of channels one by one,
             you can set ``channel_scales`` argument instead of ``scale``.
             The ``channel_scales`` should be given as a python dictionary::
+
                 channel_scales = {pulse.DriveChannels(0): 10.0,
                                   pulse.MeasureChannels(0): 5.0}
+
             When the channel to plot is not included in the ``channel_scales`` dictionary,
             scaling factor of that channel is overwritten by the value of ``scale`` argument.
             In default, waveform amplitude is normalized by the maximum amplitude of the channel.
             The scaling factor is displayed under the channel name alias.
+
         Returns:
             matplotlib.Figure: A matplotlib figure object of the pulse schedule.
         """
