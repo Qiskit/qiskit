@@ -14,11 +14,11 @@
 
 import sys
 
-from qiskit.providers.v2 import Job
+from qiskit.providers.v2 import JobV1
 from qiskit.result.counts import Counts
 
 
-class BasicAerJob(Job):
+class BasicAerJob(JobV1):
     """BasicAerJob class."""
 
     def __init__(self, job_id, backend, result_data, time_taken):

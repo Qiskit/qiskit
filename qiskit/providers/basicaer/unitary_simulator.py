@@ -36,9 +36,10 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.util import local_hardware_info
-from qiskit.providers.v2.backend import Backend
-from qiskit.providers.v2.configuration import Configuration
+from qiskit.providers.v2.backend import BackendV1
+from qiskit.providers.v2.options import Options
 from qiskit.providers.v2.target import Target
+from qiskit.providers.v2.result_data import ResultData
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
 from .exceptions import BasicAerError
@@ -112,7 +113,7 @@ class QasmUnitarySimulatorTarget(Target):
 
 # TODO add ["status"] = 'DONE', 'ERROR' especially for empty circuit error
 # does not show up
-class UnitarySimulatorPy(Backend):
+class UnitarySimulatorPy(BackendV1):
     """Python implementation of a unitary simulator."""
     @property
     def local(self):
@@ -132,13 +133,13 @@ class UnitarySimulatorPy(Backend):
         self._target = QasmUnitarySimulatorTarget()
         self._unitary = None
         self._number_of_qubits = 0
-        self._initial_unitary = self.configuration.get('initial_unitary')
-        self._chop_threshold = self.configuration.get('chop_threshold')
+        self._initial_unitary = self.options.get('initial_unitary')
+        self._chop_threshold = self.options.get('chop_threshold')
 
     @classmethod
     def _default_config(cls):
-        return Configuration(shots=1,
-                             initial_unitary=None, chop_threshold=1e-15)
+        return Options(shots=1,
+                       initial_unitary=None, chop_threshold=1e-15)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -174,8 +175,8 @@ class UnitarySimulatorPy(Backend):
     def _set_options(self):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
-        self._initial_unitary = self.configuration.get("initial_unitary")
-        self._chop_threshold = self.configuration.get("chop_threshold")
+        self._initial_unitary = self.options.get("initial_unitary")
+        self._chop_threshold = self.options.get("chop_threshold")
         if self._initial_unitary is not None:
             # Check the initial unitary is actually unitary
             shape = np.shape(self._initial_unitary)
@@ -222,13 +223,13 @@ class UnitarySimulatorPy(Backend):
         self._set_options()
         job_id = str(uuid.uuid4())
         self._validate(circuits)
-        result_dict = collections.OrderedDict()
+        result_data = []
         start = time.time()
         for experiment in circuits:
-            result_dict[experiment.name] = self.run_experiment(experiment)
+            result_data.append(self.run_experiment(experiment))
         end = time.time()
         time_taken = end - start
-        return BasicAerJob(job_id, self, result_dict, time_taken=time_taken)
+        return BasicAerJob(job_id, self, result_data, time_taken=time_taken)
 
     def run_experiment(self, experiment):
         """Run an experiment (circuit) and return a single experiment result.
@@ -237,7 +238,7 @@ class UnitarySimulatorPy(Backend):
             experiment (QobjExperiment): experiment from qobj experiments list
 
         Returns:
-            dict: A result dictionary which looks something like::
+            ResultData: A result dictionary which looks something like::
 
                 {
                 "name": name of this experiment (obtained from qobj.experiment header)
@@ -293,7 +294,7 @@ class UnitarySimulatorPy(Backend):
         # Add final state to data
         data = self._get_unitary()
         end = time.time()
-        return data
+        return ResultData(experiment, 'unitary', data)
 
     def _validate(self, circuits):
         """Semantic validations of the circuit.
@@ -301,11 +302,11 @@ class UnitarySimulatorPy(Backend):
         1. No shots
         2. No measurements in the middle
         """
-        shots = self.configuration.get('shots')
+        shots = self.options.get('shots')
         if shots and shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.',
                         self.name)
-            self.set_configuration(shots=1)
+            self.set_options(shots=1)
         for experiment in circuits:
             if experiment.num_qubits > self._target.num_qubits:
                 raise BasicAerError('Number of qubits {} '.format(experiment.num_qubits) +

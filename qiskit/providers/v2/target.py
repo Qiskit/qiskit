@@ -16,7 +16,11 @@ from abc import ABC
 from abc import abstractmethod
 
 
-class Target(ABC):
+class Target:
+    pass
+
+
+class TargetV1(ABC):
     """Abstract class for Backend Target
 
     This abstract class is used to provide target information to the compiler

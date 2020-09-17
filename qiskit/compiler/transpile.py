@@ -537,14 +537,15 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     # remove faulty qubits in backend_properties.qubits
                     for faulty_qubit in faulty_qubits:
                         del backend_properties.qubits[faulty_qubit]
-    
+
                     gates = []
                     for gate in backend_properties.gates:
                         # remove gates using faulty edges or with faulty qubits (and remap the
                         # gates in terms of faulty_qubits_map)
                         faulty_qubits_map = _create_faulty_qubits_map(backend)
-                        if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
-                                gate.qubits in faulty_edges:
+                        any_faulty_qubits = any(
+                            [faulty_qubits_map[qubits] is not None for qubits in gate.qubits])
+                        if any_fault_qubits or gate.qubits in faulty_edges:
                             continue
                         gate_dict = gate.to_dict()
                         replacement_gate = Gate.from_dict(gate_dict)
@@ -552,7 +553,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                         args = '_'.join([str(qubit) for qubit in gate_dict['qubits']])
                         gate_dict['name'] = "%s%s" % (gate_dict['gate'], args)
                         gates.append(replacement_gate)
-    
+
                     backend_properties.gates = gates
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
@@ -562,11 +563,18 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
 def _parse_backend_num_qubits(backend, num_circuits):
     if backend is None:
         return [None] * num_circuits
-    if not isinstance(backend, list):
-        return [backend.configuration().n_qubits] * num_circuits
-    backend_num_qubits = []
-    for a_backend in backend:
-        backend_num_qubits.append(a_backend.configuration().n_qubits)
+    if isinstance(backend, Backend):
+        if not isinstance(backend, list):
+            return [backend.target.num_qubits] * num_circuits
+        backend_num_qubits = []
+        for a_backend in backend:
+            backend_num_qubits.append(a_backend.target.num_qubits)
+    else:
+        if not isinstance(backend, list):
+            return [backend.configuration().n_qubits] * num_circuits
+        backend_num_qubits = []
+        for a_backend in backend:
+            backend_num_qubits.append(a_backend.configuration().n_qubits)
     return backend_num_qubits
 
 
@@ -647,11 +655,14 @@ def _parse_callback(callback, num_circuits):
 def _parse_faulty_qubits_map(backend, num_circuits):
     if backend is None:
         return [None] * num_circuits
-    if not isinstance(backend, list):
-        return [_create_faulty_qubits_map(backend)] * num_circuits
-    faulty_qubits_map = []
-    for a_backend in backend:
-        faulty_qubits_map.append(_create_faulty_qubits_map(a_backend))
+    elif isinstance(backend, Backend):
+        return [None] * num_circuits
+    else:
+        if not isinstance(backend, list):
+            return [_create_faulty_qubits_map(backend)] * num_circuits
+        faulty_qubits_map = []
+        for a_backend in backend:
+            faulty_qubits_map.append(_create_faulty_qubits_map(a_backend))
     return faulty_qubits_map
 
 

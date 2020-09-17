@@ -267,7 +267,7 @@ def execute(experiments, backend,
     # v2 Providers Backend
     if isinstance(backend, Backend):
         start_time = time()
-        backend.set_configuration(shots=shots, **run_config)
+        backend.set_options(shots=shots, **run_config)
         job = backend.run(experiments)
         end_time = time()
         _log_submission_time(start_time, end_time)
@@ -296,7 +296,7 @@ def execute(experiments, backend,
                         backend=backend,
                         init_qubits=init_qubits,
                         **run_config)
-    
+
         # executing the circuits on the backend and returning the job
         start_time = time()
         job = backend.run(qobj, **run_config)

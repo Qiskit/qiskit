@@ -16,7 +16,11 @@ from abc import ABC
 from abc import abstractmethod
 
 
-class Backend(ABC):
+class Backend:
+    pass
+
+
+class BackendV1(Backend, ABC):
     """Abstract class for Backends
 
     This abstract class is to be used for all Backend objects created by a
@@ -151,5 +155,14 @@ class Backend(ABC):
         or sync call. It is the discretion of the provider to decide whether
         running should  block until the execution is finished or not. The Job
         class can handle either situation.
+
+        Args:
+            run_input: An individual or a list of of circuits or pulse
+                schedules to run on the backend.
+            options: Any kwarg options to pass to the backend for running the
+                config. If a key is also present in the options
+                attribute/object then the expectation is that the value
+                specified will be used instead of what's set in the options
+                object.
         """
         pass

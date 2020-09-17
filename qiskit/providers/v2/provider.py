@@ -19,7 +19,11 @@ from abc import ABC, abstractmethod
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
 
-class Provider(ABC):
+class Provider:
+    pass
+
+
+class ProviderV1(Provider, ABC):
     """Base class for a Backend Provider."""
 
     def get_backend(self, name=None, **kwargs):

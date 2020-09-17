@@ -14,7 +14,6 @@
 
 from abc import ABC
 from abc import abstractmethod
-from collections import OrderedDict
 import warnings
 
 import numpy as np
@@ -25,9 +24,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.result.counts import Counts
 from qiskit.result.result import Result
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.providers.v2.result_data import ResultData
 
 
-class Job(ABC):
+class Job:
+    pass
+
+
+class JobV1(Job, ABC):
     """A base class for representing an async job on a backend.
 
     This provides the base structure required for building an async or
@@ -37,18 +41,20 @@ class Job(ABC):
     the execution with results, or in the case of async backends will
     be a handle to the record of the async execution that will populate
     the result data after the execution is complete. The ``result_data``
-    instance attribute can either be the data from a single execution
+    instance attribute will be a list of
+    :class:`~qiskit.providers.v2.ResultData` objects.
     (depending on the backend this would be a
     :class:`~qiskit.circuit.QuantumCircuit`, :class:`~qiskit.result.Counts`,
     :class:`~qiskit.quantum_info.Statevector`, etc. object), or in the case
-    there were multiple inputs an ``OrderedDict`` class where the key is the
-    name of the input circuit or schedule.
+    there were multiple inputs a list of the data objects.  name of the input circuit or schedule.
     """
+
+    version = 1
 
     job_id = None
     metadata = None
 
-    def __init__(self, job_id, backend, time_taken=None):
+    def __init__(self, job_id, backend, time_taken=None, **metadata):
         """Initialize a new job object
 
         Args:
@@ -63,39 +69,41 @@ class Job(ABC):
         self.job_id = job_id
         self.backend = backend
         self.time_taken = None
+        self.metadata = metadata
 
     def _result_conversion(self, result, name=None):
-        if isinstance(result, Counts):
+        if isinstance(result.data, Counts):
             if 'seed_simulator' in result.metadata:
                 seed_simulator = result.metadata.pop(
                     'seed_simulator')
             else:
                 seed_simulator = None
             header = result.metadata
-            header['name'] = result.name
+            header['name'] = name
             result_dict = {
-                'shots': result.shots,
-                'data': result.hex_raw,
+                'shots': result.metadata['shots'],
+                'data': {'counts': result.data},
                 'success': True,
-                'time_taken': result.time_taken,
+                'time_taken': result.data.time_taken,
                 'header': header,
             }
             if seed_simulator:
                 result_dict['seed_simulator'] = seed_simulator
                 result_dict['seed'] = seed_simulator
-        elif isinstance(result, Statevector):
+        elif isinstance(result.data, Statevector):
             result_dict = {
-                'data': result.data,
+                'data': {'statevector': result.data.data},
                 'status': 'DONE',
                 'success': True,
+                'shots': 1,
             }
-        elif isinstance(result, np.ndarray):
+        elif isinstance(result.data, np.ndarray):
             if name:
                 header = {'name': name}
             else:
                 header = {}
             result_dict = {
-                'data': {'unitary': result},
+                'data': {'unitary': result.data},
                 'status': 'DONE',
                 'success': True,
                 'shots': 1,
@@ -118,12 +126,12 @@ class Job(ABC):
             'success': True,
             'job_id': self.job_id,
         }
-        if isinstance(self.result_data, OrderedDict):
+        if isinstance(self.result_data, list):
             result_list = []
             for result in self.result_data:
                 result_list.append(
-                    self._result_conversion(self.result_data[result], result))
-        elif isinstance(self.result_data, Counts, Statevector, np.ndarray):
+                    self._result_conversion(result, result.experiment.name))
+        elif isinstance(self.result_data, ResultData):
             result_list = [self._result_conversion(self.result_data)]
         else:
             raise TypeError(
@@ -135,13 +143,16 @@ class Job(ABC):
 
     @abstractmethod
     def status(self):
+        """Return the job status as a string."""
         pass
 
     def cancel(self):
+        """An optional method to cancel a submitted job."""
         raise NotImplementedError
 
     @abstractmethod
     def wait_for_final_state():
+        """A blocking call that will return when the job is done or is no longer running."""
         pass
 
     def _get_experiment(self, key=None):

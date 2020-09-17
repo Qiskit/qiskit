@@ -17,7 +17,7 @@ from collections import OrderedDict
 import logging
 
 from qiskit.exceptions import QiskitError
-from qiskit.providers.v2 import Provider
+from qiskit.providers.v2 import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
 
@@ -52,7 +52,7 @@ def _resolve_backend_name(name, backends, deprecated, aliased):
     return resolved_name
 
 
-class BasicAerProvider(Provider):
+class BasicAerProvider(ProviderV1):
     """Provider for Basic Aer backends."""
 
     def __init__(self, *args, **kwargs):
@@ -129,6 +129,7 @@ class BasicAerProvider(Provider):
                 backend_name = backend_instance.name
                 ret[backend_name] = backend_instance
             except QiskitError as err:
+                print(err)
                 # Ignore backends that could not be initialized.
                 logger.info('Basic Aer backend %s is not available: %s',
                             backend_cls, str(err))

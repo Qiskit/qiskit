@@ -43,11 +43,13 @@ from qiskit.util import local_hardware_info
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result.counts import Counts
 from qiskit.providers.models import BackendStatus
-from qiskit.providers.v2 import Backend
-from qiskit.providers.v2 import Configuration
-from qiskit.providers.v2.target import Target
+from qiskit.providers.v2 import BackendV1
+from qiskit.providers.v2 import Options
+from qiskit.providers.v2.target import TargetV1
+from qiskit.providers.v2.result_data import ResultData
 from qiskit.qobj.qasm_qobj import QasmQobj
 from qiskit.version import VERSION as __version__
+from qiskit.quantum_info import Statevector
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import cx_gate_matrix
@@ -59,7 +61,7 @@ logger = logging.getLogger(__name__)
 MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
 
 
-class QasmSimulatorTarget(Target):
+class QasmSimulatorTarget(TargetV1):
     @property
     def num_qubits(self):
         return min(24, MAX_QUBITS_MEMORY)
@@ -116,7 +118,7 @@ class QasmSimulatorTarget(Target):
         ]
 
 
-class QasmSimulatorPy(Backend):
+class QasmSimulatorPy(BackendV1):
     """Python implementation of a qasm simulator."""
 
     # Class level variable to return the final state at the end of simulation
@@ -148,15 +150,15 @@ class QasmSimulatorPy(Backend):
         self._shots = 0
         self._memory = False
         self._initial_statevector = None
-        self._chop_threshold = self.configuration.get('chop_threshold')
+        self._chop_threshold = self.options.get('chop_threshold')
         # TEMP
-        self._sample_measure = self.configuration.get('allow_sample_measuring')
+        self._sample_measure = self.options.get('allow_sample_measuring')
 
     @classmethod
     def _default_config(cls):
-        return Configuration(shots=1024, memory=False,
-                             initial_statevector=None, chop_threshold=1e-15,
-                             allow_sample_measuring=False)
+        return Options(shots=1024, memory=False,
+                       initial_statevector=None, chop_threshold=1e-15,
+                       allow_sample_measuring=False)
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -291,7 +293,7 @@ class QasmSimulatorPy(Backend):
     def _validate_initial_statevector(self):
         """Validate an initial statevector"""
         # If initial statevector isn't set we don't need to validate
-        if self.configuration.get('initial_statevector') is None:
+        if self.options.get('initial_statevector') is None:
             return
         # Check statevector is correct length for number of qubits
         length = len(self._initial_statevector)
@@ -303,8 +305,8 @@ class QasmSimulatorPy(Backend):
     def _set_options(self):
         """Set the backend options for all experiments"""
         # Reset default options
-        self._initial_statevector = self.configuration.get('initial_statevector')
-        self._chop_threshold = self.configuration.get('chop_threshold')
+        self._initial_statevector = self.options.get('initial_statevector')
+        self._chop_threshold = self.options.get('chop_threshold')
 
         if self._initial_statevector is not None:
             # Check the initial statevector is normalized
@@ -330,7 +332,7 @@ class QasmSimulatorPy(Backend):
         """Return the current statevector"""
         vec = np.reshape(self._statevector, 2 ** self._number_of_qubits)
         vec[abs(vec) < self._chop_threshold] = 0.0
-        return vec
+        return Statevector(vec)
 
     def _validate_measure_sampling(self, experiment):
         """Determine if measure sampling is allowed for an experiment
@@ -382,10 +384,10 @@ class QasmSimulatorPy(Backend):
         self._set_options()
         job_id = str(uuid.uuid4())
         result_list = []
-        self._shots = self.configuration.get('shots')
-        self._memory = self.configuration.get('memory', False)
+        self._shots = self.options.get('shots')
+        self._memory = self.options.get('memory', False)
         start = time.time()
-        result_dict = collections.OrderedDict()
+        result_data = []
         if isinstance(circuits, QasmQobj):
             warnings.warn(
                 'Passing in a Qobj object to run() is deprecated and support '
@@ -395,10 +397,10 @@ class QasmSimulatorPy(Backend):
             circuits, _, __ = disassemble(circuits)
 
         for experiment in circuits:
-            result_dict[experiment.name] = self.run_experiment(experiment)
+            result_data.extend(self.run_experiment(experiment))
         end = time.time()
         time_taken = end - start
-        return BasicAerJob(job_id, self,  result_dict, time_taken=time_taken)
+        return BasicAerJob(job_id, self,  result_data, time_taken=time_taken)
 
     def run_experiment(self, experiment):
         """Run an experiment (circuit) and return a single experiment result.
@@ -421,7 +423,7 @@ class QasmSimulatorPy(Backend):
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
-        seed_config = self.configuration.get('seed_simulator')
+        seed_config = self.options.get('seed_simulator')
         if seed_config:
             seed_simulator = seed_config
         else:
@@ -552,21 +554,21 @@ class QasmSimulatorPy(Backend):
                     memory.append(hex(int(outcome, 2)))
 
         # Add data
-        data = {'counts': dict(collections.Counter(memory))}
-        # Optionally add memory list
-        if self._memory:
-            data['memory'] = memory
+        results = []
+        counts_raw = dict(collections.Counter(memory))
         # Optionally add final statevector
         if self.SHOW_FINAL_STATE:
-            data['statevector'] = self._get_statevector()
-            # Remove empty counts and memory for statevector simulator
-            if not data['counts']:
-                data.pop('counts')
-            if 'memory' in data and not data['memory']:
-                data.pop('memory')
+            results.append(ResultData(experiment, 'statevector', self._get_statevector()))
+            return results
+        # Optionally add memory list
+        if self._memory:
+            results.append(ResultData(experiment, 'memory', memory))
         end = time.time()
-        return Counts(data, name=experiment.name, shots=self._shots,
-                      time_taken=end - start, seed_simulator=seed_simulator)
+        time_taken = end - start
+        counts = Counts(counts_raw, time_taken=time_taken)
+        results.append(ResultData(experiment, 'counts', counts, name=experiment.name,
+                       shots=self._shots, seed_simulator=seed_simulator))
+        return results
 
     def _validate(self, circuits):
         """Semantic validations of the qobj which cannot be done via schemas."""

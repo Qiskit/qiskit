@@ -16,7 +16,11 @@ from abc import ABC
 from abc import abstractmethod
 
 
-class Properties(ABC):
+class Properties:
+    pass
+
+
+class PropertiesV1(Properties, ABC):
     """Base properties object
 
     This class is the abstract class that backend properties are based on.
@@ -25,8 +29,16 @@ class Properties(ABC):
     but if it is defined the intent is that they are static characteristics
     of the backend for the lifetime of the backend object.
     """
+    version = 1
 
     @property
     @abstractmethod
     def backend_version(self):
+        """The version string for a backend"""
+        pass
+
+    @property
+    @abstractmethod
+    def qubits(self):
+        """The qubit properties of a backend"""
         pass
