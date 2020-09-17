@@ -137,7 +137,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
                                                                       shots, memory, max_credits,
                                                                       seed_simulator, init_qubits,
-                                                                      **run_config)
+                                                                      rep_delay, **run_config)
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -157,8 +157,7 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
                                        meas_map, memory_slot_size,
-                                       rep_time, rep_delay,
-                                       parametric_pulses,
+                                       rep_time, parametric_pulses,
                                        **run_config_common_dict)
 
         end_time = time()
@@ -173,8 +172,8 @@ def assemble(experiments: Union[QuantumCircuit, List[QuantumCircuit], Schedule, 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
 def _parse_common_args(backend, qobj_id, qobj_header, shots,
-                       memory, max_credits, seed_simulator, init_qubits,
-                       **run_config):
+                       memory, max_credits, seed_simulator,
+                       init_qubits, rep_delay, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
@@ -225,12 +224,27 @@ def _parse_common_args(backend, qobj_id, qobj_header, shots,
             'Number of shots specified: %s exceeds max_shots property of the '
             'backend: %s.' % (shots, max_shots))
 
+    dynamic_reprate_enabled = getattr(backend_config, 'dynamic_reprate_enabled', False)
+    if dynamic_reprate_enabled:
+        default_rep_delay = getattr(backend_config, "default_rep_delay", None)
+        rep_delay_range = getattr(backend_config, "rep_delay_range", None)
+        rep_delay = _parse_rep_delay(rep_delay, default_rep_delay, rep_delay_range)
+    else:
+        if rep_delay is not None:
+            rep_delay = None
+            warnings.warn(
+                "Dynamic rep rates not supported on this backend. rep_time will be "
+                "used instead of rep_delay.",
+                RuntimeWarning,
+            )
+
     # create run configuration and populate
     run_config_dict = dict(shots=shots,
                            memory=memory,
                            max_credits=max_credits,
                            seed_simulator=seed_simulator,
                            init_qubits=init_qubits,
+                           rep_delay=rep_delay,
                            **run_config)
 
     return qobj_id, qobj_header, run_config_dict
@@ -240,8 +254,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
                       meas_return, meas_map,
                       memory_slot_size,
-                      rep_time, rep_delay,
-                      parametric_pulses,
+                      rep_time, parametric_pulses,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
@@ -250,8 +263,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
     Raises:
-        SchemaValidationError: If the given meas_level is not allowed for the given `backend`. If
-            rep_delay is not in the backend rep_delay_range.
+        SchemaValidationError: If the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -295,33 +307,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
 
-    if dynamic_reprate_enabled:
-        rep_delay = rep_delay or getattr(backend_config, "default_rep_delay", None)
-        if rep_delay is not None:
-            rep_delay_range = getattr(backend_config, "rep_delay_range", None)
-            # check that rep_delay is in rep_delay_range
-            if rep_delay_range is not None and isinstance(rep_delay_range, list):
-                #  pylint: disable=E1136
-                if len(rep_delay_range) != 2:
-                    raise SchemaValidationError(
-                        "Backend rep_delay_range {} must be a list with two entries.".format(
-                            rep_delay_range
-                        )
-                    )
-                if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
-                    raise SchemaValidationError(
-                        "Supplied rep delay {} not in the supported "
-                        "backend range {}".format(rep_delay, rep_delay_range)
-                    )
-            rep_delay = rep_delay * 1e6  # convert sec to μs
-    else:
-        rep_delay = None
-        warnings.warn(
-            "Dynamic rep rates not supported on this backend. rep_time will be "
-            "used instead of rep_delay.",
-            RuntimeWarning,
-        )
-
     parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
 
     # create run configuration and populate
@@ -335,7 +320,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
-                           rep_delay=rep_delay,
                            parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
@@ -362,6 +346,42 @@ def _parse_circuit_args(parameter_binds, backend, parametric_pulses, **run_confi
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
+
+
+def _parse_rep_delay(rep_delay: float,
+                     default_rep_delay: float,
+                     rep_delay_range: List[float]) -> float:
+    """Parse and set ``rep_delay`` parameter in runtime config.
+
+    Args:
+        rep_delay: Initial rep delay.
+        default_rep_delay: Backend default rep delay.
+        rep_delay_range: Backend list defining allowable range of rep delays.
+
+    Raises:
+        SchemaValidationError: If rep_delay is not in the backend rep_delay_range.
+    Returns:
+        float: Modified rep delay after parsing.
+    """
+    rep_delay = rep_delay or default_rep_delay
+    if rep_delay is not None:
+        # check that rep_delay is in rep_delay_range
+        if rep_delay_range is not None and isinstance(rep_delay_range, list):
+            #  pylint: disable=E1136
+            if len(rep_delay_range) != 2:
+                raise SchemaValidationError(
+                    "Backend rep_delay_range {} must be a list with two entries.".format(
+                        rep_delay_range
+                    )
+                )
+            if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
+                raise SchemaValidationError(
+                    "Supplied rep delay {} not in the supported "
+                    "backend range {}".format(rep_delay, rep_delay_range)
+                )
+        rep_delay = rep_delay * 1e6  # convert sec to μs
+
+    return rep_delay
 
 
 def _expand_parameters(circuits, run_config):
