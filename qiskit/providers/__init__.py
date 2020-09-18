@@ -47,15 +47,9 @@ Exceptions
    JobTimeoutError
 """
 
-import pkgutil
-
 from .basebackend import BaseBackend
 from .baseprovider import BaseProvider
 from .basejob import BaseJob
 from .exceptions import (JobError, JobTimeoutError, QiskitBackendNotFoundError,
                          BackendPropertyError, BackendConfigurationError)
 from .jobstatus import JobStatus
-
-
-# Allow extending this namespace.
-__path__ = pkgutil.extend_path(__path__, __name__)
