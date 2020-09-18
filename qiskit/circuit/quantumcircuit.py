@@ -2172,7 +2172,7 @@ class QuantumCircuit:
         from .library.standard_gates.u2 import U2Gate
         warnings.warn('The QuantumCircuit.u2 method is deprecated as of 0.16.0. It will be '
                       'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.u method instead, where u2(a, b) = u(pi/2, a, b).',
+                      'QuantumCircuit.u method instead, where u2(φ,λ) = u(pi/2, φ, λ).',
                       DeprecationWarning, stacklevel=2)
         return self.append(U2Gate(phi, lam), [qubit], [])
 
@@ -2190,7 +2190,7 @@ class QuantumCircuit:
         from .library.standard_gates.u3 import CU3Gate
         warnings.warn('The QuantumCircuit.cu3 method is deprecated as of 0.16.0. It will be '
                       'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.cu method instead, where cu3(a, b, c) = cu(a, b, c, 0).',
+                      'QuantumCircuit.cu method instead, where cu3(ϴ, φ, λ) = cu(ϴ, φ, λ, 0).',
                       DeprecationWarning, stacklevel=2)
         return self.append(CU3Gate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
