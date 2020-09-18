@@ -108,14 +108,9 @@ class BasicAerProvider(ProviderV1):
         """
         ret = OrderedDict()
         for backend_cls in SIMULATORS:
-            try:
-                backend_instance = self._get_backend_instance(backend_cls)
-                backend_name = backend_instance.name()
-                ret[backend_name] = backend_instance
-            except QiskitError as err:
-                # Ignore backends that could not be initialized.
-                logger.info('Basic Aer backend %s is not available: %s',
-                            backend_cls, str(err))
+            backend_instance = self._get_backend_instance(backend_cls)
+            backend_name = backend_instance.name()
+            ret[backend_name] = backend_instance
         return ret
 
     def _get_backend_instance(self, backend_cls):
@@ -131,7 +126,7 @@ class BasicAerProvider(ProviderV1):
         """
         # Verify that the backend can be instantiated.
         try:
-            backend_instance = backend_cls(provider=self)
+            backend_instance = backend_cls()
         except Exception as err:
             raise QiskitError('Backend %s could not be instantiated: %s' %
                               (backend_cls, err))
