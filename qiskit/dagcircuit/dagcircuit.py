@@ -26,8 +26,8 @@ import itertools
 import warnings
 import math
 
-import retworkx as rx
 import networkx as nx
+import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -81,6 +81,7 @@ class DAGCircuit:
             """Dummy class so we can deprecate dag.qubits() and do
             dag.qubits as property.
             """
+
             def __call__(self):
                 warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
                               'dag.qubits and dag.clbits properties instead.', DeprecationWarning,

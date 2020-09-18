@@ -23,7 +23,6 @@ from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
-from qiskit.qasm import pi
 
 
 class TestCompiler(QiskitTestCase):
