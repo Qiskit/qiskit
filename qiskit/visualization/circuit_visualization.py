@@ -405,7 +405,7 @@ def qx_color_scheme():
 def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
                          idle_wires=True, with_layout=True, fold=None, initial_state=True,
-                         cregbundle=False):
+                         cregbundle=False, encoding=None):
     """Draws a circuit using ascii art.
 
     Args:
@@ -426,8 +426,9 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
                     `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
         initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
-        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-            the ``text`` output. Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Default: ``False``.
+        encoding (str): Optional. Sets the encoding preference of the output.
+                   Default: ``sys.stdout.encoding``.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -441,13 +442,14 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
         layout = None
     global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
-                                     cregbundle=cregbundle, global_phase=global_phase)
+                                     cregbundle=cregbundle, global_phase=global_phase,
+                                     encoding=encoding)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
 
     if filename:
-        text_drawing.dump(filename)
+        text_drawing.dump(filename, encoding=encoding)
     return text_drawing
 
 

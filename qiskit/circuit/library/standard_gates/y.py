@@ -76,7 +76,9 @@ class YGate(Gate):
         rules = [
             (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -174,8 +176,7 @@ class CYGate(ControlledGate):
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
         super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = YGate()
+                         ctrl_state=ctrl_state, base_gate=YGate())
 
     def _define(self):
         """
@@ -192,12 +193,14 @@ class CYGate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (SGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverted CY gate (itself)."""
-        return CYGate()  # self-inverse
+        return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def to_matrix(self):
         """Return a numpy.array for the CY gate."""
