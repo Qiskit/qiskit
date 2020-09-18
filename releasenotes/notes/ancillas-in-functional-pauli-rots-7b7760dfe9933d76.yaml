@@ -10,6 +10,7 @@ fixes:
     The ``PiecewiseLinearPauliRotations`` class always allocated work qubits
     for the comparison operations, also if there was only one interval and
     therefore no comparison necessary. This has been fixed.
+  - |
     Also, upon converting a circuit to an instruction the ``AncillaQubit``s are converted
     to ``Qubit``s. Therefore appending a circuit with ancillas to another circuit
     with matching number of ancillas leads to an inconsistent mapping of ancillas to
@@ -17,15 +18,3 @@ fixes:
     This has temporarily been fixed by allowing to map ancillas to qubits and vice
     versa and will be fixed permanently in future by giving instructions a
     concept of ancillas.
-
-    .. code-block::
-
-        ar = AncillaRegister(1)
-        qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr, ar)
-        qc.cx(0, 1)
-        qc.cx(0, 1)
-
-        qc2 = QuantumCircuit(*qc.qregs)
-        qc2.append(qc, [0, 1])
-        decomposed = qc2.decompose()  # used to raise a DAGCircuitError
