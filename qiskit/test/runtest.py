@@ -83,8 +83,8 @@ class RunTest:
         """
         if not HAS_TESTTOOLS:
             raise ImportError(
-                'Test runner requirements are missing, install '
-                'requirements-dev.txt before running tests')
+                "Test runner requirements testtools and fixtures are missing. "
+                "Install them with 'pip install testtools fixtures'")
         self.case = case
         self.handlers = handlers or []
         self.exception_caught = object()
