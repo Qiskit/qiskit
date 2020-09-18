@@ -19,6 +19,7 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
@@ -32,36 +33,42 @@ from qiskit.circuit.library.standard_gates.equivalence_library \
 
 class OneQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
+
     def __init__(self):
         super().__init__('1q0p', 1, [])
 
 
 class OneQubitOneParamGate(Gate):
     """Mock one qubit one param gate."""
+
     def __init__(self, theta):
         super().__init__('1q1p', 1, [theta])
 
 
 class OneQubitOneParamPrimeGate(Gate):
     """Mock one qubit one param gate."""
+
     def __init__(self, alpha):
         super().__init__('1q1p_prime', 1, [alpha])
 
 
 class OneQubitTwoParamGate(Gate):
     """Mock one qubit two param gate."""
+
     def __init__(self, phi, lam):
         super().__init__('1q2p', 1, [phi, lam])
 
 
 class TwoQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
+
     def __init__(self):
         super().__init__('2q0p', 2, [])
 
 
 class VariadicZeroParamGate(Gate):
     """Mock variadic zero param gate."""
+
     def __init__(self, num_qubits):
         super().__init__('vq0p', num_qubits, [])
 
@@ -293,17 +300,17 @@ class TestUnrollerCompatability(QiskitTestCase):
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
-        ref_circuit.u2(0, pi, qr[0])
-        ref_circuit.u1(-pi/4, qr[0])
-        ref_circuit.u1(pi, qr[0])
-        ref_circuit.u1(pi/4, qr[0])
-        ref_circuit.u3(0.5, 0, 0, qr[0])
-        ref_circuit.u1(0.3, qr[0])
-        ref_circuit.u3(0.1, -pi/2, pi/2, qr[0])
+        ref_circuit.append(U2Gate(0, pi), [qr[0]])
+        ref_circuit.append(U1Gate(-pi/4), [qr[0]])
+        ref_circuit.append(U1Gate(pi), [qr[0]])
+        ref_circuit.append(U1Gate(pi/4), [qr[0]])
+        ref_circuit.append(U3Gate(0.5, 0, 0), [qr[0]])
+        ref_circuit.append(U1Gate(0.3), [qr[0]])
+        ref_circuit.append(U3Gate(0.1, -pi/2, pi/2), [qr[0]])
         ref_circuit.measure(qr[0], cr[0])
-        ref_circuit.u3(pi, 0, pi, qr[0]).c_if(cr, 1)
-        ref_circuit.u3(pi, pi/2, pi/2, qr[0]).c_if(cr, 1)
-        ref_circuit.u1(pi, qr[0]).c_if(cr, 1)
+        ref_circuit.append(U3Gate(pi, 0, pi), [qr[0]]).c_if(cr, 1)
+        ref_circuit.append(U3Gate(pi, pi/2, pi/2), [qr[0]]).c_if(cr, 1)
+        ref_circuit.append(U1Gate(pi), [qr[0]]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
 
@@ -336,8 +343,8 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.ch(qr[0], qr[2])
         circuit.crz(0.5, qr[1], qr[2])
         circuit.cswap(qr[1], qr[0], qr[2])
-        circuit.cu1(0.1, qr[0], qr[2])
-        circuit.cu3(0.2, 0.1, 0.0, qr[1], qr[2])
+        circuit.append(CU1Gate(0.1), [qr[0], qr[2]])
+        circuit.append(CU3Gate(0.2, 0.1, 0.0), [qr[1], qr[2]])
         circuit.cx(qr[1], qr[0])
         circuit.cy(qr[1], qr[2])
         circuit.cz(qr[2], qr[0])
@@ -352,9 +359,9 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.swap(qr[1], qr[2])
         circuit.t(qr[2])
         circuit.tdg(qr[0])
-        circuit.u1(0.1, qr[1])
-        circuit.u2(0.2, -0.1, qr[0])
-        circuit.u3(0.3, 0.0, -0.1, qr[2])
+        circuit.append(U1Gate(0.1), [qr[1]])
+        circuit.append(U2Gate(0.2, -0.1), [qr[0]])
+        circuit.append(U3Gate(0.3, 0.0, -0.1), [qr[2]])
         circuit.x(qr[2])
         circuit.y(qr[1])
         circuit.z(qr[0])
@@ -368,97 +375,97 @@ class TestUnrollerCompatability(QiskitTestCase):
         unrolled_dag = pass_.run(dag)
 
         ref_circuit = QuantumCircuit(qr, cr)
-        ref_circuit.u3(0, 0, pi/2, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/2), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(-0.25, 0, 0, qr[2])
+        ref_circuit.append(U3Gate(-0.25, 0, 0), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(0.25, -pi/2, 0, qr[2])
-        ref_circuit.u3(0.25, 0, 0, qr[2])
+        ref_circuit.append(U3Gate(0.25, -pi/2, 0), [qr[2]])
+        ref_circuit.append(U3Gate(0.25, 0, 0), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(-0.25, 0, 0, qr[2])
+        ref_circuit.append(U3Gate(-0.25, 0, 0), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(pi/2, 0, pi, qr[2])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(0, 0, -pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[2]])
         ref_circuit.cx(qr[0], qr[2])
-        ref_circuit.u3(0, 0, pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(0, 0, pi/4, qr[1])
-        ref_circuit.u3(0, 0, -pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[1]])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[2]])
         ref_circuit.cx(qr[0], qr[2])
         ref_circuit.cx(qr[0], qr[1])
-        ref_circuit.u3(0, 0, pi/4, qr[0])
-        ref_circuit.u3(0, 0, -pi/4, qr[1])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[0]])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[1]])
         ref_circuit.cx(qr[0], qr[1])
-        ref_circuit.u3(0, 0, pi/4, qr[2])
-        ref_circuit.u3(pi/2, 0, pi, qr[2])
-        ref_circuit.u3(0, 0, pi/2, qr[2])
-        ref_circuit.u3(pi/2, 0, pi, qr[2])
-        ref_circuit.u3(0, 0, pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[2]])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[2]])
+        ref_circuit.append(U3Gate(0, 0, pi/2), [qr[2]])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[2]])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[2]])
         ref_circuit.cx(qr[0], qr[2])
-        ref_circuit.u3(0, 0, -pi/4, qr[2])
-        ref_circuit.u3(pi/2, 0, pi, qr[2])
-        ref_circuit.u3(0, 0, -pi/2, qr[2])
-        ref_circuit.u3(0, 0, 0.25, qr[2])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[2]])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[2]])
+        ref_circuit.append(U3Gate(0, 0, -pi/2), [qr[2]])
+        ref_circuit.append(U3Gate(0, 0, 0.25), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(0, 0, -0.25, qr[2])
+        ref_circuit.append(U3Gate(0, 0, -0.25), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.cx(qr[2], qr[0])
-        ref_circuit.u3(pi/2, 0, pi, qr[2])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[2]])
         ref_circuit.cx(qr[0], qr[2])
-        ref_circuit.u3(0, 0, -pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(0, 0, pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[2]])
         ref_circuit.cx(qr[0], qr[2])
-        ref_circuit.u3(0, 0, pi/4, qr[0])
-        ref_circuit.u3(0, 0, -pi/4, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[0]])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.cx(qr[1], qr[0])
-        ref_circuit.u3(0, 0, -pi/4, qr[0])
-        ref_circuit.u3(0, 0, pi/4, qr[1])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[0]])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[1]])
         ref_circuit.cx(qr[1], qr[0])
-        ref_circuit.u3(0, 0, 0.05, qr[1])
-        ref_circuit.u3(0, 0, pi/4, qr[2])
-        ref_circuit.u3(pi/2, 0, pi, qr[2])
+        ref_circuit.append(U3Gate(0, 0, 0.05), [qr[1]])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[2]])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[2]])
         ref_circuit.cx(qr[2], qr[0])
-        ref_circuit.u3(0, 0, 0.05, qr[0])
+        ref_circuit.append(U3Gate(0, 0, 0.05), [qr[0]])
         ref_circuit.cx(qr[0], qr[2])
-        ref_circuit.u3(0, 0, -0.05, qr[2])
+        ref_circuit.append(U3Gate(0, 0, -0.05), [qr[2]])
         ref_circuit.cx(qr[0], qr[2])
-        ref_circuit.u3(0, 0, 0.05, qr[2])
-        ref_circuit.u3(0, 0, -0.05, qr[2])
+        ref_circuit.append(U3Gate(0, 0, 0.05), [qr[2]])
+        ref_circuit.append(U3Gate(0, 0, -0.05), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(-0.1, 0, -0.05, qr[2])
+        ref_circuit.append(U3Gate(-0.1, 0, -0.05), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.cx(qr[1], qr[0])
-        ref_circuit.u3(pi/2, 0, pi, qr[0])
-        ref_circuit.u3(0.1, 0.1, 0, qr[2])
-        ref_circuit.u3(0, 0, -pi/2, qr[2])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[0]])
+        ref_circuit.append(U3Gate(0.1, 0.1, 0), [qr[2]])
+        ref_circuit.append(U3Gate(0, 0, -pi/2), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(pi/2, 0, pi, qr[1])
-        ref_circuit.u3(0.2, 0, 0, qr[1])
-        ref_circuit.u3(0, 0, pi/2, qr[2])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[1]])
+        ref_circuit.append(U3Gate(0.2, 0, 0), [qr[1]])
+        ref_circuit.append(U3Gate(0, 0, pi/2), [qr[2]])
         ref_circuit.cx(qr[2], qr[0])
-        ref_circuit.u3(pi/2, 0, pi, qr[0])
+        ref_circuit.append(U3Gate(pi/2, 0, pi), [qr[0]])
         ref_circuit.i(qr[0])
-        ref_circuit.u3(0.1, -pi/2, pi/2, qr[0])
+        ref_circuit.append(U3Gate(0.1, -pi/2, pi/2), [qr[0]])
         ref_circuit.cx(qr[1], qr[0])
-        ref_circuit.u3(0, 0, 0.6, qr[0])
+        ref_circuit.append(U3Gate(0, 0, 0.6), [qr[0]])
         ref_circuit.cx(qr[1], qr[0])
-        ref_circuit.u3(0, 0, pi/2, qr[0])
-        ref_circuit.u3(0, 0, -pi/4, qr[0])
-        ref_circuit.u3(pi/2, 0.2, -0.1, qr[0])
-        ref_circuit.u3(0, 0, pi, qr[0])
-        ref_circuit.u3(0, 0, -pi/2, qr[1])
-        ref_circuit.u3(0, 0, 0.3, qr[2])
+        ref_circuit.append(U3Gate(0, 0, pi/2), [qr[0]])
+        ref_circuit.append(U3Gate(0, 0, -pi/4), [qr[0]])
+        ref_circuit.append(U3Gate(pi/2, 0.2, -0.1), [qr[0]])
+        ref_circuit.append(U3Gate(0, 0, pi), [qr[0]])
+        ref_circuit.append(U3Gate(0, 0, -pi/2), [qr[1]])
+        ref_circuit.append(U3Gate(0, 0, 0.3), [qr[2]])
         ref_circuit.cx(qr[1], qr[2])
         ref_circuit.cx(qr[2], qr[1])
         ref_circuit.cx(qr[1], qr[2])
-        ref_circuit.u3(0, 0, 0.1, qr[1])
-        ref_circuit.u3(pi, pi/2, pi/2, qr[1])
-        ref_circuit.u3(0, 0, pi/4, qr[2])
-        ref_circuit.u3(0.3, 0.0, -0.1, qr[2])
-        ref_circuit.u3(pi, 0, pi, qr[2])
+        ref_circuit.append(U3Gate(0, 0, 0.1), [qr[1]])
+        ref_circuit.append(U3Gate(pi, pi/2, pi/2), [qr[1]])
+        ref_circuit.append(U3Gate(0, 0, pi/4), [qr[2]])
+        ref_circuit.append(U3Gate(0.3, 0.0, -0.1), [qr[2]])
+        ref_circuit.append(U3Gate(pi, 0, pi), [qr[2]])
         # ref_circuit.snapshot('0')
         # ref_circuit.measure(qr, cr)
         # ref_dag = circuit_to_dag(ref_circuit)
@@ -482,7 +489,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         unrolled_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
-        expected.u1(theta, qr[0])
+        expected.append(U1Gate(theta), [qr[0]])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
@@ -497,13 +504,13 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         qc.rz(sum_, qr[0])
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['p', 'cx'])
         dag = pass_.run(dag)
 
-        unrolled_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
+        unrolled_dag = BasisTranslator(std_eqlib, ['p', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
-        expected.u1(sum_, qr[0])
+        expected.p(sum_, qr[0])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
@@ -514,15 +521,15 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         theta = Parameter('theta')
 
-        qc.cu1(theta, qr[1], qr[0])
-        qc.cu1(theta * theta, qr[0], qr[1])
+        qc.cp(theta, qr[1], qr[0])
+        qc.cp(theta * theta, qr[0], qr[1])
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['p', 'cx'])
         dag = pass_.run(dag)
 
-        out_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
+        out_dag = BasisTranslator(std_eqlib, ['p', 'cx']).run(dag)
 
-        self.assertEqual(out_dag.count_ops(), {'u1': 6, 'cx': 4})
+        self.assertEqual(out_dag.count_ops(), {'p': 6, 'cx': 4})
 
     def test_unrolling_parameterized_composite_gates(self):
         """Verify unrolling circuits with parameterized composite gates."""
@@ -546,18 +553,18 @@ class TestUnrollerCompatability(QiskitTestCase):
         qc.append(sub_instr, [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(mock_sel, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(mock_sel, ['p', 'cx'])
         dag = pass_.run(dag)
 
-        out_dag = BasisTranslator(mock_sel, ['u1', 'cx']).run(dag)
+        out_dag = BasisTranslator(mock_sel, ['p', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
-        expected.u1(theta, qr2[0])
-        expected.u1(theta, qr2[2])
+        expected.p(theta, qr2[0])
+        expected.p(theta, qr2[2])
         expected.cx(qr2[0], qr2[1])
         expected.cx(qr2[2], qr2[3])
-        expected.u1(theta, qr2[1])
-        expected.u1(theta, qr2[3])
+        expected.p(theta, qr2[1])
+        expected.p(theta, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
@@ -573,18 +580,18 @@ class TestUnrollerCompatability(QiskitTestCase):
         qc.append(sub_instr, [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(mock_sel, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(mock_sel, ['p', 'cx'])
         dag = pass_.run(dag)
 
-        out_dag = BasisTranslator(mock_sel, ['u1', 'cx']).run(dag)
+        out_dag = BasisTranslator(mock_sel, ['p', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
-        expected.u1(phi, qr2[0])
-        expected.u1(gamma, qr2[2])
+        expected.p(phi, qr2[0])
+        expected.p(gamma, qr2[2])
         expected.cx(qr2[0], qr2[1])
         expected.cx(qr2[2], qr2[3])
-        expected.u1(phi, qr2[1])
-        expected.u1(gamma, qr2[3])
+        expected.p(phi, qr2[1])
+        expected.p(gamma, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
@@ -625,21 +632,21 @@ class TestBasisExamples(QiskitTestCase):
         bell.cx(0, 1)
 
         in_dag = circuit_to_dag(bell)
-        out_dag = BasisTranslator(std_eqlib, ['iswap', 'u3']).run(in_dag)
+        out_dag = BasisTranslator(std_eqlib, ['iswap', 'u']).run(in_dag)
 
         qr = QuantumRegister(2, 'q')
         expected = QuantumCircuit(2)
-        expected.u3(pi / 2, 0, pi, qr[0])
-        expected.u3(pi, 0, pi, qr[1])
-        expected.u3(pi / 2, 0, pi, qr)
+        expected.u(pi / 2, 0, pi, qr[0])
+        expected.u(pi, 0, pi, qr[1])
+        expected.u(pi / 2, 0, pi, qr)
         expected.iswap(qr[0], qr[1])
-        expected.u3(pi, 0, pi, qr)
-        expected.u3(pi / 2, 0, pi, qr[1])
+        expected.u(pi, 0, pi, qr)
+        expected.u(pi / 2, 0, pi, qr[1])
         expected.iswap(qr[0], qr[1])
-        expected.u3(pi / 2, 0, pi, qr[0])
-        expected.u3(0, 0, pi / 2, qr)
-        expected.u3(pi, 0, pi, qr[1])
-        expected.u3(pi / 2, 0, pi, qr[1])
+        expected.u(pi / 2, 0, pi, qr[0])
+        expected.u(0, 0, pi / 2, qr)
+        expected.u(pi, 0, pi, qr[1])
+        expected.u(pi / 2, 0, pi, qr[1])
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
