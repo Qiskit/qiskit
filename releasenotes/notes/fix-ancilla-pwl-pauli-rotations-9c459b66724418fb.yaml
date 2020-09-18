@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    If there is no breakpoint in the ``PiecewiseLinearPauliRotations`` class
-    (except 0, which implicitly is always included), then no comparison operator 
-    is required. Before, there were nevertheless ancillas allocated for the 
-    comparison that never occured. This has been fixed.
