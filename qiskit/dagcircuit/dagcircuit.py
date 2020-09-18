@@ -467,7 +467,9 @@ class DAGCircuit:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
                 raise DAGCircuitError("invalid wire mapping value %s" % vname)
-            # support mapping from AncillaQubit to Qubit
+            # TODO Support mapping from AncillaQubit to Qubit, since AncillaQubits are mapped to
+            # Qubits upon being converted to an Instruction. Until this translation is fixed
+            # and Instructions have a concept of ancilla qubits, this fix is required.
             if not (isinstance(k, type(v)) or isinstance(v, type(k))):
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
