@@ -155,7 +155,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        qc.u3(0, theta, 0, qr)
+        qc.u(0, theta, 0, qr)
 
         # test for both `bind_parameters` and `assign_parameters`
         for assign_fun in ['bind_parameters', 'assign_parameters']:
@@ -174,7 +174,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        qc.u3(0, theta, x, qr)
+        qc.u(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
 
     def test_multiple_named_parameters(self):
@@ -184,7 +184,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        qc.u3(0, theta, x, qr)
+        qc.u(0, theta, x, qr)
         self.assertEqual(theta.name, 'θ')
         self.assertEqual(qc.parameters, {theta, x})
 
@@ -195,7 +195,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        qc.u3(0, theta, x, qr)
+        qc.u(0, theta, x, qr)
 
         # test for both `bind_parameters` and `assign_parameters`
         for assign_fun in ['bind_parameters', 'assign_parameters']:
@@ -215,7 +215,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        qc.u3(0, theta, x, qr)
+        qc.u(0, theta, x, qr)
 
         pqc = qc.assign_parameters({theta: 2, x: new_x}, inplace=inplace)
         if inplace:
@@ -257,7 +257,7 @@ class TestParameters(QiskitTestCase):
         phi = Parameter('phi')
 
         qc = QuantumCircuit(1)
-        qc.u1(theta * phi, 0)
+        qc.p(theta * phi, 0)
 
         # test for both `bind_parameters` and `assign_parameters`
         for assign_fun in ['bind_parameters', 'assign_parameters']:
@@ -286,10 +286,10 @@ class TestParameters(QiskitTestCase):
         for assign_fun in ['bind_parameters', 'assign_parameters']:
             qc = QuantumCircuit(qr)
             with self.subTest(assign_fun=assign_fun):
-                qc.u1(0.1, qr[0])
+                qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
 
-                qc.u1(x, qr[0])
+                qc.p(x, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1, y: 2})
 
     def test_gate_multiplicity_binding(self):
@@ -373,7 +373,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
 
-        qc.u1(theta1, 0)
+        qc.p(theta1, 0)
 
         self.assertRaises(CircuitError, qc.u1, theta2, 0)
 
@@ -509,8 +509,8 @@ class TestParameters(QiskitTestCase):
 
         theta = Parameter('theta')
 
-        qc1.u3(theta, 0, 0, qr[0])
-        qc2.u3(theta, 3.14, 0, qr[0])
+        qc1.u(theta, 0, 0, qr[0])
+        qc2.u(theta, 3.14, 0, qr[0])
 
         circuits = [qc1, qc2]
 
@@ -549,7 +549,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         theta = Parameter('theta')
 
-        qc.u1(theta, qr[0])
+        qc.p(theta, qr[0])
 
         double_qc = qc + qc
         test_qc = dag_to_circuit(circuit_to_dag(double_qc))
@@ -714,7 +714,7 @@ class TestParameters(QiskitTestCase):
             x = Parameter('x')
             qc = QuantumCircuit(1)
             qc.rx(theta, 0)
-            qc.u3(0, theta, x, 0)
+            qc.u(0, theta, x, 0)
             self.assertEqual(qc.num_parameters, 2)
 
         with self.subTest(msg='parameter vector'):
@@ -1001,11 +1001,12 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_standard_cu3(self):
         """This tests parameter negation in standard extension gate cu3."""
+        from qiskit.circuit.library import CU3Gate
         x = Parameter('x')
         y = Parameter('y')
         z = Parameter('z')
         qc = qiskit.QuantumCircuit(2)
-        qc.cu3(x, y, z, 0, 1)
+        qc.append(CU3Gate(x, y, z), [0, 1])
         try:
             qc.decompose()
         except TypeError:
