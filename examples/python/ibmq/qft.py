@@ -34,7 +34,7 @@ def qft(circ, n):
     """n-qubit QFT on q in circ."""
     for j in range(n):
         for k in range(j):
-            circ.cu1(math.pi/float(2**(j-k)), j, k)
+            circ.cp(math.pi/float(2**(j-k)), j, k)
         circ.h(j)
 
 
