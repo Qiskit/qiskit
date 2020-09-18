@@ -26,77 +26,86 @@ Design concept
 ~~~~~~~~~~~~~~
 When we think about dynamically updating drawing objects, it will be most efficient to
 update only the changed properties of drawings rather than regenerating entirely from scratch.
-Thus the core drawing function generates all possible drawings in the beginning and
-then updates the visibility and the offset coordinate of each item according to
-the end-user request.
+Thus the core :py:class:`qiskit.visualization.pulse_v2.core.DrawerCanvas` generates
+all possible drawings in the beginning and then the canvas instance manages
+visibility of each drawing object according to the end-user request.
 
 Data key
 ~~~~~~~~
-In the abstract class ``ElementaryData`` common properties to represent a drawing object are
+In the abstract class ``ElementaryData`` common attributes to represent a drawing object are
 specified. In addition, drawing objects have the `data_key` property that returns an
-unique hash of the object for comparison. This property should be defined in each sub-class by
-considering necessary properties to identify that object, i.e. `visible` should not
-be a part of the key, because any change on this property just sets the visibility of
-the same drawing object.
+unique hash of the object for comparison.
+This key is generated from a data type and the location of the drawing object in the canvas.
+See py:mod:`qiskit.visualization.pulse_v2.types` for detail on the data type.
+If a data key cannot distinguish two independent objects, you need to add a new data type.
+The data key may be used in the plotter interface to identify the object.
 
-To support not only `matplotlib` but also multiple plotters, those drawing objectss should be
+Drawing objects
+~~~~~~~~~~~~~~~
+To support not only `matplotlib` but also multiple plotters, those drawing objects should be
 universal and designed without strong dependency on modules in `matplotlib`.
 This means drawing objects that represent primitive geometries are preferred.
-It should be noted that there will be no unittest for a plotter interface, which takes
-drawing objects and output an image data, we should avoid adding a complicated data structure
+It should be noted that there will be no unittest for each plotter API, which takes
+drawing objects and outputs image data, we should avoid adding a complicated geometry
 that has a context of the pulse program.
 
 For example, a pulse envelope is complex valued number array and may be represented
 by two lines with different colors associated with the real and the imaginary component.
-In this case, we can use two line-type objects rather than defining a new drwaing object
-that takes complex value. Because many plotters don't support an API that visualizes
-complex valued data array. If we introduce such drawing object and write a custom wrapper function
-on top of the existing plotter API, it could be difficult to prevent bugs with the CI tools
+We can use two line-type objects rather than defining a new drawing object that takes
+complex value. As many plotters don't support an API that visualizes complex-valued
+data arrays, if we introduced such a drawing object and wrote a custom wrapper function
+on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Union
+from abc import ABC
+from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
-
-from qiskit.pulse import channels
-from qiskit.visualization.exceptions import VisualizationError
+from qiskit.pulse.channels import Channel
+from qiskit.visualization.pulse_v2 import types
 
 
 class ElementaryData(ABC):
     """Base class of the pulse visualization interface."""
+    __hash__ = None
+
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
-                 meta: Optional[Dict[str, Any]],
-                 offset: float,
-                 scale: float,
-                 visible: bool,
-                 styles: Optional[Dict[str, Any]]):
+                 xvals: np.ndarray,
+                 yvals: np.ndarray,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
+                 meta: Optional[Dict[str, Any]] = None,
+                 ignore_scaling: bool = False,
+                 styles: Optional[Dict[str, Any]] = None):
         """Create new drawing object.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
+            xvals: Series of horizontal coordinate that the object is drawn.
+            yvals: Series of vertical coordinate that the object is drawn.
+            channels: Pulse channel object bound to this drawing.
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
-            visible: Set ``True`` to show the component on the canvas.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
+        if channels and isinstance(channels, Channel):
+            channels = [channels]
+
         self.data_type = data_type
-        self.channel = channel
-        self.meta = meta
-        self.scale = scale
-        self.offset = offset
-        self.visible = visible
-        self.styles = styles
+        self.xvals = np.array(xvals, dtype=object)
+        self.yvals = np.array(yvals, dtype=object)
+        self.channels = channels or []
+        self.meta = meta or dict()
+        self.ignore_scaling = ignore_scaling
+        self.styles = styles or dict()
 
     @property
-    @abstractmethod
     def data_key(self):
         """Return unique hash of this object."""
-        pass
+        return str(hash((self.__class__.__name__,
+                         self.data_type,
+                         tuple(self.xvals),
+                         tuple(self.yvals))))
 
     def __repr__(self):
         return "{}(type={}, key={})".format(self.__class__.__name__,
@@ -107,59 +116,6 @@ class ElementaryData(ABC):
         return isinstance(other, self.__class__) and self.data_key == other.data_key
 
 
-class FilledAreaData(ElementaryData):
-    """Drawing object to represent object appears as a filled area.
-
-    This is the counterpart of `matplotlib.axes.Axes.fill_between`.
-    """
-    def __init__(self,
-                 data_type: str,
-                 channel: channels.Channel,
-                 x: np.ndarray,
-                 y1: np.ndarray,
-                 y2: np.ndarray,
-                 meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
-                 visible: bool = True,
-                 styles: Optional[Dict[str, Any]] = None):
-        """Create new drawing object of filled area.
-
-        Args:
-            data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
-            x: Series of horizontal coordinate that the object is drawn.
-            y1: Series of vertical coordinate of upper boundary of filling area.
-            y2: Series of vertical coordinate of lower boundary of filling area.
-            meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
-            visible: Set ``True`` to show the component on the canvas.
-            styles: Style keyword args of the object. This conforms to `matplotlib`.
-        """
-        self.x = x
-        self.y1 = y1
-        self.y2 = y2
-
-        super().__init__(data_type=data_type,
-                         channel=channel,
-                         meta=meta,
-                         offset=offset,
-                         scale=scale,
-                         visible=visible,
-                         styles=styles)
-
-    @property
-    def data_key(self):
-        """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         self.channel,
-                         tuple(self.x),
-                         tuple(self.y1),
-                         tuple(self.y2))))
-
-
 class LineData(ElementaryData):
     """Drawing object to represent object appears as a line.
 
@@ -167,54 +123,34 @@ class LineData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
-                 x: Optional[Union[np.ndarray, float]],
-                 y: Optional[Union[np.ndarray, float]],
+                 xvals: Union[np.ndarray, List[types.Coordinate]],
+                 yvals: Union[np.ndarray, List[types.Coordinate]],
+                 fill: bool = False,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
                  meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
-                 visible: bool = True,
+                 ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
-        """Create new drawing object of line data.
+        """Create new drawing object.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
-            x: Series of horizontal coordinate that the object is drawn.
-                If `x` is `None`, a horizontal line is drawn at `y`.
-            y: Series of vertical coordinate that the object is drawn.
-                If `y` is `None`, a vertical line is drawn at `x`.
+            channels: Pulse channel object bound to this drawing.
+            xvals: Series of horizontal coordinate that the object is drawn.
+            yvals: Series of vertical coordinate that the object is drawn.
+            fill: Set ``True`` to fill the area under curve.
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
-            visible: Set ``True`` to show the component on the canvas.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
-
-        Raises:
-            VisualizationError: When both `x` and `y` are None.
         """
-        if x is None and y is None:
-            raise VisualizationError('`x` and `y` cannot be None simultaneously.')
-
-        self.x = x
-        self.y = y
+        self.fill = fill
 
         super().__init__(data_type=data_type,
-                         channel=channel,
+                         xvals=xvals,
+                         yvals=yvals,
+                         channels=channels,
                          meta=meta,
-                         offset=offset,
-                         scale=scale,
-                         visible=visible,
+                         ignore_scaling=ignore_scaling,
                          styles=styles)
-
-    @property
-    def data_key(self):
-        """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         self.channel,
-                         tuple(self.x),
-                         tuple(self.y))))
 
 
 class TextData(ElementaryData):
@@ -224,51 +160,34 @@ class TextData(ElementaryData):
     """
     def __init__(self,
                  data_type: str,
-                 channel: channels.Channel,
-                 x: float,
-                 y: float,
+                 xvals: Union[np.ndarray, List[types.Coordinate]],
+                 yvals: Union[np.ndarray, List[types.Coordinate]],
                  text: str,
                  latex: Optional[str] = None,
+                 channels: Optional[Union[Channel, List[Channel]]] = None,
                  meta: Optional[Dict[str, Any]] = None,
-                 offset: float = 0,
-                 scale: float = 1,
-                 visible: bool = True,
+                 ignore_scaling: bool = False,
                  styles: Optional[Dict[str, Any]] = None):
-        """Create new drawing object of text data.
+        """Create new drawing object.
 
         Args:
             data_type: String representation of this drawing object.
-            channel: Pulse channel object bound to this drawing.
-            x: A horizontal coordinate that the object is drawn.
-            y: A vertical coordinate that the object is drawn.
+            channels: Pulse channel object bound to this drawing.
+            xvals: Series of horizontal coordinate that the object is drawn.
+            yvals: Series of vertical coordinate that the object is drawn.
             text: String to show in the canvas.
             latex: Latex representation of the text (if backend supports latex drawing).
             meta: Meta data dictionary of the object.
-            offset: Offset coordinate of vertical axis.
-            scale: Vertical scaling factor of this object.
-            visible: Set ``True`` to show the component on the canvas.
+            ignore_scaling: Set ``True`` to disable scaling.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
-        self.x = x
-        self.y = y
         self.text = text
         self.latex = latex or ''
 
         super().__init__(data_type=data_type,
-                         channel=channel,
+                         xvals=xvals,
+                         yvals=yvals,
+                         channels=channels,
                          meta=meta,
-                         offset=offset,
-                         scale=scale,
-                         visible=visible,
+                         ignore_scaling=ignore_scaling,
                          styles=styles)
-
-    @property
-    def data_key(self):
-        """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         self.channel,
-                         self.x,
-                         self.y,
-                         self.text,
-                         self.latex)))
