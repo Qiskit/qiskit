@@ -674,7 +674,7 @@ class Chart:
 
         try:
             return np.asarray(vals, dtype=float)
-        except ValueError:
+        except TypeError:
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
     def _check_visible(self, data: drawing_objects.ElementaryData) -> bool:
