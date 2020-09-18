@@ -197,7 +197,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qc.cx(0, 1)
 
         qc2 = QuantumCircuit(*qc.qregs)
-        qc2.append(qc.to_instruction(), [0, 1])
+        qc2.append(qc, [0, 1])
         decomposed = qc2.decompose()  # used to raise a DAGCircuitError
 
         self.assertEqual(decomposed, qc)
