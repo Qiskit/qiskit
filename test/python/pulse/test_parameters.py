@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test cases for parameters used in Schedules."""
+import unittest
 from qiskit.test import QiskitTestCase
 
 from qiskit import pulse, assemble
@@ -18,12 +19,6 @@ from qiskit.circuit import Parameter
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
 from qiskit.test.mock import FakeAlmaden
 
-
-GHz = 1e9
-"Conversion factor."
-
-
-# TODO: remove assemble, too slow
 
 class TestPulseParameters(QiskitTestCase):
     """Tests usage of Parameters in qiskit.pulse; specifically in Schedules,
@@ -49,7 +44,7 @@ class TestPulseParameters(QiskitTestCase):
         self.backend = FakeAlmaden()
 
     def test_straight_schedule_bind(self):
-        """"""
+        """Nothing fancy, 1:1 mapping."""
         schedule = pulse.Schedule()
         schedule += pulse.SetFrequency(self.alpha, DriveChannel(0))
         schedule += pulse.ShiftFrequency(self.gamma, DriveChannel(0))
@@ -60,14 +55,14 @@ class TestPulseParameters(QiskitTestCase):
                                     self.phi: self.PHASE, self.theta: -self.PHASE})
 
         insts = assemble(schedule, self.backend).experiments[0].instructions
+        GHz = 1e9
         self.assertEqual(float(insts[0].frequency*GHz), self.FREQ)
         self.assertEqual(float(insts[1].frequency*GHz), self.SHIFT)
         self.assertEqual(float(insts[2].phase), self.PHASE)
         self.assertEqual(float(insts[3].phase), -self.PHASE)
 
     def test_multiple_parameters(self):
-        """
-        """
+        """Expressions of parameters with partial assignment."""
         schedule = pulse.Schedule()
         schedule += pulse.SetFrequency(self.alpha + self.beta, DriveChannel(0))
         schedule += pulse.ShiftFrequency(self.gamma + self.beta, DriveChannel(0))
@@ -80,14 +75,13 @@ class TestPulseParameters(QiskitTestCase):
         schedule.assign_parameters({self.gamma: self.SHIFT - DELTA})
         schedule.assign_parameters({self.phi: self.PHASE})
 
-        insts = assemble(schedule, self.backend).experiments[0].instructions
-        self.assertEqual(float(insts[0].frequency*GHz), self.FREQ)
-        self.assertEqual(float(insts[1].frequency*GHz), self.SHIFT)
-        self.assertEqual(float(insts[2].phase), self.PHASE)
+        insts = schedule.instructions
+        self.assertEqual(float(insts[0][1].frequency), self.FREQ)
+        self.assertEqual(float(insts[1][1].frequency), self.SHIFT)
+        self.assertEqual(float(insts[2][1].phase), self.PHASE)
 
     def test_with_function(self):
-        """
-        """
+        """Test ParameterExpressions formed trivially in a function."""
         def get_frequency(variable):
             return 2*variable
 
@@ -100,46 +94,39 @@ class TestPulseParameters(QiskitTestCase):
 
         schedule.assign_parameters({self.alpha: self.FREQ / 2, self.gamma: self.SHIFT + 1})
 
-        insts = assemble(schedule, self.backend).experiments[0].instructions
-        self.assertEqual(float(insts[0].frequency*GHz), self.FREQ)
-        self.assertEqual(float(insts[1].frequency*GHz), self.SHIFT)
+        insts = schedule.instructions
+        self.assertEqual(float(insts[0][1].frequency), self.FREQ)
+        self.assertEqual(float(insts[1][1].frequency), self.SHIFT)
 
     def test_substitution(self):
-        """
-        """
+        """Test Parameter substitution (vs bind)."""
         schedule = pulse.Schedule()
         schedule += pulse.SetFrequency(self.alpha, DriveChannel(0))
 
         schedule.assign_parameters({self.alpha: 2*self.beta})
+        self.assertEqual(schedule.instructions[0][1].frequency, 2*self.beta)
         schedule.assign_parameters({self.beta: self.FREQ / 2})
-
-        insts = assemble(schedule, self.backend).experiments[0].instructions
-        self.assertEqual(float(insts[0].frequency*GHz), self.FREQ)
+        self.assertEqual(float(schedule.instructions[0][1].frequency), self.FREQ)
 
     def test_channels(self):
-        """
-        """
+        """Test that channel indices can also be parameterized and assigned."""
         schedule = pulse.Schedule()
         schedule += pulse.ShiftPhase(self.PHASE, DriveChannel(2*self.qubit))
 
         schedule.assign_parameters({self.qubit: 4})
-
-        insts = assemble(schedule, self.backend).experiments[0].instructions
-        self.assertEqual(insts[0].ch, 'd8')
+        self.assertEqual(schedule.instructions[0][1].channel, DriveChannel(8))
 
     def test_acquire_channels(self):
-        """
-        """
+        """Test Acquire instruction with multiple channels parameterized."""
         schedule = pulse.Schedule()
         schedule += pulse.Acquire(16000, AcquireChannel(self.qubit), MemorySlot(self.qubit))
         schedule.assign_parameters({self.qubit: 1})
+        self.assertEqual(schedule.instructions[0][1].channel, AcquireChannel(1))
+        self.assertEqual(schedule.instructions[0][1].mem_slot, MemorySlot(1))
 
-        insts = assemble(schedule, self.backend, meas_map=[[1]]).experiments[0].instructions
-        self.assertEqual(int(insts[0].qubits[0]), 1)
-
-    def test_with_pulses(self):
-        """
-        """
+    def test_play_with_parametricpulse(self):
+        """Test Parametric Pulses with parameters determined by ParameterExpressions
+        in the Play instruction."""
         waveform = pulse.library.Gaussian(duration=128, sigma=self.sigma, amp=self.amp)
 
         schedule = pulse.Schedule()
@@ -147,14 +134,25 @@ class TestPulseParameters(QiskitTestCase):
         schedule.assign_parameters({self.amp: 0.2, self.sigma: 4})
 
         self.backend.configuration().parametric_pulses = ['gaussian', 'drag']
-        insts = assemble(schedule, self.backend).experiments[0].instructions
-        self.assertEqual(complex(insts[0].parameters['amp']), 0.2)
-        self.assertEqual(float(insts[0].parameters['sigma']), 4.)
+        insts = schedule.instructions
+        self.assertEqual(insts[0][1].pulse.amp, 0.2)
+        self.assertEqual(insts[0][1].pulse.sigma, 4.)
 
+    def test_parametric_pulses_parameter_assignment(self):
+        """Test Parametric Pulses with parameters determined by ParameterExpressions."""
         waveform = pulse.library.GaussianSquare(duration=1280, sigma=self.sigma, amp=self.amp, width=1000)
-        waveform = pulse.library.Constant(duration=1280, amp=self.amp)
-        waveform = pulse.library.Drag(duration=1280, sigma=self.sigma, amp=self.amp, beta=2)
+        waveform = waveform.assign_parameters({self.amp: 0.3, self.sigma: 12})
+        self.assertEqual(waveform.amp, 0.3)
+        self.assertEqual(waveform.sigma, 12)
 
-        schedule = pulse.Schedule()
-        schedule += pulse.Play(waveform, DriveChannel(0))
-        schedule.assign_parameters({self.amp: 0.2, self.sigma: 4})
+        waveform = pulse.library.Drag(duration=1280, sigma=self.sigma, amp=self.amp, beta=2)
+        waveform = waveform.assign_parameters({self.sigma: 12.7})
+        self.assertEqual(waveform.amp, self.amp)
+        self.assertEqual(waveform.sigma, 12.7)
+
+    @unittest.skip("Not yet supported by ParameterExpression")
+    def test_complex_value_assignment(self):
+        """Test that complex values can be assigned to Parameters."""
+        waveform = pulse.library.Constant(duration=1280, amp=self.amp)
+        waveform.assign_parameters({self.amp: 0.2j})
+        self.assertEqual(waveform.amp, 0.2j)
