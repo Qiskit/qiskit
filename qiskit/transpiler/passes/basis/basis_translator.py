@@ -85,8 +85,9 @@ class BasisTranslator(TransformationPass):
         basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
 
         target_basis = set(self._target_basis).union(basic_instrs)
-        source_basis = {(node.op.name, node.op.num_qubits)
-                        for node in dag.op_nodes()}
+        # source_basis is a list here so that it can accurately be checked for calibrations.
+        source_basis = [(node.op.name, node.op.num_qubits)
+                        for node in dag.op_nodes()]
 
         if dag.calibrations:
             for node in dag.op_nodes():
@@ -98,11 +99,9 @@ class BasisTranslator(TransformationPass):
                     if qubit_params in gate_cals:
                         if (gate, num_qubits) in source_basis:
                             source_basis.remove((gate, num_qubits))
-                    else:
-                        # If the ``gate`` is in cals, but qubit_params isn't, we need to add
-                        # it back to the source_basis
-                        source_basis.add((gate, num_qubits))
 
+        # type casting source_basis to set type.
+        source_basis = set(source_basis)
         logger.info('Begin BasisTranslator from source basis %s to target '
                     'basis %s.', source_basis, target_basis)
 

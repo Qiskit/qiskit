@@ -154,8 +154,6 @@ class RunningPassManager:
             # Measure time if we have a callback or logging set
             start_time = time()
             new_dag = pass_.run(dag)
-            if isinstance(new_dag, DAGCircuit):
-                new_dag.calibrations = dag.calibrations
             end_time = time()
             run_time = end_time - start_time
             # Execute the callback function if one is set
@@ -166,7 +164,9 @@ class RunningPassManager:
                               count=self.count)
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
-            if not isinstance(new_dag, DAGCircuit):
+            if isinstance(new_dag, DAGCircuit):
+                new_dag.calibrations = dag.calibrations
+            else:
                 raise TranspilerError("Transformation passes should return a transformed dag."
                                       "The pass %s is returning a %s" % (type(pass_).__name__,
                                                                          type(new_dag)))
