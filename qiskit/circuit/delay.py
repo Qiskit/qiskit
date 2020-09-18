@@ -24,7 +24,10 @@ class Delay(Instruction):
     def __init__(self, duration, unit='dt'):
         """Create new delay instruction."""
         if not isinstance(duration, (float, int)):
-            raise CircuitError('Invalid duration type.')
+            raise CircuitError('Unsupported duration type.')
+
+        if unit == 'dt' and not isinstance(duration, int):
+            raise CircuitError("Integer duration is required for 'dt' unit.")
 
         if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)

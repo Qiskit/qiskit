@@ -36,6 +36,11 @@ class TestDelayClass(QiskitTestCase):
         self.assertEqual(qc.data[3][0].unit, 'ns')
         self.assertEqual(qc.data[4][0].unit, 'dt')
 
+    def test_fail_if_non_integer_duration_with_dt_unit_is_supplied(self):
+        qc = QuantumCircuit(1)
+        with self.assertRaises(CircuitError):
+            qc.delay(0.5, 0, unit='dt')
+
     def test_fail_if_unknown_unit_is_supplied(self):
         qc = QuantumCircuit(1)
         with self.assertRaises(CircuitError):
