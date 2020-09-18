@@ -237,7 +237,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         """Deprecated. Use num_ancillas instead."""
         warnings.warn('The PolynomialPauliRotations.num_ancilla_qubits property is deprecated '
                       'as of 0.16.0. It will be removed no earlier than 3 months after the release '
-                      'date. You should use the num_ancillas property instead.')
+                      'date. You should use the num_ancillas property instead.',
+                      DeprecationWarning, stacklevel=2)
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
