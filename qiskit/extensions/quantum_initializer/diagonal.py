@@ -67,6 +67,18 @@ class DiagonalGate(Gate):
         diag_circuit.append(gate, q[:])
         self.definition = diag_circuit
 
+    def validate_parameter(self, parameter):
+        """Diagonal Gate parameter should accept complex
+        (in addition to the Gate parameter types) and always return build-in complex."""
+        if isinstance(parameter, complex):
+            return complex(parameter)
+        else:
+            return complex(super().validate_parameter(parameter))
+
+    def inverse(self):
+        """Return the inverse of the diagonal gate."""
+        return DiagonalGate([np.conj(entry) for entry in self.params])
+
     def _dec_diag(self):
         """
         Call to create a circuit implementing the diagonal gate.

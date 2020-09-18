@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -14,11 +16,9 @@
 
 """Tests for core modules of pulse drawer."""
 
-
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import events
-from qiskit.visualization.pulse_v2.style import stylesheet
 
 
 class TestChannelEvents(QiskitTestCase):
@@ -37,47 +37,31 @@ class TestChannelEvents(QiskitTestCase):
 
         # check waveform data
         waveforms = list(ch_events.get_waveforms())
-        t0, frame, inst = waveforms[0]
-        self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 3.14)
-        self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        inst_data0 = waveforms[0]
+        self.assertEqual(inst_data0.t0, 0)
+        self.assertEqual(inst_data0.frame.phase, 3.14)
+        self.assertEqual(inst_data0.frame.freq, 0)
+        self.assertEqual(inst_data0.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
-        t0, frame, inst = waveforms[1]
-        self.assertEqual(t0, 10)
-        self.assertEqual(frame.phase, 1.57)
-        self.assertEqual(frame.freq, 0)
-        self.assertEqual(inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        inst_data1 = waveforms[1]
+        self.assertEqual(inst_data1.t0, 10)
+        self.assertEqual(inst_data1.frame.phase, 1.57)
+        self.assertEqual(inst_data1.frame.freq, 0)
+        self.assertEqual(inst_data1.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
         # check frame data
         frames = list(ch_events.get_frame_changes())
-        t0, frame, insts = frames[0]
-        self.assertEqual(t0, 0)
-        self.assertEqual(frame.phase, 3.14)
-        self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
+        inst_data0 = frames[0]
+        self.assertEqual(inst_data0.t0, 0)
+        self.assertEqual(inst_data0.frame.phase, 3.14)
+        self.assertEqual(inst_data0.frame.freq, 0)
+        self.assertListEqual(inst_data0.inst, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
 
-        t0, frame, insts = frames[1]
-        self.assertEqual(t0, 10)
-        self.assertEqual(frame.phase, -1.57)
-        self.assertEqual(frame.freq, 0)
-        self.assertListEqual(insts, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
-
-    def test_empty(self):
-        """Test is_empty check."""
-        test_pulse = pulse.Gaussian(10, 0.1, 3)
-
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftPhase(1.57, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        self.assertTrue(ch_events.is_empty())
-
-        sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        self.assertFalse(ch_events.is_empty())
+        inst_data1 = frames[1]
+        self.assertEqual(inst_data1.t0, 10)
+        self.assertEqual(inst_data1.frame.phase, -1.57)
+        self.assertEqual(inst_data1.frame.freq, 0)
+        self.assertListEqual(inst_data1.inst, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
 
     def test_multiple_frames_at_the_same_time(self):
         """Test multiple frame instruction at the same time."""
@@ -88,8 +72,8 @@ class TestChannelEvents(QiskitTestCase):
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(ch_events.get_frame_changes())
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.phase, 3.14)
+        inst_data0 = frames[0]
+        self.assertAlmostEqual(inst_data0.frame.phase, 3.14)
 
         # set phase followed by shift phase
         sched = pulse.Schedule()
@@ -98,8 +82,8 @@ class TestChannelEvents(QiskitTestCase):
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(ch_events.get_frame_changes())
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.phase, 1.57)
+        inst_data0 = frames[0]
+        self.assertAlmostEqual(inst_data0.frame.phase, 1.57)
 
     def test_frequency(self):
         """Test parse frequency."""
@@ -108,27 +92,11 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        ch_events.init_frequency = 3.0
+        ch_events.set_config(dt=0.1, init_frequency=3.0, init_phase=0)
         frames = list(ch_events.get_frame_changes())
 
-        _, frame, _ = frames[0]
-        self.assertAlmostEqual(frame.freq, 1.0)
+        inst_data0 = frames[0]
+        self.assertAlmostEqual(inst_data0.frame.freq, 1.0)
 
-        _, frame, _ = frames[1]
-        self.assertAlmostEqual(frame.freq, 1.0)
-
-
-class TestStylesheet(QiskitTestCase):
-    """Tests for stylesheet."""
-    def test_deprecated_key(self):
-        """Test deprecation warning."""
-        style = stylesheet.QiskitPulseStyle()
-        style._deprecated_keys = {'deprecated_key': 'new_key'}
-
-        with self.assertWarns(DeprecationWarning):
-            dep_dict = {
-                'deprecated_key': 'value_1'
-            }
-            style.update(dep_dict)
-
-        self.assertEqual(style['new_key'], 'value_1')
+        inst_data1 = frames[1]
+        self.assertAlmostEqual(inst_data1.frame.freq, 1.0)
