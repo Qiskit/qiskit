@@ -2171,8 +2171,10 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.U2Gate`."""
         from .library.standard_gates.u2 import U2Gate
         warnings.warn('The QuantumCircuit.u2 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.u method instead, where u2(φ,λ) = u(pi/2, φ, λ).',
+                      'removed no earlier than 3 months after the release date. You can use the '
+                      'general 1-qubit gate QuantumCircuit.u instead: u2(φ,λ) = u(pi/2, φ, λ). '
+                      'Alternatively, you can decompose it in terms of QuantumCircuit.p and '
+                      'QuantumCircuit.sx: u2(φ,λ) = p(pi/2+φ) sx p(pi/2+λ) (1 pulse on hardware).',
                       DeprecationWarning, stacklevel=2)
         return self.append(U2Gate(phi, lam), [qubit], [])
 
@@ -2180,8 +2182,10 @@ class QuantumCircuit:
         """Apply :class:`~qiskit.circuit.library.U3Gate`."""
         from .library.standard_gates.u3 import U3Gate
         warnings.warn('The QuantumCircuit.u3 method is deprecated as of 0.16.0. It will be '
-                      'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.u method instead, which acts identically.',
+                      'removed no earlier than 3 months after the release date. You should use '
+                      'QuantumCircuit.u instead, which acts identically. Alternatively, you can '
+                      'you can decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: '
+                      'u3(ϴ,φ,λ) = p(φ) sx p(ϴ) sx p(λ) (2 pulses on hardware).',
                       DeprecationWarning, stacklevel=2)
         return self.append(U3Gate(theta, phi, lam), [qubit], [])
 
@@ -2190,7 +2194,7 @@ class QuantumCircuit:
         from .library.standard_gates.u3 import CU3Gate
         warnings.warn('The QuantumCircuit.cu3 method is deprecated as of 0.16.0. It will be '
                       'removed no earlier than 3 months after the release date. You should use the '
-                      'QuantumCircuit.cu method instead, where cu3(ϴ, φ, λ) = cu(ϴ, φ, λ, 0).',
+                      'QuantumCircuit.cu method instead, where cu3(ϴ,φ,λ) = cu(ϴ,φ,λ,0).',
                       DeprecationWarning, stacklevel=2)
         return self.append(CU3Gate(theta, phi, lam, label=label, ctrl_state=ctrl_state),
                            [control_qubit, target_qubit], [])
