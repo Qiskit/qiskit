@@ -131,12 +131,16 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
-        instruction_durations: Durations of instructions. Duration must be the number of ``dt``s.
-            Note that ``dt`` depends on backend configuration. Instruction is specified by
-            a pair of basic instruction name and its acting physical qubits.
-            E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
-            Durations defined in ``backend.properties`` are used as default and
-            they are overwritten with the instruction_durations.
+        instruction_durations: Durations of instructions.
+            The gate lengths defined in ``backend.properties`` are used as default and
+            they are updated (overwritten) if this ``instruction_durations`` is specified.
+            The format of ``instruction_durations`` must be as follows.
+            The instruction have to be a pair of instruction name and its acting physical qubits.
+            The duration have to be a pair of length and its time unit. E.g.
+            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
+            | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
+            If unit is omitted, the default is 'dt', which is a sample time depending on backend.
+            If the time unit is 'dt', the length must be integer.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
