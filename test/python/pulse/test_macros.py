@@ -111,5 +111,6 @@ class TestMeasureAll(QiskitTestCase):
     def test_measure_all(self):
         """Test measure_all function."""
         sched = macros.measure_all(self.backend)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         expected = Schedule(self.inst_map.get('measure', [0, 1]))
         self.assertEqual(sched.instructions, expected.instructions)

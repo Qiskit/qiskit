@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Argument `schedule` for :class:`qiskit.pulse.Schedule` has been
+    deprecated and will be removed in a later release.
+    You can still use `Schedule()` or `Schedule(name=)`.

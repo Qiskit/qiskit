@@ -232,6 +232,7 @@ def _experiments_to_schedules(qobj) -> List[pulse.Schedule]:
                                        'yet supported in the pulse schedule.')
             insts.append(pulse_inst)
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         schedule = pulse.Schedule(*insts)
         schedules.append(schedule)
     return schedules

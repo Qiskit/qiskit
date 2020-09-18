@@ -520,13 +520,16 @@ class TestReplace(BaseTestSchedule):
         old = Play(Constant(100, 1.0), DriveChannel(0))
         new = Play(Constant(100, 0.1), DriveChannel(0))
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         sched = Schedule(old)
         new_sched = sched.replace(old, new)
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertEqual(new_sched, Schedule(new))
 
         # test replace inplace
         sched.replace(old, new, inplace=True)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertEqual(sched, Schedule(new))
 
     def test_replace_schedule(self):
@@ -926,17 +929,20 @@ class TestScheduleEquality(BaseTestSchedule):
 
     def test_different_channels(self):
         """Test equality is False if different channels."""
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertNotEqual(Schedule(ShiftPhase(0, DriveChannel(0))),
                             Schedule(ShiftPhase(0, DriveChannel(1))))
 
     def test_same_time_equal(self):
         """Test equal if instruction at same time."""
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertEqual(Schedule((0, ShiftPhase(0, DriveChannel(1)))),
                          Schedule((0, ShiftPhase(0, DriveChannel(1)))))
 
     def test_different_time_not_equal(self):
         """Test that not equal if instruction at different time."""
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertNotEqual(Schedule((0, ShiftPhase(0, DriveChannel(1)))),
                             Schedule((1, ShiftPhase(0, DriveChannel(1)))))
 
@@ -946,6 +952,7 @@ class TestScheduleEquality(BaseTestSchedule):
                         (15, Play(Waveform(np.ones(10)), DriveChannel(0))),
                         (5, Play(Waveform(np.ones(10)), DriveChannel(0)))]
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 
     def test_multiple_channels_out_of_order(self):
@@ -953,11 +960,13 @@ class TestScheduleEquality(BaseTestSchedule):
         instructions = [(0, ShiftPhase(0, DriveChannel(1))),
                         (1, Acquire(10, AcquireChannel(0), MemorySlot(1)))]
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 
     def test_different_name_equal(self):
         """Test that names are ignored when checking equality."""
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
         self.assertEqual(Schedule((0, ShiftPhase(0, DriveChannel(1), name='fc1')), name='s1'),
                          Schedule((0, ShiftPhase(0, DriveChannel(1), name='fc2')), name='s2'))
 

@@ -92,6 +92,7 @@ def _assemble_experiments(
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction,
                                                   **run_config.to_dict())
 
+    #ToDo(4872) remove the use of deprecated constructor Schedule(sched)
     schedules = [
         sched if isinstance(sched, pulse.Schedule) else pulse.Schedule(sched) for sched in schedules
     ]
