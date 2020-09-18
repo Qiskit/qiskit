@@ -1962,7 +1962,7 @@ class QuantumCircuit:
             duration (int or float): duration of the delay.
             qarg (Object): qubit argument to apply this delay.
             unit (str): unit of the duration. Supported units: 's', 'ms', 'us', 'ns', 'ps', 'dt'.
-                Default is ``dt``, i.e. time unit depending on the target backend.
+                Default is ``dt``, i.e. integer time unit depending on the target backend.
 
         Returns:
             qiskit.Instruction: the attached delay instruction.
