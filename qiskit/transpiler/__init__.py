@@ -84,12 +84,12 @@ Supplementary Information
 
       qc.h(0)
       qc.x(1)
-      qc.cu1(np.pi/4, 0, 1)
+      qc.cp(np.pi/4, 0, 1)
       qc.h(0)
       qc.measure([0], [0])
       qc.draw(output='mpl')
 
-   We have :math:`H`, :math:`X`, and controlled-:math:`U_{1}` gates, all of which are
+   We have :math:`H`, :math:`X`, and controlled-:math:`P` gates, all of which are
    not in our devices basis gate set, and must be expanded.  This expansion is taken
    care of for us in the :func:`qiskit.execute` function. However, we can
    decompose the circuit to show what it would look like in the native gate set of
