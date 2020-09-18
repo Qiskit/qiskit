@@ -1,0 +1,25 @@
+
+
+participant qUser
+participant optimizer 
+participant pulse_compiler
+participant executor 
+participant backend
+
+qUser->optimizer: unitary gate(s)
+qUser->optimizer: backend spec
+optimizer->pulse_compiler: target unitary\n evolution
+
+
+#optimizer->pulse_compiler: pulse for \npulse in pulses
+optimizer->pulse_compiler: backend spec
+pulse_compiler->executor: pulse
+pulse_compiler->executor: backend spec
+
+executor->backend: pulse
+
+backend-->executor: result metrics
+executor-->optimizer: result metrics
+
+optimizer->pulse_compiler: final pulses
+pulse_compiler->executor: final pulse sequence

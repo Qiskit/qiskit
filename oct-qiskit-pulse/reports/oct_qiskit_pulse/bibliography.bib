@@ -1,0 +1,177 @@
+
+@article{abdelhafezGradientbasedOptimalControl2019,
+  title = {Gradient-Based Optimal Control of Open Quantum Systems Using Quantum Trajectories and Automatic Differentiation},
+  author = {Abdelhafez, Mohamed and Schuster, David I. and Koch, Jens},
+  year = {2019},
+  month = may,
+  volume = {99},
+  pages = {052327},
+  issn = {2469-9926, 2469-9934},
+  doi = {10.1103/PhysRevA.99.052327},
+  abstract = {We present a gradient-based optimal-control technique for open quantum systems that utilizes quantum trajectories to simulate the quantum dynamics during optimization. Using trajectories allows for optimizing open systems with less computational cost than the regular density matrix approaches in most realistic optimization problems. We introduce an improved-sampling algorithm which minimizes the number of trajectories needed per optimization iteration. Together with employing stochastic gradient descent techniques, this reduces the complexity of optimizing many realistic open quantum systems to the complexity encountered with closed systems. Our optimizer harnesses automatic differentiation to provide flexibility in optimization and to suit the different constraints and diverse parameter regimes of real-life experiments. We utilize the optimizer in a variety of applications to demonstrate how the use of quantum trajectories significantly reduces the computation complexity while achieving a multitude of simultaneous optimization targets. Demonstrated targets include high state-transfer fidelities despite dissipation, faster gate times and maximization of qubit-readout fidelity while maintaining the quantum non-demolition nature of the measurement and allowing for subsequent fast resonator reset.},
+  archivePrefix = {arXiv},
+  eprint = {1901.05541},
+  eprinttype = {arxiv},
+  journal = {Physical Review A},
+  keywords = {Quantum Physics},
+  number = {5}
+}
+
+@article{alexanderNotebooksDataQiskitPulse2020b,
+  title = {Notebooks and {{Data}} for "{{Qiskit}}-{{Pulse}}: {{Programming Quantum Computers Through}} the {{Cloud}} with {{Pulses}}"},
+  shorttitle = {Notebooks and {{Data}} for "{{Qiskit}}-{{Pulse}}},
+  author = {Alexander, Thomas and Kanazawa, Naoki and Egger, Daniel J. and Capelluto, Lauren and Wood, Christopher J. and {Javadi-Abhari}, Ali and McKay, David},
+  year = {2020},
+  month = feb,
+  publisher = {{Zenodo}},
+  doi = {10.5281/zenodo.3653502},
+  abstract = {Archive of Jupyter notebooks, analysis code~and cached data for "Qiskit-Pulse: Programming Quantum Computers through the Cloud with Pulses". Details on using this code and running your own experiments may be~found~in the README.},
+  keywords = {OpenPulse,OpenQasm,pulse,QASM,qiskit,quantum circuit,quantum computing,quantum programming language},
+  language = {eng}
+}
+
+@article{blaisCavityQuantumElectrodynamics2004c,
+  title = {Cavity Quantum Electrodynamics for Superconducting Electrical Circuits: An Architecture for Quantum Computation},
+  shorttitle = {Cavity Quantum Electrodynamics for Superconducting Electrical Circuits},
+  author = {Blais, Alexandre and Huang, Ren-Shou and Wallraff, Andreas and Girvin, S. M. and Schoelkopf, R. J.},
+  year = {2004},
+  month = jun,
+  volume = {69},
+  pages = {062320},
+  issn = {1050-2947, 1094-1622},
+  doi = {10.1103/PhysRevA.69.062320},
+  abstract = {We propose a realizable architecture using one-dimensional transmission line resonators to reach the strong coupling limit of cavity quantum electrodynamics in superconducting electrical circuits. The vacuum Rabi frequency for the coupling of cavity photons to quantized excitations of an adjacent electrical circuit (qubit) can easily exceed the damping rates of both the cavity and the qubit. This architecture is attractive both as a macroscopic analog of atomic physics experiments and for quantum computing and control, since it provides strong inhibition of spontaneous emission, potentially leading to greatly enhanced qubit lifetimes, allows high-fidelity quantum non-demolition measurements of the state of multiple qubits, and has a natural mechanism for entanglement of qubits separated by centimeter distances. In addition it would allow production of microwave photon states of fundamental importance for quantum communication.},
+  archivePrefix = {arXiv},
+  eprint = {cond-mat/0402216},
+  eprinttype = {arxiv},
+  journal = {Physical Review A},
+  keywords = {Condensed Matter - Mesoscale and Nanoscale Physics,Condensed Matter - Superconductivity,Quantum Physics},
+  number = {6}
+}
+
+@misc{CalibratingQubitsQiskit,
+  title = {Calibrating {{Qubits}} with {{Qiskit Pulse}}},
+  howpublished = {https://qiskit.org/textbook/ch-quantum-hardware/calibrating-qubits-openpulse.html}
+}
+
+@article{granadeQInferStatisticalInference2017c,
+  title = {{{QInfer}}: {{Statistical}} Inference Software for Quantum Applications},
+  shorttitle = {{{QInfer}}},
+  author = {Granade, Christopher and Ferrie, Christopher and Hincks, Ian and Casagrande, Steven and Alexander, Thomas and Gross, Jonathan and Kononenko, Michal and Sanders, Yuval},
+  year = {2017},
+  month = apr,
+  volume = {1},
+  pages = {5},
+  issn = {2521-327X},
+  doi = {10.22331/q-2017-04-25-5},
+  abstract = {Characterizing quantum systems through experimental data is critical to applications as diverse as metrology and quantum computing. Analyzing this experimental data in a robust and reproducible manner is made challenging, however, by the lack of readily-available software for performing principled statistical analysis. We improve the robustness and reproducibility of characterization by introducing an open-source library, QInfer, to address this need. Our library makes it easy to analyze data from tomography, randomized benchmarking, and Hamiltonian learning experiments either in post-processing, or online as data is acquired. QInfer also provides functionality for predicting the performance of proposed experimental protocols from simulated runs. By delivering easy-to-use characterization tools based on principled statistical analysis, QInfer helps address many outstanding challenges facing quantum technology.},
+  archivePrefix = {arXiv},
+  eprint = {1610.00336},
+  eprinttype = {arxiv},
+  journal = {Quantum},
+  keywords = {Physics - Data Analysis; Statistics and Probability,Quantum Physics,Statistics - Applications}
+}
+
+@article{hincksHamiltonianLearningOnline2018,
+  title = {Hamiltonian {{Learning}} with {{Online Bayesian Experiment Design}} in {{Practice}}},
+  author = {Hincks, Ian and Alexander, Thomas and Kononenko, Michal and Soloway, Benjamin and Cory, David G.},
+  year = {2018},
+  month = jun,
+  abstract = {Estimating parameters of quantum systems is usually done by performing a sequence of predetermined experiments and post-processing the resulting data. It is known that online design, where the choice of the next experiment is based on the most up-to-date knowledge about the system, can offer speedups to parameter estimation. We apply online Bayesian experiment design to a Nitrogen Vacancy (NV) in diamond to learn the values of a five-parameter model describing its Hamiltonian and decoherence process. Comparing this to standard pre-determined experiment sweeps, we find that we can achieve median posterior variances on some parameters that are between 10 and 100 times better given the same amount of data. This has applications to NV magnetometry where one of the Hamiltonian coefficients is the parameter of interest. Furthermore, the methods that we use are generic and can be adapted to any quantum device.},
+  archivePrefix = {arXiv},
+  eprint = {1806.02427},
+  eprinttype = {arxiv},
+  journal = {arXiv:1806.02427 [quant-ph]},
+  keywords = {Quantum Physics},
+  primaryClass = {quant-ph}
+}
+
+@article{khanejaOptimalControlCoupled2005c,
+  title = {Optimal Control of Coupled Spin Dynamics: Design of {{NMR}} Pulse Sequences by Gradient Ascent Algorithms},
+  shorttitle = {Optimal Control of Coupled Spin Dynamics},
+  author = {Khaneja, Navin and Reiss, Timo and Kehlet, Cindie and {Schulte-Herbr{\"u}ggen}, Thomas and Glaser, Steffen J.},
+  year = {2005},
+  month = feb,
+  volume = {172},
+  pages = {296--305},
+  issn = {10907807},
+  doi = {10.1016/j.jmr.2004.11.004},
+  abstract = {In this paper, we intro duce optimal control -relat ed gradient-based numeri cal algorithms for the design of pulse sequences in NMR spectroscopy. This methodology is used for designing pulse sequences that maximize the coherence tran sfer between coupled spins in a given spe ed time, minimize the relaxation e ects in a given coherence tr ansfer step or minimize the time required to produce a given unitar y propagator, as desir ed. T he applicati on of these gradient ascent pulse engineering (GRAPE) methods to design pulse sequences that are robust to experimentally important parameter variation s, such as chemical shift dispersion or rf variations due to imperfecti ons such as rf-inhomogeneity is also explain ed.},
+  journal = {Journal of Magnetic Resonance},
+  language = {en},
+  number = {2}
+}
+
+@article{krantzQuantumEngineerGuide2019a,
+  title = {A {{Quantum Engineer}}'s {{Guide}} to {{Superconducting Qubits}}},
+  author = {Krantz, Philip and Kjaergaard, Morten and Yan, Fei and Orlando, Terry P. and Gustavsson, Simon and Oliver, William D.},
+  year = {2019},
+  month = apr,
+  doi = {10.1063/1.5089550},
+  abstract = {The aim of this review is to provide quantum engineers with an introductory
+guide to the central concepts and challenges in the rapidly accelerating field
+of superconducting quantum circuits. Over the past twenty years, the field has
+matured from a predominantly basic research endeavor to one that increasingly
+explores the engineering of larger-scale superconducting quantum systems. Here,
+we review several foundational elements -- qubit design, noise properties,
+qubit control, and readout techniques -- developed during this period, bridging
+fundamental concepts in circuit quantum electrodynamics (cQED) and
+contemporary, state-of-the-art applications in gate-model quantum computation.},
+  language = {en}
+}
+
+@misc{OptimalControlCoupleda,
+  title = {Optimal Control of Coupled Spin Dynamics: Design of {{NMR}} Pulse Sequences by Gradient Ascent Algorithms. - {{PubMed}} - {{NCBI}}},
+  howpublished = {https://www.ncbi.nlm.nih.gov/pubmed/15649756}
+}
+
+@misc{QuantumOptimalControl,
+  title = {Quantum {{Optimal Control}} \textemdash{} {{QuTiP}} 4.0 {{Documentation}}},
+  howpublished = {http://qutip.org/docs/latest/guide/guide-control.html}
+}
+
+@misc{QuantumUtilsMathematica,
+  title = {{{QuantumUtils}/quantum-utils-mathematica}},
+  howpublished = {https://github.com/QuantumUtils/quantum-utils-mathematica}
+}
+
+@misc{SchusterLabQuantumoptimalcontrol2020,
+  title = {{{SchusterLab}}/Quantum-Optimal-Control},
+  year = {2020},
+  month = feb,
+  abstract = {Contribute to SchusterLab/quantum-optimal-control development by creating an account on GitHub.},
+  howpublished = {SchusterLab}
+}
+
+@article{sheldonProcedureSystematicallyTuning2016b,
+  title = {Procedure for Systematically Tuning up Crosstalk in the Cross Resonance Gate},
+  author = {Sheldon, Sarah and Magesan, Easwar and Chow, Jerry M. and Gambetta, Jay M.},
+  year = {2016},
+  month = jun,
+  volume = {93},
+  pages = {060302},
+  issn = {2469-9926, 2469-9934},
+  doi = {10.1103/PhysRevA.93.060302},
+  abstract = {We present improvements in both theoretical understanding and experimental implementation of the cross resonance (CR) gate that have led to shorter two-qubit gate times and interleaved randomized benchmarking fidelities exceeding 99\%. The CR gate is an all-microwave two-qubit gate offers that does not require tunability and is therefore well suited to quantum computing architectures based on 2D superconducting qubits. The performance of the gate has previously been hindered by long gate times and fidelities averaging 94-96\%. We have developed a calibration procedure that accurately measures the full CR Hamiltonian. The resulting measurements agree with theoretical analysis of the gate and also elucidate the error terms that have previously limited the gate fidelity. The increase in fidelity that we have achieved was accomplished by introducing a second microwave drive tone on the target qubit to cancel unwanted components of the CR Hamiltonian.},
+  archivePrefix = {arXiv},
+  eprint = {1603.04821},
+  eprinttype = {arxiv},
+  journal = {Physical Review A},
+  keywords = {Quantum Physics},
+  number = {6}
+}
+
+@article{shiOptimizedCompilationAggregated2019b,
+  title = {Optimized {{Compilation}} of {{Aggregated Instructions}} for {{Realistic Quantum Computers}}},
+  author = {Shi, Yunong and Leung, Nelson and Gokhale, Pranav and Rossi, Zane and Schuster, David I. and Hoffman, Henry and Chong, Fred T.},
+  year = {2019},
+  month = apr,
+  pages = {1031--1044},
+  doi = {10.1145/3297858.3304018},
+  abstract = {Recent developments in engineering and algorithms have made real-world applications in quantum computing possible in the near future. Existing quantum programming languages and compilers use a quantum assembly language composed of 1- and 2-qubit (quantum bit) gates. Quantum compiler frameworks translate this quantum assembly to electric signals (called control pulses) that implement the specified computation on specific physical devices. However, there is a mismatch between the operations defined by the 1- and 2-qubit logical ISA and their underlying physical implementation, so the current practice of directly translating logical instructions into control pulses results in inefficient, high-latency programs. To address this inefficiency, we propose a universal quantum compilation methodology that aggregates multiple logical operations into larger units that manipulate up to 10 qubits at a time. Our methodology then optimizes these aggregates by (1) finding commutative intermediate operations that result in more efficient schedules and (2) creating custom control pulses optimized for the aggregate (instead of individual 1- and 2-qubit operations). Compared to the standard gate-based compilation, the proposed approach realizes a deeper vertical integration of high-level quantum software and low-level, physical quantum hardware. We evaluate our approach on important near-term quantum applications on simulations of superconducting quantum architectures. Our proposed approach provides a mean speedup of \$5\textbackslash{}times\$, with a maximum of \$10\textbackslash{}times\$. Because latency directly affects the feasibility of quantum computation, our results not only improve performance but also have the potential to enable quantum computation sooner than otherwise possible.},
+  archivePrefix = {arXiv},
+  eprint = {1902.01474},
+  eprinttype = {arxiv},
+  journal = {Proceedings of the Twenty-Fourth International Conference on Architectural Support for Programming Languages and Operating Systems},
+  keywords = {Computer Science - Computation and Language,Quantum Physics}
+}

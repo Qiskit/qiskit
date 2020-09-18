@@ -1,0 +1,281 @@
+\documentclass[12pt]{article}
+\usepackage{physics}
+
+\title{Rotating Wave Approximation for QOC}
+\author{
+        Ben Rosand \\
+        IBM Quantum \\
+        Quantum Intern -- Pulse Team\\
+        Yorktown Heights, NY
+}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+
+\begin{align}
+        & H_{lab} = H_0 + \sum_m^M \Omega_m \cos{(\omega_m t + \phi_m)} \sum_S g \sigma^x\\
+        \begin{split}
+            H_{lab} = H_0 + \big[\Omega_{D0} \cos{(\omega_{D0} t + \phi_{D0})}\\
+                          + \Omega_{D1} \cos{(\omega_{D1} t + \phi_{D1})}\\
+                          + \big(\Omega_{U0} \cos{(\omega_{U0} t + \phi_{U0})}\\
+                          + \Omega_{U1} \cos{(\omega_{U1} t + \phi_{U1})}\big)\big]\\
+                          * \sigma^x
+        \end{split} \\
+        % & H_{lab} = H_0 +
+        \begin{split}
+            H_{rot} = H_0 + \frac{dR}{dt} \big[\Omega_{D0} + e^{-iR} \cos{(\omega_{D0} t + \phi_{D0})}\\
+                          + \Omega_{D1} \cos{(\omega_{D1} t + \phi_{D1})}\\
+                          + \Omega_{U0} \cos{(\omega_{U0} t + \phi_{U0})}\\
+                          + \Omega_{U1} \cos{(\omega_{U1} t + \phi_{U1})}\big]\\
+                          * \sigma^x e^{iR}
+        \end{split} \\
+        & H_{rot} = H_0 + \frac{dR}{dt}+ \frac{1}{2}
+         \sum_{m=1}^2 \Omega_m \qty{\cos{(\phi_m)} \sigma^x - \sin{(\phi_m)} \sigma^y}\\
+\end{align}
+
+
+For the transformation we require that:
+\begin{equation}\label{eq:6}
+    \begin{split}
+        e^{-iR} (\cos{(\omega_m t + \phi_m)}) \sigma^x - \sin{(\omega_m t + \phi_m)} \sigma^y) e^{iR} \\
+        = \cos{\phi_m} \sigma^x - \sin{\phi_m} \sigma^y
+    \end{split}
+\end{equation}
+With $m = {D0, D1}$, we only rotate on these two axis\\
+Then when we perform the transformation it is just applied separately to each drive and control
+
+Following from that we have the requirement
+\begin{equation}
+    \begin{split}
+        \cos(\theta) \sigma^x + \sin(\theta) \sigma^y\\
+        = \cos(\omega_m t) \sigma^x + \sin(\omega_m t) \sigma^y
+    \end{split}
+\end{equation}
+
+
+We have four fields, D0, D1, U0, U1
+Note we don't transform the U control fields
+\subsection{Finding R}
+\begin{align}
+   &[R, \sigma^x] = \omega t (i \sigma^y) \\
+\end{align}
+\begin{equation}
+    \begin{bmatrix}
+        1 \\
+        1
+    \end{bmatrix}
+    \begin{bmatrix}
+        c_{D0} \\
+        c_{D1}
+    \end{bmatrix}
+     =
+    \begin{bmatrix}
+        \omega_1 t \\
+        \omega_2 t
+    \end{bmatrix}
+\end{equation}
+
+\begin{align}
+    c_{D0} + c_{D1} = \omega_1 t\\
+    c_{D0} + c_{D1} = \omega_2 t
+\end{align}
+
+This shouldn't be right though, because it implies that $\omega_1 = \omega_2$\\
+
+We have states $\ket{00}$ through $\ket{22}$, and can transition from 01, 02, 03
+to 11, 12, 13, (we are kind of ignoring the 1-2 transition, because we are using
+the general sigmax and hoping it counts for both, but)NOTE: This might be a
+place to come back and switch to a linear combination if it isn't working
+
+what if we want to do linear combination? The worry is that there aren't
+different drives, it's the same 
+
+% So does this mean R is just $\sigma^z (\omega_1 + \omega_2) t$
+Let's test this. First does it fit into \eqref{eq:6}?
+
+\subsection{Figuring out R from pdf}
+
+Use 3.13 for braket definition of pauli matrices
+\begin{align}
+    & R = \sum c_s \sigma^z_s \label{eq:R_expansion}\\
+    & [R, \sigma^x_{nn'}] = \sum c_{mm'} [\sigma^z_{mm'}, \sigma^x_{nn'}]\\
+    & [\sigma^z_{mm'}, \sigma^x_{nn'}] = [(\ket{m} \bra{m} - \ket{m'} \bra{m'}), (\ket{n} \bra{n'} + \ket{n'}\bra{n})]
+\end{align}
+
+Now we notice that there are a number of cases, depending on whether m, m', n,
+and n' are equal to or different from each other. Fischer lays out the
+evaulation for each of these options.
+
+The commutator simplifies to
+
+\begin{equation}\label{eq:commutator_cases}
+    [\sigma^z_{mm'}, \sigma^x_{nn'}] = 
+    \begin{cases}
+        +2 i \sigma^y_{nn'} & m=n, m'=n' \\
+        + i \sigma^y_{nn'} & m=n, m' \neq ',\\
+        & \text{or } m \neq n, m'=n'\\
+        - i \sigma^y_{nn'} & m=n' or m'=n \\
+        0 & m \neq n, m' \neq n'
+    \end{cases}
+\end{equation}
+
+Given this, we can note that $[R, \sigma^x_{nn'}]$ is always proportional to $i
+\sigma^y_{nn'}$
+
+\begin{equation}\label{eq:theta_commute}
+    [R, \sigma^x_{nn'} = \theta_{nn'} i\sigma^y_{nn'}]
+\end{equation}
+For some constant $\theta_{nn'}$, and we look at eq (3.19) from Fischer to evaluate 3.31
+
+\begin{equation} \label{eq:Fischer_3.38}
+    e^{-i R} \sigma^x_{nn'} e^{iR} = \cos{(\theta_{nn'})}\sigma^x_{nn'} + \sin{(\theta_{nn'})} \sigma^y_{nn'}
+\end{equation}
+note that the i from eq 3.19 cancels out with the i from \eqref{eq:theta_commute}
+
+Now we equate the right hand side of \eqref{eq:Fischer_3.38} with the right hand side of (F:3.31) to get
+\begin{equation}\label{eq:theta_eq_wt}
+    \cos{(\theta_{nn'})}\sigma^x_{nn'} + \sin{(\theta_{nn'})} \sigma^y_{nn'}
+    = \cos{(\omega t)}\sigma^x_{nn'} + \sin{(\omega t)} \sigma^y_{nn'}
+\end{equation}
+
+
+Our goal is to satisfy equation 3.29 from Fischer, which is the one in which
+$e^{-iR} \{cos - sin\} e^{iR} = cos - sin$
+
+So thus in order to satisfy equation 3.29 we must satisfy
+\eqref{eq:theta_eq_wt}. 
+This only holds if $\theta_{nn'} = \omega t$ for all
+$(n,n') S$
+
+\begin{equation}
+    [R, \sigma^x_{nn'}] = \omega t (i \sigma^y_{nn'})
+\end{equation}
+
+
+We use the expansion \eqref{eq:R_expansion} for R, and the commutations from
+\eqref{eq:commutator_cases}, we obtain a matrix equation to solve for the
+coefficients.
+
+\begin{align}
+    & R = \sum c_s \sigma^z_s \label{eq:R_expansion}\\
+    & [\sigma^z_{mm'}, \sigma^x_{nn'}] = 
+    \begin{cases}
+        +2 i \sigma^y_{nn'} & m=n, m'=n' \\
+        + i \sigma^y_{nn'} & m=n, m' \neq ',\\
+        & \text{or } m \neq n, m'=n'\\
+        - i \sigma^y_{nn'} & m=n' or m'=n \\
+        0 & m \neq n, m' \neq n'
+    \end{cases}\\
+    & [R, \sigma^x_{nn'}] = \omega t (i \sigma^y_{nn'})
+\end{align}
+
+Thus:
+\begin{equation}
+    \qty{[c_{mm'} \sigma^z_{mm'}, \sigma^x_{nn'}] = i \omega t \sigma^y_{nn'}} \forall (m,m') in S \forall (n,n') \in S
+\end{equation}
+
+And we can solve using \eqref{eq:commutator_cases}
+
+So let's take the case where we have 2 drive channels, and either general $\sigma^x$ or $\sigma^x_{01} + \sigma^x_{12}$
+
+For both options, we have 9 states, and since we have two separate control
+ fields which effect orthogonal state transitions, the derivation can proceed at
+ least temporarily without taking into account the multiple control fields.
+
+Let's follow the single field derivation first, because that is the first step either way.
+
+for the $\ket{00}\rightarrow \ket{01}$ transition we obtain the following equation:
+
+\textbf{potential error}: we ignore skipping between 0 and 2 (00) and (02), because not really allowed
+\newpage
+quick reference
+\begin{itemize}
+    \item 00 -- 0
+    \item 01 -- 1
+    \item 02 -- 2
+    \item 10 -- 3
+    \item 11 -- 4
+    \item 12 -- 5
+    \item 20 -- 6
+    \item 21 -- 7
+    \item 22 -- 8
+\end{itemize}
+\textbf{POtential error}: We ignore reversals, cause always reversible? Seems
+like they are just negative of each other?
+
+\textbf{NOTE}: we move from the two index basis to single, so $\ket{00}$ becomes
+$\ket{0}$ and $\ket{01}$ becomes $\ket{1}$ thus we can easily
+show $\ket{0} \rightarrow \ket{1}$ as $01$
+\begin{align}
+    & c_{00,01}(2 i \sigma^y_{00,01})
+    + c_{00,10}(i \sigma^y_{00,01}) 
+    + c_{01,02}(- i \sigma^y_{00,01}) 
+    + c_{01,11}(- i \sigma^y_{00,01}) 
+    % + c_{02,01}(i \sigma^y_{00,01}) \text{ if we have reversals}
+    % + c_{11,01}(i \sigma^y_{00,01})\text{ if we have reversals}
+    = \omega t (i \sigma^y_{00,01})\\
+    & c_{00,10}(2 i \sigma^y_{00,10})
+    + c_{00,01}(i \sigma^y_{00,10}) 
+    + c_{10,20}(- i \sigma^y_{00,10}) 
+    + c_{10,11}(- i \sigma^y_{00,10}) 
+    % + c_{02,01}(i \sigma^y_{00,01}) \text{ if we have reversals}
+    % + c_{11,01}(i \sigma^y_{00,01})\text{ if we have reversals}
+    = \omega t (i \sigma^y_{00,01})
+    & \omega t
+\end{align}
+
+Now convert to 
+
+\begin{equation}
+      c_{01}(2 i \sigma^y_{01})
+    + c_{03}(i \sigma^y_{01})
+    + c_{12}(- i \sigma^y_{01}) 
+    + c_{14}(- i \sigma^y_{01})
+    % + c_{02,01}(i \sigma^y_{00,01}) \text{ if we have reversals}
+    % + c_{11,01}(i \sigma^y_{00,01})\text{ if we have reversals}
+    = \omega t (i \sigma^y_{01})
+\end{equation}
+
+% The class \texttt{rwa\_system_solver} is \ldots
+We do the math in python, see \texttt{rwa\_system\_solver.py}
+
+So now that we have the system of equations we need to solve
+so with $M$ being the matrix of values from the commutations
+\begin{equation}
+    M[c_{nn'}] = [\omega_i t]
+    \begin{cases}
+        i = 1 & \text{for transitions on qubit 1}\\
+        i = 2 & \text{for transitions on qubit 2}
+    \end{cases}
+\end{equation}
+
+\begin{equation}
+    \begin{split}
+    H(t) = H_0 + \Omega_{d0} D_0(t) \sigma_0^x + \Omega_{d1} D_1(t) \sigma_1^x\\
+    + \Omega_{d0} U_0^{0,1}(t) \sigma_0^x + \Omega_{d1} U_1^{1,0}(t) \sigma_1^x 
+    \end{split}
+\end{equation}
+\begin{align}
+    & D_n(t) = e^{i \omega_n t} d(t) & d(t) = amp\\
+    & U_n^{a,b}(t) = e^{i \omega_b t} u(t) & u(t) = amp
+\end{align}
+% \begin{align} 
+%     \mathcal{H}/\hbar = 
+%     & \sum_{i=0}^{4}\left(\frac{\omega_{q,i}}{2}(\mathbb{I}-\sigma_i^{z})
+%     +\frac{\Delta_{i}}{2}(O_i^2-O_i)+\Omega_{d,i}D_i(t)\sigma_i^{X}\right) \\ 
+%     & + J_{1,2}(\sigma_{1}^{+}\sigma_{2}^{-}+\sigma_{1}^{-}\sigma_{2}^{+}) 
+%     + J_{3,4}(\sigma_{3}^{+}\sigma_{4}^{-}+\sigma_{3}^{-}\sigma_{4}^{+}) 
+%     + J_{0,1}(\sigma_{0}^{+}\sigma_{1}^{-}+\sigma_{0}^{-}\sigma_{1}^{+}) 
+%     + J_{2,3}(\sigma_{2}^{+}\sigma_{3}^{-}+\sigma_{2}^{-}\sigma_{3}^{+}) \\ 
+%     & + \Omega_{d,0}(U_{0}^{(0,1)}(t))\sigma_{0}^{X} 
+%     + \Omega_{d,1}(U_{1}^{(1,0)}(t)+U_{2}^{(1,2)}(t))\sigma_{1}^{X} \\ 
+%     & + \Omega_{d,2}(U_{3}^{(2,1)}(t)+U_{4}^{(2,3)}(t))\sigma_{2}^{X} 
+%     + \Omega_{d,3}(U_{6}^{(3,4)}(t)+U_{5}^{(3,2)}(t))\sigma_{3}^{X} \\ 
+%     & + \Omega_{d,4}(U_{7}^{(4,3)}(t))\sigma_{4}^{X}
+% \end{align}
+
+OK IT SEEMS LIKE singular matrix for if we take 01 and 12 separately?
+\end{document}

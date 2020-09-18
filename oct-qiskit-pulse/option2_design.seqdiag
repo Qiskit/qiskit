@@ -1,0 +1,32 @@
+
+
+
+participant qUser
+participant convert_circ_pulse
+participant circuit_to_unitary
+participant qutip_grape
+participant qutip_convert_ham
+participant grape_runner
+#participant schedule
+
+qUser->convert_circ_pulse: circuit
+qUser->convert_circ_pulse: backend
+
+convert_circ_pulse->circuit_to_unitary: circuit
+
+circuit_to_unitary->qutip_grape: unitary
+
+convert_circ_pulse->qutip_grape: backend
+
+qutip_grape->qutip_convert_ham: backend
+
+qutip_convert_ham->qutip_grape: qutip_hamiltonian
+
+qutip_grape->grape_runner: qutip_hamiltonian
+qutip_grape->grape_runner: unitary
+
+grape_runner->qutip_grape: pulse_seq
+
+qutip_grape->convert_circ_pulse: pulse_seq
+
+convert_circ_pulse->qUser: pulse_seq

@@ -1,0 +1,85 @@
+% Define the creation and annihilation operators for a cavity
+\newcommand{\cavityCreationOperator}{a^{\dagger}}
+\newcommand{\cavityAnnihilationOperator}{a}
+\newcommand{\cavityNumberOperator}{\cavityCreationOperator \cavityAnnihilationOperator}
+\newcommand{\iden}{\hat{\mathbb{1}}}
+\newcommand{\CCCOp}{\bm{\cavityCreationOperator}}
+\newcommand{\CCAOp}{\bm{\cavityAnnihilationOperator}}
+\newcommand{\CCNOp}{\bm{n}}
+\newcommand{\CCIOp}{\bm{\iden}}
+\newcommand{\cavityOneCreationOperator}{a_1^{\dagger}}
+\newcommand{\cavityOneAnnihilationOperator}{a_1}
+\newcommand{\cavityOneNumberOperator}{\cavityOneCreationOperator \cavityOneAnnihilationOperator}
+\newcommand{\E}[1]{\left<#1\right>}
+\newcommand{\effZero}{\ket{0}}
+\newcommand{\effOne}{\ket{1}}
+\newcommand{\Zeff}{\sigma_z^{eff}}
+\newcommand{\Xeff}{\sigma_x^{eff}}
+\newcommand{\Yeff}{\sigma_y^{eff}}
+\newcommand{\cavityTwoCreationOperator}{a_2^{\dagger}}
+\newcommand{\cavityTwoAnnihilationOperator}{a_2}
+\newcommand{\Ham}{\mathcal{H}}
+\newcommand{\cavityTwoNumberOperator}{\cavityTwoCreationOperator \cavityTwoAnnihilationOperator}
+\newcommand{\commutator}[2]{\left[ #1, #2 \right]}
+\newcommand{\ca}{a}
+\newcommand{\cc}{a^{\dagger}}
+\newcommand{\cn}{n}
+
+\newcommand{\CavityExchange}{ \left( \cavityOneCreationOperator \cavityTwoAnnihilationOperator +
+    \cavityOneAnnihilationOperator \cavityTwoCreationOperator \right) }
+
+\newcommand{\CavityCavityExchange}{\CavityExchange}
+
+\newcommand{\cavityOneSpinExchange}{(
+    \sigma^a_+ \cavityOneAnnihilationOperator +
+    \sigma^a_- \cavityOneCreationOperator
+    )
+}
+\newcommand{\cavityOneSpinExchangeSym}{(
+    \sigma^a_+ \cavityOneAnnihilationOperator +
+    \sigma^a_- \cavityOneCreationOperator
+    )
+}
+
+\newcommand{\cavityOneSpinExchangeAntiSym}{(
+    \sigma^a_+ \cavityOneAnnihilationOperator -
+    \sigma^a_- \cavityOneCreationOperator
+    )
+}
+
+
+\newcommand{\cavityTwoSpinExchange}{(
+    \sigma^a_+ \cavityTwoAnnihilationOperator +
+    \sigma^a_- \cavityTwoCreationOperator
+    )
+}
+
+\newcommand{\cavityTwoSpinExchangeSym}{(
+    \sigma^a_+ \cavityTwoAnnihilationOperator +
+    \sigma^a_- \cavityTwoCreationOperator
+    )
+}
+\newcommand{\cavityTwoSpinExchangeAntiSym}{(
+    \sigma^a_+ \cavityTwoAnnihilationOperator -
+    \sigma^a_- \cavityTwoCreationOperator
+    )
+}
+
+% Shortened command definitions
+\newcommand{\com}[2]{\commutator{#1}{#2}}
+\newcommand{\cavA}{\cavityAnnihilationOperator}
+\newcommand{\cavC}{\cavityCreationOperator}
+\newcommand{\cavN}{\cavityNumberOperator}
+
+\newcommand{\cavAOne}{\cavityOneAnnihilationOperator}
+\newcommand{\cavCOne}{\cavityOneCreationOperator}
+\newcommand{\cavNOne}{\cavityOneNumberOperator}
+
+\newcommand{\cavATwo}{\cavityTwoAnnihilationOperator}
+\newcommand{\cavCTwo}{\cavityTwoCreationOperator}
+\newcommand{\cavNTwo}{\cavityTwoNumberOperator}
+
+
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}

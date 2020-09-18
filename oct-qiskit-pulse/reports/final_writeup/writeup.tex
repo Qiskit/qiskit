@@ -1,0 +1,323 @@
+\documentclass[12pt]{article}
+\usepackage{physics}
+
+    \title{Quantum Optimal Control Framework for Qiskit}
+\author{
+        Ben Rosand \\
+        IBM Quantum \\
+        Quantum Intern -- Pulse Team\\
+        Yorktown Heights, NY
+}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This writeup is intended to ease the transition of this project to whomever
+continues development. This is the culmination of my work throughout close to
+three months during the summer of 2020. I may continue the project when I return
+to IBM in 2021, or someone else may take it on after I leave, but the goal of
+this paper is to detail all the potential avenues for future research, and
+summarize much of the research I have already completed. Much of the framework
+of QOC in Qiskit is done, so the remaining issue is research on getting the
+QuTiP implementation to work on our systems. To this end, I lay out a number of
+parameters to be examined, as well as some key areas for further investigation.
+Ultimately, the biggest problem that needs to be solved is the disrepency
+between the QuTiP simulator and the Qiskit PulseSimulator. It is my belief that
+if we can solve this question, we will obtain much more general optimal pulses.
+\end{abstract}
+
+\section{Introduction}
+
+Optimal control is the process of using control fields to optimize the evolution
+of some system over time. In this project we utilize Quantum Optimal Control (QOC),
+optimizing our controls to achieve the evolution of some quantum system over
+time. Specifically, we use the control fields available to us in Qiskit to
+evolve a transmon according to some unitary. In this project, I developed a
+framework for performing QOC on IBM systems using Qiskit. The goal of the project was three-fold:
+\begin{itemize}
+    \item To develop a framework to automatically run circuit components and
+    unitaries through a QOC optimizer.
+    \item To develop a framework which was universalizable to any optimizer,
+    including optimizers from a variety of sources.
+    \item To test said optimizers, and explore their potentials for increased
+    efficacy and speed of quantum programs.
+\end{itemize}
+
+\paragraph{Outline}
+The remainder of this article is organized as follows. Section~\ref{background}
+covers useful information for understanding the project, specifically background
+on QOC and the initial project goals. Section~\ref{design} gives an account of
+the main framework and it's connection into qiskit. The results of this research
+are described in Section ~\ref{results}. The current state of the research is
+described in Section ~\ref{current}. Finally the next steps are described
+in Section ~\ref{future}.
+
+% Our new and exciting results are described in Section~\ref{results}.
+% Finally, Section~\ref{conclusions} gives the conclusions.
+
+\section{Background}\label{background} 
+
+Much of the background for this work can be found in \cite{oct-pulse-roadmap}.
+Additionally, \cite{fisher_optimal_nodate} presents a great overview of the math
+involved both in QOC and in the RWA required to more easily represent the
+hamiltonians of the systems for QOC.
+
+
+\section{Design}\label{design} 
+
+For design, please examine the design doc for this project \cite{oct-design-doc}
+
+\section{Results}\label{results}
+
+At this point, we have accomplished the goals in terms of framework development.
+As demonstrated in the design doc \cite{oct-design-doc} there is a framework in
+place to plug in a variation of the usual instruction schedule map, the
+QOCInstructionScheduleMap. Thus, the focus of these results will be on the
+testing and performance of QOC on the IBM Q systems. It is important to note
+that the results vary significantly depending on various parameters, and the
+testing system should be considered incomplete. In other words, future research
+should consider varying many of the parameters as set to obtain these results,
+especially considering that we were unable to demonstrate a QOC pass that was
+fully general.
+
+In terms of results, we have two models which we investigated, the two level and
+the three level model. The three level model is more accurate to the real
+hamiltonian of the qubits, but the two level model is easier to use and
+potentially easier for QOC. Testing was performed with both models. The
+hamiltonian can be seen in the backend configuration
+\cite{alexander_qiskit_2020}. The only difference between the two level and
+three level model are the $\sigma$ terms (three level $\sigma$ vs two level
+$\sigma$), and the anharmonicity terms (which are not present in the two level
+model).
+
+A substantial amount of results are stored in the results.csv and 2results.csv. These files hold information on tests performed with 1q and 2q gates, respectively. There a number of parameters that are shown in the files, and there are many other parameters that are varied. In terms of results, below we will document some of the most succesfull parameter setups. 
+\newline
+
+First we note some results with simple gates in Table~\ref{table:linX}
+\newline
+
+\begin{table}
+    \begin{tabular}{||c c c c c c||} 
+    \hline
+    $n_{ts}$ & percent\_0 & p\_type & backend & gate type & model notes\\ [0.5ex] 
+    \hline
+64 &0.921875 &LIN &ibmq\_valencia &XGate &2 level\\
+96 &0.900390625 &LIN &ibmq\_valencia &XGate &2 level\\
+128 &0.8642578125 &LIN &ibmq\_valencia &XGate &2 level\\
+160 &0.859375 &LIN &ibmq\_valencia &XGate &2 level\\
+320 &0.8203125 &LIN &ibmq\_valencia &XGate &2 level\\
+    \hline
+   \end{tabular}
+   \caption{Linear X gates}
+   \label{table:linX}
+\end{table}
+
+  Obviously with Table \ref{table:linX} we see that the fastest gates are the
+  most effective, and that the accuracy decreases as the length of the gate
+  increases, which is not what we would expect. This, among many other
+  questions, are what we are looking at right now, and all of the ongoing
+  research will be addresed in Section~\ref{current}. However, this work is
+  exciting because the gate was built from scratch, and the reason we start at
+  64 is that is the minimum number of pulse steps allowed by
+  Pulse~\cite{alexander_qiskit_2020}, thus suggesting that we could achieve even
+  faster gates if the backend were to support the execution.
+
+  We also examine the two level hadamard gate on armonk (\ref{table:gausH}),
+  which we note works better (accuracy wise) with a gaussian initialization.
+  This table is interesting because it shows a curve of increasing excitation,
+  which reaches the desired hadamard gate around the $n_{ts}=800$ point, and
+  then remains there (potentially increasing at $n_{ts} = 1440$). These results,
+  contrasted with Table~\ref{table:linX}, suggest that the accuracy of these gates is strongly dependent on the gate length. This suggests a fundamental problem in our models of the system, because the QOC optimizer when run tends to suggest a close-to-100\% accuracy each time.
+
+\begin{table}
+    \begin{tabular}{||c c c c c c||} 
+    \hline
+    $n_{ts}$ & percent\_0 & p\_type & backend & gate type & model notes\\ [0.5ex] 
+    \hline
+64 &0.048828125 &GAUS &ibmq\_armonk &hadamard & 2 levels\\
+96 &0.27734375 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+128 &0.1552734375 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+160 &0.2998046875 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+320 &0.3603515625 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+480 &0.388671875 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+640 &0.4267578125 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+800 &0.48828125 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+960 &0.5166015625 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+1120 &0.4990234375 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+1280 &0.5224609375 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+1440 &0.5986328125 &GAUS &ibmq\_armonk &hadamard &2 levels\\
+    \hline
+   \end{tabular}
+   \caption{Gaussian H gates}
+   \label{table:gausH}
+\end{table}
+
+
+
+
+\begin{itemize}
+    \item [\textbf{Column explanation}]
+    \item $n_{ts}$: number of time steps, multiply by dt of system (usually $.2222$ ns) to get total time of pulse
+    \item percent\_0: percent counts of qubit 0 that are measured in state 1 (a general metric to
+    be compared to target unitaries)
+    \item percent\_0: percent counts of qubit 1 that are measured in state 1 
+    \item p\_type: pulse initialization, the type of pulse used to initialize
+    the QOC run, usually in {'LIN' : Linear, 'RND' : Random, 'GAUS' : Gaussian}
+    \item backend: the backend used to run the experiment
+    \item gate type: the target gate, the target unitary evolution
+    \item model notes: extra notes, for example, if the model is a two level model.
+\end{itemize}
+
+
+Another thing to note is the relationship between different systems. If we look at the gaussian hadamards, we see a lot of similarity between valencia and armonk
+
+\section{Current}\label{current}
+
+Here I am going to lay out some of the choices that I have examined, their
+percieved impacts, and what future testing might look like. I have set up a
+testing framework (elaborated in Section~\ref{testing}), and suggest that
+further testing utilize that framework.
+
+    \textbf{Potential decisions}
+\begin{itemize}
+    \item Rotating Transformation: In the 1q case, the rotating transformation
+    and attached RWA is relatively simple, the math is laid out in the backend,
+    and the end result is that the prefactor of the $\sigma^z$ in the
+    hamiltonian becomes $\delta \omega_{q}$, and approaches 0. For most of my
+    experiments I have set that number to 0, although future testing could
+    fiddle with that parameter. It is important to note that the $\delta_0$ in
+    some of the results is a different variable, it is the prefactor for the
+    anharmonicity term in the larger systems when taken as 3 level systems.
+    \item 2 qubit rotating transformation: In the 2q case, the transformation is
+    a little more complicated. \cite{fisher_optimal_nodate} describes a path for
+    generally performing a transformation in a multiply-rotrating frame. By
+    following this path, we obtained a transformation which basically looks like
+    the single frame transformation, where both drift $sigma^z$ terms have
+    prefactors of 0. This is a point which could be gone over again to double
+    check, but we feel confident about the math. In addition there are other
+    considerations here @THOMAS with regards to performing the transformations
+    to the control channels if we use them.
+    \item Control channels: For the 1q operations, we do not utilize the control
+    channels. The base qiskit gates act the same, and they are not necessary
+    here. The current framework also ignores the control channels, although they
+    are easy to add. This is because QuTiP's QOC implementation does not provide
+    an easy pathway to describe the phase differences which the control channels
+    rely on. NOTE: maybe describe better or just put a note to ask thomas --
+    probably bad, should just describe better myself.
+    \item Three vs two level: the difference between the two models was touched
+    on earlier in this report, but it is important to note that the three level
+    model should be more accurate, especially for the systems with fully
+    described hamiltonians (armonk doesn't have an anharmonicity term and some
+    other backends don't have fully developed databases with $\delta$ terms).
+    However, the actual devices are best modeled as three level systems. The
+    fact that in some (most) cases the two level systems obtain better results
+    suggests that there is something wrong with the model or the simulation. 
+    \item Potential issues with the backend hamiltonians: As far as we have
+    seen, the backend hamiltonians are mostly correct (aside from some database
+    issues). However, it is important to perform testing with manual
+    hamiltonians, and make sure that the hamiltonians extracted from the
+    backends are correct, because we have seen errors here before.
+    \item Is the backend $\sigma^x$ the right one to use here? : The backend
+    $\sigma^x$ (the one returned by the backend parsers) is of the form a +
+    $a^\dag$. This is correct for a general state-switching pauli gate, but
+    there is a question of it is the right one to use for our QOC model. When we
+    evolve our qubits, we don't transition to the 2nd energy state (the 2nd
+    level), because we are not on resonance for that state. Figuring out how to
+    model this notion was a little tricky, mostly because there were a couple
+    ways to do it, and to some extent we hoped that the optimizer would perform
+    these operations automatically. NOTE: Go more into this, double check with Thomas.
+    \item Which pulse initialization to use : Putting aside the issue of whether the model QuTiP is using is correct, the pulse initialization has a huge effect on the results of the QOC method. For example, as expected, the random initialization seems to be the most erratic. In terms of speed, the linear pulse was used to achieve the fastest x gates, which were one of the major results of the research. For the optimal hadamard gates the gaussian initialization provided the highest accuracy, but took a lot longer to converge than the linear pulses. The linear pulses also didn't seem to converge as consistently as the gaussian pulses, especially for the hadamard gates.
+    \item Which QOC method to use : So far pretty much all the testing that was performed utilized GRAPE. But because we also mostly used a QuTiP backend, it is very easy to try out other methods, especially CRAB. To change, all that is required is to go to the optimization runner, and switch the alg from GRAPE to CRAB. I performed several trials on CRAB, and it didn't really work, and GRAPE is the simpler and more well known method, so we decided to just stick with GRAPE for the summer.
+    \item Length of pulse : This parameter is very significant to the accuracy
+    of the program. For some reason the pulses that are generated vary in
+    accuracy across the spectrum of pulse times. For instance,
+    Tables~\ref{table:linX} and \ref{table:gausH} demonstrate the high
+    variablity of effectiveness from the length of the pulses.  This represents one of the biggest areas for further research and improvement. As I have explained, the results of the internal QuTiP simulator suggest near 100\% efficacy of each generated pulse, regardless of the length of the pulse. Thus there is clearly still a mismatch between the model that we are using here and the real system model.
+    \item Multiplying $\Omega$ by 2 : This is an example of the issues with the
+    backend I pointed out eaarlier. Currently there are issues with the pulse
+    simulator in Qiskit that prevent it from fully working out of the box. In
+    order to get it to work one has to scale up the drive strength by a factor
+    of two, as well as the coupling strength. In addition there are some unit
+    differences which need to be accounted for. Thus it stands to reason that
+    some of these issues pass into the QOC framework. In addition, this
+    framework is set up to run on the scale of nanoseconds and gigahertz,
+    because the QOC optimizer struggles with the actual numbers as they are very
+    big and thus oscillate very fast. Thus although I have played with various
+    scaling extensively, it is possible that further experimentation would be
+    helpful. As of right now, it seems that multiplying $\Omega$ by 2 worsens
+    the QOC gates.
+\end{itemize}
+
+\section{Testing}\label{testing} How does testing work? To use the testing suite, start with the testing.ipynb notebook in the
+notebooks folder. This notebook walks through the steps necessary to run tests
+using QOC. Most of the backend code for this notebook is contained in
+src/tester.py and src/three\_restructure.py.
+
+Unfortunately I didn't
+have time to write up a design doc for the testing suite, and for a number of
+reasons right now it doesn't use the same backend as the
+QOCInstructionScheduleMap. This is because it is more for testing QOC and
+various hamiltonians, and other QOC parameters. As a result, all the code needs
+to be more exposed, and to modify the main framework for this purpose would be
+risky. 
+
+\section{Future}\label{future}
+
+Ultimately, the biggist issue with the framework that I have developed is that
+the internal QuTiP simulator is not mapping well to the actual ibm machines.
+Almost every time I run the optimizer to find a pulse sequence, the optimizer
+finds a path to achieve an evolution with 100\% accuracy, but the actual results
+are highly variables, as seen in the results.
+
+
+Thus, I would like to suggest the following next steps:
+\begin{itemize}
+    \item Figure out the simulation mismatch : Right now the ibm simulations,
+    the ibm devices, and the QuTiP simulations do not match up. For whatever
+    reason QuTiP consistently generates pulses that have 100\% accuracy on it's
+    own simulations, and then varying accuracy on IBM systems. This is likely
+    due to a misrepresentation of the IBM hamiltonian in the Quantum frame, but
+    I could not figure out any mistake.
+    \item Deeper 2q gate investigation : I think that it may be possible to get
+    2q gates working even with the current setup. playing with the pulse
+    initialization and looking at different lengths of gates will be important,
+    also double checking the math of the two level system to see if it is
+    possible to do the 2q gates that way, since the 2 level model is 
+    \item Investigate differences between testing framework and schedule mapping
+    framework : one difference between the two frameworks is that the testing
+    framework uses the create\_puse\_optimizer function to create a class. On
+    the other hand, the instruction mapping framework using the function
+    optimize\_pulse\_unitary. During the last week I was investigating the
+    differences between these two setups, and ultimately was not able to figure
+    out the difference. I hope that the person that follows up this work
+    (perhaps me) can find the root of this disrepancy as well.
+    \item Investigate inconsistencies with pulseSimulator and real devices, and
+    pulseSimulator and QuTiP simulator. I think this may be a key issue, as we
+    would expect this simulator to behave similarly to the QuTiP simulator
+    because their core math is the same. Thus if we can figure out where the
+    difference is in the backend hamiltonian, maybe we can figure out the
+    difference between the models.
+\end{itemize}
+
+
+
+\section{Conclusions}\label{conclusions}
+
+In this project I have laid out a framework for using QOC to generate pulses for
+IBM Q devices. Although currently the optimal unitary evolutions I have been
+able to achieve have been limited, we have seen some real success with 1q gates
+on a variety of time scales. More importantly, this work will lay the groundwork
+for future testing of QuTiP QOC, as well as other optimal control
+implementations.
+
+\section{notes}
+
+Consistency of results even with random initialization (consistencty across the
+same time steps) indicates that the problem really is with the model.
+\bibliographystyle{plain}
+\bibliography{main.bib}
+
+\end{document}

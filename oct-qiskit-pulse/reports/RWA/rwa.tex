@@ -1,0 +1,110 @@
+\documentclass[12pt]{article}
+\usepackage{physics}
+
+\title{Rotating Wave Approximation for QOC}
+\author{
+        Ben Rosand \\
+        IBM Quantum \\
+        Quantum Intern -- Pulse Team\\
+        Yorktown Heights, NY
+}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This is the paper's abstract \ldots
+\end{abstract}
+
+\section{Introduction}
+This is time for all good men to come to the aid of their party!
+
+\paragraph{Outline}
+The remainder of this article is organized as follows.
+Section~\ref{previous work} gives account of previous work.
+Our new and exciting results are described in Section~\ref{results}.
+Finally, Section~\ref{conclusions} gives the conclusions.
+
+\section{Previous work}\label{previous work}
+A much longer \LaTeXe{} example was written by Gil~\cite{Gil:02}.
+
+\section{Results}\label{results}
+In this section we describe the results.
+
+\section{Rotating Wave Approximation}\label{RWA}
+\subsection{Single rotation}
+We follow the template laid out in [CITE FIscher] to perform the rotating 
+wave approximation for an N-level system with one control field. For starters, we take the laboratory frame Hamiltonian [CITE FISCHER]
+\begin{equation}\large
+        H_{lab} = H_0 + \sum^M_{m=1}\Omega_m \cos(\omega_m t + \phi_m) \sum_{n'>n} g_{nn'}\sigma^x_{nn'}
+\end{equation}
+
+This generalized hamiltonian maps perfectly to our systems, with $H_0$ representing all of our time independent 
+elements. $g_{nn}$ 
+represents the prefactors on various drive terms (represented in our printed hamiltonians as $\Omega_n$).
+
+Sometimes we can ignore certain transitions because they are off-resonance. I would think this 
+would apply to the transitions to the 2 state for our systems, but need to DOUBLE CHECK.
+
+The first replacement is the basic RWA, replacing the driving terms with the terms from the RWA (FISCHER 3.25).
+also let $S = {(n,n')}$ which are on resonance and allowed.
+\begin{equation}\label{F325}
+        H_{lab} \approx H_0 + \frac{\Omega}{2} \sum_S g_{nn'} \cos(\omega t + \phi)\sigma^x_{nn'} - \sin(\omega t + \phi)\sigma^y_{nn'})
+\end{equation}
+
+Our goal here is to get rid of the oscillation $\omega t$. Again from fischer the desired transformation is:
+
+\begin{equation}
+        \ket{\psi}_{rot} = e^{-iR} \ket{\psi}_{lab}
+\end{equation}
+
+We take the derivative and obtain an equation for the transformed Hamiltonian:
+
+\begin{equation}\label{eq:4}
+        H_{rot} = e^{iR} H_{lab} e^{-iR} + \derivative{R}{t}
+\end{equation}
+
+From this equation, our goal is to find R. The core of the RWA is the following transformation:
+
+\begin{equation}\label{eq:5}
+        e^{-iR} \left \{\cos(\omega t + \phi)\sigma^x_{nn'} - \sin(\omega t + \phi)\sigma^y_{nn'}\right \}
+        e^{iR} = \cos (\phi) \sigma^x_{nn'} - sin(\phi)\sigma^y_{nn'}
+\end{equation}
+
+This transformation is applied over the set $S$ in the sum in \eqref{F325}. The final step to the transformation is to find R 
+such that these transformations hold. With that R in hand, we can see that \eqref{eq:4} evaluates to 
+\begin{equation}\label{eq:gen_trans}
+        H_{rot} = H_0 + \derivative{R}{t} + \frac{1}{2}\Omega \sum_S g_{nn'} \left \{ \cos{\phi} \sigma^x_{nn'} - sin{\phi} \sigma^y_{nn'} \right \}
+\end{equation}
+
+This is the rotating frame Hamiltonian, the key difference being the lack of oscillation on $\omega$ (carrier frequency), 
+which is moved into the "generalised detuning term" $H_0 + \derivative{R}{t}$. Note that in the two-level case this term 
+reduces to $\frac{1}{2} \delta \omega \sigma^z$
+
+What does equation \eqref{eq:gen_trans} look like for IBM Q devices? All variables can be fillled in except for R,
+which can be solved through another process which will be shown after.
+\begin{align}
+        & H_0 = H_d + H_{coupling} + H_{occupation_operator} \\
+        & \Omega = \Omega_{d,i} \qquad \text{Note that this transformation is for only one drive} \\
+        & g_{nn'} = 1
+\end{align}
+\textit{$g_{nn'}$ is technically contained in $\Omega$ because we are off resonance so only concerned with 0 to 1 transition}
+
+\subsection{Determining transformation matrix R}
+The matrix R is derived from equation \eqref{eq:5}. The two relationships that Fischer uses to make this derivation are the 
+fact that R and $\sigma^z_{nn'}$ commute.
+
+\subsection{Multiple drives and rotations}
+
+\section{New RWA}
+
+
+\section{Conclusions}\label{conclusions}
+We worked hard, and achieved very little.
+
+\bibliographystyle{abbrv}
+\bibliography{main}
+
+\end{document}

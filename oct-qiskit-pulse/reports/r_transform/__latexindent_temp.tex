@@ -1,0 +1,33 @@
+\documentclass[12pt]{article}
+\usepackage{physics}
+
+\title{Rotating Wave Approximation for QOC}
+\author{
+        Ben Rosand \\
+        IBM Quantum \\
+        Quantum Intern -- Pulse Team\\
+        Yorktown Heights, NY
+}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+
+\begin{align}
+    & H_{rot} = 
+    e^{-\frac{1}{2} i \omega_0 t \sigma^z}
+    \qty{\Omega \cos{(\omega t + \phi)}\sigma^x}
+    e^{\frac{1}{2} i \omega_0 t \sigma^z} \\
+    \begin{split}
+    H_{rot} = 
+    \qty[\cos{-\frac{1}{2} i \omega_0 t \sigma^z} + i
+    \sin{-\frac{1}{2} i \omega_0 t \sigma^z}] \\
+    * \qty{\Omega \cos{(\omega t + \phi)}\sigma^x} \\
+    * \qty[\cos{-\frac{1}{2} i \omega_0 t \sigma^z} + i
+    \sin{-\frac{1}{2} i \omega_0 t \sigma^z}] \\
+    \end{split} \\
+    & test
+\end{align}
+\end{document}
