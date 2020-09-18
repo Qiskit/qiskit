@@ -15,7 +15,7 @@
 import unittest
 from math import pi
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayoutNoise
 from qiskit.converters import circuit_to_dag
@@ -80,7 +80,8 @@ class TestCSPLayoutNoise(QiskitTestCase):
     def test_3q_circuit_16_coupling(self):
         """ 3 qubits in Melbourne, with noise """
         qr = QuantumRegister(3, 'qr')
-        circuit = QuantumCircuit(qr)
+        cr = ClassicalRegister(3, 'cr')
+        circuit = QuantumCircuit(qr, cr)
         circuit.x(qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.u1(0.2, qr[1])
@@ -91,6 +92,9 @@ class TestCSPLayoutNoise(QiskitTestCase):
         circuit.u3(0.2, pi/2, 3*pi/2, qr[0])
         circuit.u3(0.2, pi/2, 3*pi/2, qr[1])
         circuit.u3(0.2, pi/2, 3*pi/2, qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[2], cr[2])
         dag = circuit_to_dag(circuit)
 
         backend = FakeMelbourne()
@@ -113,9 +117,9 @@ class TestCSPLayoutNoise(QiskitTestCase):
 
         self.assertNotEqual(layout, layout_old)
 
-        self.assertEqual(layout[qr[0]], 1)
-        self.assertEqual(layout[qr[1]], 2)
-        self.assertEqual(layout[qr[2]], 3)
+        self.assertEqual(layout[qr[0]], 11)
+        self.assertEqual(layout[qr[1]], 12)
+        self.assertEqual(layout[qr[2]], 2)
         self.assertEqual(pass_.property_set['CSPLayout_stop_reason'], 'solution found')
 
 

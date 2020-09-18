@@ -1,0 +1,9 @@
+---
+    features:
+      - |
+        A new layout method is introduced based on the CSPLayout but features an additional noise awareness.
+    
+        * :class:`qiskit.transpiler.layout.csp_layout` got refactored. Especially the `run` method has been split into smaller functional methods. This allows for inheriting the CSPLayout class.
+        * :class:`qiskit.transpiler.layout._crb_solver` got introduced to wrap the custom recursive backtracking solver.
+        * :class:`qiskit.transpiler.layout.csp_layout_noise` is inherited from csp_layout and features a new layout method which is a noise aware csp_layout. 
+    

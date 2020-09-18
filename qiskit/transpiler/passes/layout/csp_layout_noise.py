@@ -109,5 +109,5 @@ class CSPLayoutNoise(CSPLayout):
                 elif len(node.qargs) == 2:
                     gate_error += self.backend_prop.gate_error("cx", physical_qubits)
             elif isinstance(node.op, Measure):
-                gate_error += self.backend_prop.readout_error(physical_qubits)
+                gate_error += self.backend_prop.readout_error(*physical_qubits)
         return gate_error
