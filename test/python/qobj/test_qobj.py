@@ -20,7 +20,7 @@ import jsonschema
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.basicaer import basicaerjob
+from qiskit.providers import basicaer
 
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
@@ -174,13 +174,11 @@ class TestQASMQobj(QiskitTestCase):
     def test_simjob_raises_error_when_sending_bad_qobj(self):
         """Test SimulatorJob is denied resource request access when given an invalid Qobj instance.
         """
-        job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = basicaerjob.BasicAerJob(backend, job_id, _nop, self.bad_qobj)
-            job.submit()
+            job = basicaer.QasmSimulatorPy().run(self.bad_qobj)
 
     def test_change_qobj_after_compile(self):
         """Test modifying Qobj parameters after compile."""
