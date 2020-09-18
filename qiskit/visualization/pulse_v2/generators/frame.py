@@ -39,7 +39,6 @@ The format of generator is restricted to:
 Arbitrary generator function satisfying the above format can be accepted.
 Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
-
 """
 from fractions import Fraction
 from typing import Dict, Any, List, Tuple
