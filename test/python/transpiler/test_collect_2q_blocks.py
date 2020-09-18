@@ -39,16 +39,16 @@ class TestCollect2qBlocks(QiskitTestCase):
     def test_blocks_in_topological_order(self):
         """the pass returns blocks in correct topological order
                                                      ______
-         q0:--[u1]-------.----      q0:-------------|      |--
-                         |                 ______   |  U2  |
-         q1:--[u2]--(+)-(+)---   =  q1:---|      |--|______|--
-                     |                    |  U1  |
-         q2:---------.--------      q2:---|______|------------
+         q0:--[p]-------.----      q0:-------------|      |--
+                        |                 ______   |  U2  |
+         q1:--[u]--(+)-(+)---   =  q1:---|      |--|______|--
+                    |                    |  U1  |
+         q2:--------.--------      q2:---|______|------------
         """
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
-        qc.u1(0.5, qr[0])
-        qc.u2(0.2, 0.6, qr[1])
+        qc.p(0.5, qr[0])
+        qc.u(0.0, 0.2, 0.6, qr[1])
         qc.cx(qr[2], qr[1])
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
@@ -150,19 +150,19 @@ class TestCollect2qBlocks(QiskitTestCase):
         on the same (register, value) pair could be correctly merged, but this is
         not yet implemented.
 
-                 ┌─────────┐┌─────────┐┌─────────┐      ┌───┐
-        qr_0: |0>┤ U1(0.1) ├┤ U1(0.2) ├┤ U1(0.3) ├──■───┤ X ├────■───
-                 └─────────┘└────┬────┘└────┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
-        qr_1: |0>────────────────┼──────────┼─────┤ X ├───■────┤ X ├─
-                                 │          │     └───┘   │    └─┬─┘
-        qr_2: |0>────────────────┼──────────┼─────────────┼──────┼───
-                              ┌──┴──┐    ┌──┴──┐       ┌──┴──┐┌──┴──┐
-         cr_0: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
-                              │ = 0 │    │ = 0 │       │ = 0 ││ = 1 │
-         cr_1: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
-                              └─────┘    └─────┘       └─────┘└─────┘
+                 ┌────────┐┌────────┐┌────────┐      ┌───┐
+        qr_0: |0>┤ P(0.1) ├┤ P(0.2) ├┤ P(0.3) ├──■───┤ X ├────■───
+                 └────────┘└───┬────┘└───┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
+        qr_1: |0>──────────────┼─────────┼─────┤ X ├───■────┤ X ├─
+                               │         │     └───┘   │    └─┬─┘
+        qr_2: |0>──────────────┼─────────┼─────────────┼──────┼───
+                            ┌──┴──┐   ┌──┴──┐       ┌──┴──┐┌──┴──┐
+         cr_0: 0 ═══════════╡     ╞═══╡     ╞═══════╡     ╞╡     ╞
+                            │ = 0 │   │ = 0 │       │ = 0 ││ = 1 │
+         cr_1: 0 ═══════════╡     ╞═══╡     ╞═══════╡     ╞╡     ╞
+                            └─────┘   └─────┘       └─────┘└─────┘
 
-        Previously the blocks collected were : [['u1', 'u1', 'u1', 'cx', 'cx', 'cx']]
+        Previously the blocks collected were : [['p', 'p', 'p', 'cx', 'cx', 'cx']]
         This is now corrected to : [['cx']]
         """
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
@@ -171,9 +171,9 @@ class TestCollect2qBlocks(QiskitTestCase):
         cr = ClassicalRegister(2, 'cr')
 
         qc = QuantumCircuit(qr, cr)
-        qc.u1(0.1, 0)
-        qc.u1(0.2, 0).c_if(cr, 0)
-        qc.u1(0.3, 0).c_if(cr, 0)
+        qc.p(0.1, 0)
+        qc.p(0.2, 0).c_if(cr, 0)
+        qc.p(0.3, 0).c_if(cr, 0)
         qc.cx(0, 1)
         qc.cx(1, 0).c_if(cr, 0)
         qc.cx(0, 1).c_if(cr, 1)
