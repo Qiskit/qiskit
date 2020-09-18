@@ -51,6 +51,9 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckCXDirection
+from qiskit.transpiler.passes import TimeUnitAnalysis
+from qiskit.transpiler.passes import ALAPSchedule
+from qiskit.transpiler.passes import ASAPSchedule
 
 from qiskit.transpiler import TranspilerError
 
@@ -181,13 +184,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Schedule the circuit only when scheduling_method is supplied
     if scheduling_method:
-        from qiskit.transpiler.passes import TimeUnitAnalysis
         _scheduling = [TimeUnitAnalysis(instruction_durations)]
         if scheduling_method in {'alap', 'as_late_as_possible'}:
-            from qiskit.transpiler.passes import ALAPSchedule
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {'asap', 'as_soon_as_possible'}:
-            from qiskit.transpiler.passes import ASAPSchedule
             _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
