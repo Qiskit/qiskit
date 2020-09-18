@@ -187,14 +187,14 @@ class TestCXDirection(QiskitTestCase):
         # Ordering of u2 is important because DAG comparison will consider
         # different conditional order on a creg to be a different circuit.
         # See https://github.com/Qiskit/qiskit-terra/issues/3164
-        expected.append(U2Gate(0, pi), [qr[1], qr[0]]).c_if(cr, 0)
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]]).c_if(cr, 0)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
-        expected.append(U2Gate(0, pi), [qr[1], qr[0]]).c_if(cr, 0)
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]]).c_if(cr, 0)
 
         expected.cx(qr[0], qr[1])
-        expected.append(U2Gate(0, pi), [qr[1], qr[0]])
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]])
         expected.cx(qr[0], qr[1])
-        expected.append(U2Gate(0, pi), [qr[1], qr[0]])
+        expected.append(U2Gate(0, pi), [[qr[1], qr[0]]])
 
         pass_ = CXDirection(coupling)
         after = pass_.run(dag)
