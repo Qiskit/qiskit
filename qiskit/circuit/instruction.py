@@ -137,29 +137,11 @@ class Instruction:
     def params(self, parameters):
         self._params = []
         for single_param in parameters:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression)):
-                self._params.append(single_param)
-            elif isinstance(single_param, numpy.number):
-                self._params.append(single_param.item())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self._params.append(single_param)
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self._params.append(single_param)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self._params.append(single_param)
-            # example: Aer expectation_value_snapshot [complex, 'X']
-            elif isinstance(single_param, list):
-                self._params.append(single_param)
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
-                self._params.append(single_param)
-            else:
-                raise CircuitError("invalid param type {} in instruction "
-                                   "{}".format(type(single_param), self.name))
+            self._params.append(self.validate_parameter(single_param))
+
+    def validate_parameter(self, parameter):
+        """Instruction parameters has no validation or normalization."""
+        return parameter
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
@@ -267,7 +249,20 @@ class Instruction:
         """
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
-        inverse_gate = self.copy(name=self.name + '_dg')
+
+        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        if self.num_clbits:
+            inverse_gate = Instruction(name=self.name + '_dg',
+                                       num_qubits=self.num_qubits,
+                                       num_clbits=self.num_clbits,
+                                       params=self.params.copy())
+
+        else:
+            inverse_gate = Gate(name=self.name + '_dg',
+                                num_qubits=self.num_qubits,
+                                params=self.params.copy())
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
         inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
                                          for inst, qargs, cargs in reversed(self._definition)]
 
@@ -383,6 +378,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc._data = [(self, qargs[:], cargs[:])] * n
+            qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction

@@ -101,8 +101,8 @@ class SabreSwap(TransformationPass):
 
             .. math::
 
-                H_{decay} = \frac{1}{\abs{F}} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
-                    + W * \frac{1}{\abs{E}} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
+                H_{decay}=\frac{1}{\left|{F}\right|}\sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
+                    + W*\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
 
             - 'decay':
 
@@ -113,8 +113,8 @@ class SabreSwap(TransformationPass):
             .. math::
 
                 H_{decay} = max(decay(SWAP.q_1), decay(SWAP.q_2)) {
-                    \frac{1}{\abs{F}} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]
-                    + W * \frac{1}{\abs{E}} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
+                    \frac{1}{\left|{F}\right|} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]\\
+                    + W *\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
                     }
         """
 

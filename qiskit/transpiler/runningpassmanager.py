@@ -17,6 +17,7 @@ from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
+import copy
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -102,6 +103,7 @@ class RunningPassManager:
             QuantumCircuit: Transformed circuit.
         """
         name = circuit.name
+        calibrations = circuit.calibrations
         dag = circuit_to_dag(circuit)
         del circuit
 
@@ -118,6 +120,10 @@ class RunningPassManager:
         else:
             circuit.name = name
         circuit._layout = self.property_set['layout']
+
+        if calibrations:
+            circuit.calibrations = copy.deepcopy(calibrations)
+
         return circuit
 
     def _do_pass(self, pass_, dag, options):

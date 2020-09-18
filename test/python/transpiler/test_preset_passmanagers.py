@@ -107,6 +107,7 @@ class TestPassesInspection(QiskitTestCase):
 
     def setUp(self):
         """Sets self.callback to set self.passes with the passes that have been executed"""
+        super().setUp()
         self.passes = []
 
         def callback(**kwargs):
