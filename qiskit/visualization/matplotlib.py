@@ -73,10 +73,10 @@ class Anchor:
         if self.__fold > 0:
             if h_pos + (gate_width - 1) > self.__fold:
                 index += self.__fold - (h_pos - 1)
-            x_pos = index % self.__fold + 1 + 0.5 * (gate_width - 1)
+            x_pos = index % self.__fold + 0.5 * gate_width + 0.04
             y_pos = self.__yind - (index // self.__fold) * (self.__reg_num + 1)
         else:
-            x_pos = index + 1 + 0.5 * (gate_width - 1)
+            x_pos = index + 0.5 * gate_width + 0.04
             y_pos = self.__yind
 
         # could have been updated, so need to store
@@ -464,7 +464,7 @@ class MatplotlibDrawer:
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc, ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
                                      (cx + 0.20 * WID, cy + 0.35 * WID),
-                                     (cx, cy)), fc=self._style.cc, ec=None)
+                                     (cx, cy + 0.04)), fc=self._style.cc, ec=None)
         self.ax.add_artist(arrowhead)
         # target
         if self.cregbundle:
@@ -555,16 +555,6 @@ class MatplotlibDrawer:
                                     fc=self._style.bc, ec=None, alpha=0.6,
                                     linewidth=self._lwidth15, zorder=PORDER_GRAY)
             self.ax.add_patch(box)
-
-    def _linefeed_mark(self, xy):
-        xpos, ypos = xy
-
-        self.ax.plot([xpos - .1, xpos - .1],
-                     [ypos, ypos - self._cond['n_lines'] + 1],
-                     color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
-        self.ax.plot([xpos + .1, xpos + .1],
-                     [ypos, ypos - self._cond['n_lines'] + 1],
-                     color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
 
     def draw(self, filename=None, verbose=False):
         self._draw_regs()
@@ -684,7 +674,7 @@ class MatplotlibDrawer:
             self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y],
+            self._line([self.x_offset, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
 
         # classical register
@@ -699,28 +689,34 @@ class MatplotlibDrawer:
         for y, this_creg in this_creg_dict.items():
             # cregbundle
             if this_creg['val'] > 1:
-                self.ax.plot([self.x_offset + 0.64, self.x_offset + 0.74], [y - .1, y + .1],
+                self.ax.plot([self.x_offset + 0.2, self.x_offset + 0.3], [y - 0.1, y + 0.1],
                              color=self._style.cc, zorder=PORDER_LINE)
-                self.ax.text(self.x_offset + 0.54, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset + 0.1, y + 0.1, str(this_creg['val']), ha='left',
                              va='bottom', fontsize=0.8 * self._style.fs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
-        # lf line
-        if feedline_r:
-            self._linefeed_mark((self.fold + self.x_offset + 1 - 0.1,
-                                 - n_fold * (self._cond['n_lines'] + 1)))
-        if feedline_l:
-            self._linefeed_mark((self.x_offset + 0.3,
-                                 - n_fold * (self._cond['n_lines'] + 1)))
+        # lf vertical line at either end
+        if feedline_l or feedline_r:
+            xpos_l = self.x_offset - 0.01
+            xpos_r = self.fold + self.x_offset + 0.1
+            ypos1 = -n_fold * (self._cond['n_lines'] + 1)
+            ypos2 = -(n_fold + 1) * (self._cond['n_lines']) - n_fold + 1
+            if feedline_l:
+                self.ax.plot([xpos_l, xpos_l], [ypos1, ypos2],
+                             color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
+            if feedline_r:
+                self.ax.plot([xpos_r, xpos_r], [ypos1, ypos2],
+                             color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
 
     def _draw_ops(self, verbose=False):
-        _standard_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx', 'sxdg']
+        _standard_1q_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry',
+                              'rz', 'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx',
+                              'sxdg', 'p']
         _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
@@ -753,7 +749,7 @@ class MatplotlibDrawer:
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
-                        ((op.name in _standard_gates or base_name in _standard_gates)
+                        ((op.name in _standard_1q_gates or base_name in _standard_1q_gates)
                          and gate_text in (op.name, base_name) and ctrl_text is None)):
                     continue
 
@@ -782,7 +778,7 @@ class MatplotlibDrawer:
                 else:
                     gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
-                    if (op.name not in _standard_gates and base_name not in _standard_gates):
+                    if (op.name not in _standard_1q_gates and base_name not in _standard_1q_gates):
                         gate_width += 0.21
 
                 box_width = max((gate_width, ctrl_width, param_width, WID))
@@ -996,10 +992,10 @@ class MatplotlibDrawer:
 
         # window size
         if max_anc > self.fold > 0:
-            self._cond['xmax'] = self.fold + 1 + self.x_offset
+            self._cond['xmax'] = self.fold + 1 + self.x_offset - 0.9
             self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
-            self._cond['xmax'] = max_anc + 1 + self.x_offset
+            self._cond['xmax'] = max_anc + 1 + self.x_offset - 0.9
             self._cond['ymax'] = self._cond['n_lines']
 
         # add horizontal lines
@@ -1012,10 +1008,10 @@ class MatplotlibDrawer:
         if self._style.index:
             for ii in range(max_anc):
                 if self.fold > 0:
-                    x_coord = ii % self.fold + self._reg_long_text - 0.2
+                    x_coord = ii % self.fold + self._reg_long_text - 0.67
                     y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
-                    x_coord = ii + self._reg_long_text - 0.2
+                    x_coord = ii + self._reg_long_text - 0.67
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
