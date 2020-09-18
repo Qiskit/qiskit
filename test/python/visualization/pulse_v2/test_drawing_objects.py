@@ -14,87 +14,126 @@
 
 """Tests for core modules of pulse drawer."""
 
-import numpy as np
-
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawing_objects
+from qiskit.visualization.pulse_v2 import drawing_objects, types
 
 
 class TestDrawingObjects(QiskitTestCase):
     """Tests for DrawingObjects."""
-    def test_filled_area_data(self):
-        """Test FilledAreaData."""
-        data1 = drawing_objects.FilledAreaData(data_type='waveform',
-                                               channel=pulse.DriveChannel(0),
-                                               x=np.array([0, 1, 2]),
-                                               y1=np.array([3, 4, 5]),
-                                               y2=np.array([0, 0, 0]),
-                                               meta={'test_val': 0},
-                                               offset=0,
-                                               scale=1,
-                                               visible=True,
-                                               styles={'color': 'red'})
 
-        data2 = drawing_objects.FilledAreaData(data_type='waveform',
-                                               channel=pulse.DriveChannel(0),
-                                               x=np.array([0, 1, 2]),
-                                               y1=np.array([3, 4, 5]),
-                                               y2=np.array([0, 0, 0]),
-                                               meta={'test_val': 1},
-                                               offset=1,
-                                               scale=2,
-                                               visible=False,
-                                               styles={'color': 'blue'})
+    def setUp(self) -> None:
+        """Setup."""
+        super().setUp()
+
+        # bits
+        self.ch_d0 = [pulse.DriveChannel(0)]
+        self.ch_d1 = [pulse.DriveChannel(1)]
+
+        # metadata
+        self.meta1 = {'val1': 0, 'val2': 1}
+        self.meta2 = {'val1': 2, 'val2': 3}
+
+        # style data
+        self.style1 = {'property1': 0, 'property2': 1}
+        self.style2 = {'property1': 2, 'property2': 3}
+
+    def test_line_data_equivalent(self):
+        """Test for LineData."""
+        xs = [0, 1, 2]
+        ys = [3, 4, 5]
+
+        data1 = drawing_objects.LineData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         channels=self.ch_d0,
+                                         meta=self.meta1,
+                                         ignore_scaling=True,
+                                         styles=self.style1)
+
+        data2 = drawing_objects.LineData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         channels=self.ch_d1,
+                                         meta=self.meta2,
+                                         ignore_scaling=True,
+                                         styles=self.style2)
 
         self.assertEqual(data1, data2)
 
-    def test_line_data(self):
-        """Test for LineData."""
-        data1 = drawing_objects.LineData(data_type='baseline',
-                                         channel=pulse.DriveChannel(0),
-                                         x=np.array([0, 1, 2]),
-                                         y=np.array([0, 0, 0]),
-                                         meta={'test_val': 0},
-                                         offset=0,
-                                         scale=1,
-                                         visible=True,
-                                         styles={'color': 'red'})
+    def test_line_data_equivalent_with_abstract_coordinate(self):
+        """Test for LineData with abstract coordinate."""
+        xs = [types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT]
+        ys = [types.AbstractCoordinate.TOP, types.AbstractCoordinate.BOTTOM]
 
-        data2 = drawing_objects.LineData(data_type='baseline',
-                                         channel=pulse.DriveChannel(0),
-                                         x=np.array([0, 1, 2]),
-                                         y=np.array([0, 0, 0]),
-                                         meta={'test_val': 1},
-                                         offset=1,
-                                         scale=2,
-                                         visible=False,
-                                         styles={'color': 'blue'})
+        data1 = drawing_objects.LineData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         channels=self.ch_d0,
+                                         meta=self.meta1,
+                                         ignore_scaling=True,
+                                         styles=self.style1)
+
+        data2 = drawing_objects.LineData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         channels=self.ch_d1,
+                                         meta=self.meta2,
+                                         ignore_scaling=True,
+                                         styles=self.style2)
 
         self.assertEqual(data1, data2)
 
     def test_text_data(self):
         """Test for TextData."""
-        data1 = drawing_objects.TextData(data_type='pulse_label',
-                                         channel=pulse.DriveChannel(0),
-                                         x=0,
-                                         y=0,
-                                         text='my_text',
-                                         meta={'test_val': 0},
-                                         offset=0,
-                                         scale=1,
-                                         visible=True,
-                                         styles={'color': 'red'})
+        xs = [0]
+        ys = [1]
 
-        data2 = drawing_objects.TextData(data_type='pulse_label',
-                                         channel=pulse.DriveChannel(0),
-                                         x=0,
-                                         y=0,
-                                         text='my_text',
-                                         meta={'test_val': 1},
-                                         offset=1,
-                                         scale=2,
-                                         visible=False,
-                                         styles={'color': 'blue'})
+        data1 = drawing_objects.TextData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         text='test1',
+                                         latex=r'test_1',
+                                         channels=self.ch_d0,
+                                         meta=self.meta1,
+                                         ignore_scaling=True,
+                                         styles=self.style1)
+
+        data2 = drawing_objects.TextData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         text='test2',
+                                         latex=r'test_2',
+                                         channels=self.ch_d1,
+                                         meta=self.meta2,
+                                         ignore_scaling=True,
+                                         styles=self.style2)
+
+        self.assertEqual(data1, data2)
+
+    def test_text_data_with_abstract_coordinate(self):
+        """Test for TextData with abstract coordinate."""
+        xs = [types.AbstractCoordinate.RIGHT]
+        ys = [types.AbstractCoordinate.TOP]
+
+        data1 = drawing_objects.TextData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         text='test1',
+                                         latex=r'test_1',
+                                         channels=self.ch_d0,
+                                         meta=self.meta1,
+                                         ignore_scaling=True,
+                                         styles=self.style1)
+
+        data2 = drawing_objects.TextData(data_type='test',
+                                         xvals=xs,
+                                         yvals=ys,
+                                         text='test2',
+                                         latex=r'test_2',
+                                         channels=self.ch_d1,
+                                         meta=self.meta2,
+                                         ignore_scaling=True,
+                                         styles=self.style2)
 
         self.assertEqual(data1, data2)
