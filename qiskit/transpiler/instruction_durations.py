@@ -47,6 +47,9 @@ class InstructionDurations:
 
         Returns:
             InstructionDurations: The InstructionDurations constructed from backend.
+
+        Raises:
+            TranspilerError: If dt and dtm is different in the backend.
         """
         # All durations in seconds in gate_length
         instruction_durations = []
@@ -64,6 +67,9 @@ class InstructionDurations:
         # TODO: backend.properties() should tell us durations of measurements
         # TODO: Remove the following lines after that
         try:
+            dtm = backend.configuration().dtm
+            if dtm != dt:
+                raise TranspilerError("dtm != dt case is not supported.")
             inst_map = backend.defaults().instruction_schedule_map
             all_qubits = tuple(range(backend.configuration().num_qubits))
             meas_duration = inst_map.get('measure', all_qubits).duration
