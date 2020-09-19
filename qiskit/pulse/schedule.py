@@ -67,7 +67,7 @@ class Schedule(ScheduleComponent):
         self.__children = []
 
         if len(schedules) > 0:
-            warnings.warn('Argument schedules for the constructor qiskit.pulse.Schedule of class '
+            warnings.warn('Argument schedules for the constructor of class qiskit.pulse.Schedule '
                           'is deprecated as of 0.22.0, and will be removed in a later release.',
                           DeprecationWarning, stacklevel=2)
 
@@ -789,17 +789,24 @@ class ParameterizedSchedule:
         parameterized = []
         parameters = parameters or []
         self.name = name or ''
-        # partition schedules into callable and schedules
-        for schedule in schedules:
-            if isinstance(schedule, ParameterizedSchedule):
-                parameterized.append(schedule)
-                parameters += schedule.parameters
-            elif callable(schedule):
-                parameterized.append(schedule)
-            elif isinstance(schedule, Schedule):
-                full_schedules.append(schedule)
-            else:
-                raise PulseError('Input type: {} not supported'.format(type(schedule)))
+
+        if len(schedules) > 0:
+            warnings.warn('Argument schedules for the constructor of class '
+                          'qiskit.pulse.ParameterizedSchedule is deprecated as of 0.22.0, '
+                          'and will be removed in a later release.',
+                          DeprecationWarning, stacklevel=2)
+
+            # partition schedules into callable and schedules
+            for schedule in schedules:
+                if isinstance(schedule, ParameterizedSchedule):
+                    parameterized.append(schedule)
+                    parameters += schedule.parameters
+                elif callable(schedule):
+                    parameterized.append(schedule)
+                elif isinstance(schedule, Schedule):
+                    full_schedules.append(schedule)
+                else:
+                    raise PulseError('Input type: {} not supported'.format(type(schedule)))
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)

@@ -206,9 +206,10 @@ class Instruction(ScheduleComponent, ABC):
         """
         if name is None:
             name = self.name
-        schedule = Schedule(name=name)
-        schedule.insert(start_time, schedule, inplace=True)
-        return schedule
+        new_schedule = Schedule(name=name)
+        new_schedule.insert(0, self, inplace=True)
+        new_schedule.insert(start_time, schedule, inplace=True)
+        return new_schedule
 
     def append(self, schedule: ScheduleComponent,
                name: Optional[str] = None) -> Schedule:

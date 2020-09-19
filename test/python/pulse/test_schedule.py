@@ -211,6 +211,7 @@ class TestScheduleBuilding(BaseTestSchedule):
             sched1 = Acquire(acquire, AcquireChannel(0), MemorySlot(memoryslot))
             sched2 = Acquire(acquire, AcquireChannel(1), MemorySlot(memoryslot)).shift(shift)
 
+            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
             return Schedule(sched1, sched2)
 
         self.assertIsInstance(my_test_make_schedule(4, 0, 4), Schedule)
@@ -350,12 +351,15 @@ class TestScheduleBuilding(BaseTestSchedule):
             )
             return 5, result
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         par_sched_in_0 = ParameterizedSchedule(
             my_test_par_sched_one, parameters={'x': 0, 'y': 1, 'z': 2}
         )
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         par_sched_in_1 = ParameterizedSchedule(
             my_test_par_sched_two, parameters={'x': 0, 'y': 1, 'z': 2}
         )
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
         actual = par_sched(0.01, 0.02, 0.03)
         expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) |\
@@ -520,25 +524,27 @@ class TestReplace(BaseTestSchedule):
         old = Play(Constant(100, 1.0), DriveChannel(0))
         new = Play(Constant(100, 0.1), DriveChannel(0))
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         sched = Schedule(old)
         new_sched = sched.replace(old, new)
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertEqual(new_sched, Schedule(new))
 
         # test replace inplace
         sched.replace(old, new, inplace=True)
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertEqual(sched, Schedule(new))
 
     def test_replace_schedule(self):
         """Test replacement of schedule."""
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         old = Schedule(
             Delay(10, DriveChannel(0)),
             Delay(100, DriveChannel(1)),
         )
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         new = Schedule(
             Play(Constant(10, 1.0), DriveChannel(0)),
             Play(Constant(100, 0.1), DriveChannel(1)),
@@ -929,20 +935,20 @@ class TestScheduleEquality(BaseTestSchedule):
 
     def test_different_channels(self):
         """Test equality is False if different channels."""
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertNotEqual(Schedule(ShiftPhase(0, DriveChannel(0))),
                             Schedule(ShiftPhase(0, DriveChannel(1))))
 
     def test_same_time_equal(self):
         """Test equal if instruction at same time."""
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertEqual(Schedule((0, ShiftPhase(0, DriveChannel(1)))),
                          Schedule((0, ShiftPhase(0, DriveChannel(1)))))
 
     def test_different_time_not_equal(self):
         """Test that not equal if instruction at different time."""
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertNotEqual(Schedule((0, ShiftPhase(0, DriveChannel(1)))),
                             Schedule((1, ShiftPhase(0, DriveChannel(1)))))
 
@@ -952,7 +958,7 @@ class TestScheduleEquality(BaseTestSchedule):
                         (15, Play(Waveform(np.ones(10)), DriveChannel(0))),
                         (5, Play(Waveform(np.ones(10)), DriveChannel(0)))]
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 
     def test_multiple_channels_out_of_order(self):
@@ -960,13 +966,13 @@ class TestScheduleEquality(BaseTestSchedule):
         instructions = [(0, ShiftPhase(0, DriveChannel(1))),
                         (1, Acquire(10, AcquireChannel(0), MemorySlot(1)))]
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 
     def test_different_name_equal(self):
         """Test that names are ignored when checking equality."""
 
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         self.assertEqual(Schedule((0, ShiftPhase(0, DriveChannel(1), name='fc1')), name='s1'),
                          Schedule((0, ShiftPhase(0, DriveChannel(1), name='fc2')), name='s2'))
 

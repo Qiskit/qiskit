@@ -163,6 +163,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         inst_map = InstructionScheduleMap()
 
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
         inst_map.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction,
                                                           name='inst_seq'))
 

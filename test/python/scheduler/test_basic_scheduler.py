@@ -53,6 +53,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q, c)
         sched = schedule(qc, self.backend)
         # X pulse on q0 should end at the start of the CNOT
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             (28, self.inst_map.get('u2', [0], 3.14, 1.57)),
             self.inst_map.get('u2', [1], 0.5, 0.25),
@@ -72,6 +73,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.barrier(q[0], q[1])
         qc.u2(0, 0, q[1])
         sched = schedule(qc, self.backend, method='alap')
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
             (28, self.inst_map.get('u2', [1], 0, 0)))
@@ -96,6 +98,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.u3(0, 0, 0, q[0])
         qc.u2(0, 0, q[1])
         sched = schedule(qc, self.backend, method='alap')
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected_sched = Schedule(
             self.inst_map.get('u2', [1], 0, 0),
             (26, self.inst_map.get('u3', [0], 0, 0, 0)))
@@ -119,6 +122,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q, c)
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
         # X pulse on q0 should start at t=0
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             self.inst_map.get('u2', [0], 3.14, 1.57),
             self.inst_map.get('u2', [1], 0.5, 0.25),
@@ -183,6 +187,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             self.inst_map.get('u2', [0], 3.14, 1.57),
             (28, self.inst_map.get('cx', [0, 1])),
@@ -206,6 +211,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.cx(q[1], q[2])
         qc.u2(0.778, 0.122, q[2])
         sched = schedule(qc, backend)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             inst_map.get('cx', [0, 1]),
             (22, inst_map.get('u2', [1], 3.14, 1.57)),
@@ -260,6 +266,7 @@ class TestBasicSchedule(QiskitTestCase):
             qc.u1(3.14, [qr[i]])
             qc.u2(0, 0, [qr[i]])
         sched = schedule(qc, self.backend, method="alap")
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
             self.inst_map.get('u2', [1], 0, 0),
@@ -284,6 +291,7 @@ class TestBasicSchedule(QiskitTestCase):
             qc.barrier(qr[i])
             qc.u2(0, 0, [qr[i]])
         sched = schedule(qc, self.backend, method="alap")
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
             self.inst_map.get('u2', [1], 0, 0),
@@ -300,7 +308,7 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.append(Gate('gauss', 1, []), qargs=[qr[0]])
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         custom_gauss = Schedule(Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0)))
         self.inst_map.add('gauss', [0], custom_gauss)
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
@@ -314,13 +322,13 @@ class TestBasicSchedule(QiskitTestCase):
         qc.u2(0, 0, q[0])
         qc.barrier(q[0], q[1])
         qc.u2(0, 0, q[1])
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         qc.add_calibration('u2', [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         qc.add_calibration('u2', [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
 
         sched = schedule(qc, self.backend)
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             Play(Gaussian(28, 0.2, 4), DriveChannel(0)),
             (28, Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1)))))
@@ -339,7 +347,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc.add_calibration('measure', [0], meas_sched)
 
         sched = schedule(qc, self.backend)
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(
             self.inst_map.get('u2', [0], 0, 0),
             (28, meas_sched))
@@ -362,7 +370,7 @@ class TestBasicSchedule(QiskitTestCase):
         meas = macros.measure([1], FakeOpenPulse3Q())
         meas = meas.exclude(channels=[AcquireChannel(0), AcquireChannel(2)])
         sched = schedule(qc, FakeOpenPulse3Q())
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(meas_scheds[0], meas_scheds[1], meas)
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -379,6 +387,6 @@ class TestBasicSchedule(QiskitTestCase):
 
         sched = schedule(qc, self.backend)
         # Doesn't use the calibrated schedule because the classical memory slots do not match
-        # ToDo(4872) remove the use of deprecated constructor Schedule(sched)
+        # ToDo(4872) remove the use of deprecated constructor Schedule(*schedules)
         expected = Schedule(macros.measure([0], self.backend, qubit_mem_slots={0: 1}))
         self.assertEqual(sched.instructions, expected.instructions)

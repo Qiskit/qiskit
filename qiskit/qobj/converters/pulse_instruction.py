@@ -508,6 +508,7 @@ class QobjToInstructionConverter:
                 _phase = phase_expr(*args, **kwargs)
                 return instructions.SetPhase(_phase, channel) << t0
 
+            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
         return instructions.SetPhase(phase, channel) << t0
@@ -534,6 +535,7 @@ class QobjToInstructionConverter:
                 _phase = phase_expr(*args, **kwargs)
                 return instructions.ShiftPhase(_phase, channel) << t0
 
+            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
         return instructions.ShiftPhase(phase, channel) << t0
@@ -558,6 +560,7 @@ class QobjToInstructionConverter:
                 _frequency = frequency_expr(*args, **kwargs)
                 return instructions.SetFrequency(_frequency, channel) << t0
 
+            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
         return instructions.SetFrequency(frequency, channel) << t0
@@ -583,6 +586,7 @@ class QobjToInstructionConverter:
                 _frequency = frequency_expr(*args, **kwargs)
                 return instructions.ShiftFrequency(_frequency, channel) << t0
 
+            # ToDo(4872) remove the use of deprecated constructor Schedule(*schedulers)
             return ParameterizedSchedule(gen_sf_schedule, parameters=frequency_expr.params)
 
         return instructions.ShiftFrequency(frequency, channel) << t0
