@@ -36,6 +36,7 @@ from itertools import zip_longest
 
 import numpy
 
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -208,6 +209,10 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
+        if self.unit != 'dt':
+            raise QiskitError("Unable to assemble instructions with unit '{}', which must be 'dt'."
+                              .format(self.unit))
+
         instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
