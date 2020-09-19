@@ -47,8 +47,9 @@ class ALAPSchedule(TransformationPass):
 
         if not time_unit:
             time_unit = self.property_set['time_unit']
+
         new_dag = dag.reverse_ops()
-        new_dag = self._asap.run(new_dag, self.property_set['time_unit'])
+        new_dag = self._asap.run(new_dag, time_unit)
         new_dag = new_dag.reverse_ops()
 
         new_dag.name = dag.name

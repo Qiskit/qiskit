@@ -73,6 +73,7 @@ class ASAPSchedule(TransformationPass):
             duration = self.durations.get(node.op, node.qargs, unit=time_unit)
             # set duration for each instruction (tricky but necessary)
             new_node.op.duration = duration
+            new_node.op.unit = time_unit
 
             stop_time = start_time + duration
             # update time table

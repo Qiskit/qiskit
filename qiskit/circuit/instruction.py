@@ -49,7 +49,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
         """Create a new instruction.
 
         Args:
@@ -58,7 +58,8 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (float): instruction's duration in seconds.
+            duration (float|int): instruction's duration. it must be integer if ``unit`` is 'dt'
+            unit (str): time unit of duration
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -81,7 +82,9 @@ class Instruction:
         # empty definition means opaque or fundamental instruction
         self._definition = None
         self.params = params
+
         self._duration = duration
+        self._unit = unit
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -192,6 +195,16 @@ class Instruction:
     def duration(self, duration):
         """Set the duration."""
         self._duration = duration
+
+    @property
+    def unit(self):
+        """Get the time unit of duration."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit):
+        """Set the time unit of duration."""
+        self._unit = unit
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

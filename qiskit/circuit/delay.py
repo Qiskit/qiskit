@@ -32,8 +32,7 @@ class Delay(Instruction):
         if unit not in {'s', 'ms', 'us', 'ns', 'ps', 'dt'}:
             raise CircuitError('Unknown unit %s is specified.' % unit)
 
-        super().__init__("delay", 1, 0, params=[duration])
-        self.unit = unit
+        super().__init__("delay", 1, 0, params=[duration], unit=unit)
 
     def inverse(self):
         """Special case. Return self."""
