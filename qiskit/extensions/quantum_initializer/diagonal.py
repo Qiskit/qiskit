@@ -48,9 +48,12 @@ class DiagonalGate(Gate):
         num_action_qubits = math.log2(len(diag))
         if num_action_qubits < 1 or not num_action_qubits.is_integer():
             raise QiskitError("The number of diagonal entries is not a positive power of 2.")
+        diag = diag.copy()
         only_complex = True
-        for z in diag:
+        for i in range(len(diag)):
+            z = diag[i]
             if np.isscalar(z) and (z == 1. or z == -1.):
+                diag[i] = complex(z)
                 continue
             try:
                 if z is not complex:
