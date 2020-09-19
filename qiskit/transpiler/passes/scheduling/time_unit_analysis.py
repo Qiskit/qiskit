@@ -23,6 +23,12 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 class TimeUnitAnalysis(AnalysisPass):
     """Choose a time unit to be used in the following passes
     (e.g. scheduling pass and dynamical decoupling pass).
+
+    If dt (dt in seconds) is known to transpiler, the unit 'dt' is chosen. Otherwise,
+    the unit to be selected depends on what units are used in delays and instruction durations:
+    * 's': if they are all in SI units.
+    * 'dt': if they are all in the unit 'dt'.
+    * raise error: if they are a mix of SI units and 'dt'.
     """
 
     def __init__(self, inst_durations: InstructionDurations):
