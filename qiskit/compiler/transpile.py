@@ -52,6 +52,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               translation_method: Optional[str] = None,
               scheduling_method: Optional[str] = None,
               instruction_durations: Optional[InstructionDurationsType] = None,
+              dt: Optional[float] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,
@@ -136,11 +137,14 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             they are updated (overwritten) if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
             The instruction have to be a pair of instruction name and its acting physical qubits.
-            The duration have to be a pair of length and its time unit. E.g.
-            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
+            The duration have to be a pair of duration (length) and its time unit.
+            So it is usually a list of (instruction_name, qubits, duration, unit) tuples. E.g.
             | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
+            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
             If unit is omitted, the default is 'dt', which is a sample time depending on backend.
-            If the time unit is 'dt', the length must be integer.
+            If the time unit is 'dt', the duration must be an integer.
+        dt: Seconds of a unit 'dt', which is a sample time depending on backend.
+            If ``None`` (default), ``backend.configuration().dt`` is used.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -235,7 +239,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
-                                           scheduling_method, instruction_durations,
+                                           scheduling_method, instruction_durations, dt,
                                            seed_transpiler, optimization_level,
                                            callback, output_name)
 
@@ -438,7 +442,7 @@ def _remap_layout_faulty_backend(layout, faulty_qubits_map):
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method, translation_method,
-                          scheduling_method, instruction_durations,
+                          scheduling_method, instruction_durations, dt,
                           seed_transpiler, optimization_level,
                           callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
@@ -468,7 +472,7 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
-    durations = _parse_instruction_durations(backend, instruction_durations,
+    durations = _parse_instruction_durations(backend, instruction_durations, dt,
                                              scheduling_method, num_circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
@@ -673,14 +677,14 @@ def _parse_scheduling_method(scheduling_method, num_circuits):
     return scheduling_method
 
 
-def _parse_instruction_durations(backend, instruction_durations, scheduling_method, num_circuits):
+def _parse_instruction_durations(backend, inst_durations, dt, scheduling_method, num_circuits):
     durations = None
     if scheduling_method is not None:
         from qiskit.transpiler.instruction_durations import InstructionDurations
         if backend:
-            durations = InstructionDurations.from_backend(backend).update(instruction_durations)
+            durations = InstructionDurations.from_backend(backend).update(inst_durations, dt)
         else:
-            durations = InstructionDurations(instruction_durations)
+            durations = InstructionDurations(inst_durations, dt)
 
     if not isinstance(durations, list):
         durations = [durations] * num_circuits

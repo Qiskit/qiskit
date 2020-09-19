@@ -89,11 +89,11 @@ class InstructionDurations:
         Raises:
             TranspilerError: If the format of instruction_durations is invalid.
         """
-        if inst_durations is None:
-            return self
-
         if dt:
             self.dt = dt
+
+        if inst_durations is None:
+            return self
 
         if isinstance(inst_durations, InstructionDurations):
             self.duration_by_name.update(inst_durations.duration_by_name)
