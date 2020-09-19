@@ -36,9 +36,11 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(0.1, 0, unit='ms')  # 450000[dt]
         qc.delay(100, 0, unit='ns')  # 450[dt]
-        qc.h(0)
-        qc.h(1)
+        qc.h(0)  # 160[dt]
+        qc.h(1)  # 160[dt]
         sc = transpile(qc, self.backend_with_dt, scheduling_method='alap')
+        self.assertEqual(sc.duration, 450610)
+        self.assertEqual(sc.unit, 'dt')
         self.assertEqual(sc.data[1][0].name, "delay")
         self.assertEqual(sc.data[1][0].duration, 450)
         self.assertEqual(sc.data[1][0].unit, 'dt')
@@ -62,6 +64,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)
         qc.h(1)
         sc = transpile(qc, self.backend_without_dt, scheduling_method='alap', dt=self.dt)
+        self.assertEqual(sc.duration, 450610)
+        self.assertEqual(sc.unit, 'dt')
         self.assertEqual(sc.data[1][0].name, "delay")
         self.assertEqual(sc.data[1][0].duration, 450)
         self.assertEqual(sc.data[1][0].unit, 'dt')
@@ -80,6 +84,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)
         qc.h(1)
         sc = transpile(qc, self.backend_without_dt, scheduling_method='alap')
+        self.assertAlmostEqual(sc.duration, 450610*self.dt)
+        self.assertEqual(sc.unit, 's')
         self.assertEqual(sc.data[1][0].name, "delay")
         self.assertAlmostEqual(sc.data[1][0].duration, 1.0e-7)
         self.assertEqual(sc.data[1][0].unit, 's')

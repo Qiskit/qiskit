@@ -86,4 +86,5 @@ class ASAPSchedule(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.duration = circuit_duration
+        new_dag.unit = time_unit
         return new_dag

@@ -90,6 +90,7 @@ class TimeUnitAnalysis(AnalysisPass):
         for unit in unit_set:
             if not unit.endswith('s'):
                 all_si = False
+                break
 
         if all_si:
             return "SI"

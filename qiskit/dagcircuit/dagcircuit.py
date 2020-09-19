@@ -92,6 +92,7 @@ class DAGCircuit:
         self._global_phase = 0
 
         self.duration = None
+        self.unit = 'dt'
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
