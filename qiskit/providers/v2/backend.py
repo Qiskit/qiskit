@@ -12,6 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Backend abstract interface for providers."""
+
+
 from abc import ABC
 from abc import abstractmethod
 
@@ -19,7 +22,14 @@ from qiskit.providers.models.backendstatus import BackendStatus
 
 
 class Backend:
-    pass
+    """Base common type for all versioned Backend abstract classes.
+
+    Note this class should not be inherited from directly, it is intended
+    to be used for type checking. When implementing a provider you should use
+    the versioned abstract classes as the parent class and not this class
+    directly.
+    """
+    version = 0
 
 
 class BackendV1(Backend, ABC):
@@ -48,14 +58,12 @@ class BackendV1(Backend, ABC):
     future versions of this abstract class to change the data model and
     interface.
     """
-
     version = 1
 
     def __init__(self, configuration, **fields):
         """Initialize a backend class
 
         Args:
-            name (str): The name of the backend
             configuration (BackendConfiguration): A backend configuration
                 object for the backend object
             fields: kwargs for the values to use to override the default
@@ -107,7 +115,7 @@ class BackendV1(Backend, ABC):
                 raise AttributeError(
                     "Options field %s is not valid for this "
                     "backend" % field)
-        self._options.update_config(**fields)
+        self._options.update_options(**fields)
 
     def configuration(self):
         """Return the backend configuration.
@@ -146,14 +154,6 @@ class BackendV1(Backend, ABC):
         """
         return self._configuration.backend_name
 
-    def version(self):
-        """Return the backend version.
-
-        Returns:
-            str: the X.X.X version of the backend.
-        """
-        return self._configuration.backend_version
-
     def __str__(self):
         return self.name()
 
@@ -189,8 +189,8 @@ class BackendV1(Backend, ABC):
         class can handle either situation.
 
         Args:
-            run_input: An individual or a list of of
-                :class:`~qiskit.circuits.QuantumCircuit`circuits or
+            run_input (QuantumCircuit or Schedule or list): An individual or a
+                list of of :class:`~qiskit.circuits.QuantumCircuit`circuits or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
                 For v1 providers migrating to this first version of a v2
                 provider interface a :class:`~qiskit.qobj.QasmQobj` or

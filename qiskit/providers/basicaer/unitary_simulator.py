@@ -109,8 +109,10 @@ class UnitarySimulatorPy(BackendV1):
     }
 
     def __init__(self, configuration=None, **fields):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)), **fields)
+        super().__init__(
+            configuration=(configuration or QasmBackendConfiguration.from_dict(
+                self.DEFAULT_CONFIGURATION)),
+            **fields)
 
         # Define attributes inside __init__.
         self._unitary = None
@@ -244,7 +246,7 @@ class UnitarySimulatorPy(BackendV1):
                     "chop_threshold": 1e-15
                 }
         """
-        if isinstance(qobj, QuantumCircuit) or isinstance(qobj, list):
+        if isinstance(qobj, (QuantumCircuit, list)):
             from qiskit.compiler import assemble
             qobj = assemble(qobj, self)
             qobj_options = None

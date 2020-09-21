@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Container class for backend options."""
+
 
 class Options:
     """Base options object
@@ -27,8 +29,10 @@ class Options:
     def __init__(self, **kwargs):
         self.data = kwargs if kwargs else {}
 
-    def update_config(self, **fields):
+    def update_options(self, **fields):
+        """Update options with kwargs"""
         self.data.update(fields)
 
     def get(self, field, default=None):
+        """Get an option value for a given key."""
         return self.data.get(field, default)

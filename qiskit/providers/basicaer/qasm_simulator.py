@@ -115,8 +115,9 @@ class QasmSimulatorPy(BackendV1):
     SHOW_FINAL_STATE = False
 
     def __init__(self, configuration=None, **fields):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(
+            configuration=(configuration or QasmBackendConfiguration.from_dict(
+                self.DEFAULT_CONFIGURATION)),
             **fields)
 
         # Define attributes in __init__.
@@ -395,7 +396,7 @@ class QasmSimulatorPy(BackendV1):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
                 }
         """
-        if isinstance(qobj, QuantumCircuit) or isinstance(qobj, list):
+        if isinstance(qobj, (QuantumCircuit, list)):
             from qiskit.compiler import assemble
             qobj = assemble(qobj, self)
             qobj_options = None

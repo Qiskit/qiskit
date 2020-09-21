@@ -14,7 +14,6 @@
 """Qobj tests."""
 
 import copy
-import uuid
 
 import jsonschema
 
@@ -178,7 +177,7 @@ class TestQASMQobj(QiskitTestCase):
         self.bad_qobj.header = QobjHeader(backend_name=backend.name())
 
         with self.assertRaises(SchemaValidationError):
-            job = basicaer.QasmSimulatorPy().run(self.bad_qobj)
+            basicaer.QasmSimulatorPy().run(self.bad_qobj)
 
     def test_change_qobj_after_compile(self):
         """Test modifying Qobj parameters after compile."""

@@ -12,8 +12,6 @@
 
 """Class for backend status."""
 
-import re
-
 from qiskit.exceptions import QiskitError
 
 

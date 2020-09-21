@@ -10,11 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module implements the abstract base class for backend jobs.
-
-When creating a new backend module it is also necessary to implement this
-job interface.
-"""
+"""Job abstract interface."""
 
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
@@ -26,7 +22,14 @@ from qiskit.providers.v2.backend import Backend
 
 
 class Job:
-    pass
+    """Base common type for all versioned Job abstract classes.
+
+    Note this class should not be inherited from directly, it is intended
+    to be used for type checking. When implementing a provider you should use
+    the versioned abstract classes as the parent class and not this class
+    directly.
+    """
+    version = 0
 
 
 class JobV1(Job, ABC):
@@ -47,6 +50,7 @@ class JobV1(Job, ABC):
             backend: the backend used to run the job.
             job_id: a unique id in the context of the backend used to run
                 the job.
+            kwargs: Any key value metadata to associate with this job.
         """
         self._job_id = job_id
         self._backend = backend

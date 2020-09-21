@@ -94,7 +94,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          **fields)
 
-    def run(self, qobj, backend_options=None):
+    def run(self, qobj, **backend_options):
         """Run qobj asynchronously.
 
         Args:

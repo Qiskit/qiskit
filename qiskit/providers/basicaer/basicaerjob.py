@@ -10,15 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=abstract-method
+
 """This module implements the job class used by Basic Aer Provider."""
 
-from concurrent import futures
-import sys
-import functools
-
-from qiskit.providers import JobStatus, JobError
+from qiskit.providers import JobStatus
 from qiskit.providers.v2.job import JobV1
-from qiskit.qobj import validate_qobj_against_schema
 
 
 class BasicAerJob(JobV1):
@@ -44,15 +41,9 @@ class BasicAerJob(JobV1):
         """
         return
 
-    def result(self, timeout=None):
+    def result(self):
         # pylint: disable=arguments-differ
-        """Get job result. The behavior is the same as the underlying
-        concurrent Future objects,
-
-        https://docs.python.org/3/library/concurrent.futures.html#future-objects
-
-        Args:
-            timeout (float): number of seconds to wait for results.
+        """Get job result .
 
         Returns:
             qiskit.Result: Result object
