@@ -206,7 +206,7 @@ class QasmBackendConfiguration:
                  max_shots, coupling_map, max_experiments=None,
                  sample_name=None, n_registers=None, register_map=None,
                  configurable=None, credits_required=None, online_date=None,
-                 display_name=None, description=None, tags=None, **kwargs):
+                 display_name=None, description=None, tags=None, dt=None, dtm=None, **kwargs):
         """Initialize a QasmBackendConfiguration Object
 
         Args:
@@ -279,13 +279,12 @@ class QasmBackendConfiguration:
             self.description = description
         if tags is not None:
             self.tags = tags
-
-        # Add pulse properties here becuase some backends do not
+        # Add pulse properties here because some backends do not
         # fit within the Qasm / Pulse backend partitioning in Qiskit
-        if 'dt' in kwargs.keys():
-            kwargs['dt'] *= 1e-9
-        if 'dtm' in kwargs.keys():
-            kwargs['dtm'] *= 1e-9
+        if dt is not None:
+            self.dt = dt * 1e-9  # pylint: disable=invalid-name
+        if dtm is not None:
+            self.dtm = dtm * 1e-9
 
         if 'qubit_lo_range' in kwargs.keys():
             kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
@@ -346,7 +345,7 @@ class QasmBackendConfiguration:
         for kwarg in ['max_experiments', 'sample_name', 'n_registers',
                       'register_map', 'configurable', 'credits_required',
                       'online_date', 'display_name', 'description',
-                      'tags']:
+                      'tags', 'dt', 'dtm']:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
 
