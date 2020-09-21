@@ -352,9 +352,9 @@ class QasmBackendConfiguration:
         out_dict.update(self._data)
 
         if 'dt' in out_dict:
-            out_dict['dt'] *= 1e-9
+            out_dict['dt'] *= 1e9
         if 'dtm' in out_dict:
-            out_dict['dtm'] *= 1e-9
+            out_dict['dtm'] *= 1e9
 
         if 'qubit_lo_range' in out_dict:
             out_dict['qubit_lo_range'] = [
@@ -638,8 +638,8 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if self.rep_times:
             out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
 
-        out_dict['dt'] = out_dict['dt'] * 1e9  # pylint: disable=invalid-name
-        out_dict['dtm'] = out_dict['dtm'] * 1e9
+        out_dict['dt'] *= 1e9  # pylint: disable=invalid-name
+        out_dict['dtm'] *= 1e9
 
         if hasattr(self, 'channel_bandwidth'):
             out_dict['channel_bandwidth'] = [
