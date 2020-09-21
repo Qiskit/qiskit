@@ -126,7 +126,7 @@ class BasicAerProvider(ProviderV1):
         """
         # Verify that the backend can be instantiated.
         try:
-            backend_instance = backend_cls()
+            backend_instance = backend_cls(provider=self)
         except Exception as err:
             raise QiskitError('Backend %s could not be instantiated: %s' %
                               (backend_cls, err))

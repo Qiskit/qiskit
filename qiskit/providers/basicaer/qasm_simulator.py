@@ -114,12 +114,12 @@ class QasmSimulatorPy(BackendV1):
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
-    def __init__(self, configuration=None, **fields):
+    def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(
             configuration=(configuration or QasmBackendConfiguration.from_dict(
                 self.DEFAULT_CONFIGURATION)),
             **fields)
-
+        self.provider = provider
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0

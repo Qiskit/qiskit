@@ -108,12 +108,13 @@ class UnitarySimulatorPy(BackendV1):
         "chop_threshold": 1e-15
     }
 
-    def __init__(self, configuration=None, **fields):
+    def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(
             configuration=(configuration or QasmBackendConfiguration.from_dict(
                 self.DEFAULT_CONFIGURATION)),
             **fields)
 
+        self.provider = provider
         # Define attributes inside __init__.
         self._unitary = None
         self._number_of_qubits = 0
