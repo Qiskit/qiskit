@@ -783,12 +783,8 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
-        # TODO remove deepcopy calls after
-        # https://github.com/mtreinish/retworkx/issues/27 is fixed
-        slf = copy.deepcopy(self._multi_graph)
-        oth = copy.deepcopy(other._multi_graph)
-
-        return rx.is_isomorphic_node_match(slf, oth,
+        return rx.is_isomorphic_node_match(self._multi_graph,
+                                           other._multi_graph,
                                            DAGNode.semantic_eq)
 
     def topological_nodes(self):
