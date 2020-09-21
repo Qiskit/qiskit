@@ -10,6 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Pulse style sheet.
-"""
+# pylint: disable=missing-docstring
+
+from .fake_manhattan import FakeManhattan
