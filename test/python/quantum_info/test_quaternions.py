@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -29,6 +27,7 @@ class TestQuaternions(QiskitTestCase):
     """Tests qiskit.quantum_info.operators.quaternion"""
 
     def setUp(self):
+        super().setUp()
         self.rnd_array = np.array([0.5, 0.8, 0.9, -0.3])
         self.quat_unnormalized = Quaternion(self.rnd_array)
         axes = ['x', 'y', 'z']

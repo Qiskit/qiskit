@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -27,6 +25,7 @@ class LoadFromQasmTest(QiskitTestCase):
     """Test circuit.from_qasm_* set of methods."""
 
     def setUp(self):
+        super().setUp()
         self.qasm_file_name = 'entangled_registers.qasm'
         self.qasm_file_path = self._get_resource_path('qasm/' + self.qasm_file_name, Path.EXAMPLES)
 
