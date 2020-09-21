@@ -17,7 +17,8 @@ import os
 import sys
 import re
 
-pep3120 = re.compile("^[ \t\f]*#.*?coding[:=][ \t]*([-_.a-zA-Z0-9]+)")
+# regex for character encoding from PEP 263
+pep263 = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-_.a-zA-Z0-9]+)")
 
 def discover_files(code_paths):
     out_paths = []
