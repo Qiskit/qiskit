@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -183,18 +181,18 @@ def control(operation: Union[Gate, ControlledGate],
     # is named like "cc<base_gate.name>", else it is named like
     # "c<num_ctrl_qubits><base_name>".
     if new_num_ctrl_qubits > 2:
-        ctrl_substr = 'c{0:d}'.format(new_num_ctrl_qubits)
+        ctrl_substr = 'c{:d}'.format(new_num_ctrl_qubits)
     else:
         ctrl_substr = ('{0}' * new_num_ctrl_qubits).format('c')
-    new_name = '{0}{1}'.format(ctrl_substr, base_name)
+    new_name = '{}{}'.format(ctrl_substr, base_name)
     cgate = controlledgate.ControlledGate(new_name,
                                           controlled_circ.num_qubits,
                                           operation.params,
                                           label=label,
                                           num_ctrl_qubits=new_num_ctrl_qubits,
                                           definition=controlled_circ,
-                                          ctrl_state=new_ctrl_state)
-    cgate.base_gate = base_gate
+                                          ctrl_state=new_ctrl_state,
+                                          base_gate=base_gate)
     return cgate
 
 

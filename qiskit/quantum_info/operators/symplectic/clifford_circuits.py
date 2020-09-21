@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020
@@ -89,7 +87,7 @@ def _append_circuit(clifford, circuit, qargs=None):
     if gate.definition is None:
         raise QiskitError('Cannot apply Instruction: {}'.format(gate.name))
     if not isinstance(gate.definition, QuantumCircuit):
-        raise QiskitError('{0} instruction definition is {1}; expected QuantumCircuit'.format(
+        raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
             gate.name, type(gate.definition)))
     for instr, qregs, cregs in gate.definition:
         if cregs:

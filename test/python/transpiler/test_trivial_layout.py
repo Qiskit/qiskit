@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -29,6 +27,7 @@ class TestTrivialLayout(QiskitTestCase):
     """Tests the TrivialLayout pass"""
 
     def setUp(self):
+        super().setUp()
         self.cmap5 = FakeTenerife().configuration().coupling_map
         self.cmap16 = FakeRueschlikon().configuration().coupling_map
 

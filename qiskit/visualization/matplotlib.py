@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -20,7 +18,9 @@ import collections
 import itertools
 import json
 import logging
+import re
 from warnings import warn
+
 import numpy as np
 
 try:
@@ -31,6 +31,13 @@ try:
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
+
+try:
+    from pylatexenc.latex2text import LatexNodes2Text
+
+    HAS_PYLATEX = True
+except ImportError:
+    HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
@@ -66,10 +73,10 @@ class Anchor:
         if self.__fold > 0:
             if h_pos + (gate_width - 1) > self.__fold:
                 index += self.__fold - (h_pos - 1)
-            x_pos = index % self.__fold + 1 + 0.5 * (gate_width - 1)
+            x_pos = index % self.__fold + 0.5 * gate_width + 0.04
             y_pos = self.__yind - (index // self.__fold) * (self.__reg_num + 1)
         else:
-            x_pos = index + 1 + 0.5 * (gate_width - 1)
+            x_pos = index + 0.5 * gate_width + 0.04
             y_pos = self.__yind
 
         # could have been updated, so need to store
@@ -107,11 +114,15 @@ class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=None, style=None, plot_barriers=True,
                  reverse_bits=False, layout=None, fold=25, ax=None,
-                 initial_state=False, cregbundle=True):
+                 initial_state=False, cregbundle=True, global_phase=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
                               'To install, run "pip install matplotlib".')
+
+        if not HAS_PYLATEX:
+            raise ImportError('The class MatplotlibDrawer needs pylatexenc. '
+                              'to install, run "pip install pylatexenc".')
 
         self._ast = None
         self._scale = 1.0 if scale is None else scale
@@ -119,6 +130,7 @@ class MatplotlibDrawer:
         self._qreg = []
         self._registers(cregs, qregs)
         self._ops = ops
+        self.global_phase = global_phase
 
         self._qreg_dict = collections.OrderedDict()
         self._creg_dict = collections.OrderedDict()
@@ -156,7 +168,7 @@ class MatplotlibDrawer:
             if isinstance(style, dict):
                 self._style.set_style(style)
             elif isinstance(style, str):
-                with open(style, 'r') as infile:
+                with open(style) as infile:
                     dic = json.load(infile)
                 self._style.set_style(dic)
 
@@ -198,9 +210,6 @@ class MatplotlibDrawer:
 
         # these char arrays are for finding text_width when not
         # using get_renderer method for the matplotlib backend
-        self._latex_chars = ('$', '{', '}', '_', '\\left', '\\right',
-                             '\\dagger', '\\rangle')
-        self._latex_chars1 = ('\\mapsto', '\\pi', '\\;')
         self._char_list = {' ': (0.0958, 0.0583), '!': (0.1208, 0.0729), '"': (0.1396, 0.0875),
                            '#': (0.2521, 0.1562), '$': (0.1917, 0.1167), '%': (0.2854, 0.1771),
                            '&': (0.2333, 0.1458), "'": (0.0833, 0.0521), '(': (0.1167, 0.0729),
@@ -234,6 +243,8 @@ class MatplotlibDrawer:
                            'z': (0.1562, 0.0979), '{': (0.1917, 0.1188), '|': (0.1, 0.0604),
                            '}': (0.1896, 0.1188)}
 
+        self._mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
+
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
@@ -247,7 +258,7 @@ class MatplotlibDrawer:
         return self._ast
 
     # This computes the width of a string in the default font
-    def _get_text_width(self, text, fontsize):
+    def _get_text_width(self, text, fontsize, param=False):
         if not text:
             return 0.0
 
@@ -255,12 +266,26 @@ class MatplotlibDrawer:
             t = plt.text(0.5, 0.5, text, fontsize=fontsize)
             return t.get_window_extent(renderer=self.renderer).width / 60.0
         else:
-            # if not using a get_renderer method, first remove
-            # any latex chars before getting width
-            for t in self._latex_chars1:
-                text = text.replace(t, 'r')
-            for t in self._latex_chars:
-                text = text.replace(t, '')
+            math_mode_match = self._mathmode_regex.search(text)
+            num_underscores = 0
+            num_carets = 0
+            if math_mode_match:
+                math_mode_text = math_mode_match.group(1)
+                num_underscores = math_mode_text.count('_')
+                num_carets = math_mode_text.count('^')
+            text = LatexNodes2Text().latex_to_text(text.replace('$$', ''))
+
+            # If there are subscripts or superscripts in mathtext string
+            # we need to account for that spacing by manually removing
+            # from text string for text length
+            if num_underscores:
+                text = text.replace('_', '', num_underscores)
+            if num_carets:
+                text = text.replace('^', '', num_carets)
+
+            # This changes hyphen to + to match width of math mode minus sign.
+            if param:
+                text = text.replace('-', '+')
 
             f = 0 if fontsize == self._style.fs else 1
             sum_text = 0.0
@@ -268,8 +293,8 @@ class MatplotlibDrawer:
                 try:
                     sum_text += self._char_list[c][f]
                 except KeyError:
-                    # if non-ASCII char, use width of 'r', an average size
-                    sum_text += self._char_list['r'][f]
+                    # if non-ASCII char, use width of 'c', an average size
+                    sum_text += self._char_list['c'][f]
             return sum_text
 
     def param_parse(self, v):
@@ -280,14 +305,7 @@ class MatplotlibDrawer:
                 param_parts[i] = pi_check(e, output='mpl', ndigits=3)
             except TypeError:
                 param_parts[i] = str(e)
-
-            if param_parts[i].startswith('-'):
-                param_parts[i] = '$-$' + param_parts[i][1:]
-
-        param_parts = ', '.join(param_parts)
-        # remove $'s since "${}$".format will add them back on the outside
-        param_parts = param_parts.replace('$', '')
-        param_parts = param_parts.replace('-', u'\u02d7')
+        param_parts = ', '.join(param_parts).replace('-', '$-$')
         return param_parts
 
     def _get_gate_ctrl_text(self, op):
@@ -309,18 +327,12 @@ class MatplotlibDrawer:
             gate_text = op.name
 
         if gate_text in self._style.disptex:
-            gate_text = "${}$".format(self._style.disptex[gate_text])
+            gate_text = "{}".format(self._style.disptex[gate_text])
         else:
-            gate_text = "${}$".format(gate_text[0].upper() + gate_text[1:])
+            gate_text = "{}".format(gate_text[0].upper() + gate_text[1:])
 
-        # mathtext .format removes spaces so add them back and it changes
-        # hyphen to wide minus sign, so use unicode hyphen to prevent that
-        gate_text = gate_text.replace(' ', '\\;')
-        gate_text = gate_text.replace('-', u'\u02d7')
         if ctrl_text:
-            ctrl_text = "${}$".format(ctrl_text[0].upper() + ctrl_text[1:])
-            ctrl_text = ctrl_text.replace(' ', '\\;')
-            ctrl_text = ctrl_text.replace('-', u'\u02d7')
+            ctrl_text = "{}".format(ctrl_text[0].upper() + ctrl_text[1:])
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
@@ -347,7 +359,7 @@ class MatplotlibDrawer:
 
         # added .21 is for qubit numbers on the left side
         text_width = self._get_text_width(text, self._style.fs) + .21
-        sub_width = self._get_text_width(subtext, self._style.sfs) + .21
+        sub_width = self._get_text_width(subtext, self._style.sfs, param=True) + .21
         wid = max((text_width, sub_width, WID))
 
         qubit_span = abs(ypos) - abs(ypos_max) + 1
@@ -382,7 +394,7 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         text_width = self._get_text_width(text, self._style.fs)
-        sub_width = self._get_text_width(subtext, self._style.sfs)
+        sub_width = self._get_text_width(subtext, self._style.sfs, param=True)
         wid = max((text_width, sub_width, WID))
 
         box = patches.Rectangle(xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
@@ -452,7 +464,7 @@ class MatplotlibDrawer:
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc, ls=self._style.cline)
         arrowhead = patches.Polygon(((cx - 0.20 * WID, cy + 0.35 * WID),
                                      (cx + 0.20 * WID, cy + 0.35 * WID),
-                                     (cx, cy)), fc=self._style.cc, ec=None)
+                                     (cx, cy + 0.04)), fc=self._style.cc, ec=None)
         self.ax.add_artist(arrowhead)
         # target
         if self.cregbundle:
@@ -495,7 +507,7 @@ class MatplotlibDrawer:
             top = min(qubits) > min_ctbit
 
         # display the control qubits as open or closed based on ctrl_state
-        cstate = "{0:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
+        cstate = "{:b}".format(ctrl_state).rjust(num_ctrl_qubits, '0')[::-1]
         for i in range(num_ctrl_qubits):
             fc_open_close = ec if cstate[i] == '1' else self._style.bg
             text_top = None
@@ -544,16 +556,6 @@ class MatplotlibDrawer:
                                     linewidth=self._lwidth15, zorder=PORDER_GRAY)
             self.ax.add_patch(box)
 
-    def _linefeed_mark(self, xy):
-        xpos, ypos = xy
-
-        self.ax.plot([xpos - .1, xpos - .1],
-                     [ypos, ypos - self._cond['n_lines'] + 1],
-                     color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
-        self.ax.plot([xpos + .1, xpos + .1],
-                     [ypos, ypos - self._cond['n_lines'] + 1],
-                     color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
-
     def draw(self, filename=None, verbose=False):
         self._draw_regs()
         self._draw_ops(verbose)
@@ -570,6 +572,9 @@ class MatplotlibDrawer:
         if self._style.figwidth < 0.0:
             self._style.figwidth = fig_w * BASE_SIZE * self._style.fs / 72 / WID
         self.figure.set_size_inches(self._style.figwidth, self._style.figwidth * fig_h / fig_w)
+        if self.global_phase:
+            plt.text(_xl, _yt, 'Global Phase: %s' % pi_check(self.global_phase,
+                                                             output='mpl'))
 
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
@@ -607,13 +612,16 @@ class MatplotlibDrawer:
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
                 else:
-                    label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
-                        name=self.layout[reg.index].register.name,
-                        index=self.layout[reg.index].index, physical=reg.index)
+                    if self.layout[reg.index]:
+                        label = '${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$'.format(
+                            name=self.layout[reg.index].register.name,
+                            index=self.layout[reg.index].index, physical=reg.index)
+                    else:
+                        label = '${{{physical}}}$'.format(physical=reg.index)
                     label = _fix_double_script(label) + initial_qbit
                     text_width = self._get_text_width(label, self._style.fs)
             else:
-                label = '${name}$'.format(name=reg.register.name)
+                label = '{name}'.format(name=reg.register.name)
                 label = _fix_double_script(label) + initial_qbit
                 text_width = self._get_text_width(label, self._style.fs)
 
@@ -635,7 +643,7 @@ class MatplotlibDrawer:
             for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._creg, n_creg)):
                 pos = y_off - idx
                 if self.cregbundle:
-                    label = '${}$'.format(reg.register.name)
+                    label = '{}'.format(reg.register.name)
                     label = _fix_double_script(label) + initial_cbit
                     text_width = self._get_text_width(reg.register.name, self._style.fs) * 1.15
                     if text_width > longest_label_width:
@@ -666,7 +674,7 @@ class MatplotlibDrawer:
             self.ax.text(self.x_offset - 0.2, y, label, ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y],
+            self._line([self.x_offset, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
 
         # classical register
@@ -681,28 +689,34 @@ class MatplotlibDrawer:
         for y, this_creg in this_creg_dict.items():
             # cregbundle
             if this_creg['val'] > 1:
-                self.ax.plot([self.x_offset + 0.64, self.x_offset + 0.74], [y - .1, y + .1],
+                self.ax.plot([self.x_offset + 0.2, self.x_offset + 0.3], [y - 0.1, y + 0.1],
                              color=self._style.cc, zorder=PORDER_LINE)
-                self.ax.text(self.x_offset + 0.54, y + .1, str(this_creg['val']), ha='left',
+                self.ax.text(self.x_offset + 0.1, y + 0.1, str(this_creg['val']), ha='left',
                              va='bottom', fontsize=0.8 * self._style.fs,
                              color=self._style.tc, clip_on=True, zorder=PORDER_TEXT)
             self.ax.text(self.x_offset - 0.2, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.25 * self._style.fs, color=self._style.tc,
                          clip_on=True, zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.2, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
-        # lf line
-        if feedline_r:
-            self._linefeed_mark((self.fold + self.x_offset + 1 - 0.1,
-                                 - n_fold * (self._cond['n_lines'] + 1)))
-        if feedline_l:
-            self._linefeed_mark((self.x_offset + 0.3,
-                                 - n_fold * (self._cond['n_lines'] + 1)))
+        # lf vertical line at either end
+        if feedline_l or feedline_r:
+            xpos_l = self.x_offset - 0.01
+            xpos_r = self.fold + self.x_offset + 0.1
+            ypos1 = -n_fold * (self._cond['n_lines'] + 1)
+            ypos2 = -(n_fold + 1) * (self._cond['n_lines']) - n_fold + 1
+            if feedline_l:
+                self.ax.plot([xpos_l, xpos_l], [ypos1, ypos2],
+                             color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
+            if feedline_r:
+                self.ax.plot([xpos_r, xpos_r], [ypos1, ypos2],
+                             color=self._style.lc, linewidth=self._lwidth15, zorder=PORDER_LINE)
 
     def _draw_ops(self, verbose=False):
-        _standard_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz',
-                           'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset']
+        _standard_1q_gates = ['x', 'y', 'z', 'id', 'h', 'r', 's', 'sdg', 't', 'tdg', 'rx', 'ry',
+                              'rz', 'rxx', 'ryy', 'rzx', 'u1', 'u2', 'u3', 'swap', 'reset', 'sx',
+                              'sxdg', 'p']
         _barrier_gates = ['barrier', 'snapshot', 'load', 'save', 'noise']
         _barriers = {'coord': [], 'group': []}
 
@@ -735,7 +749,7 @@ class MatplotlibDrawer:
 
                 # if a standard_gate, no params, and no labels, layer_width is 1
                 if (not hasattr(op.op, 'params') and
-                        ((op.name in _standard_gates or base_name in _standard_gates)
+                        ((op.name in _standard_1q_gates or base_name in _standard_1q_gates)
                          and gate_text in (op.name, base_name) and ctrl_text is None)):
                     continue
 
@@ -751,19 +765,20 @@ class MatplotlibDrawer:
                     if op.name == 'initialize':
                         param = '[%s]' % param
                     param = "${}$".format(param)
-                    param_width = self._get_text_width(param, fontsize=self._style.sfs) + 0.08
+                    param_width = self._get_text_width(param, fontsize=self._style.sfs,
+                                                       param=True) + 0.08
                 else:
                     param_width = 0.0
 
                 if op.name == 'cu1' or op.name == 'rzz' or base_name == 'rzz':
                     tname = 'U1' if op.name == 'cu1' else 'zz'
-                    gate_width = (self._get_text_width(tname + ' ()$$',
+                    gate_width = (self._get_text_width(tname + ' ()',
                                                        fontsize=self._style.sfs)
                                   + param_width) * 1.5
                 else:
                     gate_width = self._get_text_width(gate_text, fontsize=self._style.fs) + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
-                    if (op.name not in _standard_gates and base_name not in _standard_gates):
+                    if (op.name not in _standard_1q_gates and base_name not in _standard_1q_gates):
                         gate_width += 0.21
 
                 box_width = max((gate_width, ctrl_width, param_width, WID))
@@ -824,7 +839,7 @@ class MatplotlibDrawer:
                 # load param
                 if (op.type == 'op' and hasattr(op.op, 'params') and len(op.op.params) > 0
                         and not any([isinstance(param, np.ndarray) for param in op.op.params])):
-                    param = "${}$".format(self.param_parse(op.op.params))
+                    param = "{}".format(self.param_parse(op.op.params))
                 else:
                     param = ''
 
@@ -881,8 +896,12 @@ class MatplotlibDrawer:
 
                 elif op.name == 'initialize':
                     vec = "$[{}]$".format(param.replace('$', ''))
-                    self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
-                                          text=gate_text, subtext=vec)
+                    if len(q_xy) == 1:
+                        self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
+                                   text=gate_text, subtext=vec)
+                    else:
+                        self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
+                                              text=gate_text, subtext=vec)
                 #
                 # draw single qubit gates
                 #
@@ -920,7 +939,7 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
                     stext = self._style.disptex['u1'] if op.name == 'cu1' else 'zz'
                     self._sidetext(qreg_b, tc=tc,
-                                   text='${}$'.format(stext) + ' ' + '({})'.format(param))
+                                   text='{}'.format(stext) + ' ' + '({})'.format(param))
                     self._line(qreg_b, qreg_t, lc=lc)
 
                 # swap gate
@@ -973,10 +992,10 @@ class MatplotlibDrawer:
 
         # window size
         if max_anc > self.fold > 0:
-            self._cond['xmax'] = self.fold + 1 + self.x_offset
+            self._cond['xmax'] = self.fold + 1 + self.x_offset - 0.9
             self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
-            self._cond['xmax'] = max_anc + 1 + self.x_offset
+            self._cond['xmax'] = max_anc + 1 + self.x_offset - 0.9
             self._cond['ymax'] = self._cond['n_lines']
 
         # add horizontal lines
@@ -989,10 +1008,10 @@ class MatplotlibDrawer:
         if self._style.index:
             for ii in range(max_anc):
                 if self.fold > 0:
-                    x_coord = ii % self.fold + self._reg_long_text - 0.2
+                    x_coord = ii % self.fold + self._reg_long_text - 0.67
                     y_coord = - (ii // self.fold) * (self._cond['n_lines'] + 1) + 0.7
                 else:
-                    x_coord = ii + self._reg_long_text - 0.2
+                    x_coord = ii + self._reg_long_text - 0.67
                     y_coord = 0.7
                 self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
                              va='center', fontsize=self._style.sfs,
