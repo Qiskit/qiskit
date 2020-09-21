@@ -42,3 +42,10 @@ features:
 
     Circuits with pulse gates may still be lowered to the Pulse Schedule representation by using
     the :py:mod:`qiskit.scheduler`.
+
+    The calibrated gate can also be now be transpiled using the regular transpilation process::
+
+        transpiled_circuit = transpile(circ, backend)
+
+    The transpiled circuit will have the transpiled gates on the same qubit as the original
+    circuit and will not be unrolled to the basis gates.
