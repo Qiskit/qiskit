@@ -140,7 +140,8 @@ class TestPulseParameters(QiskitTestCase):
 
     def test_parametric_pulses_parameter_assignment(self):
         """Test Parametric Pulses with parameters determined by ParameterExpressions."""
-        waveform = pulse.library.GaussianSquare(duration=1280, sigma=self.sigma, amp=self.amp, width=1000)
+        waveform = pulse.library.GaussianSquare(duration=1280, sigma=self.sigma,
+                                                amp=self.amp, width=1000)
         waveform = waveform.assign_parameters({self.amp: 0.3, self.sigma: 12})
         self.assertEqual(waveform.amp, 0.3)
         self.assertEqual(waveform.sigma, 12)
