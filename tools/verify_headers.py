@@ -55,7 +55,7 @@ def validate_header(file_path):
         count += 1
         if count > 5:
             return file_path, False, "Header not found in first 5 lines"
-        if pep3120.match(line):
+        if count<=2 and pep263.match(line):
             return file_path, False, "Unnecessary encoding specification (PEP 263, 3120)"
         if line == "# This code is part of Qiskit.\n":
             start = index
