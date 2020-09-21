@@ -50,24 +50,24 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         for i, probability in probabilities.items():
             x, last_qubit = int(i[1:], 2), i[0]
             if last_qubit == '0':
-                expected_amplitude = np.cos(reference(x)) / np.sqrt(2**num_state_qubits)
+                expected_amplitude = np.cos(reference(x)) / np.sqrt(2 ** num_state_qubits)
             else:
-                expected_amplitude = np.sin(reference(x)) / np.sqrt(2**num_state_qubits)
+                expected_amplitude = np.sin(reference(x)) / np.sqrt(2 ** num_state_qubits)
 
             unrolled_probabilities += [probability]
             unrolled_expectations += [np.real(np.abs(expected_amplitude) ** 2)]
 
         np.testing.assert_almost_equal(unrolled_probabilities, unrolled_expectations)
 
-    @data(
-        ([1, 0.1], 3),
-        ([0, 0.4, 2], 2),
-    )
+    @data(([1, 0.1], 3),
+          ([0, 0.4, 2], 2),
+          )
     @unpack
     def test_polynomial_function(self, coeffs, num_state_qubits):
         """Test the polynomial rotation."""
+
         def poly(x):
-            res = sum(coeff * x**i for i, coeff in enumerate(coeffs))
+            res = sum(coeff * x ** i for i, coeff in enumerate(coeffs))
             return res
 
         polynome = PolynomialPauliRotations(num_state_qubits, [2 * coeff for coeff in coeffs])
@@ -93,16 +93,16 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         with self.subTest(msg='changing of all values'):
             polynomial_rotations.num_state_qubits = 4
             polynomial_rotations.coeffs = [1 * 2, 0, 0, -0.5 * 2]
-            self.assertFunctionIsCorrect(polynomial_rotations, lambda x: 1 - 0.5 * x**3)
+            self.assertFunctionIsCorrect(polynomial_rotations, lambda x: 1 - 0.5 * x ** 3)
 
-    @data(
-        (2, 0.1, 0),
-        (4, -2, 2),
-        (1, 0, 0)
-    )
+    @data((2, 0.1, 0),
+          (4, -2, 2),
+          (1, 0, 0),
+          )
     @unpack
     def test_linear_function(self, num_state_qubits, slope, offset):
         """Test the linear rotation arithmetic circuit."""
+
         def linear(x):
             return offset + slope * x
 
@@ -133,16 +133,16 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             linear_rotation.offset = 0.1 * 2
             self.assertFunctionIsCorrect(linear_rotation, lambda x: 0.1 + 0.2 * x)
 
-    @data(
-        (1, [0], [1], [0]),
-        (2, [0, 2], [-0.5, 1], [2, 1]),
-        (3, [0, 2, 5], [1, 0, -1], [0, 2, 2]),
-        (2, [1, 2], [1, -1], [2, 1]),
-        (3, [0, 1], [1, 0], [0, 1])
-    )
+    @data((1, [0], [1], [0]),
+          (2, [0, 2], [-0.5, 1], [2, 1]),
+          (3, [0, 2, 5], [1, 0, -1], [0, 2, 2]),
+          (2, [1, 2], [1, -1], [2, 1]),
+          (3, [0, 1], [1, 0], [0, 1]),
+          )
     @unpack
     def test_piecewise_linear_function(self, num_state_qubits, breakpoints, slopes, offsets):
         """Test the piecewise linear rotations."""
+
         def pw_linear(x):
             for i, point in enumerate(reversed(breakpoints)):
                 if x >= point:

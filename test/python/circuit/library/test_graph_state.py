@@ -49,17 +49,19 @@ class TestGraphStateLibrary(QiskitTestCase):
 
         self.assertListEqual(expected_stabilizers, stabilizers)
 
-    @data(
-        [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
-    )
+    @data([0, 1, 0, 0, 1],
+          [1, 0, 1, 0, 0],
+          [0, 1, 0, 1, 0],
+          [0, 0, 1, 0, 1],
+          [1, 0, 0, 1, 0])
     def test_graph_state(self, adjacency_matrix):
         """Verify the GraphState by checking if the circuit has the expected stabilizers."""
         graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
-    @data(
-        [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
-    )
+    @data([1, 1, 0],
+          [1, 0, 1],
+          [1, 1, 1])
     def test_non_symmetric_raises(self, adjacency_matrix):
         """Test that adjacency matrix is required to be symmetric."""
         with self.assertRaises(CircuitError):

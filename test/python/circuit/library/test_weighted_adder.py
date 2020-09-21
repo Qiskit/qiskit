@@ -54,11 +54,7 @@ class TestWeightedAdder(QiskitTestCase):
         for state, probability in probabilities.items():
             self.assertAlmostEqual(probability, expectations[state])
 
-    @data(
-        [0],
-        [1, 2, 1],
-        [4],
-    )
+    @data([0], [1, 2, 1], [4])
     def test_summation(self, weights):
         """Test the weighted adder on some examples."""
         adder = WeightedAdder(len(weights), weights)

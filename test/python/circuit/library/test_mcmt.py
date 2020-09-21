@@ -81,12 +81,11 @@ class TestMCMT(QiskitTestCase):
             qc = QuantumCircuit(8)
             qc.mcmt(CZGate(), [0, 1, 2], 3, [4, 5, 6, 7])
 
-    @data(
-        [CZGate(), 1, 1], [CHGate(), 1, 1],
-        [CZGate(), 3, 3], [CHGate(), 3, 3],
-        [CZGate(), 1, 5], [CHGate(), 1, 5],
-        [CZGate(), 5, 1], [CHGate(), 5, 1],
-    )
+    @data([CZGate(), 1, 1], [CHGate(), 1, 1],
+          [CZGate(), 3, 3], [CHGate(), 3, 3],
+          [CZGate(), 1, 5], [CHGate(), 1, 5],
+          [CZGate(), 5, 1], [CHGate(), 5, 1],
+          )
     @unpack
     def test_mcmt_v_chain_simulation(self, cgate, num_controls, num_targets):
         """Test the MCMT V-chain implementation test on a simulation."""
@@ -122,7 +121,7 @@ class TestMCMT(QiskitTestCase):
             vec = Statevector.from_label('0' * qc.num_qubits).evolve(qc)
 
             # target register is initially |11...1>, with length equal to 2**(n_targets)
-            vec_exp = np.array([0] * (2**(num_targets) - 1) + [1])
+            vec_exp = np.array([0] * (2 ** (num_targets) - 1) + [1])
 
             if isinstance(cgate, CZGate):
                 # Z gate flips the last qubit only if it's applied an odd number of times
@@ -145,7 +144,7 @@ class TestMCMT(QiskitTestCase):
             # append the remaining part of the state
             vec_exp = np.concatenate(
                 (vec_exp,
-                 [0] * (2**(num_controls + num_ancillas + num_targets) - vec_exp.size))
+                 [0] * (2 ** (num_controls + num_ancillas + num_targets) - vec_exp.size))
             )
             f_i = state_fidelity(vec, vec_exp)
             self.assertAlmostEqual(f_i, 1)

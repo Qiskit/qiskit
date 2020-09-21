@@ -36,28 +36,26 @@ class TestIntegerComparator(QiskitTestCase):
         backend = BasicAer.get_backend('statevector_simulator')
         statevector = execute(qc, backend).result().get_statevector()
         for i, amplitude in enumerate(statevector):
-            prob = np.abs(amplitude)**2
+            prob = np.abs(amplitude) ** 2
             if prob > 1e-6:
                 # equal superposition
-                self.assertEqual(True, np.isclose(1.0, prob * 2.0**num_state_qubits))
+                self.assertEqual(True, np.isclose(1.0, prob * 2.0 ** num_state_qubits))
                 b_value = '{0:b}'.format(i).rjust(qc.width(), '0')
                 x = int(b_value[(-num_state_qubits):], 2)
-                comp_result = int(b_value[-num_state_qubits-1], 2)
+                comp_result = int(b_value[-num_state_qubits - 1], 2)
                 if geq:
                     self.assertEqual(x >= value, comp_result == 1)
                 else:
                     self.assertEqual(x < value, comp_result == 1)
 
-    @data(
-        # n, value, geq
-        [1, 0, True],
-        [1, 1, True],
-        [2, -1, True],
-        [3, 5, True],
-        [3, 2, True],
-        [3, 2, False],
-        [4, 6, False]
-    )
+    @data([1, 0, True],
+          [1, 1, True],
+          [2, -1, True],
+          [3, 5, True],
+          [3, 2, True],
+          [3, 2, False],
+          [4, 6, False],
+          )
     @unpack
     def test_fixed_value_comparator(self, num_state_qubits, value, geq):
         """Test the fixed value comparator circuit."""

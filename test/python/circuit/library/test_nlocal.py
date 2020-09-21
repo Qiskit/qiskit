@@ -58,11 +58,10 @@ class TestNLocal(QiskitTestCase):
         for attribute in [nlocal.rotation_blocks, nlocal.entanglement_blocks]:
             self.assertEqual(len(attribute), 0)
 
-    @data(
-        (XGate(), [[0], [2], [1]]),
-        (XGate(), [[0]]),
-        (CRXGate(-0.2), [[2, 0], [1, 3]]),
-    )
+    @data((XGate(), [[0], [2], [1]]),
+          (XGate(), [[0]]),
+          (CRXGate(-0.2), [[2, 0], [1, 3]]),
+          )
     @unpack
     def test_add_layer_to_empty_nlocal(self, block, entangler_map):
         """Test appending gates to an empty nlocal."""
@@ -76,9 +75,7 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(nlocal, reference)
 
-    @data(
-        [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
-    )
+    @data([5, 3], [1, 5], [1, 1], [1, 2, 3, 10])
     def test_append_circuit(self, num_qubits):
         """Test appending circuits to an nlocal works normally."""
         # fixed depth of 3 gates per circuit
@@ -101,9 +98,7 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(nlocal, reference)
 
-    @data(
-        [5, 3], [1, 5], [1, 1], [1, 2, 3, 10],
-    )
+    @data([5, 3], [1, 5], [1, 1], [1, 2, 3, 10])
     def test_add_nlocal(self, num_qubits):
         """Test adding an nlocal to an nlocal (using add_layer)."""
         # fixed depth of 3 gates per circuit
@@ -251,8 +246,7 @@ class TestNLocal(QiskitTestCase):
 
     @data('linear', 'full', 'circular', 'sca',
           ['linear', 'full'],
-          ['circular', 'linear', 'sca']
-          )
+          ['circular', 'linear', 'sca'])
     def test_entanglement_by_str(self, entanglement):
         """Test setting the entanglement of the layers by str."""
         reps = 3
@@ -358,11 +352,10 @@ class TestTwoLocal(QiskitTestCase):
         two = TwoLocal(3, ['ry', 'h'], ['cz', 'cx'], reps=2, skip_final_rotation_layer=True)
         self.assertEqual(two.num_parameters, 6)  # would be 9 with a final rotation layer
 
-    @data(
-        (5, 'rx', 'cx', 'full', 2, 15),
-        (3, 'x', 'z', 'linear', 1, 0),
-        (3, ['rx', 'ry'], ['cry', 'cx'], 'circular', 2, 24)
-    )
+    @data((5, 'rx', 'cx', 'full', 2, 15),
+          (3, 'x', 'z', 'linear', 1, 0),
+          (3, ['rx', 'ry'], ['cry', 'cx'], 'circular', 2, 24),
+          )
     @unpack
     def test_num_parameters(self, num_qubits, rot, ent, ent_mode, reps, expected):
         """Test the number of parameters."""
