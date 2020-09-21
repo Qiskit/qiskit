@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -109,6 +107,7 @@ class TestPassesInspection(QiskitTestCase):
 
     def setUp(self):
         """Sets self.callback to set self.passes with the passes that have been executed"""
+        super().setUp()
         self.passes = []
 
         def callback(**kwargs):

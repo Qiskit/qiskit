@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Implementations of the multi-controlled X Gate (
+    :class:`~qiskit.circuit.library.MCXGrayCode`,
+    :class:`~qiskit.circuit.library.MCXRecursive`, and
+    :class:`~qiskit.circuit.library.MCXVChain`) have had their ``name``
+    properties changed to more accurately describe their
+    implementation: ``mcx_gray``, ``mcx_recursive``, and
+    ``mcx_vchain`` respectively. Previously, these gates shared the
+    name ``mcx`` with :class:`~qiskit.circuit.library.MCXGate`, which caused
+    these gates to be incorrectly transpiled and simulated.

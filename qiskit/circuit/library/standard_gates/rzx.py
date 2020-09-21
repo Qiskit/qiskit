@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -16,9 +14,6 @@
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from .rz import RZGate
-from .h import HGate
-from .x import CXGate
 
 
 class RZXGate(Gate):
@@ -127,31 +122,36 @@ class RZXGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .h import HGate
+        from .x import CXGate
+        from .rz import RZGate
+        theta = self.params[0]
         q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (RZGate(self.params[0]), [q[1]], []),
+            (RZGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[1]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
         return RZXGate(-self.params[0])
 
-    # TODO: this is the correct definition but has a global phase with respect
-    # to the decomposition above. Restore after allowing phase on circuits.
-    # def to_matrix(self):
-    #    """Return a numpy.array for the RZX gate."""
-    #    half_theta = self.params[0] / 2
-    #    cos = numpy.cos(half_theta)
-    #    isin = 1j * numpy.sin(half_theta)
-    #    return numpy.array([[    cos,      0,   -isin,      0],
-    #                        [      0,    cos,       0,   isin],
-    #                        [-1j*sin,      0,     cos,      0],
-    #                        [      0,   isin,       0,    cos]],
-    #                       dtype=complex)
+    def to_matrix(self):
+        """Return a numpy.array for the RZX gate."""
+        import numpy
+        half_theta = float(self.params[0]) / 2
+        cos = numpy.cos(half_theta)
+        isin = 1j * numpy.sin(half_theta)
+        return numpy.array([[cos, 0, -isin, 0],
+                            [0, cos, 0, isin],
+                            [-isin, 0, cos, 0],
+                            [0, isin, 0, cos]],
+                           dtype=complex)
