@@ -844,12 +844,13 @@ class TestTranspile(QiskitTestCase):
 
     def test_transpile_subset_of_calibrated_gates(self):
         """Test transpiling a circuit with both basis gate (not-calibrated) and
-        a calibrated gate."""
+        a calibrated gate on different qubits."""
         x_180 = Gate('mycustom', 1, [3.14])
 
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.append(x_180, [0])
+        circ.h(1)
 
         with pulse.build() as q0_x180:
             pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
@@ -858,23 +859,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration('h', [1], q0_x180)  # 'h' is calibrated on qubit 1
 
         transpiled_circ = transpile(circ, FakeAlmaden())
-        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom'})
-
-    def test_transpile_gate_calibrated_on_a_diff_qubit(self):
-        """Test transpiling a circuit with gate calibrated on a different qubits."""
-        x_180 = Gate('mycustom', 1, [3.14])
-
-        circ = QuantumCircuit(2)
-        circ.h(0)
-        circ.append(x_180, [0])
-
-        with pulse.build() as q0_x180:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
-
-        circ.add_calibration(x_180, [0], q0_x180)
-
-        transpiled_circ = transpile(circ, FakeAlmaden())
-        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom'})
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {'u2', 'mycustom', 'h'})
 
 
 class StreamHandlerRaiseException(StreamHandler):
