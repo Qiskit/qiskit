@@ -13,7 +13,6 @@
 """Test library of Hidden Linear Function circuits."""
 
 import unittest
-from ddt import ddt, data
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
@@ -23,7 +22,6 @@ from qiskit.circuit.library import HiddenLinearFunction
 from qiskit.quantum_info import Operator
 
 
-@ddt
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
 
@@ -50,11 +48,11 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         expected = qc.compose(Operator(expected)).compose(qc)
         self.assertTrue(expected.equiv(simulated))
 
-    @data([1, 1, 0],
-          [1, 0, 1],
-          [0, 1, 1])
-    def test_hlf(self, hidden_function):
+    def test_hlf(self):
         """Test if the HLF matrix produces the right matrix."""
+        hidden_function = [[1, 1, 0],
+                           [1, 0, 1],
+                           [0, 1, 1]]
         hlf = HiddenLinearFunction(hidden_function)
         self.assertHLFIsCorrect(hidden_function, hlf)
 
