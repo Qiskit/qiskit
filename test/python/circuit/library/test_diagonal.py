@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -27,15 +25,14 @@ from qiskit.quantum_info import Statevector, Operator
 class TestDiagonalGate(QiskitTestCase):
     """Test diagonal circuit."""
 
-    @data(
-        [0, 0],
-        [0, 0.8],
-        [0, 0, 1, 1],
-        [0, 1, 0.5, 1],
-        (2 * np.pi * np.random.rand(2 ** 3)),
-        (2 * np.pi * np.random.rand(2 ** 4)),
-        (2 * np.pi * np.random.rand(2 ** 5))
-    )
+    @data([0, 0],
+          [0, 0.8],
+          [0, 0, 1, 1],
+          [0, 1, 0.5, 1],
+          (2 * np.pi * np.random.rand(2 ** 3)),
+          (2 * np.pi * np.random.rand(2 ** 4)),
+          (2 * np.pi * np.random.rand(2 ** 5)),
+          )
     def test_diag_gate(self, phases):
         """Test correctness of diagonal decomposition."""
         diag = [np.exp(1j * ph) for ph in phases]

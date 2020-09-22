@@ -1,6 +1,3 @@
-
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -16,7 +13,6 @@
 """Test library of graph state circuits."""
 
 import unittest
-from ddt import ddt, data
 
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -24,7 +20,6 @@ from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import Clifford
 
 
-@ddt
 class TestGraphStateLibrary(QiskitTestCase):
     """Test the graph state circuit."""
 
@@ -52,19 +47,21 @@ class TestGraphStateLibrary(QiskitTestCase):
 
         self.assertListEqual(expected_stabilizers, stabilizers)
 
-    @data(
-        [[0, 1, 0, 0, 1], [1, 0, 1, 0, 0], [0, 1, 0, 1, 0], [0, 0, 1, 0, 1], [1, 0, 0, 1, 0]]
-    )
-    def test_graph_state(self, adjacency_matrix):
+    def test_graph_state(self):
         """Verify the GraphState by checking if the circuit has the expected stabilizers."""
+        adjacency_matrix=[[0, 1, 0, 0, 1],
+        [1, 0, 1, 0, 0],
+        [0, 1, 0, 1, 0],
+        [0, 0, 1, 0, 1],
+        [1, 0, 0, 1, 0]]
         graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
-    @data(
-        [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
-    )
-    def test_non_symmetric_raises(self, adjacency_matrix):
+    def test_non_symmetric_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
+        adjacency_matrix = [[1, 1, 0],
+        [1, 0, 1],
+        [1, 1, 1]]
         with self.assertRaises(CircuitError):
             GraphState(adjacency_matrix)
 

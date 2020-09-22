@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -15,7 +13,6 @@
 """Test library of Hidden Linear Function circuits."""
 
 import unittest
-from ddt import ddt, data
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
@@ -25,7 +22,6 @@ from qiskit.circuit.library import HiddenLinearFunction
 from qiskit.quantum_info import Operator
 
 
-@ddt
 class TestHiddenLinearFunctionLibrary(QiskitTestCase):
     """Test library of Hidden Linear Function circuits."""
 
@@ -39,12 +35,12 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         hidden_function = np.asarray(hidden_function)
         simulated = Operator(hlf)
 
-        expected = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
-        for i in range(2**num_qubits):
+        expected = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
+        for i in range(2 ** num_qubits):
             i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
             x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
-            expected[i_qiskit, i_qiskit] = 1j**(np.dot(x_vec.transpose(),
-                                                       np.dot(hidden_function, x_vec)))
+            expected[i_qiskit, i_qiskit] = 1j ** (np.dot(x_vec.transpose(),
+                                                         np.dot(hidden_function, x_vec)))
 
         qc = QuantumCircuit(num_qubits)
         qc.h(range(num_qubits))
@@ -52,11 +48,11 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         expected = qc.compose(Operator(expected)).compose(qc)
         self.assertTrue(expected.equiv(simulated))
 
-    @data(
-        [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-    )
-    def test_hlf(self, hidden_function):
+    def test_hlf(self):
         """Test if the HLF matrix produces the right matrix."""
+        hidden_function = [[1, 1, 0],
+                           [1, 0, 1],
+                           [0, 1, 1]]
         hlf = HiddenLinearFunction(hidden_function)
         self.assertHLFIsCorrect(hidden_function, hlf)
 
