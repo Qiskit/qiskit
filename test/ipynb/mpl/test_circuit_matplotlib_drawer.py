@@ -72,6 +72,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
     def setUp(self):
+        super().setUp()
         self.circuit_drawer = save_data_wrap(_matplotlib_circuit_drawer, str(self))
 
     def test_empty_circuit(self):
