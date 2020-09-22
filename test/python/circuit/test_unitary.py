@@ -150,12 +150,15 @@ class TestUnitaryCircuit(QiskitTestCase):
         sigmax = numpy.array([[0, 1], [1, 0]])
         sigmaz = numpy.array([[1, 0], [0, -1]])
         # new syntax
-        qc = QuantumCircuit(2)
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
         qc.unitary(sigmax, 0)
+        qc.unitary(sigmax, qr[1])
         qc.unitary(sigmaz, [0, 1])
         # expected circuit
-        qc_target = QuantumCircuit(2)
+        qc_target = QuantumCircuit(qr)
         qc_target.append(UnitaryGate(sigmax), [0])
+        qc_target.append(UnitaryGate(sigmax), [qr[1]])
         qc_target.append(UnitaryGate(sigmaz), [[0, 1]])
         self.assertEqual(qc, qc_target)
 
