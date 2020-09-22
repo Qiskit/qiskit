@@ -209,9 +209,8 @@ class Optimize1qGates(TransformationPass):
                 else:
                     raise TranspilerError('It was not possible to use the basis %s' % self.basis)
 
-            # safer to keep phase on op instead of dag (e.g. if removed)?
-            if new_op.definition is not None:
-                new_op.definition.global_phase = right_global_phase
+            dag.global_phase += right_global_phase
+            
             if right_name != 'nop':
                 dag.substitute_node(run[0], new_op, inplace=True)
 
