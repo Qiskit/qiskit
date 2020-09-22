@@ -20,7 +20,7 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import copy
 import itertools
 import warnings
@@ -81,6 +81,7 @@ class DAGCircuit:
             """Dummy class so we can deprecate dag.qubits() and do
             dag.qubits as property.
             """
+
             def __call__(self):
                 warnings.warn('dag.qubits() and dag.clbits() are no longer methods. Use '
                               'dag.qubits and dag.clbits properties instead.', DeprecationWarning,
@@ -90,6 +91,7 @@ class DAGCircuit:
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
         self._global_phase = 0
+        self._calibrations = defaultdict(dict)
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
@@ -178,6 +180,25 @@ class DAGCircuit:
                 self._global_phase = angle % (-2 * math.pi)
             else:
                 self._global_phase = angle % (2 * math.pi)
+
+    @property
+    def calibrations(self):
+        """Return calibration dictionary.
+
+        The custom pulse definition of a given gate is of the form
+            {'gate_name': {(qubits, params): schedule}}
+        """
+        return dict(self._calibrations)
+
+    @calibrations.setter
+    def calibrations(self, calibrations):
+        """Set the circuit calibration data from a dictionary of calibration definition.
+
+        Args:
+            calibrations (dict): A dictionary of input in th format
+                {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations = calibrations
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
@@ -466,7 +487,10 @@ class DAGCircuit:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
                 raise DAGCircuitError("invalid wire mapping value %s" % vname)
-            if type(k) is not type(v):
+            # TODO Support mapping from AncillaQubit to Qubit, since AncillaQubits are mapped to
+            # Qubits upon being converted to an Instruction. Until this translation is fixed
+            # and Instructions have a concept of ancilla qubits, this fix is required.
+            if not (isinstance(k, type(v)) or isinstance(v, type(k))):
                 raise DAGCircuitError("inconsistent wire_map at (%s,%s)" %
                                       (kname, vname))
 
@@ -783,12 +807,8 @@ class DAGCircuit:
         return full_pred_map, full_succ_map
 
     def __eq__(self, other):
-        # TODO remove deepcopy calls after
-        # https://github.com/mtreinish/retworkx/issues/27 is fixed
-        slf = copy.deepcopy(self._multi_graph)
-        oth = copy.deepcopy(other._multi_graph)
-
-        return rx.is_isomorphic_node_match(slf, oth,
+        return rx.is_isomorphic_node_match(self._multi_graph,
+                                           other._multi_graph,
                                            DAGNode.semantic_eq)
 
     def topological_nodes(self):
