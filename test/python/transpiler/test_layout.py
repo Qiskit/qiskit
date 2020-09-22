@@ -337,7 +337,7 @@ class LayoutTest(QiskitTestCase):
         self.assertDictEqual(layout._v2p, expected._v2p)
 
     def test_layout_from_intlist_short(self):
-        """Raise if the intlist is longer that your quantum register, map them to None.
+        """Raise if the intlist is longer that your quantum register.
         virtual  physical
          q1_0  ->  4
          q2_0  ->  5
