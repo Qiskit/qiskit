@@ -210,7 +210,7 @@ class Optimize1qGates(TransformationPass):
                     raise TranspilerError('It was not possible to use the basis %s' % self.basis)
 
             dag.global_phase += right_global_phase
-            
+
             if right_name != 'nop':
                 dag.substitute_node(run[0], new_op, inplace=True)
 

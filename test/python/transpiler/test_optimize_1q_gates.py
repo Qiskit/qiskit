@@ -235,6 +235,7 @@ class TestOptimize1qGates(QiskitTestCase):
         after = Optimize1qGates().run(dag)
         self.assertAlmostEqual(dag.global_phase, 5 * np.pi / 6, 8)
 
+
 class TestOptimize1qGatesParamReduction(QiskitTestCase):
     """Test for 1q gate optimizations parameter reduction, reduce n in Un """
 
