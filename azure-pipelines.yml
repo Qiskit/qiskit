@@ -302,13 +302,16 @@ stages:
           displayName: Cache pip
         - bash: |
             set -e
-            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --upgrade pip setuptools wheel virtualenv
+            virtualenv test-job
+            source test-job/bin/activate
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip install matplotlib pylatexenc pillow
           displayName: 'Install dependencies'
         - bash: |
-            set
+            set -e
+            source test-job/bin/activate
             python -m unittest discover -v test.ipynb
           displayName: 'Run image test'
     - job: 'MacOS_Catalina_Tests'
