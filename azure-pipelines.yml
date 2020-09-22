@@ -277,7 +277,7 @@ stages:
             artifactName: 'html_docs'
             Parallel: true
             ParallelCount: 8
-    - job: 'Image tests'
+    - job: 'Image_tests'
       pool: { vmImage: 'ubuntu-16.04' }
       strategy:
         matrix:
