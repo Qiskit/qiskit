@@ -121,7 +121,6 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(1234, 0)
         sc = transpile(qc, backend=self.backend_with_dt, scheduling_method='alap')
         self.assertEqual(sc.duration, 1234)
-        self.assertEqual(len(sc.data), 1)
         self.assertEqual(sc.data[0][0].name, "delay")
         self.assertEqual(sc.data[0][0].duration, 1234)
         self.assertEqual(sc.data[0][0].unit, 'dt')

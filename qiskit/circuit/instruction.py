@@ -58,7 +58,7 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (float|int): instruction's duration. it must be integer if ``unit`` is 'dt'
+            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
 
         Raises:

@@ -29,7 +29,7 @@ class ALAPSchedule(TransformationPass):
         super().__init__()
         self._asap = ASAPSchedule(durations)
 
-    def run(self, dag, time_unit=None):
+    def run(self, dag, time_unit=None):  # pylint: disable=arguments-differ
         """Run the ALAPSchedule pass on `dag`.
 
         Args:
