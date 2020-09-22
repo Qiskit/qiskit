@@ -13,12 +13,13 @@
 # pylint: disable=no-member
 
 """Polynomially controlled Pauli-rotations."""
+
 import warnings
 from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -232,23 +233,28 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return self._reverse
 
     @property
-    def num_ancilla_qubits(self) -> int:
-        """The number of ancilla qubits in this circuit.
-
-        Returns:
-            The number of ancilla qubits.
-        """
-        return max(1, self.degree - 1)
+    def num_ancilla_qubits(self):
+        """Deprecated. Use num_ancillas instead."""
+        warnings.warn('The PolynomialPauliRotations.num_ancilla_qubits property is deprecated '
+                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
+                      'date. You should use the num_ancillas property instead.',
+                      DeprecationWarning, stacklevel=2)
+        return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
-        if num_state_qubits:
+        if num_state_qubits is not None:
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name='state')
             qr_target = QuantumRegister(1, name='target')
-            qr_ancilla = QuantumRegister(self.num_ancilla_qubits, name='ancilla')
+            num_ancillas = max(1, self.degree - 1)
+            qr_ancilla = AncillaRegister(num_ancillas)
             self.qregs = [qr_state, qr_target, qr_ancilla]
+            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
+            self._ancillas = qr_ancilla[:]
         else:
             self.qregs = []
+            self._qubits = []
+            self._ancillas = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
