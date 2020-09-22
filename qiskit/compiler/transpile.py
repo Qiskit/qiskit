@@ -143,7 +143,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             | [('cx', [0, 1], 1000), ('u3', [0], 300)]
             If unit is omitted, the default is 'dt', which is a sample time depending on backend.
             If the time unit is 'dt', the duration must be an integer.
-        dt: Seconds of a unit 'dt', which is a sample time depending on backend.
+        dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.configuration().dt`` is used.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
