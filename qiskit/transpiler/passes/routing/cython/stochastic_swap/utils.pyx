@@ -154,6 +154,7 @@ cdef class NLayout:
         """
         out = Layout()
         cdef unsigned int main_idx = 0
+        cdef object qreg
         cdef size_t idx
         for qreg in qregs.values():
             for idx in range(<unsigned int>qreg.size):
@@ -179,6 +180,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef unsigned int logical_qubits = sum(sizes)
 
     cdef dict regint = {}
+    cdef object qreg
     for ind, qreg in enumerate(qregs.values()):
         regint[qreg] = ind
 

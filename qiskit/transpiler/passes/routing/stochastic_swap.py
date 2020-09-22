@@ -16,6 +16,8 @@ from logging import getLogger
 from math import inf
 from collections import OrderedDict
 import numpy as np
+import scipy.sparse as sp
+import scipy.sparse.csgraph as cs
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
@@ -47,7 +49,7 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
-    def __init__(self, coupling_map, trials=20, seed=None):
+    def __init__(self, coupling_map, trials=20, seed=None, properties=None):
         """StochasticSwap initializer.
 
         The coupling map is a connected graph
@@ -59,9 +61,12 @@ class StochasticSwap(TransformationPass):
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
+            properties (BackendProperties): A backend properties instance.
+
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.properties = properties
         self.trials = trials
         self.seed = seed
         self.qregs = None
@@ -97,11 +102,12 @@ class StochasticSwap(TransformationPass):
         self.rng = np.random.default_rng(self.seed)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
 
-        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
+        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials,
+                               properties=self.properties)
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
-                           coupling, trials):
+                           coupling, trials, properties=None):
         """Find a swap circuit that implements a permutation for this layer.
 
         The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -122,6 +128,7 @@ class StochasticSwap(TransformationPass):
                 This coupling map should be one that was provided to the
                 stochastic mapper.
             trials (int): Number of attempts the randomized algorithm makes.
+            properties (BackendProperties): A backend properties instance.
 
         Returns:
             Tuple: success_flag, best_circuit, best_depth, best_layout
@@ -171,8 +178,36 @@ class StochasticSwap(TransformationPass):
         best_edges = None  # best edges found
         best_circuit = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
+        edges = coupling.get_edges()
+        if properties:
+            logger.debug("layer_permutation: Using noise aware distance.")
+            twoQ_gates = []
+            for gate in properties.gates:
+                if len(gate.qubits) == 2:
+                    twoQ_gates.append(gate)
+            weights = []
+            for edge in edges:
+                for gate in twoQ_gates:
+                    if gate.qubits[0] == edge[0] and gate.qubits[1] == edge[1]:
+                        weights.append(gate.parameters[0].value)
+                        break
+            weights = np.asarray(weights)
+            # normalize edge weights
+            avg_weight = np.min(weights[weights != 1])
+            normed_weights = weights / avg_weight
+            rows = [edge[0] for edge in edges]
+            cols = [edge[1] for edge in edges]
+            weighted_dist = sp.coo_matrix((normed_weights,(rows,cols)),
+                                          shape=(num_qubits, num_qubits),
+                                          dtype=float).tocsr()
 
-        cdist2 = coupling._dist_matrix**2
+            weighted_paths = cs.shortest_path(weighted_dist, directed=False,
+                                              return_predecessors=False)
+            cdist2 = weighted_paths**2
+        else:
+            logger.debug("layer_permutation: Using ideal distance.")
+            cdist2 = coupling._dist_matrix**2
+
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
 
@@ -268,7 +303,7 @@ class StochasticSwap(TransformationPass):
 
         return dagcircuit_output
 
-    def _mapper(self, circuit_graph, coupling_graph, trials=20):
+    def _mapper(self, circuit_graph, coupling_graph, trials=20, properties=None):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
 
         Use self.trivial_layout for the initial layout.
@@ -277,6 +312,7 @@ class StochasticSwap(TransformationPass):
             circuit_graph (DAGCircuit): input DAG circuit
             coupling_graph (CouplingMap): coupling graph to map onto
             trials (int): number of trials.
+            properties (BackendProperties): A backend properties instance.
 
         Returns:
             DAGCircuit: object containing a circuit equivalent to
@@ -315,7 +351,7 @@ class StochasticSwap(TransformationPass):
             success_flag, best_circuit, best_depth, best_layout \
                 = self._layer_permutation(layer["partition"], layout,
                                           qubit_subset, coupling_graph,
-                                          trials)
+                                          trials, properties)
             logger.debug("mapper: layer %d", i)
             logger.debug("mapper: success_flag=%s,best_depth=%s",
                          success_flag, str(best_depth))

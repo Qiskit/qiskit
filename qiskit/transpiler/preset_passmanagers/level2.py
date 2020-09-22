@@ -122,7 +122,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if routing_method == 'basic':
         _swap += [BasicSwap(coupling_map)]
     elif routing_method == 'stochastic':
-        _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
+        _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler,
+                  properties=backend_properties)]
     elif routing_method == 'lookahead':
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=5)]
     elif routing_method == 'sabre':
