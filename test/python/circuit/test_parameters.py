@@ -24,7 +24,6 @@ import qiskit.circuit.library as circlib
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
                             ParameterVector)
-from qiskit.circuit.ufunc import sin, cos, tan, asin, acos, atan
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
@@ -788,12 +787,12 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name='theta')
 
         qc = QuantumCircuit(2)
-        qc.u1(cos(phi), 0)
-        qc.u1(sin(phi), 0)
-        qc.u1(tan(phi), 0)
-        qc.rz(acos(theta), 1)
-        qc.rz(atan(theta), 1)
-        qc.rz(asin(theta), 1)
+        qc.u1(numpy.cos(phi), 0)
+        qc.u1(numpy.sin(phi), 0)
+        qc.u1(numpy.tan(phi), 0)
+        qc.rz(numpy.arccos(theta), 1)
+        qc.rz(numpy.arctan(theta), 1)
+        qc.rz(numpy.arcsin(theta), 1)
 
         qc.assign_parameters({phi: pi, theta: 1},
                              inplace=True)
@@ -813,7 +812,7 @@ class TestParameters(QiskitTestCase):
         after we apply universal functions."""
         phi = Parameter('phi')
         qc = QuantumCircuit(1)
-        qc.rx(cos(phi), 0)
+        qc.rx(numpy.cos(phi), 0)
         backend = BasicAer.get_backend('qasm_simulator')
         qc_aer = transpile(qc, backend)
         self.assertIn(phi, qc_aer.parameters)
@@ -1272,11 +1271,6 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter('x')
         self.assertEqual(x, x.conjugate())  # Parameters are real, therefore conjugate returns self
 
-        from sympy import I
-        x = I * x
-        conj = -1 * x
-        self.assertEqual(conj, x.conjugate())
-
     @data(circlib.RGate, circlib.RXGate, circlib.RYGate, circlib.RZGate, circlib.RXXGate,
           circlib.RYYGate, circlib.RZXGate, circlib.RZZGate, circlib.CRXGate, circlib.CRYGate,
           circlib.CRZGate)
@@ -1351,5 +1345,5 @@ class TestParameterEquality(QiskitTestCase):
         """Verfiy ParameterExpression phi
         and ParameterExpression cos(phi) have the same symbol map"""
         phi = Parameter('phi')
-        cos_phi = cos(phi)
+        cos_phi = numpy.cos(phi)
         self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
