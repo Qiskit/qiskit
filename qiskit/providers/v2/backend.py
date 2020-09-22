@@ -65,7 +65,9 @@ class BackendV1(Backend, ABC):
 
         Args:
             configuration (BackendConfiguration): A backend configuration
-                object for the backend object
+                object for the backend object.
+            provider (qiskit.providers.v2.Provider): Optionally, the provider
+                object that this Backend comes from.
             fields: kwargs for the values to use to override the default
                 options.
         Raises:
