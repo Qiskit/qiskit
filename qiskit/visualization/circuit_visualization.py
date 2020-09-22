@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -407,7 +405,7 @@ def qx_color_scheme():
 def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
                          plot_barriers=True, justify=None, vertical_compression='high',
                          idle_wires=True, with_layout=True, fold=None, initial_state=True,
-                         cregbundle=False):
+                         cregbundle=False, encoding=None):
     """Draws a circuit using ascii art.
 
     Args:
@@ -428,8 +426,9 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
                     `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
         initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `True`.
-        cregbundle (bool): Optional. If set True bundle classical registers. Only used by
-            the ``text`` output. Default: ``False``.
+        cregbundle (bool): Optional. If set True bundle classical registers. Default: ``False``.
+        encoding (str): Optional. Sets the encoding preference of the output.
+                   Default: ``sys.stdout.encoding``.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -441,14 +440,16 @@ def _text_circuit_drawer(circuit, filename=None, reverse_bits=False,
         layout = circuit._layout
     else:
         layout = None
+    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout, initial_state=initial_state,
-                                     cregbundle=cregbundle)
+                                     cregbundle=cregbundle, global_phase=global_phase,
+                                     encoding=encoding)
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
 
     if filename:
-        text_drawing.dump(filename)
+        text_drawing.dump(filename, encoding=encoding)
     return text_drawing
 
 
@@ -586,11 +587,13 @@ def _generate_latex_source(circuit, filename=None,
     else:
         layout = None
 
+    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits, layout=layout,
                                  initial_state=initial_state,
-                                 cregbundle=cregbundle)
+                                 cregbundle=cregbundle,
+                                 global_phase=global_phase)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
@@ -663,9 +666,10 @@ def _matplotlib_circuit_drawer(circuit,
     if fold is None:
         fold = 25
 
+    global_phase = circuit.global_phase if hasattr(circuit, 'global_phase') else None
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits, layout=layout,
                                        fold=fold, ax=ax, initial_state=initial_state,
-                                       cregbundle=cregbundle)
+                                       cregbundle=cregbundle, global_phase=global_phase)
     return qcd.draw(filename)
