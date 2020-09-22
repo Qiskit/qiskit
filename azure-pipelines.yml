@@ -311,7 +311,7 @@ stages:
             set -e
             source test-job/bin/activate
             python -m unittest discover -v test.ipynb
-            displayName: 'Run image test'
+          displayName: 'Run image test'
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
       strategy:
