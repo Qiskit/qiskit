@@ -308,7 +308,7 @@ stages:
             pip install matplotlib pylatexenc pillow
           displayName: 'Install dependencies'
         - bash: |
-            set -e
+            set
             python -m unittest discover -v test.ipynb
           displayName: 'Run image test'
     - job: 'MacOS_Catalina_Tests'
