@@ -37,9 +37,9 @@ class TestPulseParameters(QiskitTestCase):
         self.sigma = Parameter('sigma')
         self.qubit = Parameter('q')
 
-        self.FREQ = 4.5e9
-        self.SHIFT = 0.2e9
-        self.PHASE = 3.1415 / 4
+        self.freq = 4.5e9
+        self.shift = 0.2e9
+        self.phase = 3.1415 / 4
 
         self.backend = FakeAlmaden()
 
@@ -51,15 +51,15 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.SetPhase(self.phi, DriveChannel(1))
         schedule += pulse.ShiftPhase(self.theta, DriveChannel(1))
 
-        schedule.assign_parameters({self.alpha: self.FREQ, self.gamma: self.SHIFT,
-                                    self.phi: self.PHASE, self.theta: -self.PHASE})
+        schedule.assign_parameters({self.alpha: self.freq, self.gamma: self.shift,
+                                    self.phi: self.phase, self.theta: -self.phase})
 
         insts = assemble(schedule, self.backend).experiments[0].instructions
-        GHz = 1e9
-        self.assertEqual(float(insts[0].frequency*GHz), self.FREQ)
-        self.assertEqual(float(insts[1].frequency*GHz), self.SHIFT)
-        self.assertEqual(float(insts[2].phase), self.PHASE)
-        self.assertEqual(float(insts[3].phase), -self.PHASE)
+        GHz = 1e9  # pylint: disable=invalid-name
+        self.assertEqual(float(insts[0].frequency*GHz), self.freq)
+        self.assertEqual(float(insts[1].frequency*GHz), self.shift)
+        self.assertEqual(float(insts[2].phase), self.phase)
+        self.assertEqual(float(insts[3].phase), -self.phase)
 
     def test_multiple_parameters(self):
         """Expressions of parameters with partial assignment."""
@@ -69,16 +69,16 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.SetPhase(self.phi, DriveChannel(1))
 
         # Partial bind
-        DELTA = 1e9
-        schedule.assign_parameters({self.alpha: self.FREQ - DELTA})
-        schedule.assign_parameters({self.beta: DELTA})
-        schedule.assign_parameters({self.gamma: self.SHIFT - DELTA})
-        schedule.assign_parameters({self.phi: self.PHASE})
+        delta = 1e9
+        schedule.assign_parameters({self.alpha: self.freq - delta})
+        schedule.assign_parameters({self.beta: delta})
+        schedule.assign_parameters({self.gamma: self.shift - delta})
+        schedule.assign_parameters({self.phi: self.phase})
 
         insts = schedule.instructions
-        self.assertEqual(float(insts[0][1].frequency), self.FREQ)
-        self.assertEqual(float(insts[1][1].frequency), self.SHIFT)
-        self.assertEqual(float(insts[2][1].phase), self.PHASE)
+        self.assertEqual(float(insts[0][1].frequency), self.freq)
+        self.assertEqual(float(insts[1][1].frequency), self.shift)
+        self.assertEqual(float(insts[2][1].phase), self.phase)
 
     def test_with_function(self):
         """Test ParameterExpressions formed trivially in a function."""
@@ -92,11 +92,11 @@ class TestPulseParameters(QiskitTestCase):
         schedule += pulse.SetFrequency(get_frequency(self.alpha), DriveChannel(0))
         schedule += pulse.ShiftFrequency(get_shift(self.gamma), DriveChannel(0))
 
-        schedule.assign_parameters({self.alpha: self.FREQ / 2, self.gamma: self.SHIFT + 1})
+        schedule.assign_parameters({self.alpha: self.freq / 2, self.gamma: self.shift + 1})
 
         insts = schedule.instructions
-        self.assertEqual(float(insts[0][1].frequency), self.FREQ)
-        self.assertEqual(float(insts[1][1].frequency), self.SHIFT)
+        self.assertEqual(float(insts[0][1].frequency), self.freq)
+        self.assertEqual(float(insts[1][1].frequency), self.shift)
 
     def test_substitution(self):
         """Test Parameter substitution (vs bind)."""
@@ -105,13 +105,13 @@ class TestPulseParameters(QiskitTestCase):
 
         schedule.assign_parameters({self.alpha: 2*self.beta})
         self.assertEqual(schedule.instructions[0][1].frequency, 2*self.beta)
-        schedule.assign_parameters({self.beta: self.FREQ / 2})
-        self.assertEqual(float(schedule.instructions[0][1].frequency), self.FREQ)
+        schedule.assign_parameters({self.beta: self.freq / 2})
+        self.assertEqual(float(schedule.instructions[0][1].frequency), self.freq)
 
     def test_channels(self):
         """Test that channel indices can also be parameterized and assigned."""
         schedule = pulse.Schedule()
-        schedule += pulse.ShiftPhase(self.PHASE, DriveChannel(2*self.qubit))
+        schedule += pulse.ShiftPhase(self.phase, DriveChannel(2*self.qubit))
 
         schedule.assign_parameters({self.qubit: 4})
         self.assertEqual(schedule.instructions[0][1].channel, DriveChannel(8))

@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    Pulse :py:class:`~qiskit.pulse.Schedule`s now support
-    :py:class:`~qiskit.circuit.ParameterExpression`s.
+    Pulse :py:class:`~qiskit.pulse.Schedule` s now support
+    :py:class:`~qiskit.circuit.ParameterExpression` s.
 
     Examples::
 
