@@ -13,6 +13,7 @@
 """Backend Configuration Classes."""
 import re
 import copy
+import numbers
 import warnings
 from typing import Dict, List, Any, Iterable, Union
 from collections import defaultdict
@@ -533,10 +534,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if hamiltonian is not None:
             self.hamiltonian = dict(hamiltonian)
             self.hamiltonian['vars'] = {
-                k: v * 1e9 for k, v in self.hamiltonian['vars'].items()
+                k: v * 1e9 if isinstance(v, numbers.Number) else v
+                for k, v in self.hamiltonian['vars'].items()
             }
-        else:
-            self.hamiltonian = None
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
 
@@ -654,11 +654,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if self.hamiltonian:
             hamiltonian = copy.deepcopy(self.hamiltonian)
             hamiltonian['vars'] = {
-                k: v * 1e-9 for k, v in self.hamiltonian['vars'].items()
+                k: v * 1e-9 if isinstance(v, numbers.Number) else v
+                for k,v in hamiltonian['vars'].items()
             }
             out_dict['hamiltonian'] = hamiltonian
-        else:
-            self.hamiltonian = None
 
         return out_dict
 
