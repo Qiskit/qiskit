@@ -36,7 +36,9 @@ class TestChannelArrangement(QiskitTestCase):
                          pulse.ControlChannel(0),
                          pulse.ControlChannel(2),
                          pulse.ControlChannel(5)]
-        self.formatter = {}
+        self.formatter = {
+            'control.show_acquire_channel': True
+        }
         self.device = device_info.OpenPulseBackendInfo(
             name='test',
             dt=1,

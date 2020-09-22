@@ -156,8 +156,9 @@ def channel_type_grouped_sort(channels: List[pulse.channels.Channel],
     ordered_channels.extend(sorted(m_chans, key=lambda x: x.index))
 
     # acquire channels
-    a_chans = chan_type_dict.get(pulse.AcquireChannel, [])
-    ordered_channels.extend(sorted(a_chans, key=lambda x: x.index))
+    if formatter['control.show_acquire_channel']:
+        a_chans = chan_type_dict.get(pulse.AcquireChannel, [])
+        ordered_channels.extend(sorted(a_chans, key=lambda x: x.index))
 
     for chan in ordered_channels:
         yield chan.name.upper(), [chan]
@@ -218,8 +219,9 @@ def channel_index_grouped_sort(channels: List[pulse.channels.Channel],
         if len(m_chans) > 0 and m_chans[-1].index == ind:
             ordered_channels.append(m_chans.pop())
         # acquire channel
-        if len(a_chans) > 0 and a_chans[-1].index == ind:
-            ordered_channels.append(a_chans.pop())
+        if formatter['control.show_acquire_channel']:
+            if len(a_chans) > 0 and a_chans[-1].index == ind:
+                ordered_channels.append(a_chans.pop())
 
     for chan in ordered_channels:
         yield chan.name.upper(), [chan]
@@ -278,8 +280,9 @@ def channel_index_grouped_sort_u(channels: List[pulse.channels.Channel],
         if len(m_chans) > 0 and m_chans[-1].index == ind:
             ordered_channels.append(m_chans.pop())
         # acquire channel
-        if len(a_chans) > 0 and a_chans[-1].index == ind:
-            ordered_channels.append(a_chans.pop())
+        if formatter['control.show_acquire_channel']:
+            if len(a_chans) > 0 and a_chans[-1].index == ind:
+                ordered_channels.append(a_chans.pop())
 
     # control channels
     ordered_channels.extend(u_chans)

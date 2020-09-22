@@ -12,16 +12,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Matplotlib plotter API."""
+
 from typing import Optional
 
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawing_objects, types
+from qiskit.visualization.pulse_v2.plotters import BasePlotter
 
 
-class Mpl2DPlotter:
+class Mpl2DPlotter(BasePlotter):
     """Matplotlib API for pulse drawer.
 
     This plotter places canvas charts along y axis of 2D canvas with vertical offset.
@@ -39,20 +43,23 @@ class Mpl2DPlotter:
             axis: Matplotlib axis object. When `axis` is provided, the plotter updates
                 given axis instead of creating and returning new matplotlib figure.
         """
-        self.canvas = canvas
+        super().__init__(canvas=canvas)
 
         # calculate height of all charts
         canvas_height = 0
         for chart in self.canvas.charts:
+            if not chart.is_active and not self.canvas.formatter['control.show_empty_channel']:
+                continue
             canvas_height += chart.vmax - chart.vmin
 
         if axis is None:
             fig_h = canvas_height * self.canvas.formatter['general.fig_chart_height']
             fig_w = self.canvas.formatter['general.fig_width']
 
-            figure = plt.figure(figsize=(fig_w, fig_h))
-            self.ax = figure.add_subplot(1, 1, 1)
+            self.figure = plt.figure(figsize=(fig_w, fig_h))
+            self.ax = self.figure.add_subplot(1, 1, 1)
         else:
+            self.figure = axis.figure
             self.ax = axis
 
         self.initialize_canvas()
@@ -77,6 +84,8 @@ class Mpl2DPlotter:
         current_y = 0
         margin_y = self.canvas.formatter['margin.between_channel']
         for chart in self.canvas.charts:
+            if not chart.is_active and not self.canvas.formatter['control.show_empty_channel']:
+                continue
             current_y -= chart.vmax
             for _, data in chart.collections:
                 # calculate scaling factor
@@ -155,3 +164,32 @@ class Mpl2DPlotter:
                          zorder=self.canvas.formatter['layer.fig_title'],
                          color=self.canvas.formatter['color.fig_title'],
                          size=self.canvas.formatter['text_size.fig_title'])
+
+    def save_file(self, filename: str):
+        """Save image to file.
+
+        Args:
+            filename: File path to output image data.
+        """
+        plt.savefig(filename,
+                    bbox_inches='tight',
+                    dpi=self.canvas.formatter['general.dpi'])
+
+    def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
+        """Get image data to return.
+
+        Args:
+            interactive: When set `True` show the circuit in a new window.
+                This depends on the matplotlib backend being used supporting this.
+
+        Returns:
+            Matplotlib figure data.
+        """
+        if matplotlib.get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                        'nbAgg']:
+            plt.close(self.figure)
+
+        if self.figure and interactive:
+            self.figure.show()
+
+        return self.figure

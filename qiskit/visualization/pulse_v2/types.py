@@ -195,6 +195,14 @@ class WaveformChannel(pulse.channels.PulseChannel):
         super().__init__(0)
 
 
+class Plotter(str, Enum):
+    """Name of pulse plotter APIs.
+
+    Mpl2D: Matplotlib plotter interface. Show charts in 2D canvas.
+    """
+    Mpl2D = 'mpl2d'
+
+
 # convenient type to represent union of drawing data
 DataTypes = NewType('DataType', Union[DrawingWaveform, DrawingLabel, DrawingLine, DrawingSymbol])
 
