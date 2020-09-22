@@ -15,18 +15,30 @@
 from typing import Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawing_objects, types
-import numpy as np
 
 
 class Mpl2DPlotter:
+    """Matplotlib API for pulse drawer.
+
+    This plotter places canvas charts along y axis of 2D canvas with vertical offset.
+    Each chart is map to X-Y axis of the canvas.
+    """
 
     def __init__(self,
                  canvas: core.DrawerCanvas,
                  axis: Optional[plt.Axes] = None):
+        """Create new plotter.
 
+        Args:
+            canvas: Configured drawer canvas object. Canvas object should be updated
+                with `.update` method before set to the plotter API.
+            axis: Matplotlib axis object. When `axis` is provided, the plotter updates
+                given axis instead of creating and returning new matplotlib figure.
+        """
         self.canvas = canvas
 
         # calculate height of all charts
@@ -46,12 +58,15 @@ class Mpl2DPlotter:
         self.initialize_canvas()
 
     def initialize_canvas(self):
+        """Format appearance of matplotlib canvas."""
         self.ax.set_facecolor(self.canvas.formatter['color.background'])
 
         # axis labels
         self.ax.set_yticklabels([])
+        self.ax.yaxis.set_tick_params(left=False)
 
     def draw(self):
+        """Output drawing objects stored in canvas object."""
         # axis configuration
         axis_config = self.canvas.layout['time_axis_map'](
             time_window=self.canvas.time_range,
@@ -129,6 +144,3 @@ class Mpl2DPlotter:
         # boundary
         self.ax.set_xlim(*axis_config.window)
         self.ax.set_ylim(y_min, y_max)
-
-        # misc
-        self.ax.yaxis.set_tick_params(left=False)

@@ -84,7 +84,7 @@ def gen_formatted_phase(data: types.PulseInstruction,
     style = {'zorder': formatter['layer.frame_change'],
              'color': formatter['color.frame_change'],
              'size': formatter['text_size.annotate'],
-             'va': 'bottom',
+             'va': 'center',
              'ha': 'center'}
 
     plain_phase, latex_phase = _phase_to_text(data.frame.phase, _max_denom, flip=True)
@@ -129,7 +129,7 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
     style = {'zorder': formatter['layer.frame_change'],
              'color': formatter['color.frame_change'],
              'size': formatter['text_size.annotate'],
-             'va': 'bottom',
+             'va': 'center',
              'ha': 'center'}
 
     plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
@@ -181,7 +181,7 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
     # phase value
     if data.frame.phase != 0:
         plain_phase, latex_phase = _phase_to_text(data.frame.phase, _max_denom, flip=True)
-        phase_style = {'va': 'bottom'}
+        phase_style = {'va': 'center'}
         phase_style.update(style)
 
         phase = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
@@ -197,7 +197,7 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
     # frequency value
     if data.frame.freq != 0:
         plain_freq, latex_freq = _freq_to_text(data.frame.freq, _unit)
-        freq_style = {'va': 'top'}
+        freq_style = {'va': 'center'}
         freq_style.update(style)
 
         freq = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
@@ -242,7 +242,7 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
     style = {'zorder': formatter['layer.frame_change'],
              'color': formatter['color.frame_change'],
              'size': formatter['text_size.annotate'],
-             'va': 'bottom',
+             'va': 'center',
              'ha': 'center'}
 
     frame_info = '{:.2f}\n{:.1e}'.format(data.frame.phase, data.frame.freq)
@@ -338,10 +338,10 @@ def _phase_to_text(phase: float, max_denom: int = 10, flip: bool = True) -> Tupl
                 latex = r'\pi'
                 plain = 'pi'
             else:
-                latex = r'\frac{{\pi}}{{{denom:d}}}'.format(denom=denom)
+                latex = r'\pi/{denom:d}'.format(denom=denom)
                 plain = 'pi/{denom:d}'.format(denom=denom)
         else:
-            latex = r'\frac{{{num:d}}}{{{denom:d}}}\pi'.format(num=num, denom=denom)
+            latex = r'{num:d}/{denom:d} \pi'.format(num=num, denom=denom)
             plain = '{num:d}/{denom:d} pi'.format(num=num, denom=denom)
 
     if flip:

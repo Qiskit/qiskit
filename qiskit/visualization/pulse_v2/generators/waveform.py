@@ -190,7 +190,7 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
     style = {'zorder': formatter['layer.annotate'],
              'color': formatter['color.annotate'],
              'size': formatter['text_size.annotate'],
-             'va': 'top',
+             'va': 'center',
              'ha': 'center'}
 
     if isinstance(data.inst, pulse.instructions.Acquire):
@@ -217,9 +217,10 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
                 angle_val = match_dict['angle']
                 frac = Fraction(int(int(angle_val)/2), 180)
                 if frac.numerator == 1:
-                    angle = r'\frac{{\pi}}{{{}}}'.format(frac.denominator)
+                    angle = r'\pi/{denom:d}'.format(denom=frac.denominator)
                 else:
-                    angle = r'\frac{{{}}}{{{}}}\pi'.format(frac.numerator, frac.denominator)
+                    angle = r'{num:d}/{denom:d} \pi'.format(num=frac.numerator,
+                                                            denom=frac.denominator)
             else:
                 # single qubit pulse
                 op_name = r'{{\rm {}}}'.format(match_dict['op'])
@@ -229,9 +230,10 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
                 else:
                     frac = Fraction(int(angle_val), 180)
                     if frac.numerator == 1:
-                        angle = r'\frac{{\pi}}{{{}}}'.format(frac.denominator)
+                        angle = r'\pi/{denom:d}'.format(denom=frac.denominator)
                     else:
-                        angle = r'\frac{{{}}}{{{}}}\pi'.format(frac.numerator, frac.denominator)
+                        angle = r'{num:d}/{denom:d} \pi'.format(num=frac.numerator,
+                                                                denom=frac.denominator)
             latex_name = r'{}({}{})'.format(op_name, sign, angle)
         else:
             latex_name = None
@@ -239,7 +241,7 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
     text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_NAME,
                                     channels=data.inst.channel,
                                     xvals=[data.t0 + 0.5 * data.inst.duration],
-                                    yvals=[formatter['label_offset.pulse_name']],
+                                    yvals=[-formatter['label_offset.pulse_name']],
                                     text=systematic_name,
                                     latex=latex_name,
                                     ignore_scaling=True,

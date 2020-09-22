@@ -650,7 +650,7 @@ class Chart:
             offset_accumulation += t1 - t0
             new_x = np.where(new_x >= t1, new_x - offset_accumulation, new_x)
 
-        return new_x, new_y
+        return np.asarray(new_x, dtype=float), np.asarray(new_y, dtype=float)
 
     def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
         """A helper function to bind actual coordinates to an `AbstractCoordinate`.

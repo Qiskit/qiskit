@@ -66,7 +66,7 @@ def gen_snapshot_name(data: types.SnapshotInstruction,
     style = {'zorder': formatter['layer.snapshot'],
              'color': formatter['color.snapshot'],
              'size': formatter['text_size.annotate'],
-             'va': 'bottom',
+             'va': 'center',
              'ha': 'center'}
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.SNAPSHOT,

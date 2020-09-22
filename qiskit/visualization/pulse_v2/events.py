@@ -150,9 +150,9 @@ class ChannelEvents:
             init_frequency: Modulation frequency in Hz.
             init_phase: Initial phase in rad.
         """
-        self._dt = dt
-        self._init_frequency = init_frequency
-        self._init_phase = init_phase
+        self._dt = dt or 1
+        self._init_frequency = init_frequency or 0
+        self._init_phase = init_phase or 0
 
     def get_waveforms(self) -> Iterator[PulseInstruction]:
         """Return waveform type instructions with frame."""

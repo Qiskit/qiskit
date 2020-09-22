@@ -58,9 +58,11 @@ on top of the existing API, it could be difficult to prevent bugs with the CI to
 due to lack of the effective unittest.
 """
 from abc import ABC
+from enum import Enum
 from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
+
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse_v2 import types
 
@@ -70,7 +72,7 @@ class ElementaryData(ABC):
     __hash__ = None
 
     def __init__(self,
-                 data_type: str,
+                 data_type: Union[str, Enum],
                  xvals: np.ndarray,
                  yvals: np.ndarray,
                  channels: Optional[Union[Channel, List[Channel]]] = None,
@@ -122,7 +124,7 @@ class LineData(ElementaryData):
     This is the counterpart of `matplotlib.pyploy.plot`.
     """
     def __init__(self,
-                 data_type: str,
+                 data_type: Union[str, Enum],
                  xvals: Union[np.ndarray, List[types.Coordinate]],
                  yvals: Union[np.ndarray, List[types.Coordinate]],
                  fill: bool = False,
@@ -159,7 +161,7 @@ class TextData(ElementaryData):
     This is the counterpart of `matplotlib.pyploy.text`.
     """
     def __init__(self,
-                 data_type: str,
+                 data_type: Union[str, Enum],
                  xvals: Union[np.ndarray, List[types.Coordinate]],
                  yvals: Union[np.ndarray, List[types.Coordinate]],
                  text: str,

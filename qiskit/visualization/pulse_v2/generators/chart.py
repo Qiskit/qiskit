@@ -134,7 +134,7 @@ def gen_chart_scale(data: types.ChartAxis,
     style = {'zorder': formatter['layer.axis_label'],
              'color': formatter['color.axis_label'],
              'size': formatter['text_size.annotate'],
-             'va': 'top',
+             'va': 'center',
              'ha': 'right'}
 
     scale_val = 'x{param}'.format(param=types.DynamicString.SCALE)
@@ -142,7 +142,7 @@ def gen_chart_scale(data: types.ChartAxis,
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_INFO,
                                     channels=data.channels,
                                     xvals=[types.AbstractCoordinate.LEFT],
-                                    yvals=[formatter['label_offset.scale_factor']],
+                                    yvals=[-formatter['label_offset.scale_factor']],
                                     text=scale_val,
                                     ignore_scaling=True,
                                     styles=style)
@@ -171,7 +171,7 @@ def gen_channel_freqs(data: types.ChartAxis,
     style = {'zorder': formatter['layer.axis_label'],
              'color': formatter['color.axis_label'],
              'size': formatter['text_size.annotate'],
-             'va': 'top',
+             'va': 'center',
              'ha': 'right'}
 
     if len(data.channels) > 1:
@@ -192,8 +192,8 @@ def gen_channel_freqs(data: types.ChartAxis,
     text = drawing_objects.TextData(data_type=types.DrawingLabel.CH_INFO,
                                     channels=data.channels,
                                     xvals=[types.AbstractCoordinate.LEFT],
-                                    yvals=[formatter['label_offset.scale_factor']],
-                                    text=freq_text or 'n/a',
+                                    yvals=[-formatter['label_offset.scale_factor']],
+                                    text=freq_text or 'no freq.',
                                     ignore_scaling=True,
                                     styles=style)
 
