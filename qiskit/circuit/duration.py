@@ -17,6 +17,7 @@ import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.util import apply_prefix
 
 
 def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
@@ -40,7 +41,7 @@ def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
 
 
 def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
-    """Convert all the durations in seconds into those in dt.
+    """Convert all the durations in SI (seconds) into those in dt.
 
     Returns a new circuit if `inplace=False`.
 
@@ -60,16 +61,23 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
     else:
         circ = qc.copy()
 
-    from qiskit.circuit.delay import Delay
     for inst, _, _ in circ.data:
-        if isinstance(inst, Delay) and inst.unit != 's':
-            raise CircuitError("Unable to convert unit '{0}' to 'dt'".format(inst.unit))
+        if inst.unit == 'dt' or inst.duration is None:
+            continue
 
-        if inst.duration is not None:
-            inst.duration = duration_in_dt(inst.duration, dt_in_sec)
+        if not inst.unit.endswith('s'):
+            raise CircuitError("Invalid time unit: '{0}'".format(inst.unit))
+
+        duration = inst.duration
+        if inst.unit != 's':
+            duration = apply_prefix(duration, inst.unit)
+
+        inst.duration = duration_in_dt(duration, dt_in_sec)
+        inst.unit = 'dt'
 
     if circ.duration is not None:
         circ.duration = duration_in_dt(circ.duration, dt_in_sec)
+        circ.unit = 'dt'
 
     if not inplace:
         return circ
