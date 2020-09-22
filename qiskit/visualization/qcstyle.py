@@ -113,6 +113,7 @@ class DefaultStyle:
             'cswap': (other_color, white_font),
             'ccswap': (other_color, white_font),
             'mcx': (other_color, black_font),
+            'mcx_gray': (other_color, white_font),
             'u': (other_color, black_font),
             'p': (other_color, black_font),
             'sx': (other_color, black_font),
@@ -201,44 +202,45 @@ class BWStyle:
             'initialize': '$|\\psi\\rangle$'
         }
         self.dispcol = {
-            'u1': (face_gate_color, '#ffffff'),
-            'u2': (face_gate_color, '#ffffff'),
-            'u3': (face_gate_color, '#ffffff'),
-            'id': (face_gate_color, '#ffffff'),
-            'x': (face_gate_color, '#ffffff'),
-            'y': (face_gate_color, '#ffffff'),
-            'z': (face_gate_color, '#ffffff'),
-            'h': (face_gate_color, '#ffffff'),
+            'u1': (face_gate_color, '#000000'),
+            'u2': (face_gate_color, '#000000'),
+            'u3': (face_gate_color, '#000000'),
+            'id': (face_gate_color, '#000000'),
+            'x': (face_gate_color, '#000000'),
+            'y': (face_gate_color, '#000000'),
+            'z': (face_gate_color, '#000000'),
+            'h': (face_gate_color, '#000000'),
             'cx': (face_gate_color, '#000000'),
-            'cy': (face_gate_color, '#ffffff'),
+            'cy': (face_gate_color, '#000000'),
             'cz': (face_gate_color, '#000000'),
             'swap': (face_gate_color, '#000000'),
-            's': (face_gate_color, '#ffffff'),
-            'sdg': (face_gate_color, '#ffffff'),
-            'dcx': (face_gate_color, '#ffffff'),
-            'iswap': (face_gate_color, '#ffffff'),
-            't': (face_gate_color, '#ffffff'),
-            'tdg': (face_gate_color, '#ffffff'),
-            'r': (face_gate_color, '#ffffff'),
-            'rx': (face_gate_color, '#ffffff'),
-            'ry': (face_gate_color, '#ffffff'),
-            'rz': (face_gate_color, '#ffffff'),
-            'rxx': (face_gate_color, '#ffffff'),
-            'ryy': (face_gate_color, '#ffffff'),
-            'rzx': (face_gate_color, '#ffffff'),
-            'reset': (face_gate_color, '#ffffff'),
-            'target': (face_gate_color, '#ffffff'),
-            'measure': (face_gate_color, '#ffffff'),
+            's': (face_gate_color, '#000000'),
+            'sdg': (face_gate_color, '#000000'),
+            'dcx': (face_gate_color, '#000000'),
+            'iswap': (face_gate_color, '#000000'),
+            't': (face_gate_color, '#000000'),
+            'tdg': (face_gate_color, '#000000'),
+            'r': (face_gate_color, '#000000'),
+            'rx': (face_gate_color, '#000000'),
+            'ry': (face_gate_color, '#000000'),
+            'rz': (face_gate_color, '#000000'),
+            'rxx': (face_gate_color, '#000000'),
+            'ryy': (face_gate_color, '#000000'),
+            'rzx': (face_gate_color, '#000000'),
+            'reset': (face_gate_color, '#000000'),
+            'target': (face_gate_color, '#000000'),
+            'measure': (face_gate_color, '#000000'),
             'ccx': (face_gate_color, '#000000'),
-            'cdcx': (face_gate_color, '#ffffff'),
-            'ccdcx': (face_gate_color, '#ffffff'),
+            'cdcx': (face_gate_color, '#000000'),
+            'ccdcx': (face_gate_color, '#000000'),
             'cswap': (face_gate_color, '#000000'),
             'ccswap': (face_gate_color, '#000000'),
             'mcx': (face_gate_color, '#000000'),
-            'u': (face_gate_color, '#ffffff'),
-            'p': (face_gate_color, '#ffffff'),
-            'sx': (face_gate_color, '#ffffff'),
-            'sxdg': (face_gate_color, '#ffffff')
+            'mcx_gray': (face_gate_color, '#000000'),
+            'u': (face_gate_color, '#000000'),
+            'p': (face_gate_color, '#000000'),
+            'sx': (face_gate_color, '#000000'),
+            'sxdg': (face_gate_color, '#000000')
         }
         self.latexmode = False
         self.index = False
@@ -287,12 +289,12 @@ class IQXStyle:
 
         self.name = 'iqx'
         self.tc = '#000000'
-        self.sc = '#000000'
+        self.sc = '#ffffff'
         self.lc = '#000000'
         self.not_gate_lc = '#ffffff'
         self.cc = '#778899'                     # Medium Gray
         self.gc = other_quantum_gate
-        self.gt = '#000000'
+        self.gt = '#ffffff'
         self.bc = non_unitary_gate              # Dark Gray
         self.bg = '#ffffff'
         self.edge_color = None
@@ -367,6 +369,7 @@ class IQXStyle:
             'cswap': (classical_gate_color, white_font),
             'ccswap': (classical_gate_color, white_font),
             'mcx': (classical_gate_color, white_font),
+            'mcx_gray': (classical_gate_color, white_font),
             'u': (other_quantum_gate, white_font),
             'p': (phase_gate_color, black_font),
             'sx': (other_quantum_gate, white_font),
