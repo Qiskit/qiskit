@@ -655,7 +655,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             hamiltonian = copy.deepcopy(self.hamiltonian)
             hamiltonian['vars'] = {
                 k: v * 1e-9 if isinstance(v, numbers.Number) else v
-                for k,v in hamiltonian['vars'].items()
+                for k, v in hamiltonian['vars'].items()
             }
             out_dict['hamiltonian'] = hamiltonian
 
