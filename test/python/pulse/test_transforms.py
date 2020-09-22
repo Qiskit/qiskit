@@ -41,6 +41,7 @@ class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.inst_map = self.backend.defaults().instruction_schedule_map
@@ -198,6 +199,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
     def setUp(self):
+        super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
