@@ -338,6 +338,7 @@ class MatplotlibDrawer:
         return gate_text, ctrl_text
 
     def _get_colors(self, op):
+        base_name = None if not hasattr(op.op, 'base_gate') else op.op.base_gate.name
         if op.name in self._style.dispcol:
             color = self._style.dispcol[op.name]
             # Backward compatibility for style dict using 'displaycolor' with
@@ -348,9 +349,20 @@ class MatplotlibDrawer:
             else:
                 fc = color[0]
                 gt = color[1]
+        # Treat special case of classical gates in iqx style by making all
+        # controlled gates of x, dcx, and swap the classical gate color
+        elif self._style.name == 'iqx' and base_name in ['x', 'dcx', 'swap']:
+            color = self._style.dispcol[base_name]
+            if isinstance(color, str):
+                fc = color
+                gt = self._style.gt
+            else:
+                fc = color[0]
+                gt = color[1]
         else:
             fc = self._style.gc
             gt = self._style.gt
+
         if self._style.name == 'bw':
             ec = self._style.edge_color
             lc = self._style.lc

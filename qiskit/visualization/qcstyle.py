@@ -87,10 +87,10 @@ class DefaultStyle:
             'y': (pauli_color, black_font),
             'z': (pauli_color, black_font),
             'h': (clifford_color, black_font),
-            'cx': (clifford_color, white_font),
+            'cx': (clifford_color, black_font),
             'cy': (clifford_color, black_font),
-            'cz': (clifford_color, white_font),
-            'swap': (clifford_color, white_font),
+            'cz': (clifford_color, black_font),
+            'swap': (clifford_color, black_font),
             's': (clifford_color, black_font),
             'sdg': (clifford_color, black_font),
             'dcx': (clifford_color, black_font),
@@ -105,15 +105,15 @@ class DefaultStyle:
             'ryy': (other_color, black_font),
             'rzx': (other_color, black_font),
             'reset': (non_gate_color, white_font),
-            'target': ('#ffffff', '#ffffff'),
+            'target': ('#ffffff', white_font),
             'measure': (non_gate_color, white_font),
-            'ccx': (other_color, white_font),
+            'ccx': (other_color, black_font),
             'cdcx': (other_color, black_font),
             'ccdcx': (other_color, black_font),
-            'cswap': (other_color, white_font),
-            'ccswap': (other_color, white_font),
+            'cswap': (other_color, black_font),
+            'ccswap': (other_color, black_font),
             'mcx': (other_color, black_font),
-            'mcx_gray': (other_color, white_font),
+            'mcx_gray': (other_color, black_font),
             'u': (other_color, black_font),
             'p': (other_color, black_font),
             'sx': (other_color, black_font),
@@ -132,14 +132,17 @@ class DefaultStyle:
         self.sc = dic.pop('subtextcolor', self.sc)
         self.lc = dic.pop('linecolor', self.lc)
         self.cc = dic.pop('creglinecolor', self.cc)
-        self.gt = dic.pop('gatetextcolor', self.tc)
+        self.gt = dic.pop('gatetextcolor', self.gt)
         self.gc = dic.pop('gatefacecolor', self.gc)
         self.bc = dic.pop('barrierfacecolor', self.bc)
         self.bg = dic.pop('backgroundcolor', self.bg)
         self.fs = dic.pop('fontsize', self.fs)
         self.sfs = dic.pop('subfontsize', self.sfs)
         self.disptex = dic.pop('displaytext', self.disptex)
-        self.dispcol = dic.pop('displaycolor', self.dispcol)
+        dcol = dic.pop('displaycolor', self.dispcol)
+        for col in dcol.keys():
+            if col in self.dispcol.keys():
+                self.dispcol[col] = dcol[col]
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
@@ -255,14 +258,17 @@ class BWStyle:
         self.sc = dic.pop('subtextcolor', self.sc)
         self.lc = dic.pop('linecolor', self.lc)
         self.cc = dic.pop('creglinecolor', self.cc)
-        self.gt = dic.pop('gatetextcolor', self.tc)
+        self.gt = dic.pop('gatetextcolor', self.gt)
         self.gc = dic.pop('gatefacecolor', self.gc)
         self.bc = dic.pop('barrierfacecolor', self.bc)
         self.bg = dic.pop('backgroundcolor', self.bg)
         self.fs = dic.pop('fontsize', self.fs)
         self.sfs = dic.pop('subfontsize', self.sfs)
         self.disptex = dic.pop('displaytext', self.disptex)
-        self.dispcol = dic.pop('displaycolor', self.dispcol)
+        dcol = dic.pop('displaycolor', self.dispcol)
+        for col in dcol.keys():
+            if col in self.dispcol.keys():
+                self.dispcol[col] = dcol[col]
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
@@ -388,14 +394,17 @@ class IQXStyle:
         self.sc = dic.pop('subtextcolor', self.sc)
         self.lc = dic.pop('linecolor', self.lc)
         self.cc = dic.pop('creglinecolor', self.cc)
-        self.gt = dic.pop('gatetextcolor', self.tc)
+        self.gt = dic.pop('gatetextcolor', self.gt)
         self.gc = dic.pop('gatefacecolor', self.gc)
         self.bc = dic.pop('barrierfacecolor', self.bc)
         self.bg = dic.pop('backgroundcolor', self.bg)
         self.fs = dic.pop('fontsize', self.fs)
         self.sfs = dic.pop('subfontsize', self.sfs)
         self.disptex = dic.pop('displaytext', self.disptex)
-        self.dispcol = dic.pop('displaycolor', self.dispcol)
+        dcol = dic.pop('displaycolor', self.dispcol)
+        for col in dcol.keys():
+            if col in self.dispcol.keys():
+                self.dispcol[col] = dcol[col]
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
