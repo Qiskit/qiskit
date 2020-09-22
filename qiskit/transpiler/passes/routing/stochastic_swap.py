@@ -193,7 +193,7 @@ class StochasticSwap(TransformationPass):
                         break
             weights = np.asarray(weights)
             # normalize edge weights
-            avg_weight = np.min(weights[weights != 1])
+            avg_weight = np.mean(weights[weights != 1])
             normed_weights = weights / avg_weight
             rows = [edge[0] for edge in edges]
             cols = [edge[1] for edge in edges]
