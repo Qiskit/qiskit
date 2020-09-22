@@ -118,8 +118,8 @@ class QasmSimulatorPy(BackendV1):
         super().__init__(
             configuration=(configuration or QasmBackendConfiguration.from_dict(
                 self.DEFAULT_CONFIGURATION)),
+            provider=provider,
             **fields)
-        self.provider = provider
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0

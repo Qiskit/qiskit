@@ -60,7 +60,7 @@ class BackendV1(Backend, ABC):
     """
     version = 1
 
-    def __init__(self, configuration, **fields):
+    def __init__(self, configuration, provider=None, **fields):
         """Initialize a backend class
 
         Args:
@@ -73,6 +73,7 @@ class BackendV1(Backend, ABC):
         """
         self._configuration = configuration
         self._options = self._default_options()
+        self._provider = provider
         if fields:
             for field in fields:
                 if field not in self._options.data:
@@ -133,6 +134,14 @@ class BackendV1(Backend, ABC):
             does not support properties, it returns ``None``.
         """
         return None
+
+    def provider(self):
+        """Return the backend Provider.
+
+        Returns:
+            Provider: the Provider responsible for the backend.
+        """
+        return self._provider
 
     def status(self):
         """Return the backend status.

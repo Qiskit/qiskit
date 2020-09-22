@@ -112,9 +112,9 @@ class UnitarySimulatorPy(BackendV1):
         super().__init__(
             configuration=(configuration or QasmBackendConfiguration.from_dict(
                 self.DEFAULT_CONFIGURATION)),
+            provider=provider,
             **fields)
 
-        self.provider = provider
         # Define attributes inside __init__.
         self._unitary = None
         self._number_of_qubits = 0
