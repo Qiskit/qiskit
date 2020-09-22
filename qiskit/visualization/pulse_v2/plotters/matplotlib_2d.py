@@ -144,3 +144,14 @@ class Mpl2DPlotter:
         # boundary
         self.ax.set_xlim(*axis_config.window)
         self.ax.set_ylim(y_min, y_max)
+
+        # title
+        if self.canvas.fig_title:
+            self.ax.text(x=axis_config.window[0],
+                         y=y_max,
+                         s=self.canvas.fig_title,
+                         ha='left',
+                         va='bottom',
+                         zorder=self.canvas.formatter['layer.fig_title'],
+                         color=self.canvas.formatter['color.fig_title'],
+                         size=self.canvas.formatter['text_size.fig_title'])

@@ -17,7 +17,7 @@
 """
 A collection of functions that decide the layout of an output image.
 
-Currently this module provides two types of functions:
+Currently this module provides below functions:
 
 1. Arrange the order of channels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,14 +55,14 @@ The user-defined layout function can be assigned to the layout field of the styl
 
 An end-user can write arbitrary functions that output the `HorizontalAxis` data set that
 will be later consumed by the plotter API to update the horizontal axis appearance.
-Layout function in this module are called with the `formatter` and `device` kwargs.
-These data provides stylesheet configuration and backend system configuration.
+Layout function in this module are called with the `time_window`, `axis_breaks`, and `dt` kwargs.
+These data provides horizontal axis limit, axis break position, and time resolution, respectively.
 
 See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
 data.
 
     ```python
-    def my_horizontal_axis(time_windos: Tuple[int, int],
+    def my_horizontal_axis(time_window: Tuple[int, int],
                            axis_breaks: List[Tuple[int, int]],
                            dt: Optional[float] = None) -> HorizontalAxis:
         # write horizontal axis configuration
@@ -78,11 +78,34 @@ The user-defined layout function can be assigned to the layout field of of the s
     }
     ```
 
+3. Title of figure
+~~~~~~~~~~~~~~~~~~
+
+An end-user can write arbitrary functions that output the string data that
+will be later consumed by the plotter API to output figure title.
+Layout function in this module are called with the `program` and `device` kwargs.
+These data provides input program and backend system configuration.
+
+    ```python
+    def my_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                 device: DrawerBackendInfo) -> str:
+
+        return 'title'
+    ```
+
+The user-defined layout function can be assigned to the layout field of of the stylesheet:
+
+    ```python
+    my_custom_style = {
+        'layout.figure_title' : my_title
+    }
+    ```
+
 The user can set the custom stylesheet to the drawer interface.
 """
 
 from collections import defaultdict
-from typing import List, Dict, Any, Tuple, Iterator, Optional
+from typing import List, Dict, Any, Tuple, Iterator, Optional, Union
 
 import numpy as np
 from qiskit import pulse
@@ -362,3 +385,37 @@ def time_map_in_ns(time_window: Tuple[int, int],
         axis_break_pos=axis_break_pos,
         label=label
     )
+
+
+def detail_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                 device: DrawerBackendInfo) -> str:
+    """Layout function for generating figure title.
+
+    This layout write program name, program duration, and backend name in the title.
+    """
+    title_str = list()
+
+    # add program name
+    title_str.append('Name: {name}'.format(name=program.name))
+
+    # add program duration
+    dt = device.dt * 1e9 if device.dt else 1.
+    title_str.append('Duration: {dur:.1f} {unit}'.format(
+        dur=program.duration * dt,
+        unit='ns' if device.dt else 'dt'
+    ))
+
+    # add device name
+    if device.backend_name != 'no-backend':
+        title_str.append('Backend: {backend_name}'.format(backend_name=device.backend_name))
+
+    return ', '.join(title_str)
+
+
+def empty_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+                device: DrawerBackendInfo) -> str:
+    """Layout function for generating figure title.
+
+    Returns empty title.
+    """
+    return ''

@@ -125,6 +125,9 @@ class DrawerCanvas:
         self._time_range = (0, 0)
         self._time_breaks = []
 
+        # title
+        self.fig_title = ''
+
     @property
     def time_range(self) -> Tuple[int, int]:
         """Return current time range to draw.
@@ -213,6 +216,9 @@ class DrawerCanvas:
 
         # update time range
         self.set_time_range(0, program.duration, seconds=False)
+
+        # set title
+        self.fig_title = self.layout['figure_title'](program=program, device=self.device)
 
     def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
         """Load Waveform instance.

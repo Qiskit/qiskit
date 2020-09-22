@@ -12,8 +12,7 @@
 
 # pylint: disable=invalid-name
 
-r"""
-Drawing objects for pulse drawer.
+"""Drawing objects for pulse drawer.
 
 Drawing objects play two important roles:
     - Allowing unittests of visualization module. Usually it is hard for image files to be tested.

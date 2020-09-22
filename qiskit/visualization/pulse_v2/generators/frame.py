@@ -245,12 +245,20 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
              'va': 'center',
              'ha': 'center'}
 
-    frame_info = '{:.2f}\n{:.1e}'.format(data.frame.phase, data.frame.freq)
+    if data.frame.freq == 0:
+        freq_sci_notation = '0.0'
+    else:
+        freq_sci_notation = '{base:.1f}e{exp:d}'.format(
+            base=data.frame.freq / (10**int(np.floor(np.log10(data.frame.freq)))),
+            exp=int(np.floor(np.log10(data.frame.freq)))
+        )
+    frame_info = '{phase:.2f}\n{freq}'.format(phase=data.frame.phase,
+                                              freq=freq_sci_notation)
 
     text = drawing_objects.TextData(data_type=types.DrawingLabel.FRAME,
                                     channels=data.inst[0].channel,
                                     xvals=[data.t0],
-                                    yvals=[formatter['label_offset.frame_change']],
+                                    yvals=[1.2*formatter['label_offset.frame_change']],
                                     text=frame_info,
                                     ignore_scaling=True,
                                     styles=style)

@@ -217,7 +217,8 @@ class IqxStandard(dict):
                  'generator.snapshot': [generators.gen_snapshot_symbol],
                  'generator.barrier': [generators.gen_barrier],
                  'layout.chart_channel_map': layouts.channel_index_grouped_sort_u,
-                 'layout.time_axis_map': layouts.time_map_in_ns}
+                 'layout.time_axis_map': layouts.time_map_in_ns,
+                 'layout.figure_title': layouts.detail_title}
         style.update(**kwargs)
         self.update(style)
 
@@ -253,7 +254,8 @@ class IqxPublication(dict):
                  'generator.snapshot': [],
                  'generator.barrier': [],
                  'layout.chart_channel_map': layouts.qubit_index_sort,
-                 'layout.time_axis_map': layouts.time_map_in_ns}
+                 'layout.time_axis_map': layouts.time_map_in_ns,
+                 'layout.figure_title': layouts.empty_title}
         style.update(**kwargs)
         self.update(style)
 
@@ -280,7 +282,7 @@ class IqxDebugging(dict):
         style = {'formatter.control.apply_phase_modulation': False,
                  'formatter.control.show_snapshot_channel': True,
                  'formatter.control.show_empty_channel': False,
-                 'formatter.control.auto_chart_scaling': False,
+                 'formatter.control.auto_chart_scaling': True,
                  'formatter.control.axis_break': True,
                  'generator.waveform': [generators.gen_filled_waveform_stepwise,
                                         generators.gen_ibmq_latex_waveform_name,
@@ -294,7 +296,8 @@ class IqxDebugging(dict):
                                         generators.gen_snapshot_name],
                  'generator.barrier': [generators.gen_barrier],
                  'layout.chart_channel_map': layouts.channel_index_grouped_sort_u,
-                 'layout.time_axis_map': layouts.time_map_in_ns}
+                 'layout.time_axis_map': layouts.time_map_in_ns,
+                 'layout.figure_title': layouts.detail_title}
         style.update(**kwargs)
         self.update(style)
 
@@ -318,6 +321,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.color.baseline': '#000000',
         'formatter.color.barrier': '#222222',
         'formatter.color.background': '#f2f3f4',
+        'formatter.color.fig_title': '#000000',
         'formatter.color.annotate': '#222222',
         'formatter.color.frame_change': '#000000',
         'formatter.color.snapshot': '#000000',
@@ -332,6 +336,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.layer.axis_label': 5,
         'formatter.layer.frame_change': 4,
         'formatter.layer.snapshot': 3,
+        'formatter.layer.fig_title': 6,
         'formatter.margin.top': 0.5,
         'formatter.margin.bottom': 0.5,
         'formatter.margin.left_percent': 0.05,
@@ -377,4 +382,5 @@ def default_style() -> Dict[str, Any]:
         'generator.snapshot': [],
         'generator.barrier': [],
         'layout.chart_channel_map': None,
-        'layout.time_axis_map': None}
+        'layout.time_axis_map': None,
+        'layout.figure_title': None}

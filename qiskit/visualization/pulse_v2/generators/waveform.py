@@ -298,12 +298,12 @@ def gen_waveform_max_value(data: types.PulseInstruction,
 
     # max of real part
     re_maxind = np.argmax(np.abs(ydata.real))
-    if np.abs(ydata.real[re_maxind]) > formatter['general.vertical_resolution']:
+    if np.abs(ydata.real[re_maxind]) > 0.01:
         if ydata.real[re_maxind] > 0:
             max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.real[re_maxind])
             re_style = {'va': 'bottom'}
         else:
-            max_val = u'{val:.2f}\n\u25B4'.format(val=ydata.real[re_maxind])
+            max_val = u'\u25B4\n{val:.2f}'.format(val=ydata.real[re_maxind])
             re_style = {'va': 'top'}
         re_style.update(style)
         re_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
@@ -311,18 +311,17 @@ def gen_waveform_max_value(data: types.PulseInstruction,
                                            xvals=[xdata[re_maxind]],
                                            yvals=[ydata.real[re_maxind]],
                                            text=max_val,
-                                           ignore_scaling=True,
                                            styles=re_style)
         texts.append(re_text)
 
     # max of imag part
     im_maxind = np.argmax(np.abs(ydata.imag))
-    if np.abs(ydata.imag[im_maxind]) > formatter['general.vertical_resolution']:
+    if np.abs(ydata.imag[im_maxind]) > 0.01:
         if ydata.imag[im_maxind] > 0:
             max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.imag[im_maxind])
             im_style = {'va': 'bottom'}
         else:
-            max_val = u'{val:.2f}\n\u25B4'.format(val=ydata.imag[im_maxind])
+            max_val = u'\u25B4\n{val:.2f}'.format(val=ydata.imag[im_maxind])
             im_style = {'va': 'top'}
         im_style.update(style)
         im_text = drawing_objects.TextData(data_type=types.DrawingLabel.PULSE_INFO,
@@ -330,7 +329,6 @@ def gen_waveform_max_value(data: types.PulseInstruction,
                                            xvals=[xdata[im_maxind]],
                                            yvals=[ydata.imag[im_maxind]],
                                            text=max_val,
-                                           ignore_scaling=True,
                                            styles=im_style)
         texts.append(im_text)
 

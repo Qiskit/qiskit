@@ -102,7 +102,7 @@ ParsedInstruction.meta.__doc__ = 'Dictionary containing instruction details.'
 HorizontalAxis = NamedTuple(
     'HorizontalAxis',
     [('window', Tuple[int, int]),
-     ('axis_map', Dict[int, int]),
+     ('axis_map', Dict[Union[int, float], Union[int, float, str]]),
      ('axis_break_pos', List[int]),
      ('label', str)]
 )
