@@ -12,15 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """Waveform generators.
 
-A collection of functions that generate drawing object for input waveform type instructions.
-See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of input data.
+A collection of functions that generate a drawing object for an input waveform instruction.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
+data.
 
-In this module input data is `PulseInstruction`.
+In this module the input data is `types.PulseInstruction`.
 
 An end-user can write arbitrary functions that generate custom drawing objects.
-Generators in this module are called with `formatter` and `device` kwargs.
+Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
 The format of generator is restricted to:
@@ -33,8 +36,9 @@ The format of generator is restricted to:
         pass
     ```
 
-Arbitrary generator function satisfying above format can be accepted.
-Returned `ElementaryData` can be arbitrary subclass that is implemented in plotter API.
+Arbitrary generator function satisfying the above format can be accepted.
+Returned `ElementaryData` can be arbitrary subclasses that are implemented in
+the plotter API.
 """
 import re
 from fractions import Fraction
@@ -50,11 +54,12 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 def gen_filled_waveform_stepwise(data: types.PulseInstruction,
                                  formatter: Dict[str, Any],
-                                 device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.LineData]:
-    """Generate filled area object of waveform envelope.
+                                 device: device_info.DrawerBackendInfo
+                                 ) -> List[drawing_objects.LineData]:
+    """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
-    The curve of envelope is not interpolated and presented as stepwise function.
+    The curve of envelope is not interpolated nor smoothed and presented
+    as stepwise function at each data point.
 
     Stylesheets:
         - The `fill_waveform` style is applied.
@@ -72,6 +77,9 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
     # generate waveform data
     parsed = _parse_waveform(data)
     channel = data.inst.channel
+    qubit = device.get_qubit_index(channel)
+    if qubit is None:
+        qubit = 'N/A'
     resolution = formatter['general.vertical_resolution']
 
     # phase modulation
@@ -103,7 +111,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         re_style = {'color': color_code.real}
         re_style.update(style)
         # metadata
-        re_meta = {'data': 'real', 'qubit': device.get_qubit_index(channel) or 'N/A'}
+        re_meta = {'data': 'real', 'qubit': qubit}
         re_meta.update(parsed.meta)
         # active xy data
         re_xvals = time[re_valid_inds]
@@ -127,7 +135,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         im_style = {'color': color_code.imaginary}
         im_style.update(style)
         # metadata
-        im_meta = {'data': 'imag', 'qubit': device.get_qubit_index(channel) or 'N/A'}
+        im_meta = {'data': 'imag', 'qubit': qubit}
         im_meta.update(parsed.meta)
         # active xy data
         im_xvals = time[im_valid_inds]
@@ -148,12 +156,12 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
 
 def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
                                  formatter: Dict[str, Any],
-                                 device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate formatted instruction name associated with the waveform.
+                                 device: device_info.DrawerBackendInfo
+                                 ) -> List[drawing_objects.TextData]:
+    r"""Generate the formatted instruction name associated with the waveform.
 
-    Channel name and id are removed and the rotation angle is expressed in units of pi.
-    CR pulse name is also converted with the controlled rotation angle divided by 2.
+    Channel name and ID string are removed and the rotation angle is expressed in units of pi.
+    The controlled rotation angle associated with the CR pulse name is divided by 2.
 
     Note that in many scientific articles the controlled rotation angle implies
     the actual rotation angle, but in IQX backend the rotation angle represents
@@ -242,11 +250,12 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
 
 def gen_waveform_max_value(data: types.PulseInstruction,
                            formatter: Dict[str, Any],
-                           device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate annotation for maximum waveform height for real and imaginary part.
+                           device: device_info.DrawerBackendInfo
+                           ) -> List[drawing_objects.TextData]:
+    """Generate the annotation for the maximum waveform height for
+    the real and the imaginary part of the waveform envelope.
 
-    Maximum value smaller than the vertical resolution is ignored.
+    Maximum values smaller than the vertical resolution limit is ignored.
 
     Stylesheets:
         - The `annotate` style is applied.
@@ -301,7 +310,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
                                            yvals=[ydata.real[re_maxind]],
                                            text=max_val,
                                            ignore_scaling=True,
-                                           styles=style)
+                                           styles=re_style)
         texts.append(re_text)
 
     # max of imag part
@@ -320,7 +329,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
                                            yvals=[ydata.imag[im_maxind]],
                                            text=max_val,
                                            ignore_scaling=True,
-                                           styles=style)
+                                           styles=im_style)
         texts.append(im_text)
 
     return texts
@@ -354,8 +363,8 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
 
 
 def _parse_waveform(data: types.PulseInstruction) -> types.ParsedInstruction:
-    """A helper function that generates sample data array of the waveform with
-    instruction meta data.
+    """A helper function that generates an array for the waveform with
+    instruction metadata.
 
     Args:
         data: Instruction data set
@@ -408,7 +417,7 @@ def _parse_waveform(data: types.PulseInstruction) -> types.ParsedInstruction:
 
 
 def _fill_waveform_color(channel: pulse.channels.Channel) -> str:
-    """A helper function that returns formatter key of the color code.
+    """A helper function that returns the formatter key of the color code.
 
     Args:
         channel: Pulse channel object associated with the fill waveform.

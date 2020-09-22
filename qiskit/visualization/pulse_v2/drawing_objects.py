@@ -35,9 +35,9 @@ Data key
 In the abstract class ``ElementaryData`` common attributes to represent a drawing object are
 specified. In addition, drawing objects have the `data_key` property that returns an
 unique hash of the object for comparison.
-This key is generated from data type and location of the drawing object in the canvas.
-See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of data type.
-If a data key cannot distinguish two independent objects, you need to add new data type.
+This key is generated from a data type and the location of the drawing object in the canvas.
+See py:mod:`qiskit.visualization.pulse_v2.types` for detail on the data type.
+If a data key cannot distinguish two independent objects, you need to add a new data type.
 The data key may be used in the plotter interface to identify the object.
 
 Drawing objects
@@ -46,22 +46,21 @@ To support not only `matplotlib` but also multiple plotters, those drawing objec
 universal and designed without strong dependency on modules in `matplotlib`.
 This means drawing objects that represent primitive geometries are preferred.
 It should be noted that there will be no unittest for each plotter API, which takes
-drawing objects and output an image data, we should avoid adding a complicated geometry
+drawing objects and outputs image data, we should avoid adding a complicated geometry
 that has a context of the pulse program.
 
 For example, a pulse envelope is complex valued number array and may be represented
 by two lines with different colors associated with the real and the imaginary component.
 We can use two line-type objects rather than defining a new drawing object that takes
-complex value. Because many plotters don't support an API that visualizes complex valued
-data array. If we introduce such drawing object and write a custom wrapper function
+complex value. As many plotters don't support an API that visualizes complex-valued
+data arrays, if we introduced such a drawing object and wrote a custom wrapper function
 on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
-
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse_v2 import types
 

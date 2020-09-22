@@ -12,25 +12,37 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """
-A collection of functions that decide the layout of a figure.
+A collection of functions that decide the layout of an output image.
 
-Currently this module provides two types functions:
+Currently this module provides two types of functions:
 
-[1] arrange the order of channels
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Arrange the order of channels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-An end-user can write their own channel layouts by providing a function with the signature:
+An end-user can write arbitrary functions that output the custom channel ordering
+associated with group name. Layout function in this module are called with the
+`formatter` and `device` kwargs. These data provides stylesheet configuration
+and backend system configuration.
+
+The layout function is restricted to:
+
 
     ```python
-    def my_channel_layout(channels: List[Channel]) -> List[Channel]:
+    def my_channel_layout(channels: List[pulse.channels.Channel],
+                          formatter: Dict[str, Any],
+                          device: DrawerBackendInfo
+                          ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
         ordered_channels = []
         # arrange order of channels
 
-        return ordered_channels
+        for key, channels in my_ordering_dict.items():
+            yield key, channels
     ```
 
-The user-defined arrangement function can be assigned to the layout of the stylesheet:
+The user-defined layout function can be assigned to the layout field of the stylesheet:
 
     ```python
     my_custom_style = {
@@ -38,10 +50,16 @@ The user-defined arrangement function can be assigned to the layout of the style
     }
     ```
 
-[2] change horizontal axis format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. Change horizontal axis format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-An end-user can modify horizontal axis by providing a function with the signature:
+An end-user can write arbitrary functions that output the `HorizontalAxis` data set that
+will be later consumed by the plotter API to update the horizontal axis appearance.
+Layout function in this module are called with the `formatter` and `device` kwargs.
+These data provides stylesheet configuration and backend system configuration.
+
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
+data.
 
     ```python
     def my_horizontal_axis(time_windos: Tuple[int, int],
@@ -52,7 +70,7 @@ An end-user can modify horizontal axis by providing a function with the signatur
         return horizontal_axis
     ```
 
-The user-defined arrangement function can be assigned to the layout of the stylesheet:
+The user-defined layout function can be assigned to the layout field of of the stylesheet:
 
     ```python
     my_custom_style = {
@@ -74,9 +92,9 @@ from qiskit.visualization.pulse_v2.device_info import DrawerBackendInfo
 
 def channel_type_grouped_sort(channels: List[pulse.channels.Channel],
                               formatter: Dict[str, Any],
-                              device: DrawerBackendInfo) \
-        -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Layout function for channel arrangement.
+                              device: DrawerBackendInfo
+                              ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
+    """Layout function for the channel assignment to the chart instance.
 
     Assign single channel per chart. Channels are grouped by type and
     sorted by index in ascending order.
@@ -124,9 +142,9 @@ def channel_type_grouped_sort(channels: List[pulse.channels.Channel],
 
 def channel_index_grouped_sort(channels: List[pulse.channels.Channel],
                                formatter: Dict[str, Any],
-                               device: DrawerBackendInfo) \
-        -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Layout function for channel arrangement.
+                               device: DrawerBackendInfo
+                               ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
+    """Layout function for the channel assignment to the chart instance.
 
     Assign single channel per chart. Channels are grouped by the same index and
     sorted by type.
@@ -184,11 +202,11 @@ def channel_index_grouped_sort(channels: List[pulse.channels.Channel],
         yield chan.name.upper(), [chan]
 
 
-def channel_index_grouped_sort_except_u(channels: List[pulse.channels.Channel],
-                                        formatter: Dict[str, Any],
-                                        device: DrawerBackendInfo) \
-        -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Layout function for channel arrangement.
+def channel_index_grouped_sort_u(channels: List[pulse.channels.Channel],
+                                 formatter: Dict[str, Any],
+                                 device: DrawerBackendInfo
+                                 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
+    """Layout function for the channel assignment to the chart instance.
 
     Assign single channel per chart. Channels are grouped by the same index and
     sorted by type except for control channels. Control channels are added to the
@@ -249,9 +267,9 @@ def channel_index_grouped_sort_except_u(channels: List[pulse.channels.Channel],
 
 def qubit_index_sort(channels: List[pulse.channels.Channel],
                      formatter: Dict[str, Any],
-                     device: DrawerBackendInfo) \
-        -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
-    """Layout function for channel arrangement.
+                     device: DrawerBackendInfo
+                     ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
+    """Layout function for the channel assignment to the chart instance.
 
     Assign multiple channels per chart. Channels associated with the same qubit
     are grouped in the same chart and sorted by qubit index in ascending order.
@@ -292,7 +310,7 @@ def qubit_index_sort(channels: List[pulse.channels.Channel],
 def time_map_in_ns(time_window: Tuple[int, int],
                    axis_breaks: List[Tuple[int, int]],
                    dt: Optional[float] = None) -> types.HorizontalAxis:
-    """Layout function for horizontal axis formatting.
+    """Layout function for the horizontal axis formatting.
 
     Calculate axis break and map true time to axis labels. Generate equispaced
     6 horizontal axis ticks. Convert into seconds if ``dt`` is provided.
@@ -305,7 +323,6 @@ def time_map_in_ns(time_window: Tuple[int, int],
     Returns:
         Axis formatter object.
     """
-
     # shift time axis
     t0, t1 = time_window
 

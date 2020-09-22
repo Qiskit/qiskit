@@ -12,15 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """Snapshot generators.
 
-A collection of functions that generate drawing object for input snapshot type instructions.
-See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of input data.
+A collection of functions that generate a drawing object for an input snapshot instruction.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
+data.
 
-In this module input data is `SnapshotInstruction`.
+In this module the input data is `types.SnapshotInstruction`.
 
 An end-user can write arbitrary functions that generate custom drawing objects.
-Generators in this module are called with `formatter` and `device` kwargs.
+Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
 The format of generator is restricted to:
@@ -33,9 +36,9 @@ The format of generator is restricted to:
         pass
     ```
 
-Arbitrary generator function satisfying above format can be accepted.
-Returned `ElementaryData` can be arbitrary subclass that is implemented in plotter API.
-
+Arbitrary generator function satisfying the above format can be accepted.
+Returned `ElementaryData` can be arbitrary subclasses that are implemented in
+the plotter API.
 """
 from typing import Dict, Any, List
 
@@ -44,9 +47,9 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 def gen_snapshot_name(data: types.SnapshotInstruction,
                       formatter: Dict[str, Any],
-                      device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate a snapshot name labels.
+                      device: device_info.DrawerBackendInfo
+                      ) -> List[drawing_objects.TextData]:
+    """Generate the name of snapshot.
 
     Stylesheets:
         - The `snapshot` style is applied for snapshot symbol.
@@ -79,8 +82,8 @@ def gen_snapshot_name(data: types.SnapshotInstruction,
 
 def gen_snapshot_symbol(data: types.SnapshotInstruction,
                         formatter: Dict[str, Any],
-                        device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
+                        device: device_info.DrawerBackendInfo
+                        ) -> List[drawing_objects.TextData]:
     """Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 
     Stylesheets:

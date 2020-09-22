@@ -16,13 +16,11 @@
 Special data types.
 """
 
-import numpy as np
-
 from enum import Enum
 from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 
+import numpy as np
 from qiskit import pulse
-
 
 PhaseFreqTuple = NamedTuple(
     'PhaseFreqTuple',
@@ -115,7 +113,7 @@ HorizontalAxis.axis_break_pos.__doc__ = "Locations of axis break."
 HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
-class DrawingWaveform(str, Enum):
+class DrawingWaveform(Enum):
     """
     Waveform data type.
 
@@ -126,7 +124,7 @@ class DrawingWaveform(str, Enum):
     IMAG = 'Waveform.Imag'
 
 
-class DrawingLabel(str, Enum):
+class DrawingLabel(Enum):
     """
     Label data type.
 
@@ -144,7 +142,7 @@ class DrawingLabel(str, Enum):
     SNAPSHOT = 'Label.Snapshot'
 
 
-class DrawingSymbol(str, Enum):
+class DrawingSymbol(Enum):
     """
     Symbol data type.
 
@@ -155,7 +153,7 @@ class DrawingSymbol(str, Enum):
     SNAPSHOT = 'Symbol.Snapshot'
 
 
-class DrawingLine(str, Enum):
+class DrawingLine(Enum):
     """
     Line data type.
 
@@ -166,7 +164,7 @@ class DrawingLine(str, Enum):
     BARRIER = 'Line.Barrier'
 
 
-class AbstractCoordinate(str, Enum):
+class AbstractCoordinate(Enum):
     """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.

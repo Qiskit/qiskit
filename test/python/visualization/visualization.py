@@ -17,6 +17,8 @@ Useful for refactoring purposes."""
 
 import os
 import unittest
+from filecmp import cmp as cmpfile
+from shutil import copyfile
 import matplotlib
 
 from qiskit.test import QiskitTestCase
@@ -35,13 +37,24 @@ def _this_directory():
 class QiskitVisualizationTestCase(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
-    def assertFilesAreEqual(self, current, expected):
+    def assertFilesAreEqual(self, current, expected, encoding='cp437'):
         """Checks if both file are the same."""
         self.assertTrue(os.path.exists(current))
         self.assertTrue(os.path.exists(expected))
-        with open(current, encoding='cp437') as cur, \
-                open(expected, encoding='cp437') as exp:
+        with open(current, encoding=encoding) as cur, \
+                open(expected, encoding=encoding) as exp:
             self.assertEqual(cur.read(), exp.read())
+
+    def assertEqualToReference(self, result):
+        reference = path_to_diagram_reference(os.path.basename(result))
+        if not os.path.exists(result):
+            raise self.failureException('Result file was not generated.')
+        if not os.path.exists(reference):
+            copyfile(result, reference)
+        if cmpfile(reference, result):
+            os.remove(result)
+        else:
+            raise self.failureException('Result and reference do not match.')
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.

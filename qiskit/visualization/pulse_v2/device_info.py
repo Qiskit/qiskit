@@ -14,24 +14,24 @@
 
 # pylint: disable=invalid-name
 
-"""A collection of formatted backend information to generate drawing data.
+"""A collection of backend information formatted to generate drawing data.
 
-This module provide an abstract class :py:class:``DrawerBackendInfo`` with
-necessary methods to generate drawing objects.
+This instance will be provided to generator functions. The module provides an abstract
+class :py:class:``DrawerBackendInfo`` with necessary methods to generate drawing objects.
 
-Because the data structure of backend class may depend on the provider,
-this abstract class has a factory method `create_from_backend` as abstractmethod.
+Because the data structure of backend class may depend on providers, this abstract class
+has an abstract factory method `create_from_backend`. Each subclass should provide
+the factory method which conforms to the associated provider. By default we provide
+:py:class:``OpenPulseBackendInfo`` class that has the factory method taking backends
+satisfying OpenPulse specification [1].
 
-We provide :py:class:``OpenPulseBackendInfo`` class that has the
-factory method that can handle backends that conform to OpenPulse specification [1].
+This class can be also initialized without the factory method by manually specifying
+required information. This may be convenient for visualizing a pulse program for simulator
+backend that only has a device Hamiltonian information. This requires two mapping objects
+for channel/qubit and channel/frequency along with the system cycle time.
 
-On the other hand, this class can be initialized without the factory method,
-i.e. a pulse program for simulator that only has device Hamiltonian information,
-by manually specifying required information.
-This requires two mappings for channel/qubit and channel/frequency and the system cycle time.
-
-If information is not provided, this class is initialized as a collection of
-empty information, and the drawer illustrates a pulse program so as to be agnostic to device.
+If those information are not provided, this class will be initialized with a set of
+empty data and the drawer illustrates a pulse program without any specific information.
 
 Reference:
 - [1] Qiskit Backend Specifications for OpenQASM and OpenPulse Experiments,
@@ -87,8 +87,7 @@ class DrawerBackendInfo(ABC):
         for qind, chans in self._qubit_channel_map.items():
             if chan in chans:
                 return qind
-        else:
-            return chan.index
+        return chan.index
 
     def get_channel_frequency(self, chan: pulse.channels.Channel) -> Union[float, None]:
         """Get frequency of given channel object."""
@@ -104,6 +103,9 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
         Args:
             backend: Backend object.
+
+        Returns:
+            OpenPulseBackendInfo: New configured instance.
         """
         configuration = backend.configuration()
         defaults = backend.defaults()

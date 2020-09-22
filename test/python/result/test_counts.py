@@ -252,3 +252,37 @@ class TestCounts(unittest.TestCase):
         counts_obj = counts.Counts(raw_counts)
         result = counts_obj.hex_outcomes()
         self.assertEqual(expected, result)
+
+    def test_empty_bitstring_counts(self):
+        raw_counts = {}
+        expected = {}
+        result = counts.Counts(raw_counts)
+        self.assertEqual(expected, result)
+
+    def test_empty_bistring_counts_with_exta_formatting_data(self):
+        raw_counts = {}
+        expected = {}
+        result = counts.Counts(raw_counts, 'test_counts',
+                               creg_sizes=[['c0', 2], ['c0', 1], ['c1', 1]],
+                               memory_slots=4)
+        self.assertEqual(result, expected)
+
+    def test_int_outcomes_with_empty_counts(self):
+        raw_counts = {}
+        expected = {}
+        counts_obj = counts.Counts(raw_counts)
+        result = counts_obj.int_outcomes()
+        self.assertEqual(expected, result)
+
+    def test_most_frequent_empty_bitstring_counts(self):
+        raw_counts = {}
+        counts_obj = counts.Counts(raw_counts)
+        self.assertRaises(exceptions.QiskitError,
+                          counts_obj.most_frequent)
+
+    def test_hex_outcomes_empty_bitstring_counts(self):
+        raw_counts = {}
+        expected = {}
+        counts_obj = counts.Counts(raw_counts)
+        result = counts_obj.hex_outcomes()
+        self.assertEqual(expected, result)

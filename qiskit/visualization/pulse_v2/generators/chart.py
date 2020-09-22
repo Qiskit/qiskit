@@ -12,15 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-argument
+
 """Chart axis generators.
 
-A collection of functions that generate drawing object for input chart axis.
-See py:mod:`qiskit.visualization.pulse_v2.types` for the detail of input data.
+A collection of functions that generate a drawing object for an input chart axis.
+See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required
+data.
 
-In this module input data is `types.ChartAxis`.
+In this module the input data is `types.ChartAxis`.
 
 An end-user can write arbitrary functions that generate custom drawing objects.
-Generators in this module are called with `formatter` and `device` kwargs.
+Generators in this module are called with the `formatter` and `device` kwargs.
 These data provides stylesheet configuration and backend system configuration.
 
 The format of generator is restricted to:
@@ -33,9 +36,9 @@ The format of generator is restricted to:
         pass
     ```
 
-Arbitrary generator function satisfying above format can be accepted.
-Returned `ElementaryData` can be arbitrary subclass that is implemented in plotter API.
-
+Arbitrary generator function satisfying the above format can be accepted.
+Returned `ElementaryData` can be arbitrary subclasses that are implemented in
+the plotter API.
 """
 from typing import Dict, Any, List
 
@@ -44,9 +47,9 @@ from qiskit.visualization.pulse_v2 import drawing_objects, types, device_info
 
 def gen_baseline(data: types.ChartAxis,
                  formatter: Dict[str, Any],
-                 device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.LineData]:
-    """Generate baseline associated with the chart.
+                 device: device_info.DrawerBackendInfo
+                 ) -> List[drawing_objects.LineData]:
+    """Generate the baseline associated with the chart.
 
     Stylesheets:
         - The `baseline` style is applied.
@@ -78,9 +81,9 @@ def gen_baseline(data: types.ChartAxis,
 
 def gen_chart_name(data: types.ChartAxis,
                    formatter: Dict[str, Any],
-                   device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate chart name.
+                   device: device_info.DrawerBackendInfo
+                   ) -> List[drawing_objects.TextData]:
+    """Generate the name of chart.
 
     Stylesheets:
         - The `axis_label` style is applied.
@@ -112,9 +115,9 @@ def gen_chart_name(data: types.ChartAxis,
 
 def gen_chart_scale(data: types.ChartAxis,
                     formatter: Dict[str, Any],
-                    device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate current scaling value of the chart.
+                    device: device_info.DrawerBackendInfo
+                    ) -> List[drawing_objects.TextData]:
+    """Generate the current scaling value of the chart.
 
     Stylesheets:
         - The `axis_label` style is applied.
@@ -128,10 +131,6 @@ def gen_chart_scale(data: types.ChartAxis,
     Returns:
         List of `TextData` drawing objects.
     """
-
-    if data.scale == 1:
-        return []
-
     style = {'zorder': formatter['layer.axis_label'],
              'color': formatter['color.axis_label'],
              'size': formatter['text_size.annotate'],
@@ -153,9 +152,9 @@ def gen_chart_scale(data: types.ChartAxis,
 
 def gen_channel_freqs(data: types.ChartAxis,
                       formatter: Dict[str, Any],
-                      device: device_info.DrawerBackendInfo) \
-        -> List[drawing_objects.TextData]:
-    """Generate frequency values of associated channels.
+                      device: device_info.DrawerBackendInfo
+                      ) -> List[drawing_objects.TextData]:
+    """Generate the frequency values of associated channels.
 
     Stylesheets:
         - The `axis_label` style is applied.
