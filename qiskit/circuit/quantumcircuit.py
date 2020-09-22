@@ -175,6 +175,7 @@ class QuantumCircuit:
         self.global_phase = global_phase
 
         self.duration = None
+        self.unit = 'dt'
 
     @property
     def data(self):
@@ -305,6 +306,7 @@ class QuantumCircuit:
             reverse_circ._append(inst.reverse_ops(), qargs, cargs)
 
         reverse_circ.duration = self.duration
+        reverse_circ.unit = self.unit
         return reverse_circ
 
     def reverse_bits(self):
@@ -848,6 +850,7 @@ class QuantumCircuit:
 
         # mark as normal circuit if a new instruction is added
         self.duration = None
+        self.unit = 'dt'
 
         return instruction
 
@@ -1954,15 +1957,15 @@ class QuantumCircuit:
 
         return self.append(Barrier(len(qubits)), qubits, [])
 
-    def delay(self, duration, qarg=None, unit=None):
+    def delay(self, duration, qarg=None, unit='dt'):
         """Apply :class:`~qiskit.circuit.Delay`. If qarg is None, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
             duration (int or float): duration of the delay.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Default unit is ``None``, i.e. unitless.
-                Supported units: 's', 'ms', 'us', 'ns', 'ps'.
+            unit (str): unit of the duration. Supported units: 's', 'ms', 'us', 'ns', 'ps', 'dt'.
+                Default is ``dt``, i.e. integer time unit depending on the target backend.
 
         Returns:
             qiskit.Instruction: the attached delay instruction.
