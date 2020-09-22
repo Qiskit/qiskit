@@ -20,6 +20,7 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 
+
 class ParameterExpression():
     """ParameterExpression class to enable creating expressions of Parameters."""
 
