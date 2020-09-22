@@ -15,8 +15,9 @@
 import unittest
 
 import numpy as np
-from qiskit.quantum_info.random import random_unitary
+from ddt import ddt, data
 
+from qiskit.quantum_info.random import random_unitary
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
@@ -24,8 +25,10 @@ from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
+from qiskit.extensions.quantum_initializer.isometry import Isometry
 
-
+@ddt
 class TestIsometry(QiskitTestCase):
     """Qiskit isometry tests."""
 
@@ -61,6 +64,22 @@ class TestIsometry(QiskitTestCase):
                 iso_from_circuit = unitary[::, 0:2 ** num_q_input]
                 iso_desired = iso
                 self.assertTrue(matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True))
+
+    @data(np.eye(2, 2), random_unitary(2).data, np.eye(4, 4))
+    def test_isometry_inverse(self, iso):
+        """Tests for the inverse of isometries from m to n qubits"""
+        if len(iso.shape) == 1:
+            iso = iso.reshape((len(iso), 1))
+        num_q_input = int(np.log2(iso.shape[1]))
+        num_q_ancilla_for_output = int(np.log2(iso.shape[0])) - num_q_input
+        n = num_q_input + num_q_ancilla_for_output
+        q = QuantumRegister(n)
+        qc = QuantumCircuit(q)
+        qc.append(Isometry(iso, num_q_ancilla_for_output, 0), q)
+        qc.append(Isometry(iso, num_q_ancilla_for_output, 0).inverse(), q)
+
+        result = Operator(qc)
+        np.testing.assert_array_almost_equal(result.data, np.identity(result.dim[0]))
 
 
 if __name__ == '__main__':

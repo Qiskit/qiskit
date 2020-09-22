@@ -264,6 +264,11 @@ class Isometry(Instruction):
             raise CircuitError("invalid param type {0} for gate  "
                                "{1}".format(type(parameter), self.name))
 
+    def inverse(self):
+        """Return the adjoint of the unitary."""
+        inverse_iso = Isometry(self.params[0].transpose().conjugate(),
+                               self.num_ancillas_zero, self.num_ancillas_dirty)
+        return inverse_iso
 
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 # basis_state=1 respectively
