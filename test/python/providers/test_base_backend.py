@@ -22,6 +22,7 @@ class TestBaseBackend(QiskitTestCase):
     """Test the backend methods."""
 
     def setUp(self):
+        super().setUp()
         self.pulse_backend = FakeOpenPulse2Q()
         self.backend = FakeMelbourne()
 

@@ -44,6 +44,7 @@ from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
@@ -94,6 +95,22 @@ class UCGate(Gate):
         # Create new gate.
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
+
+    def inverse(self):
+        """Return the inverse.
+
+        This does not re-compute the decomposition for the multiplexer with the inverse of the
+        gates but simply inverts the existing decomposition.
+        """
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # remove parameters since array is deprecated as parameter
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
+
+        return inverse_gate
 
     def _get_diagonal(self):
         # Important: for a control list q_controls = [q[0],...,q_[k-1]] the
@@ -250,6 +267,14 @@ class UCGate(Gate):
     @staticmethod
     def _rz(alpha):
         return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
+
+    def validate_parameter(self, parameter):
+        """Uniformly controlled gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
 
 
 def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):

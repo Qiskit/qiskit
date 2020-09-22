@@ -23,6 +23,7 @@ Generic isometries from m to n qubits.
 import itertools
 import numpy as np
 
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -254,6 +255,14 @@ class Isometry(Instruction):
         q_ancillas_zero = q[n:n + self.num_ancillas_zero]
         q_ancillas_dirty = q[n + self.num_ancillas_zero:]
         return q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty
+
+    def validate_parameter(self, parameter):
+        """Isometry parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError("invalid param type {0} for gate  "
+                               "{1}".format(type(parameter), self.name))
 
 
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or

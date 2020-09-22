@@ -13,26 +13,24 @@
 """Test circuits with variable parameters."""
 
 import pickle
-from operator import add, sub, mul, truediv
-
+from operator import add, mul, sub, truediv
 from test import combine
-import numpy
 
-from ddt import ddt, data
+import numpy
+from ddt import data, ddt
 
 import qiskit
 import qiskit.circuit.library as circlib
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Gate, Instruction
-from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import (Gate, Instruction, Parameter, ParameterExpression,
+                            ParameterVector)
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit.execute import execute
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOurense
 from qiskit.tools import parallel_map
-from qiskit.quantum_info import Operator
 
 
 def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
@@ -793,6 +791,47 @@ class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
     supported_operations = [add, sub, mul, truediv]
+
+    def test_cast_to_float_when_bound(self):
+        """Verify expression can be cast to a float when fully bound."""
+
+        x = Parameter('x')
+        bound_expr = x.bind({x: 2.3})
+        self.assertEqual(float(bound_expr), 2.3)
+
+    def test_raise_if_cast_to_float_when_not_fully_bound(self):
+        """Verify raises if casting to float and not fully bound."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        bound_expr = (x + y).bind({x: 2.3})
+        with self.assertRaisesRegex(TypeError, 'unbound parameters'):
+            float(bound_expr)
+
+    def test_cast_to_int_when_bound(self):
+        """Verify expression can be cast to an int when fully bound."""
+
+        x = Parameter('x')
+        bound_expr = x.bind({x: 2.3})
+        self.assertEqual(int(bound_expr), 2)
+
+    def test_cast_to_int_when_bound_truncates_after_evaluation(self):
+        """Verify expression can be cast to an int when fully bound, but
+        truncated only after evaluation."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        bound_expr = (x + y).bind({x: 2.3, y: 0.8})
+        self.assertEqual(int(bound_expr), 3)
+
+    def test_raise_if_cast_to_int_when_not_fully_bound(self):
+        """Verify raises if casting to int and not fully bound."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        bound_expr = (x + y).bind({x: 2.3})
+        with self.assertRaisesRegex(TypeError, 'unbound parameters'):
+            int(bound_expr)
 
     def test_raise_if_sub_unknown_parameters(self):
         """Verify we raise if asked to sub a parameter not in self."""

@@ -196,6 +196,16 @@ class QuantumCircuit:
         """
         return dict(self._calibrations)
 
+    @calibrations.setter
+    def calibrations(self, calibrations):
+        """Set the circuit calibration data from a dictionary of calibration definition.
+
+        Args:
+            calibrations (dict): A dictionary of input in the format
+                {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations = calibrations
+
     @data.setter
     def data(self, data_input):
         """Sets the circuit data from a list of instructions and context.
@@ -220,6 +230,9 @@ class QuantumCircuit:
         return str(self.draw(output='text'))
 
     def __eq__(self, other):
+        if not isinstance(other, QuantumCircuit):
+            return False
+
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
@@ -536,9 +549,11 @@ class QuantumCircuit:
         for element in rhs.qregs:
             if element not in self.qregs:
                 self.qregs.append(element)
+                self._qubits += element[:]
         for element in rhs.cregs:
             if element not in self.cregs:
                 self.cregs.append(element)
+                self._clbits += element[:]
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
@@ -1401,15 +1416,6 @@ class QuantumCircuit:
     def num_ancillas(self):
         """Return the number of ancilla qubits."""
         return len(self.ancillas)
-
-    @property
-    def n_qubits(self):
-        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
     @property
     def num_clbits(self):
@@ -2278,7 +2284,7 @@ class QuantumCircuit:
         if isinstance(gate, Gate):
             self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params))] = schedule
+            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 
 
 def _circuit_from_qasm(qasm):
