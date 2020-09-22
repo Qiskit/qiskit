@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,146 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=anomalous-backslash-in-string
-
 """Tests for visualization tools."""
 
-import os
-import logging
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
 from qiskit.visualization import utils
-from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
-
-logger = logging.getLogger(__name__)
-
-
-class TestLatexSourceGenerator(QiskitTestCase):
-    """Qiskit latex source generator tests."""
-
-    def test_empty_circuit(self):
-        """Test draw an empty circuit"""
-        filename = self._get_resource_path('test_tiny.tex')
-        qc = QuantumCircuit(1)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_tiny_circuit(self):
-        """Test draw tiny circuit."""
-        filename = self._get_resource_path('test_tiny.tex')
-        qc = QuantumCircuit(1)
-        qc.h(0)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_normal_circuit(self):
-        """Test draw normal size circuit."""
-        filename = self._get_resource_path('test_normal.tex')
-        qc = QuantumCircuit(5)
-        for qubit in range(5):
-            qc.h(qubit)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_4597(self):
-        """Test cregbundle and conditional gates.
-        See: https://github.com/Qiskit/qiskit-terra/pull/4597 """
-        filename = self._get_resource_path('test_4597.tex')
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
-        qc = QuantumCircuit(qr, cr)
-        qc.x(qr[2]).c_if(cr, 2)
-        qc.draw(output='latex_source', cregbundle=True)
-
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_deep_circuit(self):
-        """Test draw deep circuit."""
-        filename = self._get_resource_path('test_deep.tex')
-        qc = QuantumCircuit(1)
-        for _ in range(100):
-            qc.h(0)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_huge_circuit(self):
-        """Test draw huge circuit."""
-        filename = self._get_resource_path('test_huge.tex')
-        qc = QuantumCircuit(40)
-        for qubit in range(39):
-            qc.h(qubit)
-            qc.cx(qubit, 39)
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_teleport(self):
-        """Test draw teleport circuit."""
-        filename = self._get_resource_path('test_teleport.tex')
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
-        qc = QuantumCircuit(qr, cr)
-        # Prepare an initial state
-        qc.u3(0.3, 0.2, 0.1, qr[0])
-        # Prepare a Bell pair
-        qc.h(qr[1])
-        qc.cx(qr[1], qr[2])
-        # Barrier following state preparation
-        qc.barrier(qr)
-        # Measure in the Bell basis
-        qc.cx(qr[0], qr[1])
-        qc.h(qr[0])
-        qc.measure(qr[0], cr[0])
-        qc.measure(qr[1], cr[1])
-        # Apply a correction
-        qc.z(qr[2]).c_if(cr, 1)
-        qc.x(qr[2]).c_if(cr, 2)
-        qc.measure(qr[2], cr[2])
-        try:
-            circuit_drawer(qc, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
-
-    def test_global_phase(self):
-        """Test circuit with global phase"""
-        filename = self._get_resource_path('test_global_phase.tex')
-        circuit = QuantumCircuit(3, global_phase=1.57079632679)
-        circuit.h(range(3))
-        try:
-            circuit_drawer(circuit, filename=filename, output='latex_source')
-            self.assertNotEqual(os.path.exists(filename), False)
-        finally:
-            if os.path.exists(filename):
-                os.remove(filename)
 
 
 class TestVisualizationUtils(QiskitTestCase):
@@ -249,15 +117,15 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions_left_justification_simple(self):
         """ Test _get_layered_instructions left justification simple since #2802
-q_0: |0>───────■──
-        ┌───┐  │
-q_1: |0>┤ H ├──┼──
-        ├───┤  │
-q_2: |0>┤ H ├──┼──
-        └───┘┌─┴─┐
-q_3: |0>─────┤ X ├
-             └───┘
-"""
+        q_0: |0>───────■──
+                ┌───┐  │
+        q_1: |0>┤ H ├──┼──
+                ├───┤  │
+        q_2: |0>┤ H ├──┼──
+                └───┘┌─┴─┐
+        q_3: |0>─────┤ X ├
+                     └───┘
+        """
         qc = QuantumCircuit(4)
         qc.h(1)
         qc.h(2)
@@ -277,15 +145,15 @@ q_3: |0>─────┤ X ├
 
     def test_get_layered_instructions_right_justification_simple(self):
         """ Test _get_layered_instructions right justification simple since #2802
-q_0: |0>──■───────
-          │  ┌───┐
-q_1: |0>──┼──┤ H ├
-          │  ├───┤
-q_2: |0>──┼──┤ H ├
-        ┌─┴─┐└───┘
-q_3: |0>┤ X ├─────
-        └───┘
-"""
+        q_0: |0>──■───────
+                  │  ┌───┐
+        q_1: |0>──┼──┤ H ├
+                  │  ├───┤
+        q_2: |0>──┼──┤ H ├
+                ┌─┴─┐└───┘
+        q_3: |0>┤ X ├─────
+                └───┘
+        """
         qc = QuantumCircuit(4)
         qc.h(1)
         qc.h(2)
@@ -306,18 +174,18 @@ q_3: |0>┤ X ├─────
     def test_get_layered_instructions_left_justification_less_simple(self):
         """ Test _get_layered_instructions left justification
         less simple example since #2802
-        ┌────────────┐┌───┐┌────────────┐              ┌─┐┌────────────┐┌───┐┌────────────┐
-q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├──────────────┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
-        ├────────────┤└─┬─┘├────────────┤┌────────────┐└╥┘└────────────┘└─┬─┘├────────────┤
-q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├┤ U2(0,pi/1) ├─╫─────────────────■──┤ U2(0,pi/1) ├
-        └────────────┘     └────────────┘└────────────┘ ║                    └────────────┘
-q_2: |0>────────────────────────────────────────────────╫──────────────────────────────────
-                                                        ║
-q_3: |0>────────────────────────────────────────────────╫──────────────────────────────────
-                                                        ║
-q_4: |0>────────────────────────────────────────────────╫──────────────────────────────────
-                                                        ║
-c1_0: 0 ════════════════════════════════════════════════╩══════════════════════════════════
+                ┌────────────┐┌───┐┌────────────┐              ┌─┐┌────────────┐┌───┐┌────────────┐
+        q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├──────────────┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
+                ├────────────┤└─┬─┘├────────────┤┌────────────┐└╥┘└────────────┘└─┬─┘├────────────┤
+        q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├┤ U2(0,pi/1) ├─╫─────────────────■──┤ U2(0,pi/1) ├
+                └────────────┘     └────────────┘└────────────┘ ║                    └────────────┘
+        q_2: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                                ║
+        q_3: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                                ║
+        q_4: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                                ║
+        c1_0: 0 ════════════════════════════════════════════════╩══════════════════════════════════
         """
         qasm = """
         OPENQASM 2.0;
@@ -364,18 +232,18 @@ c1_0: 0 ════════════════════════
     def test_get_layered_instructions_right_justification_less_simple(self):
         """ Test _get_layered_instructions right justification
         less simple example since #2802
-        ┌────────────┐┌───┐┌────────────┐┌─┐┌────────────┐┌───┐┌────────────┐
-q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
-        ├────────────┤└─┬─┘├────────────┤└╥┘├────────────┤└─┬─┘├────────────┤
-q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├─╫─┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├
-        └────────────┘     └────────────┘ ║ └────────────┘     └────────────┘
-q_2: |0>──────────────────────────────────╫──────────────────────────────────
-                                          ║
-q_3: |0>──────────────────────────────────╫──────────────────────────────────
-                                          ║
-q_4: |0>──────────────────────────────────╫──────────────────────────────────
-                                          ║
-c1_0: 0 ══════════════════════════════════╩══════════════════════════════════
+                ┌────────────┐┌───┐┌────────────┐┌─┐┌────────────┐┌───┐┌────────────┐
+        q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
+                ├────────────┤└─┬─┘├────────────┤└╥┘├────────────┤└─┬─┘├────────────┤
+        q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├─╫─┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├
+                └────────────┘     └────────────┘ ║ └────────────┘     └────────────┘
+        q_2: |0>──────────────────────────────────╫──────────────────────────────────
+                                                  ║
+        q_3: |0>──────────────────────────────────╫──────────────────────────────────
+                                                  ║
+        q_4: |0>──────────────────────────────────╫──────────────────────────────────
+                                                  ║
+        c1_0: 0 ══════════════════════════════════╩══════════════════════════════════
         """
         qasm = """
         OPENQASM 2.0;
