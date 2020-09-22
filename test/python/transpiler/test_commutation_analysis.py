@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -28,6 +26,7 @@ class TestCommutationAnalysis(QiskitTestCase):
     """Test the Commutation pass."""
 
     def setUp(self):
+        super().setUp()
         self.pass_ = CommutationAnalysis()
         self.pset = self.pass_.property_set = PropertySet()
 

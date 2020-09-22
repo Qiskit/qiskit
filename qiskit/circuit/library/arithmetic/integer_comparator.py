@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -17,9 +15,10 @@
 """Integer Comparator."""
 
 from typing import List, Optional
+import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
 from ..boolean_logic import OR
 from ..blueprintcircuit import BlueprintCircuit
@@ -101,6 +100,14 @@ class IntegerComparator(BlueprintCircuit):
             self._geq = geq
 
     @property
+    def num_ancilla_qubits(self):
+        """Deprecated. Use num_ancillas instead."""
+        warnings.warn('The IntegerComparator.num_ancilla_qubits property is deprecated '
+                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
+                      'date. You should use the num_ancillas property instead.')
+        return self.num_ancillas
+
+    @property
     def num_state_qubits(self) -> int:
         """The number of qubits encoding the state for the comparison.
 
@@ -122,25 +129,19 @@ class IntegerComparator(BlueprintCircuit):
             self._invalidate()  # reset data
             self._num_state_qubits = num_state_qubits
 
-            if num_state_qubits:
+            if num_state_qubits is not None:
                 # set the new qubit registers
-                qr_state = QuantumRegister(self.num_state_qubits, name='state')
+                qr_state = QuantumRegister(num_state_qubits, name='state')
                 q_compare = QuantumRegister(1, name='compare')
 
                 self.qregs = [qr_state, q_compare]
+                self._qubits = qr_state[:] + q_compare[:]
 
-                if self.num_ancilla_qubits > 0:
-                    qr_ancilla = QuantumRegister(self.num_ancilla_qubits, name='ancilla')
-                    self.qregs += [qr_ancilla]
-
-    @property
-    def num_ancilla_qubits(self) -> int:
-        """The number of ancilla qubits used.
-
-        Returns:
-            The number of ancillas in the circuit.
-        """
-        return self._num_state_qubits - 1
+                # add ancillas is required
+                num_ancillas = num_state_qubits - 1
+                if num_ancillas > 0:
+                    qr_ancilla = AncillaRegister(num_ancillas)
+                    self.add_register(qr_ancilla)
 
     def _get_twos_complement(self) -> List[int]:
         """Returns the 2's complement of ``self.value`` as array.
@@ -149,7 +150,7 @@ class IntegerComparator(BlueprintCircuit):
              The 2's complement of ``self.value``.
         """
         twos_complement = pow(2, self.num_state_qubits) - int(np.ceil(self.value))
-        twos_complement = '{0:b}'.format(twos_complement).rjust(self.num_state_qubits, '0')
+        twos_complement = '{:b}'.format(twos_complement).rjust(self.num_state_qubits, '0')
         twos_complement = \
             [1 if twos_complement[i] == '1' else 0 for i in reversed(range(len(twos_complement)))]
         return twos_complement

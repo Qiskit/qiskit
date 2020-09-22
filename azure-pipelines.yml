@@ -28,7 +28,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -72,7 +72,7 @@ stages:
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -95,16 +95,16 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - script: choco install vcpython27 -f -y
           displayName: Install Visual C++ for Python 2.7
         - bash: |
@@ -132,6 +132,7 @@ stages:
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -152,7 +153,7 @@ stages:
             virtualenv test-job
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
+            pip install -c constraints.txt .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
@@ -285,6 +286,7 @@ stages:
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -349,8 +351,6 @@ stages:
       pool: {vmImage: 'vs2017-win2016'}
       strategy:
         matrix:
-          Python35:
-            python.version: '3.5'
           Python36:
             python.version: '3.6'
           Python37:
@@ -360,6 +360,7 @@ stages:
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -423,13 +424,12 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python35:
-            python.version: '3.5'
           Python38:
             python.version: '3.8'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -494,13 +494,12 @@ stages:
         matrix:
           Python36:
             python.version: '3.6'
-          Python35:
-            python.version: '3.5'
           Python38:
             python.version: '3.8'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        QISKIT_TEST_CAPTURE_STREAMS: 1
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -558,3 +557,53 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
+    - job: 'Tutorials'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            pip check
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            cd qiskit-tutorials
+            sphinx-build -b html . _build/html
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'qiskit-tutorials/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_tutorials.tar.gz'
+            verbose: true
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'html_tutorials'
+            Parallel: true
+            ParallelCount: 8

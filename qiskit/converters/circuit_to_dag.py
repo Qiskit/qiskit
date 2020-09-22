@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -47,6 +45,9 @@ def circuit_to_dag(circuit):
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
+    dagcircuit.global_phase = circuit.global_phase
+    dagcircuit.calibrations = circuit.calibrations
+
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
     for register in circuit.cregs:
