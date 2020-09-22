@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
 from qiskit.extensions.quantum_initializer.isometry import Isometry
 
+
 @ddt
 class TestIsometry(QiskitTestCase):
     """Qiskit isometry tests."""

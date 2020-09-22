@@ -270,6 +270,7 @@ class Isometry(Instruction):
                                self.num_ancillas_zero, self.num_ancillas_dirty)
         return inverse_iso
 
+
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 # basis_state=1 respectively
 def _reverse_qubit_state(state, basis_state):
