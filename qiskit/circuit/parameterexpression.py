@@ -273,7 +273,7 @@ class ParameterExpression():
         return int(self._symbol_expr)
 
     def __hash__(self):
-        return hash((tuple(hash(p) for p in self.parameters), str(self)))
+        return hash((tuple(sorted(self.parameters, key=lambda p: p.name)), str(self)))
 
     def __copy__(self):
         return self
