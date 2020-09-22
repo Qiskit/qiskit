@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -15,7 +13,7 @@
 """Randomized tests of quantum synthesis."""
 import unittest
 from test.python.quantum_info.test_synthesis import CheckDecompositions
-from hypothesis import given, strategies
+from hypothesis import given, strategies, settings
 import numpy as np
 
 from qiskit import execute
@@ -46,6 +44,7 @@ class TestSynthesis(CheckDecompositions):
         self.check_one_qubit_euler_angles(unitary, 'XYX')
         self.check_one_qubit_euler_angles(unitary, 'RR')
 
+    @settings(deadline=None)
     @given(seed)
     def test_2q_random(self, seed):
         """Checks two qubit decompositions"""
