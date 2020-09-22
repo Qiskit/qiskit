@@ -19,20 +19,19 @@ from warnings import warn
 class DefaultStyle:
     """IBM Design Style colors
     """
-
     def __init__(self):
         # Set colors
         basis_color = '#FA74A6'               # Red
         clifford_color = '#6FA4FF'            # Blue
+        non_gate_color = '#000000'            # Black
+        other_color = '#BB8BFF'               # Purple
+        pauli_color = '#05BAB6'               # Green
         iden_color = '#05BAB6'                # Green
 
-        hadamard_color = '#DC143C'            # Red
-        classical_gate_color = '#000080'      # Dark Blue
-        phase_gate_color = '#1E90FF'          # Light Blue
-        non_unitary_gate_color = '#808080'    # Grey
-        other_color = '#99004C'               # Dark Red
+        black_font = '#000000'                # Black font color
+        white_font = '#ffffff'                # White font color
 
-        self.name = 'iqx'
+        self.name = 'default'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
@@ -48,7 +47,8 @@ class DefaultStyle:
         self.sfs = 8
         self.disptex = {
             'id': 'I',
-            'u0': '$\\mathrm{U}_0$',
+            'p': 'P',
+            'u': 'U',
             'u1': '$\\mathrm{U}_1$',
             'u2': '$\\mathrm{U}_2$',
             'u3': '$\\mathrm{U}_3$',
@@ -79,40 +79,44 @@ class DefaultStyle:
             'initialize': '$|\\psi\\rangle$'
         }
         self.dispcol = {
-            'u0': basis_color,
-            'u1': phase_gate_color,
-            'u2': other_color,
-            'u3': other_color,
-            'id': iden_color,
-            'x': classical_gate_color,
-            'y': other_color,
-            'z': phase_gate_color,
-            'h': hadamard_color,
-            'cx': classical_gate_color,
-            'ccx': classical_gate_color,
-            'cy': other_color,
-            'cz': other_color,
-            'swap': classical_gate_color,
-            'cswap': classical_gate_color,
-            's': phase_gate_color,
-            'sdg': phase_gate_color,
-            'dcx': clifford_color,
-            'iswap': classical_gate_color,
-            't': phase_gate_color,
-            'tdg': phase_gate_color,
-            'r': other_color,
-            'rx': other_color,
-            'ry': other_color,
-            'rz': other_color,
-            'rxx': other_color,
-            'ryy': other_color,
-            'rzz': other_color,
-            'rzx': other_color,
-            'reset': non_unitary_gate_color,
-            'target': '#ffffff',
-            'multi': other_color,
-            'meas': non_unitary_gate_color,
-            'measure': non_unitary_gate_color
+            'u1': (basis_color, black_font),
+            'u2': (basis_color, black_font),
+            'u3': (basis_color, black_font),
+            'id': (iden_color, black_font),
+            'x': (pauli_color, black_font),
+            'y': (pauli_color, black_font),
+            'z': (pauli_color, black_font),
+            'h': (clifford_color, black_font),
+            'cx': (clifford_color, white_font),
+            'cy': (clifford_color, black_font),
+            'cz': (clifford_color, white_font),
+            'swap': (clifford_color, white_font),
+            's': (clifford_color, black_font),
+            'sdg': (clifford_color, black_font),
+            'dcx': (clifford_color, black_font),
+            'iswap': (clifford_color, black_font),
+            't': (other_color, black_font),
+            'tdg': (other_color, black_font),
+            'r': (other_color, black_font),
+            'rx': (other_color, black_font),
+            'ry': (other_color, black_font),
+            'rz': (other_color, black_font),
+            'rxx': (other_color, black_font),
+            'ryy': (other_color, black_font),
+            'rzx': (other_color, black_font),
+            'reset': (non_gate_color, white_font),
+            'target': ('#ffffff', '#ffffff'),
+            'measure': (non_gate_color, white_font),
+            'ccx': (other_color, white_font),
+            'cdcx': (other_color, black_font),
+            'ccdcx': (other_color, black_font),
+            'cswap': (other_color, white_font),
+            'ccswap': (other_color, white_font),
+            'mcx': (other_color, black_font),
+            'u': (other_color, black_font),
+            'p': (other_color, black_font),
+            'sx': (other_color, black_font),
+            'sxdg': (other_color, black_font)
         }
         self.latexmode = False
         self.index = False
@@ -149,6 +153,8 @@ class DefaultStyle:
 
 class BWStyle:
     def __init__(self):
+        face_gate_color = '#ffffff'             # White face color
+
         self.name = 'bw'
         self.tc = '#000000'
         self.sc = '#000000'
@@ -165,7 +171,8 @@ class BWStyle:
         self.sfs = 8
         self.disptex = {
             'id': 'I',
-            'u0': '$\\mathrm{U}_0$',
+            'p': 'P',
+            'u': 'U',
             'u1': '$\\mathrm{U}_1$',
             'u2': '$\\mathrm{U}_2$',
             'u3': '$\\mathrm{U}_3$',
@@ -194,37 +201,44 @@ class BWStyle:
             'initialize': '$|\\psi\\rangle$'
         }
         self.dispcol = {
-            'u0': '#ffffff',
-            'u1': '#ffffff',
-            'u2': '#ffffff',
-            'u3': '#ffffff',
-            'id': '#ffffff',
-            'x': '#ffffff',
-            'y': '#ffffff',
-            'z': '#ffffff',
-            'h': '#ffffff',
-            'cx': '#000000',
-            'cy': '#ffffff',
-            'cz': '#000000',
-            'swap': '#000000',
-            's': '#ffffff',
-            'sdg': '#ffffff',
-            'dcx': '#ffffff',
-            'iswap': '#ffffff',
-            't': '#ffffff',
-            'tdg': '#ffffff',
-            'r': '#ffffff',
-            'rx': '#ffffff',
-            'ry': '#ffffff',
-            'rz': '#ffffff',
-            'rxx': '#ffffff',
-            'ryy': '#ffffff',
-            'rzx': '#ffffff',
-            'reset': '#ffffff',
-            'target': '#ffffff',
-            'multi': '#ffffff',
-            'meas': '#ffffff',
-            'measure': '#ffffff'
+            'u1': (face_gate_color, '#ffffff'),
+            'u2': (face_gate_color, '#ffffff'),
+            'u3': (face_gate_color, '#ffffff'),
+            'id': (face_gate_color, '#ffffff'),
+            'x': (face_gate_color, '#ffffff'),
+            'y': (face_gate_color, '#ffffff'),
+            'z': (face_gate_color, '#ffffff'),
+            'h': (face_gate_color, '#ffffff'),
+            'cx': (face_gate_color, '#000000'),
+            'cy': (face_gate_color, '#ffffff'),
+            'cz': (face_gate_color, '#000000'),
+            'swap': (face_gate_color, '#000000'),
+            's': (face_gate_color, '#ffffff'),
+            'sdg': (face_gate_color, '#ffffff'),
+            'dcx': (face_gate_color, '#ffffff'),
+            'iswap': (face_gate_color, '#ffffff'),
+            't': (face_gate_color, '#ffffff'),
+            'tdg': (face_gate_color, '#ffffff'),
+            'r': (face_gate_color, '#ffffff'),
+            'rx': (face_gate_color, '#ffffff'),
+            'ry': (face_gate_color, '#ffffff'),
+            'rz': (face_gate_color, '#ffffff'),
+            'rxx': (face_gate_color, '#ffffff'),
+            'ryy': (face_gate_color, '#ffffff'),
+            'rzx': (face_gate_color, '#ffffff'),
+            'reset': (face_gate_color, '#ffffff'),
+            'target': (face_gate_color, '#ffffff'),
+            'measure': (face_gate_color, '#ffffff'),
+            'ccx': (face_gate_color, '#000000'),
+            'cdcx': (face_gate_color, '#ffffff'),
+            'ccdcx': (face_gate_color, '#ffffff'),
+            'cswap': (face_gate_color, '#000000'),
+            'ccswap': (face_gate_color, '#000000'),
+            'mcx': (face_gate_color, '#000000'),
+            'u': (face_gate_color, '#ffffff'),
+            'p': (face_gate_color, '#ffffff'),
+            'sx': (face_gate_color, '#ffffff'),
+            'sxdg': (face_gate_color, '#ffffff')
         }
         self.latexmode = False
         self.index = False
@@ -246,8 +260,138 @@ class BWStyle:
         self.fs = dic.pop('fontsize', self.fs)
         self.sfs = dic.pop('subfontsize', self.sfs)
         self.disptex = dic.pop('displaytext', self.disptex)
-        for key in self.dispcol.keys():
-            self.dispcol[key] = self.gc
+        self.dispcol = dic.pop('displaycolor', self.dispcol)
+        self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
+        self.index = dic.pop('showindex', self.index)
+        self.figwidth = dic.pop('figwidth', self.figwidth)
+        self.dpi = dic.pop('dpi', self.dpi)
+        self.margin = dic.pop('margin', self.margin)
+        self.cline = dic.pop('creglinestyle', self.cline)
+
+        if dic:
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)
+
+
+class IQXStyle:
+    def __init__(self):
+        # Set colors
+        classical_gate_color = '#002D9C'        # Dark Blue
+        phase_gate_color = '#33B1FF'            # Cyan
+        hadamard_color = '#FA4D56'              # Red
+        other_quantum_gate = '#9F1853'          # Dark Red
+        non_unitary_gate = '#A8A8A8'            # Grey
+
+        black_font = '#000000'                  # Black font color
+        white_font = '#ffffff'                  # White font color
+
+        self.name = 'iqx'
+        self.tc = '#000000'
+        self.sc = '#000000'
+        self.lc = '#000000'
+        self.not_gate_lc = '#ffffff'
+        self.cc = '#778899'                     # Medium Gray
+        self.gc = other_quantum_gate
+        self.gt = '#000000'
+        self.bc = non_unitary_gate              # Dark Gray
+        self.bg = '#ffffff'
+        self.edge_color = None
+        self.math_fs = 15
+        self.fs = 13
+        self.sfs = 8
+        self.disptex = {
+            'id': 'I',
+            'p': 'P',
+            'u': 'U',
+            'u1': '$\\mathrm{U}_1$',
+            'u2': '$\\mathrm{U}_2$',
+            'u3': '$\\mathrm{U}_3$',
+            'x': 'X',
+            'y': 'Y',
+            'z': 'Z',
+            'h': 'H',
+            's': 'S',
+            'sdg': '$\\mathrm{S}^\\dagger$',
+            'sx': '$\\sqrt{\\mathrm{X}}$',
+            'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
+            't': 'T',
+            'tdg': '$\\mathrm{T}^\\dagger$',
+            'iswap': 'Iswap',
+            'dcx': 'Dcx',
+            'ms': 'MS',
+            'diagonal': 'Diagonal',
+            'unitary': 'Unitary',
+            'r': 'R',
+            'rx': '$\\mathrm{R}_\\mathrm{X}$',
+            'ry': '$\\mathrm{R}_\\mathrm{Y}$',
+            'rz': '$\\mathrm{R}_\\mathrm{Z}$',
+            'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
+            'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
+            'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
+            'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
+            'reset': '$\\left|0\\right\\rangle$',
+            'initialize': '$|\\psi\\rangle$'
+        }
+        self.dispcol = {
+            'u1': (phase_gate_color, black_font),
+            'u2': (other_quantum_gate, white_font),
+            'u3': (other_quantum_gate, white_font),
+            'id': (classical_gate_color, white_font),
+            'x': (classical_gate_color, white_font),
+            'y': (other_quantum_gate, white_font),
+            'z': (phase_gate_color, black_font),
+            'h': (hadamard_color, black_font),
+            'cx': (classical_gate_color, white_font),
+            'cy': (other_quantum_gate, white_font),
+            'cz': (other_quantum_gate, white_font),
+            'swap': (classical_gate_color, white_font),
+            's': (phase_gate_color, black_font),
+            'sdg': (phase_gate_color, black_font),
+            'dcx': (classical_gate_color, white_font),
+            'iswap': (phase_gate_color, black_font),
+            't': (phase_gate_color, black_font),
+            'tdg': (phase_gate_color, black_font),
+            'r': (other_quantum_gate, white_font),
+            'rx': (other_quantum_gate, white_font),
+            'ry': (other_quantum_gate, white_font),
+            'rz': (other_quantum_gate, white_font),
+            'rxx': (other_quantum_gate, white_font),
+            'ryy': (other_quantum_gate, white_font),
+            'rzx': (other_quantum_gate, white_font),
+            'reset': (non_unitary_gate, black_font),
+            'target': ('#ffffff', '#ffffff'),
+            'measure': (non_unitary_gate, black_font),
+            'ccx': (classical_gate_color, white_font),
+            'cdcx': (classical_gate_color, white_font),
+            'ccdcx': (classical_gate_color, white_font),
+            'cswap': (classical_gate_color, white_font),
+            'ccswap': (classical_gate_color, white_font),
+            'mcx': (classical_gate_color, white_font),
+            'u': (other_quantum_gate, white_font),
+            'p': (phase_gate_color, black_font),
+            'sx': (other_quantum_gate, white_font),
+            'sxdg': (other_quantum_gate, white_font),
+        }
+        self.latexmode = False
+        self.index = False
+        self.figwidth = -1
+        self.dpi = 150
+        self.margin = [2.0, 0.1, 0.1, 0.3]
+        self.cline = 'doublet'
+
+    def set_style(self, style_dic):
+        dic = copy(style_dic)
+        self.tc = dic.pop('textcolor', self.tc)
+        self.sc = dic.pop('subtextcolor', self.sc)
+        self.lc = dic.pop('linecolor', self.lc)
+        self.cc = dic.pop('creglinecolor', self.cc)
+        self.gt = dic.pop('gatetextcolor', self.tc)
+        self.gc = dic.pop('gatefacecolor', self.gc)
+        self.bc = dic.pop('barrierfacecolor', self.bc)
+        self.bg = dic.pop('backgroundcolor', self.bg)
+        self.fs = dic.pop('fontsize', self.fs)
+        self.sfs = dic.pop('subfontsize', self.sfs)
+        self.disptex = dic.pop('displaytext', self.disptex)
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
         self.index = dic.pop('showindex', self.index)
