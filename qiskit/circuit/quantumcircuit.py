@@ -201,7 +201,7 @@ class QuantumCircuit:
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
-            calibrations (dict): A dictionary of input in th format
+            calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = calibrations
@@ -1416,15 +1416,6 @@ class QuantumCircuit:
     def num_ancillas(self):
         """Return the number of ancilla qubits."""
         return len(self.ancillas)
-
-    @property
-    def n_qubits(self):
-        """Deprecated, use ``num_qubits`` instead. Return number of qubits."""
-        warnings.warn('The QuantumCircuit.n_qubits method is deprecated as of 0.13.0, and '
-                      'will be removed no earlier than 3 months after that release date. '
-                      'You should use the QuantumCircuit.num_qubits method instead.',
-                      DeprecationWarning, stacklevel=2)
-        return self.num_qubits
 
     @property
     def num_clbits(self):
