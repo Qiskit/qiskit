@@ -15,4 +15,3 @@
 from .alap import ALAPSchedule
 from .asap import ASAPSchedule
 from .time_unit_analysis import TimeUnitAnalysis
-from .remove_ops_on_idle_qubits import RemoveOpsOnIdleQubits

@@ -136,7 +136,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             The gate lengths defined in ``backend.properties`` are used as default and
             they are updated (overwritten) if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
-            The `instruction_durations` must be given as a list of tuples [(instruction_name, qubits, duration, unit), ...].
+            The `instruction_durations` must be given as a list of tuples
+            [(instruction_name, qubits, duration, unit), ...].
             | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
             | [('cx', [0, 1], 1000), ('u3', [0], 300)]
             If unit is omitted, the default is 'dt', which is a sample time depending on backend.
@@ -369,9 +370,6 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
                 pass_manager_config.basis_gates.append('delay')
         else:
             pass_manager_config.basis_gates = ['delay']
-
-        from qiskit.transpiler.passes.scheduling import RemoveOpsOnIdleQubits
-        pass_manager.append(RemoveOpsOnIdleQubits())
 
     result = pass_manager.run(circuit, callback=transpile_config['callback'],
                               output_name=transpile_config['output_name'])

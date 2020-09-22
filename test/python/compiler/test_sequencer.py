@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 # pylint: disable=missing-function-docstring
 
 """Tests basic functionality of the sequence function"""
+import unittest
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import sequence, transpile, schedule
@@ -42,21 +43,22 @@ class TestSequence(QiskitTestCase):
         expected = schedule(qc.decompose(), self.backend)
         self.assertEqual(actual, pad(expected))
 
-    def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
-        qc = QuantumCircuit(2, name="bell_without_measurement")
-        qc.h(0)
-        qc.cx(0, 1)
-        sc = transpile(qc, self.backend, scheduling_method='alap')
-        actual = sequence(sc, self.backend)
-        expected = schedule(qc.decompose(), self.backend)
-        self.assertEqual(actual, pad(expected))
-
     def test_transpile_and_sequence_agree_with_schedule_for_circuit_with_delay(self):
         qc = QuantumCircuit(1, 1, name="t2")
         qc.h(0)
         qc.delay(500, 0, unit='ns')
         qc.h(0)
         qc.measure(0, 0)
+        sc = transpile(qc, self.backend, scheduling_method='alap')
+        actual = sequence(sc, self.backend)
+        expected = schedule(qc.decompose(), self.backend)
+        self.assertEqual(actual, pad(expected))
+
+    @unittest.skip("not yet determined if delays on ancilla should be removed or not")
+    def test_transpile_and_sequence_agree_with_schedule_for_circuits_without_measures(self):
+        qc = QuantumCircuit(2, name="bell_without_measurement")
+        qc.h(0)
+        qc.cx(0, 1)
         sc = transpile(qc, self.backend, scheduling_method='alap')
         actual = sequence(sc, self.backend)
         expected = schedule(qc.decompose(), self.backend)
