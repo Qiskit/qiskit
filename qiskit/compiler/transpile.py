@@ -136,7 +136,6 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             The gate lengths defined in ``backend.properties`` are used as default and
             they are updated (overwritten) if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
-            The instruction have to be a pair of instruction name and its acting physical qubits.
             The duration have to be a pair of duration (length) and its time unit.
             So it is usually a list of (instruction_name, qubits, duration, unit) tuples. E.g.
             | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
