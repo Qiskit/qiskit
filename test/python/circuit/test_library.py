@@ -30,7 +30,8 @@ from qiskit.circuit.library import (BlueprintCircuit, Permutation, QuantumVolume
                                     EfficientSU2, ExcitationPreserving, PauliFeatureMap,
                                     ZFeatureMap, ZZFeatureMap, MCMT, MCMTVChain, GMS,
                                     HiddenLinearFunction, GraphState, PhaseEstimation,
-                                    FourierChecking, GroverOperator, QuadraticForm)
+                                    FourierChecking, GroverOperator, QuadraticForm,
+                                    GR, GRX, GRY, GRZ, RGate)
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -314,6 +315,39 @@ class TestGMSLibrary(QiskitTestCase):
 
 
 @ddt
+class TestGlobalRLibrary(QiskitTestCase):
+    """Test library of global R gates."""
+
+    def test_gr_equivalence(self):
+        """Test global R gate is same as 3 individual R gates."""
+        circuit = GR(num_qubits=3, theta=np.pi/3, phi=2*np.pi/3)
+        expected = QuantumCircuit(3, name="gr")
+        for i in range(3):
+            expected.append(RGate(theta=np.pi/3, phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
+
+    def test_grx_equivalence(self):
+        """Test global RX gates is same as 3 individual RX gates."""
+        circuit = GRX(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=0)
+        self.assertEqual(expected, circuit)
+
+    def test_gry_equivalence(self):
+        """Test global RY gates is same as 3 individual RY gates."""
+        circuit = GRY(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=np.pi/2)
+        self.assertEqual(expected, circuit)
+
+    def test_grz_equivalence(self):
+        """Test global RZ gate is same as 3 individual RZ gates."""
+        circuit = GRZ(num_qubits=3, phi=2*np.pi/3)
+        expected = QuantumCircuit(3, name="grz")
+        for i in range(3):
+            expected.append(RZGate(phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
+
+
+@ddt
 class TestQuantumVolumeLibrary(QiskitTestCase):
     """Test library of quantum volume quantum circuits."""
 
@@ -575,7 +609,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
     def assertFunctionIsCorrect(self, function_circuit, reference):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
         num_state_qubits = function_circuit.num_state_qubits
-        num_ancilla_qubits = function_circuit.num_ancilla_qubits
+        num_ancilla_qubits = function_circuit.num_ancillas
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
@@ -697,6 +731,11 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                                                             [2 * offset for offset in offsets])
 
         self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
+
+    def test_piecewise_linear_rotations_no_comparator(self):
+        """Test that no ancillas are allocated if not required."""
+        pw_linear_rotations = PiecewiseLinearPauliRotations(3, [0], [1], [0])
+        self.assertEqual(pw_linear_rotations.num_ancillas, 0)
 
     def test_piecewise_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
@@ -2062,6 +2101,19 @@ class TestGroverOperator(QiskitTestCase):
             expected.h(0)
 
             self.assertEqual(expected, grover_op)
+
+    def test_num_mcx_ancillas(self):
+        """Test the number of ancilla bits for the mcx gate in zero_reflection."""
+        oracle = QuantumCircuit(7)
+        oracle.x(6)
+        oracle.h(6)
+        oracle.ccx(0, 1, 4)
+        oracle.ccx(2, 3, 5)
+        oracle.ccx(4, 5, 6)
+        oracle.h(6)
+        oracle.x(6)
+        grover_op = GroverOperator(oracle, reflection_qubits=[0, 1])
+        self.assertEqual(grover_op.width(), 7)
 
 
 @ddt
