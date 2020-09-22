@@ -20,7 +20,7 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import copy
 import itertools
 import warnings
@@ -91,6 +91,7 @@ class DAGCircuit:
         self._clbits = DummyCallableList()  # DeprecationWarning period, and remove name underscore.
 
         self._global_phase = 0
+        self._calibrations = defaultdict(dict)
 
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
@@ -179,6 +180,25 @@ class DAGCircuit:
                 self._global_phase = angle % (-2 * math.pi)
             else:
                 self._global_phase = angle % (2 * math.pi)
+
+    @property
+    def calibrations(self):
+        """Return calibration dictionary.
+
+        The custom pulse definition of a given gate is of the form
+            {'gate_name': {(qubits, params): schedule}}
+        """
+        return dict(self._calibrations)
+
+    @calibrations.setter
+    def calibrations(self, calibrations):
+        """Set the circuit calibration data from a dictionary of calibration definition.
+
+        Args:
+            calibrations (dict): A dictionary of input in th format
+                {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations = calibrations
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
