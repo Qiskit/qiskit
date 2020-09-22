@@ -220,13 +220,13 @@ class TestWaveformGenerators(QiskitTestCase):
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
         self.assertEqual(obj.text, 'X90p_d0_1234567')
-        self.assertEqual(obj.latex, r'{\rm X}(\frac{\pi}{2})')
+        self.assertEqual(obj.latex, r'{\rm X}(\pi/2)')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.annotate'],
                      'color': self.formatter['color.annotate'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'top',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -264,7 +264,7 @@ class TestWaveformGenerators(QiskitTestCase):
         # data check
         self.assertListEqual(obj.channels, [pulse.ControlChannel(0)])
         self.assertEqual(obj.text, 'CR90p_u0_1234567')
-        self.assertEqual(obj.latex, r'{\rm CR}(\frac{\pi}{4})')
+        self.assertEqual(obj.latex, r'{\rm CR}(\pi/4)')
 
     def test_gen_iqx_latex_waveform_name_compensation_tone(self):
         """Test gen_iqx_latex_waveform_name with CR compensation waveform."""
@@ -282,7 +282,7 @@ class TestWaveformGenerators(QiskitTestCase):
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
         self.assertEqual(obj.text, 'CR90p_d0_u0_1234567')
-        self.assertEqual(obj.latex, r'\overline{\rm CR}(\frac{\pi}{4})')
+        self.assertEqual(obj.latex, r'\overline{\rm CR}(\pi/4)')
 
     def test_gen_waveform_max_value(self):
         """Test gen_waveform_max_value."""
@@ -312,7 +312,7 @@ class TestWaveformGenerators(QiskitTestCase):
 
         # data check, imaginary part, negative max
         self.assertListEqual(objs[1].channels, [pulse.DriveChannel(0)])
-        self.assertEqual(objs[1].text, u'-0.20\n\u25B4')
+        self.assertEqual(objs[1].text, u'\u25B4\n-0.20')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.annotate'],
@@ -422,7 +422,7 @@ class TestChartGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.axis_label'],
                      'color': self.formatter['color.axis_label'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'top',
+                     'va': 'center',
                      'ha': 'right'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -445,7 +445,7 @@ class TestChartGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.axis_label'],
                      'color': self.formatter['color.axis_label'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'top',
+                     'va': 'center',
                      'ha': 'right'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -487,11 +487,11 @@ class TestFrameGenerators(QiskitTestCase):
 
         plain, latex = frame._phase_to_text(np.pi/2, max_denom=10, flip=True)
         self.assertEqual(plain, '-pi/2')
-        self.assertEqual(latex, r'-\frac{\pi}{2}')
+        self.assertEqual(latex, r'-\pi/2')
 
         plain, latex = frame._phase_to_text(np.pi*3/4, max_denom=10, flip=True)
         self.assertEqual(plain, '-3/4 pi')
-        self.assertEqual(latex, r'-\frac{3}{4}\pi')
+        self.assertEqual(latex, r'-3/4 \pi')
 
     def test_frequency_to_text(self):
         """Test helper function to convert frequency to text."""
@@ -514,14 +514,14 @@ class TestFrameGenerators(QiskitTestCase):
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.latex, r'{\rm VZ}(-\frac{\pi}{2})')
+        self.assertEqual(obj.latex, r'{\rm VZ}(-\pi/2)')
         self.assertEqual(obj.text, 'VZ(-pi/2)')
 
         # style check
         ref_style = {'zorder': self.formatter['layer.frame_change'],
                      'color': self.formatter['color.frame_change'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'bottom',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -547,7 +547,7 @@ class TestFrameGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.frame_change'],
                      'color': self.formatter['color.frame_change'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'bottom',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 
@@ -580,7 +580,7 @@ class TestFrameGenerators(QiskitTestCase):
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.text, '1.57\n1.0e+06')
+        self.assertEqual(obj.text, '1.57\n1.0e6')
 
     def gen_frame_symbol(self):
         """Test gen_frame_symbol."""
@@ -669,7 +669,7 @@ class TestSnapshotGenerators(QiskitTestCase):
         ref_style = {'zorder': self.formatter['layer.snapshot'],
                      'color': self.formatter['color.snapshot'],
                      'size': self.formatter['text_size.annotate'],
-                     'va': 'bottom',
+                     'va': 'center',
                      'ha': 'center'}
         self.assertDictEqual(obj.styles, ref_style)
 

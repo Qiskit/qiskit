@@ -18,7 +18,12 @@ import numpy as np
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import core, stylesheet, device_info, drawing_objects, types
+from qiskit.visualization.pulse_v2 import (core,
+                                           stylesheet,
+                                           device_info,
+                                           drawing_objects,
+                                           types,
+                                           layouts)
 
 
 class TestChart(QiskitTestCase):
@@ -241,6 +246,9 @@ class TestDrawCanvas(QiskitTestCase):
             'axis_break.length': 20,
             'axis_break.max_length': 10
         }
+        canvas.layout = {
+            'figure_title': layouts.empty_title
+        }
         canvas.time_breaks = [(10, 40), (60, 80)]
 
         canvas.time_range = (0, 100)
@@ -280,6 +288,9 @@ class TestDrawCanvas(QiskitTestCase):
             'margin.right_percent': 0.1,
             'axis_break.length': 20,
             'axis_break.max_length': 10
+        }
+        canvas.layout = {
+            'figure_title': layouts.empty_title
         }
         canvas.time_range = (0, 100)
 
@@ -324,8 +335,10 @@ class TestDrawCanvas(QiskitTestCase):
             'barrier': []
         }
         canvas.layout = {
-            'chart_channel_map': self.chart_channel_map
+            'chart_channel_map': self.chart_channel_map,
+            'figure_title': layouts.empty_title
         }
+
         canvas.load_program(self.sched)
 
         self.assertEqual(len(canvas.charts), 2)
