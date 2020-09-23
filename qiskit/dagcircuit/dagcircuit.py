@@ -93,6 +93,9 @@ class DAGCircuit:
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
 
+        self.duration = None
+        self.unit = 'dt'
+
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         G = nx.MultiDiGraph()
@@ -662,6 +665,20 @@ class DAGCircuit:
             return dag
         else:
             return None
+
+    def reverse_ops(self):
+        """Reverse the operations in the ``self`` circuit.
+
+        Returns:
+            DAGCircuit: the reversed dag.
+        """
+        # TODO: speed up
+        # pylint: disable=cyclic-import
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
+        qc = dag_to_circuit(self)
+        reversed_qc = qc.reverse_ops()
+        reversed_dag = circuit_to_dag(reversed_qc)
+        return reversed_dag
 
     def idle_wires(self, ignore=None):
         """Return idle wires.
