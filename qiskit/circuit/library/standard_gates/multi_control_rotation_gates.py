@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def _apply_cu3(circuit, theta, phi, lam, control, target, use_basis_gates=True):
     if use_basis_gates:
-        # pylint: disable=circular-import
+        # pylint: disable=cyclic-import
         from qiskit.circuit.library.standard_gates import U1Gate, U3Gate
         circuit.append(U1Gate((lam + phi) / 2), [control])
         circuit.append(U1Gate((lam - phi) / 2), [target])
