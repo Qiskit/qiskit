@@ -183,4 +183,5 @@ if __name__ == '__main__':
     for file in os.listdir(os.path.join(SWD, 'mpl')):
         if file.endswith(".png") and not file.endswith(".diff.png"):
             RESULT_FILES.append(file)
-    Results(sorted(RESULT_FILES), 'mpl').diff_images()
+    RESULTS = Results(sorted(RESULT_FILES), 'mpl')
+    RESULTS.diff_images()
