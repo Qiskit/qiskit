@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from qiskit import circuit
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.timeline import drawer_style, types, core, styles
+from qiskit.visualization.timeline import drawer_style, types, core, stylesheet
 
 
 def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
@@ -143,7 +143,7 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
     """
     # update stylesheet
-    drawer_style.update(stylesheet or styles.IqxStandard())
+    drawer_style.update(stylesheet or stylesheet.IqxStandard())
     drawer_style.current_stylesheet = stylesheet.__class__.__name__
 
     # update control properties

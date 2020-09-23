@@ -238,7 +238,7 @@ class DrawDataContainer:
                 links.append(drawing)
 
         # return y coordinates
-        def y_coords(link: drawing_objects.BitLinkData):
+        def y_coords(link: drawing_objects.GateLinkData):
             return np.array([self.bit_offsets.get(bit, None) for bit in link.bits])
 
         # group overlapped links

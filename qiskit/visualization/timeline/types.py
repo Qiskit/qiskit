@@ -10,23 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+"""
 Special data types.
-
-- ScheduledGate:
-    t0: Time when the instruction is issued.
-    operand: Gate object associated with the instruction.
-    duration: Time duration of the instruction.
-    bits:
-
-- GateLink:
-    t0: Position where the link is placed.
-    operand: Gate object associated with the instruction.
-    bits: List of bit associated with the instruction.
-
-- Barrier:
-    t0: Position where the barrier is placed.
-    bits: List of bit associated with the instruction.
 """
 
 from enum import Enum
@@ -34,28 +19,41 @@ from typing import NamedTuple, List, Union, NewType
 
 from qiskit import circuit
 
-
 ScheduledGate = NamedTuple(
     'ScheduledGate',
     [('t0', int),
      ('operand', circuit.Gate),
      ('duration', int),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+ScheduledGate.__doc__ = 'Data to represent a scheduled gate instruction.'
+ScheduledGate.t0.__doc__ = 'A time when the gate instruction is issued.'
+ScheduledGate.operand.__doc__ = 'Gate instruction.'
+ScheduledGate.duration.__doc__ = 'Duration of this gate.'
+ScheduledGate.bits.__doc__ = 'All bits associated with this gate.'
+
 
 GateLink = NamedTuple(
     'GateLink',
     [('t0', int),
-     ('operand', circuit.Gate),
+     ('opname', str),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+GateLink.__doc__ = 'Data to represent a link between bits during a gate.'
+GateLink.t0.__doc__ = 'A time when the link is placed.'
+GateLink.opname.__doc__ = 'Name of gate associated with this link.'
+GateLink.bits.__doc__ = 'All bits associated with this link.'
+
 
 Barrier = NamedTuple(
     'Barrier',
     [('t0', int),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+Barrier.__doc__ = 'Data to represent a barrier instruction.'
+Barrier.t0.__doc__ = 'A time when a barrier is placed.'
+Barrier.bits.__doc__ = 'All bits associated with this barrier.'
 
 
-class DrawingBox(str, Enum):
-    r"""Box data type.
+class DrawingBox(Enum):
+    """Box data type.
 
     SCHED_GATE: Box that represents occupation time by gate.
     TIMELINE: Box that represents time slot of a bit.
@@ -65,8 +63,8 @@ class DrawingBox(str, Enum):
     TIMELINE = 'Box.Timeline'
 
 
-class DrawingLine(str, Enum):
-    r"""Line data type.
+class DrawingLine(Enum):
+    """Line data type.
 
     BARRIER: Line that represents barrier instruction.
     """
@@ -74,16 +72,16 @@ class DrawingLine(str, Enum):
     BIT_LINK = 'Line.BitLink'
 
 
-class DrawingSymbol(str, Enum):
-    r"""Symbol data type.
+class DrawingSymbol(Enum):
+    """Symbol data type.
 
     FRAME: Symbol that represents zero time frame change (Rz) instruction.
     """
     FRAME = 'Symbol.Frame'
 
 
-class DrawingLabel(str, Enum):
-    r"""Label data type.
+class DrawingLabel(Enum):
+    """Label data type.
 
     GATE_NAME: Label that represents name of gate.
     GATE_PARAM: Label that represents parameter of gate.
@@ -95,8 +93,8 @@ class DrawingLabel(str, Enum):
     BIT_NAME = 'Label.Bit.Name'
 
 
-class AbstractCoordinate(str, Enum):
-    r"""Abstract coordinate that the exact value depends on the user preference.
+class AbstractCoordinate(Enum):
+    """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
     LEFT: The horizontal coordinate at tf shifted by the right margin.

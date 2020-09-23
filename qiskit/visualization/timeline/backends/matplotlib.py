@@ -100,7 +100,7 @@ class MplPlotter:
                 self._draw_line(drawing)
             elif isinstance(drawing, drawing_objects.TextData):
                 self._draw_text(drawing)
-            elif isinstance(drawing, drawing_objects.BitLinkData):
+            elif isinstance(drawing, drawing_objects.GateLinkData):
                 self._draw_bit_link(drawing)
             else:
                 raise VisualizationError('Data type %s is not supported in matplotlib.' %
@@ -184,7 +184,7 @@ class MplPlotter:
         self.ax.text(x=x, y=y, s=s, **draw_obj.styles)
 
     def _draw_bit_link(self,
-                       draw_obj: drawing_objects.BitLinkData):
+                       draw_obj: drawing_objects.GateLinkData):
         """Draw bit link data.
 
         Args:
