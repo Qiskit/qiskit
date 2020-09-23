@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -70,7 +68,7 @@ class BitEvents:
             BitEvents: New `BitEvents` object.
 
         Raises:
-            VisualizationError: When the circuit is not properly transpiled.
+            VisualizationError: When the circuit is not transpiled with duration.
         """
         dag = circuit_to_dag(scheduled_circuit)
         nodes = list(dag.topological_op_nodes())
@@ -82,12 +80,11 @@ class BitEvents:
             if bit not in associated_bits:
                 continue
 
-            try:
-                duration = node.op.duration
-            except AttributeError:
+            duration = node.op.duration
+            if duration is None:
                 raise VisualizationError('Instruction {oper} has no duration. '
-                                         'You need to transpile the Quantum Circuit into '
-                                         'Scheduled Circuit.'.format(oper=node.op))
+                                         'You need to transpile the QuantumCircuit with '
+                                         'gate durations before drawing.'.format(oper=node.op))
 
             instructions.append(types.ScheduledGate(t0=t0,
                                                     operand=node.op,

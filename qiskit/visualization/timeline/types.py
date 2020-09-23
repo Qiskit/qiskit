@@ -55,8 +55,8 @@ Barrier.t0.__doc__ = 'A position where the barrier is placed.'
 Barrier.bits.__doc__ = 'List of bit associated with the instruction.'
 
 
-class DrawingBox(str, Enum):
-    r"""Box data type.
+class DrawingBox(Enum):
+    """Box data type.
 
     SCHED_GATE: Box that represents occupation time by gate.
     TIMELINE: Box that represents time slot of a bit.
@@ -66,8 +66,8 @@ class DrawingBox(str, Enum):
     TIMELINE = 'Box.Timeline'
 
 
-class DrawingLine(str, Enum):
-    r"""Line data type.
+class DrawingLine(Enum):
+    """Line data type.
 
     BARRIER: Line that represents barrier instruction.
     """
@@ -75,16 +75,16 @@ class DrawingLine(str, Enum):
     BIT_LINK = 'Line.BitLink'
 
 
-class DrawingSymbol(str, Enum):
-    r"""Symbol data type.
+class DrawingSymbol(Enum):
+    """Symbol data type.
 
     FRAME: Symbol that represents zero time frame change (Rz) instruction.
     """
     FRAME = 'Symbol.Frame'
 
 
-class DrawingLabel(str, Enum):
-    r"""Label data type.
+class DrawingLabel(Enum):
+    """Label data type.
 
     GATE_NAME: Label that represents name of gate.
     GATE_PARAM: Label that represents parameter of gate.
@@ -96,8 +96,8 @@ class DrawingLabel(str, Enum):
     BIT_NAME = 'Label.Bit.Name'
 
 
-class AbstractCoordinate(str, Enum):
-    r"""Abstract coordinate that the exact value depends on the user preference.
+class AbstractCoordinate(Enum):
+    """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
     LEFT: The horizontal coordinate at tf shifted by the right margin.
