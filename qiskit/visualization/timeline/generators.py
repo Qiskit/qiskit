@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+"""
 A collection of functions that generate drawing objects from formatted input data.
 See :py:mod:`~qiskit.visualization.timeline.types` for the detail of input data.
 
@@ -34,27 +34,31 @@ Adding a custom generator:
     This custom generator can be added to the list under the `generator.gate` of the stylesheet.
 """
 
-from typing import List, Union
+from typing import List, Union, Dict, Any
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.visualization.timeline import drawer_style, types, drawing_objects
+from qiskit.visualization.timeline import types, drawing_objects
 
 
-def gen_sched_gate(bit: types.Bits,
-                   gate: types.ScheduledGate) \
-        -> List[Union[drawing_objects.TextData, drawing_objects.BoxData]]:
-    r"""Generate time bucket or symbol of scheduled gate.
+def gen_sched_gate(gate: types.ScheduledGate,
+                   formatter: Dict[str, Any],
+                   ) -> List[Union[drawing_objects.TextData, drawing_objects.BoxData]]:
+    """Generate time bucket or symbol of scheduled gate.
 
     If gate duration is zero or frame change a symbol is generated instead of time box.
-
-    Args:
-        bit: Bit object associated to this drawing.
-        gate: Gate information source.
+    The face color of gates depends on the operand type.
 
     Stylesheet:
-        `*.gate` style or `*.frame_change` style is applied.
-        The face color depends on the operand type.
-        Color is decided by a callback function specified by `layout.gate_color`.
+        - The `gate` style is applied for finite duration gate.
+        - The `frame_change` style is applied for zero duration gate.
+        - The `gate_face_color` style is applied for face color.
+
+    Args:
+        gate: Gate information source.
+        formatter: Dictionary of stylesheet settings.
+
+    Returns:
+        List of `TextData` or `BoxData` drawing objects.
     """
     try:
         unitary = str(gate.operand.to_matrix())
@@ -76,48 +80,48 @@ def gen_sched_gate(bit: types.Bits,
         'parameters': ', '.join(map(str, gate.operand.params))
     }
 
-    # gate color table specified by stylesheet
-    color_finder = drawer_style['layout.gate_color']
+    # find color
+    color = formatter.get('gate_face_color.{name}'.format(name=gate.operand.name),
+                          formatter['gate_face_color.default'])
 
     if gate.duration > 0:
         # gate with finite duration pulse
         styles = {
-            'zorder': drawer_style['formatter.layer.gate'],
-            'alpha': drawer_style['formatter.alpha.gate'],
-            'linewidth': drawer_style['formatter.line_width.gate'],
-            'facecolor': color_finder(gate.operand.name)
+            'zorder': formatter['layer.gate'],
+            'facecolor': color,
+            'alpha': formatter['alpha.gate'],
+            'linewidth': formatter['line_width.gate']
         }
 
-        # assign special name for delay for filtering
+        # assign special name to delay for filtering
         if gate.operand.name == 'delay':
             data_type = types.DrawingBox.DELAY
         else:
             data_type = types.DrawingBox.SCHED_GATE
 
         drawing = drawing_objects.BoxData(data_type=data_type,
-                                          bit=bit,
-                                          x0=gate.t0,
-                                          y0=-0.5 * drawer_style['formatter.box_height.gate'],
-                                          x1=gate.t0 + gate.duration,
-                                          y1=0.5 * drawer_style['formatter.box_height.gate'],
+                                          xvals=[gate.t0, gate.t0 + gate.duration],
+                                          yvals=[-0.5 * formatter['box_height.gate'],
+                                                 0.5 * formatter['box_height.gate']],
+                                          bit=gate.bits[gate.bit_position],
                                           meta=meta,
                                           styles=styles)
     else:
         # frame change
         styles = {
-            'zorder': drawer_style['formatter.layer.frame_change'],
-            'color': color_finder(gate.operand.name),
-            'size': drawer_style['formatter.font_size.frame_change'],
+            'zorder': formatter['layer.frame_change'],
+            'color': color,
+            'size': formatter['text_size.frame_change'],
             'va': 'center',
             'ha': 'center'
         }
-        unicode_symbol = drawer_style['formatter.unicode_symbol.frame_change']
-        latex_symbol = drawer_style['formatter.latex_symbol.frame_change']
+        unicode_symbol = formatter['unicode_symbol.frame_change']
+        latex_symbol = formatter['latex_symbol.frame_change']
 
         drawing = drawing_objects.TextData(data_type=types.DrawingSymbol.FRAME,
-                                           bit=bit,
-                                           x=gate.t0,
-                                           y=0,
+                                           bit=gate.bits[gate.bit_position],
+                                           xval=gate.t0,
+                                           yval=0,
                                            text=unicode_symbol,
                                            latex=latex_symbol,
                                            styles=styles)
@@ -125,19 +129,23 @@ def gen_sched_gate(bit: types.Bits,
     return [drawing]
 
 
-def gen_full_gate_name(bit: types.Bits,
-                       gate: types.ScheduledGate) -> List[drawing_objects.TextData]:
-    r"""Generate gate name.
+def gen_full_gate_name(gate: types.ScheduledGate,
+                       formatter: Dict[str, Any]
+                       ) -> List[drawing_objects.TextData]:
+    """Generate gate name.
 
     Parameters and associated bits are also shown.
 
-    Args:
-        bit: Bit object associated to this drawing.
-        gate: Gate information source.
-
     Stylesheet:
-        `*.gate_name` style is applied.
-        Latex gate name is generated by a callback function specified by `layout.latex_gate_name`.
+        - `gate_name` style is applied.
+        - `gate_latex_repr` key is used to find the latex representation of the gate name.
+
+    Args:
+        gate: Gate information source.
+        formatter: Dictionary of stylesheet settings.
+
+    Returns:
+        List of `TextData` drawing objects.
     """
     if gate.duration > 0:
         # gate with finite duration pulse
@@ -146,44 +154,56 @@ def gen_full_gate_name(bit: types.Bits,
     else:
         # frame change
         v_align = 'bottom'
-        v_pos = drawer_style['formatter.label_offset.frame_change']
+        v_pos = formatter['label_offset.frame_change']
 
     styles = {
-        'zorder': drawer_style['formatter.layer.gate_name'],
-        'color': drawer_style['formatter.color.gate_name'],
-        'size': drawer_style['formatter.font_size.gate_name'],
+        'zorder': formatter['layer.gate_name'],
+        'color': formatter['color.gate_name'],
+        'size': formatter['text_size.gate_name'],
         'va': v_align,
         'ha': 'center'
     }
-    # gate color table specified by stylesheet
-    name_converter = drawer_style['layout.latex_gate_name']
+    # find latex representation
+    latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
+                               r'{{\rm {name}}}'.format(name=gate.operand.name))
 
-    latex_name = name_converter(gate.operand.name)
-    qubits_str = ', '.join([bit.register.name for bit in gate.bits])
-    params_str = ', '.join(map(str, gate.operand.params))
-    if params_str:
-        label_plain = '{name}({qubits})|({params})'.format(name=gate.operand.name,
-                                                           qubits=qubits_str,
-                                                           params=params_str)
-        label_latex = r'{name}_{{\rm {qubits}}}({params})'.format(name=latex_name,
-                                                                  qubits=qubits_str,
-                                                                  params=params_str)
-    else:
-        label_plain = '{name}({qubits})'.format(name=gate.operand.name,
-                                                qubits=qubits_str)
-        label_latex = r'{name}_{{\rm {qubits}}}'.format(name=latex_name,
-                                                        qubits=qubits_str)
+    label_plain = '{name}'.format(name=gate.operand.name)
+    label_latex = r'{name}'.format(name=latex_name)
 
-    # assign special name for delay to filtering
+    # bit index
+    if len(gate.bits) > 1:
+        bits_str = ', '.join(map(str, [bit.index for bit in gate.bits]))
+        label_plain += '[{bits}]'.format(bits=bits_str)
+        label_latex += '[{bits}]'.format(bits=bits_str)
+
+    # parameter list
+    params = []
+    for val in gate.operand.params:
+        try:
+            params.append('{val:.2f}'.format(val=float(val)))
+        except ValueError:
+            params.append('{val}'.format(val=val))
+    params_str = ', '.join(params)
+
+    if params_str and gate.operand.name != 'delay':
+        label_plain += '({params})'.format(params=params_str)
+        label_latex += '({params})'.format(params=params_str)
+
+    # duration
+    if gate.duration > 0:
+        label_plain += '[{dur}]'.format(dur=gate.duration)
+        label_latex += '[{dur}]'.format(dur=gate.duration)
+
+    # assign special name to delay for filtering
     if gate.operand.name == 'delay':
         data_type = types.DrawingLabel.DELAY
     else:
         data_type = types.DrawingLabel.GATE_NAME
 
     drawing = drawing_objects.TextData(data_type=data_type,
-                                       bit=bit,
-                                       x=gate.t0 + 0.5 * gate.duration,
-                                       y=v_pos,
+                                       xval=gate.t0 + 0.5 * gate.duration,
+                                       yval=v_pos,
+                                       bit=gate.bits[gate.bit_position],
                                        text=label_plain,
                                        latex=label_latex,
                                        styles=styles)
@@ -191,19 +211,23 @@ def gen_full_gate_name(bit: types.Bits,
     return [drawing]
 
 
-def gen_short_gate_name(bit: types.Bits,
-                        gate: types.ScheduledGate) -> List[drawing_objects.TextData]:
-    r"""Generate gate name.
+def gen_short_gate_name(gate: types.ScheduledGate,
+                        formatter: Dict[str, Any]
+                        ) -> List[drawing_objects.TextData]:
+    """Generate gate name.
 
     Only operand name is shown.
 
-    Args:
-        bit: Bit object associated to this drawing.
-        gate: Gate information source.
-
     Stylesheet:
-        `*.gate_name` style is applied.
-        Latex gate name is generated by a callback function specified by `layout.latex_gate_name`.
+        - `gate_name` style is applied.
+        - `gate_latex_repr` key is used to find the latex representation of the gate name.
+
+    Args:
+        gate: Gate information source.
+        formatter: Dictionary of stylesheet settings.
+
+    Returns:
+        List of `TextData` drawing objects.
     """
     if gate.duration > 0:
         # gate with finite duration pulse
@@ -212,20 +236,21 @@ def gen_short_gate_name(bit: types.Bits,
     else:
         # frame change
         v_align = 'bottom'
-        v_pos = drawer_style['formatter.label_offset.frame_change']
+        v_pos = formatter['label_offset.frame_change']
 
     styles = {
-        'zorder': drawer_style['formatter.layer.gate_name'],
-        'color': drawer_style['formatter.color.gate_name'],
-        'size': drawer_style['formatter.font_size.gate_name'],
+        'zorder': formatter['layer.gate_name'],
+        'color': formatter['color.gate_name'],
+        'size': formatter['text_size.gate_name'],
         'va': v_align,
         'ha': 'center'
     }
-    # gate color table specified by stylesheet
-    name_converter = drawer_style['layout.latex_gate_name']
+    # find latex representation
+    latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
+                               r'{{\rm {name}}}'.format(name=gate.operand.name))
 
     label_plain = '{name}'.format(name=gate.operand.name)
-    label_latex = '{name}'.format(name=name_converter(gate.operand.name))
+    label_latex = '{name}'.format(name=latex_name)
 
     # assign special name for delay to filtering
     if gate.operand.name == 'delay':
@@ -234,9 +259,9 @@ def gen_short_gate_name(bit: types.Bits,
         data_type = types.DrawingLabel.GATE_NAME
 
     drawing = drawing_objects.TextData(data_type=data_type,
-                                       bit=bit,
-                                       x=gate.t0 + 0.5 * gate.duration,
-                                       y=v_pos,
+                                       xval=gate.t0 + 0.5 * gate.duration,
+                                       yval=v_pos,
+                                       bit=gate.bits[gate.bit_position],
                                        text=label_plain,
                                        latex=label_latex,
                                        styles=styles)
@@ -244,46 +269,58 @@ def gen_short_gate_name(bit: types.Bits,
     return [drawing]
 
 
-def gen_timeslot(bit: types.Bits) -> List[drawing_objects.BoxData]:
-    r"""Generate time slot of associated bit.
+def gen_timeslot(bit: types.Bits,
+                 formatter: Dict[str, Any]
+                 ) -> List[drawing_objects.BoxData]:
+    """Generate time slot of associated bit.
+
+    Stylesheet:
+        - `timeslot` style is applied.
 
     Args:
         bit: Bit object associated to this drawing.
+        formatter: Dictionary of stylesheet settings.
 
-    Stylesheet:
-        `*.timeslot` style is applied.
+    Returns:
+        List of `TextData` drawing objects.
     """
     styles = {
-        'zorder': drawer_style['formatter.layer.timeslot'],
-        'alpha': drawer_style['formatter.alpha.timeslot'],
-        'linewidth': drawer_style['formatter.line_width.timeslot'],
-        'facecolor': drawer_style['formatter.color.timeslot']
+        'zorder': formatter['layer.timeslot'],
+        'alpha': formatter['alpha.timeslot'],
+        'linewidth': formatter['line_width.timeslot'],
+        'facecolor': formatter['color.timeslot']
     }
 
     drawing = drawing_objects.BoxData(data_type=types.DrawingBox.TIMELINE,
+                                      xvals=[types.AbstractCoordinate.LEFT,
+                                             types.AbstractCoordinate.RIGHT],
+                                      yvals=[-0.5 * formatter['box_height.timeslot'],
+                                             0.5 * formatter['box_height.timeslot']],
                                       bit=bit,
-                                      x0=types.AbstractCoordinate.LEFT,
-                                      y0=-0.5 * drawer_style['formatter.box_height.timeslot'],
-                                      x1=types.AbstractCoordinate.RIGHT,
-                                      y1=0.5 * drawer_style['formatter.box_height.timeslot'],
                                       styles=styles)
 
     return [drawing]
 
 
-def gen_bit_name(bit: types.Bits) -> List[drawing_objects.TextData]:
-    r"""Generate bit label.
+def gen_bit_name(bit: types.Bits,
+                 formatter: Dict[str, Any]
+                 ) -> List[drawing_objects.TextData]:
+    """Generate bit label.
+
+    Stylesheet:
+        - `bit_name` style is applied.
 
     Args:
         bit: Bit object associated to this drawing.
+        formatter: Dictionary of stylesheet settings.
 
-    Stylesheet:
-        `*.bit_name` style is applied.
+    Returns:
+        List of `TextData` drawing objects.
     """
     styles = {
-        'zorder': drawer_style['formatter.layer.bit_name'],
-        'color': drawer_style['formatter.color.bit_name'],
-        'size': drawer_style['formatter.font_size.bit_name'],
+        'zorder': formatter['layer.bit_name'],
+        'color': formatter['color.bit_name'],
+        'size': formatter['text_size.bit_name'],
         'va': 'center',
         'ha': 'right'
     }
@@ -293,9 +330,9 @@ def gen_bit_name(bit: types.Bits) -> List[drawing_objects.TextData]:
                                                            index=bit.index)
 
     drawing = drawing_objects.TextData(data_type=types.DrawingLabel.BIT_NAME,
+                                       xval=types.AbstractCoordinate.LEFT,
+                                       yval=0,
                                        bit=bit,
-                                       x=types.AbstractCoordinate.LEFT,
-                                       y=0,
                                        text=label_plain,
                                        latex=label_latex,
                                        styles=styles)
@@ -303,59 +340,71 @@ def gen_bit_name(bit: types.Bits) -> List[drawing_objects.TextData]:
     return [drawing]
 
 
-def gen_barrier(bit: types.Bits,
-                barrier: types.Barrier) -> List[drawing_objects.LineData]:
-    r"""Generate barrier line.
-
-    Args:
-        bit: Bit object associated to this drawing.
-        barrier: Barrier instruction.
+def gen_barrier(barrier: types.Barrier,
+                formatter: Dict[str, Any]
+                ) -> List[drawing_objects.LineData]:
+    """Generate barrier line.
 
     Stylesheet:
-        `*.barrier` style is applied.
+        - `barrier` style is applied.
+
+    Args:
+        barrier: Barrier instruction.
+        formatter: Dictionary of stylesheet settings.
+
+    Returns:
+        List of `LineData` drawing objects.
     """
     styles = {
-        'alpha': drawer_style['formatter.alpha.barrier'],
-        'zorder': drawer_style['formatter.layer.barrier'],
-        'linewidth': drawer_style['formatter.line_width.barrier'],
-        'linestyle': drawer_style['formatter.line_style.barrier'],
-        'color': drawer_style['formatter.color.barrier']
+        'alpha': formatter['alpha.barrier'],
+        'zorder': formatter['layer.barrier'],
+        'linewidth': formatter['line_width.barrier'],
+        'linestyle': formatter['line_style.barrier'],
+        'color': formatter['color.barrier']
     }
 
     drawing = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
-                                       bit=bit,
-                                       x=[barrier.t0, barrier.t0],
-                                       y=[-0.5, 0.5],
+                                       xvals=[barrier.t0, barrier.t0],
+                                       yvals=[-0.5, 0.5],
+                                       bit=barrier.bits[barrier.bit_position],
                                        styles=styles)
 
     return [drawing]
 
 
-def gen_bit_link(link: types.GateLink) -> List[drawing_objects.BitLinkData]:
-    r"""Generate bit link line.
+def gen_bit_link(link: types.GateLink,
+                 formatter: Dict[str, Any]
+                 ) -> List[drawing_objects.GateLinkData]:
+    """Generate bit link line.
+
+    Line color depends on the operand type.
+
+    Stylesheet:
+        - `bit_link` style is applied.
+        - The `gate_face_color` style is applied for line color.
 
     Args:
         link: Bit link object.
+        formatter: Dictionary of stylesheet settings.
 
-    Stylesheet:
-        `*.bit_link` style is applied.
-        The line color depends on the operand type.
-        Color is decided by a callback function specified by `layout.gate_color`.
+    Returns:
+        List of `LineData` drawing objects.
     """
 
-    # gate color table specified by stylesheet
-    color_finder = drawer_style['layout.gate_color']
+    # find line color
+    color = formatter.get('gate_face_color.{name}'.format(name=link.opname),
+                          formatter['gate_face_color.default'])
 
     styles = {
-        'alpha': drawer_style['formatter.alpha.bit_link'],
-        'zorder': drawer_style['formatter.layer.bit_link'],
-        'linewidth': drawer_style['formatter.line_width.bit_link'],
-        'linestyle': drawer_style['formatter.line_style.bit_link'],
-        'color': color_finder(link.operand.name)
+        'alpha': formatter['alpha.bit_link'],
+        'zorder': formatter['layer.bit_link'],
+        'linewidth': formatter['line_width.bit_link'],
+        'linestyle': formatter['line_style.bit_link'],
+        'color': color
     }
 
-    drawing = drawing_objects.BitLinkData(bits=link.bits,
-                                          x=link.t0,
-                                          styles=styles)
+    drawing = drawing_objects.GateLinkData(bits=link.bits,
+                                           xval=link.t0,
+                                           styles=styles)
 
     return [drawing]

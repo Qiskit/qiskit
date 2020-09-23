@@ -74,6 +74,15 @@ Optimizations
    CrosstalkAdaptiveSchedule
    TemplateOptimization
 
+Scheduling
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ALAPSchedule
+   ASAPSchedule
+
 Circuit Analysis
 ================
 
@@ -164,6 +173,11 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+
+# circuit scheduling
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import TimeUnitAnalysis
 
 # additional utility passes
 from .utils import CheckMap

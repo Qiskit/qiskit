@@ -10,27 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+"""
 Special data types.
-
-- ScheduledGate:
-    t0: Time when the instruction is issued.
-    operand: Gate object associated with the instruction.
-    duration: Time duration of the instruction.
-    bits:
-
-- GateLink:
-    t0: Position where the link is placed.
-    operand: Gate object associated with the instruction.
-    bits: List of bit associated with the instruction.
-
-- Barrier:
-    t0: Position where the barrier is placed.
-    bits: List of bit associated with the instruction.
 """
 
 from enum import Enum
-from typing import NamedTuple, List, Union, NewType
+from typing import NamedTuple, List, Union, NewType, Tuple, Dict
 
 from qiskit import circuit
 
@@ -40,22 +25,52 @@ ScheduledGate = NamedTuple(
     [('t0', int),
      ('operand', circuit.Gate),
      ('duration', int),
-     ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+     ('bits', List[Union[circuit.Qubit, circuit.Clbit]]),
+     ('bit_position', int)])
+ScheduledGate.__doc__ = 'A gate instruction with embedded time.'
+ScheduledGate.t0.__doc__ = 'Time when the instruction is issued.'
+ScheduledGate.operand.__doc__ = 'Gate object associated with the gate.'
+ScheduledGate.duration.__doc__ = 'Time duration of the instruction.'
+ScheduledGate.bits.__doc__ = 'List of bit associated with the gate.'
+ScheduledGate.bit_position.__doc__ = 'Position of bit associated with this drawing source.'
+
 
 GateLink = NamedTuple(
     'GateLink',
     [('t0', int),
-     ('operand', circuit.Gate),
+     ('opname', str),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+GateLink.__doc__ = 'Dedicated object to represent a relationship between instructions.'
+GateLink.t0.__doc__ = 'A position where the link is placed.'
+GateLink.opname.__doc__ = 'Name of gate associated with this link.'
+GateLink.bits.__doc__ = 'List of bit associated with the instruction.'
+
 
 Barrier = NamedTuple(
     'Barrier',
     [('t0', int),
-     ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
+     ('bits', List[Union[circuit.Qubit, circuit.Clbit]]),
+     ('bit_position', int)])
+Barrier.__doc__ = 'Dedicated object to represent a barrier instruction.'
+Barrier.t0.__doc__ = 'A position where the barrier is placed.'
+Barrier.bits.__doc__ = 'List of bit associated with the instruction.'
+Barrier.bit_position.__doc__ = 'Position of bit associated with this drawing source.'
 
 
-class DrawingBox(str, Enum):
-    r"""Box data type.
+HorizontalAxis = NamedTuple(
+    'HorizontalAxis',
+    [('window', Tuple[int, int]),
+     ('axis_map', Dict[int, int]),
+     ('label', str)]
+)
+HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
+HorizontalAxis.window.__doc__ = "Left and right edge of graph."
+HorizontalAxis.axis_map.__doc__ = 'Mapping of apparent coordinate system and actual location.'
+HorizontalAxis.label.__doc__ = "Label of horizontal axis."
+
+
+class DrawingBox(Enum):
+    """Box data type.
 
     SCHED_GATE: Box that represents occupation time by gate.
     TIMELINE: Box that represents time slot of a bit.
@@ -65,25 +80,25 @@ class DrawingBox(str, Enum):
     TIMELINE = 'Box.Timeline'
 
 
-class DrawingLine(str, Enum):
-    r"""Line data type.
+class DrawingLine(Enum):
+    """Line data type.
 
     BARRIER: Line that represents barrier instruction.
     """
     BARRIER = 'Line.Barrier'
-    BIT_LINK = 'Line.BitLink'
+    GATE_LINK = 'Line.GateLink'
 
 
-class DrawingSymbol(str, Enum):
-    r"""Symbol data type.
+class DrawingSymbol(Enum):
+    """Symbol data type.
 
     FRAME: Symbol that represents zero time frame change (Rz) instruction.
     """
     FRAME = 'Symbol.Frame'
 
 
-class DrawingLabel(str, Enum):
-    r"""Label data type.
+class DrawingLabel(Enum):
+    """Label data type.
 
     GATE_NAME: Label that represents name of gate.
     GATE_PARAM: Label that represents parameter of gate.
@@ -95,8 +110,8 @@ class DrawingLabel(str, Enum):
     BIT_NAME = 'Label.Bit.Name'
 
 
-class AbstractCoordinate(str, Enum):
-    r"""Abstract coordinate that the exact value depends on the user preference.
+class AbstractCoordinate(Enum):
+    """Abstract coordinate that the exact value depends on the user preference.
 
     RIGHT: The horizontal coordinate at t0 shifted by the left margin.
     LEFT: The horizontal coordinate at tf shifted by the right margin.
@@ -109,5 +124,19 @@ class AbstractCoordinate(str, Enum):
     BOTTOM = 'BOTTOM'
 
 
+class Plotter(str, Enum):
+    """Name of pulse plotter APIs.
+
+    Mpl: Matplotlib plotter interface. Show timeline in 2D canvas.
+    """
+    Mpl = 'mpl'
+
+
+# convenient type to represent union of drawing data
+DataTypes = NewType('DataType', Union[DrawingBox, DrawingLabel, DrawingLine, DrawingSymbol])
+
+# convenient type to represent union of values to represent a coordinate
 Coordinate = NewType('Coordinate', Union[int, float, AbstractCoordinate])
+
+# Valid bit objects
 Bits = NewType('Bits', Union[circuit.Qubit, circuit.Clbit])

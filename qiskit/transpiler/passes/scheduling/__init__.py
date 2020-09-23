@@ -10,15 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+"""Module containing circuit scheduling passes."""
 
-"""
-Scheduled circuit visualization module.
-"""
-
-# stylesheets
-from qiskit.visualization.timeline.stylesheet import (
-    IqxStandard,
-    IqxSimple,
-    IqxDebugging
-)
+from .alap import ALAPSchedule
+from .asap import ASAPSchedule
+from .time_unit_analysis import TimeUnitAnalysis
