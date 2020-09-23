@@ -42,7 +42,7 @@ from typing import Any, Callable, Dict, Optional, Union
 import math
 import numpy as np
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
@@ -94,8 +94,7 @@ class ParametricPulse(Pulse):
         pass
 
     def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]]
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'ParametricPulse':
         """Return a new ParametricPulse with parameters assigned.
 

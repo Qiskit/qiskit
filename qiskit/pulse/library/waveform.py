@@ -15,7 +15,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 
@@ -95,8 +95,7 @@ class Waveform(Pulse):
         return samples
 
     def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]]
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Waveform':
         # Waveforms don't accept parameters
         return self

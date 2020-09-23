@@ -28,7 +28,7 @@ from abc import ABC
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.interfaces import ScheduleComponent
@@ -220,8 +220,7 @@ class Instruction(ScheduleComponent, ABC):
         return self.insert(time, schedule, name=name)
 
     def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]]
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Instruction':
         """Modify and return self with parameters assigned according to the input.
 

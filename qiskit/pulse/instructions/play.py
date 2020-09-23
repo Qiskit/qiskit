@@ -15,7 +15,7 @@ transmitted pulses, such as ``DriveChannel``).
 """
 from typing import Dict, Optional, Union
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
@@ -64,8 +64,7 @@ class Play(Instruction):
         return self.operands[1]
 
     def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]]
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Play':
         super().assign_parameters(value_dict)
         pulse = self.pulse.assign_parameters(value_dict)

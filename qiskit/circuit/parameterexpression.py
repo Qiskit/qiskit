@@ -12,64 +12,69 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
+from typing import Callable, Dict, Set, Union
 
 import numbers
 import operator
 
 import numpy
+import sympy
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.parameter import Parameter
+
+ParameterValueType = Union[ParameterExpression, float, int]
 
 
 class ParameterExpression():
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    def __init__(self, symbol_map, expr):
+    def __init__(self, symbol_map: Dict[Parameter, sympy.Symbol], expr: sympy.Expr):
         """Create a new ParameterExpression.
 
         Not intended to be called directly, but to be instantiated via operations
         on other Parameter or ParameterExpression objects.
 
         Args:
-            symbol_map (dict): Mapping of Parameter instances to the sympy.Symbol
-                               serving as their placeholder in expr.
-            expr (sympy.Expr): Expression of sympy.Symbols.
+            symbol_map: Mapping of Parameter instances to the sympy.Symbol
+                        serving as their placeholder in expr.
+            expr: Expression of sympy.Symbols.
         """
         self._parameter_symbols = symbol_map
         self._symbol_expr = expr
 
     @property
-    def parameters(self):
+    def parameters(self) -> Set[Parameter]:
         """Returns a set of the unbound Parameters in the expression."""
         return set(self._parameter_symbols.keys())
 
-    def conjugate(self):
+    def conjugate(self) -> 'ParameterExpression':
         """Return the conjugate, which is the ParameterExpression itself, since it is real."""
         return self
 
-    def assign(self, parameter, value):
+    def assign(self, parameter: Parameter,
+               value: ParameterValueType) -> 'ParameterExpression':
         """
         Assign one parameter to a value, which can either be numeric or another parameter
         expression.
 
         Args:
-            parameter (Parameter): A parameter in this expression whose value will be updated.
-            value (Union(ParameterExpression, int, float)): The new value to bind to.
+            parameter: A parameter in this expression whose value will be updated.
+            value: The new value to bind to.
 
         Returns:
-            ParameterExpression: a new expression parameterized by any parameters
-                which were not bound by assignment.
+            A new expression parameterized by any parameters which were not bound by assignment.
         """
         if isinstance(value, ParameterExpression):
             return self.subs({parameter: value})
         return self.bind({parameter: value})
 
-    def bind(self, parameter_values):
+    def bind(self, parameter_values: Dict[Parameter, Union[int, float]]) -> 'ParameterExpression':
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
-            parameter_values (dict): Mapping of Parameter instances to the
-                                     numeric value to which they will be bound.
+            parameter_values: Mapping of Parameter instances to the numeric value to which
+                              they will be bound.
 
         Raises:
             CircuitError:
@@ -79,8 +84,8 @@ class ParameterExpression():
                 - If binding the provided values requires division by zero.
 
         Returns:
-            ParameterExpression: a new expression parameterized by any parameters
-                which were not bound by parameter_values.
+            A new expression parameterized by any parameters which were not bound by
+            parameter_values.
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
@@ -107,13 +112,12 @@ class ParameterExpression():
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
-    def subs(self, parameter_map):
+    def subs(self, parameter_map: Dict[Parameter, 'ParameterExpression']) -> 'ParameterExpression':
         """Returns a new Expression with replacement Parameters.
 
         Args:
-            parameter_map (dict): Mapping from Parameters in self to the
-                                  ParameterExpression instances with which they
-                                  should be replaced.
+            parameter_map: Mapping from Parameters in self to the ParameterExpression
+                           instances with which they should be replaced.
 
         Raises:
             CircuitError:
@@ -122,8 +126,7 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expression with the specified parameters
-                                 replaced.
+            A new expression with the specified parameters replaced.
         """
 
         inbound_parameters = {p
@@ -182,17 +185,18 @@ class ParameterExpression():
             raise CircuitError('Name conflict applying operation for parameters: '
                                '{}'.format(conflicting_names))
 
-    def _apply_operation(self, operation, other, reflected=False):
+    def _apply_operation(self, operation: Callable,
+                         other: ParameterValueType,
+                         reflected: bool = False) -> 'ParameterExpression':
         """Base method implementing math operations between Parameters and
         either a constant or a second ParameterExpression.
 
         Args:
-            operation (function): One of operator.{add,sub,mul,truediv}.
-            other (Parameter or numbers.Real): The second argument to be used
-               with self in operation.
-            reflected (bool): Optional - The default ordering is
-                "self operator other". If reflected is True, this is switched
-                to "other operator self". For use in e.g. __radd__, ...
+            operation: One of operator.{add,sub,mul,truediv}.
+            other: The second argument to be used with self in operation.
+            reflected: Optional - The default ordering is "self operator other".
+                       If reflected is True, this is switched to "other operator self".
+                       For use in e.g. __radd__, ...
 
         Raises:
             CircuitError:
@@ -201,8 +205,7 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expression describing the result of the
-                operation.
+            A new expression describing the result of the operation.
         """
 
         self_expr = self._symbol_expr

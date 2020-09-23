@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -40,8 +40,7 @@ class Pulse(ABC):
         return id(self)
 
     def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]]
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
                           ) -> 'Pulse':
         """Return a new pulse with parameters assigned.
 

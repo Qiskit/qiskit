@@ -22,7 +22,7 @@ import multiprocessing as mp
 import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.interfaces import ScheduleComponent
@@ -639,8 +639,7 @@ class Schedule(ScheduleComponent):
                         old=old, new=new)) from err
 
     def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression,
-                                           Union[ParameterExpression, int, float, complex]],
+                          value_dict: Dict[ParameterExpression, ParameterValueType],
                           ) -> 'Schedule':
         """Assign the parameters in this schedule according to the input.
 
