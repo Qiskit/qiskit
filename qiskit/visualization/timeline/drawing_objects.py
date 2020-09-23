@@ -232,7 +232,7 @@ class TextData(ElementaryData):
 class GateLinkData(ElementaryData):
     """A special drawing data type that represents bit link of multi-bit gates.
 
-    Note this object takes multiple bit and be dedicated to the bit link.
+    Note this object takes multiple bits and dedicates them to the bit link.
     This may appear as a line on the canvas.
     """
     def __init__(self,
