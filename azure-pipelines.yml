@@ -277,43 +277,6 @@ stages:
             artifactName: 'html_docs'
             Parallel: true
             ParallelCount: 8
-    - job: 'Image_tests'
-      pool: { vmImage: 'ubuntu-16.04' }
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - checkout: self
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/bin/activate
-            python setup.py build_ext --inplace
-            sudo apt install -y graphviz
-            pip install matplotlib pylatexenc pillow
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            python -m unittest discover -v test.ipynb
-          displayName: 'Run image test'
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-10.15'}
       strategy:
@@ -644,3 +607,39 @@ stages:
             artifactName: 'html_tutorials'
             Parallel: true
             ParallelCount: 8
+    - job: 'Image_tests'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python38:
+            python.version: '3.8'
+      variables:
+        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -c constraints.txt
+            pip install -c constraints.txt -e .
+            pip install "matplotlib<3.3.0" pylatexenc pillow
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            pip check
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            python -m unittest discover -v test.ipynb
+          displayName: 'Run image test'
