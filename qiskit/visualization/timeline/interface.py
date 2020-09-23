@@ -13,60 +13,63 @@
 from typing import Optional, Dict, Any, List, Tuple
 
 from qiskit import circuit
-from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.timeline import drawer_style, types, core, styles
+from qiskit.visualization.timeline import types, core, stylesheet
 
 
-def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
-                    inst_durations: InstructionDurations,
-                    stylesheet: Optional[Dict[str, Any]] = None,
-                    backend: Optional[str] = 'mpl',
-                    filename: Optional[str] = None,
-                    bits: Optional[List[types.Bits]] = None,
-                    plot_range: Tuple[int, int] = None,
-                    show_idle: Optional[bool] = None,
-                    show_clbits: Optional[bool] = None,
-                    show_barriers:  Optional[bool] = None,
-                    show_delays:  Optional[bool] = None,
-                    ax: Optional = None):
-    """User interface of timeline drawer.
+def draw(program: circuit.QuantumCircuit,
+         style: Optional[Dict[str, Any]] = None,
+         time_range: Tuple[int, int] = None,
+         disable_bits: List[types.Bits] = None,
+         show_clbits: Optional[bool] = None,
+         show_idle: Optional[bool] = None,
+         show_barriers: Optional[bool] = None,
+         show_delays: Optional[bool] = None,
+         show_labels: bool = True,
+         plotter: Optional[str] = types.Plotter.Mpl.value,
+         axis: Optional[Any] = None,
+         filename: Optional[str] = None):
+    """Generate visualization data for pulse programs.
 
     Args:
-        scheduled_circuit: Input circuit to draw.
-            This program should be transpiled with gate time information
-            ahead of visualization.
-        inst_durations: A table of duration for specific gate instructions.
-        stylesheet: A dictionary of timeline drawer stylesheet.
-            See below for details.
-        backend: A string to specify the plotter to draw timeline.
-            `matplotlib` is used as a default plotter.
-        filename: If provided the output image is dumped into a file under the filename.
-        bits: List of bits to draw.
-            Timelines of unspecified bits are removed if provided.
-        plot_range: Tuple of numbers (t0, t1) that specify a time range to show.
-        show_idle: A control property to show idle timeline.
-            Set `True` to show timeline without gate instructions.
+        program: Program to visualize.
+            This program should be transpiled with gate time information before visualization.
+        style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
+            :py:class:~`qiskit.visualization.timeline.stylesheets.IqxStandard`,
+            :py:class:~`qiskit.visualization.timeline.stylesheets.IqxSimple`, and
+            :py:class:~`qiskit.visualization.timeline.stylesheets.IqxDebugging` for details of
+            preset stylesheets. See also the stylesheet section for details of configuration keys.
+        time_range: Set horizontal axis limit.
+        disable_bits: List of qubits of classical bits not shown in the output image.
         show_clbits: A control property to show classical bits.
             Set `True` to show classical bits.
+        show_idle: A control property to show idle timeline.
+            Set `True` to show timeline without gates.
         show_barriers: A control property to show barrier instructions.
             Set `True` to show barrier instructions.
         show_delays: A control property to show delay instructions.
             Set `True` to show delay instructions.
-        ax (matplotlib.axes.Axes): An optional Axes object to be used as a canvas.
-            If not provided a new matplotlib figure will be created and returned.
-            This is only valid when the `backend` is set to `mpl`.
+        show_labels: A control property to show annotations, i.e. name, of gates.
+            Set `True` to show annotations.
+        plotter: Name of plotter API to generate an output image.
+            See plotter section for details.
+        axis: Arbitrary object passed to the plotter. If this object is provided,
+            the plotters uses given `axis` instead of internally initializing a figure object.
+            This object format depends on the plotter. See plotters section for details.
+        filename: If provided the output image is dumped into a file under the filename.
 
     Returns:
-        Image data. The data format depends on the specified backend.
+        Image data. The generated data format depends on the `plotter`.
+        If matplotlib family is specified, this will be a `matplotlib.pyplot.Figure` data.
 
     Examples:
         todo: add jupyter execute
 
-    Raises:
-        VisualizationError: When invalid backend is specified.
+    Plotters:
+        - `mpl`: Matplotlib API to generate 2D image. Charts are placed along y axis with
+            vertical offset. This API takes matplotlib.axes.Axes as `axis` input.
 
-    Stylesheet options:
+    Stylesheet:
         formatter.general.fig_unit_height: Height of output image in inch per unit.
         formatter.general.fig_width: Width of output image in inch.
         formatter.general.dpi: DPI of image when it's saved.
@@ -141,54 +144,72 @@ def timeline_drawer(scheduled_circuit: circuit.QuantumCircuit,
         generator.bit_links: List of generator callback function that takes
             `GateLink` object and returns drawing objects.
             See :py:mod:`~qiskit.visualization.timeline.generators` for details.
+
+    Raises:
+        VisualizationError: When invalid backend is specified.
+
     """
     # update stylesheet
-    drawer_style.update(stylesheet or styles.IqxStandard())
-    drawer_style.current_stylesheet = stylesheet.__class__.__name__
+    temp_style = stylesheet.QiskitTimelineStyle()
+    temp_style.update(style or stylesheet.IqxStandard())
 
     # update control properties
     if show_idle is not None:
-        drawer_style['formatter.control.show_idle'] = show_idle
+        temp_style['formatter.control.show_idle'] = show_idle
+
     if show_clbits is not None:
-        drawer_style['formatter.control.show_clbits'] = show_clbits
+        temp_style['formatter.control.show_clbits'] = show_clbits
+
     if show_barriers is not None:
-        drawer_style['formatter.control.show_barriers'] = show_barriers
+        temp_style['formatter.control.show_barriers'] = show_barriers
+
     if show_delays is not None:
-        drawer_style['formatter.control.show_delays'] = show_delays
+        temp_style['formatter.control.show_delays'] = show_delays
 
-    # setup data container
-    ddc = core.DrawDataContainer()
-    ddc.load_program(scheduled_circuit=scheduled_circuit,
-                     inst_durations=inst_durations)
+    # create empty canvas and load program
+    canvas = core.DrawerCanvas(stylesheet=temp_style)
+    canvas.load_program(program=program)
 
-    # set time range
-    if plot_range:
-        ddc.set_time_range(t_start=plot_range[0], t_end=plot_range[1])
+    #
+    # update configuration
+    #
 
-    # update objects
-    ddc.update_preference(visible_bits=bits)
+    # time range
+    if time_range:
+        canvas.set_time_range(*time_range)
 
-    # draw
-    if backend == 'mpl':
-        # matplotlib plotter
+    # bits not shown
+    if disable_bits:
+        for bit in disable_bits:
+            canvas.set_disable_bits(bit, remove=True)
+
+    # show labels
+    if not show_labels:
+        labels = [types.DrawingLabel.DELAY,
+                  types.DrawingLabel.GATE_PARAM,
+                  types.DrawingLabel.GATE_NAME]
+        for label in labels:
+            canvas.set_disable_type(label, remove=True)
+
+    canvas.update()
+
+    #
+    # Call plotter API and generate image
+    #
+
+    if plotter == types.Plotter.Mpl:
         try:
-            from qiskit.visualization.timeline.backends.matplotlib import MplPlotter
-            from matplotlib import pyplot as plt, get_backend
+            from qiskit.visualization.timeline.plotters import MplPlotter
         except ImportError:
-            raise VisualizationError('Matplotlib is not installed. ' 
-                                     'Try pip install matplotlib to use this format.')
+            raise ImportError('Must have Matplotlib installed.')
 
-        plotter = MplPlotter(draw_data=ddc, axis=ax)
-        plotter.draw()
-
-        if ax is None:
-            if filename:
-                plotter.figure.savefig(filename,
-                                       dpi=drawer_style['formatter.general.dpi'],
-                                       bbox_inches='tight')
-            if get_backend() in ['module://ipykernel.pylab.backend_inline', 'nbAgg']:
-                plt.close(plotter.figure)
-
-            return plotter.figure
+        plotter_api = MplPlotter(canvas=canvas, axis=axis)
+        plotter_api.draw()
     else:
-        VisualizationError('Backend {backend} is not supported.'.format(backend=backend))
+        raise VisualizationError('Plotter API {name} is not supported.'.format(name=plotter))
+
+    # save figure
+    if filename:
+        plotter_api.save_file(filename=filename)
+
+    return plotter_api.get_image()
