@@ -171,12 +171,15 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(hasattr(qobj.config, 'rep_delay'), False)
 
         # turn on dynamic rep rates, rep_delay should be set
-        # now remove rep_delay and enable dynamic rep rates; use ``default_rep_delay``
         setattr(backend_config, 'dynamic_reprate_enabled', True)
         qobj = assemble(self.circ, backend, rep_delay=rep_delay)
         self.assertEqual(qobj.config.rep_delay, 2.2)
 
-        # use ``rep_delay`` outside of ``rep_delay_range
+        # test ``rep_delay=0``
+        qobj = assemble(self.circ, backend, rep_delay=0)
+        self.assertEqual(qobj.config.rep_delay, 0)
+
+        # use ``rep_delay`` outside of ``rep_delay_range```
         rep_delay_large = 5.0e-6
         with self.assertRaises(SchemaValidationError):
             assemble(self.circ, backend, rep_delay=rep_delay_large)
