@@ -1290,10 +1290,9 @@ class QuantumCircuit:
                     }
 
                 Colors can also be entered without the text color, such as
-                        'u1': '#FA74A6'
-                in which case the text color will always be black. The
-                'displaycolor' dict can contain any number of elements from
-                one to the entire dict above.
+                'u1': '#FA74A6', in which case the text color will always
+                be 'gatetextcolor'. The 'displaycolor' dict can contain any
+                number of elements from one to the entire dict above.
             latexdrawerstyle (bool): When set to True, enable LaTeX mode, which
                 will draw gates like the `latex` output modes.
             usepiformat (bool): When set to True, use radians for output.
