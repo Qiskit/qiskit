@@ -639,7 +639,5 @@ stages:
             sudo apt install -y graphviz pandoc
             pip check
           displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            python -m unittest discover -v test.ipynb
+        - bash: python -m unittest discover -v test/ipynb
           displayName: 'Run image test'
