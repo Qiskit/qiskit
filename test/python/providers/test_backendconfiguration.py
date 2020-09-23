@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -28,6 +26,7 @@ class TestBackendConfiguration(QiskitTestCase):
     """Test the methods on the BackendConfiguration class."""
 
     def setUp(self):
+        super().setUp()
         self.provider = FakeProvider()
         self.config = self.provider.get_backend('fake_openpulse_2q').configuration()
 
@@ -107,7 +106,7 @@ class TestBackendConfiguration(QiskitTestCase):
             self.assertGreater(rep_time, 0)
 
     def test_get_default_rep_delay_and_range(self):
-        """Test whether rep time property is the right size"""
+        """Test whether rep delay property is the right size."""
         _rep_delay_range_us = [100, 1000]
         _rep_delay_range_s = [_rd * 1.e-6 for _rd in _rep_delay_range_us]
         _default_rep_delay_us = 500

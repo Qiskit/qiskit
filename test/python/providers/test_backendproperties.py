@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -29,6 +27,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
     backend_name = 'fake_ourense'
 
     def setUp(self):
+        super().setUp()
         self.provider = FakeProvider()
         self.backend = self.provider.get_backend('fake_ourense')
         self.properties = self.backend.properties()

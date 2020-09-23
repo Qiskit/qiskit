@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -63,7 +61,9 @@ class DCXGate(Gate):
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], [])
         ]
-        qc._data = rules
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def to_matrix(self):

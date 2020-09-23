@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -39,7 +37,7 @@ class FakeSingapore(FakeBackend):
         """
         dirname = os.path.dirname(__file__)
         filename = "conf_singapore.json"
-        with open(os.path.join(dirname, filename), "r") as f_conf:
+        with open(os.path.join(dirname, filename)) as f_conf:
             conf = json.load(f_conf)
 
         configuration = PulseBackendConfiguration.from_dict(conf)
@@ -52,7 +50,7 @@ class FakeSingapore(FakeBackend):
         """Returns a snapshot of device properties"""
         dirname = os.path.dirname(__file__)
         filename = "props_singapore.json"
-        with open(os.path.join(dirname, filename), "r") as f_prop:
+        with open(os.path.join(dirname, filename)) as f_prop:
             props = json.load(f_prop)
         return BackendProperties.from_dict(props)
 
@@ -61,7 +59,7 @@ class FakeSingapore(FakeBackend):
         if not self._defaults:
             dirname = os.path.dirname(__file__)
             filename = "defs_singapore.json"
-            with open(os.path.join(dirname, filename), "r") as f_defs:
+            with open(os.path.join(dirname, filename)) as f_defs:
                 defs = json.load(f_defs)
             self._defaults = PulseDefaults.from_dict(defs)
         return self._defaults

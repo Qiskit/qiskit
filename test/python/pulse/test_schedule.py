@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -54,6 +52,8 @@ class BaseTestSchedule(QiskitTestCase):
     """Schedule tests."""
 
     def setUp(self):
+        super().setUp()
+
         @functional_pulse
         def linear(duration, slope, intercept):
             x = np.linspace(0, duration - 1, duration)
