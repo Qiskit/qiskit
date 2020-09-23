@@ -96,6 +96,9 @@ class Isometry(Instruction):
         super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):
+        # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)
+        #  an isometry, but not for generating its decomposition. It would be cheaper to do the
+        #  later here instead.
         gate = self.inverse().inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
