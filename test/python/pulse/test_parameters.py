@@ -16,6 +16,7 @@ from qiskit.test import QiskitTestCase
 
 from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
+from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
 from qiskit.test.mock import FakeAlmaden
 
@@ -124,6 +125,49 @@ class TestPulseParameters(QiskitTestCase):
         self.assertEqual(schedule.instructions[0][1].channel, AcquireChannel(1))
         self.assertEqual(schedule.instructions[0][1].mem_slot, MemorySlot(1))
 
+    def test_overlapping_pulses(self):
+        """Test that an error is still raised when overlapping instructions are assigned."""
+        schedule = pulse.Schedule()
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        with self.assertRaises(PulseError):
+            schedule |= pulse.Play(pulse.SamplePulse([0.5, 0.5, 0.5, 0.5]), DriveChannel(self.qubit))
+
+    def test_overlapping_on_assignment(self):
+        """Test constant*zero expression conflict."""
+        schedule = pulse.Schedule()
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(2*self.qubit))
+        with self.assertRaises(PulseError):
+            schedule.assign_parameters({self.qubit: 0})
+
+    def test_overlapping_on_assignment(self):
+        """Test that assignment will catch against existing instructions."""
+        schedule = pulse.Schedule()
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(1))
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        with self.assertRaises(PulseError):
+            schedule.assign_parameters({self.qubit: 1})
+
+    def test_merging_upon_assignment(self):
+        """Test that schedule can match instructions on a channel."""
+        schedule = pulse.Schedule()
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(1))
+        schedule  = schedule.insert(4, pulse.Play(pulse.SamplePulse([1, 1, 1, 1]),
+                                       DriveChannel(self.qubit)))
+        schedule.assign_parameters({self.qubit: 1})
+        self.assertEqual(schedule.ch_duration(DriveChannel(1)), 8)
+        self.assertEqual(schedule.channels, (DriveChannel(1),))
+
+    def test_overlapping_on_multiple_assignment(self):
+        """Test that assigning one qubit then another raises error when overlapping."""
+        qubit2 = Parameter('q2')
+        schedule = pulse.Schedule()
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(qubit2))
+        schedule.assign_parameters({qubit2: 2})
+        with self.assertRaises(PulseError):
+            schedule.assign_parameters({self.qubit: 2})
+
     def test_play_with_parametricpulse(self):
         """Test Parametric Pulses with parameters determined by ParameterExpressions
         in the Play instruction."""
@@ -157,3 +201,11 @@ class TestPulseParameters(QiskitTestCase):
         waveform = pulse.library.Constant(duration=1280, amp=self.amp)
         waveform.assign_parameters({self.amp: 0.2j})
         self.assertEqual(waveform.amp, 0.2j)
+
+    def test_invalid_parametric_pulses(self):
+        """Test that invalid parameters are still checked upon assignment."""
+        schedule = pulse.Schedule()
+        waveform = pulse.library.Constant(duration=1280, amp=2*self.amp)
+        schedule += pulse.Play(waveform, DriveChannel(0))
+        with self.assertRaises(PulseError):
+            waveform.assign_parameters({self.amp: 0.6})

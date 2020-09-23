@@ -652,6 +652,31 @@ class Schedule(ScheduleComponent):
         """
         for _, inst in self.instructions:
             inst.assign_parameters(value_dict)
+
+        for chan in copy.copy(self._timeslots):
+            if isinstance(chan.index, ParameterExpression):
+                chan_timeslots = self._timeslots.pop(chan)
+
+                # Find the channel's new assignment
+                new_channel = chan
+                for param in chan.index.parameters:
+                    if param in value_dict:
+                        new_index = new_channel.index.assign(param, value_dict[param])
+                        if not new_index.parameters:
+                            new_index = float(new_index)
+                            if float(new_index).is_integer():
+                                new_index = int(new_index)
+                        new_channel = type(chan)(new_index)
+
+                # Merge with existing channel
+                if new_channel in self._timeslots:
+                    sched = Schedule()
+                    sched._timeslots = {new_channel: chan_timeslots}
+                    self._add_timeslots(0, sched)
+                # Or add back under the new name
+                else:
+                    self._timeslots[new_channel] = chan_timeslots
+
         return self
 
     def draw(self, dt: float = 1, style=None,
