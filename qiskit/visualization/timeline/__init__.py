@@ -15,3 +15,13 @@
 """
 Scheduled circuit visualization module.
 """
+
+# interface
+from qiskit.visualization.timeline.interface import draw
+
+# stylesheets
+from qiskit.visualization.timeline.stylesheet import (
+    IqxStandard,
+    IqxSimple,
+    IqxDebugging
+)

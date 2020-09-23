@@ -15,7 +15,7 @@ from typing import Dict, Any, Mapping
 from qiskit.visualization.timeline import generators, layouts
 
 
-class QiskitPulseStyle(dict):
+class QiskitTimelineStyle(dict):
     """Stylesheet for pulse drawer."""
     _deprecated_keys = {}
 
@@ -74,25 +74,25 @@ class IqxStandard(dict):
     - Show time buckets.
     - Show only operand name.
     - Show bit name.
+    - Show barriers.
+    - Show idle timeline.
     - Show bit link.
-    - Remove idle bits.
     - Remove classical bits.
     """
     def __init__(self, **kwargs):
         super().__init__()
-        style = {'formatter.control.show_idle': False,
+        style = {'formatter.control.show_idle': True,
                  'formatter.control.show_clbits': False,
-                 'formatter.control.show_barriers': False,
+                 'formatter.control.show_barriers': True,
                  'formatter.control.show_delays': False,
                  'generator.gates': [generators.gen_sched_gate,
                                      generators.gen_short_gate_name],
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.bit_links': [generators.gen_bit_link],
-                 'layout.gate_color': layouts.default_color_table,
-                 'layout.latex_gate_name': layouts.default_latex_gate_name,
-                 'layout.bit_arrange': layouts.qreg_creg_ascending}
+                 'generator.gate_links': [generators.gen_bit_link],
+                 'layout.bit_arrange': layouts.qreg_creg_ascending,
+                 'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
         self.update(style)
 
@@ -106,7 +106,7 @@ class IqxSimple(dict):
     - Show time buckets.
     - Show bit name.
     - Show bit link.
-    - Remove idle bits.
+    - Remove idle timeline.
     - Remove classical bits.
     """
     def __init__(self, **kwargs):
@@ -119,10 +119,9 @@ class IqxSimple(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.bit_links': [generators.gen_bit_link],
-                 'layout.gate_color': layouts.default_color_table,
-                 'layout.latex_gate_name': layouts.default_latex_gate_name,
-                 'layout.bit_arrange': layouts.qreg_creg_ascending}
+                 'generator.gate_links': [generators.gen_bit_link],
+                 'layout.bit_arrange': layouts.qreg_creg_ascending,
+                 'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
         self.update(style)
 
@@ -137,6 +136,7 @@ class IqxDebugging(dict):
     - Show operand name, qubits, and parameters.
     - Show barriers.
     - Show delays.
+    - Show idle timeline.
     - Show bit name.
     - Show bit link.
     """
@@ -151,10 +151,9 @@ class IqxDebugging(dict):
                  'generator.bits': [generators.gen_bit_name,
                                     generators.gen_timeslot],
                  'generator.barriers': [generators.gen_barrier],
-                 'generator.bit_links': [generators.gen_bit_link],
-                 'layout.gate_color': layouts.default_color_table,
-                 'layout.latex_gate_name': layouts.default_latex_gate_name,
-                 'layout.bit_arrange': layouts.qreg_creg_ascending}
+                 'generator.gate_links': [generators.gen_bit_link],
+                 'layout.bit_arrange': layouts.qreg_creg_ascending,
+                 'layout.time_axis_map': layouts.time_map_in_dt}
         style.update(**kwargs)
         self.update(style)
 
@@ -182,30 +181,30 @@ def default_style() -> Dict[str, Any]:
         'formatter.color.barrier': '#222222',
         'formatter.gate_face_color.default': '#BB8BFF',
         'formatter.gate_face_color.u0': '#FA74A6',
-        'formatter.gate_face_color.u1': '#FA74A6',
+        'formatter.gate_face_color.u1': '#000000',
         'formatter.gate_face_color.u2': '#FA74A6',
         'formatter.gate_face_color.u3': '#FA74A6',
-        'formatter.gate_face_color.id': '#FA74A6',
-        'formatter.gate_face_color.x': '#FA74A6',
-        'formatter.gate_face_color.y': '#FA74A6',
-        'formatter.gate_face_color.z': '#FA74A6',
-        'formatter.gate_face_color.h': '#FA74A6',
-        'formatter.gate_face_color.cx': '#FA74A6',
-        'formatter.gate_face_color.cy': '#FA74A6',
-        'formatter.gate_face_color.cz': '#FA74A6',
-        'formatter.gate_face_color.swap': '#FA74A6',
-        'formatter.gate_face_color.s': '#FA74A6',
-        'formatter.gate_face_color.sdg': '#FA74A6',
-        'formatter.gate_face_color.dcx': '#FA74A6',
-        'formatter.gate_face_color.iswap': '#FA74A6',
-        'formatter.gate_face_color.t': '#FA74A6',
-        'formatter.gate_face_color.tdg': '#FA74A6',
-        'formatter.gate_face_color.r': '#FA74A6',
-        'formatter.gate_face_color.rx': '#FA74A6',
-        'formatter.gate_face_color.ry': '#FA74A6',
-        'formatter.gate_face_color.rz': '#FA74A6',
-        'formatter.gate_face_color.reset': '#FA74A6',
-        'formatter.gate_face_color.measure': '#FA74A6',
+        'formatter.gate_face_color.id': '#05BAB6',
+        'formatter.gate_face_color.x': '#05BAB6',
+        'formatter.gate_face_color.y': '#05BAB6',
+        'formatter.gate_face_color.z': '#05BAB6',
+        'formatter.gate_face_color.h': '#6FA4FF',
+        'formatter.gate_face_color.cx': '#6FA4FF',
+        'formatter.gate_face_color.cy': '#6FA4FF',
+        'formatter.gate_face_color.cz': '#6FA4FF',
+        'formatter.gate_face_color.swap': '#6FA4FF',
+        'formatter.gate_face_color.s': '#6FA4FF',
+        'formatter.gate_face_color.sdg': '#6FA4FF',
+        'formatter.gate_face_color.dcx': '#6FA4FF',
+        'formatter.gate_face_color.iswap': '#6FA4FF',
+        'formatter.gate_face_color.t': '#BB8BFF',
+        'formatter.gate_face_color.tdg': '#BB8BFF',
+        'formatter.gate_face_color.r': '#BB8BFF',
+        'formatter.gate_face_color.rx': '#BB8BFF',
+        'formatter.gate_face_color.ry': '#BB8BFF',
+        'formatter.gate_face_color.rz': '#BB8BFF',
+        'formatter.gate_face_color.reset': '#808080',
+        'formatter.gate_face_color.measure': '#808080',
         'formatter.gate_latex_repr.u0': r'{\rm U}_0',
         'formatter.gate_latex_repr.u1': r'{\rm U}_1',
         'formatter.gate_latex_repr.u2': r'{\rm U}_2',
@@ -242,7 +241,7 @@ def default_style() -> Dict[str, Any]:
         'formatter.layer.frame_change': 4,
         'formatter.layer.barrier': 1,
         'formatter.layer.bit_link': 2,
-        'formatter.alpha.gate': 0.8,
+        'formatter.alpha.gate': 1.0,
         'formatter.alpha.timeslot': 0.7,
         'formatter.alpha.barrier': 0.5,
         'formatter.alpha.bit_link': 0.8,
@@ -252,10 +251,10 @@ def default_style() -> Dict[str, Any]:
         'formatter.line_width.bit_link': 3,
         'formatter.line_style.barrier': '-',
         'formatter.line_style.bit_link': '-',
-        'formatter.font_size.gate_name': 12,
-        'formatter.font_size.bit_name': 15,
-        'formatter.font_size.frame_change': 18,
-        'formatter.font_size.horizontal_axis': 13,
+        'formatter.text_size.gate_name': 12,
+        'formatter.text_size.bit_name': 15,
+        'formatter.text_size.frame_change': 18,
+        'formatter.text_size.axis_label': 13,
         'formatter.label_offset.frame_change': 0.25,
         'formatter.control.show_idle': True,
         'formatter.control.show_clbits': True,
@@ -264,7 +263,6 @@ def default_style() -> Dict[str, Any]:
         'generator.gates': [],
         'generator.bits': [],
         'generator.barriers': [],
-        'generator.bit_links': [],
-        'layout.gate_color': None,
-        'layout.latex_gate_name': None,
-        'layout.bit_arrange': None}
+        'generator.gate_links': [],
+        'layout.bit_arrange': None,
+        'layout.time_axis_map': None}

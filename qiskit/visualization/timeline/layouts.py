@@ -17,8 +17,8 @@ Those functions are assigned to the `layout` key of the stylesheet.
 User can change the layout of the output image by writing own function.
 """
 
-from typing import List
-
+from typing import List, Tuple
+import numpy as np
 from qiskit import circuit
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types
@@ -72,3 +72,33 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
     cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
 
     return qregs + cregs
+
+
+def time_map_in_dt(time_window: Tuple[int, int]) -> types.HorizontalAxis:
+    """Layout function for the horizontal axis formatting.
+
+    Generate equispaced 6 horizontal axis ticks.
+
+    Args:
+        time_window: Left and right edge of this graph.
+
+    Returns:
+        Axis formatter object.
+    """
+    # shift time axis
+    t0, t1 = time_window
+
+    # axis label
+    axis_loc = np.linspace(max(t0, 0), t1, 6)
+    axis_label = axis_loc.copy()
+
+    # consider time resolution
+    label = 'System cycle time (dt)'
+
+    formatted_label = ['{val:.0f}'.format(val=val) for val in axis_label]
+
+    return types.HorizontalAxis(
+        window=(t0, t1),
+        axis_map=dict(zip(axis_loc, formatted_label)),
+        label=label
+    )

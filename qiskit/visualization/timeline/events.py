@@ -89,7 +89,8 @@ class BitEvents:
             instructions.append(types.ScheduledGate(t0=t0,
                                                     operand=node.op,
                                                     duration=duration,
-                                                    bits=associated_bits))
+                                                    bits=associated_bits,
+                                                    bit_position=associated_bits.index(bit)))
             t0 += duration
 
         return BitEvents(bit, instructions)
@@ -108,13 +109,13 @@ class BitEvents:
                                         bits=inst.bits)
                 yield barrier
 
-    def get_bit_links(self) -> Iterator[types.GateLink]:
+    def get_gate_links(self) -> Iterator[types.GateLink]:
         """Return link between multi-bit gates."""
         for inst in self.get_gates():
             # generate link iff this is the primary bit.
-            if len(inst.bits) > 1 and inst.bits.index(self.bit) == 0:
+            if len(inst.bits) > 1 and inst.bit_position == 0:
                 t0 = inst.t0 + 0.5 * inst.duration
                 link = types.GateLink(t0=t0,
-                                      operand=inst.operand,
+                                      opname=inst.operand.name,
                                       bits=inst.bits)
                 yield link

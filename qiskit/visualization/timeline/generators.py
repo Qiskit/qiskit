@@ -40,8 +40,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.visualization.timeline import types, drawing_objects
 
 
-def gen_sched_gate(bit: types.Bits,
-                   gate: types.ScheduledGate,
+def gen_sched_gate(gate: types.ScheduledGate,
                    formatter: Dict[str, Any],
                    ) -> List[Union[drawing_objects.TextData, drawing_objects.BoxData]]:
     """Generate time bucket or symbol of scheduled gate.
@@ -55,7 +54,6 @@ def gen_sched_gate(bit: types.Bits,
         - The `gate_face_color` style is applied for face color.
 
     Args:
-        bit: Bit object associated to this drawing.
         gate: Gate information source.
         formatter: Dictionary of stylesheet settings.
 
@@ -105,7 +103,7 @@ def gen_sched_gate(bit: types.Bits,
                                           xvals=[gate.t0, gate.t0 + gate.duration],
                                           yvals=[-0.5 * formatter['box_height.gate'],
                                                  0.5 * formatter['box_height.gate']],
-                                          bit=bit,
+                                          bit=gate.bits[gate.bit_position],
                                           meta=meta,
                                           styles=styles)
     else:
@@ -113,7 +111,7 @@ def gen_sched_gate(bit: types.Bits,
         styles = {
             'zorder': formatter['layer.frame_change'],
             'color': color,
-            'size': formatter['font_size.frame_change'],
+            'size': formatter['text_size.frame_change'],
             'va': 'center',
             'ha': 'center'
         }
@@ -121,7 +119,7 @@ def gen_sched_gate(bit: types.Bits,
         latex_symbol = formatter['latex_symbol.frame_change']
 
         drawing = drawing_objects.TextData(data_type=types.DrawingSymbol.FRAME,
-                                           bit=bit,
+                                           bit=gate.bits[gate.bit_position],
                                            xval=gate.t0,
                                            yval=0,
                                            text=unicode_symbol,
@@ -131,8 +129,7 @@ def gen_sched_gate(bit: types.Bits,
     return [drawing]
 
 
-def gen_full_gate_name(bit: types.Bits,
-                       gate: types.ScheduledGate,
+def gen_full_gate_name(gate: types.ScheduledGate,
                        formatter: Dict[str, Any]
                        ) -> List[drawing_objects.TextData]:
     """Generate gate name.
@@ -144,7 +141,6 @@ def gen_full_gate_name(bit: types.Bits,
         - `gate_latex_repr` key is used to find the latex representation of the gate name.
 
     Args:
-        bit: Bit object associated to this drawing.
         gate: Gate information source.
         formatter: Dictionary of stylesheet settings.
 
@@ -163,28 +159,40 @@ def gen_full_gate_name(bit: types.Bits,
     styles = {
         'zorder': formatter['layer.gate_name'],
         'color': formatter['color.gate_name'],
-        'size': formatter['font_size.gate_name'],
+        'size': formatter['text_size.gate_name'],
         'va': v_align,
         'ha': 'center'
     }
     # find latex representation
     latex_name = formatter.get('gate_latex_repr.{name}'.format(name=gate.operand.name),
                                r'{{\rm {name}}}'.format(name=gate.operand.name))
-    qubits_str = ', '.join([bit.register.name for bit in gate.bits])
-    params_str = ', '.join(map(str, gate.operand.params))
 
-    if params_str:
-        label_plain = '{name}({qubits})|({params})'.format(name=gate.operand.name,
-                                                           qubits=qubits_str,
-                                                           params=params_str)
-        label_latex = r'{name}_{{\rm {qubits}}}({params})'.format(name=latex_name,
-                                                                  qubits=qubits_str,
-                                                                  params=params_str)
-    else:
-        label_plain = '{name}({qubits})'.format(name=gate.operand.name,
-                                                qubits=qubits_str)
-        label_latex = r'{name}_{{\rm {qubits}}}'.format(name=latex_name,
-                                                        qubits=qubits_str)
+    label_plain = '{name}'.format(name=gate.operand.name)
+    label_latex = r'{name}'.format(name=latex_name)
+
+    # bit index
+    if len(gate.bits) > 1:
+        bits_str = ', '.join(map(str, [bit.index for bit in gate.bits]))
+        label_plain += '[{bits}]'.format(bits=bits_str)
+        label_latex += '[{bits}]'.format(bits=bits_str)
+
+    # parameter list
+    params = []
+    for val in gate.operand.params:
+        try:
+            params.append('{val:.2f}'.format(val=float(val)))
+        except ValueError:
+            params.append('{val}'.format(val=val))
+    params_str = ', '.join(params)
+
+    if params_str and gate.operand.name != 'delay':
+        label_plain += '({params})'.format(params=params_str)
+        label_latex += '({params})'.format(params=params_str)
+
+    # duration
+    if gate.duration > 0:
+        label_plain += '[{dur}]'.format(dur=gate.duration)
+        label_latex += '[{dur}]'.format(dur=gate.duration)
 
     # assign special name to delay for filtering
     if gate.operand.name == 'delay':
@@ -195,7 +203,7 @@ def gen_full_gate_name(bit: types.Bits,
     drawing = drawing_objects.TextData(data_type=data_type,
                                        xval=gate.t0 + 0.5 * gate.duration,
                                        yval=v_pos,
-                                       bit=bit,
+                                       bit=gate.bits[gate.bit_position],
                                        text=label_plain,
                                        latex=label_latex,
                                        styles=styles)
@@ -203,8 +211,7 @@ def gen_full_gate_name(bit: types.Bits,
     return [drawing]
 
 
-def gen_short_gate_name(bit: types.Bits,
-                        gate: types.ScheduledGate,
+def gen_short_gate_name(gate: types.ScheduledGate,
                         formatter: Dict[str, Any]
                         ) -> List[drawing_objects.TextData]:
     """Generate gate name.
@@ -216,7 +223,6 @@ def gen_short_gate_name(bit: types.Bits,
         - `gate_latex_repr` key is used to find the latex representation of the gate name.
 
     Args:
-        bit: Bit object associated to this drawing.
         gate: Gate information source.
         formatter: Dictionary of stylesheet settings.
 
@@ -235,7 +241,7 @@ def gen_short_gate_name(bit: types.Bits,
     styles = {
         'zorder': formatter['layer.gate_name'],
         'color': formatter['color.gate_name'],
-        'size': formatter['font_size.gate_name'],
+        'size': formatter['text_size.gate_name'],
         'va': v_align,
         'ha': 'center'
     }
@@ -255,7 +261,7 @@ def gen_short_gate_name(bit: types.Bits,
     drawing = drawing_objects.TextData(data_type=data_type,
                                        xval=gate.t0 + 0.5 * gate.duration,
                                        yval=v_pos,
-                                       bit=bit,
+                                       bit=gate.bits[gate.bit_position],
                                        text=label_plain,
                                        latex=label_latex,
                                        styles=styles)
@@ -314,7 +320,7 @@ def gen_bit_name(bit: types.Bits,
     styles = {
         'zorder': formatter['layer.bit_name'],
         'color': formatter['color.bit_name'],
-        'size': formatter['font_size.bit_name'],
+        'size': formatter['text_size.bit_name'],
         'va': 'center',
         'ha': 'right'
     }
@@ -334,8 +340,7 @@ def gen_bit_name(bit: types.Bits,
     return [drawing]
 
 
-def gen_barrier(bit: types.Bits,
-                barrier: types.Barrier,
+def gen_barrier(barrier: types.Barrier,
                 formatter: Dict[str, Any]
                 ) -> List[drawing_objects.LineData]:
     """Generate barrier line.
@@ -344,7 +349,6 @@ def gen_barrier(bit: types.Bits,
         - `barrier` style is applied.
 
     Args:
-        bit: Bit object associated to this drawing.
         barrier: Barrier instruction.
         formatter: Dictionary of stylesheet settings.
 
@@ -362,7 +366,7 @@ def gen_barrier(bit: types.Bits,
     drawing = drawing_objects.LineData(data_type=types.DrawingLine.BARRIER,
                                        xvals=[barrier.t0, barrier.t0],
                                        yvals=[-0.5, 0.5],
-                                       bit=bit,
+                                       bit=barrier.bits[barrier.bit_position],
                                        styles=styles)
 
     return [drawing]
