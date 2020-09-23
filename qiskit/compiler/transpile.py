@@ -12,24 +12,26 @@
 
 """Circuit transpile function"""
 import logging
-from time import time
 import warnings
+from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple
+
+from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import Qubit
+from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
+from qiskit.pulse import Schedule
+from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.pulse import Schedule
-from qiskit.circuit.quantumregister import Qubit
-from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
+from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
@@ -47,6 +49,9 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               layout_method: Optional[str] = None,
               routing_method: Optional[str] = None,
               translation_method: Optional[str] = None,
+              scheduling_method: Optional[str] = None,
+              instruction_durations: Optional[InstructionDurationsType] = None,
+              dt: Optional[float] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,
@@ -120,6 +125,24 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             may not run.
         routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre')
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
+        scheduling_method: Name of scheduling pass.
+            * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
+            on a qubit resource. alias: ``'asap'``)
+            * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
+            in the ground state when possible. (alias: ``'alap'``)
+            If ``None``, no scheduling will be done.
+        instruction_durations: Durations of instructions.
+            The gate lengths defined in ``backend.properties`` are used as default and
+            they are updated (overwritten) if this ``instruction_durations`` is specified.
+            The format of ``instruction_durations`` must be as follows.
+            The `instruction_durations` must be given as a list of tuples
+            [(instruction_name, qubits, duration, unit), ...].
+            | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
+            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
+            If unit is omitted, the default is 'dt', which is a sample time depending on backend.
+            If the time unit is 'dt', the duration must be an integer.
+        dt: Backend sample time (resolution) in seconds.
+            If ``None`` (default), ``backend.configuration().dt`` is used.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -205,10 +228,16 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         config = user_config.get_config()
         optimization_level = config.get('transpile_optimization_level', 1)
 
+    if scheduling_method is not None and backend is None and not instruction_durations:
+        warnings.warn("When scheduling circuits without backend,"
+                      " 'instruction_durations' should be usually provided.",
+                      UserWarning)
+
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
+                                           scheduling_method, instruction_durations, dt,
                                            seed_transpiler, optimization_level,
                                            callback, output_name)
 
@@ -298,6 +327,13 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     else:
         raise TranspilerError("optimization_level can range from 0 to 3.")
 
+    if pass_manager_config.scheduling_method is not None:
+        if pass_manager_config.basis_gates:
+            if 'delay' not in pass_manager_config.basis_gates:
+                pass_manager_config.basis_gates.append('delay')
+        else:
+            pass_manager_config.basis_gates = ['delay']
+
     result = pass_manager.run(circuit, callback=transpile_config['callback'],
                               output_name=transpile_config['output_name'])
 
@@ -365,6 +401,7 @@ def _remap_layout_faulty_backend(layout, faulty_qubits_map):
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method, translation_method,
+                          scheduling_method, instruction_durations, dt,
                           seed_transpiler, optimization_level,
                           callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
@@ -394,15 +431,18 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
+    durations = _parse_instruction_durations(backend, instruction_durations, dt,
+                                             scheduling_method, num_circuits)
+    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
 
     list_transpile_args = []
-    for args in zip(basis_gates, coupling_map, backend_properties,
-                    initial_layout, layout_method, routing_method, translation_method,
-                    seed_transpiler, optimization_level,
+    for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
+                    layout_method, routing_method, translation_method, scheduling_method,
+                    durations, seed_transpiler, optimization_level,
                     output_name, callback, backend_num_qubits, faulty_qubits_map):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
@@ -411,12 +451,14 @@ def _parse_transpile_args(circuits, backend,
                                                                    layout_method=args[4],
                                                                    routing_method=args[5],
                                                                    translation_method=args[6],
-                                                                   seed_transpiler=args[7]),
-                          'optimization_level': args[8],
-                          'output_name': args[9],
-                          'callback': args[10],
-                          'backend_num_qubits': args[11],
-                          'faulty_qubits_map': args[12]}
+                                                                   scheduling_method=args[7],
+                                                                   instruction_durations=args[8],
+                                                                   seed_transpiler=args[9]),
+                          'optimization_level': args[10],
+                          'output_name': args[11],
+                          'callback': args[12],
+                          'backend_num_qubits': args[13],
+                          'faulty_qubits_map': args[14]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -586,6 +628,26 @@ def _parse_translation_method(translation_method, num_circuits):
     if not isinstance(translation_method, list):
         translation_method = [translation_method] * num_circuits
     return translation_method
+
+
+def _parse_scheduling_method(scheduling_method, num_circuits):
+    if not isinstance(scheduling_method, list):
+        scheduling_method = [scheduling_method] * num_circuits
+    return scheduling_method
+
+
+def _parse_instruction_durations(backend, inst_durations, dt, scheduling_method, num_circuits):
+    durations = None
+    if scheduling_method is not None:
+        from qiskit.transpiler.instruction_durations import InstructionDurations
+        if backend:
+            durations = InstructionDurations.from_backend(backend).update(inst_durations, dt)
+        else:
+            durations = InstructionDurations(inst_durations, dt)
+
+    if not isinstance(durations, list):
+        durations = [durations] * num_circuits
+    return durations
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
