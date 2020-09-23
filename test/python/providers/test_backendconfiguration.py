@@ -44,6 +44,20 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test the hamiltonian method."""
         self.assertEqual(self.config.hamiltonian['description'],
                          "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.")
+        ref_vars = {
+            'v0': 5.0 * 1e9,
+            'v1': 5.1 * 1e9,
+            'j': 0.01 * 1e9,
+            'r': 0.02 * 1e9,
+            'alpha0': -0.33 * 1e9,
+            'alpha1': -0.33 * 1e9
+        }
+        self.assertEqual(self.config.hamiltonian['vars'], ref_vars)
+        # Test that on serialization inverse conversion is done.
+        self.assertEqual(
+            self.config.to_dict()['hamiltonian']['vars'],
+            {k: var*1e-9 for k, var in ref_vars.items()}
+        )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
         backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
