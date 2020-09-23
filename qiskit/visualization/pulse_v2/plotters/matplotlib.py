@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Matplotlib plotter API."""
 
 from typing import Optional
@@ -22,7 +24,7 @@ import numpy as np
 
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawing_objects, types
-from qiskit.visualization.pulse_v2.plotters import BasePlotter
+from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
 
 
 class Mpl2DPlotter(BasePlotter):
@@ -102,7 +104,7 @@ class Mpl2DPlotter(BasePlotter):
                 if isinstance(data, drawing_objects.LineData):
                     # line object
                     if data.fill:
-                        self.ax.fill_between(x, y1=y,  y2=current_y * np.ones_like(y),
+                        self.ax.fill_between(x, y1=y, y2=current_y * np.ones_like(y),
                                              **data.styles)
                     else:
                         self.ax.plot(x, y, **data.styles)

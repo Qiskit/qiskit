@@ -14,5 +14,4 @@
 Plotter API for pulse drawer.
 """
 
-from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
 from qiskit.visualization.pulse_v2.plotters.matplotlib import Mpl2DPlotter

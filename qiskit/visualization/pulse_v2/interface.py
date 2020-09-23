@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, missing-return-type-doc
 
 """Qiskit pulse drawer.
 
@@ -21,14 +21,13 @@ The drawer canvas object is internally initialized from the input data and
 the configured canvas is passed to the one of plotter APIs to generate a visualization data.
 """
 
-from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
+from typing import Union, Optional, Dict, Any, Tuple, List
 
+from qiskit.providers import BaseBackend
 from qiskit.pulse import Waveform, ParametricPulse, Schedule
 from qiskit.pulse.channels import PulseChannel
-from qiskit.providers import BaseBackend
 from qiskit.visualization.exceptions import VisualizationError
-
-from typing import Union, Optional, Dict, Any, Tuple, List
+from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
 
 
 def draw(program: Union[Waveform, ParametricPulse, Schedule],
@@ -72,6 +71,10 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             the plotters uses given `axis` instead of internally initializing a figure object.
             This object format depends on the plotter. See plotters section for details.
         filename: Set file path string to output image.
+
+    Returns:
+        Image data. The generated data format depends on the `plotter`.
+        If matplotlib family is specified, this will be a `matplotlib.pyplot.Figure` data.
 
     Examples:
         To visualize a pulse program, you can call this function with set of
