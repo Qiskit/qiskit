@@ -128,6 +128,7 @@ class DefaultStyle:
 
     def set_style(self, style_dic):
         dic = copy(style_dic)
+        self.name = dic.pop('name', self.name)
         self.tc = dic.pop('textcolor', self.tc)
         self.sc = dic.pop('subtextcolor', self.sc)
         self.lc = dic.pop('linecolor', self.lc)
@@ -254,6 +255,7 @@ class BWStyle:
 
     def set_style(self, style_dic):
         dic = copy(style_dic)
+        self.name = dic.pop('name', self.name)
         self.tc = dic.pop('textcolor', self.tc)
         self.sc = dic.pop('subtextcolor', self.sc)
         self.lc = dic.pop('linecolor', self.lc)
@@ -390,6 +392,7 @@ class IQXStyle:
 
     def set_style(self, style_dic):
         dic = copy(style_dic)
+        self.name = dic.pop('name', self.name)
         self.tc = dic.pop('textcolor', self.tc)
         self.sc = dic.pop('subtextcolor', self.sc)
         self.lc = dic.pop('linecolor', self.lc)

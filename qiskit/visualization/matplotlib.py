@@ -154,6 +154,29 @@ class MatplotlibDrawer:
         else:
             self._style = DefaultStyle()
 
+        if style:
+            if isinstance(style, dict):
+                self._style.set_style(style)
+            elif isinstance(style, str):
+                with open(style) as infile:
+                    dic = json.load(infile)
+                self._style.set_style(dic)
+
+        # This provides a way for a user to specify a style by setting the
+        # name in the style param that's passed to draw()
+        if self._style.name == 'iqx' or self._style.name == 'bw':
+            if self._style.name == 'iqx':
+                self._style = IQXStyle()
+            elif self._style.name == 'bw':
+                self._style = BWStyle()
+            if style:
+                if isinstance(style, dict):
+                    self._style.set_style(style)
+                elif isinstance(style, str):
+                    with open(style) as infile:
+                        dic = json.load(infile)
+                    self._style.set_style(dic)
+
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         self.layout = layout
@@ -166,14 +189,6 @@ class MatplotlibDrawer:
                  " Example: circuit.draw(output='mpl', cregbundle=False)", DeprecationWarning, 2)
         else:
             self.cregbundle = cregbundle
-
-        if style:
-            if isinstance(style, dict):
-                self._style.set_style(style)
-            elif isinstance(style, str):
-                with open(style) as infile:
-                    dic = json.load(infile)
-                self._style.set_style(dic)
 
         if ax is None:
             self.return_fig = True

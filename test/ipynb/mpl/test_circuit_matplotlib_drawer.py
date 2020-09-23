@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (U3Gate, U2Gate, U1Gate, XGate, SwapGate,
-                                    MCXGate, YGate, HGate, ZGate,
+                                    MCXGate, YGate, HGate, ZGate, DCXGate,
                                     C4XGate, C3XGate, MSGate, RZZGate)
 from qiskit.extensions import HamiltonianGate, UnitaryGate
 from qiskit.circuit import Parameter
@@ -365,6 +365,36 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(range(3))
 
         self.circuit_drawer(circuit, filename='global_phase.png')
+
+    def test_iqx_colors(self):
+        circuit = QuantumCircuit(7)
+        circuit.h(0)
+        circuit.x(0)
+        circuit.cx(0, 1)
+        circuit.ccx(0, 1, 2)
+        circuit.swap(0, 1)
+        circuit.cswap(0, 1, 2)
+        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        circuit.dcx(0, 1)
+        circuit.append(DCXGate().control(1), [0, 1, 2])
+        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+        circuit.z(4)
+        circuit.s(4)
+        circuit.sdg(4)
+        circuit.t(4)
+        circuit.tdg(4)
+        circuit.p(pi/2, 4)
+        circuit.u1(pi/2, 4)
+        circuit.cz(5, 6)
+        circuit.cu1(pi/2, 5, 6)
+        circuit.y(5)
+        circuit.rx(pi/3, 5)
+        circuit.rzx(pi/2, 5, 6)
+        circuit.u2(pi/2, pi/2, 5)
+        circuit.barrier(5, 6)
+        circuit.reset(5)
+
+        self.circuit_drawer(circuit, filename='ipx_colors.png')
 
 
 if __name__ == '__main__':
