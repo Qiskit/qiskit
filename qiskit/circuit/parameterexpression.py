@@ -28,7 +28,7 @@ ParameterValueType = Union['ParameterExpression', float, int]
 class ParameterExpression():
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    def __init__(self, symbol_map: Dict['Parameter', sympy.Symbol], expr: sympy.Expr):
+    def __init__(self, symbol_map: Dict, expr: sympy.Expr):
         """Create a new ParameterExpression.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -43,7 +43,7 @@ class ParameterExpression():
         self._symbol_expr = expr
 
     @property
-    def parameters(self) -> Set['Parameter']:
+    def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""
         return set(self._parameter_symbols.keys())
 
@@ -51,14 +51,13 @@ class ParameterExpression():
         """Return the conjugate, which is the ParameterExpression itself, since it is real."""
         return self
 
-    def assign(self, parameter: 'Parameter',
-               value: ParameterValueType) -> 'ParameterExpression':
+    def assign(self, parameter, value: ParameterValueType) -> 'ParameterExpression':
         """
         Assign one parameter to a value, which can either be numeric or another parameter
         expression.
 
         Args:
-            parameter: A parameter in this expression whose value will be updated.
+            parameter (Parameter): A parameter in this expression whose value will be updated.
             value: The new value to bind to.
 
         Returns:
@@ -68,7 +67,7 @@ class ParameterExpression():
             return self.subs({parameter: value})
         return self.bind({parameter: value})
 
-    def bind(self, parameter_values: Dict['Parameter', Union[int, float]]) -> 'ParameterExpression':
+    def bind(self, parameter_values: Dict) -> 'ParameterExpression':
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
@@ -112,7 +111,7 @@ class ParameterExpression():
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
     def subs(self,
-             parameter_map: Dict['Parameter', 'ParameterExpression']) -> 'ParameterExpression':
+             parameter_map: Dict) -> 'ParameterExpression':
         """Returns a new Expression with replacement Parameters.
 
         Args:
