@@ -45,7 +45,7 @@ def weighted_distance(num_qubits, coupling_map, properties):
     normed_weights = weights / avg_weight
     rows = [edge[0] for edge in edges]
     cols = [edge[1] for edge in edges]
-    weighted_dist = sp.coo_matrix((normed_weights,(rows,cols)),
+    weighted_dist = sp.coo_matrix((normed_weights, (rows, cols)),
                                   shape=(num_qubits, num_qubits),
                                   dtype=float).tocsr()
 
