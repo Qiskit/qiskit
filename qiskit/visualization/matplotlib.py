@@ -40,6 +40,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate
+from qiskit.circuit import Delay
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
 from qiskit.circuit.tools.pi_check import pi_check
@@ -902,6 +903,12 @@ class MatplotlibDrawer:
                     else:
                         self._multiqubit_gate(q_xy, fc=fc, ec=ec, gt=gt, sc=sc,
                                               text=gate_text, subtext=vec)
+                elif isinstance(op.op, Delay):
+                    param_text = "(%s)" % param
+                    if op.op.unit:
+                        param_text += "[%s]" % op.op.unit
+                    self._gate(q_xy[0], fc=fc, ec=ec, gt=gt, sc=sc,
+                               text=gate_text, subtext=param_text)
                 #
                 # draw single qubit gates
                 #
