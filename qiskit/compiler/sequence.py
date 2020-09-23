@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,41 +11,28 @@
 # that they have been altered from the originals.
 
 """
-Convenience entry point into pulse scheduling, requiring only a circuit and a backend. For more
-control over pulse scheduling, look at `qiskit.scheduler.schedule_circuit`.
+Mapping a scheduled ``QuantumCircuit`` to a pulse ``Schedule``.
 """
-import logging
-
-from time import time
 from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers import BaseBackend
+from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.scheduler import ScheduleConfig
-from qiskit.scheduler.schedule_circuit import schedule_circuit
-
-LOG = logging.getLogger(__name__)
+from qiskit.scheduler.sequence import sequence as _sequence
 
 
-def _log_schedule_time(start_time, end_time):
-    log_msg = "Total Scheduling Time - %.5f (ms)" % ((end_time - start_time) * 1000)
-    LOG.info(log_msg)
-
-
-def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+def sequence(scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
              backend: Optional[BaseBackend] = None,
              inst_map: Optional[InstructionScheduleMap] = None,
              meas_map: Optional[List[List[int]]] = None,
-             dt: Optional[float] = None,
-             method: Optional[Union[str, List[str]]] = None) -> Union[Schedule, List[Schedule]]:
+             dt: Optional[float] = None) -> Union[Schedule, List[Schedule]]:
     """
-    Schedule a circuit to a pulse ``Schedule``, using the backend, according to any specified
-    methods. Supported methods are documented in :py:mod:`qiskit.scheduler.schedule_circuit`.
+    Schedule a scheduled circuit to a pulse ``Schedule``, using the backend.
 
     Args:
-        circuits: The quantum circuit or circuits to translate
+        scheduled_circuits: Scheduled circuit(s) to be translated
         backend: A backend instance, which contains hardware-specific data required for scheduling
         inst_map: Mapping of circuit operations to pulse schedules. If ``None``, defaults to the
                   ``backend``\'s ``instruction_schedule_map``
@@ -54,7 +41,6 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         dt: The output sample rate of backend control electronics. For scheduled circuits
             which contain time information, dt is required. If not provided, it will be
             obtained from the backend configuration
-        method: Optionally specify a particular scheduling method
 
     Returns:
         A pulse ``Schedule`` that implements the input circuit
@@ -62,27 +48,20 @@ def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
-    start_time = time()
     if inst_map is None:
         if backend is None:
-            raise QiskitError("Must supply either a backend or InstructionScheduleMap for "
-                              "scheduling passes.")
-        defaults = backend.defaults()
-        if defaults is None:
-            raise QiskitError("The backend defaults are unavailable. The backend may not "
-                              "support pulse.")
-        inst_map = defaults.instruction_schedule_map
+            raise QiskitError("Must supply either a backend or inst_map for sequencing.")
+        inst_map = backend.defaults().instruction_schedule_map
     if meas_map is None:
         if backend is None:
-            raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
+            raise QiskitError("Must supply either a backend or a meas_map for sequencing.")
         meas_map = backend.configuration().meas_map
     if dt is None:
-        if backend is not None:
-            dt = backend.configuration().dt
+        if backend is None:
+            raise QiskitError("Must supply either a backend or a dt for sequencing.")
+        dt = backend.configuration().dt
 
     schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
-    circuits = circuits if isinstance(circuits, list) else [circuits]
-    schedules = [schedule_circuit(circuit, schedule_config, method) for circuit in circuits]
-    end_time = time()
-    _log_schedule_time(start_time, end_time)
+    circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
+    schedules = [_sequence(circuit, schedule_config) for circuit in circuits]
     return schedules[0] if len(schedules) == 1 else schedules
