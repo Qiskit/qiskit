@@ -134,20 +134,20 @@ class TestPulseParameters(QiskitTestCase):
                                    DriveChannel(self.qubit))
 
     def test_overlapping_on_assignment(self):
-        """Test constant*zero expression conflict."""
-        schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
-        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(2*self.qubit))
-        with self.assertRaises(PulseError):
-            schedule.assign_parameters({self.qubit: 0})
-
-    def test_overlapping_on_assignment(self):
         """Test that assignment will catch against existing instructions."""
         schedule = pulse.Schedule()
         schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(1))
         schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
         with self.assertRaises(PulseError):
             schedule.assign_parameters({self.qubit: 1})
+
+    def test_overlapping_on_expression_assigment_to_zero(self):
+        """Test constant*zero expression conflict."""
+        schedule = pulse.Schedule()
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(self.qubit))
+        schedule |= pulse.Play(pulse.SamplePulse([1, 1, 1, 1]), DriveChannel(2*self.qubit))
+        with self.assertRaises(PulseError):
+            schedule.assign_parameters({self.qubit: 0})
 
     def test_merging_upon_assignment(self):
         """Test that schedule can match instructions on a channel."""
