@@ -130,7 +130,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler,
                                  properties=backend_properties)]
     elif routing_method == 'lookahead':
-        _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
+        _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4,
+                                properties=backend_properties)]
     elif routing_method == 'sabre':
         _swap += [SabreSwap(coupling_map, heuristic='lookahead', seed=seed_transpiler,
                             properties=backend_properties)]

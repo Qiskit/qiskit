@@ -21,6 +21,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.routing.utils import weighted_distance
 from qiskit.dagcircuit import DAGNode
 
 logger = logging.getLogger(__name__)
@@ -62,17 +63,24 @@ class LookaheadSwap(TransformationPass):
     https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
     """
 
-    def __init__(self, coupling_map, search_depth=4, search_width=4):
+    def __init__(self, coupling_map, search_depth=4, search_width=4, properties=None):
         """LookaheadSwap initializer.
 
         Args:
             coupling_map (CouplingMap): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
+            properties (BackendProperties): A backend properties instance.
         """
 
         super().__init__()
         self.coupling_map = coupling_map
+        if properties:
+            self.distance = weighted_distance(len(properties.qubits),
+                                              coupling_map, properties)
+        else:
+            coupling_map._compute_distance_matrix()
+            self.distance = coupling_map._dist_matrix
         self.search_depth = search_depth
         self.search_width = search_width
 
@@ -109,6 +117,7 @@ class LookaheadSwap(TransformationPass):
             best_step = _search_forward_n_swaps(current_layout,
                                                 gates_remaining,
                                                 self.coupling_map,
+                                                self.distance,
                                                 self.search_depth,
                                                 self.search_width)
 
@@ -134,13 +143,14 @@ class LookaheadSwap(TransformationPass):
         return mapped_dag
 
 
-def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
+def _search_forward_n_swaps(layout, gates, coupling_map, distance, depth, width):
     """Search for SWAPs which allow for application of largest number of gates.
 
     Args:
         layout (Layout): Map from virtual qubit index to physical qubit index.
         gates (list): Gates to be mapped.
         coupling_map (CouplingMap): CouplingMap of the target backend.
+        distance (ndarray): Qubit distances.
         depth (int): Number of SWAP layers to search before choosing a result.
         width (int): Number of SWAPs to consider at each layer.
     Returns:
@@ -171,7 +181,7 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
         """Calculate the relative score for a given SWAP."""
         trial_layout = layout.copy()
         trial_layout.swap(*swap)
-        return _calc_layout_distance(gates, coupling_map, trial_layout)
+        return _calc_layout_distance(gates, coupling_map, distance, trial_layout)
 
     ranked_swaps = sorted(possible_swaps, key=_score_swap)
     logger.debug('At depth %d, ranked candidate swaps: %s...',
@@ -182,7 +192,7 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
         trial_layout = layout.copy()
         trial_layout.swap(*swap)
         next_step = _search_forward_n_swaps(trial_layout, gates_remaining,
-                                            coupling_map, depth - 1, width)
+                                            coupling_map, distance, depth - 1, width)
 
         if next_step is None:
             continue
@@ -201,9 +211,11 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
                     or len(best_step['gates_remaining']) < len(gates_remaining)
                     or (_calc_layout_distance(best_step['gates_remaining'],
                                               coupling_map,
+                                              distance,
                                               best_step['layout'])
                         < _calc_layout_distance(gates_remaining,
                                                 coupling_map,
+                                                distance,
                                                 layout)))):
             # Once we've examined either $WIDTH swaps, or all available swaps,
             # return the best-scoring swap provided it leads to an improvement
@@ -278,14 +290,14 @@ def _map_free_gates(layout, gates, coupling_map):
     return mapped_gates, remaining_gates
 
 
-def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
+def _calc_layout_distance(gates, coupling_map, distance, layout, max_gates=None):
     """Return the sum of the distances of two-qubit pairs in each CNOT in gates
     according to the layout and the coupling.
     """
     if max_gates is None:
         max_gates = 50 + 10 * len(coupling_map.physical_qubits)
 
-    return sum(coupling_map.distance(*[layout[q] for q in gate['partition'][0]])
+    return sum(distance[layout[gate['partition'][0][0]], layout[gate['partition'][0][1]]]
                for gate in gates[:max_gates]
                if gate['partition'] and len(gate['partition'][0]) == 2)
 
