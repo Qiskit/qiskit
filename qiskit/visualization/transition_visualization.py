@@ -17,17 +17,6 @@ import sys
 from math import sin, cos, acos, sqrt
 import numpy as np
 
-try:
-    import matplotlib
-    from matplotlib import pyplot as plt
-    from matplotlib import animation
-    from mpl_toolkits.mplot3d import Axes3D
-    from qiskit.visualization.bloch import Bloch
-    from qiskit.visualization.exceptions import VisualizationError
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
-
 
 def _normalize(v, tolerance=0.00001):
     """Makes sure magnitude of the vector is 1 with given tolerance"""
@@ -168,11 +157,22 @@ def visualize_transition(circuit,
     except ImportError:
         has_ipython = False
 
+    try:
+        import matplotlib
+        from matplotlib import pyplot as plt
+        from matplotlib import animation
+        from mpl_toolkits.mplot3d import Axes3D
+        from qiskit.visualization.bloch import Bloch
+        from qiskit.visualization.exceptions import VisualizationError
+        has_matplotlib = True
+    except ImportError:
+        has_matplotlib = False
+
     jupyter = False
     if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         jupyter = True
 
-    if not HAS_MATPLOTLIB:
+    if not has_matplotlib:
         raise ImportError("Must have Matplotlib installed.")
     if not has_ipython and jupyter is True:
         raise ImportError("Must have IPython installed.")
