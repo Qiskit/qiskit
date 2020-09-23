@@ -49,7 +49,7 @@ class SetFrequency(Instruction):
         super().__init__((frequency, channel), 0, (channel,), name=name)
 
     @property
-    def frequency(self) -> float:
+    def frequency(self) -> Union[float, ParameterExpression]:
         """New frequency."""
         return self.operands[0]
 
@@ -65,7 +65,7 @@ class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
 
     def __init__(self,
-                 frequency: float,
+                 frequency: Union[float, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Creates a new shift frequency instruction.
@@ -80,7 +80,7 @@ class ShiftFrequency(Instruction):
         super().__init__((frequency, channel), 0, (channel,), name=name)
 
     @property
-    def frequency(self) -> float:
+    def frequency(self) -> Union[float, ParameterExpression]:
         """Frequency shift from the set frequency."""
         return self.operands[0]
 

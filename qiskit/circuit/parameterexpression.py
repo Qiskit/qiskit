@@ -23,7 +23,7 @@ import sympy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.parameter import Parameter
 
-ParameterValueType = Union[ParameterExpression, float, int]
+ParameterValueType = Union['ParameterExpression', float, int]
 
 
 class ParameterExpression():

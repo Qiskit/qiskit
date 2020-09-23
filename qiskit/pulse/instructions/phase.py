@@ -38,7 +38,7 @@ class ShiftPhase(Instruction):
     by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
-    def __init__(self, phase: complex,
+    def __init__(self, phase: Union[complex, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
@@ -52,7 +52,7 @@ class ShiftPhase(Instruction):
         super().__init__((phase, channel), 0, (channel,), name=name)
 
     @property
-    def phase(self) -> float:
+    def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
         return self.operands[0]
 
@@ -78,7 +78,7 @@ class SetPhase(Instruction):
     """
 
     def __init__(self,
-                 phase: float,
+                 phase: Union[complex, ParameterExpression],
                  channel: PulseChannel,
                  name: Optional[str] = None):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
@@ -92,7 +92,7 @@ class SetPhase(Instruction):
         super().__init__((phase, channel), 0, (channel,), name=name)
 
     @property
-    def phase(self) -> float:
+    def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
         return self.operands[0]
 

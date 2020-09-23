@@ -162,8 +162,8 @@ class Gaussian(ParametricPulse):
 
     def __init__(self,
                  duration: int,
-                 amp: complex,
-                 sigma: float,
+                 amp: Union[complex, ParameterExpression],
+                 sigma: Union[float, ParameterExpression],
                  name: Optional[str] = None):
         """Initialize the gaussian pulse.
 
@@ -181,12 +181,12 @@ class Gaussian(ParametricPulse):
         super().__init__(duration=duration, name=name)
 
     @property
-    def amp(self) -> complex:
+    def amp(self) -> Union[complex, ParameterExpression]:
         """The Gaussian amplitude."""
         return self._amp
 
     @property
-    def sigma(self) -> float:
+    def sigma(self) -> Union[float, ParameterExpression]:
         """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
@@ -233,9 +233,9 @@ class GaussianSquare(ParametricPulse):
 
     def __init__(self,
                  duration: int,
-                 amp: complex,
-                 sigma: float,
-                 width: float,
+                 amp: Union[complex, ParameterExpression],
+                 sigma: Union[float, ParameterExpression],
+                 width: Union[float, ParameterExpression],
                  name: Optional[str] = None):
         """Initialize the gaussian square pulse.
 
@@ -255,17 +255,17 @@ class GaussianSquare(ParametricPulse):
         super().__init__(duration=duration, name=name)
 
     @property
-    def amp(self) -> complex:
+    def amp(self) -> Union[complex, ParameterExpression]:
         """The Gaussian amplitude."""
         return self._amp
 
     @property
-    def sigma(self) -> float:
+    def sigma(self) -> Union[float, ParameterExpression]:
         """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
     @property
-    def width(self) -> float:
+    def width(self) -> Union[float, ParameterExpression]:
         """The width of the square portion of the pulse."""
         return self._width
 
@@ -330,9 +330,9 @@ class Drag(ParametricPulse):
 
     def __init__(self,
                  duration: int,
-                 amp: complex,
-                 sigma: float,
-                 beta: float,
+                 amp: Union[complex, ParameterExpression],
+                 sigma: Union[float, ParameterExpression],
+                 beta: Union[float, ParameterExpression],
                  name: Optional[str] = None):
         """Initialize the drag pulse.
 
@@ -352,17 +352,17 @@ class Drag(ParametricPulse):
         super().__init__(duration=duration, name=name)
 
     @property
-    def amp(self) -> complex:
+    def amp(self) -> Union[complex, ParameterExpression]:
         """The Gaussian amplitude."""
         return self._amp
 
     @property
-    def sigma(self) -> float:
+    def sigma(self) -> Union[float, ParameterExpression]:
         """The Gaussian standard deviation of the pulse width."""
         return self._sigma
 
     @property
-    def beta(self) -> float:
+    def beta(self) -> Union[float, ParameterExpression]:
         """The weighing factor for the Gaussian derivative component of the waveform."""
         return self._beta
 
@@ -423,7 +423,7 @@ class Constant(ParametricPulse):
 
     def __init__(self,
                  duration: int,
-                 amp: complex,
+                 amp: Union[complex, ParameterExpression],
                  name: Optional[str] = None):
         """
         Initialize the constant-valued pulse.
@@ -439,7 +439,7 @@ class Constant(ParametricPulse):
         super().__init__(duration=duration, name=name)
 
     @property
-    def amp(self) -> complex:
+    def amp(self) -> Union[complex, ParameterExpression]:
         """The constant value amplitude."""
         return self._amp
 
@@ -473,7 +473,7 @@ class ConstantPulse(Constant):
 
     def __init__(self,
                  duration: int,
-                 amp: complex,
+                 amp: Union[complex, ParameterExpression],
                  name: Optional[str] = None):
         """
         Initialize the constant-valued pulse.
