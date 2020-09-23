@@ -19,37 +19,38 @@ from typing import NamedTuple, List, Union, NewType
 
 from qiskit import circuit
 
+
 ScheduledGate = NamedTuple(
     'ScheduledGate',
     [('t0', int),
      ('operand', circuit.Gate),
      ('duration', int),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
-ScheduledGate.__doc__ = 'Data to represent a scheduled gate instruction.'
-ScheduledGate.t0.__doc__ = 'A time when the gate instruction is issued.'
-ScheduledGate.operand.__doc__ = 'Gate instruction.'
-ScheduledGate.duration.__doc__ = 'Duration of this gate.'
-ScheduledGate.bits.__doc__ = 'All bits associated with this gate.'
+ScheduledGate.__doc__ = 'A gate instruction with embedded time.'
+ScheduledGate.t0.__doc__ = 'Time when the instruction is issued.'
+ScheduledGate.operand.__doc__ = 'Gate object associated with the instruction.'
+ScheduledGate.duration.__doc__ = 'Time duration of the instruction.'
+ScheduledGate.bits.__doc__ = 'List of bit associated with the instruction.'
 
 
 GateLink = NamedTuple(
     'GateLink',
     [('t0', int),
-     ('opname', str),
+     ('operand', circuit.Gate),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
-GateLink.__doc__ = 'Data to represent a link between bits during a gate.'
-GateLink.t0.__doc__ = 'A time when the link is placed.'
-GateLink.opname.__doc__ = 'Name of gate associated with this link.'
-GateLink.bits.__doc__ = 'All bits associated with this link.'
+GateLink.__doc__ = 'Dedicated object to represent a relationship between instructions.'
+GateLink.t0.__doc__ = 'A position where the link is placed.'
+GateLink.operand.__doc__ = 'Gate object associated with the link.'
+GateLink.bits.__doc__ = 'List of bit associated with the instruction.'
 
 
 Barrier = NamedTuple(
     'Barrier',
     [('t0', int),
      ('bits', List[Union[circuit.Qubit, circuit.Clbit]])])
-Barrier.__doc__ = 'Data to represent a barrier instruction.'
-Barrier.t0.__doc__ = 'A time when a barrier is placed.'
-Barrier.bits.__doc__ = 'All bits associated with this barrier.'
+Barrier.__doc__ = 'Dedicated object to represent a barrier instruction.'
+Barrier.t0.__doc__ = 'A position where the barrier is placed.'
+Barrier.bits.__doc__ = 'List of bit associated with the instruction.'
 
 
 class DrawingBox(Enum):
