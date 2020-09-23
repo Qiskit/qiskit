@@ -1062,8 +1062,8 @@ class QuantumCircuit:
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
             # If instruction is a composite circuit
-            elif not isinstance(instruction, Gate) and (instruction.name not in ['barrier',
-                                                                                 'reset']):
+            elif type(instruction) in [Gate, Instruction] and (instruction.name not in ['barrier',
+                                                                                        'reset']):
                 if instruction not in existing_composite_circuits:
                     if instruction.name in existing_gate_names:
                         old_name = instruction.name
