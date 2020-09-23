@@ -15,7 +15,7 @@
 """
 A collection of functions that decide the layout of an output image.
 
-Currently this module provides below functions:
+Currently this module provides the below functions:
 
 1. Arrange the order of channels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
