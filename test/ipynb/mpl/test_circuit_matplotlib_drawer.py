@@ -394,7 +394,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
-        self.circuit_drawer(circuit, filename='ipx_colors.png')
+        self.circuit_drawer(circuit, style={'name': 'iqx'}, filename='iqx_color.png')
 
 
 if __name__ == '__main__':
